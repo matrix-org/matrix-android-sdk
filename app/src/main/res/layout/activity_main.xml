@@ -16,22 +16,33 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Public rooms" />
+            android:textStyle="bold"
+            android:text="Users" />
 
         <TextView
-            android:id="@+id/prooms_text"
-            android:text="@string/hello_world"
+            android:id="@+id/users_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:text="Public rooms" />
+
+        <TextView
+            android:id="@+id/prooms_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
             android:text="User rooms" />
 
         <TextView
             android:id="@+id/urooms_text"
-            android:text="@string/hello_world"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 

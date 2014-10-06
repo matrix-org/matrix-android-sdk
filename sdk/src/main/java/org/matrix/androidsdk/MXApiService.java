@@ -84,6 +84,6 @@ public class MXApiService {
     }
 
     public TokensChunkResponse<Event> events(String fromToken) {
-        return mEventsApi.events(fromToken, 30000);
+        return mEventsApi.events(fromToken, 10000);
     }
 }

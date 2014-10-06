@@ -16,7 +16,7 @@ public class EventsThread extends Thread {
     EventsThreadListener mListener;
 
     public EventsThread(MXApiService apiService, EventsThreadListener listener) {
-        super("Sync thread");
+        super("Events thread");
         mApiService = apiService;
         mListener = listener;
     }

@@ -1,9 +1,9 @@
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.RoomResponse;
+import org.matrix.androidsdk.api.response.IdentifiedEvent;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,7 +12,12 @@ import java.util.Map;
 public class Room {
 
     private String mRoomId;
-    private Map<String, Message> mMessages = new HashMap<String, Message>();
+    private String mName;
+    private List<String> mAliases;
+    private String mTopic;
+    private String mMembership;
+    private String mVisibility;
+    private Map<String, IdentifiedEvent> mMessages = new HashMap<String, IdentifiedEvent>();
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
     public String getRoomId() {
@@ -23,11 +28,35 @@ public class Room {
         mRoomId = roomId;
     }
 
-    public Map<String, Message> getMessages() {
+    public String getName() {
+        return mName;
+    }
+
+    public void setName(String name) {
+        this.mName = name;
+    }
+
+    public List<String> getAliases() {
+        return mAliases;
+    }
+
+    public void setAliases(List<String> aliases) {
+        this.mAliases = aliases;
+    }
+
+    public String getTopic() {
+        return mTopic;
+    }
+
+    public void setTopic(String topic) {
+        this.mTopic = topic;
+    }
+
+    public Map<String, IdentifiedEvent> getMessages() {
         return mMessages;
     }
 
-    public void setMessages(Map<String, Message> messages) {
+    public void setMessages(Map<String, IdentifiedEvent> messages) {
         mMessages = messages;
     }
 
@@ -39,7 +68,7 @@ public class Room {
         mMembers = members;
     }
 
-    public void addMessage(Message message) {
+    public void addMessage(IdentifiedEvent message) {
         mMessages.put(message.eventId, message);
     }
 }

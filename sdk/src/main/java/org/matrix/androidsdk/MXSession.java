@@ -11,6 +11,7 @@ public class MXSession {
     private MXApiService mApiService;
     private MXData mData;
     private EventsThread mEventsThread;
+
     private String mAccessToken = null;
 
     public MXSession(String hsDomain) {

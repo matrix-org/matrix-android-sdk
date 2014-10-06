@@ -9,6 +9,6 @@ public class RoomResponse {
     public String roomId;
     public String membership;
     public String visibility;
-    public TokensChunkResponse<Message> messages;
+    public TokensChunkResponse<IdentifiedEvent> messages;
     public List<StateEvent> state;
 }
