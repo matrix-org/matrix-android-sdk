@@ -5,14 +5,13 @@ import android.util.Log;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.api.EventsApi;
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 
-import java.lang.reflect.Type;
 import java.util.List;
 
 import retrofit.Callback;
@@ -67,10 +66,10 @@ public class MXApiService {
     }
 
     public void loadPublicRooms(final LoadPublicRoomsCallback callback) {
-        mEventsApi.publicRooms(new Callback<TokensChunkResponse<List<PublicRoom>>>() {
+        mEventsApi.publicRooms(new Callback<TokensChunkResponse<PublicRoom>>() {
             @Override
-            public void success(TokensChunkResponse<List<PublicRoom>> typedResponse, Response response) {
-                callback.onRoomsLoaded(typedResponse.getChunk());
+            public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
+                callback.onRoomsLoaded(typedResponse.chunk);
             }
 
             @Override
@@ -80,7 +79,11 @@ public class MXApiService {
         });
     }
 
-    public void initialSync() {
-        mEventsApi.initialSync(1);
+    public InitialSyncResponse initialSync() {
+        return mEventsApi.initialSync(1);
+    }
+
+    public TokensChunkResponse<Event> events(String fromToken) {
+        return mEventsApi.events(fromToken, 30000);
     }
 }

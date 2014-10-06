@@ -1,28 +1,44 @@
 package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.MXApiService;
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.InitialSyncResponse;
+import org.matrix.androidsdk.api.response.TokensChunkResponse;
+
+import java.util.List;
 
 /**
- * Created by JOACHIMR on 02/10/2014.
+ * Thread that continually watches the event stream and sends events to its listener.
  */
 public class EventsThread extends Thread {
 
     MXApiService mApiService;
-    SyncThreadListener mListener;
+    EventsThreadListener mListener;
 
-    public EventsThread(MXApiService apiService, SyncThreadListener listener) {
+    public EventsThread(MXApiService apiService, EventsThreadListener listener) {
         super("Sync thread");
+        mApiService = apiService;
         mListener = listener;
     }
 
-    public interface SyncThreadListener {
-        public void onInitialSyncComplete();
-        public void onEventReceived();
+    public interface EventsThreadListener {
+        public void onInitialSyncComplete(InitialSyncResponse response);
+        public void onEventsReceived(List<Event> events);
     }
 
     @Override
     public void run() {
         // Start with initial sync
-        mApiService.initialSync();
+        InitialSyncResponse initialResponse = mApiService.initialSync();
+        mListener.onInitialSyncComplete(initialResponse);
+
+        String currentToken = initialResponse.end;
+
+        // Then work from there
+        while (true) {
+            TokensChunkResponse<Event> eventsResponse = mApiService.events(currentToken);
+            mListener.onEventsReceived(eventsResponse.chunk);
+            currentToken = eventsResponse.end;
+        }
     }
 }

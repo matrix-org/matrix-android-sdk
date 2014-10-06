@@ -2,10 +2,10 @@ package org.matrix.androidsdk.api;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
-
-import java.util.List;
 
 import retrofit.Callback;
 import retrofit.http.GET;
@@ -24,7 +24,7 @@ public interface EventsApi {
      * @return the next event or just the same token in case of timeout
      */
     @GET("/events")
-    public JsonObject events(@Query("from") String from, @Query("timeout") int timeout);
+    public TokensChunkResponse<Event> events(@Query("from") String from, @Query("timeout") int timeout);
 
     /**
      * Get information about a single event.
@@ -39,7 +39,7 @@ public interface EventsApi {
      * @param callback An asynchronous callback to call when finished
      */
     @GET("/publicRooms")
-    public void publicRooms(Callback<TokensChunkResponse<List<PublicRoom>>> callback);
+    public void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
 
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
@@ -47,5 +47,5 @@ public interface EventsApi {
      * @return the rooms, presence, states information
      */
     @GET("/initialSync")
-    public JsonObject initialSync(@Query("limit") int limit);
+    public InitialSyncResponse initialSync(@Query("limit") int limit);
 }
