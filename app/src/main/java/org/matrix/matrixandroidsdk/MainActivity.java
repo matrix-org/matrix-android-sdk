@@ -22,7 +22,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final MXSession matrixSession = new MXSession("matrix.org");
+        final MXSession matrixSession = new MXSession(new MXApiService("matrix.org"), new MXData());
 
         final TextView publicRoomsTextView = (TextView) findViewById(R.id.prooms_text);
         matrixSession.getApiService().loadPublicRooms(new MXApiService.LoadPublicRoomsCallback() {
