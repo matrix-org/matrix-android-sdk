@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.response.Event;
@@ -13,11 +14,14 @@ import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import retrofit.Callback;
+import retrofit.ErrorHandler;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
+import retrofit.client.OkClient;
 import retrofit.client.Response;
 import retrofit.converter.GsonConverter;
 
@@ -38,16 +42,32 @@ public class MXApiService {
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
 
-        // Rest adapter for turning API interfaces into actual REST-calling classes
+        // HTTP client
+        OkHttpClient okHttpClient = new OkHttpClient();
+        okHttpClient.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
+        okHttpClient.setReadTimeout(60000, TimeUnit.MILLISECONDS);
+
+        // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint("http://" + hsDomain + URI_PREFIX)
                 .setConverter(new GsonConverter(mGson))
+                .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
                         if (mAccessToken != null) {
                             request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mAccessToken);
                         }
+                    }
+                })
+                .setErrorHandler(new ErrorHandler() {
+                    @Override
+                    public Throwable handleError(RetrofitError cause) {
+                        if (cause.isNetworkError()) {
+                            Log.e(LOG_TAG, cause.getMessage());
+                            return null;
+                        }
+                        return cause;
                     }
                 })
                 .build();
@@ -84,6 +104,6 @@ public class MXApiService {
     }
 
     public TokensChunkResponse<Event> events(String fromToken) {
-        return mEventsApi.events(fromToken, 10000);
+        return mEventsApi.events(fromToken, 30000);
     }
 }
