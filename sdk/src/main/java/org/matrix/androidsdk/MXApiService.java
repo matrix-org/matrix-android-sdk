@@ -29,19 +29,22 @@ public class MXApiService {
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private EventsApi mEventsApi;
-    private Gson mGson;
     private String mAccessToken;
+
+    public MXApiService(EventsApi eventsApi) {
+        mEventsApi = eventsApi;
+    }
 
     public MXApiService(String hsDomain) {
         // The JSON -> object mapper
-        mGson = new GsonBuilder()
+        Gson gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
 
         // Rest adapter for turning API interfaces into actual REST-calling classes
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint("http://" + hsDomain + URI_PREFIX)
-                .setConverter(new GsonConverter(mGson))
+                .setConverter(new GsonConverter(gson))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
