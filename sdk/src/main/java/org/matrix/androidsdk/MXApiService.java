@@ -33,12 +33,15 @@ public class MXApiService {
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private EventsApi mEventsApi;
-    private Gson mGson;
     private String mAccessToken;
+
+    public MXApiService(EventsApi eventsApi) {
+        mEventsApi = eventsApi;
+    }
 
     public MXApiService(String hsDomain) {
         // The JSON -> object mapper
-        mGson = new GsonBuilder()
+        Gson gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
 
@@ -50,7 +53,7 @@ public class MXApiService {
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint("http://" + hsDomain + URI_PREFIX)
-                .setConverter(new GsonConverter(mGson))
+                .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
