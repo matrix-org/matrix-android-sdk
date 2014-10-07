@@ -7,9 +7,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.IdentifiedEvent;
+import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.api.response.User;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,15 +28,26 @@ public class MXData {
     private Map<String, Room> mRooms = new ConcurrentHashMap<String, Room>();
     private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
 
-    // Callback to implement when data is updated
+    /**
+     * Callback to implement when data is updated
+     */
     public interface DataUpdateListener {
         public void onUpdate();
+    }
+
+    /**
+     * Callback to implement to receive all events
+     */
+    public interface OnEventListener {
+        public void onEvent(Event event);
     }
 
     // Data update listeners
     private List<DataUpdateListener> mUserDataListeners = new ArrayList<DataUpdateListener>();
     private List<DataUpdateListener> mGlobalRoomDataListeners = new ArrayList<DataUpdateListener>();
     private Map<String, List<DataUpdateListener>> mRoomDataListeners = new HashMap<String, List<DataUpdateListener>>();
+
+    private List<OnEventListener> mOnEventListeners = new ArrayList<OnEventListener>();
 
     private Gson mGson;
 
@@ -102,12 +114,28 @@ public class MXData {
         }
     }
 
-    public void addRoom(String roomId) {
+    public void addOnEventListener(OnEventListener listener) {
+        mOnEventListeners.add(listener);
+    }
+
+    public void removeOnEventListener(OnEventListener listener) {
+        mOnEventListeners.remove(listener);
+    }
+
+    private void notifyOnEventListeners(Event event) {
+        for (OnEventListener listener : mOnEventListeners) {
+            listener.onEvent(event);
+        }
+    }
+
+    public Room addRoom(String roomId) {
         Room room = new Room();
         room.setRoomId(roomId);
         mRooms.put(roomId, room);
 
         notifyListeners(mGlobalRoomDataListeners);
+
+        return room;
     }
 
     public void handleEvents(List<? extends Event> events) {
@@ -133,15 +161,63 @@ public class MXData {
 
             notifyListeners(mUserDataListeners);
         }
+
+        // Room events
         else if ("m.room.message".equals(event.type)) {
-            IdentifiedEvent message = (IdentifiedEvent) event;
-            Room room = mRooms.get(message.roomId);
+            Room room = mRooms.get(event.roomId);
             if (room != null) {
-                room.addMessage(message);
+                room.addMessage(event);
             }
 
             notifyListeners(mGlobalRoomDataListeners);
-            notifyListeners(mRoomDataListeners.get(message.roomId));
+            notifyListeners(mRoomDataListeners.get(event.roomId));
         }
+
+        // Room state events
+        else if ("m.room.name".equals(event.type)) {
+            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.getRoomState().name = roomState.name;
+        }
+
+        else if ("m.room.topic".equals(event.type)) {
+            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.getRoomState().topic = roomState.topic;
+        }
+
+        else if ("m.room.create".equals(event.type)) {
+            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.getRoomState().creator = roomState.creator;
+        }
+
+        else if ("m.room.join_rules".equals(event.type)) {
+            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.getRoomState().joinRule = roomState.joinRule;
+        }
+
+        else if ("m.room.aliases".equals(event.type)) {
+            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.getRoomState().aliases = roomState.aliases;
+        }
+
+        else if ("m.room.member".equals(event.type)) {
+            RoomMember member = mGson.fromJson(event.content, RoomMember.class);
+            Room room = getOrCreateRoom(event.roomId);
+            room.setMember(event.userId, member);
+        }
+
+        notifyOnEventListeners(event);
+    }
+
+    private Room getOrCreateRoom(String roomId) {
+        Room room = mRooms.get(roomId);
+        if (room == null) {
+            room = addRoom(roomId);
+        }
+        return room;
     }
 }

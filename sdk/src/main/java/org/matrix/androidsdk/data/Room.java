@@ -1,9 +1,9 @@
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.api.response.IdentifiedEvent;
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.RoomMember;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,12 +12,8 @@ import java.util.Map;
 public class Room {
 
     private String mRoomId;
-    private String mName;
-    private List<String> mAliases;
-    private String mTopic;
-    private String mMembership;
-    private String mVisibility;
-    private Map<String, IdentifiedEvent> mMessages = new HashMap<String, IdentifiedEvent>();
+    private RoomState mRoomState = new RoomState();
+    private Map<String, Event> mMessages = new HashMap<String, Event>();
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
     public String getRoomId() {
@@ -28,35 +24,19 @@ public class Room {
         mRoomId = roomId;
     }
 
-    public String getName() {
-        return mName;
+    public RoomState getRoomState() {
+        return mRoomState;
     }
 
-    public void setName(String name) {
-        this.mName = name;
+    public void setRoomState(RoomState roomState) {
+        this.mRoomState = roomState;
     }
 
-    public List<String> getAliases() {
-        return mAliases;
-    }
-
-    public void setAliases(List<String> aliases) {
-        this.mAliases = aliases;
-    }
-
-    public String getTopic() {
-        return mTopic;
-    }
-
-    public void setTopic(String topic) {
-        this.mTopic = topic;
-    }
-
-    public Map<String, IdentifiedEvent> getMessages() {
+    public Map<String, Event> getMessages() {
         return mMessages;
     }
 
-    public void setMessages(Map<String, IdentifiedEvent> messages) {
+    public void setMessages(Map<String, Event> messages) {
         mMessages = messages;
     }
 
@@ -68,7 +48,11 @@ public class Room {
         mMembers = members;
     }
 
-    public void addMessage(IdentifiedEvent message) {
+    public void addMessage(Event message) {
         mMessages.put(message.eventId, message);
+    }
+
+    public void setMember(String userId, RoomMember member) {
+        mMembers.put(userId, member);
     }
 }
