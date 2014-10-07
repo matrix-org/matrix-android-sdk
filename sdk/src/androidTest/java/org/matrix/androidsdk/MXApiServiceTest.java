@@ -16,6 +16,7 @@ import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.test.RetrofitUtils;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +29,7 @@ import retrofit.http.Query;
 import retrofit.client.Response;
 import retrofit.mime.TypedInput;
 
+import static org.mockito.Mockito.*;
 
 public class MXApiServiceTest extends TestCase {
 
@@ -97,17 +99,21 @@ public class MXApiServiceTest extends TestCase {
 
 
         MXApiService service = new MXApiService(eventsApi);
-        service.loadPublicRooms(new MXApiService.LoadPublicRoomsCallback() {
-            @Override
-            public void onRoomsLoaded(List<PublicRoom> publicRooms) {
-                assertEquals(1, publicRooms.size());
-                PublicRoom pr = publicRooms.get(0);
-                assertEquals(roomName, pr.name);
-                assertEquals(roomId, pr.roomId);
-                assertEquals(roomTopic, pr.topic);
-                assertEquals(roomMembers, pr.numJoinedMembers);
-            }
-        });
+        MXApiService.LoadPublicRoomsCallback cb = mock(MXApiService.LoadPublicRoomsCallback.class);
+
+        // run the method being tested
+        service.loadPublicRooms(cb);
+
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(cb, times(1)).onRoomsLoaded(captor.capture());
+        List<PublicRoom> publicRooms = (List<PublicRoom>) captor.getValue();
+
+        assertEquals(1, publicRooms.size());
+        PublicRoom pr = publicRooms.get(0);
+        assertEquals(roomName, pr.name);
+        assertEquals(roomId, pr.roomId);
+        assertEquals(roomTopic, pr.topic);
+        assertEquals(roomMembers, pr.numJoinedMembers);
 
     }
 }

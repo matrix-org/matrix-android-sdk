@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.1.0"
+    buildToolsVersion '19.1.0'
 
     defaultConfig {
         applicationId "org.matrix.androidsdk"
@@ -24,4 +24,6 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
+    compile 'com.google.dexmaker:dexmaker-mockito:1.0'
+    compile 'com.google.dexmaker:dexmaker:1.0'
 }
