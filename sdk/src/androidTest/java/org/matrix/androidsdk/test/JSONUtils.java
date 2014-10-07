@@ -24,7 +24,20 @@ public class JSONUtils {
             return json;
         }
         catch (JSONException e) {
-            Assert.assertTrue("createChunk: " + e, false);
+            Assert.assertTrue("JSONUtils.createChunk: " + e, false);
+        }
+        return null;
+    }
+
+    public static JSONObject error(int code) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("errcode", code);
+            json.put("error", "Uh-oh: " + code);
+            return json;
+        }
+        catch (JSONException e) {
+            Assert.assertTrue("JSONUtils.error: " + e, false);
         }
         return null;
     }
