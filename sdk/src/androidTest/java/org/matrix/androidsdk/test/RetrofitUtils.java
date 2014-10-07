@@ -13,6 +13,9 @@ import retrofit.client.Header;
 import retrofit.client.Response;
 import retrofit.mime.TypedInput;
 
+/**
+ * Utility class for interacting with Retrofit.
+ */
 public class RetrofitUtils {
 
     private static final HashMap<Integer, String> sCodeToStatusMsg = new HashMap<Integer, String>();
