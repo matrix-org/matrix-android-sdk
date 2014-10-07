@@ -1,11 +1,14 @@
 package org.matrix.androidsdk;
 
+import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.response.Event;
@@ -38,10 +41,27 @@ public class MXApiServiceTest extends TestCase {
         super.tearDown();
     }
 
-    public void testPublicRooms() {
-        Gson gson = new Gson();
-        final TokensChunkResponse<PublicRoom> roomsChunk = new TokensChunkResponse<PublicRoom>();
-        roomsChunk.chunk = new ArrayList<PublicRoom>();
+    public void testPublicRooms() throws Exception {
+        final String roomId = "!faifuhew9:localhost";
+        final String roomTopic = "This is a test room.";
+        final String roomName = "Test Room";
+        final int roomMembers = 6;
+
+        final JSONObject json = new JSONObject();
+        json.put("start","abc");
+        json.put("end", "def");
+        JSONArray rooms = new JSONArray();
+
+        JSONObject room = new JSONObject().put("name", roomName).put("num_joined_members", roomMembers)
+            .put("room_id", roomId).put("topic", roomTopic);
+        rooms.put(room);
+        json.put("chunk", rooms);
+
+        Gson gson = new GsonBuilder()
+                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                .create();
+        final TokensChunkResponse<PublicRoom> roomsChunk = gson.fromJson(json.toString(),
+                new TypeToken<TokensChunkResponse<PublicRoom>>(){}.getType());
 
         EventsApi eventsApi = new EventsApi() {
 
@@ -58,15 +78,15 @@ public class MXApiServiceTest extends TestCase {
 
             @Override
             public void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback) {
+                Response response = null;
                 try {
-                    Response response = RetrofitUtils.createJsonResponse(BASE_URL, 200,
-                            new JSONObject());
-                    callback.success(roomsChunk, response);
+                    response = RetrofitUtils.createJsonResponse(BASE_URL, 200,
+                                json);
                 }
                 catch (Exception e) {
-                    Assert.assertTrue("Exception thrown: "+e, false);
+                    assertTrue("Exception thrown: "+e, false);
                 }
-
+                callback.success(roomsChunk, response);
             }
 
             @Override
@@ -80,7 +100,12 @@ public class MXApiServiceTest extends TestCase {
         service.loadPublicRooms(new MXApiService.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
-                Assert.assertEquals(0, publicRooms.size());
+                assertEquals(1, publicRooms.size());
+                PublicRoom pr = publicRooms.get(0);
+                assertEquals(roomName, pr.name);
+                assertEquals(roomId, pr.roomId);
+                assertEquals(roomTopic, pr.topic);
+                assertEquals(roomMembers, pr.numJoinedMembers);
             }
         });
 
