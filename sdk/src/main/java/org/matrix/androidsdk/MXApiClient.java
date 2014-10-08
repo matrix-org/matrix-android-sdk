@@ -8,10 +8,12 @@ import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.api.EventsApi;
+import org.matrix.androidsdk.api.ProfileApi;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.api.response.User;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +27,9 @@ import retrofit.client.OkClient;
 import retrofit.client.Response;
 import retrofit.converter.GsonConverter;
 
+/**
+ * Class for making matrix API calls.
+ */
 public class MXApiClient {
 
     private static final String LOG_TAG = "MXApiClient";
@@ -37,10 +42,21 @@ public class MXApiClient {
     private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
     private EventsApi mEventsApi;
+    private ProfileApi mProfileApi;
+
     private String mAccessToken;
 
-    public MXApiClient(EventsApi eventsApi) {
+    /**
+     * Generic callback interface for asynchronously returning information.
+     * @param <T> the type of information
+     */
+    public interface ApiCallback<T> {
+        public void onSuccess(T info);
+    }
+
+    public MXApiClient(EventsApi eventsApi, ProfileApi profileApi) {
         mEventsApi = eventsApi;
+        mProfileApi = profileApi;
     }
 
     public MXApiClient(String hsDomain) {
@@ -82,12 +98,16 @@ public class MXApiClient {
         restAdapter.setLogLevel(RestAdapter.LogLevel.BASIC);
 
         mEventsApi = restAdapter.create(EventsApi.class);
+        mProfileApi = restAdapter.create(ProfileApi.class);
     }
 
     public void setAccessToken(String accessToken) {
         mAccessToken = accessToken;
     }
 
+    ////////////////////////////////////////////////
+    // Events API
+    ////////////////////////////////////////////////
     public void loadPublicRooms(final LoadPublicRoomsCallback callback) {
         mEventsApi.publicRooms(new Callback<TokensChunkResponse<PublicRoom>>() {
             @Override
@@ -130,5 +150,36 @@ public class MXApiClient {
 
     public interface InitialSyncCallback {
         public void onSynced(InitialSyncResponse initialSync);
+    }
+
+    ////////////////////////////////////////////////
+    // Profile API
+    ////////////////////////////////////////////////
+    public void getUserDisplayName(String userId, final ApiCallback<String> callback) {
+        mProfileApi.displayname(userId, new Callback<User>() {
+            @Override
+            public void success(User user, Response response) {
+                callback.onSuccess(user.displayname);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
+    }
+
+    public void getUserAvatarUrl(String userId, final ApiCallback<String> callback) {
+        mProfileApi.avatarUrl(userId, new Callback<User>() {
+            @Override
+            public void success(User user, Response response) {
+                callback.onSuccess(user.avatarUrl);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
     }
 }

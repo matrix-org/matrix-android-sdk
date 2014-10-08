@@ -88,7 +88,7 @@ public class MXApiClientTest extends TestCase {
         }).when(eventsApi).publicRooms(any(Callback.class));
 
 
-        MXApiClient service = new MXApiClient(eventsApi);
+        MXApiClient service = new MXApiClient(eventsApi, null);
         MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
@@ -126,7 +126,7 @@ public class MXApiClientTest extends TestCase {
             }
         }).when(eventsApi).publicRooms(any(Callback.class));
 
-        MXApiClient service = new MXApiClient(eventsApi);
+        MXApiClient service = new MXApiClient(eventsApi, null);
         MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
