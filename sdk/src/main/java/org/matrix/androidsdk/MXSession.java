@@ -24,6 +24,9 @@ public class MXSession {
     public void setAccessToken(String accessToken) {
         mAccessToken = accessToken;
         mApiService.setAccessToken(accessToken);
+        // TODO: This is surprising: the expectation of a simple setFoo would be a simple assignment
+        // and nothing more. This should be split out into another method, or this method should be
+        // renamed.
         if (accessToken != null) {
             mEventsThread.start();
         }

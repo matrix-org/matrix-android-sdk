@@ -32,6 +32,10 @@ public class MXApiService {
     private static final String URI_PREFIX = "/_matrix/client/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
+    private static final int CONNECTION_TIMEOUT_MS = 60000;
+    private static final int READ_TIMEOUT_MS = 60000;
+    private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+
     private EventsApi mEventsApi;
     private String mAccessToken;
 
@@ -47,8 +51,8 @@ public class MXApiService {
 
         // HTTP client
         OkHttpClient okHttpClient = new OkHttpClient();
-        okHttpClient.setConnectTimeout(60000, TimeUnit.MILLISECONDS);
-        okHttpClient.setReadTimeout(60000, TimeUnit.MILLISECONDS);
+        okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
@@ -113,7 +117,11 @@ public class MXApiService {
     }
 
     public TokensChunkResponse<Event> events(String fromToken) {
-        return mEventsApi.events(fromToken, 30000);
+        return events(fromToken, EVENT_STREAM_TIMEOUT_MS);
+    }
+
+    public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
+        return mEventsApi.events(fromToken, timeoutMs);
     }
 
     public interface LoadPublicRoomsCallback {
