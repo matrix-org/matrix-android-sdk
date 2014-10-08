@@ -1,19 +1,26 @@
 package org.matrix.androidsdk.sync;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.MXApiService;
+import org.matrix.androidsdk.MXApiService.InitialSyncCallback;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Thread that continually watches the event stream and sends events to its listener.
  */
 public class EventsThread extends Thread {
+    private static final String LOG_TAG = "EventsThread";
 
-    MXApiService mApiService;
-    EventsThreadListener mListener;
+    private MXApiService mApiService;
+    private EventsThreadListener mListener;
+    private String mCurrentToken;
+
 
     public EventsThread(MXApiService apiService, EventsThreadListener listener) {
         super("Events thread");
@@ -28,17 +35,36 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
-        // Start with initial sync
-        InitialSyncResponse initialResponse = mApiService.initialSync();
-        mListener.onInitialSyncComplete(initialResponse);
+        Log.d(LOG_TAG, "Requesting initial sync...");
 
-        String currentToken = initialResponse.end;
+        // Start with initial sync
+        final CountDownLatch latch = new CountDownLatch(1);
+        mApiService.initialSync(new InitialSyncCallback() {
+            @Override
+            public void onSynced(InitialSyncResponse initialSync) {
+                Log.i(LOG_TAG, "Received initial sync response.");
+                mListener.onInitialSyncComplete(initialSync);
+                mCurrentToken = initialSync.end;
+                // unblock the events thread
+                latch.countDown();
+            }
+        });
+
+        // block until the initial sync callback is invoked.
+        try {
+            latch.await();
+        }
+        catch (InterruptedException e) {
+            Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+        }
+
+        Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
 
         // Then work from there
         while (true) {
-            TokensChunkResponse<Event> eventsResponse = mApiService.events(currentToken);
+            TokensChunkResponse<Event> eventsResponse = mApiService.events(mCurrentToken);
             mListener.onEventsReceived(eventsResponse.chunk);
-            currentToken = eventsResponse.end;
+            mCurrentToken = eventsResponse.end;
         }
     }
 }

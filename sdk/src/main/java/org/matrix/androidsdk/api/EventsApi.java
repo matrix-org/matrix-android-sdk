@@ -44,8 +44,10 @@ public interface EventsApi {
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param limit the limit of the amount of messages to return per room
+     * @param callback The asynchronous callback to call when finished
      * @return the rooms, presence, states information
      */
     @GET("/initialSync")
-    public InitialSyncResponse initialSync(@Query("limit") int limit);
+    public void initialSync(@Query("limit") int limit,
+                                           Callback<InitialSyncResponse> callback);
 }

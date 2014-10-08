@@ -84,10 +84,6 @@ public class MXApiService {
         mAccessToken = accessToken;
     }
 
-    public interface LoadPublicRoomsCallback {
-        public void onRoomsLoaded(List<PublicRoom> publicRooms);
-    }
-
     public void loadPublicRooms(final LoadPublicRoomsCallback callback) {
         mEventsApi.publicRooms(new Callback<TokensChunkResponse<PublicRoom>>() {
             @Override
@@ -102,11 +98,29 @@ public class MXApiService {
         });
     }
 
-    public InitialSyncResponse initialSync() {
-        return mEventsApi.initialSync(1);
+    public void initialSync(final InitialSyncCallback callback) {
+        mEventsApi.initialSync(1, new Callback<InitialSyncResponse>() {
+            @Override
+            public void success(InitialSyncResponse initialSync, Response response) {
+                callback.onSynced(initialSync);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
     }
 
     public TokensChunkResponse<Event> events(String fromToken) {
         return mEventsApi.events(fromToken, 30000);
+    }
+
+    public interface LoadPublicRoomsCallback {
+        public void onRoomsLoaded(List<PublicRoom> publicRooms);
+    }
+
+    public interface InitialSyncCallback {
+        public void onSynced(InitialSyncResponse initialSync);
     }
 }
