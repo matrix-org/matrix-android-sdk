@@ -134,8 +134,4 @@ public class MXApiServiceTest extends TestCase {
         service.loadPublicRooms(cb);
         verify(cb, times(0)).onRoomsLoaded(any(List.class));
     }
-
-    public void testError() throws Exception {
-        assertTrue("Testing failure", false);
-    }
 }
