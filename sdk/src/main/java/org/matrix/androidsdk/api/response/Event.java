@@ -3,7 +3,7 @@ package org.matrix.androidsdk.api.response;
 import com.google.gson.JsonObject;
 
 /**
- * Created by JOACHIMR on 03/10/2014.
+ * Generic event class with all possible fields for events.
  */
 public class Event {
     public String type;

@@ -29,14 +29,15 @@ public interface EventsApi {
     /**
      * Get information about a single event.
      * @param eventId The event ID to get
+     * @param callback The asynchronous callback to call when finished
      * @return the event information
      */
     @GET("/events/{eventId}")
-    public JsonObject events(@Path("eventId") String eventId);
+    public void events(@Path("eventId") String eventId, Callback<Event> callback);
 
     /**
      * Get the list of public rooms for this home server.
-     * @param callback An asynchronous callback to call when finished
+     * @param callback The asynchronous callback to call when finished
      */
     @GET("/publicRooms")
     public void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
