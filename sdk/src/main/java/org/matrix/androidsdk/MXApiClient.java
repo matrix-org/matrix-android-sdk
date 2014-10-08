@@ -25,9 +25,9 @@ import retrofit.client.OkClient;
 import retrofit.client.Response;
 import retrofit.converter.GsonConverter;
 
-public class MXApiService {
+public class MXApiClient {
 
-    private static final String LOG_TAG = "MXApiService";
+    private static final String LOG_TAG = "MXApiClient";
 
     private static final String URI_PREFIX = "/_matrix/client/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
@@ -39,11 +39,11 @@ public class MXApiService {
     private EventsApi mEventsApi;
     private String mAccessToken;
 
-    public MXApiService(EventsApi eventsApi) {
+    public MXApiClient(EventsApi eventsApi) {
         mEventsApi = eventsApi;
     }
 
-    public MXApiService(String hsDomain) {
+    public MXApiClient(String hsDomain) {
         // The JSON -> object mapper
         Gson gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)

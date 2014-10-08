@@ -8,25 +8,22 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
  */
 public class MXSession {
 
-    private MXApiService mApiService;
+    private MXApiClient mApiClient;
     private MXData mData;
     private EventsThread mEventsThread;
 
     private String mAccessToken = null;
 
-    public MXSession(MXApiService apiService, MXData mxData) {
-        mApiService = apiService;
+    public MXSession(MXApiClient apiService, MXData mxData) {
+        mApiClient = apiService;
         mData = mxData;
 
-        mEventsThread = new EventsThread(mApiService, new EventsThreadListener(mData));
+        mEventsThread = new EventsThread(mApiClient, new EventsThreadListener(mData));
     }
 
-    public void setAccessToken(String accessToken) {
+    public void startEventStream(String accessToken) {
         mAccessToken = accessToken;
-        mApiService.setAccessToken(accessToken);
-        // TODO: This is surprising: the expectation of a simple setFoo would be a simple assignment
-        // and nothing more. This should be split out into another method, or this method should be
-        // renamed.
+        mApiClient.setAccessToken(accessToken);
         if (accessToken != null) {
             mEventsThread.start();
         }
@@ -36,8 +33,8 @@ public class MXSession {
         return mAccessToken != null;
     }
 
-    public MXApiService getApiService() {
-        return mApiService;
+    public MXApiClient getApiService() {
+        return mApiClient;
     }
 
     public MXData getData() {

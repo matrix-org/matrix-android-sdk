@@ -21,7 +21,6 @@ import org.mockito.stubbing.Answer;
 import java.util.List;
 
 import retrofit.Callback;
-import retrofit.RetrofitError;
 import retrofit.client.Response;
 
 import static org.mockito.Mockito.*;
@@ -29,7 +28,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests MXApiService.
  */
-public class MXApiServiceTest extends TestCase {
+public class MXApiClientTest extends TestCase {
 
     private static final String BASE_URL = "http://localhost:8008/_matrix/client/api/v1";
     private static final String PATH = "/publicRooms";
@@ -89,8 +88,8 @@ public class MXApiServiceTest extends TestCase {
         }).when(eventsApi).publicRooms(any(Callback.class));
 
 
-        MXApiService service = new MXApiService(eventsApi);
-        MXApiService.LoadPublicRoomsCallback cb = mock(MXApiService.LoadPublicRoomsCallback.class);
+        MXApiClient service = new MXApiClient(eventsApi);
+        MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
         service.loadPublicRooms(cb);
@@ -127,8 +126,8 @@ public class MXApiServiceTest extends TestCase {
             }
         }).when(eventsApi).publicRooms(any(Callback.class));
 
-        MXApiService service = new MXApiService(eventsApi);
-        MXApiService.LoadPublicRoomsCallback cb = mock(MXApiService.LoadPublicRoomsCallback.class);
+        MXApiClient service = new MXApiClient(eventsApi);
+        MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
         service.loadPublicRooms(cb);

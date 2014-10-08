@@ -6,7 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-import org.matrix.androidsdk.MXApiService;
+import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
@@ -22,10 +22,10 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final MXSession matrixSession = new MXSession(new MXApiService("matrix.org"), new MXData());
+        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
 
         final TextView publicRoomsTextView = (TextView) findViewById(R.id.prooms_text);
-        matrixSession.getApiService().loadPublicRooms(new MXApiService.LoadPublicRoomsCallback() {
+        matrixSession.getApiService().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
                 StringBuilder sb = new StringBuilder();

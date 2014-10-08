@@ -2,8 +2,8 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
-import org.matrix.androidsdk.MXApiService;
-import org.matrix.androidsdk.MXApiService.InitialSyncCallback;
+import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.MXApiClient.InitialSyncCallback;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
@@ -17,14 +17,14 @@ import java.util.concurrent.CountDownLatch;
 public class EventsThread extends Thread {
     private static final String LOG_TAG = "EventsThread";
 
-    private MXApiService mApiService;
+    private MXApiClient mApiClient;
     private EventsThreadListener mListener;
     private String mCurrentToken;
 
 
-    public EventsThread(MXApiService apiService, EventsThreadListener listener) {
+    public EventsThread(MXApiClient apiClient, EventsThreadListener listener) {
         super("Events thread");
-        mApiService = apiService;
+        mApiClient = apiClient;
         mListener = listener;
     }
 
@@ -39,7 +39,7 @@ public class EventsThread extends Thread {
 
         // Start with initial sync
         final CountDownLatch latch = new CountDownLatch(1);
-        mApiService.initialSync(new InitialSyncCallback() {
+        mApiClient.initialSync(new InitialSyncCallback() {
             @Override
             public void onSynced(InitialSyncResponse initialSync) {
                 Log.i(LOG_TAG, "Received initial sync response.");
@@ -62,7 +62,7 @@ public class EventsThread extends Thread {
 
         // Then work from there
         while (true) {
-            TokensChunkResponse<Event> eventsResponse = mApiService.events(mCurrentToken);
+            TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
             mListener.onEventsReceived(eventsResponse.chunk);
             mCurrentToken = eventsResponse.end;
         }
