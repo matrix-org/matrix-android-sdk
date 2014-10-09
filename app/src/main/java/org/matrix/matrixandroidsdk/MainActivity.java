@@ -25,7 +25,7 @@ public class MainActivity extends ActionBarActivity {
         final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
 
         final TextView publicRoomsTextView = (TextView) findViewById(R.id.prooms_text);
-        matrixSession.getApiService().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
+        matrixSession.getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
                 StringBuilder sb = new StringBuilder();
