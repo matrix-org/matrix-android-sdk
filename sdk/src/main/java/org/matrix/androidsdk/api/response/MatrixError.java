@@ -14,6 +14,6 @@ public class MatrixError {
     public static final String ROOM_IN_USE = "M_ROOM_IN_USE";
     public static final String BAD_PAGINATION = "M_BAD_PAGINATION";
 
-    public int errcode;
+    public String errcode;
     public String error;
 }

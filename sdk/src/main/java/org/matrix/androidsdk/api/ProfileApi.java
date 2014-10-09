@@ -27,7 +27,7 @@ public interface ProfileApi {
     /**
      * Get a user's display name.
      * @param userId the user id
-     * @param callback the asynchronous callback to call when finished
+     * @param callback the asynchronous callback called with the response
      */
     @GET("/profile/{userId}/displayname")
     public void displayname(@Path("userId") String userId, Callback<User> callback);
@@ -44,7 +44,7 @@ public interface ProfileApi {
     /**
      * Get a user's avatar URL.
      * @param userId the user id
-     * @param callback the asynchronous callback to call when finished
+     * @param callback the asynchronous callback called with the response
      */
     @GET("/profile/{userId}/avatar_url")
     public void avatarUrl(@Path("userId") String userId, Callback<User> callback);

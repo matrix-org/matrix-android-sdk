@@ -88,11 +88,12 @@ public class MXApiClientTest extends TestCase {
         }).when(eventsApi).publicRooms(any(Callback.class));
 
 
-        MXApiClient service = new MXApiClient(eventsApi, null);
+        MXApiClient client = new MXApiClient();
+        client.setEventsApi(eventsApi);
         MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
-        service.loadPublicRooms(cb);
+        client.loadPublicRooms(cb);
 
         ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
         verify(cb, times(1)).onRoomsLoaded(captor.capture());
@@ -126,11 +127,12 @@ public class MXApiClientTest extends TestCase {
             }
         }).when(eventsApi).publicRooms(any(Callback.class));
 
-        MXApiClient service = new MXApiClient(eventsApi, null);
+        MXApiClient client = new MXApiClient();
+        client.setEventsApi(eventsApi);
         MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
-        service.loadPublicRooms(cb);
+        client.loadPublicRooms(cb);
         verify(cb, times(0)).onRoomsLoaded(any(List.class));
     }
 }

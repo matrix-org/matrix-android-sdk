@@ -5,15 +5,20 @@ import android.util.Log;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.api.EventsApi;
+import org.matrix.androidsdk.api.LoginApi;
 import org.matrix.androidsdk.api.ProfileApi;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.api.response.login.PasswordLoginParams;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -43,8 +48,11 @@ public class MXApiClient {
 
     private EventsApi mEventsApi;
     private ProfileApi mProfileApi;
+    private LoginApi mLoginApi;
 
-    private String mAccessToken;
+    private Credentials mCredentials;
+
+    private Gson gson;
 
     /**
      * Generic callback interface for asynchronously returning information.
@@ -54,14 +62,13 @@ public class MXApiClient {
         public void onSuccess(T info);
     }
 
-    public MXApiClient(EventsApi eventsApi, ProfileApi profileApi) {
-        mEventsApi = eventsApi;
-        mProfileApi = profileApi;
-    }
-
+    /**
+     * Public constructor.
+     * @param hsDomain the home server domain name
+     */
     public MXApiClient(String hsDomain) {
         // The JSON -> object mapper
-        Gson gson = new GsonBuilder()
+        gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
 
@@ -78,8 +85,8 @@ public class MXApiClient {
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
-                        if (mAccessToken != null) {
-                            request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mAccessToken);
+                        if ((mCredentials != null) && (mCredentials.accessToken != null)) {
+                            request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
                         }
                     }
                 })
@@ -95,14 +102,66 @@ public class MXApiClient {
                 })
                 .build();
 
-        restAdapter.setLogLevel(RestAdapter.LogLevel.BASIC);
+        restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mEventsApi = restAdapter.create(EventsApi.class);
         mProfileApi = restAdapter.create(ProfileApi.class);
+        mLoginApi = restAdapter.create(LoginApi.class);
     }
 
-    public void setAccessToken(String accessToken) {
-        mAccessToken = accessToken;
+    public MXApiClient(Credentials credentials) {
+        this(credentials.homeServer);
+        mCredentials = credentials;
+    }
+
+    public EventsApi getEventsApiClient() {
+        return mEventsApi;
+    }
+
+    public ProfileApi getProfileApiClient() {
+        return mProfileApi;
+    }
+
+    public LoginApi getLoginApiClient() {
+        return mLoginApi;
+    }
+
+    public Credentials getCredentials() {
+        return mCredentials;
+    }
+
+    public void setCredentials(Credentials credentials) {
+        mCredentials = credentials;
+    }
+
+    /**
+     * Default protected constructor for unit tests.
+     */
+    protected MXApiClient() {
+    }
+
+    /**
+     * Protected setter for injecting the events API for unit tests.
+     * @param api the events API
+     */
+    protected void setEventsApi(EventsApi api) {
+        mEventsApi = api;
+    }
+
+    /**
+     * Protected setter for injecting the events API for unit tests.
+     * @param api the profile API
+     */
+    protected void setProfileApi(ProfileApi api) {
+        mProfileApi = api;
+    }
+
+    /**
+     * Protected setter for injecting the login API for unit tests.
+     * @param api the login API
+     */
+    protected void setLoginApi(LoginApi api) {
+        mLoginApi = api;
     }
 
     ////////////////////////////////////////////////
@@ -155,7 +214,7 @@ public class MXApiClient {
     ////////////////////////////////////////////////
     // Profile API
     ////////////////////////////////////////////////
-    public void getUserDisplayName(String userId, final ApiCallback<String> callback) {
+    public void displayname(String userId, final ApiCallback<String> callback) {
         mProfileApi.displayname(userId, new Callback<User>() {
             @Override
             public void success(User user, Response response) {
@@ -169,7 +228,29 @@ public class MXApiClient {
         });
     }
 
-    public void getUserAvatarUrl(String userId, final ApiCallback<String> callback) {
+    /**
+     * Update this user's own display name.
+     * @param newName the new name
+     * @param callback the callback if the call succeeds
+     */
+    public void updateDisplayname(String newName, final ApiCallback<Void> callback) {
+        User user = new User();
+        user.displayname = newName;
+
+        mProfileApi.displayname(mCredentials.userId, user, new Callback<Void>() {
+            @Override
+            public void success(Void aVoid, Response response) {
+                callback.onSuccess(aVoid);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
+    }
+
+    public void avatarUrl(String userId, final ApiCallback<String> callback) {
         mProfileApi.avatarUrl(userId, new Callback<User>() {
             @Override
             public void success(User user, Response response) {
@@ -179,6 +260,33 @@ public class MXApiClient {
             @Override
             public void failure(RetrofitError error) {
                 Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
+    }
+
+    ////////////////////////////////////////////////
+    // Login API
+    ////////////////////////////////////////////////
+    public interface LoginCallback {
+        public void onLoggedIn(Credentials credentials);
+        public void onError(MatrixError error);
+    }
+
+    public void loginWithPassword(String user, String password, final LoginCallback callback) {
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.user = user;
+        params.password = password;
+
+        mLoginApi.login(params, new Callback<JsonObject>() {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onLoggedIn(mCredentials);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                callback.onError((MatrixError) error.getBodyAs(MatrixError.class));
             }
         });
     }

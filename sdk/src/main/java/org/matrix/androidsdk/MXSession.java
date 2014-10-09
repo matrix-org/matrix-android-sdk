@@ -12,8 +12,6 @@ public class MXSession {
     private MXData mData;
     private EventsThread mEventsThread;
 
-    private String mAccessToken = null;
-
     public MXSession(MXApiClient apiService, MXData mxData) {
         mApiClient = apiService;
         mData = mxData;
@@ -21,19 +19,13 @@ public class MXSession {
         mEventsThread = new EventsThread(mApiClient, new EventsThreadListener(mData));
     }
 
-    public void startEventStream(String accessToken) {
-        mAccessToken = accessToken;
-        mApiClient.setAccessToken(accessToken);
-        if (accessToken != null) {
+    public void startEventStream() {
+        if (mApiClient.getCredentials().accessToken != null) {
             mEventsThread.start();
         }
     }
 
-    public boolean isLoggedIn() {
-        return mAccessToken != null;
-    }
-
-    public MXApiClient getApiService() {
+    public MXApiClient getApiClient() {
         return mApiClient;
     }
 
