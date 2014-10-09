@@ -11,6 +11,7 @@ import com.squareup.okhttp.OkHttpClient;
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.LoginApi;
 import org.matrix.androidsdk.api.ProfileApi;
+import org.matrix.androidsdk.api.RegistrationApi;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.MatrixError;
@@ -49,6 +50,7 @@ public class MXApiClient {
     private EventsApi mEventsApi;
     private ProfileApi mProfileApi;
     private LoginApi mLoginApi;
+    private RegistrationApi mRegistrationApi;
 
     private Credentials mCredentials;
 
@@ -126,6 +128,10 @@ public class MXApiClient {
         return mLoginApi;
     }
 
+    public RegistrationApi getRegistrationApiClient() {
+        return mRegistrationApi;
+    }
+
     public Credentials getCredentials() {
         return mCredentials;
     }
@@ -162,6 +168,14 @@ public class MXApiClient {
      */
     protected void setLoginApi(LoginApi api) {
         mLoginApi = api;
+    }
+
+    /**
+     * Protected setter for injecting the registration API for unit tests.
+     * @param api the registration API
+     */
+    protected void setRegistrationApi(RegistrationApi api) {
+        mRegistrationApi = api;
     }
 
     ////////////////////////////////////////////////
@@ -278,6 +292,28 @@ public class MXApiClient {
         params.password = password;
 
         mLoginApi.login(params, new Callback<JsonObject>() {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onLoggedIn(mCredentials);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                callback.onError((MatrixError) error.getBodyAs(MatrixError.class));
+            }
+        });
+    }
+
+    ////////////////////////////////////////////////
+    // Registration API
+    ////////////////////////////////////////////////
+    public void registerWithPassword(String user, String password, final LoginCallback callback) {
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.user = user;
+        params.password = password;
+
+        mRegistrationApi.register(params, new Callback<JsonObject>() {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
