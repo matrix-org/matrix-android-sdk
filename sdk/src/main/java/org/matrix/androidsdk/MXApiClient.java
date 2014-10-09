@@ -278,6 +278,28 @@ public class MXApiClient {
         });
     }
 
+    /**
+     * Update this user's own avatar URL.
+     * @param newUrl the new name
+     * @param callback the callback if the call succeeds
+     */
+    public void updateAvatarUrl(String newUrl, final ApiCallback<Void> callback) {
+        User user = new User();
+        user.avatarUrl = newUrl;
+
+        mProfileApi.avatarUrl(mCredentials.userId, user, new Callback<Void>() {
+            @Override
+            public void success(Void aVoid, Response response) {
+                callback.onSuccess(aVoid);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            }
+        });
+    }
+
     ////////////////////////////////////////////////
     // Login API
     ////////////////////////////////////////////////
