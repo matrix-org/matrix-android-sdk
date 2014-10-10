@@ -2,10 +2,11 @@
 <resources>
 
     <string name="app_name">Matrix Android SDK</string>
-    <string name="title_activity_main">Public Rooms</string>
+    <string name="title_activity_home">Matrix Home</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>
-    <string name="title_activity_room">RoomActivity</string>
+    <string name="title_activity_room">Matrix Room</string>
+    <string name="title_activity_login">Matrix Login</string>
 
 </resources>

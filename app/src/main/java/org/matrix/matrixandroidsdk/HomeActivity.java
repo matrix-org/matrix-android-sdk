@@ -15,12 +15,12 @@ import org.matrix.androidsdk.data.Room;
 
 import java.util.List;
 
-public class MainActivity extends ActionBarActivity {
+public class HomeActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_home);
 
         final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
 

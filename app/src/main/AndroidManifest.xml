@@ -10,8 +10,8 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".MainActivity"
-            android:label="@string/title_activity_main"
+            android:name=".LoginActivity"
+            android:label="@string/title_activity_login"
             android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,6 +22,10 @@
         <activity
             android:name=".RoomActivity"
             android:label="@string/title_activity_room" >
+        </activity>
+        <activity
+            android:name=".HomeActivity"
+            android:label="@string/title_activity_home" >
         </activity>
     </application>
 
