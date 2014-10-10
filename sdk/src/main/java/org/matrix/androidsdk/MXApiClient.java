@@ -10,6 +10,7 @@ import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.LoginApi;
+import org.matrix.androidsdk.api.PresenceApi;
 import org.matrix.androidsdk.api.ProfileApi;
 import org.matrix.androidsdk.api.RegistrationApi;
 import org.matrix.androidsdk.api.response.Event;
@@ -51,6 +52,7 @@ public class MXApiClient {
     private ProfileApi mProfileApi;
     private LoginApi mLoginApi;
     private RegistrationApi mRegistrationApi;
+    private PresenceApi mPresenceApi;
 
     private Credentials mCredentials;
 
@@ -109,27 +111,13 @@ public class MXApiClient {
         mEventsApi = restAdapter.create(EventsApi.class);
         mProfileApi = restAdapter.create(ProfileApi.class);
         mLoginApi = restAdapter.create(LoginApi.class);
+        mRegistrationApi = restAdapter.create(RegistrationApi.class);
+        mPresenceApi = restAdapter.create(PresenceApi.class);
     }
 
     public MXApiClient(Credentials credentials) {
         this(credentials.homeServer);
         mCredentials = credentials;
-    }
-
-    public EventsApi getEventsApiClient() {
-        return mEventsApi;
-    }
-
-    public ProfileApi getProfileApiClient() {
-        return mProfileApi;
-    }
-
-    public LoginApi getLoginApiClient() {
-        return mLoginApi;
-    }
-
-    public RegistrationApi getRegistrationApiClient() {
-        return mRegistrationApi;
     }
 
     public Credentials getCredentials() {
@@ -176,6 +164,14 @@ public class MXApiClient {
      */
     protected void setRegistrationApi(RegistrationApi api) {
         mRegistrationApi = api;
+    }
+
+    /**
+     * Protected setter for injecting the presence API for unit tests.
+     * @param api the registration API
+     */
+    protected void setPresenceApi(PresenceApi api) {
+        mPresenceApi = api;
     }
 
     ////////////////////////////////////////////////
@@ -348,4 +344,9 @@ public class MXApiClient {
             }
         });
     }
+
+    ////////////////////////////////////////////////
+    // Presence API
+    ////////////////////////////////////////////////
+
 }

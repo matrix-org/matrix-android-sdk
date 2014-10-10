@@ -9,4 +9,5 @@ public class User {
     public String avatarUrl;
     public String presence;
     public long lastActiveAgo;
+    public String statusMsg;
 }
