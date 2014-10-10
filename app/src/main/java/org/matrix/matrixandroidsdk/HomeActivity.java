@@ -4,6 +4,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.GridView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.MXApiClient;
@@ -12,6 +13,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.User;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
 
@@ -24,16 +26,16 @@ public class HomeActivity extends ActionBarActivity {
 
         final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
 
-        final TextView publicRoomsTextView = (TextView) findViewById(R.id.prooms_text);
+        final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
+        final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
+        adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
+        publicRoomsGridView.setAdapter(adapter);
         matrixSession.getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
-                StringBuilder sb = new StringBuilder();
                 for (PublicRoom publicRoom : publicRooms) {
-                    sb.append(publicRoom.name)
-                            .append("\n");
+                    adapter.add(publicRoom);
                 }
-                publicRoomsTextView.setText(sb.toString());
             }
         });
 
