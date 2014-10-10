@@ -1,5 +1,6 @@
 package org.matrix.matrixandroidsdk;
 
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -11,7 +12,7 @@ import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
@@ -23,39 +24,14 @@ public class HomeActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-
-        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
-
-        final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
-        final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
-        adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
-        publicRoomsGridView.setAdapter(adapter);
-        matrixSession.getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
-            @Override
-            public void onRoomsLoaded(List<PublicRoom> publicRooms) {
-                for (PublicRoom publicRoom : publicRooms) {
-                    adapter.add(publicRoom);
-                }
-            }
-        });
-
-        final TextView usersTextView = (TextView) findViewById(R.id.users_text);
-        matrixSession.getData().addUserDataListener(new MXData.DataUpdateListener() {
-            @Override
-            public void onUpdate() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        StringBuilder sb = new StringBuilder();
-                        for (User user : matrixSession.getData().getUsers()) {
-                            sb.append(user.userId)
-                                    .append("\n");
-                        }
-                        usersTextView.setText(sb.toString());
-                    }
-                });
-            }
-        });
+        Credentials creds = new Credentials();
+        creds.accessToken = "";
+        creds.homeServer = "https://matrix.org";
+        creds.userId = "";
+        MXApiClient client = new MXApiClient("matrix.org");
+        client.setCredentials(creds);
+        final MXSession matrixSession = new MXSession(client, new MXData());
+        matrixSession.startEventStream();
 
         final TextView userRoomsTextView = (TextView) findViewById(R.id.urooms_text);
         matrixSession.getData().addGlobalRoomDataListener(new MXData.DataUpdateListener() {
@@ -80,7 +56,7 @@ public class HomeActivity extends ActionBarActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.home, menu);
         return true;
     }
 
@@ -93,6 +69,14 @@ public class HomeActivity extends ActionBarActivity {
         if (id == R.id.action_settings) {
             return true;
         }
+        else if (id == R.id.action_public_rooms) {
+            goToPublicRoomPage();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void goToPublicRoomPage() {
+        startActivity(new Intent(this, PublicRoomsActivity.class));
     }
 }

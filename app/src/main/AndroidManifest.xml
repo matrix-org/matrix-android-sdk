@@ -27,6 +27,10 @@
             android:name=".HomeActivity"
             android:label="@string/title_activity_home" >
         </activity>
+        <activity
+            android:name=".PublicRoomsActivity"
+            android:label="@string/title_activity_public_rooms" >
+        </activity>
     </application>
 
 </manifest>
