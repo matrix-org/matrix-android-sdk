@@ -39,6 +39,16 @@ public class RoomsAdapter extends ArrayAdapter<IRoom> {
         mEvenColourResId = evenResId;
     }
 
+    public void addIfNotExist(IRoom room) {
+        for (int i=0; i<getCount(); ++i) {
+            IRoom r = this.getItem(i);
+            if (r.getRoomId().equals(room.getRoomId())) {
+                return;
+            }
+        }
+        add(room);
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {

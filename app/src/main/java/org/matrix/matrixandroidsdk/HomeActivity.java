@@ -5,7 +5,10 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.MXApiClient;
@@ -33,21 +36,45 @@ public class HomeActivity extends ActionBarActivity {
         final MXSession matrixSession = new MXSession(client, new MXData());
         matrixSession.startEventStream();
 
-        final TextView userRoomsTextView = (TextView) findViewById(R.id.urooms_text);
+        final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
+        final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
+        myRoomList.setAdapter(adapter);
+
         matrixSession.getData().addGlobalRoomDataListener(new MXData.DataUpdateListener() {
             @Override
             public void onUpdate() {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        StringBuilder sb = new StringBuilder();
                         for (Room room : matrixSession.getData().getRooms()) {
-                            sb.append(room.getRoomId())
-                                    .append("\n");
+                            adapter.addIfNotExist(room);
                         }
-                        userRoomsTextView.setText(sb.toString());
                     }
                 });
+            }
+        });
+
+        myRoomList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                goToRoomPage(adapter.getItem(i).getRoomId());
+            }
+        });
+
+        findViewById(R.id.button_newPrivateRoom).setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                createRoom(false);
+            }
+        });
+
+        findViewById(R.id.button_newPublicRoom).setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                createRoom(true);
             }
         });
     }
@@ -78,5 +105,25 @@ public class HomeActivity extends ActionBarActivity {
 
     private void goToPublicRoomPage() {
         startActivity(new Intent(this, PublicRoomsActivity.class));
+    }
+
+    private void goToRoomPage(String roomId) {
+        Intent intent = new Intent(this, RoomActivity.class);
+        intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+        startActivity(intent);
+    }
+
+    private void createRoom(boolean isPublic) {
+        if (isPublic) {
+            // TODO: Create dialog to get a room alias
+            // TODO: Then request to create room
+            String allocatedRoomId = "";
+            goToRoomPage(allocatedRoomId);
+        }
+        else {
+            // TODO: Request to create room
+            String allocatedRoomId = "";
+            goToRoomPage(allocatedRoomId);
+        }
     }
 }

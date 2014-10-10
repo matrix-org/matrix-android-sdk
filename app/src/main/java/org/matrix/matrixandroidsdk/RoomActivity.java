@@ -1,17 +1,28 @@
 package org.matrix.matrixandroidsdk;
 
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 
 public class RoomActivity extends ActionBarActivity {
+
+    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
+
+        Intent intent = getIntent();
+        if (intent.hasExtra(EXTRA_ROOM_ID)) {
+            String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
+            Toast.makeText(RoomActivity.this, "Display >> " + roomId, Toast.LENGTH_SHORT).show();
+        }
+
     }
 
 

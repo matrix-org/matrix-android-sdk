@@ -5,12 +5,16 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
+import org.matrix.androidsdk.data.IRoom;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
@@ -36,6 +40,15 @@ public class PublicRoomsActivity extends ActionBarActivity {
                 for (PublicRoom publicRoom : publicRooms) {
                     adapter.add(publicRoom);
                 }
+            }
+        });
+
+        publicRoomsGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                IRoom room = adapter.getItem(i);
+                String roomId = room.getRoomId();
+                goToRoom(roomId);
             }
         });
     }
@@ -66,5 +79,11 @@ public class PublicRoomsActivity extends ActionBarActivity {
 
     private void goToHomepage() {
         startActivity(new Intent(this, HomeActivity.class));
+    }
+
+    private void goToRoom(String roomId) {
+        Intent intent = new Intent(this, RoomActivity.class);
+        intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+        startActivity(intent);
     }
 }

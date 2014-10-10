@@ -61,6 +61,14 @@ public class Room implements IRoom {
 
     @Override
     public String getName() {
-        return this.mRoomState.name;
+        if (this.mRoomState.name != null) {
+            return this.mRoomState.name;
+        }
+        else if (this.mRoomState.roomAliasName != null) {
+            return this.mRoomState.roomAliasName;
+        }
+        else {
+            return this.mRoomId;
+        }
     }
 }
