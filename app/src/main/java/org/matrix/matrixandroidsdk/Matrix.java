@@ -19,5 +19,5 @@ public class Matrix {
     }
 
     // TODO: Put MatrixApiClient and MatrixSession in here so multiple Activities can hit methods on
-    // it.
+    // it. This needs to be able to cope with multiple login sessions.
 }

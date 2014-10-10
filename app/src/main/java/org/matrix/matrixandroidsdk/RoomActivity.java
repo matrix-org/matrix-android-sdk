@@ -23,6 +23,11 @@ public class RoomActivity extends ActionBarActivity {
             Toast.makeText(RoomActivity.this, "Display >> " + roomId, Toast.LENGTH_SHORT).show();
         }
 
+        // TODO: join room if you need to (check with Matrix singleton)
+        // TODO: Request messages/state if you need to.
+        // TODO: Load up MatrixMessageListFragment to display messages.
+        // TODO: Get the Room instance being represent to get the room name/topic/etc
+
     }
 
 
