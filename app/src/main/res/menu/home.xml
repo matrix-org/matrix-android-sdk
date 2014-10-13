@@ -1,7 +1,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="org.matrix.matrixandroidsdk.MainActivity" >
+    tools:context="org.matrix.matrixandroidsdk.HomeActivity" >
+    <item android:id="@+id/action_public_rooms"
+          android:title="@string/action_public_rooms"
+          android:icon="@drawable/ic_menu_allfriends"
+          app:showAsAction="ifRoom" />
     <item android:id="@+id/action_settings"
         android:title="@string/action_settings"
         android:orderInCategory="100"

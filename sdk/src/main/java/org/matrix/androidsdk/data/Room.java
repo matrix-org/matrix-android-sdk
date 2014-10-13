@@ -21,19 +21,12 @@ import org.matrix.androidsdk.api.response.RoomMember;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Representation of a room, with messages, members, and state.
- */
-public class Room {
+public class Room implements IRoom {
 
     private String mRoomId;
     private RoomState mRoomState = new RoomState();
     private Map<String, Event> mMessages = new HashMap<String, Event>();
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
-
-    public String getRoomId() {
-        return mRoomId;
-    }
 
     public void setRoomId(String roomId) {
         mRoomId = roomId;
@@ -69,5 +62,28 @@ public class Room {
 
     public void setMember(String userId, RoomMember member) {
         mMembers.put(userId, member);
+    }
+
+    @Override
+    public String getRoomId() {
+        return this.mRoomId;
+    }
+
+    @Override
+    public String getTopic() {
+        return this.mRoomState.topic;
+    }
+
+    @Override
+    public String getName() {
+        if (this.mRoomState.name != null) {
+            return this.mRoomState.name;
+        }
+        else if (this.mRoomState.roomAliasName != null) {
+            return this.mRoomState.roomAliasName;
+        }
+        else {
+            return this.mRoomId;
+        }
     }
 }
