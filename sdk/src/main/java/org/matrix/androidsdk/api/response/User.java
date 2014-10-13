@@ -19,6 +19,12 @@ package org.matrix.androidsdk.api.response;
  * Class representing a user.
  */
 public class User {
+    public static final String PRESENCE_ONLINE = "online";
+    public static final String PRESENCE_UNAVAILABLE = "unavailable";
+    public static final String PRESENCE_OFFLINE = "offline";
+    public static final String PRESENCE_FREE_FOR_CHAT = "free_for_chat";
+    public static final String PRESENCE_HIDDEN = "hidden";
+
     public String userId;
     public String displayname;
     public String avatarUrl;

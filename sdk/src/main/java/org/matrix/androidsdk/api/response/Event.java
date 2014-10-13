@@ -21,6 +21,19 @@ import com.google.gson.JsonObject;
  * Generic event class with all possible fields for events.
  */
 public class Event {
+    public static final String EVENT_TYPE_MESSAGE = "m.room.message";
+    public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
+    public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
+    public static final String EVENT_TYPE_STATE_ROOM_TOPIC = "m.room.topic";
+    public static final String EVENT_TYPE_STATE_ROOM_MEMBER = "m.room.member";
+    public static final String EVENT_TYPE_STATE_ROOM_CREATE = "m.room.create";
+    public static final String EVENT_TYPE_STATE_ROOM_JOIN_RULES = "m.room.join_rules";
+    public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
+    public static final String EVENT_TYPE_STATE_ROOM_ADD_STATE_LEVEL = "m.room.add_state_level";
+    public static final String EVENT_TYPE_STATE_ROOM_SEND_EVENT_LEVEL = "m.room.send_event_level";
+    public static final String EVENT_TYPE_STATE_ROOM_OPS_LEVELS = "m.room.ops_levels";
+    public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
+
     public String type;
     public JsonObject content;
 
