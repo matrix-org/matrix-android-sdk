@@ -43,9 +43,9 @@ public interface RoomsApi {
 
     /**
      * Send an event about a room.
-     * @param roomId
-     * @param eventType
-     * @param content
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param content the event content
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/send/{eventType}")
@@ -54,10 +54,10 @@ public interface RoomsApi {
 
     /**
      * Set state information for a room. The state key can be omitted.
-     * @param roomId
-     * @param eventType
-     * @param stateKey
-     * @param state
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param stateKey the state key
+     * @param state the state values
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/{eventType}/{stateKey}")
@@ -66,8 +66,8 @@ public interface RoomsApi {
 
     /**
      * Send a message for the specified room.
-     * @param roomId
-     * @param message
+     * @param roomId the room id
+     * @param message the message
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/send/m.room.message")
@@ -75,8 +75,8 @@ public interface RoomsApi {
 
     /**
      * Set the room topic.
-     * @param roomId
-     * @param state
+     * @param roomId the room id
+     * @param state state object containing the new topic in the topic field
      * @param callback the asynchronous callback called with the response
      */
     @PUT("/rooms/{roomId}/state/m.room.topic")
@@ -84,7 +84,7 @@ public interface RoomsApi {
 
     /**
      * Get the room topic.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.topic")
@@ -92,8 +92,8 @@ public interface RoomsApi {
 
     /**
      * Set the room name.
-     * @param roomId
-     * @param state
+     * @param roomId the room id
+     * @param state state object containing the new room name in the name field
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.name")
@@ -101,7 +101,7 @@ public interface RoomsApi {
 
     /**
      * Get the room name.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.name")
@@ -109,8 +109,8 @@ public interface RoomsApi {
 
     /**
      * Send feedback for an event.
-     * @param roomId
-     * @param feedback
+     * @param roomId the room id
+     * @param feedback the feedback
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/send/m.room.message.feedback")
@@ -118,8 +118,8 @@ public interface RoomsApi {
 
     /**
      * Invite a user to the given room.
-     * @param roomId
-     * @param userId
+     * @param roomId the room id
+     * @param userId the user id
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/invite")
@@ -127,7 +127,7 @@ public interface RoomsApi {
 
     /**
      * Join the given room.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/join")
@@ -135,7 +135,7 @@ public interface RoomsApi {
 
     /**
      * Leave the given room.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/leave")
@@ -143,9 +143,9 @@ public interface RoomsApi {
 
     /**
      * Ban a user from the given room.
-     * @param roomId
-     * @param userId
-     * @param reason
+     * @param roomId the room id
+     * @param userId the user id
+     * @param reason the reason for banning
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/ban")
@@ -153,8 +153,8 @@ public interface RoomsApi {
 
     /**
      * Change the membership state for a user in a room.
-     * @param roomId
-     * @param userId
+     * @param roomId the room id
+     * @param userId the user id
      * @param member object containing the membership field to set
      * @param callback the asynchronous callback called when finished
      */
@@ -163,8 +163,8 @@ public interface RoomsApi {
 
     /**
      * Get the membership state of a user in a room.
-     * @param roomId
-     * @param userId
+     * @param roomId the room id
+     * @param userId the user id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.member/{userId}")
@@ -172,8 +172,8 @@ public interface RoomsApi {
 
     /**
      * Join the room with the given alias.
-     * @param roomAliasOrId
-     * @param callback
+     * @param roomAliasOrId a room alias (or room id)
+     * @param callback the asynchronous callback called with the response
      */
     @POST("/join/{roomAliasOrId}")
     public void joinRoomByAlias(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
@@ -187,16 +187,39 @@ public interface RoomsApi {
     public void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
 
     /**
-     * Get a list of messages for this room.
-     * @param roomId
+     * Get a list of the last messages for this room.
+     * @param roomId the room id
+     * @param limit the maximum number of messages to retrieve
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    public void messages(@Path("roomId") String roomId, Callback<TokensChunkResponse<Message>> callback);
+    public void messages(@Path("roomId") String roomId, @Field("limit") int limit, Callback<TokensChunkResponse<Message>> callback);
+
+    /**
+     * Get a list of messages starting from a certain point.
+     * @param roomId the room id
+     * @param from the token identifying where to start
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/messages")
+    public void messagesFrom(@Path("roomId") String roomId, @Field("from") String from, @Field("limit") int limit,
+                             Callback<TokensChunkResponse<Message>> callback);
+
+    /**
+     * Get a list of messages starting from a certain point.
+     * @param roomId the room id
+     * @param to the token identifying where to finish
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/messages")
+    public void messagesTo(@Path("roomId") String roomId, @Field("to") String to, @Field("limit") int limit,
+                             Callback<TokensChunkResponse<Message>> callback);
 
     /**
      * Get a list of members for this room.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/members")
@@ -204,9 +227,9 @@ public interface RoomsApi {
 
     /**
      * Get the current state events for the room.
-     * @param roomId
+     * @param roomId the room id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state")
-    public void state(@Path("roomId") String roomId, Callback<List<RoomState>> callback);
+    public void state(@Path("roomId") String roomId, Callback<List<Event>> callback);
 }
