@@ -45,6 +45,8 @@ public class EventsThreadListener implements EventsThread.EventsThreadListener {
             // Handle messages
             mData.handleEvents(roomResponse.messages.chunk);
         }
+
+        mData.onInitialSyncComplete();
     }
 
     @Override

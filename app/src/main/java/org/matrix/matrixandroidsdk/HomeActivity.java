@@ -18,6 +18,7 @@ import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
@@ -41,14 +42,14 @@ public class HomeActivity extends ActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
         myRoomList.setAdapter(adapter);
 
-        matrixSession.getData().addGlobalRoomDataListener(new MXData.DataUpdateListener() {
+        matrixSession.getData().addListener(new MXEventListener() {
             @Override
-            public void onUpdate() {
+            public void onInitialSyncComplete() {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         for (Room room : matrixSession.getData().getRooms()) {
-                            adapter.addIfNotExist(room.getRoomState());
+                            adapter.add(room.getRoomState());
                         }
                     }
                 });

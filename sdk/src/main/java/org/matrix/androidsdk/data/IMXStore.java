@@ -13,4 +13,11 @@ public interface IMXStore {
     public User getUser(String userId);
     public void storeUser(User user);
     public void storeRoom(Room room);
+
+    /**
+     * Update room state.
+     * @param room The room to update.
+     * @param stateEventType The state event type which was updated.
+     */
+    public void updateRoomState(Room room, String stateEventType);
 }

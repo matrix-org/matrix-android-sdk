@@ -43,6 +43,11 @@ public class MXMemoryStore implements IMXStore {
         mRooms.put(room.getRoomId(), room);
     }
 
+    @Override
+    public void updateRoomState(Room room, String stateEventType) {
+        storeRoom(room);
+    }
+
     private Room addRoom(String roomId) {
         Room room = new Room();
         room.setRoomId(roomId);

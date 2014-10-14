@@ -65,6 +65,10 @@ public class Room {
         mMembers.put(userId, member);
     }
 
+    public RoomMember getMember(String userId) {
+        return mMembers.get(userId);
+    }
+
     public String getRoomId() {
         return this.mRoomId;
     }
