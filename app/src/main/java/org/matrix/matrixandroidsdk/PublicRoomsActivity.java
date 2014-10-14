@@ -29,14 +29,11 @@ public class PublicRoomsActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_public_rooms);
 
-        // FIXME Should be reading from a single one
-        final MXSession matrixSession = new MXSession(new MXApiClient(Uri.parse("https://matrix.org")), new MXData(new MXMemoryStore()));
-
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        matrixSession.getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {

@@ -50,39 +50,4 @@ public class LoginStorage {
         return e.commit();
     }
 
-    public String getUserId() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_USERNAME, null);
-    }
-
-    public String getHomeserverUrl() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_HOME_SERVER, null);
-    }
-
-    public String getAccessToken() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_ACCESS_TOKEN, null);
-    }
-
-    /**
-     * Save this set of credentials.
-     * @param credentials The credentials to save. Will clobber existing credentials for this
-     *                    home server / user ID pair.
-     * @return True if the credentials were saved.
-     */
-    public boolean saveCredentials(Credentials credentials) {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        SharedPreferences.Editor e = prefs.edit();
-        String scopedPart = getScopedPart(credentials.homeServer, credentials.userId);
-        e.putString(PREFS_KEY_ACCESS_TOKEN + scopedPart, credentials.accessToken);
-        e.putString(PREFS_KEY_HOME_SERVER + scopedPart, credentials.homeServer);
-        e.putString(PREFS_KEY_USERNAME + scopedPart, credentials.userId);
-        return e.commit();
-    }
-
-    private String getScopedPart(String hs, String userId) {
-        return "." + hs + "." + userId;
-    }
-
 }
