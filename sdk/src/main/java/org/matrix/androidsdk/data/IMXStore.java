@@ -9,4 +9,5 @@ public interface IMXStore {
     public Room getRoom(String roomId);
     public User getUser(String userId);
     public void storeUser(User user);
+    public void storeRoom(Room room);
 }

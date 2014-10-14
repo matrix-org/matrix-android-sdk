@@ -37,10 +37,15 @@ public class MXMemoryStore implements IMXStore {
         mUsers.put(user.userId, user);
     }
 
+    @Override
+    public void storeRoom(Room room) {
+        mRooms.put(room.getRoomId(), room);
+    }
+
     private Room addRoom(String roomId) {
         Room room = new Room();
         room.setRoomId(roomId);
-        mRooms.put(roomId, room);
+        this.storeRoom(room);
         return room;
     }
 

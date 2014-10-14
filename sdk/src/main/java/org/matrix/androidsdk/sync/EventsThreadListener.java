@@ -39,8 +39,6 @@ public class EventsThreadListener implements EventsThread.EventsThreadListener {
 
         // Convert rooms from response
         for (RoomResponse roomResponse : response.rooms) {
-            mData.addRoom(roomResponse.roomId);
-
             // Handle state events
             mData.handleEvents(roomResponse.state);
 
