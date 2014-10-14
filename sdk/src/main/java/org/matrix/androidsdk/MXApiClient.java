@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.google.gson.FieldNamingPolicy;
@@ -102,9 +103,14 @@ public class MXApiClient {
 
     /**
      * Public constructor.
-     * @param hsDomain the home server domain name
+     * @param hsUri The http[s] URI to the home server.
      */
-    public MXApiClient(String hsDomain) {
+    public MXApiClient(Uri hsUri) {
+        // sanity check
+        if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
+            throw new RuntimeException("Invalid home server URI: "+hsUri);
+        }
+
         // The JSON -> object mapper
         gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
@@ -117,7 +123,7 @@ public class MXApiClient {
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint("http://" + hsDomain + URI_PREFIX)
+                .setEndpoint(hsUri.toString() + URI_PREFIX)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
@@ -155,7 +161,7 @@ public class MXApiClient {
      * @param credentials the user credentials
      */
     public MXApiClient(Credentials credentials) {
-        this(credentials.homeServer);
+        this(Uri.parse(credentials.homeServer));
         mCredentials = credentials;
     }
 

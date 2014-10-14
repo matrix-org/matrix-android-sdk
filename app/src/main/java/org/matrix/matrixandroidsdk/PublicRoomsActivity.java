@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -29,7 +30,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
         setContentView(R.layout.activity_public_rooms);
 
         // FIXME Should be reading from a single one
-        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData(new MXMemoryStore()));
+        final MXSession matrixSession = new MXSession(new MXApiClient(Uri.parse("https://matrix.org")), new MXData(new MXMemoryStore()));
 
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);

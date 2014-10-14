@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Context;
+import android.net.Uri;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
@@ -23,7 +24,7 @@ public class Matrix {
     private MXSession mDefaultSession;
 
     protected Matrix(Context appContext) {
-        mLoginStorage = new LoginStorage(appContext);
+        mLoginStorage = new LoginStorage(appContext.getApplicationContext());
     }
 
     public synchronized static Matrix getInstance(Context appContext) {
@@ -74,7 +75,24 @@ public class Matrix {
      * @return The session.
      */
     public MXSession createSession(Credentials credentials) {
-        MXApiClient client = new MXApiClient(credentials.homeServer);
+        return createSession(credentials, true);
+    }
+
+    /**
+     * Creates an MXSession from some credentials.
+     * @param credentials The credentials to create a session from.
+     * @return The session.
+     */
+    public MXSession createSession(Credentials credentials, boolean useHttps) {
+        if (!credentials.homeServer.startsWith("http")) {
+            if (useHttps) {
+                credentials.homeServer = "https://" + credentials.homeServer;
+            }
+            else {
+                credentials.homeServer = "http://" + credentials.homeServer;
+            }
+        }
+        MXApiClient client = new MXApiClient(Uri.parse(credentials.homeServer));
         client.setCredentials(credentials);
         return new MXSession(client, new MXData(new MXMemoryStore()));
     }

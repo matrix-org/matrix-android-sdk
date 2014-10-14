@@ -10,6 +10,7 @@
     <string name="title_activity_login">Matrix Login</string>
     <string name="action_public_rooms">Public Rooms</string>
     <string name="action_my_rooms">My Rooms</string>
+    <string name="action_logout">Logout</string>
     <string name="title_activity_public_rooms">Public Rooms</string>
 
 </resources>

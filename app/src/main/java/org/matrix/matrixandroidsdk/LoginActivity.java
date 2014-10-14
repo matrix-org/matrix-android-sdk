@@ -3,11 +3,17 @@ package org.matrix.matrixandroidsdk;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
+import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.api.response.MatrixError;
+import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 
 
@@ -28,19 +34,37 @@ public class LoginActivity extends ActionBarActivity {
             public void onClick(View view) {
                 String username = ((EditText)findViewById(R.id.editText_username)).getText().toString();
                 String password = ((EditText)findViewById(R.id.editText_password)).getText().toString();
-                onLoginClick(username, password);
+                String hs = ((EditText)findViewById(R.id.editText_hs)).getText().toString();
+                onLoginClick(hs, username, password);
             }
         });
     }
 
-    private void onLoginClick(String username, String password) {
-        // TODO submit credentials then save via LoginStorage.saveCredentials(Credentials)
-        goToHomepage();
+    private void onLoginClick(String hsUrl, String username, String password) {
+        if (!hsUrl.startsWith("http")) {
+            Toast.makeText(this, "URL must start with http[s]://", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        MXApiClient client = new MXApiClient(Uri.parse(hsUrl));
+        client.loginWithPassword(username, password, new MXApiClient.LoginCallback() {
+
+            @Override
+            public void onLoggedIn(Credentials credentials) {
+                MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
+                Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
+                goToHomepage();
+            }
+
+            @Override
+            public void onError(MatrixError error) {
+                String msg = "Unable to login: " + error.error + "("+error.errcode+")";
+                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private boolean hasCredentials() {
-        LoginStorage ls = new LoginStorage(this);
-        return ls.getDefaultCredentials() != null;
+        return Matrix.getInstance(this).getDefaultSession() != null;
     }
 
 
