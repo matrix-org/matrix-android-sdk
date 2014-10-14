@@ -40,7 +40,7 @@ public class LoginActivity extends ActionBarActivity {
 
     private boolean hasCredentials() {
         LoginStorage ls = new LoginStorage(this);
-        return ls.hasCredentials();
+        return ls.getDefaultCredentials() != null;
     }
 
 

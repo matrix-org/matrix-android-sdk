@@ -21,14 +21,28 @@ public class LoginStorage {
         mContext = appContext.getApplicationContext();
     }
 
-
-
-    public boolean hasCredentials() {
+    public Credentials getDefaultCredentials() {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
         String username = prefs.getString(PREFS_KEY_USERNAME, null);
         String server = prefs.getString(PREFS_KEY_HOME_SERVER, null);
         String token = prefs.getString(PREFS_KEY_ACCESS_TOKEN, null);
-        return (username == null || server == null || token == null) ? false : true;
+        if (username == null || server == null || token == null) {
+            return null;
+        }
+        Credentials creds = new Credentials();
+        creds.userId = username;
+        creds.homeServer = server;
+        creds.accessToken = token;
+        return creds;
+    }
+
+    public boolean setDefaultCredentials(Credentials credentials) {
+        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
+        SharedPreferences.Editor e = prefs.edit();
+        e.putString(PREFS_KEY_ACCESS_TOKEN, credentials.accessToken);
+        e.putString(PREFS_KEY_HOME_SERVER, credentials.homeServer);
+        e.putString(PREFS_KEY_USERNAME, credentials.userId);
+        return e.commit();
     }
 
     public String getUserId() {
