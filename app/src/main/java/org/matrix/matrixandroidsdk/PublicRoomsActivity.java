@@ -76,7 +76,16 @@ public class PublicRoomsActivity extends ActionBarActivity {
             goToHomepage();
             return true;
         }
+        else if (id == R.id.action_logout) {
+            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
+            goToLoginPage();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void goToLoginPage() {
+        startActivity(new Intent(this, LoginActivity.class));
     }
 
     private void goToHomepage() {

@@ -36,12 +36,17 @@ public class LoginStorage {
         return creds;
     }
 
+    /**
+     * Set the default login credentials.
+     * @param credentials The credentials to set, or null to wipe the stored credentials.
+     * @return True if the credentials were set.
+     */
     public boolean setDefaultCredentials(Credentials credentials) {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
         SharedPreferences.Editor e = prefs.edit();
-        e.putString(PREFS_KEY_ACCESS_TOKEN, credentials.accessToken);
-        e.putString(PREFS_KEY_HOME_SERVER, credentials.homeServer);
-        e.putString(PREFS_KEY_USERNAME, credentials.userId);
+        e.putString(PREFS_KEY_ACCESS_TOKEN, credentials != null ? credentials.accessToken : null);
+        e.putString(PREFS_KEY_HOME_SERVER, credentials != null ? credentials.homeServer : null);
+        e.putString(PREFS_KEY_USERNAME, credentials != null ? credentials.userId : null);
         return e.commit();
     }
 

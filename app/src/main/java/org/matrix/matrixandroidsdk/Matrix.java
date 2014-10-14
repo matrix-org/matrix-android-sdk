@@ -58,6 +58,7 @@ public class Matrix {
      */
     public synchronized void clearDefaultSession() {
         mDefaultSession = null;
+        mLoginStorage.setDefaultCredentials(null);
     }
 
     /**
