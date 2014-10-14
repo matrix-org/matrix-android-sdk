@@ -14,6 +14,7 @@ public class MXMemoryStore implements IMXStore {
     private Map<String, Room> mRooms = new ConcurrentHashMap<String, Room>();
     private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
 
+    @Override
     public Collection<Room> getRooms() {
         return mRooms.values();
     }

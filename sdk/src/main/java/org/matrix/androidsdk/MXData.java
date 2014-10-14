@@ -135,6 +135,10 @@ public class MXData {
         }
     }
 
+    public Collection<Room> getRooms() {
+        return mStore.getRooms();
+    }
+
     private void handleEvent(Event event) {
         Log.d(LOG_TAG, "Handling event " + event);
 

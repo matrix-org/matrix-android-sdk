@@ -7,7 +7,7 @@ import org.apache.http.impl.auth.DigestScheme;
 import org.matrix.androidsdk.api.response.login.Credentials;
 
 /**
- * Stores login credentials.
+ * Stores login credentials for N home servers and N accounts.
  */
 public class LoginStorage {
     public static final String PREFS_LOGIN = "org.matrix.matrixandroidsdk.store.LoginStorage";
@@ -20,6 +20,8 @@ public class LoginStorage {
     public LoginStorage(Context appContext) {
         mContext = appContext.getApplicationContext();
     }
+
+
 
     public boolean hasCredentials() {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
@@ -44,13 +46,24 @@ public class LoginStorage {
         return prefs.getString(PREFS_KEY_ACCESS_TOKEN, null);
     }
 
+    /**
+     * Save this set of credentials.
+     * @param credentials The credentials to save. Will clobber existing credentials for this
+     *                    home server / user ID pair.
+     * @return True if the credentials were saved.
+     */
     public boolean saveCredentials(Credentials credentials) {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
         SharedPreferences.Editor e = prefs.edit();
-        e.putString(PREFS_KEY_ACCESS_TOKEN, credentials.accessToken);
-        e.putString(PREFS_KEY_HOME_SERVER, credentials.homeServer);
-        e.putString(PREFS_KEY_USERNAME, credentials.userId);
+        String scopedPart = getScopedPart(credentials.homeServer, credentials.userId);
+        e.putString(PREFS_KEY_ACCESS_TOKEN + scopedPart, credentials.accessToken);
+        e.putString(PREFS_KEY_HOME_SERVER + scopedPart, credentials.homeServer);
+        e.putString(PREFS_KEY_USERNAME + scopedPart, credentials.userId);
         return e.commit();
+    }
+
+    private String getScopedPart(String hs, String userId) {
+        return "." + hs + "." + userId;
     }
 
 }

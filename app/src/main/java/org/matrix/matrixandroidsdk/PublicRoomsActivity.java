@@ -15,6 +15,7 @@ import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
@@ -28,7 +29,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
         setContentView(R.layout.activity_public_rooms);
 
         // FIXME Should be reading from a single one
-        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData());
+        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData(new MXMemoryStore()));
 
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);

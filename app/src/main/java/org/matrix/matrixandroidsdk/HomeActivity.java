@@ -16,6 +16,7 @@ import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
@@ -33,7 +34,7 @@ public class HomeActivity extends ActionBarActivity {
         creds.userId = "";
         MXApiClient client = new MXApiClient("matrix.org");
         client.setCredentials(creds);
-        final MXSession matrixSession = new MXSession(client, new MXData());
+        final MXSession matrixSession = new MXSession(client, new MXData(new MXMemoryStore()));
         matrixSession.startEventStream();
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
