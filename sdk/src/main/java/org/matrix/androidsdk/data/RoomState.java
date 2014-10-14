@@ -21,6 +21,7 @@ import java.util.List;
  * The state of a room.
  */
 public class RoomState {
+    public String roomId;
     public String name;
     public String topic;
     public String roomAliasName;

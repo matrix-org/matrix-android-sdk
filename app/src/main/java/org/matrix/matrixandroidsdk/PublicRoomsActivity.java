@@ -14,7 +14,7 @@ import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.data.IRoom;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
@@ -46,8 +46,8 @@ public class PublicRoomsActivity extends ActionBarActivity {
         publicRoomsGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                IRoom room = adapter.getItem(i);
-                String roomId = room.getRoomId();
+                RoomState room = adapter.getItem(i);
+                String roomId = room.roomId;
                 goToRoom(roomId);
             }
         });

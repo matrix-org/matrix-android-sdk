@@ -21,7 +21,7 @@ import org.matrix.androidsdk.api.response.RoomMember;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Room implements IRoom {
+public class Room {
 
     private String mRoomId;
     private RoomState mRoomState = new RoomState();
@@ -30,6 +30,7 @@ public class Room implements IRoom {
 
     public void setRoomId(String roomId) {
         mRoomId = roomId;
+        mRoomState.roomId = roomId;
     }
 
     public RoomState getRoomState() {
@@ -64,17 +65,14 @@ public class Room implements IRoom {
         mMembers.put(userId, member);
     }
 
-    @Override
     public String getRoomId() {
         return this.mRoomId;
     }
 
-    @Override
     public String getTopic() {
         return this.mRoomState.topic;
     }
 
-    @Override
     public String getName() {
         if (this.mRoomState.name != null) {
             return this.mRoomState.name;

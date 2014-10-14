@@ -47,7 +47,7 @@ public class HomeActivity extends ActionBarActivity {
                     @Override
                     public void run() {
                         for (Room room : matrixSession.getData().getRooms()) {
-                            adapter.addIfNotExist(room);
+                            adapter.addIfNotExist(room.getRoomState());
                         }
                     }
                 });
@@ -58,7 +58,7 @@ public class HomeActivity extends ActionBarActivity {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                goToRoomPage(adapter.getItem(i).getRoomId());
+                goToRoomPage(adapter.getItem(i).roomId);
             }
         });
 

@@ -8,10 +8,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import org.matrix.androidsdk.data.IRoom;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.matrixandroidsdk.R;
 
-public class RoomsAdapter extends ArrayAdapter<IRoom> {
+public class RoomsAdapter extends ArrayAdapter<RoomState> {
 
     private Context mContext;
     private LayoutInflater mLayoutInflater;
@@ -39,10 +39,10 @@ public class RoomsAdapter extends ArrayAdapter<IRoom> {
         mEvenColourResId = evenResId;
     }
 
-    public void addIfNotExist(IRoom room) {
+    public void addIfNotExist(RoomState room) {
         for (int i=0; i<getCount(); ++i) {
-            IRoom r = this.getItem(i);
-            if (r.getRoomId().equals(room.getRoomId())) {
+            RoomState r = this.getItem(i);
+            if (r.roomId.equals(room.roomId)) {
                 return;
             }
         }
@@ -55,12 +55,12 @@ public class RoomsAdapter extends ArrayAdapter<IRoom> {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
-        IRoom room = getItem(position);
+        RoomState room = getItem(position);
 
         TextView textView = (TextView) convertView.findViewById(R.id.roomsAdapter_roomTopic);
-        textView.setText(room.getTopic());
+        textView.setText(room.topic);
         textView = (TextView) convertView.findViewById(R.id.roomsAdapter_roomName);
-        textView.setText(room.getName());
+        textView.setText(room.name);
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
             convertView.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
