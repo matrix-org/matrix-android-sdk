@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Matrix Login"
+        android:text="@string/matrix_login"
         android:id="@+id/textView"
         android:layout_gravity="center_horizontal"/>
 
@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/editText_username"
-        android:hint="Username"/>
+        android:hint="@string/username"/>
 
     <EditText
         android:layout_width="match_parent"
@@ -25,19 +25,19 @@
         android:inputType="textPassword"
         android:ems="10"
         android:id="@+id/editText_password"
-        android:hint="Password"/>
+        android:hint="@string/password"/>
 
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/editText_hs"
-        android:hint="Homeserver url"
+        android:hint="@string/hs_url"
         android:text="http://matrix.org"/>
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Login"
+        android:text="@string/login"
         android:id="@+id/button_login"
         android:layout_gravity="center_horizontal"/>
 </LinearLayout>

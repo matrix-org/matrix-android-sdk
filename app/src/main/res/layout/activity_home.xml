@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textStyle="bold"
-        android:text="My rooms" />
+        android:text="@string/my_rooms" />
 
     <LinearLayout
         android:id="@+id/layoutLinear_createRoomType"
@@ -28,14 +28,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Private Room"/>
+            android:text="@string/private_room"/>
 
         <Button
             android:id="@+id/button_newPublicRoom"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Public Room"/>
+            android:text="@string/public_room"/>
 
     </LinearLayout>
 
@@ -47,7 +47,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@id/layoutLinear_createRoomType"
         android:textStyle="bold"
-        android:text="Create:" />
+        android:text="@string/create" />
 
     <ListView
         android:layout_width="wrap_content"

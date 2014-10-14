@@ -3,14 +3,21 @@
 
     <string name="app_name">Matrix Android SDK</string>
     <string name="title_activity_home">Matrix Home</string>
-    <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>
     <string name="title_activity_room">Matrix Room</string>
-    <string name="title_activity_login">Matrix Login</string>
     <string name="action_public_rooms">Public Rooms</string>
     <string name="action_my_rooms">My Rooms</string>
     <string name="action_logout">Logout</string>
     <string name="title_activity_public_rooms">Public Rooms</string>
+    <string name="my_rooms">My rooms</string>
+    <string name="private_room">Private Room</string>
+    <string name="public_room">Public Room</string>
+    <string name="create">Create:</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="matrix_login">Matrix Login</string>
+    <string name="login">Login</string>
+    <string name="hs_url">Home Server URL</string>
 
 </resources>
