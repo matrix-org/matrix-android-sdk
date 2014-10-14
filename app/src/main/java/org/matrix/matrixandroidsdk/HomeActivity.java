@@ -51,6 +51,7 @@ public class HomeActivity extends ActionBarActivity {
                         for (Room room : matrixSession.getData().getRooms()) {
                             adapter.add(room.getRoomState());
                         }
+                        adapter.sortRooms();
                     }
                 });
             }

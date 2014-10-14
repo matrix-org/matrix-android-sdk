@@ -39,6 +39,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
                 for (PublicRoom publicRoom : publicRooms) {
                     adapter.add(publicRoom);
                 }
+                adapter.sortRooms();
             }
         });
 
