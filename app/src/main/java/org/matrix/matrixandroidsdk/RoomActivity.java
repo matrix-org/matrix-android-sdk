@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
@@ -45,10 +46,21 @@ public class RoomActivity extends ActionBarActivity {
         }
 
         Room room = session.getDataHandler().getStore().getRoom(roomId);
+        String title = room.getName();
+        if (title == null) {
+            title = room.getRoomId();
+        }
+        setTitle(title);
+
+        TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
+        topicView.setText(room.getTopic());
 
 
         final ListView messageListView = ((ListView)findViewById(R.id.listView_messages));
-        final MessagesAdapter adapter = new MessagesAdapter(this, R.layout.adapter_item_messages);
+        final MessagesAdapter adapter = new MessagesAdapter(this,
+                R.layout.adapter_item_messages,
+                R.layout.adapter_item_images
+        );
         messageListView.setAdapter(adapter);
 
         session.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {

@@ -11,21 +11,11 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Room Name"
-        android:id="@+id/textView_roomName"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="A room topic will go here"
         android:id="@+id/textView_roomTopic"
-        android:layout_below="@+id/textView_roomName"
-        android:layout_alignLeft="@+id/textView_roomName"/>
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"/>
 
     <ImageButton
         android:layout_width="wrap_content"
