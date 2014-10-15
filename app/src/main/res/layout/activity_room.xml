@@ -14,6 +14,11 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="A room topic will go here"
         android:id="@+id/textView_roomTopic"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:focusable="false"
+        android:scrollHorizontally="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"/>
 
