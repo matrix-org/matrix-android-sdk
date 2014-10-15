@@ -49,16 +49,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MessagesAdapter mAdapter;
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
-
         final ListView messageListView = ((ListView)v.findViewById(R.id.listView_messages));
-        mAdapter = new MessagesAdapter(getActivity(),
-                R.layout.adapter_item_messages,
-                R.layout.adapter_item_images
-        );
+        if (mAdapter == null) {
+            // only init the adapter if it wasn't before, so we can preserve messages/position.
+            mAdapter = new MessagesAdapter(getActivity(),
+                    R.layout.adapter_item_messages,
+                    R.layout.adapter_item_images
+            );
+        }
         messageListView.setAdapter(mAdapter);
 
         return v;
