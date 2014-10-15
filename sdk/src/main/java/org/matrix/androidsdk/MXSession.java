@@ -15,12 +15,12 @@
  */
 package org.matrix.androidsdk;
 
+import android.net.Uri;
+
 import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
-import org.matrix.androidsdk.rest.client.LoginApiClient;
 import org.matrix.androidsdk.rest.client.PresenceApiClient;
 import org.matrix.androidsdk.rest.client.ProfileApiClient;
-import org.matrix.androidsdk.rest.client.RegistrationApiClient;
 import org.matrix.androidsdk.rest.client.RoomsApiClient;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
@@ -35,21 +35,19 @@ public class MXSession {
     private Credentials mCredentials;
 
     // Api clients
-    EventsApiClient mEventsApiClient = new EventsApiClient();
-    ProfileApiClient mProfileApiClient = new ProfileApiClient();
-    PresenceApiClient mPresenceApiClient = new PresenceApiClient();
-    LoginApiClient mLoginApiClient = new LoginApiClient();
-    RegistrationApiClient mRegistrationApiClient = new RegistrationApiClient();
-    RoomsApiClient mRoomsApiClient = new RoomsApiClient();
-
-    public MXSession(MXData mxData) {
-        mData = mxData;
-        mEventsThread = new EventsThread(mEventsApiClient, new EventsThreadListener(mxData));
-    }
+    EventsApiClient mEventsApiClient;
+    ProfileApiClient mProfileApiClient;
+    PresenceApiClient mPresenceApiClient;
+    RoomsApiClient mRoomsApiClient;
 
     public MXSession(MXData mxData, Credentials credentials) {
-        this(mxData);
-        setCredentials(credentials);
+        mData = mxData;
+        mCredentials = credentials;
+
+        mEventsApiClient = new EventsApiClient(credentials);
+        mProfileApiClient = new ProfileApiClient(credentials);
+        mPresenceApiClient = new PresenceApiClient(credentials);
+        mRoomsApiClient = new RoomsApiClient(credentials);
     }
 
     public void setCredentials(Credentials credentials) {
@@ -57,13 +55,15 @@ public class MXSession {
         mEventsApiClient.setCredentials(credentials);
         mProfileApiClient.setCredentials(credentials);
         mPresenceApiClient.setCredentials(credentials);
-        mLoginApiClient.setCredentials(credentials);
-        mRegistrationApiClient.setCredentials(credentials);
         mRoomsApiClient.setCredentials(credentials);
     }
 
     public MXData getData() {
         return mData;
+    }
+
+    public Credentials getCredentials() {
+        return mCredentials;
     }
 
     public EventsApiClient getEventsApiClient() {
@@ -76,14 +76,6 @@ public class MXSession {
 
     public PresenceApiClient getPresenceApiClient() {
         return mPresenceApiClient;
-    }
-
-    public LoginApiClient getLoginApiClient() {
-        return mLoginApiClient;
-    }
-
-    public RegistrationApiClient getRegistrationApiClient() {
-        return mRegistrationApiClient;
     }
 
     public RoomsApiClient getRoomsApiClient() {
@@ -100,14 +92,6 @@ public class MXSession {
 
     protected void setPresenceApiClient(PresenceApiClient presenceApiClient) {
         this.mPresenceApiClient = presenceApiClient;
-    }
-
-    protected void setLoginApiClient(LoginApiClient loginApiClient) {
-        this.mLoginApiClient = loginApiClient;
-    }
-
-    protected void setRegistrationApiClient(RegistrationApiClient registrationApiClient) {
-        this.mRegistrationApiClient = registrationApiClient;
     }
 
     protected void setRoomsApiClient(RoomsApiClient roomsApiClient) {

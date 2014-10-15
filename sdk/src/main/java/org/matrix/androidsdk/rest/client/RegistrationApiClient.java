@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.net.Uri;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXApiClient;
@@ -28,9 +30,20 @@ import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
 
+/**
+ * Class used to make requests to the registration API.
+ */
 public class RegistrationApiClient extends MXApiClient {
 
     RegistrationApi mApi;
+
+    /**
+     * Public constructor.
+     * @param hsUri the home server URI
+     */
+    public RegistrationApiClient(Uri hsUri) {
+        super(hsUri);
+    }
 
     @Override
     protected void initApi(RestAdapter restAdapter) {

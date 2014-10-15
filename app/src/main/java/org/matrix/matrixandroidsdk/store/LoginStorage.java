@@ -21,49 +21,33 @@ public class LoginStorage {
         mContext = appContext.getApplicationContext();
     }
 
-
-
-    public boolean hasCredentials() {
+    public Credentials getDefaultCredentials() {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
         String username = prefs.getString(PREFS_KEY_USERNAME, null);
         String server = prefs.getString(PREFS_KEY_HOME_SERVER, null);
         String token = prefs.getString(PREFS_KEY_ACCESS_TOKEN, null);
-        return (username == null || server == null || token == null) ? false : true;
-    }
-
-    public String getUserId() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_USERNAME, null);
-    }
-
-    public String getHomeserverUrl() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_HOME_SERVER, null);
-    }
-
-    public String getAccessToken() {
-        SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
-        return prefs.getString(PREFS_KEY_ACCESS_TOKEN, null);
+        if (username == null || server == null || token == null) {
+            return null;
+        }
+        Credentials creds = new Credentials();
+        creds.userId = username;
+        creds.homeServer = server;
+        creds.accessToken = token;
+        return creds;
     }
 
     /**
-     * Save this set of credentials.
-     * @param credentials The credentials to save. Will clobber existing credentials for this
-     *                    home server / user ID pair.
-     * @return True if the credentials were saved.
+     * Set the default login credentials.
+     * @param credentials The credentials to set, or null to wipe the stored credentials.
+     * @return True if the credentials were set.
      */
-    public boolean saveCredentials(Credentials credentials) {
+    public boolean setDefaultCredentials(Credentials credentials) {
         SharedPreferences prefs = mContext.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE);
         SharedPreferences.Editor e = prefs.edit();
-        String scopedPart = getScopedPart(credentials.homeServer, credentials.userId);
-        e.putString(PREFS_KEY_ACCESS_TOKEN + scopedPart, credentials.accessToken);
-        e.putString(PREFS_KEY_HOME_SERVER + scopedPart, credentials.homeServer);
-        e.putString(PREFS_KEY_USERNAME + scopedPart, credentials.userId);
+        e.putString(PREFS_KEY_ACCESS_TOKEN, credentials != null ? credentials.accessToken : null);
+        e.putString(PREFS_KEY_HOME_SERVER, credentials != null ? credentials.homeServer : null);
+        e.putString(PREFS_KEY_USERNAME, credentials != null ? credentials.userId : null);
         return e.commit();
-    }
-
-    private String getScopedPart(String hs, String userId) {
-        return "." + hs + "." + userId;
     }
 
 }

@@ -15,21 +15,47 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.net.Uri;
+
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.api.response.login.Credentials;
 
 import java.util.List;
 
 import retrofit.RestAdapter;
 import retrofit.client.Response;
 
+/**
+ * Class used to make requests to the events API.
+ */
 public class EventsApiClient extends MXApiClient {
 
     private EventsApi mApi;
+
+    /**
+     * Public constructor.
+     * @param credentials the user's credentials
+     */
+    public EventsApiClient(Credentials credentials) {
+        super(credentials);
+    }
+
+    /**
+     * Public constructor with the home server URI.
+     * @param hsUri the home server URI
+     */
+    public EventsApiClient(Uri hsUri) {
+        super(hsUri);
+    }
+
+    public EventsApiClient(EventsApi api) {
+        mApi = api;
+    }
 
     @Override
     protected void initApi(RestAdapter restAdapter) {

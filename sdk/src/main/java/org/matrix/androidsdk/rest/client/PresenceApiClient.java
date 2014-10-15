@@ -18,13 +18,25 @@ package org.matrix.androidsdk.rest.client;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.api.PresenceApi;
 import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.api.response.login.Credentials;
 
 import retrofit.RestAdapter;
 import retrofit.client.Response;
 
+/**
+ * Class used to make requests to the presence API.
+ */
 public class PresenceApiClient extends MXApiClient {
 
     PresenceApi mApi;
+
+    /**
+     * Public constructor.
+     * @param credentials the user's credentials
+     */
+    public PresenceApiClient(Credentials credentials) {
+        super(credentials);
+    }
 
     @Override
     protected void initApi(RestAdapter restAdapter) {

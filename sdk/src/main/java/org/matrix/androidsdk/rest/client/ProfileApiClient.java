@@ -18,13 +18,25 @@ package org.matrix.androidsdk.rest.client;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.api.ProfileApi;
 import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.api.response.login.Credentials;
 
 import retrofit.RestAdapter;
 import retrofit.client.Response;
 
+/**
+ * Class used to make requests to the profile API.
+ */
 public class ProfileApiClient extends MXApiClient {
 
     private ProfileApi mApi;
+
+    /**
+     * Public constructor.
+     * @param credentials the user's credentials
+     */
+    public ProfileApiClient(Credentials credentials) {
+        super(credentials);
+    }
 
     @Override
     protected void initApi(RestAdapter restAdapter) {

@@ -1,6 +1,5 @@
 package org.matrix.matrixandroidsdk.adapters;
 
-import android.app.Activity;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +9,8 @@ import android.widget.TextView;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.matrixandroidsdk.R;
+
+import java.util.Comparator;
 
 public class RoomsAdapter extends ArrayAdapter<RoomState> {
 
@@ -34,19 +35,32 @@ public class RoomsAdapter extends ArrayAdapter<RoomState> {
         setNotifyOnChange(true);
     }
 
+    public void sortRooms() {
+        this.sort(new Comparator<RoomState>() {
+            @Override
+            public int compare(RoomState roomState, RoomState roomState2) {
+                if (roomState.name == null) {
+                    return -1;
+                }
+                else if (roomState2.name == null) {
+                    return 1;
+                }
+                String lhs = roomState.name;
+                if (lhs.startsWith("#")) {
+                    lhs = lhs.substring(1);
+                }
+                String rhs = roomState2.name;
+                if (rhs.startsWith("#")) {
+                    rhs = rhs.substring(1);
+                }
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+            }
+        });
+    }
+
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
-    }
-
-    public void addIfNotExist(RoomState room) {
-        for (int i=0; i<getCount(); ++i) {
-            RoomState r = this.getItem(i);
-            if (r.roomId.equals(room.roomId)) {
-                return;
-            }
-        }
-        add(room);
     }
 
     @Override

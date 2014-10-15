@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -29,21 +30,17 @@ public class PublicRoomsActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_public_rooms);
 
-        // FIXME Should be reading from a single one
-        Credentials creds = new Credentials();
-        creds.homeServer = "matrix.org";
-        final MXSession matrixSession = new MXSession(new MXData(new MXMemoryStore()), creds);
-
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        matrixSession.getEventsApiClient().loadPublicRooms(new EventsApiClient.LoadPublicRoomsCallback() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {
                     adapter.add(publicRoom);
                 }
+                adapter.sortRooms();
             }
         });
 
@@ -78,7 +75,16 @@ public class PublicRoomsActivity extends ActionBarActivity {
             goToHomepage();
             return true;
         }
+        else if (id == R.id.action_logout) {
+            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
+            goToLoginPage();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void goToLoginPage() {
+        startActivity(new Intent(this, LoginActivity.class));
     }
 
     private void goToHomepage() {

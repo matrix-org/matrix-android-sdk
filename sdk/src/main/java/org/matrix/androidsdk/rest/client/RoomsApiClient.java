@@ -24,6 +24,7 @@ import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.RoomState;
 
 import java.util.List;
@@ -31,9 +32,20 @@ import java.util.List;
 import retrofit.RestAdapter;
 import retrofit.client.Response;
 
+/**
+ * Class used to make requests to the rooms API.
+ */
 public class RoomsApiClient extends MXApiClient {
 
     RoomsApi mApi;
+
+    /**
+     * Public constructor.
+     * @param credentials the user's credentials
+     */
+    public RoomsApiClient(Credentials credentials) {
+        super(credentials);
+    }
 
     @Override
     protected void initApi(RestAdapter restAdapter) {

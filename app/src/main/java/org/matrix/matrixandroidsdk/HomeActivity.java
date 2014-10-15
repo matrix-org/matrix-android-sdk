@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -28,11 +29,12 @@ public class HomeActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        Credentials creds = new Credentials();
-        creds.accessToken = "";
-        creds.homeServer = "matrix.org";
-        creds.userId = "";
-        final MXSession matrixSession = new MXSession(new MXData(new MXMemoryStore()), creds);
+
+        final MXSession matrixSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        if (matrixSession == null) {
+            finish();
+            return;
+        }
         matrixSession.startEventStream();
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
@@ -48,6 +50,7 @@ public class HomeActivity extends ActionBarActivity {
                         for (Room room : matrixSession.getData().getRooms()) {
                             adapter.add(room.getRoomState());
                         }
+                        adapter.sortRooms();
                     }
                 });
             }
@@ -99,7 +102,16 @@ public class HomeActivity extends ActionBarActivity {
             goToPublicRoomPage();
             return true;
         }
+        else if (id == R.id.action_logout) {
+            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
+            goToLoginPage();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void goToLoginPage() {
+        startActivity(new Intent(this, LoginActivity.class));
     }
 
     private void goToPublicRoomPage() {
