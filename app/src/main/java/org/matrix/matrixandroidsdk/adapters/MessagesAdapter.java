@@ -58,14 +58,16 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         return NUM_ROW_TYPES;
     }
 
+    public void addToFront(Event event) {
+        if (isKnownEvent(event)) {
+            this.insert(event, 0);
+        }
+    }
+
     @Override
     public void add(Event event) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
-            String msgType = j == null ? null : j.getAsString();
-            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType)) {
-                super.add(event);
-            }
+        if (isKnownEvent(event)) {
+            super.add(event);
         }
     }
 
@@ -138,6 +140,17 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
             view.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
         }
+    }
+
+    private boolean isKnownEvent(Event event) {
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
+            String msgType = j == null ? null : j.getAsString();
+            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void loadBitmap(ImageView imageView, String url) {

@@ -24,6 +24,11 @@ public class RoomActivity extends ActionBarActivity {
 
     private static final String LOG_TAG = "RoomActivity";
 
+    private MXSession mSession;
+    private String mRoomId;
+    private String mLast;
+    private MessagesAdapter mAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,8 +49,10 @@ public class RoomActivity extends ActionBarActivity {
             finish();
             return;
         }
+        mSession = session;
+        mRoomId = roomId;
 
-        Room room = session.getDataHandler().getStore().getRoom(roomId);
+        Room room = mSession.getDataHandler().getStore().getRoom(roomId);
         String title = room.getName();
         if (title == null) {
             title = room.getRoomId();
@@ -62,13 +69,16 @@ public class RoomActivity extends ActionBarActivity {
                 R.layout.adapter_item_images
         );
         messageListView.setAdapter(adapter);
+        mAdapter = adapter;
 
-        session.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+        mSession.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
-                for (Event msg : info.chunk) {
-                    adapter.add(msg);
+                // add in reversed order since they come down in reversed order (newest first)
+                for (int i=info.chunk.size()-1; i>=0; i--) {
+                    adapter.add(info.chunk.get(i));
                 }
+                mLast = info.end;
             }
         });
         // TODO: join room if you need to (check with Matrix singleton)
@@ -94,6 +104,19 @@ public class RoomActivity extends ActionBarActivity {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
+        }
+        else if (id == R.id.action_load_more) {
+            mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mLast, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+
+                @Override
+                public void onSuccess(TokensChunkResponse<Event> info) {
+                    // add to top of list.
+                    for (Event event : info.chunk) {
+                        mAdapter.addToFront(event);
+                    }
+                    mLast = info.end;
+                }
+            });
         }
         return super.onOptionsItemSelected(item);
     }
