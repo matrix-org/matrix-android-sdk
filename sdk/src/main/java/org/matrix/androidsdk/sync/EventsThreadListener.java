@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.sync;
 
-import org.matrix.androidsdk.MXData;
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.RoomResponse;
@@ -26,9 +26,9 @@ import java.util.List;
  * Listener for the events thread.
  */
 public class EventsThreadListener implements EventsThread.IEventsThreadListener {
-    private MXData mData;
+    private MXDataHandler mData;
 
-    public EventsThreadListener(MXData data) {
+    public EventsThreadListener(MXDataHandler data) {
         mData = data;
     }
 

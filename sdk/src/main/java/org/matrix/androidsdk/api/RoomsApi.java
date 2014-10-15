@@ -35,6 +35,7 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
+import retrofit.http.Query;
 
 /**
  * The rooms REST API.
@@ -189,33 +190,26 @@ public interface RoomsApi {
     /**
      * Get a list of the last messages for this room.
      * @param roomId the room id
+     * @param dir The direction to return messages from.
      * @param limit the maximum number of messages to retrieve
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    public void messages(@Path("roomId") String roomId, @Field("limit") int limit, Callback<TokensChunkResponse<Message>> callback);
+    public void messages(@Path("roomId") String roomId, @Query("dir") String dir,
+                         @Query("limit") int limit, Callback<TokensChunkResponse<Event>> callback);
 
     /**
      * Get a list of messages starting from a certain point.
      * @param roomId the room id
+     * @param dir The direction to return messages from.
      * @param from the token identifying where to start
      * @param limit the maximum number of messages to retrieve
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    public void messagesFrom(@Path("roomId") String roomId, @Field("from") String from, @Field("limit") int limit,
-                             Callback<TokensChunkResponse<Message>> callback);
-
-    /**
-     * Get a list of messages starting from a certain point.
-     * @param roomId the room id
-     * @param to the token identifying where to finish
-     * @param limit the maximum number of messages to retrieve
-     * @param callback the asynchronous callback called with the response
-     */
-    @GET("/rooms/{roomId}/messages")
-    public void messagesTo(@Path("roomId") String roomId, @Field("to") String to, @Field("limit") int limit,
-                             Callback<TokensChunkResponse<Message>> callback);
+    public void messagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
+                             @Query("from") String from, @Query("limit") int limit,
+                             Callback<TokensChunkResponse<Event>> callback);
 
     /**
      * Get a list of members for this room.
