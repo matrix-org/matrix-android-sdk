@@ -107,6 +107,6 @@ public class MXSession {
     }
 
     public void stopEventStream() {
-        // TODO: Actually stop the thread
+        mEventsThread.kill();
     }
 }

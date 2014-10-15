@@ -36,6 +36,9 @@ public class EventsThread extends Thread {
     private IEventsThreadListener mListener = null;
     private String mCurrentToken;
 
+    private boolean mPaused = true;
+    private boolean mKilling = false;
+
     /**
      * Interface to implement to listen to the event thread.
      */
@@ -54,15 +57,45 @@ public class EventsThread extends Thread {
         public void onEventsReceived(List<Event> events);
     }
 
+    /**
+     *
+     * @param apiClient API client to make the events API calls
+     * @param listener a listener to inform
+     */
     public EventsThread(EventsApiClient apiClient, IEventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
     }
 
+    /**
+     * Pause the thread. It will resume where it left off when unpause()d.
+     */
+    public void pause() {
+        mPaused = true;
+    }
+
+    /**
+     * Unpause the thread if it had previously been paused. If not, this does nothing.
+     */
+    public void unpause() {
+        if (mPaused) {
+            mPaused = false;
+            notify();
+        }
+    }
+
+    /**
+     * Allow the thread to finish its current processing, then permanently stop.
+     */
+    public void kill() {
+        mKilling = true;
+    }
+
     @Override
     public void run() {
         Log.d(LOG_TAG, "Requesting initial sync...");
+        mPaused = false;
 
         // Start with initial sync
         final CountDownLatch latch = new CountDownLatch(1);
@@ -89,8 +122,16 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
 
-        // Then work from there
-        while (true) {
+        // Then repeatedly long-poll for events
+        while (!mKilling) {
+            if (mPaused) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
+                }
+            }
+
             TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
             if (mListener != null) {
                 mListener.onEventsReceived(eventsResponse.chunk);
