@@ -34,11 +34,13 @@
         android:layout_toLeftOf="@id/button_send"
         android:layout_centerHorizontal="true"/>
 
-    <ListView
+    <LinearLayout
         android:layout_below="@id/textView_roomTopic"
         android:layout_above="@id/editText_messageBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/listView_messages"
-        android:layout_centerHorizontal="true"/>
+        android:id="@+id/anchor_fragment_messages"
+        android:layout_centerHorizontal="true"
+        android:orientation="vertical"/>
+
 </RelativeLayout>

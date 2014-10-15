@@ -18,20 +18,20 @@ import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
 
 import java.util.List;
 
 
-public class RoomActivity extends ActionBarActivity implements MatrixMessagesFragment.MatrixMessagesListener {
+public class RoomActivity extends ActionBarActivity implements MatrixMessageListFragment.MatrixMessageListListener {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
-    private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+    private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String LOG_TAG = "RoomActivity";
 
-    private MessagesAdapter mAdapter;
-    private MatrixMessagesFragment mMatrixMessagesFragment;
+    private MatrixMessageListFragment mMatrixMessageListFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,11 +56,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessagesFra
         }
 
         FragmentManager fm = getSupportFragmentManager();
-        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
+        mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
-        if (mMatrixMessagesFragment == null) {
-            mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(roomId, this);
-            fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
+        if (mMatrixMessageListFragment == null) {
+            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(roomId);
+            fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
         Room room = session.getDataHandler().getStore().getRoom(roomId);
@@ -72,16 +72,6 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessagesFra
 
         TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
         topicView.setText(room.getTopic());
-
-
-        final ListView messageListView = ((ListView)findViewById(R.id.listView_messages));
-        final MessagesAdapter adapter = new MessagesAdapter(this,
-                R.layout.adapter_item_messages,
-                R.layout.adapter_item_images
-        );
-        messageListView.setAdapter(adapter);
-        mAdapter = adapter;
-
 
         // TODO: join room if you need to (check with Matrix singleton)
         // TODO: Request messages/state if you need to.
@@ -108,23 +98,9 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessagesFra
             return true;
         }
         else if (id == R.id.action_load_more) {
-            mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
-
-                @Override
-                public void onSuccess(List<Event> info) {
-                    for (Event event : info) {
-                        mAdapter.addToFront(event);
-                    }
-                }
-            });
+            mMatrixMessageListFragment.requestPagination();
         }
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onReceiveMessages(List<Event> events) {
-        for (Event event : events) {
-            mAdapter.add(event);
-        }
-    }
 }

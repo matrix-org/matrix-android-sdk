@@ -1,8 +1,110 @@
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.app.Activity;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ListView;
+
+import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+
+import java.util.List;
+
 /**
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
+    public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
+    public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
+
+    private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+
+    public static MatrixMessageListFragment newInstance(String roomId) {
+        return newInstance(roomId, R.layout.fragment_matrix_message_list_fragment);
+    }
+
+    public static MatrixMessageListFragment newInstance(String roomId, int layoutResId) {
+        MatrixMessageListFragment f = new MatrixMessageListFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_ROOM_ID, roomId);
+        args.putInt(ARG_LAYOUT_ID, layoutResId);
+        f.setArguments(args);
+        return f;
+    }
+
+    public interface MatrixMessageListListener {
+
+    }
+
+    private MatrixMessageListListener mMatrixMessageListListener;
+    private MatrixMessagesFragment mMatrixMessagesFragment;
+    private MessagesAdapter mAdapter;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+        Bundle args = getArguments();
+        View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
+
+        final ListView messageListView = ((ListView)v.findViewById(R.id.listView_messages));
+        mAdapter = new MessagesAdapter(getActivity(),
+                R.layout.adapter_item_messages,
+                R.layout.adapter_item_images
+        );
+        messageListView.setAdapter(mAdapter);
+
+        return v;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        Bundle args = getArguments();
+        FragmentManager fm = getActivity().getSupportFragmentManager();
+        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
+
+        if (mMatrixMessagesFragment == null) {
+            mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(args.getString(ARG_ROOM_ID), this);
+            fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
+        }
+    }
+
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try {
+            mMatrixMessageListListener = (MatrixMessageListListener)activity;
+        }
+        catch (ClassCastException e) {
+            throw new ClassCastException("Activity "+activity+" must implement MatrixMessageListListener");
+        }
+    }
+
+    @Override
+    public void onReceiveMessages(List<Event> events) {
+        for (Event event : events) {
+            mAdapter.add(event);
+        }
+    }
+
+    public void requestPagination() {
+        mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
+
+            @Override
+            public void onSuccess(List<Event> info) {
+                for (Event event : info) {
+                    mAdapter.addToFront(event);
+                }
+            }
+        });
+    }
 }
