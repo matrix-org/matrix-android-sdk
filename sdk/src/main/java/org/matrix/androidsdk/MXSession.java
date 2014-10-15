@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk;
 
-import android.net.Uri;
-
 import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.rest.client.PresenceApiClient;
@@ -30,7 +28,7 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
  */
 public class MXSession {
 
-    private MXData mData;
+    private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
 
@@ -40,8 +38,8 @@ public class MXSession {
     PresenceApiClient mPresenceApiClient;
     RoomsApiClient mRoomsApiClient;
 
-    public MXSession(MXData mxData, Credentials credentials) {
-        mData = mxData;
+    public MXSession(MXDataHandler mxData, Credentials credentials) {
+        mDataHandler = mxData;
         mCredentials = credentials;
 
         mEventsApiClient = new EventsApiClient(credentials);
@@ -59,8 +57,8 @@ public class MXSession {
         mRoomsApiClient.setCredentials(credentials);
     }
 
-    public MXData getData() {
-        return mData;
+    public MXDataHandler getDataHandler() {
+        return mDataHandler;
     }
 
     public Credentials getCredentials() {

@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * All cached data.
  */
-public class MXData implements IMXEventListener {
+public class MXDataHandler implements IMXEventListener {
     private static final String LOG_TAG = "MXData";
 
     private List<IMXEventListener> mEventListeners = new ArrayList<IMXEventListener>();
@@ -48,7 +48,7 @@ public class MXData implements IMXEventListener {
     private IMXStore mStore;
     private volatile boolean mInitialSyncComplete = false;
 
-    public MXData(IMXStore store) {
+    public MXDataHandler(IMXStore store) {
         // The JSON -> object mapper
         mGson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
@@ -73,9 +73,8 @@ public class MXData implements IMXEventListener {
         }
     }
 
-    // TODO: This just proxies through to the store, we shouldn't really be using this class for this.
-    public Collection<Room> getRooms() {
-        return mStore.getRooms();
+    public IMXStore getStore() {
+        return mStore;
     }
 
     private void handleEvent(Event event) {

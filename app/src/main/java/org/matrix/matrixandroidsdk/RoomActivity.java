@@ -13,9 +13,8 @@ import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
-
-import java.util.List;
 
 
 public class RoomActivity extends ActionBarActivity {
@@ -44,6 +43,9 @@ public class RoomActivity extends ActionBarActivity {
             finish();
             return;
         }
+
+        Room room = session.getDataHandler().getStore().getRoom(roomId);
+
 
         final ListView messageListView = ((ListView)findViewById(R.id.listView_messages));
         final MessagesAdapter adapter = new MessagesAdapter(this, R.layout.adapter_item_messages);

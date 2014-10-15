@@ -1,10 +1,8 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Context;
-import android.net.Uri;
 
-import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.MXData;
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.MXMemoryStore;
@@ -93,7 +91,7 @@ public class Matrix {
                 credentials.homeServer = "http://" + credentials.homeServer;
             }
         }
-        return new MXSession(new MXData(new MXMemoryStore()), credentials);
+        return new MXSession(new MXDataHandler(new MXMemoryStore()), credentials);
     }
 
     /**

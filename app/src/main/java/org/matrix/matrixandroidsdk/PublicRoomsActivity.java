@@ -1,7 +1,6 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -9,14 +8,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
-import android.widget.Toast;
 
-import org.matrix.androidsdk.MXData;
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
