@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,21 +14,24 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
+
+import java.util.List;
 
 
-public class RoomActivity extends ActionBarActivity {
+public class RoomActivity extends ActionBarActivity implements MatrixMessagesFragment.MatrixMessagesListener {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
+    private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "RoomActivity";
 
-    private MXSession mSession;
-    private String mRoomId;
-    private String mLast;
     private MessagesAdapter mAdapter;
+    private MatrixMessagesFragment mMatrixMessagesFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,16 +47,23 @@ public class RoomActivity extends ActionBarActivity {
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Toast.makeText(RoomActivity.this, "Display >> " + roomId, Toast.LENGTH_SHORT).show();
 
+        // make sure we're logged in.
         MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (session == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();
             return;
         }
-        mSession = session;
-        mRoomId = roomId;
 
-        Room room = mSession.getDataHandler().getStore().getRoom(roomId);
+        FragmentManager fm = getSupportFragmentManager();
+        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
+
+        if (mMatrixMessagesFragment == null) {
+            mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(roomId, this);
+            fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
+        }
+
+        Room room = session.getDataHandler().getStore().getRoom(roomId);
         String title = room.getName();
         if (title == null) {
             title = room.getRoomId();
@@ -71,16 +82,7 @@ public class RoomActivity extends ActionBarActivity {
         messageListView.setAdapter(adapter);
         mAdapter = adapter;
 
-        mSession.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
-                // add in reversed order since they come down in reversed order (newest first)
-                for (int i=info.chunk.size()-1; i>=0; i--) {
-                    adapter.add(info.chunk.get(i));
-                }
-                mLast = info.end;
-            }
-        });
+
         // TODO: join room if you need to (check with Matrix singleton)
         // TODO: Request messages/state if you need to.
         // TODO: Load up MatrixMessageListFragment to display messages.
@@ -106,18 +108,23 @@ public class RoomActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_load_more) {
-            mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mLast, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+            mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
 
                 @Override
-                public void onSuccess(TokensChunkResponse<Event> info) {
-                    // add to top of list.
-                    for (Event event : info.chunk) {
+                public void onSuccess(List<Event> info) {
+                    for (Event event : info) {
                         mAdapter.addToFront(event);
                     }
-                    mLast = info.end;
                 }
             });
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onReceiveMessages(List<Event> events) {
+        for (Event event : events) {
+            mAdapter.add(event);
+        }
     }
 }
