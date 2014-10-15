@@ -53,7 +53,11 @@ public class EventsApiClient extends MXApiClient {
         super(hsUri);
     }
 
-    public EventsApiClient(EventsApi api) {
+    /**
+     * Protected constructor for unit tests.
+     * @param api the events API
+     */
+    protected EventsApiClient(EventsApi api) {
         mApi = api;
     }
 
