@@ -94,13 +94,13 @@ public class RoomsApiClient extends MXApiClient {
     /**
      * Get the last messages for the given room.
      * @param roomId the room id
-     * @param callback the callback called with the response
+     * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getLastRoomMessages(String roomId, final ApiCallback<List<Message>> callback) {
-        mApi.messages(roomId, MESSAGES_PAGINATION_LIMIT, new DefaultCallback<TokensChunkResponse<Message>>() {
+    public void getLatestRoomMessages(String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new DefaultCallback<TokensChunkResponse<Event>>() {
             @Override
-            public void success(TokensChunkResponse<Message> messageTokensChunkResponse, Response response) {
-                callback.onSuccess(messageTokensChunkResponse.chunk);
+            public void success(TokensChunkResponse<Event> messageTokensChunkResponse, Response response) {
+                callback.onSuccess(messageTokensChunkResponse);
             }
         });
     }
@@ -109,28 +109,13 @@ public class RoomsApiClient extends MXApiClient {
      * Get messages for the given room starting from the given token.
      * @param roomId the room id
      * @param fromToken the token identifying the message to start from
-     * @param callback the callback called with the response
+     * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getRoomMessagesFrom(String roomId, String fromToken, final ApiCallback<List<Message>> callback) {
-        mApi.messagesFrom(roomId, fromToken, MESSAGES_PAGINATION_LIMIT, new DefaultCallback<TokensChunkResponse<Message>>() {
+    public void getEarlierMessages(String roomId, String fromToken, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new DefaultCallback<TokensChunkResponse<Event>>() {
             @Override
-            public void success(TokensChunkResponse<Message> messageTokensChunkResponse, Response response) {
-                callback.onSuccess(messageTokensChunkResponse.chunk);
-            }
-        });
-    }
-
-    /**
-     * Get messages for the given room up to the given token.
-     * @param roomId the room id
-     * @param toToken the token identifying up to which message we should
-     * @param callback the callback called with the response
-     */
-    public void getRoomMessagesTo(String roomId, String toToken, final ApiCallback<List<Message>> callback) {
-        mApi.messagesFrom(roomId, toToken, MESSAGES_PAGINATION_LIMIT, new DefaultCallback<TokensChunkResponse<Message>>() {
-            @Override
-            public void success(TokensChunkResponse<Message> messageTokensChunkResponse, Response response) {
-                callback.onSuccess(messageTokensChunkResponse.chunk);
+            public void success(TokensChunkResponse<Event> messageTokensChunkResponse, Response response) {
+                callback.onSuccess(messageTokensChunkResponse);
             }
         });
     }

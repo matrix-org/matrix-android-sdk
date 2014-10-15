@@ -6,11 +6,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.Message;
+import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
 import java.util.List;
 
@@ -42,13 +45,18 @@ public class RoomActivity extends ActionBarActivity {
             return;
         }
 
-        session.getRoomsApiClient().getLastRoomMessages(roomId, new MXApiClient.ApiCallback<List<Message>>() {
-            @Override
-            public void onSuccess(List<Message> info) {
+        final ListView messageListView = ((ListView)findViewById(R.id.listView_messages));
+        final MessagesAdapter adapter = new MessagesAdapter(this, R.layout.adapter_item_messages);
+        messageListView.setAdapter(adapter);
 
+        session.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> info) {
+                for (Event msg : info.chunk) {
+                    adapter.add(msg);
+                }
             }
         });
-
         // TODO: join room if you need to (check with Matrix singleton)
         // TODO: Request messages/state if you need to.
         // TODO: Load up MatrixMessageListFragment to display messages.

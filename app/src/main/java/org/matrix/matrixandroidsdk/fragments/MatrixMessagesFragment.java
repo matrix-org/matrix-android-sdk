@@ -6,7 +6,9 @@ import android.support.v4.app.Fragment;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
+import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.matrixandroidsdk.Matrix;
 
 import java.util.List;
@@ -58,12 +60,12 @@ public class MatrixMessagesFragment extends Fragment {
      * Request earlier messages in this room.
      * @param callback The callback to invoke when more messages have arrived.
      */
-    public void requestPagination(final MXApiClient.ApiCallback<List<Message>> callback) {
-        mSession.getRoomsApiClient().getRoomMessagesFrom(mRoomId, mEarliestToken,
-                new MXApiClient.ApiCallback<List<Message>>() {
+    public void requestPagination(final MXApiClient.ApiCallback<TokensChunkResponse<Event>> callback) {
+        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken,
+                new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
 
                     @Override
-                    public void onSuccess(List<Message> info) {
+                    public void onSuccess(TokensChunkResponse<Event> info) {
 
                         callback.onSuccess(info);
                     }
