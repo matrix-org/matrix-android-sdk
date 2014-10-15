@@ -48,6 +48,8 @@ public class MXSession {
         mProfileApiClient = new ProfileApiClient(credentials);
         mPresenceApiClient = new PresenceApiClient(credentials);
         mRoomsApiClient = new RoomsApiClient(credentials);
+
+        mEventsThread = new EventsThread(mEventsApiClient, new EventsThreadListener(mxData));
     }
 
     public void setCredentials(Credentials credentials) {
