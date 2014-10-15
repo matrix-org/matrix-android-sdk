@@ -11,7 +11,6 @@ import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
@@ -31,11 +30,9 @@ public class HomeActivity extends ActionBarActivity {
         setContentView(R.layout.activity_home);
         Credentials creds = new Credentials();
         creds.accessToken = "";
-        creds.homeServer = "https://matrix.org";
+        creds.homeServer = "matrix.org";
         creds.userId = "";
-        MXApiClient client = new MXApiClient("matrix.org");
-        client.setCredentials(creds);
-        final MXSession matrixSession = new MXSession(client, new MXData(new MXMemoryStore()));
+        final MXSession matrixSession = new MXSession(new MXData(new MXMemoryStore()), creds);
         matrixSession.startEventStream();
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);

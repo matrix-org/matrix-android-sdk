@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.test.JSONUtils;
 import org.matrix.androidsdk.test.RetrofitUtils;
 import org.mockito.ArgumentCaptor;
@@ -88,9 +89,8 @@ public class MXApiClientTest extends TestCase {
         }).when(eventsApi).publicRooms(any(Callback.class));
 
 
-        MXApiClient client = new MXApiClient();
-        client.setEventsApi(eventsApi);
-        MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
+        EventsApiClient client = new EventsApiClient();
+        EventsApiClient.LoadPublicRoomsCallback cb = mock(EventsApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
         client.loadPublicRooms(cb);
@@ -127,9 +127,8 @@ public class MXApiClientTest extends TestCase {
             }
         }).when(eventsApi).publicRooms(any(Callback.class));
 
-        MXApiClient client = new MXApiClient();
-        client.setEventsApi(eventsApi);
-        MXApiClient.LoadPublicRoomsCallback cb = mock(MXApiClient.LoadPublicRoomsCallback.class);
+        EventsApiClient client = new EventsApiClient();
+        EventsApiClient.LoadPublicRoomsCallback cb = mock(EventsApiClient.LoadPublicRoomsCallback.class);
 
         // run the method being tested
         client.loadPublicRooms(cb);

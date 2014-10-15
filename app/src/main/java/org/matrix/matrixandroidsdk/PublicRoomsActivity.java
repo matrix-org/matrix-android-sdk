@@ -10,12 +10,13 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
 
-import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXData;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.PublicRoom;
+import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.MXMemoryStore;
+import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;
@@ -29,13 +30,15 @@ public class PublicRoomsActivity extends ActionBarActivity {
         setContentView(R.layout.activity_public_rooms);
 
         // FIXME Should be reading from a single one
-        final MXSession matrixSession = new MXSession(new MXApiClient("matrix.org"), new MXData(new MXMemoryStore()));
+        Credentials creds = new Credentials();
+        creds.homeServer = "matrix.org";
+        final MXSession matrixSession = new MXSession(new MXData(new MXMemoryStore()), creds);
 
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        matrixSession.getApiClient().loadPublicRooms(new MXApiClient.LoadPublicRoomsCallback() {
+        matrixSession.getEventsApiClient().loadPublicRooms(new EventsApiClient.LoadPublicRoomsCallback() {
             @Override
             public void onRoomsLoaded(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {

@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Listener for the events thread.
  */
-public class EventsThreadListener implements EventsThread.EventsThreadListener {
+public class EventsThreadListener implements EventsThread.IEventsThreadListener {
     private MXData mData;
 
     public EventsThreadListener(MXData data) {

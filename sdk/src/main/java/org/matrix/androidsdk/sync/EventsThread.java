@@ -17,8 +17,8 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
-import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.MXApiClient.InitialSyncCallback;
+import org.matrix.androidsdk.rest.client.EventsApiClient;
+import org.matrix.androidsdk.rest.client.EventsApiClient.InitialSyncCallback;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
@@ -32,20 +32,32 @@ import java.util.concurrent.CountDownLatch;
 public class EventsThread extends Thread {
     private static final String LOG_TAG = "EventsThread";
 
-    private MXApiClient mApiClient;
-    private EventsThreadListener mListener;
+    private EventsApiClient mApiClient;
+    private IEventsThreadListener mListener = null;
     private String mCurrentToken;
 
+    /**
+     * Interface to implement to listen to the event thread.
+     */
+    public interface IEventsThreadListener {
 
-    public EventsThread(MXApiClient apiClient, EventsThreadListener listener) {
+        /**
+         * Called with the response of the initial sync.
+         * @param response the response
+         */
+        public void onInitialSyncComplete(InitialSyncResponse response);
+
+        /**
+         * Called every time events come down the stream.
+         * @param events the events
+         */
+        public void onEventsReceived(List<Event> events);
+    }
+
+    public EventsThread(EventsApiClient apiClient, IEventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
-    }
-
-    public interface EventsThreadListener {
-        public void onInitialSyncComplete(InitialSyncResponse response);
-        public void onEventsReceived(List<Event> events);
     }
 
     @Override
@@ -58,7 +70,9 @@ public class EventsThread extends Thread {
             @Override
             public void onSynced(InitialSyncResponse initialSync) {
                 Log.i(LOG_TAG, "Received initial sync response.");
-                mListener.onInitialSyncComplete(initialSync);
+                if (mListener != null) {
+                    mListener.onInitialSyncComplete(initialSync);
+                }
                 mCurrentToken = initialSync.end;
                 // unblock the events thread
                 latch.countDown();
@@ -78,7 +92,9 @@ public class EventsThread extends Thread {
         // Then work from there
         while (true) {
             TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
-            mListener.onEventsReceived(eventsResponse.chunk);
+            if (mListener != null) {
+                mListener.onEventsReceived(eventsResponse.chunk);
+            }
             mCurrentToken = eventsResponse.end;
         }
     }
