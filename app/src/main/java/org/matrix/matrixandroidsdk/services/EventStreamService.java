@@ -13,7 +13,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
 /**
- * A foreground service running the event stream.
+ * A foreground service in charge of controlling whether the event stream is running on not.
  */
 public class EventStreamService extends Service {
     public static final String EXTRA_KILL_STREAM = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_KILL_STREAM";

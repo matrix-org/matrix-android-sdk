@@ -56,6 +56,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
     }
 
@@ -85,6 +86,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
 
         if (mMatrixMessagesFragment == null) {
+            // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(args.getString(ARG_ROOM_ID), this);
             fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
         }

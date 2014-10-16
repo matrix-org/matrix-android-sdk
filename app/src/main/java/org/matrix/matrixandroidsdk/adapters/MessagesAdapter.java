@@ -23,6 +23,10 @@ import org.matrix.matrixandroidsdk.R;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 
+/**
+ * An adapter which can display events. Events are not limited to m.room.message event types, but
+ * can include topic changes (m.room.topic) and room member changes (m.room.member).
+ */
 public class MessagesAdapter extends ArrayAdapter<Event> {
 
     private static final int NUM_ROW_TYPES = 2; // text and images.

@@ -17,6 +17,9 @@ import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import java.util.List;
 
 
+/**
+ * Displays a list of available public rooms.
+ */
 public class PublicRoomsActivity extends ActionBarActivity {
 
     @Override

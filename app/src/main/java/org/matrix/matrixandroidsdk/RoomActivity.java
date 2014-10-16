@@ -26,6 +26,9 @@ import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
 import java.util.List;
 
 
+/**
+ * Displays a single room with messages.
+ */
 public class RoomActivity extends ActionBarActivity implements MatrixMessageListFragment.MatrixMessageListListener {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
@@ -73,10 +76,12 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
         if (mMatrixMessageListFragment == null) {
+            // this fragment displays messages and handles all message logic
             mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoomId);
             fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
+        // set general room information
         Room room = session.getDataHandler().getStore().getRoom(mRoomId);
         String title = room.getName();
         if (title == null) {
@@ -86,7 +91,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
         TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
         topicView.setText(room.getTopic());
-        topicView.setSelected(true); // make 'er scroll
+        topicView.setSelected(true); // make the marquee scroll
     }
 
 

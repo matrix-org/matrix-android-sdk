@@ -12,6 +12,9 @@ import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;
 
+/**
+ * An adapter which can display room information.
+ */
 public class RoomsAdapter extends ArrayAdapter<RoomState> {
 
     private Context mContext;

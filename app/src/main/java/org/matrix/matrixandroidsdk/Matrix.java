@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Singleton to control access to the Matrix SDK.
+ * Singleton to control access to the Matrix SDK and providing point of control for MXSessions.
  */
 public class Matrix {
 
@@ -52,7 +52,7 @@ public class Matrix {
     }
 
     /**
-     * Clear the default session.
+     * Clears the default session.
      */
     public synchronized void clearDefaultSession() {
         mDefaultSession = null;
@@ -80,6 +80,7 @@ public class Matrix {
     /**
      * Creates an MXSession from some credentials.
      * @param credentials The credentials to create a session from.
+     * @param useHttps True to enforce https URIs on the home server.
      * @return The session.
      */
     public MXSession createSession(Credentials credentials, boolean useHttps) {

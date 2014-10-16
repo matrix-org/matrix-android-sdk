@@ -20,6 +20,10 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
+/**
+ * Displays the main screen of the app, with rooms the user has joined and the ability to create
+ * new rooms.
+ */
 public class HomeActivity extends ActionBarActivity {
 
     @Override

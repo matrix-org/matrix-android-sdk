@@ -101,7 +101,8 @@ public class MatrixMessagesFragment extends Fragment {
                 mEarliestToken = info.end;
             }
         });
-
+        // FIXME: There is a race here where you could miss messages. Ideally we should be using
+        // the initial sync messages and not re-requesting the same messages from /messages API.
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onMessageReceived(Room room, Event event) {
@@ -151,6 +152,10 @@ public class MatrixMessagesFragment extends Fragment {
         });
     }
 
+    /**
+     * Send a message in this room.
+     * @param body The text to send.
+     */
     public void sendMessage(String body) {
         TextMessage message = new TextMessage();
         message.body = body;
@@ -160,6 +165,7 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Event info) {
                 Log.d(LOG_TAG, "onSuccess >>>> " + info);
+                // TODO: This should probably be fed back to the caller.
             }
         });
     }

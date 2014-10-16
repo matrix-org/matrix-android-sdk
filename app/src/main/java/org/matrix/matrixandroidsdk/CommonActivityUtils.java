@@ -9,6 +9,9 @@ import android.widget.EditText;
 
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
+/**
+ * Contains useful functions which are called in multiple activities.
+ */
 public class CommonActivityUtils {
 
     public static void logout(Activity context) {
