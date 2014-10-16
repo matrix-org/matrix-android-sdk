@@ -105,6 +105,15 @@ public class MatrixMessagesFragment extends Fragment {
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onMessageReceived(Room room, Event event) {
+                process(room, event);
+            }
+
+            @Override
+            public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
+                process(room, event);
+            }
+
+            private void process(Room room, Event event) {
                 if (!mRoomId.equals(room.getRoomId())) {
                     return;
                 }
