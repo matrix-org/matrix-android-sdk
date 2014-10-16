@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
+import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 
 import java.util.Collection;
 import java.util.List;
@@ -37,6 +38,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
+    private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
@@ -130,14 +132,14 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             }
         }
         else if (id == R.id.action_members) {
-            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                Room room = session.getDataHandler().getStore().getRoom(mRoomId);
-                Collection<RoomMember> members = room.getMembers();
-                for (RoomMember m : members) {
-                    Log.e(LOG_TAG, m.userId + "(" + m.displayname+")  : " + m.membership +" " + m.avatarUrl);
-                }
+            FragmentManager fm = getSupportFragmentManager();
+
+            RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
             }
+            fragment = RoomMembersDialogFragment.newInstance(mRoomId);
+            fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
         }
         return super.onOptionsItemSelected(item);
     }

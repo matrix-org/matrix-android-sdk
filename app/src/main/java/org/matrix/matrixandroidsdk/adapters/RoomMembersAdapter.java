@@ -61,6 +61,12 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                 else if (rhs == null) {
                     return 1;
                 }
+                if (lhs.startsWith("@")) {
+                    lhs = lhs.substring(1);
+                }
+                if (rhs.startsWith("@")) {
+                    rhs = rhs.substring(1);
+                }
                 return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
             }
         });
