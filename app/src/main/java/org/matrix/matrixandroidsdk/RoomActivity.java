@@ -34,6 +34,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     private static final String LOG_TAG = "RoomActivity";
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
+    private String mRoomId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +47,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             finish();
             return;
         }
-        String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
+        mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
 
         findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
 
@@ -72,11 +73,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
         if (mMatrixMessageListFragment == null) {
-            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(roomId);
+            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoomId);
             fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
-        Room room = session.getDataHandler().getStore().getRoom(roomId);
+        Room room = session.getDataHandler().getStore().getRoom(mRoomId);
         String title = room.getName();
         if (title == null) {
             title = room.getRoomId();
@@ -109,6 +110,18 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
         else if (id == R.id.action_load_more) {
             mMatrixMessageListFragment.requestPagination();
+        }
+        else if (id == R.id.action_leave) {
+            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+            if (session != null) {
+                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+
+                    @Override
+                    public void onSuccess(Void info) {
+                        RoomActivity.this.finish();
+                    }
+                });
+            }
         }
         return super.onOptionsItemSelected(item);
     }

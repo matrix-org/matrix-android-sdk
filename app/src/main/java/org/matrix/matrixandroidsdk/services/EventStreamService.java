@@ -48,10 +48,10 @@ public class EventStreamService extends Service {
 
     private void start() {
         if (mStarted) {
-            Log.e(LOG_TAG, "Already started.");
+            Log.w(LOG_TAG, "Already started.");
             return;
         }
-        Log.e(LOG_TAG, "start()");
+        Log.d(LOG_TAG, "start()");
         if (mSession == null) {
             mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (mSession == null) {
@@ -68,11 +68,12 @@ public class EventStreamService extends Service {
     }
 
     private void stop() {
-        Log.e(LOG_TAG, "stop()");
+        Log.d(LOG_TAG, "stop()");
         stopForeground(true);
         if (mSession != null) {
             mSession.stopEventStream();
         }
+        mSession = null;
     }
 
     private Notification buildNotification() {

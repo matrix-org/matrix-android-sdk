@@ -183,7 +183,7 @@ public class RoomsApiClient extends MXApiClient {
      * @param callback on success callback
      */
     public void leaveRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.leave(roomId, new DefaultCallback<Void>() {
+        mApi.leave(roomId, new JsonObject(), new DefaultCallback<Void>() {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);

@@ -140,7 +140,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/leave")
-    public void leave(@Path("roomId") String roomId, Callback<Void> callback);
+    public void leave(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
      * Ban a user from the given room.
