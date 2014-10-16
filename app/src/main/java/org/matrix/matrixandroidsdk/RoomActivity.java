@@ -87,8 +87,6 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
         topicView.setText(room.getTopic());
         topicView.setSelected(true); // make 'er scroll
-
-        // TODO: join room if you need to (check with Matrix singleton)
     }
 
 

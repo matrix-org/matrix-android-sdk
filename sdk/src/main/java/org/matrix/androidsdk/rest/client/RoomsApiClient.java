@@ -169,7 +169,7 @@ public class RoomsApiClient extends MXApiClient {
      * @param callback on success callback
      */
     public void joinRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.join(roomId, new DefaultCallback<Void>() {
+        mApi.join(roomId, new JsonObject(), new DefaultCallback<Void>() {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);

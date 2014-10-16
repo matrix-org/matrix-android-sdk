@@ -132,7 +132,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/join")
-    public void join(@Path("roomId") String roomId, Callback<Void> callback);
+    public void join(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
      * Leave the given room.

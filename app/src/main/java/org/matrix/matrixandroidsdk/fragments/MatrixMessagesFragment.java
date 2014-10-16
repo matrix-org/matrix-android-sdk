@@ -10,6 +10,7 @@ import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
+import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.api.response.TextMessage;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
@@ -71,6 +72,26 @@ public class MatrixMessagesFragment extends Fragment {
             throw new RuntimeException("Must have valid default MXSession.");
         }
 
+        // check if this room has been joined, if not, join it then get messages.
+        boolean joinedRoom = false;
+        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+        if (room != null) {
+            RoomMember self = room.getMember(mSession.getCredentials().userId);
+            if (self != null && "join".equals(self.membership)) {
+                joinedRoom = true;
+            }
+        }
+
+        if (!joinedRoom) {
+            Log.i(LOG_TAG, "Joining room >> " + mRoomId);
+            joinRoomThenGetMessages();
+        }
+        else {
+            getAndListenForMessages();
+        }
+    }
+
+    private void getAndListenForMessages() {
         mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
@@ -90,6 +111,15 @@ public class MatrixMessagesFragment extends Fragment {
                 List<Event> events = new ArrayList<Event>();
                 events.add(event);
                 mMatrixMessagesListener.onReceiveMessages(events);
+            }
+        });
+    }
+
+    private void joinRoomThenGetMessages() {
+        mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getAndListenForMessages();
             }
         });
     }
