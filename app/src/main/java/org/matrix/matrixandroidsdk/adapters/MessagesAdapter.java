@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -116,6 +117,20 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
 
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
+
+        // check for html formatting
+        if (msg.content.has("formatted_body") && msg.content.has("format")) {
+            try {
+                String format = msg.content.getAsJsonPrimitive("format").getAsString();
+                if ("org.matrix.custom.html".equals(format)) {
+                    textView.setText(Html.fromHtml(msg.content.getAsJsonPrimitive("formatted_body").getAsString()));
+                }
+            }
+            catch (Exception e) {
+                // ignore: The json object was probably malformed and we have already set the fallback
+            }
+        }
+
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(msg.userId);
 
