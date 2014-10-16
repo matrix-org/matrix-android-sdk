@@ -90,6 +90,33 @@ public abstract class MXApiClient {
     }
 
     /**
+     * A stub implementation of {@link MXApiClient.ApiCallback} which only chosen callbacks
+     * can be implemented.
+     */
+    public static class SimpleApiCallback<T> implements MXApiClient.ApiCallback<T> {
+
+        @Override
+        public void onSuccess(T info) {
+
+        }
+
+        @Override
+        public void onNetworkError(Exception e) {
+
+        }
+
+        @Override
+        public void onMatrixError(MatrixError e) {
+
+        }
+
+        @Override
+        public void onUnexpectedError(Exception e) {
+
+        }
+    }
+
+    /**
      * Custom Retrofit error callback class that will call one of our ApiCallback error callbacks on a Retrofit failure.
      * When subclassing this, the Retrofit callback success call needs to be implemented.
      * @param <T> the type to return on success

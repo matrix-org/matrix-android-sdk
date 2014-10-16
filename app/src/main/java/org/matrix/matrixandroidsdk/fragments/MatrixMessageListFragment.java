@@ -124,7 +124,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void requestPagination() {
-        mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
+        mMatrixMessagesFragment.requestPagination(new MXApiClient.SimpleApiCallback<List<Event>>() {
 
             @Override
             public void onSuccess(final List<Event> info) {
@@ -136,21 +136,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
     }

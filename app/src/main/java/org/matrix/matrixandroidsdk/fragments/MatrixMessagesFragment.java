@@ -93,28 +93,13 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void getAndListenForMessages() {
-        mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+        mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
                 // return in reversed order since they come down in reversed order (newest first)
                 Collections.reverse(info.chunk);
                 mMatrixMessagesListener.onReceiveMessages(info.chunk);
                 mEarliestToken = info.end;
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
         // FIXME: There is a race here where you could miss messages. Ideally we should be using
@@ -133,26 +118,12 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoomThenGetMessages() {
-        mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+        mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getAndListenForMessages();
             }
 
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
-            }
         });
     }
 
@@ -172,28 +143,13 @@ public class MatrixMessagesFragment extends Fragment {
      * @param callback The callback to invoke when more messages have arrived.
      */
     public void requestPagination(final MXApiClient.ApiCallback<List<Event>> callback) {
-        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
 
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
                 // add to top of list.
                 callback.onSuccess(info.chunk);
                 mEarliestToken = info.end;
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
     }
@@ -206,27 +162,12 @@ public class MatrixMessagesFragment extends Fragment {
         TextMessage message = new TextMessage();
         message.body = body;
         message.msgtype = "m.text";
-        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new MXApiClient.ApiCallback<Event>() {
+        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new MXApiClient.SimpleApiCallback<Event>() {
 
             @Override
             public void onSuccess(Event info) {
                 Log.d(LOG_TAG, "onSuccess >>>> " + info);
                 // TODO: This should probably be fed back to the caller.
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
     }

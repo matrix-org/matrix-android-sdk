@@ -137,26 +137,11 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.ApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
                             goToRoomPage(info.roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-
                         }
                     });
                 }
@@ -174,26 +159,11 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(text, null, "private", null, new MXApiClient.ApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(text, null, "private", null, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
                             goToRoomPage(info.roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-
                         }
                     });
                 }

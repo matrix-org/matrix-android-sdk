@@ -33,28 +33,13 @@ public class PublicRoomsActivity extends ActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsApiClient.ApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsApiClient.SimpleApiCallback<List<PublicRoom>>() {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {
                     adapter.add(publicRoom);
                 }
                 adapter.sortRooms();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
 

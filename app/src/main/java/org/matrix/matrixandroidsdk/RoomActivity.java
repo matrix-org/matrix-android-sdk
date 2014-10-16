@@ -118,26 +118,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         else if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.SimpleApiCallback<Void>() {
 
                     @Override
                     public void onSuccess(Void info) {
                         RoomActivity.this.finish();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-
                     }
                 });
             }
