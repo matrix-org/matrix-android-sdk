@@ -11,7 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.R;
@@ -123,7 +123,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void requestPagination() {
-        mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
+        mMatrixMessagesFragment.requestPagination(new ApiCallback<List<Event>>() {
 
             @Override
             public void onSuccess(final List<Event> info) {

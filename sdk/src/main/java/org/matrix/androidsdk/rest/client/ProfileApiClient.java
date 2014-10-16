@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;

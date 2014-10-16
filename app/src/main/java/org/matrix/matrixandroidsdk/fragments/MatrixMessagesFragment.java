@@ -5,10 +5,10 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 
-import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -91,7 +91,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void getAndListenForMessages() {
-        mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+        mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new ApiCallback<TokensChunkResponse<Event>>() {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
                 // return in reversed order since they come down in reversed order (newest first)
@@ -131,7 +131,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoomThenGetMessages() {
-        mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+        mSession.getRoomsApiClient().joinRoom(mRoomId, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getAndListenForMessages();
@@ -169,8 +169,8 @@ public class MatrixMessagesFragment extends Fragment {
      * Request earlier messages in this room.
      * @param callback The callback to invoke when more messages have arrived.
      */
-    public void requestPagination(final MXApiClient.ApiCallback<List<Event>> callback) {
-        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
+    public void requestPagination(final ApiCallback<List<Event>> callback) {
+        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new ApiCallback<TokensChunkResponse<Event>>() {
 
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
@@ -204,7 +204,7 @@ public class MatrixMessagesFragment extends Fragment {
         TextMessage message = new TextMessage();
         message.body = body;
         message.msgtype = "m.text";
-        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new MXApiClient.ApiCallback<Event>() {
+        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new ApiCallback<Event>() {
 
             @Override
             public void onSuccess(Event info) {

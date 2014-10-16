@@ -9,6 +9,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.client.LoginApiClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -47,7 +48,7 @@ public class LoginActivity extends ActionBarActivity {
         }
         LoginApiClient client = new LoginApiClient(Uri.parse(hsUrl));
         // TODO: This client should check that it can use u/p login on this home server!!!
-        client.loginWithPassword(username, password, new LoginApiClient.ApiCallback<Credentials>() {
+        client.loginWithPassword(username, password, new ApiCallback<Credentials>() {
 
             @Override
             public void onSuccess(Credentials credentials) {

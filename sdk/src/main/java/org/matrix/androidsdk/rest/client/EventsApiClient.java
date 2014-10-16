@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.client;
 import android.net.Uri;
 
 import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;

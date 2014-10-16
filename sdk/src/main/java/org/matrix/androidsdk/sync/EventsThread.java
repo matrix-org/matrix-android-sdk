@@ -18,6 +18,7 @@ package org.matrix.androidsdk.sync;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
@@ -68,7 +69,7 @@ public class EventsThread extends Thread {
      * Shared implementation of the API callback for all API calls from this class.
      * {@inheritDoc}
      */
-    private class DefaultApiCallback<T> implements MXApiClient.ApiCallback<T> {
+    private class DefaultApiCallback<T> implements ApiCallback<T> {
         @Override
         public void onSuccess(T info) {
         }

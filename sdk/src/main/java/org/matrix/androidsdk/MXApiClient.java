@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
@@ -51,37 +52,6 @@ public abstract class MXApiClient {
     protected Credentials mCredentials;
 
     protected Gson gson;
-
-    /**
-     * Generic callback interface for asynchronously returning information.
-     * @param <T> the type of information to return on success
-     */
-    public interface ApiCallback<T> {
-
-        /**
-         * Called if the API call is successful.
-         * @param info the returned information
-         */
-        public void onSuccess(T info);
-
-        /**
-         * Called if there is a network error.
-         * @param e the exception
-         */
-        public void onNetworkError(Exception e);
-
-        /**
-         * Called in case of a Matrix error.
-         * @param e the Matrix error
-         */
-        public void onMatrixError(MatrixError e);
-
-        /**
-         * Called for some other type of error.
-         * @param e the exception
-         */
-        public void onUnexpectedError(Exception e);
-    }
 
     /**
      * Custom Retrofit error callback class that will call one of our ApiCallback error callbacks on a Retrofit failure.

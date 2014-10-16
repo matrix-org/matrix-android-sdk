@@ -19,6 +19,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;

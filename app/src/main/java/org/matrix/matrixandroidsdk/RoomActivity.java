@@ -11,9 +11,9 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 
@@ -109,7 +109,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         else if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+                session.getRoomsApiClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
 
                     @Override
                     public void onSuccess(Void info) {
