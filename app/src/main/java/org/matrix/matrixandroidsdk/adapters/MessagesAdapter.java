@@ -19,6 +19,11 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.R;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
  * can include topic changes (m.room.topic) and room member changes (m.room.member).
@@ -45,6 +50,8 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
     private int mOddColourResId;
     private int mEvenColourResId;
 
+    private DateFormat mDateFormat;
+
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
                            int membershipChangeResLayoutId, int noticeResLayoutId) {
         super(context, 0);
@@ -54,6 +61,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         mMembershipLayoutId = membershipChangeResLayoutId;
         mNoticeLayoutId = noticeResLayoutId;
         mLayoutInflater = LayoutInflater.from(mContext);
+        mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         setNotifyOnChange(true);
     }
 
@@ -161,6 +169,9 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(msg.userId);
 
+        textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
+        textView.setText(getTimestamp(msg.ts));
+
         setBackgroundColour(convertView, position);
         return convertView;
 
@@ -264,6 +275,10 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
             Log.e(LOG_TAG, "Unknown membership: "+membership);
         }
         return null;
+    }
+
+    private String getTimestamp(long ts) {
+        return mDateFormat.format(new Date(ts));
     }
 
     private String getAvatarChangeNotice(Event msg) {

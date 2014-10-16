@@ -6,16 +6,37 @@
               android:layout_height="match_parent"
               android:paddingBottom="5dp">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:layout_gravity="left"
-        android:paddingLeft="4dp"
-        android:paddingRight="4dp"
-        android:textColor="#FFAAAAAA"
-        android:text="SENDER"
-        android:id="@+id/messagesAdapter_sender"/>
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_gravity="left"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:textColor="#FFAAAAAA"
+            android:text="SENDER"
+            android:id="@+id/messagesAdapter_sender"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_gravity="right"
+            android:gravity="right"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:textColor="#FFAAAAAA"
+            android:text="1970/01/01 00:00:00"
+            android:id="@+id/messagesAdapter_timestamp"/>
+
+    </LinearLayout>
+
+
 
     <TextView
         android:layout_width="wrap_content"
