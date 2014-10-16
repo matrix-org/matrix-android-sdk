@@ -74,6 +74,7 @@ public class EventStreamService extends Service {
             mSession.stopEventStream();
         }
         mSession = null;
+        mStarted = false;
     }
 
     private Notification buildNotification() {
