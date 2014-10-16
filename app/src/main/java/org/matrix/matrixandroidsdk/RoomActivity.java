@@ -13,7 +13,9 @@ import android.widget.TextView;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 
@@ -30,7 +32,30 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     private static final String LOG_TAG = "RoomActivity";
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
+    private MXSession mSession;
     private String mRoomId;
+
+    private MXEventListener mSessionListener = new MXEventListener() {
+        @Override
+        public void onRoomStateUpdated(Room room, final Event event, Object oldVal, final Object newVal) {
+            if (!mRoomId.equals(room.getRoomId())) {
+                return;
+            }
+            RoomActivity.this.runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        setTitle((String)newVal);
+                    }
+                    else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+                        setTopic((String)newVal);
+                    }
+                }
+            });
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +83,8 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
 
         // make sure we're logged in.
-        MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        if (session == null) {
+        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        if (mSession == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();
             return;
@@ -75,16 +100,24 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
 
         // set general room information
-        Room room = session.getDataHandler().getStore().getRoom(mRoomId);
+        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
         String title = room.getName();
         if (title == null) {
             title = room.getRoomId();
         }
         setTitle(title);
 
-        TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
-        topicView.setText(room.getTopic());
-        topicView.setSelected(true); // make the marquee scroll
+        setTopic(room.getTopic());
+
+
+        // listen for room name or topic changes
+        mSession.getDataHandler().addListener(mSessionListener);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSession.getDataHandler().removeListener(mSessionListener);
     }
 
 
@@ -130,6 +163,12 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void setTopic(String topic) {
+        TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
+        topicView.setText(topic);
+        topicView.setSelected(true); // make the marquee scroll
     }
 
     private void sendMessage(String body) {
