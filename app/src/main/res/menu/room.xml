@@ -13,7 +13,7 @@
     <item android:id="@+id/action_leave"
           android:title="@string/action_leave"
           android:orderInCategory="100"
-          app:showAsAction="ifRoom" />
+          app:showAsAction="never" />
     <item android:id="@+id/action_settings"
           android:title="@string/action_settings"
           android:orderInCategory="100"
