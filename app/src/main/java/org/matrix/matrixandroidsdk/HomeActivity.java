@@ -125,13 +125,29 @@ public class HomeActivity extends ActionBarActivity {
 
     private void createRoom(final boolean isPublic) {
         if (isPublic) {
-            // TODO: Create dialog to get a room alias
-            // TODO: Then request to create room
-            String allocatedRoomId = "";
-            goToRoomPage(allocatedRoomId);
+            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Alias", "alias-name", new CommonActivityUtils.OnSubmitListener() {
+                @Override
+                public void onSubmit(String text) {
+                    if (text.length() == 0) {
+                        return;
+                    }
+                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.ApiCallback<CreateRoomResponse>() {
+
+                        @Override
+                        public void onSuccess(CreateRoomResponse info) {
+                            goToRoomPage(info.roomId);
+                        }
+                    });
+                }
+
+                @Override
+                public void onCancelled() {}
+            });
+            alert.show();
         }
         else {
-            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Name", new CommonActivityUtils.OnSubmitListener() {
+            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Name", "My Room", new CommonActivityUtils.OnSubmitListener() {
                 @Override
                 public void onSubmit(String text) {
                     if (text.length() == 0) {

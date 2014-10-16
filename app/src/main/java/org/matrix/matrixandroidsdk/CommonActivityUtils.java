@@ -29,9 +29,12 @@ public class CommonActivityUtils {
         public void onCancelled();
     }
 
-    public static AlertDialog createEditTextAlert(Activity context, String title, final OnSubmitListener listener) {
+    public static AlertDialog createEditTextAlert(Activity context, String title, String hint, final OnSubmitListener listener) {
         final AlertDialog.Builder alert = new AlertDialog.Builder(context);
         final EditText input = new EditText(context);
+        if (hint != null) {
+            input.setHint(hint);
+        }
         alert.setTitle(title);
         alert.setView(input);
         alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
