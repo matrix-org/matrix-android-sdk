@@ -4,8 +4,8 @@ import android.content.Context;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.MXMemoryStore;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 
 import java.util.ArrayList;

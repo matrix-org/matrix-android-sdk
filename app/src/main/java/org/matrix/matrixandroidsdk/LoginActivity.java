@@ -1,8 +1,6 @@
 package org.matrix.matrixandroidsdk;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -10,12 +8,10 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.MatrixError;
-import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.rest.client.LoginApiClient;
-import org.matrix.matrixandroidsdk.store.LoginStorage;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 
 /**

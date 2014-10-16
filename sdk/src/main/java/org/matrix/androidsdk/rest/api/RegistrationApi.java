@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api;
+package org.matrix.androidsdk.rest.api;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.api.response.login.LoginFlowResponse;
-import org.matrix.androidsdk.api.response.login.LoginParams;
+import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
+import org.matrix.androidsdk.rest.model.login.LoginParams;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -26,22 +26,22 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 
 /**
- * The login REST API.
+ * The Registration REST API.
  */
-public interface LoginApi {
+public interface RegistrationApi {
 
     /**
-     * Get the different login flows supported by the server.
+     * Get the different registration flows supported by the server.
      * @param callback the asynchronous callback called with the response
      */
-    @GET("/login")
-    public void login(Callback<LoginFlowResponse> callback);
+    @GET("/register")
+    public void register(Callback<LoginFlowResponse> callback);
 
     /**
-     * Pass params to the server for the current login phase.
-     * @param loginParams the login parameters
+     * Pass params to the server for the current registration phase.
+     * @param loginParams the registration parameters
      * @param callback the asynchronous callback called with the response
      */
-    @POST("/login")
-    public void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
+    @POST("/register")
+    public void register(@Body LoginParams loginParams, Callback<JsonObject> callback);
 }

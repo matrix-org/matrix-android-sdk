@@ -15,8 +15,8 @@
  */
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.RoomMember;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.util.HashMap;
 import java.util.Map;

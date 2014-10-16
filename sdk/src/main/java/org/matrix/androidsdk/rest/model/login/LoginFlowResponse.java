@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response.login;
+package org.matrix.androidsdk.rest.model.login;
 
 import java.util.List;
 
 /**
- * A Login flow.
+ * Response to a GET /login call with the different login flows.
  */
-public class LoginFlow {
-    public String type;
-    public List<String> stages;
+public class LoginFlowResponse {
+    public List<LoginFlow> flows;
 }

@@ -21,20 +21,16 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.RoomMember;
-import org.matrix.androidsdk.api.response.User;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * All cached data.

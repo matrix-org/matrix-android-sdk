@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api;
+package org.matrix.androidsdk.rest.api;
 
-import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.InitialSyncResponse;
-import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import retrofit.Callback;
 import retrofit.http.GET;
@@ -45,7 +44,6 @@ public interface EventsApi {
      * Get information about a single event.
      * @param eventId The event ID to get
      * @param callback The asynchronous callback to call when finished
-     * @return the event information
      */
     @GET("/events/{eventId}")
     public void events(@Path("eventId") String eventId, Callback<Event> callback);
@@ -61,7 +59,6 @@ public interface EventsApi {
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param limit the limit of the amount of messages to return per room
      * @param callback The asynchronous callback to call when finished
-     * @return the rooms, presence, states information
      */
     @GET("/initialSync")
     public void initialSync(@Query("limit") int limit,

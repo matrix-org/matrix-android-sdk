@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
+package org.matrix.androidsdk.rest.model;
 
 /**
  * Represents a standard error response.

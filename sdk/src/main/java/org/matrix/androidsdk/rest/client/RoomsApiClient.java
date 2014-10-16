@@ -18,14 +18,14 @@ package org.matrix.androidsdk.rest.client;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.RoomsApi;
-import org.matrix.androidsdk.api.response.CreateRoomResponse;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.RoomMember;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
-import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.api.RoomsApi;
+import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
 
@@ -39,7 +39,7 @@ public class RoomsApiClient extends MXApiClient {
 
     protected static final int MESSAGES_PAGINATION_LIMIT = 15;
 
-    RoomsApi mApi;
+    private RoomsApi mApi;
 
     /**
      * Public constructor.

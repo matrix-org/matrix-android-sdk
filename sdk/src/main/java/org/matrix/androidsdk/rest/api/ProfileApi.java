@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api;
+package org.matrix.androidsdk.rest.api;
 
-import com.google.gson.JsonObject;
-
-import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.rest.model.User;
 
 import retrofit.Callback;
 import retrofit.http.Body;

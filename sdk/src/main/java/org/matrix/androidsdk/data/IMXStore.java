@@ -1,6 +1,6 @@
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.api.response.User;
+import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
 

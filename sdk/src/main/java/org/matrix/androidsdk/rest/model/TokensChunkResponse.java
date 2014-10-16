@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
+package org.matrix.androidsdk.rest.model;
 
 import java.util.List;
 
 /**
- * Response object from an initial sync
+ * Class representing an API response with start and end tokens and a generically-typed chunk.
  */
-public class InitialSyncResponse {
+public class TokensChunkResponse<T> {
+    public String start;
     public String end;
-    public List<Event> presence;
-    public List<RoomResponse> rooms;
+    public List<T> chunk;
 }

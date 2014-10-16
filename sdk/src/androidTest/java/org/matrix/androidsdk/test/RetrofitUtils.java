@@ -6,14 +6,12 @@ import com.google.gson.GsonBuilder;
 
 import junit.framework.Assert;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.api.response.MatrixError;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,11 +19,9 @@ import java.util.List;
 import retrofit.RetrofitError;
 import retrofit.client.Header;
 import retrofit.client.Response;
-import retrofit.converter.ConversionException;
 import retrofit.converter.Converter;
 import retrofit.converter.GsonConverter;
 import retrofit.mime.TypedInput;
-import retrofit.mime.TypedOutput;
 
 /**
  * Utility class for interacting with Retrofit.

@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response.login;
+package org.matrix.androidsdk.rest.model;
 
-import com.google.gson.annotations.SerializedName;
+import java.util.List;
 
 /**
- * Class to pass parameters to the different login types for /login.
+ * Response object from an initial sync
  */
-public class LoginParams {
-    public String type;
+public class InitialSyncResponse {
+    public String end;
+    public List<Event> presence;
+    public List<RoomResponse> rooms;
 }

@@ -18,11 +18,11 @@ package org.matrix.androidsdk.sync;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.InitialSyncResponse;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -78,7 +78,7 @@ public class EventsThread extends Thread {
             Log.e(LOG_TAG, "Network error: " + e.getMessage());
             Log.i(LOG_TAG, "Waiting a bit before retrying");
             try {
-                EventsThread.this.sleep(RETRY_WAIT_TIME_MS);
+                Thread.sleep(RETRY_WAIT_TIME_MS);
             } catch (InterruptedException e1) {
                 Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
             }

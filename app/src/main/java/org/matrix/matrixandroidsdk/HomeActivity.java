@@ -1,7 +1,6 @@
 package org.matrix.matrixandroidsdk;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -9,15 +8,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.CreateRoomResponse;
-import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 

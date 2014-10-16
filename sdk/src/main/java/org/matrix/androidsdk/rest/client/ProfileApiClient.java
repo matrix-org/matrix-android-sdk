@@ -16,9 +16,9 @@
 package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.ProfileApi;
-import org.matrix.androidsdk.api.response.User;
-import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.rest.api.ProfileApi;
+import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import retrofit.RestAdapter;
 import retrofit.client.Response;

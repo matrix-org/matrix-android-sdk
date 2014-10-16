@@ -6,15 +6,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.MatrixError;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 

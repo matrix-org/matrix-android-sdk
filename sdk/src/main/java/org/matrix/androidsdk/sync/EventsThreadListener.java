@@ -16,9 +16,9 @@
 package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.InitialSyncResponse;
-import org.matrix.androidsdk.api.response.RoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 
 import java.util.List;
 

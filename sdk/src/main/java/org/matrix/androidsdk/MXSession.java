@@ -15,11 +15,11 @@
  */
 package org.matrix.androidsdk;
 
-import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.rest.client.PresenceApiClient;
 import org.matrix.androidsdk.rest.client.ProfileApiClient;
 import org.matrix.androidsdk.rest.client.RoomsApiClient;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 

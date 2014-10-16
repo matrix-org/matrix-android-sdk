@@ -9,22 +9,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.MatrixError;
-import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
-import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
-
-import java.util.List;
 
 
 /**

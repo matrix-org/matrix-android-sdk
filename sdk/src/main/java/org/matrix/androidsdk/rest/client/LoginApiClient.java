@@ -20,9 +20,9 @@ import android.net.Uri;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.LoginApi;
-import org.matrix.androidsdk.api.response.login.Credentials;
-import org.matrix.androidsdk.api.response.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.api.LoginApi;
+import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 
 import retrofit.RestAdapter;
 import retrofit.client.Response;
@@ -32,7 +32,7 @@ import retrofit.client.Response;
  */
 public class LoginApiClient extends MXApiClient {
 
-    LoginApi mApi;
+    private LoginApi mApi;
 
     /**
      * Public constructor.

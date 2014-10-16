@@ -3,8 +3,7 @@ package org.matrix.matrixandroidsdk.store;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import org.apache.http.impl.auth.DigestScheme;
-import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 /**
  * Stores login credentials in SharedPreferences.

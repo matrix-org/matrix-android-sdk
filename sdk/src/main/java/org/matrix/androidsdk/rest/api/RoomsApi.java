@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api;
+package org.matrix.androidsdk.rest.api;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.api.response.CreateRoomResponse;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.MessageFeedback;
-import org.matrix.androidsdk.api.response.RoomMember;
-import org.matrix.androidsdk.api.response.RoomResponse;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.MessageFeedback;
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.List;
 

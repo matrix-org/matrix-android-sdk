@@ -1,8 +1,8 @@
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.User;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.User;
 
 public interface IMXEventListener {
 

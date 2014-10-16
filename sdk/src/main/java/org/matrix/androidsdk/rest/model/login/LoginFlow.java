@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response.login;
+package org.matrix.androidsdk.rest.model.login;
+
+import java.util.List;
 
 /**
- * Object to pass to a /login call of type password.
+ * A Login flow.
  */
-public class PasswordLoginParams extends LoginParams {
-    public String user;
-    public String password;
-
-    public PasswordLoginParams() {
-        type = "m.login.password";
-    }
+public class LoginFlow {
+    public String type;
+    public List<String> stages;
 }

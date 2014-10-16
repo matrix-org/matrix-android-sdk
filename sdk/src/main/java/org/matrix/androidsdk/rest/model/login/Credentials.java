@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
+package org.matrix.androidsdk.rest.model.login;
 
 /**
- * Class representing a room member: a user with membership information.
+ * The user's credentials.
  */
-public class RoomMember extends User {
-    public String membership;
+public class Credentials {
+    public String userId;
+    public String homeServer;
+    public String accessToken;
 }

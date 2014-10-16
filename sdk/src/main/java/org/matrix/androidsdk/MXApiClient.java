@@ -23,18 +23,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
-import org.matrix.androidsdk.api.LoginApi;
-import org.matrix.androidsdk.api.PresenceApi;
-import org.matrix.androidsdk.api.ProfileApi;
-import org.matrix.androidsdk.api.RegistrationApi;
-import org.matrix.androidsdk.api.RoomsApi;
-import org.matrix.androidsdk.api.response.MatrixError;
-import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.concurrent.TimeUnit;
 
 import retrofit.Callback;
-import retrofit.ErrorHandler;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;

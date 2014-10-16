@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
-
-import java.util.List;
+package org.matrix.androidsdk.rest.model.login;
 
 /**
- * Class representing an API response with start and end tokens and a generically-typed chunk.
+ * Object to pass to a /login call of type password.
  */
-public class TokensChunkResponse<T> {
-    public String start;
-    public String end;
-    public List<T> chunk;
+public class PasswordLoginParams extends LoginParams {
+    public String user;
+    public String password;
+
+    public PasswordLoginParams() {
+        type = "m.login.password";
+    }
 }

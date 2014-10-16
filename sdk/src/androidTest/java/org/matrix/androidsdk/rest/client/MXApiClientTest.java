@@ -12,7 +12,6 @@ import org.json.JSONObject;
 import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
-import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.test.JSONUtils;
 import org.matrix.androidsdk.test.RetrofitUtils;
 import org.mockito.ArgumentCaptor;

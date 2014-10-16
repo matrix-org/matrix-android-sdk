@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
-
-import org.matrix.androidsdk.data.RoomState;
-
-import java.util.List;
+package org.matrix.androidsdk.rest.model.login;
 
 /**
- * Class representing the objects returned by /publicRooms call.
+ * Class to pass parameters to the different login types for /login.
  */
-public class PublicRoom extends RoomState {
-    public int numJoinedMembers;
+public class LoginParams {
+    public String type;
 }

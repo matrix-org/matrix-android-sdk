@@ -13,15 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.api.response;
+package org.matrix.androidsdk.rest.model;
 
-public class Message {
-    public static final String MSGTYPE_TEXT = "m.text";
-    public static final String MSGTYPE_EMOTE = "m.emote";
-    public static final String MSGTYPE_IMAGE = "m.image";
-    public static final String MSGTYPE_AUDIO = "m.audio";
-    public static final String MSGTYPE_VIDEO = "m.video";
-    public static final String MSGTYPE_LOCATION = "m.location";
-
-    public String msgtype;
+public class MessageFeedback {
+    public String type;
+    public String targetEventId;
 }

@@ -18,12 +18,12 @@ package org.matrix.androidsdk.rest.client;
 import android.net.Uri;
 
 import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.EventsApi;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.InitialSyncResponse;
-import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
-import org.matrix.androidsdk.api.response.login.Credentials;
+import org.matrix.androidsdk.rest.api.EventsApi;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
 
