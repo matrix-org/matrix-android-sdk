@@ -1,8 +1,11 @@
 package org.matrix.matrixandroidsdk;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.widget.EditText;
 
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
@@ -19,5 +22,32 @@ public class CommonActivityUtils {
 
         // go to login page
         context.startActivity(new Intent(context, LoginActivity.class));
+    }
+
+    public interface OnSubmitListener {
+        public void onSubmit(String text);
+        public void onCancelled();
+    }
+
+    public static AlertDialog createEditTextAlert(Activity context, String title, final OnSubmitListener listener) {
+        final AlertDialog.Builder alert = new AlertDialog.Builder(context);
+        final EditText input = new EditText(context);
+        alert.setTitle(title);
+        alert.setView(input);
+        alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String value = input.getText().toString().trim();
+                listener.onSubmit(value);
+            }
+        });
+        alert.setNegativeButton("Cancel",
+            new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    dialog.cancel();
+                    listener.onCancelled();
+                }
+            }
+        );
+        return alert.create();
     }
 }
