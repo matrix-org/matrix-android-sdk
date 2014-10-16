@@ -25,10 +25,13 @@ import org.matrix.matrixandroidsdk.R;
  */
 public class MessagesAdapter extends ArrayAdapter<Event> {
 
-    private static final int NUM_ROW_TYPES = 3; // text, images and membership changes.
+    // text, images, notices(topics, room names), and member changes.
+    private static final int NUM_ROW_TYPES = 4;
+
     private static final int ROW_TYPE_TEXT = 0;
     private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_MEMBERSHIP_CHANGE = 2;
+    private static final int ROW_TYPE_MEMBER_CHANGE = 2;
+    private static final int ROW_TYPE_NOTICE = 3;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -36,17 +39,20 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
     private int mTextLayoutId;
     private int mImageLayoutId;
     private int mMembershipLayoutId;
+    private int mNoticeLayoutId;
     private LayoutInflater mLayoutInflater;
 
     private int mOddColourResId;
     private int mEvenColourResId;
 
-    public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId, int membershipChangeResLayoutId) {
+    public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
+                           int membershipChangeResLayoutId, int noticeResLayoutId) {
         super(context, 0);
         mContext = context;
         mTextLayoutId = textResLayoutId;
         mImageLayoutId = imageResLayoutId;
         mMembershipLayoutId = membershipChangeResLayoutId;
+        mNoticeLayoutId = noticeResLayoutId;
         mLayoutInflater = LayoutInflater.from(mContext);
         setNotifyOnChange(true);
     }
@@ -92,7 +98,11 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
             }
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            return ROW_TYPE_MEMBERSHIP_CHANGE;
+            return ROW_TYPE_MEMBER_CHANGE;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            return ROW_TYPE_NOTICE;
         }
         else {
             throw new RuntimeException("Unknown event type: " + event.type);
@@ -108,8 +118,10 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
                     return getTextView(position, convertView, parent);
                 case ROW_TYPE_IMAGE:
                     return getImageView(position, convertView, parent);
-                case ROW_TYPE_MEMBERSHIP_CHANGE:
+                case ROW_TYPE_MEMBER_CHANGE:
                     return getMembershipView(position, convertView, parent);
+                case ROW_TYPE_NOTICE:
+                    return getNoticeView(position, convertView, parent);
                 default:
                     throw new RuntimeException("Unknown item view type for position " + position);
             }
@@ -210,6 +222,29 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         return convertView;
     }
 
+    private View getNoticeView(int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mNoticeLayoutId, parent, false);
+        }
+        Event msg = getItem(position);
+
+        String notice = null;
+        if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(msg.type)) {
+            notice = mContext.getString(R.string.notice_topic_changed,
+                    msg.userId, msg.content.getAsJsonPrimitive("topic").getAsString());
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(msg.type)) {
+            notice = mContext.getString(R.string.notice_room_name_changed,
+                    msg.userId, msg.content.getAsJsonPrimitive("name").getAsString());
+        }
+
+        TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
+        textView.setText(notice);
+
+        return convertView;
+    }
+
+
     private String getMembershipNotice(Event msg) {
         String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
         if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
@@ -290,6 +325,10 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
                         hasStringValueChanged(event, "membership");
             }
             return true; // no prev content is a change.
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            return true;
         }
         return false;
     }

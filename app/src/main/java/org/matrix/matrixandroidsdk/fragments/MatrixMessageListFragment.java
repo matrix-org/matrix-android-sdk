@@ -70,6 +70,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mAdapter = new MessagesAdapter(getActivity(),
                     R.layout.adapter_item_messages,
                     R.layout.adapter_item_images,
+                    R.layout.adapter_item_message_notice,
                     R.layout.adapter_item_message_notice
             );
         }
