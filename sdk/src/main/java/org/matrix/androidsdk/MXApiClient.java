@@ -54,10 +54,10 @@ public abstract class MXApiClient {
     protected Gson gson;
 
     /**
-     * A stub implementation of {@link MXApiClient.ApiCallback} which only chosen callbacks
+     * A stub implementation of {@link ApiCallback} which only chosen callbacks
      * can be implemented.
      */
-    public static class SimpleApiCallback<T> implements MXApiClient.ApiCallback<T> {
+    public static class SimpleApiCallback<T> implements ApiCallback<T> {
 
         @Override
         public void onSuccess(T info) {

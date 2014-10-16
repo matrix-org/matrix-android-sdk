@@ -9,7 +9,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.matrix.androidsdk.api.response.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;

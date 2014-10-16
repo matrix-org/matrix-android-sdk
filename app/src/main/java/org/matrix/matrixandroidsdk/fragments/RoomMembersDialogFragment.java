@@ -10,8 +10,8 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;

@@ -10,8 +10,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.ApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 

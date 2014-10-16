@@ -12,7 +12,6 @@ import android.widget.ListView;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.api.response.CreateRoomResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
