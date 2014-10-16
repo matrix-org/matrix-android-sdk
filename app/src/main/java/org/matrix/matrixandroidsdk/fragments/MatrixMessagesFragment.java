@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
+import org.matrix.androidsdk.api.response.TextMessage;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -23,7 +25,13 @@ import java.util.List;
  * pagination. For a UI implementation of this, see {@link MatrixMessageListFragment}.
  */
 public class MatrixMessagesFragment extends Fragment {
+    /**
+     * The room ID to get messages for.
+     * Fragment argument: String.
+     */
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
+
+    private static final String LOG_TAG = "MatrixMessagesFragment";
 
     public static MatrixMessagesFragment newInstance(String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
@@ -109,6 +117,19 @@ public class MatrixMessagesFragment extends Fragment {
                 // add to top of list.
                 callback.onSuccess(info.chunk);
                 mEarliestToken = info.end;
+            }
+        });
+    }
+
+    public void sendMessage(String body) {
+        TextMessage message = new TextMessage();
+        message.body = body;
+        message.msgtype = "m.text";
+        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new MXApiClient.ApiCallback<Event>() {
+
+            @Override
+            public void onSuccess(Event info) {
+                Log.d(LOG_TAG, "onSuccess >>>> " + info);
             }
         });
     }

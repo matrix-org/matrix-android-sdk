@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,7 +47,18 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             return;
         }
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        Toast.makeText(RoomActivity.this, "Display >> " + roomId, Toast.LENGTH_SHORT).show();
+
+        findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+                String body = editText.getText().toString();
+                sendMessage(body);
+                editText.setText("");
+            }
+        });
+
 
         // make sure we're logged in.
         MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
@@ -75,10 +88,6 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         topicView.setSelected(true); // make 'er scroll
 
         // TODO: join room if you need to (check with Matrix singleton)
-        // TODO: Request messages/state if you need to.
-        // TODO: Load up MatrixMessageListFragment to display messages.
-        // TODO: Get the Room instance being represent to get the room name/topic/etc
-
     }
 
 
@@ -102,6 +111,10 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             mMatrixMessageListFragment.requestPagination();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void sendMessage(String body) {
+        mMatrixMessageListFragment.sendMessage(body);
     }
 
 }

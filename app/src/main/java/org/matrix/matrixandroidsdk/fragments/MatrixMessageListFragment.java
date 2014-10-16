@@ -116,6 +116,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
+    public void sendMessage(String body) {
+        mMatrixMessagesFragment.sendMessage(body);
+    }
+
     public void requestPagination() {
         mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
 
