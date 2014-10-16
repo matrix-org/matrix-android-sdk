@@ -10,8 +10,11 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.Matrix;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -67,6 +70,18 @@ public class MatrixMessagesFragment extends Fragment {
                 Collections.reverse(info.chunk);
                 mMatrixMessagesListener.onReceiveMessages(info.chunk);
                 mEarliestToken = info.end;
+            }
+        });
+
+        mSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onMessageReceived(Room room, Event event) {
+                if (!mRoomId.equals(room.getRoomId())) {
+                    return;
+                }
+                List<Event> events = new ArrayList<Event>();
+                events.add(event);
+                mMatrixMessagesListener.onReceiveMessages(events);
             }
         });
     }

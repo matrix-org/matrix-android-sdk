@@ -13,6 +13,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
+import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 public class HomeActivity extends ActionBarActivity {
 
@@ -26,7 +27,6 @@ public class HomeActivity extends ActionBarActivity {
             finish();
             return;
         }
-        matrixSession.startEventStream();
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
@@ -70,6 +70,14 @@ public class HomeActivity extends ActionBarActivity {
                 createRoom(true);
             }
         });
+
+        startEventStream();
+    }
+
+    public void startEventStream() {
+        Intent intent = new Intent(this, EventStreamService.class);
+        // TODO Add args to specify which session.
+        startService(intent);
     }
 
 
@@ -94,15 +102,10 @@ public class HomeActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_logout) {
-            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
-            goToLoginPage();
+            CommonActivityUtils.logout(this);
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void goToLoginPage() {
-        startActivity(new Intent(this, LoginActivity.class));
     }
 
     private void goToPublicRoomPage() {

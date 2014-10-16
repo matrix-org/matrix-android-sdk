@@ -2,6 +2,8 @@ package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -47,11 +49,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MatrixMessageListListener mMatrixMessageListListener;
     private MatrixMessagesFragment mMatrixMessagesFragment;
     private MessagesAdapter mAdapter;
+    private ListView mMessageListView;
+    private Handler mUiHandler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        mUiHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override
@@ -59,7 +64,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
-        final ListView messageListView = ((ListView)v.findViewById(R.id.listView_messages));
+        mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = new MessagesAdapter(getActivity(),
@@ -67,7 +72,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     R.layout.adapter_item_images
             );
         }
-        messageListView.setAdapter(mAdapter);
+        mMessageListView.setAdapter(mAdapter);
 
         return v;
     }
@@ -98,20 +103,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onReceiveMessages(List<Event> events) {
-        for (Event event : events) {
-            mAdapter.add(event);
-        }
+    public void onReceiveMessages(final List<Event> events) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (Event event : events) {
+                    mAdapter.add(event);
+                }
+                // scroll to bottom
+                mMessageListView.setSelection(mMessageListView.getCount()-1);
+            }
+        });
     }
 
     public void requestPagination() {
         mMatrixMessagesFragment.requestPagination(new MXApiClient.ApiCallback<List<Event>>() {
 
             @Override
-            public void onSuccess(List<Event> info) {
-                for (Event event : info) {
-                    mAdapter.addToFront(event);
-                }
+            public void onSuccess(final List<Event> info) {
+                mUiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (Event event : info) {
+                            mAdapter.addToFront(event);
+                        }
+                    }
+                });
             }
         });
     }
