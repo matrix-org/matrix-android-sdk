@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.api.response.RoomMember;
@@ -100,9 +101,19 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         RoomMember member = getItem(position);
 
         TextView textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_name);
-        textView.setText(getMemberName(member));
+        textView.setText(getMemberName(member, false));
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
         textView.setText(mMembershipStrings.get(member.membership));
+        textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
+        textView.setText(member.userId);
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.roomMembersAdapter_avatar);
+        imageView.setTag(null);
+        imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        String url = member.avatarUrl;
+        if (!TextUtils.isEmpty(url)) {
+            AdapterUtils.loadBitmap(imageView, url);
+        }
 
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
