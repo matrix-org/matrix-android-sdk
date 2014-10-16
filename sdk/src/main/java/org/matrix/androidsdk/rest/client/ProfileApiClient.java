@@ -57,7 +57,7 @@ public class ProfileApiClient extends MXApiClient {
      * @param callback the callback to return the name on success
      */
     public void displayname(String userId, final ApiCallback<String> callback) {
-        mApi.displayname(userId, new DefaultCallback<User>() {
+        mApi.displayname(userId, new ConvertFailureCallback<User>(callback) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user.displayname);
@@ -74,7 +74,7 @@ public class ProfileApiClient extends MXApiClient {
         User user = new User();
         user.displayname = newName;
 
-        mApi.displayname(mCredentials.userId, user, new DefaultCallback<Void>() {
+        mApi.displayname(mCredentials.userId, user, new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -88,7 +88,7 @@ public class ProfileApiClient extends MXApiClient {
      * @param callback the callback to return the URL on success
      */
     public void avatarUrl(String userId, final ApiCallback<String> callback) {
-        mApi.avatarUrl(userId, new DefaultCallback<User>() {
+        mApi.avatarUrl(userId, new ConvertFailureCallback<User>(callback) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user.avatarUrl);
@@ -105,7 +105,7 @@ public class ProfileApiClient extends MXApiClient {
         User user = new User();
         user.avatarUrl = newUrl;
 
-        mApi.avatarUrl(mCredentials.userId, user, new DefaultCallback<Void>() {
+        mApi.avatarUrl(mCredentials.userId, user, new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);

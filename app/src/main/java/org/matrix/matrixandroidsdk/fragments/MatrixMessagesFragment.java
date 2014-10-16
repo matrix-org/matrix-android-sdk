@@ -7,6 +7,7 @@ import android.support.v4.app.Fragment;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -68,6 +69,21 @@ public class MatrixMessagesFragment extends Fragment {
                     public void onSuccess(TokensChunkResponse<Event> info) {
 
                         callback.onSuccess(info);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+
                     }
                 });
     }

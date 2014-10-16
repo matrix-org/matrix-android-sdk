@@ -13,6 +13,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
@@ -69,6 +70,21 @@ public class RoomActivity extends ActionBarActivity {
                 for (Event msg : info.chunk) {
                     adapter.add(msg);
                 }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+
             }
         });
         // TODO: join room if you need to (check with Matrix singleton)

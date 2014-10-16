@@ -35,6 +35,8 @@ import retrofit.client.Response;
  */
 public class EventsApiClient extends MXApiClient {
 
+    protected static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+
     private EventsApi mApi;
 
     /**
@@ -78,11 +80,11 @@ public class EventsApiClient extends MXApiClient {
      * Get the list of the home server's public rooms.
      * @param callback callback to provide the list of public rooms on success
      */
-    public void loadPublicRooms(final LoadPublicRoomsCallback callback) {
-        mApi.publicRooms(new DefaultCallback<TokensChunkResponse<PublicRoom>>() {
+    public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
+        mApi.publicRooms(new ConvertFailureCallback<TokensChunkResponse<PublicRoom>>(callback) {
             @Override
             public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
-                callback.onRoomsLoaded(typedResponse.chunk);
+                callback.onSuccess(typedResponse.chunk);
             }
         });
     }
@@ -91,12 +93,12 @@ public class EventsApiClient extends MXApiClient {
      * Get initial information about the user's rooms, messages, other users.
      * @param callback callback to provide the information
      */
-    public void initialSync(final InitialSyncCallback callback) {
+    public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
         // Only retrieving one message per room for now
-        mApi.initialSync(1, new DefaultCallback<InitialSyncResponse>() {
+        mApi.initialSync(1, new ConvertFailureCallback<InitialSyncResponse>(callback) {
             @Override
             public void success(InitialSyncResponse initialSync, Response response) {
-                callback.onSynced(initialSync);
+                callback.onSuccess(initialSync);
             }
         });
     }
@@ -118,19 +120,5 @@ public class EventsApiClient extends MXApiClient {
      */
     public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
         return mApi.events(fromToken, timeoutMs);
-    }
-
-    /**
-     * Callback for returning the list of public rooms.
-     */
-    public interface LoadPublicRoomsCallback {
-        public void onRoomsLoaded(List<PublicRoom> publicRooms);
-    }
-
-    /**
-     * Callback for returning the initial sync information.
-     */
-    public interface InitialSyncCallback {
-        public void onSynced(InitialSyncResponse initialSync);
     }
 }

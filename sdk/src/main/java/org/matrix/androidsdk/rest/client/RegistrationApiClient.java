@@ -21,13 +21,10 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.api.RegistrationApi;
-import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.login.Credentials;
 import org.matrix.androidsdk.api.response.login.PasswordLoginParams;
 
-import retrofit.Callback;
 import retrofit.RestAdapter;
-import retrofit.RetrofitError;
 import retrofit.client.Response;
 
 /**
@@ -64,21 +61,16 @@ public class RegistrationApiClient extends MXApiClient {
      * @param password the password
      * @param callback the callback success and failure callback
      */
-    public void registerWithPassword(String user, String password, final LoginApiClient.LoginCallback callback) {
+    public void registerWithPassword(String user, String password, final ApiCallback<Credentials> callback) {
         PasswordLoginParams params = new PasswordLoginParams();
         params.user = user;
         params.password = password;
 
-        mApi.register(params, new Callback<JsonObject>() {
+        mApi.register(params, new ConvertFailureCallback<JsonObject>(callback) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onLoggedIn(mCredentials);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onError((MatrixError) error.getBodyAs(MatrixError.class));
+                callback.onSuccess(mCredentials);
             }
         });
     }

@@ -21,29 +21,16 @@ import android.util.Log;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.squareup.okhttp.OkHttpClient;
 
-import org.matrix.androidsdk.api.EventsApi;
 import org.matrix.androidsdk.api.LoginApi;
 import org.matrix.androidsdk.api.PresenceApi;
 import org.matrix.androidsdk.api.ProfileApi;
 import org.matrix.androidsdk.api.RegistrationApi;
 import org.matrix.androidsdk.api.RoomsApi;
-import org.matrix.androidsdk.api.response.CreateRoomResponse;
-import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.MatrixError;
-import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.RoomMember;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
-import org.matrix.androidsdk.api.response.User;
 import org.matrix.androidsdk.api.response.login.Credentials;
-import org.matrix.androidsdk.api.response.login.PasswordLoginParams;
-import org.matrix.androidsdk.data.RoomState;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import retrofit.Callback;
@@ -52,7 +39,6 @@ import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.OkClient;
-import retrofit.client.Response;
 import retrofit.converter.GsonConverter;
 
 /**
@@ -67,14 +53,6 @@ public abstract class MXApiClient {
 
     private static final int CONNECTION_TIMEOUT_MS = 60000;
     private static final int READ_TIMEOUT_MS = 60000;
-    protected static final int EVENT_STREAM_TIMEOUT_MS = 30000;
-    protected static final int MESSAGES_PAGINATION_LIMIT = 15;
-
-    private ProfileApi mProfileApi;
-    private LoginApi mLoginApi;
-    private RegistrationApi mRegistrationApi;
-    private PresenceApi mPresenceApi;
-    private RoomsApi mRoomsApi;
 
     protected Credentials mCredentials;
 
@@ -82,21 +60,68 @@ public abstract class MXApiClient {
 
     /**
      * Generic callback interface for asynchronously returning information.
-     * @param <T> the type of information
+     * @param <T> the type of information to return on success
      */
     public interface ApiCallback<T> {
+
+        /**
+         * Called if the API call is successful.
+         * @param info the returned information
+         */
         public void onSuccess(T info);
+
+        /**
+         * Called if there is a network error.
+         * @param e the exception
+         */
+        public void onNetworkError(Exception e);
+
+        /**
+         * Called in case of a Matrix error.
+         * @param e the Matrix error
+         */
+        public void onMatrixError(MatrixError e);
+
+        /**
+         * Called for some other type of error.
+         * @param e the exception
+         */
+        public void onUnexpectedError(Exception e);
     }
 
     /**
-     * Default retrofit callback providing a default failure implementation.
-     * @param <T>
+     * Custom Retrofit error callback class that will call one of our ApiCallback error callbacks on a Retrofit failure.
+     * When subclassing this, the Retrofit callback success call needs to be implemented.
+     * @param <T> the type to return on success
      */
-    public abstract static class DefaultCallback<T> implements Callback<T> {
+    public abstract static class ConvertFailureCallback<T> implements Callback<T> {
 
+        private ApiCallback apiCallback;
+
+        public ConvertFailureCallback(ApiCallback apiCallback) {
+            this.apiCallback = apiCallback;
+        }
+
+        /**
+         * Default failure implementation that calls the right error handler
+         * @param error
+         */
         @Override
         public void failure(RetrofitError error) {
             Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            if (error.isNetworkError()) {
+                apiCallback.onNetworkError(error);
+            }
+            else {
+                // Try to convert this into a Matrix error
+                MatrixError mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+                if (mxError != null) {
+                    apiCallback.onMatrixError(mxError);
+                }
+                else {
+                    apiCallback.onUnexpectedError(error);
+                }
+            }
         }
     }
 
@@ -132,16 +157,6 @@ public abstract class MXApiClient {
                         if ((mCredentials != null) && (mCredentials.accessToken != null)) {
                             request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
                         }
-                    }
-                })
-                .setErrorHandler(new ErrorHandler() {
-                    @Override
-                    public Throwable handleError(RetrofitError cause) {
-                        if (cause.isNetworkError()) {
-                            Log.e(LOG_TAG, cause.getMessage());
-                            return null;
-                        }
-                        return cause;
                     }
                 })
                 .build();

@@ -62,7 +62,7 @@ public class PresenceApiClient extends MXApiClient {
         userPresence.presence = presence;
         userPresence.statusMsg = statusMsg;
 
-        mApi.presenceStatus(mCredentials.userId, userPresence, new DefaultCallback<Void>() {
+        mApi.presenceStatus(mCredentials.userId, userPresence, new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -76,7 +76,7 @@ public class PresenceApiClient extends MXApiClient {
      * @param callback on success callback containing a User object with populated presence and statusMsg fields
      */
     public void getPresence(String userId, final ApiCallback<User> callback) {
-        mApi.presenceStatus(userId, new DefaultCallback<User>() {
+        mApi.presenceStatus(userId, new ConvertFailureCallback<User>(callback) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user);

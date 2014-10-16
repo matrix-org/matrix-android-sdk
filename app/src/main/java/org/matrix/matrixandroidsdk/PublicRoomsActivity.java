@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
 
+import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
@@ -28,13 +30,28 @@ public class PublicRoomsActivity extends ActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsApiClient.LoadPublicRoomsCallback() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsApiClient.ApiCallback<List<PublicRoom>>() {
             @Override
-            public void onRoomsLoaded(List<PublicRoom> publicRooms) {
+            public void onSuccess(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {
                     adapter.add(publicRoom);
                 }
                 adapter.sortRooms();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+
             }
         });
 

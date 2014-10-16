@@ -17,8 +17,9 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
+import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
-import org.matrix.androidsdk.rest.client.EventsApiClient.InitialSyncCallback;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.InitialSyncResponse;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
@@ -26,16 +27,22 @@ import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+
 /**
  * Thread that continually watches the event stream and sends events to its listener.
  */
 public class EventsThread extends Thread {
     private static final String LOG_TAG = "EventsThread";
 
+    private static final int RETRY_WAIT_TIME_MS = 10000;
+
     private EventsApiClient mApiClient;
     private IEventsThreadListener mListener = null;
     private String mCurrentToken;
 
+    private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
     private boolean mKilling = false;
 
@@ -56,6 +63,45 @@ public class EventsThread extends Thread {
          */
         public void onEventsReceived(List<Event> events);
     }
+
+    /**
+     * Shared implementation of the API callback for all API calls from this class.
+     * {@inheritDoc}
+     */
+    private class DefaultApiCallback<T> implements MXApiClient.ApiCallback<T> {
+        @Override
+        public void onSuccess(T info) {
+        }
+
+        @Override
+        public void onNetworkError(Exception e) {
+            Log.e(LOG_TAG, "Network error: " + e.getMessage());
+            Log.i(LOG_TAG, "Waiting a bit before retrying");
+            try {
+                EventsThread.this.sleep(RETRY_WAIT_TIME_MS);
+            } catch (InterruptedException e1) {
+                Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+            }
+        }
+
+        @Override
+        public void onMatrixError(MatrixError e) {
+            // TODO: Handle Matrix errors
+        }
+
+        @Override
+        public void onUnexpectedError(Exception e) {
+            Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
+    private MXApiClient.ConvertFailureCallback eventsFailureCallback = new MXApiClient.ConvertFailureCallback(new DefaultApiCallback()) {
+        @Override
+        public void success(Object o, Response response) {
+            // This won't happen
+        }
+    };
 
     /**
      *
@@ -98,26 +144,26 @@ public class EventsThread extends Thread {
         mPaused = false;
 
         // Start with initial sync
-        final CountDownLatch latch = new CountDownLatch(1);
-        mApiClient.initialSync(new InitialSyncCallback() {
-            @Override
-            public void onSynced(InitialSyncResponse initialSync) {
-                Log.i(LOG_TAG, "Received initial sync response.");
-                if (mListener != null) {
+        while (!mInitialSyncDone) {
+            final CountDownLatch latch = new CountDownLatch(1);
+            mApiClient.initialSync(new DefaultApiCallback<InitialSyncResponse>() {
+                @Override
+                public void onSuccess(InitialSyncResponse initialSync) {
+                    Log.i(LOG_TAG, "Received initial sync response.");
                     mListener.onInitialSyncComplete(initialSync);
+                    mCurrentToken = initialSync.end;
+                    mInitialSyncDone = true;
+                    // unblock the events thread
+                    latch.countDown();
                 }
-                mCurrentToken = initialSync.end;
-                // unblock the events thread
-                latch.countDown();
-            }
-        });
+            });
 
-        // block until the initial sync callback is invoked.
-        try {
-            latch.await();
-        }
-        catch (InterruptedException e) {
-            Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+            // block until the initial sync callback is invoked.
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+            }
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -132,11 +178,14 @@ public class EventsThread extends Thread {
                 }
             }
 
-            TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
-            if (mListener != null) {
+            try {
+                TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
                 mListener.onEventsReceived(eventsResponse.chunk);
+                mCurrentToken = eventsResponse.end;
             }
-            mCurrentToken = eventsResponse.end;
+            catch (RetrofitError error) {
+                eventsFailureCallback.failure(error);
+            }
         }
     }
 }

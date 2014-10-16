@@ -47,19 +47,29 @@ public class LoginActivity extends ActionBarActivity {
             return;
         }
         LoginApiClient client = new LoginApiClient(Uri.parse(hsUrl));
-        client.loginWithPassword(username, password, new LoginApiClient.LoginCallback() {
+        client.loginWithPassword(username, password, new LoginApiClient.ApiCallback<Credentials>() {
 
             @Override
-            public void onLoggedIn(Credentials credentials) {
+            public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
                 Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
                 goToHomepage();
             }
 
             @Override
-            public void onError(MatrixError error) {
-                String msg = "Unable to login: " + error.error + "("+error.errcode+")";
+            public void onNetworkError(Exception e) {
+
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                String msg = "Unable to login: " + e.error + "("+e.errcode+")";
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+
             }
         });
     }
