@@ -18,6 +18,9 @@ import org.matrix.androidsdk.rest.client.LoginApiClient;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 
 
+/**
+ * Displays the login screen.
+ */
 public class LoginActivity extends ActionBarActivity {
 
     @Override
@@ -47,6 +50,7 @@ public class LoginActivity extends ActionBarActivity {
             return;
         }
         LoginApiClient client = new LoginApiClient(Uri.parse(hsUrl));
+        // TODO: This client should check that it can use u/p login on this home server!!!
         client.loginWithPassword(username, password, new LoginApiClient.ApiCallback<Credentials>() {
 
             @Override

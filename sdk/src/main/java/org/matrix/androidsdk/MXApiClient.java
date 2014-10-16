@@ -108,7 +108,7 @@ public abstract class MXApiClient {
          */
         @Override
         public void failure(RetrofitError error) {
-            Log.e(LOG_TAG, "REST error: " + error.getMessage());
+            Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl()+" body=" + error.getBody());
             if (error.isNetworkError()) {
                 apiCallback.onNetworkError(error);
             }

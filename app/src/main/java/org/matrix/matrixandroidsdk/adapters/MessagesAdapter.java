@@ -23,6 +23,10 @@ import org.matrix.matrixandroidsdk.R;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 
+/**
+ * An adapter which can display events. Events are not limited to m.room.message event types, but
+ * can include topic changes (m.room.topic) and room member changes (m.room.member).
+ */
 public class MessagesAdapter extends ArrayAdapter<Event> {
 
     private static final int NUM_ROW_TYPES = 2; // text and images.
@@ -58,14 +62,16 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         return NUM_ROW_TYPES;
     }
 
+    public void addToFront(Event event) {
+        if (isKnownEvent(event)) {
+            this.insert(event, 0);
+        }
+    }
+
     @Override
     public void add(Event event) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
-            String msgType = j == null ? null : j.getAsString();
-            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType)) {
-                super.add(event);
-            }
+        if (isKnownEvent(event)) {
+            super.add(event);
         }
     }
 
@@ -138,6 +144,17 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
             view.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
         }
+    }
+
+    private boolean isKnownEvent(Event event) {
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
+            String msgType = j == null ? null : j.getAsString();
+            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void loadBitmap(ImageView imageView, String url) {

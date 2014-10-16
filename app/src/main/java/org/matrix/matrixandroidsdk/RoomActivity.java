@@ -1,11 +1,14 @@
 package org.matrix.matrixandroidsdk;
 
 import android.content.Intent;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,16 +17,28 @@ import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.MatrixError;
+import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.MatrixMessagesFragment;
+
+import java.util.List;
 
 
-public class RoomActivity extends ActionBarActivity {
+/**
+ * Displays a single room with messages.
+ */
+public class RoomActivity extends ActionBarActivity implements MatrixMessageListFragment.MatrixMessageListListener {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
+    private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String LOG_TAG = "RoomActivity";
+
+    private MatrixMessageListFragment mMatrixMessageListFragment;
+    private String mRoomId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,9 +51,21 @@ public class RoomActivity extends ActionBarActivity {
             finish();
             return;
         }
-        String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        Toast.makeText(RoomActivity.this, "Display >> " + roomId, Toast.LENGTH_SHORT).show();
+        mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
 
+        findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+                String body = editText.getText().toString();
+                sendMessage(body);
+                editText.setText("");
+            }
+        });
+
+
+        // make sure we're logged in.
         MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (session == null) {
             Log.e(LOG_TAG, "No MXSession.");
@@ -46,7 +73,17 @@ public class RoomActivity extends ActionBarActivity {
             return;
         }
 
-        Room room = session.getDataHandler().getStore().getRoom(roomId);
+        FragmentManager fm = getSupportFragmentManager();
+        mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
+
+        if (mMatrixMessageListFragment == null) {
+            // this fragment displays messages and handles all message logic
+            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoomId);
+            fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
+        }
+
+        // set general room information
+        Room room = session.getDataHandler().getStore().getRoom(mRoomId);
         String title = room.getName();
         if (title == null) {
             title = room.getRoomId();
@@ -55,43 +92,7 @@ public class RoomActivity extends ActionBarActivity {
 
         TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
         topicView.setText(room.getTopic());
-
-
-        final ListView messageListView = ((ListView)findViewById(R.id.listView_messages));
-        final MessagesAdapter adapter = new MessagesAdapter(this,
-                R.layout.adapter_item_messages,
-                R.layout.adapter_item_images
-        );
-        messageListView.setAdapter(adapter);
-
-        session.getRoomsApiClient().getLatestRoomMessages(roomId, new MXApiClient.ApiCallback<TokensChunkResponse<Event>>() {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
-                for (Event msg : info.chunk) {
-                    adapter.add(msg);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
-            }
-        });
-        // TODO: join room if you need to (check with Matrix singleton)
-        // TODO: Request messages/state if you need to.
-        // TODO: Load up MatrixMessageListFragment to display messages.
-        // TODO: Get the Room instance being represent to get the room name/topic/etc
-
+        topicView.setSelected(true); // make the marquee scroll
     }
 
 
@@ -111,6 +112,41 @@ public class RoomActivity extends ActionBarActivity {
         if (id == R.id.action_settings) {
             return true;
         }
+        else if (id == R.id.action_load_more) {
+            mMatrixMessageListFragment.requestPagination();
+        }
+        else if (id == R.id.action_leave) {
+            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+            if (session != null) {
+                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.ApiCallback<Void>() {
+
+                    @Override
+                    public void onSuccess(Void info) {
+                        RoomActivity.this.finish();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+
+                    }
+                });
+            }
+        }
         return super.onOptionsItemSelected(item);
     }
+
+    private void sendMessage(String body) {
+        mMatrixMessageListFragment.sendMessage(body);
+    }
+
 }

@@ -98,7 +98,7 @@ public class MXSession {
     }
 
     public void startEventStream() {
-        if (mCredentials.accessToken != null) {
+        if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
     }

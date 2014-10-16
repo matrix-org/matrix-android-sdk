@@ -171,7 +171,7 @@ public class RoomsApiClient extends MXApiClient {
      * @param callback on success callback
      */
     public void joinRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.join(roomId, new ConvertFailureCallback<Void>(callback) {
+        mApi.join(roomId, new JsonObject(), new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -185,7 +185,7 @@ public class RoomsApiClient extends MXApiClient {
      * @param callback on success callback
      */
     public void leaveRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.leave(roomId, new ConvertFailureCallback<Void>(callback) {
+        mApi.leave(roomId, new JsonObject(), new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);

@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,9 @@ import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;
 
+/**
+ * An adapter which can display room information.
+ */
 public class RoomsAdapter extends ArrayAdapter<RoomState> {
 
     private Context mContext;
@@ -39,17 +43,17 @@ public class RoomsAdapter extends ArrayAdapter<RoomState> {
         this.sort(new Comparator<RoomState>() {
             @Override
             public int compare(RoomState roomState, RoomState roomState2) {
-                if (roomState.name == null) {
+                String lhs = getRoomName(roomState);
+                String rhs = getRoomName(roomState2);
+                if (lhs == null) {
                     return -1;
                 }
-                else if (roomState2.name == null) {
+                else if (rhs == null) {
                     return 1;
                 }
-                String lhs = roomState.name;
                 if (lhs.startsWith("#")) {
                     lhs = lhs.substring(1);
                 }
-                String rhs = roomState2.name;
                 if (rhs.startsWith("#")) {
                     rhs = rhs.substring(1);
                 }
@@ -63,6 +67,22 @@ public class RoomsAdapter extends ArrayAdapter<RoomState> {
         mEvenColourResId = evenResId;
     }
 
+    public String getRoomName(RoomState room) {
+        if (room == null) {
+            return null;
+        }
+        if (!TextUtils.isEmpty(room.name)) {
+            return room.name;
+        }
+        else if (!TextUtils.isEmpty(room.roomAliasName)) {
+            return room.roomAliasName;
+        }
+        else if (room.aliases != null && room.aliases.size() > 0) {
+            return room.aliases.get(0);
+        }
+        return room.roomId;
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
@@ -74,7 +94,8 @@ public class RoomsAdapter extends ArrayAdapter<RoomState> {
         TextView textView = (TextView) convertView.findViewById(R.id.roomsAdapter_roomTopic);
         textView.setText(room.topic);
         textView = (TextView) convertView.findViewById(R.id.roomsAdapter_roomName);
-        textView.setText(room.name);
+        textView.setText(getRoomName(room));
+
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
             convertView.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);

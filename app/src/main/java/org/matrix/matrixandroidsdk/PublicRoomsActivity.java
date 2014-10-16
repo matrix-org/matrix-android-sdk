@@ -19,6 +19,9 @@ import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import java.util.List;
 
 
+/**
+ * Displays a list of available public rooms.
+ */
 public class PublicRoomsActivity extends ActionBarActivity {
 
     @Override
@@ -87,8 +90,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_logout) {
-            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
-            goToLoginPage();
+            CommonActivityUtils.logout(this);
             return true;
         }
         return super.onOptionsItemSelected(item);

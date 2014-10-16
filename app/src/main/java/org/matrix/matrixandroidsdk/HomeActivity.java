@@ -1,5 +1,7 @@
 package org.matrix.matrixandroidsdk;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -7,13 +9,22 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ListView;
 
+import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.api.response.CreateRoomResponse;
+import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
+import org.matrix.matrixandroidsdk.services.EventStreamService;
 
+/**
+ * Displays the main screen of the app, with rooms the user has joined and the ability to create
+ * new rooms.
+ */
 public class HomeActivity extends ActionBarActivity {
 
     @Override
@@ -26,7 +37,6 @@ public class HomeActivity extends ActionBarActivity {
             finish();
             return;
         }
-        matrixSession.startEventStream();
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
@@ -70,6 +80,14 @@ public class HomeActivity extends ActionBarActivity {
                 createRoom(true);
             }
         });
+
+        startEventStream();
+    }
+
+    public void startEventStream() {
+        Intent intent = new Intent(this, EventStreamService.class);
+        // TODO Add args to specify which session.
+        startService(intent);
     }
 
 
@@ -94,15 +112,10 @@ public class HomeActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_logout) {
-            Matrix.getInstance(getApplicationContext()).clearDefaultSession();
-            goToLoginPage();
+            CommonActivityUtils.logout(this);
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void goToLoginPage() {
-        startActivity(new Intent(this, LoginActivity.class));
     }
 
     private void goToPublicRoomPage() {
@@ -115,17 +128,82 @@ public class HomeActivity extends ActionBarActivity {
         startActivity(intent);
     }
 
-    private void createRoom(boolean isPublic) {
+    private void createRoom(final boolean isPublic) {
         if (isPublic) {
-            // TODO: Create dialog to get a room alias
-            // TODO: Then request to create room
-            String allocatedRoomId = "";
-            goToRoomPage(allocatedRoomId);
+            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Alias", "alias-name", new CommonActivityUtils.OnSubmitListener() {
+                @Override
+                public void onSubmit(String text) {
+                    if (text.length() == 0) {
+                        return;
+                    }
+                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.ApiCallback<CreateRoomResponse>() {
+
+                        @Override
+                        public void onSuccess(CreateRoomResponse info) {
+                            goToRoomPage(info.roomId);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+
+                        }
+                    });
+                }
+
+                @Override
+                public void onCancelled() {}
+            });
+            alert.show();
         }
         else {
-            // TODO: Request to create room
-            String allocatedRoomId = "";
-            goToRoomPage(allocatedRoomId);
+            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Name", "My Room", new CommonActivityUtils.OnSubmitListener() {
+                @Override
+                public void onSubmit(String text) {
+                    if (text.length() == 0) {
+                        return;
+                    }
+                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    session.getRoomsApiClient().createRoom(text, null, "private", null, new MXApiClient.ApiCallback<CreateRoomResponse>() {
+
+                        @Override
+                        public void onSuccess(CreateRoomResponse info) {
+                            goToRoomPage(info.roomId);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+
+                        }
+                    });
+                }
+
+                @Override
+                public void onCancelled() {}
+            });
+            alert.show();
         }
     }
+
+
 }

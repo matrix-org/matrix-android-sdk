@@ -7,7 +7,7 @@ import org.apache.http.impl.auth.DigestScheme;
 import org.matrix.androidsdk.api.response.login.Credentials;
 
 /**
- * Stores login credentials for N home servers and N accounts.
+ * Stores login credentials in SharedPreferences.
  */
 public class LoginStorage {
     public static final String PREFS_LOGIN = "org.matrix.matrixandroidsdk.store.LoginStorage";
