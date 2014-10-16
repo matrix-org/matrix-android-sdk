@@ -48,7 +48,7 @@ public class LoginActivity extends ActionBarActivity {
         }
         LoginApiClient client = new LoginApiClient(Uri.parse(hsUrl));
         // TODO: This client should check that it can use u/p login on this home server!!!
-        client.loginWithPassword(username, password, new ApiCallback<Credentials>() {
+        client.loginWithPassword(username, password, new LoginApiClient.SimpleApiCallback<Credentials>() {
 
             @Override
             public void onSuccess(Credentials credentials) {
@@ -58,19 +58,9 @@ public class LoginActivity extends ActionBarActivity {
             }
 
             @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
             public void onMatrixError(MatrixError e) {
                 String msg = "Unable to login: " + e.error + "("+e.errcode+")";
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
             }
         });
     }

@@ -1,9 +1,7 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
+import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,9 +15,6 @@ import com.google.gson.JsonPrimitive;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.matrixandroidsdk.R;
-
-import java.lang.ref.WeakReference;
-import java.net.URL;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -114,6 +109,20 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
 
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
+
+        // check for html formatting
+        if (msg.content.has("formatted_body") && msg.content.has("format")) {
+            try {
+                String format = msg.content.getAsJsonPrimitive("format").getAsString();
+                if ("org.matrix.custom.html".equals(format)) {
+                    textView.setText(Html.fromHtml(msg.content.getAsJsonPrimitive("formatted_body").getAsString()));
+                }
+            }
+            catch (Exception e) {
+                // ignore: The json object was probably malformed and we have already set the fallback
+            }
+        }
+
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(msg.userId);
 
@@ -130,7 +139,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         String thumbUrl = msg.content.get("thumbnail_url") == null ? null : msg.content.get("thumbnail_url").getAsString();
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
-        loadBitmap(imageView, thumbUrl);
+        AdapterUtils.loadBitmap(imageView, thumbUrl);
 
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(msg.userId);
@@ -155,44 +164,5 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         return false;
     }
 
-    private void loadBitmap(ImageView imageView, String url) {
-        imageView.setTag(url);
-        BitmapWorkerTask task = new BitmapWorkerTask(imageView, url);
-        task.execute();
-    }
 
-    class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
-        private final WeakReference<ImageView> mImageViewReference;
-        private String mUrl;
-
-        public BitmapWorkerTask(ImageView imageView, String url) {
-            mImageViewReference = new WeakReference<ImageView>(imageView);
-            mUrl = url;
-        }
-
-        // Decode image in background.
-        @Override
-        protected Bitmap doInBackground(Integer... params) {
-            try {
-                URL url = new URL(mUrl);
-                Log.e(LOG_TAG, "open >>>>> "+mUrl);
-                return BitmapFactory.decodeStream(url.openConnection().getInputStream());
-            }
-            catch (Exception e) {
-                Log.e(LOG_TAG, "Unable to load bitmap: "+e);
-                return null;
-            }
-        }
-
-        // Once complete, see if ImageView is still around and set bitmap.
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if (mImageViewReference != null && bitmap != null) {
-                final ImageView imageView = mImageViewReference.get();
-                if (imageView != null && mUrl.equals(imageView.getTag())) {
-                    imageView.setImageBitmap(bitmap);
-                }
-            }
-        }
-    }
 }

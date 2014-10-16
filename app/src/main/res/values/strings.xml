@@ -22,4 +22,9 @@
     <string name="login">Login</string>
     <string name="hs_url">Home Server URL</string>
 
+    <string name="membership_invite">Invited</string>
+    <string name="membership_join">Joined</string>
+    <string name="membership_leave">Left</string>
+    <string name="membership_ban">Banned</string>
+
 </resources>

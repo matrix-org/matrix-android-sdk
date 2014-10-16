@@ -22,6 +22,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="A message body goes here"
+        android:autoLink="web"
         android:id="@+id/messagesAdapter_body"/>
 
 

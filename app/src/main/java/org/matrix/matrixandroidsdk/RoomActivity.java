@@ -13,9 +13,8 @@ import android.widget.TextView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.rest.ApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 
 
 /**
@@ -26,6 +25,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
+    private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
@@ -109,29 +109,24 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         else if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                session.getRoomsApiClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
+                session.getRoomsApiClient().leaveRoom(mRoomId, new MXApiClient.SimpleApiCallback<Void>() {
 
                     @Override
                     public void onSuccess(Void info) {
                         RoomActivity.this.finish();
                     }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-
-                    }
                 });
             }
+        }
+        else if (id == R.id.action_members) {
+            FragmentManager fm = getSupportFragmentManager();
+
+            RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+            fragment = RoomMembersDialogFragment.newInstance(mRoomId);
+            fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
         }
         return super.onOptionsItemSelected(item);
     }

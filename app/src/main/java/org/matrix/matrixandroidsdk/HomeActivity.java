@@ -12,6 +12,7 @@ import android.widget.ListView;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.api.response.CreateRoomResponse;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
@@ -136,26 +137,11 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(null, null, "public", text, new ApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
                             goToRoomPage(info.roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-
                         }
                     });
                 }
@@ -173,26 +159,11 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(text, null, "private", null, new ApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(text, null, "private", null, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
                             goToRoomPage(info.roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-
                         }
                     });
                 }
