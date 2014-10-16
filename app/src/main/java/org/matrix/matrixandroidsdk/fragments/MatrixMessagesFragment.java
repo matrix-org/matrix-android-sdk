@@ -1,6 +1,5 @@
 package org.matrix.matrixandroidsdk.fragments;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,8 +8,6 @@ import android.util.Log;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.api.response.Event;
-import org.matrix.androidsdk.api.response.MatrixError;
-import org.matrix.androidsdk.api.response.Message;
 import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.api.response.TextMessage;
 import org.matrix.androidsdk.api.response.TokensChunkResponse;

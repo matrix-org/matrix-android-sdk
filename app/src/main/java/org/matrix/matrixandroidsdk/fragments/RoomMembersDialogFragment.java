@@ -14,7 +14,6 @@ import org.matrix.androidsdk.api.response.RoomMember;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
 
 import java.util.Collection;

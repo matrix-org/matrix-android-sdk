@@ -3,7 +3,6 @@ package org.matrix.matrixandroidsdk.adapters;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.text.Html;
 import android.util.Log;
@@ -18,7 +17,6 @@ import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.api.response.Event;
 import org.matrix.androidsdk.api.response.Message;
-import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.matrixandroidsdk.R;
 
 import java.lang.ref.WeakReference;

@@ -9,8 +9,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
 
-import org.matrix.androidsdk.MXApiClient;
-import org.matrix.androidsdk.api.response.MatrixError;
 import org.matrix.androidsdk.api.response.PublicRoom;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.client.EventsApiClient;
