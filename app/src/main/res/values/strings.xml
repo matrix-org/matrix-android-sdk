@@ -27,7 +27,7 @@
     <string name="membership_leave">Left</string>
     <string name="membership_ban">Banned</string>
 
-    <string name="notice_room_invite">%1$s was invited to the room.</string>
+    <string name="notice_room_invite">%1$s invited %2$s to the room.</string>
     <string name="notice_room_join">%1$s joined the room.</string>
     <string name="notice_room_leave">%1$s left the room.</string>
     <string name="notice_room_ban">%1$s was banned from the room.</string>

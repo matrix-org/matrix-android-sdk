@@ -259,7 +259,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
     private String getMembershipNotice(Event msg) {
         String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
         if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-            return mContext.getString(R.string.notice_room_invite, msg.userId);
+            return mContext.getString(R.string.notice_room_invite, msg.userId, msg.stateKey);
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
             return mContext.getString(R.string.notice_room_join, msg.userId);
