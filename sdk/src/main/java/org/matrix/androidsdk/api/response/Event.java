@@ -46,5 +46,5 @@ public class Event {
 
     // Specific to state events
     public String stateKey;
-    public String prevState;
+    public JsonObject prevContent;
 }

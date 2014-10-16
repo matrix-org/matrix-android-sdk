@@ -69,7 +69,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = new MessagesAdapter(getActivity(),
                     R.layout.adapter_item_messages,
-                    R.layout.adapter_item_images
+                    R.layout.adapter_item_images,
+                    R.layout.adapter_item_message_room_member
             );
         }
         mMessageListView.setAdapter(mAdapter);
