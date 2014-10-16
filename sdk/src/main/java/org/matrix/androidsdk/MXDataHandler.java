@@ -139,6 +139,7 @@ public class MXDataHandler implements IMXEventListener {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             RoomMember member = mGson.fromJson(event.content, RoomMember.class);
+            member.userId = event.userId;
             Room room = mStore.getRoom(event.roomId);
             RoomMember oldMember = room.getMember(event.userId);
             room.setMember(event.userId, member);
