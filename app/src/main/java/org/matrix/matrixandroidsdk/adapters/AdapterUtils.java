@@ -1,11 +1,22 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
+import android.text.Html;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.matrixandroidsdk.R;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +28,163 @@ import java.net.URL;
  */
 public class AdapterUtils {
     private static final String LOG_TAG = "AdapterUtils";
+
+    public static class EventDisplay {
+        private Event mEvent;
+        private Context mContext;
+        private boolean mPrependAuthor;
+
+        public EventDisplay(Context context, Event event) {
+            mContext = context.getApplicationContext();
+            mEvent = event;
+        }
+
+        /**
+         * <p>Prepend the text with the author's name if they have not been mentioned in the text.</p>
+         * This will prepend text messages with the author's name. This will NOT prepend things like
+         * emote, room topic changes, etc which already mention the author's name in the message.
+         * @param prepend
+         */
+        public void setPrependMessagesWithAuthor(boolean prepend) {
+            mPrependAuthor = prepend;
+        }
+
+        /**
+         * Get the textual body for this event.
+         * @return The text or null if it isn't possible.
+         */
+        public CharSequence getTextualDisplay() {
+            CharSequence text = null;
+            Log.e(LOG_TAG, "getTextualDisplay >> "+mEvent.content);
+            try {
+                if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
+                    // all m.room.message events should support the 'body' key fallback, so use it.
+                    text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
+
+                    // check for more specific formatting.
+                    String msgType = mEvent.content.getAsJsonPrimitive("msgtype").getAsString();
+                    if (msgType.equals(Message.MSGTYPE_TEXT)) {
+                        // check for html formatting
+                        if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
+                            String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
+                            if ("org.matrix.custom.html".equals(format)) {
+                                text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
+                            }
+                        }
+                    }
+
+                    if (mPrependAuthor) {
+                        text = mContext.getString(R.string.summary_message, mEvent.userId, text);
+                    }
+                }
+                else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
+                    // pretty print 'XXX changed the topic to YYYY'
+                    text = mContext.getString(R.string.notice_topic_changed,
+                            mEvent.userId, mEvent.content.getAsJsonPrimitive("topic").getAsString());
+                }
+                else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
+                    // pretty print 'XXX changed the room name to YYYY'
+                    text = mContext.getString(R.string.notice_room_name_changed,
+                            mEvent.userId, mEvent.content.getAsJsonPrimitive("name").getAsString());
+                }
+                else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
+                    // m.room.member is used to represent at least 3 different changes in state: membership,
+                    // avatar pic url and display name. We need to figure out which thing changed to display
+                    // the right text.
+                    JsonObject prevState = mEvent.prevContent;
+                    if (prevState == null) {
+                        // if there is no previous state, it has to be an invite or a join as they are the first
+                        // m.room.member events for a user.
+                        text = getMembershipNotice(mEvent);
+                    }
+                    else {
+                        // check if the membership changed
+                        if (hasStringValueChanged(mEvent, "membership")) {
+                            text = getMembershipNotice(mEvent);
+                        }
+                        // check if avatar url changed
+                        else if (hasStringValueChanged(mEvent, "avatar_url")) {
+                            text = getAvatarChangeNotice(mEvent);
+                        }
+                        // check if the display name changed.
+                        else if (hasStringValueChanged(mEvent, "displayname")) {
+                            text = getDisplayNameChangeNotice(mEvent);
+                        }
+                        else {
+                            // well shucks, I'm all out of ideas, let's whine.
+                            Log.e(LOG_TAG, "Redundant membership event. PREV=>"+prevState+" NOW=>"+mEvent.content);
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "getTextualDisplay() "+e);
+            }
+
+            return text;
+        }
+
+        private String getMembershipNotice(Event msg) {
+            String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
+            if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
+                return mContext.getString(R.string.notice_room_invite, msg.userId, msg.stateKey);
+            }
+            else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
+                return mContext.getString(R.string.notice_room_join, msg.userId);
+            }
+            else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
+                return mContext.getString(R.string.notice_room_leave, msg.userId);
+            }
+            else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
+                return mContext.getString(R.string.notice_room_ban, msg.userId);
+            }
+            else {
+                // eh?
+                Log.e(LOG_TAG, "Unknown membership: "+membership);
+            }
+            return null;
+        }
+
+        private String getAvatarChangeNotice(Event msg) {
+            // TODO: Pictures!
+            return mContext.getString(R.string.notice_avatar_url_changed, msg.userId);
+        }
+
+        private String getDisplayNameChangeNotice(Event msg) {
+            return mContext.getString(R.string.notice_display_name_changed,
+                    msg.userId,
+                    msg.prevContent.getAsJsonPrimitive("displayname").getAsString(),
+                    msg.content.getAsJsonPrimitive("displayname").getAsString()
+            );
+        }
+
+        private boolean hasStringValueChanged(Event msg, String key) {
+            JsonObject prevContent = msg.prevContent;
+            if (prevContent.has(key) && msg.content.has(key)) {
+                String old = prevContent.get(key) == JsonNull.INSTANCE ? null : prevContent.get(key).getAsString();
+                String current = msg.content.get(key) == JsonNull.INSTANCE ? null : msg.content.get(key).getAsString();
+                if (old == null && current == null) {
+                    return false;
+                }
+                else if (old != null) {
+                    return !old.equals(current);
+                }
+                else {
+                    return !current.equals(old);
+                }
+            }
+            else if (!prevContent.has(key) && !msg.content.has(key)) {
+                return false; // this key isn't in either prev or current
+            }
+            else {
+                return true; // this key is in one but not the other.
+            }
+        }
+    }
+
+
+    // Bitmap loading and storage
+
 
     public static void loadBitmap(ImageView imageView, String url) {
         imageView.setTag(url);

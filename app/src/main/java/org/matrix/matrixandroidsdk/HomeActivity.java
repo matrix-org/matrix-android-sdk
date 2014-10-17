@@ -45,21 +45,25 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onMessageReceived(Room room, Event event) {
+        public void onMessageReceived(Room room, final Event event) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-
+                    mAdapter.setLatestEvent(event);
                 }
             });
         }
 
         @Override
-        public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
+        public void onRoomStateUpdated(Room room, final Event event, Object oldVal, Object newVal) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-
+                    if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        mAdapter.setLatestEvent(event);
+                    }
                 }
             });
         }

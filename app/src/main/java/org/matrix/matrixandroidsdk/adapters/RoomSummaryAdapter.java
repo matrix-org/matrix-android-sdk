@@ -67,6 +67,22 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         });
     }
 
+    /**
+     * Set the latest event for a room summary.
+     * @param event The latest event
+     */
+    public void setLatestEvent(Event event) {
+        for (int i=0; i<getCount(); i++) {
+            RoomSummary summary = getItem(i);
+            if (event.roomId.equals(summary.getRoomId())) {
+                summary.setLatestEvent(event);
+                sortSummaries();
+                notifyDataSetChanged();
+                break;
+            }
+        }
+    }
+
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
@@ -81,7 +97,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         RoomSummary summary = getItem(position);
 
         String numMembers = null;
-        String message = summary.getRoomTopic();
+        CharSequence message = summary.getRoomTopic();
         String timestamp = null;
 
         TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
@@ -95,15 +111,10 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         }
 
         if (summary.getLatestEvent() != null) {
-            String eventType = summary.getLatestEvent().type;
-            if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
-                try {
-                    String body = summary.getLatestEvent().content.getAsJsonPrimitive("body").getAsString();
-                    String user = summary.getLatestEvent().userId;
-                    message = mContext.getString(R.string.summary_message, user, body);
-                }
-                catch (Exception e) {} // bad json
-            }
+            AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent());
+            display.setPrependMessagesWithAuthor(true);
+            message = display.getTextualDisplay();
+
             timestamp = mDateFormat.format(new Date(summary.getLatestEvent().ts));
         }
 
