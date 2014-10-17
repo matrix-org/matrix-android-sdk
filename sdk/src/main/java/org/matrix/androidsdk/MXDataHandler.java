@@ -34,7 +34,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * All cached data.
+ * The data handler provides a layer to help manage matrix input and output.
+ * <ul>
+ * <li>It handles common API calls</li>
+ * <li>Stores the data in its storage layer</li>
+ * <li>Provides the means for an app to get callbacks for data changes</li>
+ * </ul>
  */
 public class MXDataHandler implements IMXEventListener {
     private static final String LOG_TAG = "MXData";
@@ -45,6 +50,10 @@ public class MXDataHandler implements IMXEventListener {
     private IMXStore mStore;
     private volatile boolean mInitialSyncComplete = false;
 
+    /**
+     * Default constructor.
+     * @param store the data storage implementation.
+     */
     public MXDataHandler(IMXStore store) {
         // The JSON -> object mapper
         mGson = new GsonBuilder()
