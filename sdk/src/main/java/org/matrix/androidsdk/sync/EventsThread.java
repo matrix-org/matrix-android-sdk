@@ -25,7 +25,6 @@ import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import retrofit.RetrofitError;
@@ -40,7 +39,7 @@ public class EventsThread extends Thread {
     private static final int RETRY_WAIT_TIME_MS = 10000;
 
     private EventsApiClient mApiClient;
-    private IEventsThreadListener mListener = null;
+    private EventsThreadListener mListener = null;
     private String mCurrentToken;
 
     private boolean mInitialSyncDone = false;
@@ -91,7 +90,7 @@ public class EventsThread extends Thread {
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      */
-    public EventsThread(EventsApiClient apiClient, IEventsThreadListener listener) {
+    public EventsThread(EventsApiClient apiClient, EventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;

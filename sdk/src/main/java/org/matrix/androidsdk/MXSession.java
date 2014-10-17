@@ -22,9 +22,9 @@ import org.matrix.androidsdk.rest.client.PresenceApiClient;
 import org.matrix.androidsdk.rest.client.ProfileApiClient;
 import org.matrix.androidsdk.rest.client.RoomsApiClient;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
-import org.matrix.androidsdk.sync.IEventsThreadListener;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -148,7 +148,7 @@ public class MXSession {
      * Use this version if not using a data handler.
      * @param eventsListener the custom event listener
      */
-    public void startEventStream(IEventsThreadListener eventsListener) {
+    public void startEventStream(EventsThreadListener eventsListener) {
         mEventsThread = new EventsThread(mEventsApiClient, eventsListener);
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
@@ -164,7 +164,7 @@ public class MXSession {
             Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
             return;
         }
-        startEventStream(new EventsThreadListener(mDataHandler));
+        startEventStream(new DefaultEventsThreadListener(mDataHandler));
     }
 
     /**

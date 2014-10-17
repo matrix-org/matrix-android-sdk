@@ -1,56 +1,26 @@
-/*
- * Copyright 2014 OpenMarket Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.matrix.androidsdk.sync;
 
-import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
-import org.matrix.androidsdk.rest.model.RoomResponse;
 
 import java.util.List;
 
 /**
- * Listener for the events thread.
+ * Interface to implement to listen to the event thread.
  */
-public class EventsThreadListener implements IEventsThreadListener {
-    private MXDataHandler mData;
+public interface EventsThreadListener {
 
-    public EventsThreadListener(MXDataHandler data) {
-        mData = data;
-    }
+    /**
+     * Called with the response of the initial sync.
+     * @param response the response
+     */
+    public void onInitialSyncComplete(InitialSyncResponse response);
 
-    @Override
-    public void onInitialSyncComplete(InitialSyncResponse response) {
-        // Handle presence events
-        mData.handleEvents(response.presence);
-
-        // Convert rooms from response
-        for (RoomResponse roomResponse : response.rooms) {
-            // Handle state events
-            mData.handleEvents(roomResponse.state);
-
-            // handle messages / pagination token
-            mData.handleTokenResponse(roomResponse.roomId, roomResponse.messages);
-        }
-
-        mData.onInitialSyncComplete();
-    }
-
-    @Override
-    public void onEventsReceived(List<Event> events) {
-        mData.handleEvents(events);
-    }
+    /**
+     * Called every time events come down the stream.
+     * @param events the events
+     */
+    public void onEventsReceived(List<Event> events);
 }
+
+    
