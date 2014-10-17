@@ -75,6 +75,11 @@ public class MXMemoryStore implements IMXStore {
         storeRoom(room);
     }
 
+    @Override
+    public Collection<RoomSummary> getSummaries() {
+        return null;
+    }
+
     private Room addRoom(String roomId) {
         Room room = new Room();
         room.setRoomId(roomId);

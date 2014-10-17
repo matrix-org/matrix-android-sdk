@@ -36,4 +36,16 @@ public interface IMXStore {
      * @param stateEventType The state event type which was updated. Can be null to clobber the room.
      */
     public void updateRoomState(Room room, String stateEventType);
+
+
+    // Design note: This is part of the store interface so the concrete implementation can leverage
+    //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
+    //              compared to calling getRooms() then getRoomEvents(roomId, limit=1) for each room
+    //              (which forces single SELECTs)
+    /**
+     * <p>Retrieve a list of all the room summaries stored.</p>
+     * Typically this method will be called when generating a 'Recent Activity' list.
+     * @return A collection of room summaries.
+     */
+    public Collection<RoomSummary> getSummaries();
 }
