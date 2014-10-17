@@ -97,6 +97,7 @@ public class MXMemoryStore implements IMXStore {
             summary.setName(room.getName());
             summary.setRoomId(room.getRoomId());
             summary.setTopic(room.getTopic());
+
             summaries.add(summary);
         }
 

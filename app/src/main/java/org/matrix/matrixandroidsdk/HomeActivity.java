@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -84,22 +85,26 @@ public class HomeActivity extends ActionBarActivity {
                         }
                         return;
                     }
-
+                    summary.setLatestEvent(event);
 
                     if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
-                            hasLeftRoom(selfUserId, summary)) {
+                            isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
                         // we've left this room, so refresh the entire list.
-                        mAdapter.clear();
-                        loadSummaries();
+                        refreshAdapter();
                         return;
                     }
 
-                    summary.setLatestEvent(event);
+
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
                         try {
                             summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
                         }
                         catch (Exception e) {} // malformed json, discard.
+                    }
+                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                        // force reload on aliases change so it can load the right name/alias
+                        refreshAdapter();
+                        return;
                     }
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
@@ -112,9 +117,9 @@ public class HomeActivity extends ActionBarActivity {
             loadSummaries();
         }
 
-        private boolean hasLeftRoom(String selfUserId, RoomSummary summary) {
+        private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
             for (RoomMember member : summary.getMembers()) {
-                if (RoomMember.MEMBERSHIP_LEAVE.equals(member.membership) &&
+                if (membership.equals(member.membership) &&
                         selfUserId.equals(member.userId)) {
                     return true;
                 }
@@ -125,8 +130,13 @@ public class HomeActivity extends ActionBarActivity {
         private void loadSummaries() {
             String selfUserId = mSession.getCredentials().userId;
             for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
+                if (isInvited) {
+                    summary.setName("Room Invitation");
+                }
+
                 // only add summaries to rooms we have not left.
-                if (!hasLeftRoom(selfUserId, summary)) {
+                if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
                     mAdapter.add(summary);
                 }
             }

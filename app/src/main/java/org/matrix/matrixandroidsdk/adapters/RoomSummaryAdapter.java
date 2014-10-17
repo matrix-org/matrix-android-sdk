@@ -128,6 +128,12 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
             timestamp = mDateFormat.format(new Date(summary.getLatestEvent().ts));
         }
 
+        // check if this is an invite
+        if (summary.isInvited()) {
+            message = summary.getInviterUserId() +"'s invitation";
+        }
+
+
         textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
         textView.setText(message);
         textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);

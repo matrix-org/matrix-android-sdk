@@ -49,10 +49,17 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 @Override
                 public void run() {
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        Log.e(LOG_TAG, "Updating room name.");
                         setTitle((String)newVal);
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+                        Log.e(LOG_TAG, "Updating room topic.");
                         setTopic((String)newVal);
+                    }
+                    if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                        Log.e(LOG_TAG, "Updating room name (via alias).");
+                        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+                        setTitle(room.getName());
                     }
                 }
             });
@@ -105,11 +112,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
         // set general room information
         Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
-        String title = room.getName();
-        if (title == null) {
-            title = room.getRoomId();
-        }
-        setTitle(title);
+        setTitle(room.getName());
 
         setTopic(room.getTopic());
 
