@@ -29,6 +29,30 @@ public class RoomSummary {
         mMembers = members;
     }
 
+    public String getRoomId() {
+        return mRoomId;
+    }
+
+    public String getRoomName() {
+        return mName;
+    }
+
+    public String getRoomTopic() {
+        return mTopic;
+    }
+
+    public int getNumMembers() {
+        return mNumMembers;
+    }
+
+    public Event getLatestEvent() {
+        return mLatestEvent;
+    }
+
+    public Collection<RoomMember> getMembers() {
+        return mMembers;
+    }
+
     /**
      * Set the room's members. This can be a subset of members
      * (see {@link RoomSummary#setNumMembers(int)} for a total count).

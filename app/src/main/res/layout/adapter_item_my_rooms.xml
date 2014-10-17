@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="Medium Text"
-        android:id="@+id/roomsAdapter_roomName"
+        android:id="@+id/roomSummaryAdapter_roomName"
         />
 
     <TextView
@@ -19,5 +19,5 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Small Text"
-        android:id="@+id/roomsAdapter_roomTopic"/>
+        android:id="@+id/roomSummaryAdapter_roomTopic"/>
 </LinearLayout>

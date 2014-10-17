@@ -13,11 +13,13 @@ import android.widget.ListView;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
@@ -34,10 +36,10 @@ public class HomeActivity extends ActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    for (Room room : mSession.getDataHandler().getStore().getRooms()) {
-                        mAdapter.add(room.getRoomState());
+                    for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                        mAdapter.add(summary);
                     }
-                    mAdapter.sortRooms();
+                    mAdapter.sortSummaries();
                 }
             });
         }
@@ -64,7 +66,7 @@ public class HomeActivity extends ActionBarActivity {
     };
 
     private MXSession mSession;
-    private RoomsAdapter mAdapter;
+    private RoomSummaryAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,7 +80,7 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
-        mAdapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
+        mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
         myRoomList.setAdapter(mAdapter);
 
         mSession.getDataHandler().addListener(mListener);
@@ -87,7 +89,7 @@ public class HomeActivity extends ActionBarActivity {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                goToRoomPage(mAdapter.getItem(i).roomId);
+                goToRoomPage(mAdapter.getItem(i).getRoomId());
             }
         });
 
