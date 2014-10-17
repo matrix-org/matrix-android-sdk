@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
@@ -215,6 +216,16 @@ public class MatrixMessagesFragment extends Fragment {
             public void onSuccess(Event info) {
                 Log.d(LOG_TAG, "onSuccess >>>> " + info);
                 // TODO: This should probably be fed back to the caller.
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Toast.makeText(mContext, "Unable to send message. Connection error.", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Toast.makeText(mContext, "Unable to send message.", Toast.LENGTH_SHORT).show();
             }
         });
     }

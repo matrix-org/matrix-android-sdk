@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/editText_hs"
         android:hint="@string/hs_url"
-        android:text="http://matrix.org"/>
+        android:text="https://matrix.org"/>
 
     <Button
         android:layout_width="match_parent"
