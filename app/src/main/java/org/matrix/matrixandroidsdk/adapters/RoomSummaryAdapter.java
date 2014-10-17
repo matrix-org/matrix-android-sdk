@@ -67,6 +67,16 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         });
     }
 
+    public RoomSummary getSummaryByRoomId(String roomId) {
+        for (int i=0; i<getCount(); i++) {
+            RoomSummary summary = getItem(i);
+            if (roomId.equals(summary.getRoomId())) {
+                return summary;
+            }
+        }
+        return null;
+    }
+
     /**
      * Set the latest event for a room summary.
      * @param event The latest event

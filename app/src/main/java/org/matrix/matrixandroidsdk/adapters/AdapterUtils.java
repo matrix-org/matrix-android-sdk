@@ -55,7 +55,6 @@ public class AdapterUtils {
          */
         public CharSequence getTextualDisplay() {
             CharSequence text = null;
-            Log.e(LOG_TAG, "getTextualDisplay >> "+mEvent.content);
             try {
                 if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                     // all m.room.message events should support the 'body' key fallback, so use it.

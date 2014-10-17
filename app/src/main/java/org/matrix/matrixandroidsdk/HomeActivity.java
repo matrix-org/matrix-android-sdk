@@ -31,15 +31,15 @@ public class HomeActivity extends ActionBarActivity {
 
     private MXEventListener mListener = new MXEventListener() {
 
+        private boolean mInitialSyncComplete = false;
+
         @Override
         public void onInitialSyncComplete() {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
-                        mAdapter.add(summary);
-                    }
-                    mAdapter.sortSummaries();
+                    mInitialSyncComplete = true;
+                    loadSummaries();
                 }
             });
         }
@@ -59,13 +59,36 @@ public class HomeActivity extends ActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-                        mAdapter.setLatestEvent(event);
+                    RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
+                    if (summary == null) {
+                        // ROOM_CREATE events will be sent during initial sync. We want to ignore them
+                        // until the initial sync is done (that is, only refresh the list when there
+                        // are new rooms created AFTER we have synced).
+                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                            // be lazy for now and refresh the entire list.
+                            mAdapter.clear();
+                            loadSummaries();
+                        }
+                        return;
                     }
+                    summary.setLatestEvent(event);
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        try {
+                            summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
+                        }
+                        catch (Exception e) {} // malformed json, discard.
+                    }
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
                 }
             });
+        }
+
+        private void loadSummaries() {
+            for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                mAdapter.add(summary);
+            }
+            mAdapter.sortSummaries();
         }
     };
 
