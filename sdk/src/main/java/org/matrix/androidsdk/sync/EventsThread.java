@@ -48,24 +48,6 @@ public class EventsThread extends Thread {
     private boolean mKilling = false;
 
     /**
-     * Interface to implement to listen to the event thread.
-     */
-    public interface IEventsThreadListener {
-
-        /**
-         * Called with the response of the initial sync.
-         * @param response the response
-         */
-        public void onInitialSyncComplete(InitialSyncResponse response);
-
-        /**
-         * Called every time events come down the stream.
-         * @param events the events
-         */
-        public void onEventsReceived(List<Event> events);
-    }
-
-    /**
      * Shared implementation of the API callback for all API calls from this class.
      * {@inheritDoc}
      */

@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.rest.client.EventsApiClient;
 import org.matrix.androidsdk.rest.client.PresenceApiClient;
 import org.matrix.androidsdk.rest.client.ProfileApiClient;
@@ -22,33 +24,53 @@ import org.matrix.androidsdk.rest.client.RoomsApiClient;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
+import org.matrix.androidsdk.sync.IEventsThreadListener;
 
 /**
- * Class that represents the Matrix session.
+ * Class that represents one user's session with a particular home server.
+ * There can potentially be multiple sessions for handling multiple accounts.
  */
 public class MXSession {
+
+    private static final String LOG_TAG = "MXSession";
 
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
 
     // Api clients
-    EventsApiClient mEventsApiClient;
-    ProfileApiClient mProfileApiClient;
-    PresenceApiClient mPresenceApiClient;
-    RoomsApiClient mRoomsApiClient;
+    private EventsApiClient mEventsApiClient;
+    private ProfileApiClient mProfileApiClient;
+    private PresenceApiClient mPresenceApiClient;
+    private RoomsApiClient mRoomsApiClient;
 
-    public MXSession(MXDataHandler mxData, Credentials credentials) {
-        mDataHandler = mxData;
+    /**
+     * Create a basic session for direct API calls.
+     * @param credentials the user credentials
+     */
+    public MXSession(Credentials credentials) {
         mCredentials = credentials;
 
         mEventsApiClient = new EventsApiClient(credentials);
         mProfileApiClient = new ProfileApiClient(credentials);
         mPresenceApiClient = new PresenceApiClient(credentials);
         mRoomsApiClient = new RoomsApiClient(credentials);
-        mEventsThread = new EventsThread(mEventsApiClient, new EventsThreadListener(mxData));
     }
 
+    /**
+     * Create a user session with a data handler.
+     * @param dataHandler the data handler
+     * @param credentials the user credentials
+     */
+    public MXSession(MXDataHandler dataHandler, Credentials credentials) {
+        this(credentials);
+        mDataHandler = dataHandler;
+    }
+
+    /**
+     * Set the credentials to use.
+     * @param credentials the credentials
+     */
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
         mEventsApiClient.setCredentials(credentials);
@@ -57,26 +79,50 @@ public class MXSession {
         mRoomsApiClient.setCredentials(credentials);
     }
 
+    /**
+     * Get the data handler.
+     * @return the data handler.
+     */
     public MXDataHandler getDataHandler() {
         return mDataHandler;
     }
 
+    /**
+     * Get the user credentials.
+     * @return the credentials
+     */
     public Credentials getCredentials() {
         return mCredentials;
     }
 
+    /**
+     * Get the API client for requests to the events API.
+     * @return the events API client
+     */
     public EventsApiClient getEventsApiClient() {
         return mEventsApiClient;
     }
 
+    /**
+     * Get the API client for requests to the profile API.
+     * @return the profile API client
+     */
     public ProfileApiClient getProfileApiClient() {
         return mProfileApiClient;
     }
 
+    /**
+     * Get the API client for requests to the presence API.
+     * @return the presence API client
+     */
     public PresenceApiClient getPresenceApiClient() {
         return mPresenceApiClient;
     }
 
+    /**
+     * Get the API client for requests to the rooms API.
+     * @return the rooms API client
+     */
     public RoomsApiClient getRoomsApiClient() {
         return mRoomsApiClient;
     }
@@ -97,12 +143,33 @@ public class MXSession {
         this.mRoomsApiClient = roomsApiClient;
     }
 
-    public void startEventStream() {
+    /**
+     * Start the event stream (events thread that listens for events) with a custom event listener.
+     * Use this version if not using a data handler.
+     * @param eventsListener the custom event listener
+     */
+    public void startEventStream(IEventsThreadListener eventsListener) {
+        mEventsThread = new EventsThread(mEventsApiClient, eventsListener);
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
     }
 
+    /**
+     * Start the event stream (events thread that listens for events).
+     * Use this version if using a data handler.
+     */
+    public void startEventStream() {
+        if (mDataHandler == null) {
+            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
+            return;
+        }
+        startEventStream(new EventsThreadListener(mDataHandler));
+    }
+
+    /**
+     * Gracefully stop the event stream.
+     */
     public void stopEventStream() {
         mEventsThread.kill();
     }
