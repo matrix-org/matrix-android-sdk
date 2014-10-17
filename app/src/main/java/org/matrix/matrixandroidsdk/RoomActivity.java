@@ -70,6 +70,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             return;
         }
         mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
+        Log.i(LOG_TAG, "Displaying "+mRoomId);
 
         findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
 

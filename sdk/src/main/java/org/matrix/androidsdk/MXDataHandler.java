@@ -65,14 +65,19 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void handleEvents(List<? extends Event> events) {
+        handleEvents(events, false);
+    }
+
+    public void handleEvents(List<? extends Event> events, boolean isTrackedNonStateEvents) {
         for (Event event : events) {
-            handleEvent(event);
+            handleEvent(event, isTrackedNonStateEvents);
         }
     }
 
     public void handleTokenResponse(String roomId, TokensChunkResponse<Event> response) {
+        Log.i(LOG_TAG, roomId + " has "+response.chunk.size()+" events. Token="+response.start);
         // Handle messages
-        handleEvents(response.chunk);
+        handleEvents(response.chunk, true);
 
         // handle token
         Room room = mStore.getRoom(roomId);
@@ -84,7 +89,16 @@ public class MXDataHandler implements IMXEventListener {
         return mStore;
     }
 
-    private void handleEvent(Event event) {
+    private void handleEvent(Event event, boolean isTrackedNonStateEvents) {
+        // Some state events are 'tracked' in the message history in that they are displayed in a
+        // similar way to m.room.messages. We need to know if this event is from tracked events
+        // (e.g. /messages API or /initialSync > rooms > messages > chunk) or not, so we know if
+        // it should be added to the list of events for this room. Typically, events are NOT
+        // tracked. m.room.message events are ALWAYS tracked.
+        if (isTrackedNonStateEvents || Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            mStore.storeRoomEvent(event);
+        }
+
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = mGson.fromJson(event.content, User.class);
             User user = mStore.getUser(userPresence.userId);
@@ -101,7 +115,6 @@ public class MXDataHandler implements IMXEventListener {
         // Room events
         else if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Room room = mStore.getRoom(event.roomId);
-            mStore.storeRoomEvent(event);
             this.onMessageReceived(room, event);
         }
         // Room state events
