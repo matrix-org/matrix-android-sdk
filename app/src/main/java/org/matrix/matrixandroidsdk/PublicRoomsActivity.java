@@ -69,7 +69,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_my_rooms) {
-            goToHomepage();
+            finish();
             return true;
         }
         else if (id == R.id.action_logout) {
@@ -77,14 +77,6 @@ public class PublicRoomsActivity extends ActionBarActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void goToLoginPage() {
-        startActivity(new Intent(this, LoginActivity.class));
-    }
-
-    private void goToHomepage() {
-        startActivity(new Intent(this, HomeActivity.class));
     }
 
     private void goToRoom(String roomId) {

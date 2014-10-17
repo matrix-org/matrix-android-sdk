@@ -24,6 +24,7 @@ public class CommonActivityUtils {
 
         // go to login page
         context.startActivity(new Intent(context, LoginActivity.class));
+        context.finish();
     }
 
     public interface OnSubmitListener {

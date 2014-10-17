@@ -55,6 +55,7 @@ public class LoginActivity extends ActionBarActivity {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
                 Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
                 goToHomepage();
+                LoginActivity.this.finish();
             }
 
             @Override
