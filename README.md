@@ -10,7 +10,7 @@ It is an Android Studio (gradle) project containing two modules:
 Overview
 --------
 The Matrix APIs are split into several categories (see [matrix api]).
-The basic usage is to
+Basic usage is:
 
  1. Log in or register to a home server -> get the user's credentials
  2. Start a session with the credentials
@@ -56,20 +56,25 @@ Getting the list of members of a chat room would look something like this:
 session.getRooomApiClient().getRoomMembers(<roomId>, callback);
 ```
 
+The same session object should be used for each request. This may require use
+of a singleton, see the ```Matrix``` singleton in the ```app``` module for an
+example.
+
 The event stream
 ----------------
 One important part of any Matrix-enabled app will be listening to the event stream, the live flow of events.
-This is done by using one particular API call repeatedly in the events thread.
+This is done by using:
 
 ```java
-session.startEventStream(eventStreamListener);
+session.startEventStream();
 ```
 
-starts the events thread and sets it to send events to a listener.
+This starts the events thread and sets it to send events to a default listener.
+It may be useful to use this in conjunction with an Android ```Service``` to
+control whether the event stream is running in the background or not.
 
 The data handler
 ----------------
-The recommended usage however, for handling the event stream, is to set up the session with a data handler.
 The data handler provides a layer to help manage data from the events stream:
 
  * Handles events from the events stream
