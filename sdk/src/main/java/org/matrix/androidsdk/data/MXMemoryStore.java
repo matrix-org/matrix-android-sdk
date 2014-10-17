@@ -7,6 +7,7 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -67,6 +68,13 @@ public class MXMemoryStore implements IMXStore {
         if (events == null) {
             return new ArrayList<Event>();
         }
+        if (limit > 0 && limit < events.size()) {  // snippy snippy
+            ArrayList<Event> eventList = new ArrayList<Event>(events);
+            // return the last [limit] entries, preserving order (so first element of this new list
+            // is the oldest)
+            return eventList.subList(eventList.size() - limit, eventList.size());
+        }
+
         return events;
     }
 
@@ -77,7 +85,23 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<RoomSummary> getSummaries() {
-        return null;
+        ArrayList<RoomSummary> summaries = new ArrayList<RoomSummary>();
+
+        for (Room room : getRooms()) {
+            RoomSummary summary = new RoomSummary();
+            Collection<Event> events = getRoomEvents(room.getRoomId(), 1);
+            for (Event e : events) {
+                summary.setLatestEvent(e);
+            }
+            summary.setMembers(room.getMembers());
+            summary.setName(room.getName());
+            summary.setRoomId(room.getRoomId());
+            summary.setTopic(room.getTopic());
+            summaries.add(summary);
+        }
+
+
+        return summaries;
     }
 
     private Room addRoom(String roomId) {

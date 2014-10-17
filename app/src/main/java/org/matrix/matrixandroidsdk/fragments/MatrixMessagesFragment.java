@@ -96,7 +96,7 @@ public class MatrixMessagesFragment extends Fragment {
         Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
         if (room != null) {
             Log.i(LOG_TAG, "Loading stored messages.");
-            Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, 10);
+            Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, -1);
             mMatrixMessagesListener.onReceiveMessages(messages);
             mEarliestToken = room.getPaginationToken();
         }

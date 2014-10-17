@@ -24,8 +24,7 @@ public interface IMXStore {
     /**
      * Retrieve all non-state room events for this room.
      * @param roomId The room ID
-     * @param limit A hint for the max number of latest events to return. Does not need to be
-     *              honoured.
+     * @param limit The max number of latest events to return. A limit less than 0 means "no limit".
      * @return A collection of events.
      */
     public Collection<Event> getRoomEvents(String roomId, int limit);
