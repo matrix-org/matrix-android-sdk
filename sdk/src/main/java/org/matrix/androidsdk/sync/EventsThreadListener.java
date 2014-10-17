@@ -42,8 +42,8 @@ public class EventsThreadListener implements EventsThread.IEventsThreadListener 
             // Handle state events
             mData.handleEvents(roomResponse.state);
 
-            // Handle messages
-            mData.handleEvents(roomResponse.messages.chunk);
+            // handle messages / pagination token
+            mData.handleTokenResponse(roomResponse.roomId, roomResponse.messages);
         }
 
         mData.onInitialSyncComplete();

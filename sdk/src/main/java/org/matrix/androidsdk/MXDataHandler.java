@@ -27,6 +27,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
@@ -69,13 +70,21 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    public void handleTokenResponse(String roomId, TokensChunkResponse<Event> response) {
+        // Handle messages
+        handleEvents(response.chunk);
+
+        // handle token
+        Room room = mStore.getRoom(roomId);
+        room.setPaginationToken(response.start);
+        mStore.updateRoomState(room, null);
+    }
+
     public IMXStore getStore() {
         return mStore;
     }
 
     private void handleEvent(Event event) {
-        Log.d(LOG_TAG, "Handling event " + event);
-
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = mGson.fromJson(event.content, User.class);
             User user = mStore.getUser(userPresence.userId);
@@ -92,9 +101,7 @@ public class MXDataHandler implements IMXEventListener {
         // Room events
         else if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Room room = mStore.getRoom(event.roomId);
-            if (room != null) {
-                room.addMessage(event);
-            }
+            mStore.storeRoomEvent(event);
             this.onMessageReceived(room, event);
         }
         // Room state events

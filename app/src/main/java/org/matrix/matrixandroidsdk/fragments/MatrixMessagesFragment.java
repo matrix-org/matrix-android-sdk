@@ -18,6 +18,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.matrixandroidsdk.Matrix;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class MatrixMessagesFragment extends Fragment {
          * Some messages have been received and need to be displayed.
          * @param events The events received. They should be added to the end of the list.
          */
-        public void onReceiveMessages(List<Event> events);
+        public void onReceiveMessages(Collection<Event> events);
     }
 
     private MatrixMessagesListener mMatrixMessagesListener;
@@ -92,15 +93,26 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void getAndListenForMessages() {
-        mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
-                // return in reversed order since they come down in reversed order (newest first)
-                Collections.reverse(info.chunk);
-                mMatrixMessagesListener.onReceiveMessages(info.chunk);
-                mEarliestToken = info.end;
-            }
-        });
+        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+        if (room != null) {
+            Log.i(LOG_TAG, "Loading stored messages.");
+            Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, 10);
+            mMatrixMessagesListener.onReceiveMessages(messages);
+            mEarliestToken = room.getPaginationToken();
+        }
+        else {
+            Log.i(LOG_TAG, "Requesting messages.");
+            mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
+                @Override
+                public void onSuccess(TokensChunkResponse<Event> info) {
+                    // return in reversed order since they come down in reversed order (newest first)
+                    Collections.reverse(info.chunk);
+                    mMatrixMessagesListener.onReceiveMessages(info.chunk);
+                    mEarliestToken = info.end;
+                }
+            });
+        }
+
         // FIXME: There is a race here where you could miss messages. Ideally we should be using
         // the initial sync messages and not re-requesting the same messages from /messages API.
         mSession.getDataHandler().addListener(new MXEventListener() {

@@ -16,6 +16,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -26,41 +27,67 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
  */
 public class HomeActivity extends ActionBarActivity {
 
+    private MXEventListener mListener = new MXEventListener() {
+
+        @Override
+        public void onInitialSyncComplete() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    for (Room room : mSession.getDataHandler().getStore().getRooms()) {
+                        mAdapter.add(room.getRoomState());
+                    }
+                    mAdapter.sortRooms();
+                }
+            });
+        }
+
+        @Override
+        public void onMessageReceived(Room room, Event event) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                }
+            });
+        }
+
+        @Override
+        public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                }
+            });
+        }
+    };
+
+    private MXSession mSession;
+    private RoomsAdapter mAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        final MXSession matrixSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        if (matrixSession == null) {
+        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        if (mSession == null) {
             finish();
             return;
         }
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
-        final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
-        myRoomList.setAdapter(adapter);
+        mAdapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
+        myRoomList.setAdapter(mAdapter);
 
-        matrixSession.getDataHandler().addListener(new MXEventListener() {
-            @Override
-            public void onInitialSyncComplete() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (Room room : matrixSession.getDataHandler().getStore().getRooms()) {
-                            adapter.add(room.getRoomState());
-                        }
-                        adapter.sortRooms();
-                    }
-                });
-            }
-        });
+        mSession.getDataHandler().addListener(mListener);
 
         myRoomList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                goToRoomPage(adapter.getItem(i).roomId);
+                goToRoomPage(mAdapter.getItem(i).roomId);
             }
         });
 
@@ -81,6 +108,12 @@ public class HomeActivity extends ActionBarActivity {
         });
 
         startEventStream();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSession.getDataHandler().removeListener(mListener);
     }
 
     public void startEventStream() {

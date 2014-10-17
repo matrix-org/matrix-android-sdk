@@ -95,8 +95,7 @@ public class EventsApiClient extends MXApiClient {
      * @param callback callback to provide the information
      */
     public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
-        // Only retrieving one message per room for now
-        mApi.initialSync(1, new ConvertFailureCallback<InitialSyncResponse>(callback) {
+        mApi.initialSync(10, new ConvertFailureCallback<InitialSyncResponse>(callback) {
             @Override
             public void success(InitialSyncResponse initialSync, Response response) {
                 callback.onSuccess(initialSync);

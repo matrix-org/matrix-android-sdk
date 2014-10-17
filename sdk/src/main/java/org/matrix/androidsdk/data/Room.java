@@ -20,13 +20,15 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Room {
 
     private String mRoomId;
+    private String mPaginationToken;
     private RoomState mRoomState = new RoomState();
-    private Map<String, Event> mMessages = new HashMap<String, Event>();
+
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
     public void setRoomId(String roomId) {
@@ -38,16 +40,8 @@ public class Room {
         return mRoomState;
     }
 
-    public void setRoomState(RoomState roomState) {
-        this.mRoomState = roomState;
-    }
-
     public Collection<RoomMember> getMembers() {
         return mMembers.values();
-    }
-
-    public void addMessage(Event message) {
-        mMessages.put(message.eventId, message);
     }
 
     public void setMember(String userId, RoomMember member) {
@@ -66,12 +60,23 @@ public class Room {
         return this.mRoomState.topic;
     }
 
+    public String getPaginationToken() {
+        return this.mPaginationToken;
+    }
+
+    public void setPaginationToken(String token) {
+        mPaginationToken = token;
+    }
+
     public String getName() {
         if (this.mRoomState.name != null) {
             return this.mRoomState.name;
         }
         else if (this.mRoomState.roomAliasName != null) {
             return this.mRoomState.roomAliasName;
+        }
+        else if (this.mRoomState.aliases != null && this.mRoomState.aliases.size() > 0) {
+            return this.mRoomState.aliases.get(0);
         }
         else {
             return this.mRoomId;

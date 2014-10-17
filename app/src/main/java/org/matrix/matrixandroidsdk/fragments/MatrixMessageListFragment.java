@@ -17,6 +17,7 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -107,7 +108,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onReceiveMessages(final List<Event> events) {
+    public void onReceiveMessages(final Collection<Event> events) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {

@@ -1,8 +1,14 @@
 package org.matrix.androidsdk.data;
 
+import android.util.Log;
+
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,6 +19,8 @@ public class MXMemoryStore implements IMXStore {
 
     private Map<String, Room> mRooms = new ConcurrentHashMap<String, Room>();
     private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
+    // room id -> set of events for this room (linked so insertion order is preserved)
+    private Map<String, LinkedHashSet<Event>> mRoomEvents = new ConcurrentHashMap<String, LinkedHashSet<Event>>();
 
     @Override
     public Collection<Room> getRooms() {
@@ -41,6 +49,25 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeRoom(Room room) {
         mRooms.put(room.getRoomId(), room);
+    }
+
+    @Override
+    public void storeRoomEvent(Event event) {
+        LinkedHashSet<Event> events = mRoomEvents.get(event.roomId);
+        if (events == null) {
+            events = new LinkedHashSet<Event>();
+            mRoomEvents.put(event.roomId, events);
+        }
+        events.add(event);
+    }
+
+    @Override
+    public Collection<Event> getRoomEvents(String roomId, int limit) {
+        LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+        if (events == null) {
+            return new ArrayList<Event>();
+        }
+        return events;
     }
 
     @Override
