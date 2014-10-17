@@ -19,6 +19,7 @@ import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -71,6 +72,16 @@ public class HomeActivity extends ActionBarActivity {
                         }
                         return;
                     }
+
+                    String selfUserId = mSession.getCredentials().userId;
+                    if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
+                            hasLeftRoom(selfUserId, summary)) {
+                        // we've left this room, so refresh the entire list.
+                        mAdapter.clear();
+                        loadSummaries();
+                        return;
+                    }
+
                     summary.setLatestEvent(event);
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
                         try {
@@ -84,9 +95,23 @@ public class HomeActivity extends ActionBarActivity {
             });
         }
 
+        private boolean hasLeftRoom(String selfUserId, RoomSummary summary) {
+            for (RoomMember member : summary.getMembers()) {
+                if (RoomMember.MEMBERSHIP_LEAVE.equals(member.membership) &&
+                        selfUserId.equals(member.userId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void loadSummaries() {
+            String selfUserId = mSession.getCredentials().userId;
             for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
-                mAdapter.add(summary);
+                // only add summaries to rooms we have not left.
+                if (!hasLeftRoom(selfUserId, summary)) {
+                    mAdapter.add(summary);
+                }
             }
             mAdapter.sortSummaries();
         }
