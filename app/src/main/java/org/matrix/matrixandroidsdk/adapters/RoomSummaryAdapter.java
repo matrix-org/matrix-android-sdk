@@ -10,9 +10,14 @@ import android.widget.TextView;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.R;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.Locale;
 
 public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
 
@@ -22,6 +27,8 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
 
     private int mOddColourResId;
     private int mEvenColourResId;
+
+    private DateFormat mDateFormat;
 
     /**
      * Construct an adapter which will display a list of rooms.
@@ -34,6 +41,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
+        mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         setNotifyOnChange(true);
     }
 
@@ -72,11 +80,39 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
 
         RoomSummary summary = getItem(position);
 
-        TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomTopic);
-        textView.setText(summary.getRoomTopic());
-        textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
+        String numMembers = null;
+        String message = summary.getRoomTopic();
+        String timestamp = null;
+
+        TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
         textView.setText(summary.getRoomName());
 
+        if (summary.getNumMembers() > 0) {
+            numMembers = mContext.getResources().getQuantityString(
+                    R.plurals.num_members, summary.getNumMembers(),
+                    summary.getNumMembers()
+            );
+        }
+
+        if (summary.getLatestEvent() != null) {
+            String eventType = summary.getLatestEvent().type;
+            if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
+                try {
+                    String body = summary.getLatestEvent().content.getAsJsonPrimitive("body").getAsString();
+                    String user = summary.getLatestEvent().userId;
+                    message = mContext.getString(R.string.summary_message, user, body);
+                }
+                catch (Exception e) {} // bad json
+            }
+            timestamp = mDateFormat.format(new Date(summary.getLatestEvent().ts));
+        }
+
+        textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
+        textView.setText(message);
+        textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
+        textView.setText(timestamp);
+        textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_numUsers);
+        textView.setText(numMembers);
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
             convertView.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
