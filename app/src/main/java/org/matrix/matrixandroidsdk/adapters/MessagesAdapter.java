@@ -22,6 +22,7 @@ import org.matrix.matrixandroidsdk.R;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 
 /**
@@ -30,21 +31,19 @@ import java.util.Locale;
  */
 public class MessagesAdapter extends ArrayAdapter<Event> {
 
-    // text, images, notices(topics, room names), and member changes.
+    // text, images, notices(topics, room names, membership changes,
+    // displayname changes, avatar url changes), and emotes!
     private static final int NUM_ROW_TYPES = 4;
 
     private static final int ROW_TYPE_TEXT = 0;
     private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_MEMBER_CHANGE = 2;
-    private static final int ROW_TYPE_NOTICE = 3;
+    private static final int ROW_TYPE_NOTICE = 2;
+    private static final int ROW_TYPE_EMOTE = 3;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
     private Context mContext;
-    private int mTextLayoutId;
-    private int mImageLayoutId;
-    private int mMembershipLayoutId;
-    private int mNoticeLayoutId;
+    private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
     private LayoutInflater mLayoutInflater;
 
     private int mOddColourResId;
@@ -53,13 +52,13 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
     private DateFormat mDateFormat;
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
-                           int membershipChangeResLayoutId, int noticeResLayoutId) {
+                           int noticeResLayoutId, int emoteRestLayoutId) {
         super(context, 0);
         mContext = context;
-        mTextLayoutId = textResLayoutId;
-        mImageLayoutId = imageResLayoutId;
-        mMembershipLayoutId = membershipChangeResLayoutId;
-        mNoticeLayoutId = noticeResLayoutId;
+        mRowTypeToLayoutId.put(ROW_TYPE_TEXT, textResLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_IMAGE, imageResLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_NOTICE, noticeResLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         setNotifyOnChange(true);
@@ -101,14 +100,15 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
             else if (msgType.equals(Message.MSGTYPE_IMAGE)) {
                 return ROW_TYPE_IMAGE;
             }
+            else if (msgType.equals(Message.MSGTYPE_EMOTE)) {
+                return ROW_TYPE_EMOTE;
+            }
             else {
                 throw new RuntimeException("Unknown msgtype: " + msgType);
             }
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            return ROW_TYPE_MEMBER_CHANGE;
-        }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                  Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return ROW_TYPE_NOTICE;
         }
@@ -126,10 +126,10 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
                     return getTextView(position, convertView, parent);
                 case ROW_TYPE_IMAGE:
                     return getImageView(position, convertView, parent);
-                case ROW_TYPE_MEMBER_CHANGE:
-                    return getMembershipView(position, convertView, parent);
                 case ROW_TYPE_NOTICE:
                     return getNoticeView(position, convertView, parent);
+                case ROW_TYPE_EMOTE:
+                    return getEmoteView(position, convertView, parent);
                 default:
                     throw new RuntimeException("Unknown item view type for position " + position);
             }
@@ -143,7 +143,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
 
     private View getTextView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mTextLayoutId, parent, false);
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
 
         Event msg = getItem(position);
@@ -179,7 +179,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
 
     private View getImageView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mImageLayoutId, parent, false);
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_IMAGE), parent, false);
         }
         Event msg = getItem(position);
         String thumbUrl = msg.content.get("thumbnail_url") == null ? null : msg.content.get("thumbnail_url").getAsString();
@@ -193,49 +193,9 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         return convertView;
     }
 
-    private View getMembershipView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mMembershipLayoutId, parent, false);
-        }
-        Event msg = getItem(position);
-
-        // m.room.member is used to represent at least 3 different changes in state: membership,
-        // avatar pic url and display name. We need to figure out which thing changed to display
-        // the right text.
-        String notice = null;
-        JsonObject prevState = msg.prevContent;
-        if (prevState == null) {
-            // if there is no previous state, it has to be an invite or a join as they are the first
-            // m.room.member events for a user.
-            notice = getMembershipNotice(msg);
-        }
-        else {
-            // check if the membership changed
-            if (hasStringValueChanged(msg, "membership")) {
-                notice = getMembershipNotice(msg);
-            }
-            // check if avatar url changed
-            else if (hasStringValueChanged(msg, "avatar_url")) {
-                notice = getAvatarChangeNotice(msg);
-            }
-            // check if the display name changed.
-            else if (hasStringValueChanged(msg, "displayname")) {
-                notice = getDisplayNameChangeNotice(msg);
-            }
-            else {
-                // well shucks, I'm all out of ideas, let's whine.
-                Log.e(LOG_TAG, "Redundant membership event. PREV=>"+prevState+" NOW=>"+msg.content);
-            }
-        }
-
-        TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
-        textView.setText(notice);
-        return convertView;
-    }
-
     private View getNoticeView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mNoticeLayoutId, parent, false);
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
         Event msg = getItem(position);
 
@@ -248,10 +208,58 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
             notice = mContext.getString(R.string.notice_room_name_changed,
                     msg.userId, msg.content.getAsJsonPrimitive("name").getAsString());
         }
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(msg.type)) {
+            // m.room.member is used to represent at least 3 different changes in state: membership,
+            // avatar pic url and display name. We need to figure out which thing changed to display
+            // the right text.
+            JsonObject prevState = msg.prevContent;
+            if (prevState == null) {
+                // if there is no previous state, it has to be an invite or a join as they are the first
+                // m.room.member events for a user.
+                notice = getMembershipNotice(msg);
+            }
+            else {
+                // check if the membership changed
+                if (hasStringValueChanged(msg, "membership")) {
+                    notice = getMembershipNotice(msg);
+                }
+                // check if avatar url changed
+                else if (hasStringValueChanged(msg, "avatar_url")) {
+                    notice = getAvatarChangeNotice(msg);
+                }
+                // check if the display name changed.
+                else if (hasStringValueChanged(msg, "displayname")) {
+                    notice = getDisplayNameChangeNotice(msg);
+                }
+                else {
+                    // well shucks, I'm all out of ideas, let's whine.
+                    Log.e(LOG_TAG, "Redundant membership event. PREV=>"+prevState+" NOW=>"+msg.content);
+                }
+            }
+        }
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
         textView.setText(notice);
 
+        return convertView;
+    }
+
+    private View getEmoteView(int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_EMOTE), parent, false);
+        }
+
+        Event msg = getItem(position);
+
+        String emote = msg.userId + " ";
+
+        try {
+            emote += msg.content.getAsJsonPrimitive("body").getAsString();
+        }
+        catch (Exception e) {} // malformed json, ignore.
+
+        TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_emote);
+        textView.setText(emote);
         return convertView;
     }
 
@@ -327,7 +335,8 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
             String msgType = j == null ? null : j.getAsString();
-            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType)) {
+            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType) ||
+                    Message.MSGTYPE_EMOTE.equals(msgType)) {
                 return true;
             }
         }

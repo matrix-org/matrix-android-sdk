@@ -13,6 +13,7 @@ import android.widget.ListView;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
@@ -71,7 +72,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     R.layout.adapter_item_messages,
                     R.layout.adapter_item_images,
                     R.layout.adapter_item_message_notice,
-                    R.layout.adapter_item_message_notice
+                    R.layout.adapter_item_message_emote
             );
         }
         mMessageListView.setAdapter(mAdapter);
@@ -121,6 +122,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     public void sendMessage(String body) {
         mMatrixMessagesFragment.sendMessage(body);
+    }
+
+    public void sendEmote(String emote) {
+        mMatrixMessagesFragment.sendEmote(emote);
     }
 
     public void requestPagination() {

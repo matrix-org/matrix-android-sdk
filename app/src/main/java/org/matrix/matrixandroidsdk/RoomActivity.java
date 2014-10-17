@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -172,7 +173,15 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     }
 
     private void sendMessage(String body) {
-        mMatrixMessageListFragment.sendMessage(body);
+        if (!TextUtils.isEmpty(body)) {
+            if (body.length() > 4 && (body.toLowerCase().startsWith("/me ") || body.toLowerCase().startsWith("/em "))) {
+                mMatrixMessageListFragment.sendEmote(body.substring(4));
+            }
+            else {
+                mMatrixMessageListFragment.sendMessage(body);
+            }
+        }
+
     }
 
 }
