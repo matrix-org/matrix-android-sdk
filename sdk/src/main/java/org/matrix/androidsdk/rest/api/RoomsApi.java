@@ -124,7 +124,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/invite")
-    public void invite(@Path("roomId") String roomId, @Field("user_id") String userId, Callback<Void> callback);
+    public void invite(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
      * Join the given room.

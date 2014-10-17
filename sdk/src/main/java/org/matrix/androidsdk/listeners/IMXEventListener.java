@@ -38,4 +38,10 @@ public interface IMXEventListener {
      * The initial sync is complete and the store can be queried for current state.
      */
     public void onInitialSyncComplete();
+
+    /**
+     * Called when the user is invited to a room via /initalSync.
+     * @param room The room the user has been invited to.
+     */
+    public void onInvitedToRoom(Room room);
 }

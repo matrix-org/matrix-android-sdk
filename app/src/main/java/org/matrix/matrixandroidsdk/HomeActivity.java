@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,6 +20,7 @@ import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -59,24 +61,50 @@ public class HomeActivity extends ActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    String selfUserId = mSession.getCredentials().userId;
+
                     RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
                     if (summary == null) {
                         // ROOM_CREATE events will be sent during initial sync. We want to ignore them
                         // until the initial sync is done (that is, only refresh the list when there
                         // are new rooms created AFTER we have synced).
-                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                            // be lazy for now and refresh the entire list.
-                            mAdapter.clear();
-                            loadSummaries();
+                        if (mInitialSyncComplete) {
+                            if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                                refreshAdapter();
+                            }
+                            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                try {
+                                    if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString()) &&
+                                            event.stateKey.equals(selfUserId)) {
+                                        // we were invited to a new room.
+                                        refreshAdapter();
+                                    }
+                                }
+                                catch (Exception e) {} // bad json
+                            }
                         }
                         return;
                     }
                     summary.setLatestEvent(event);
+
+                    if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
+                            isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
+                        // we've left this room, so refresh the entire list.
+                        refreshAdapter();
+                        return;
+                    }
+
+
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
                         try {
                             summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
                         }
                         catch (Exception e) {} // malformed json, discard.
+                    }
+                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                        // force reload on aliases change so it can load the right name/alias
+                        refreshAdapter();
+                        return;
                     }
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
@@ -84,9 +112,33 @@ public class HomeActivity extends ActionBarActivity {
             });
         }
 
+        private void refreshAdapter() {
+            mAdapter.clear();
+            loadSummaries();
+        }
+
+        private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
+            for (RoomMember member : summary.getMembers()) {
+                if (membership.equals(member.membership) &&
+                        selfUserId.equals(member.userId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void loadSummaries() {
+            String selfUserId = mSession.getCredentials().userId;
             for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
-                mAdapter.add(summary);
+                boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
+                if (isInvited) {
+                    summary.setName("Room Invitation");
+                }
+
+                // only add summaries to rooms we have not left.
+                if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
+                    mAdapter.add(summary);
+                }
             }
             mAdapter.sortSummaries();
         }
@@ -117,22 +169,6 @@ public class HomeActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 goToRoomPage(mAdapter.getItem(i).getRoomId());
-            }
-        });
-
-        findViewById(R.id.button_newPrivateRoom).setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                createRoom(false);
-            }
-        });
-
-        findViewById(R.id.button_newPublicRoom).setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                createRoom(true);
             }
         });
 
@@ -174,6 +210,14 @@ public class HomeActivity extends ActionBarActivity {
         }
         else if (id == R.id.action_logout) {
             CommonActivityUtils.logout(this);
+            return true;
+        }
+        else if (id == R.id.action_create_public_room) {
+            createRoom(true);
+            return true;
+        }
+        else if (id == R.id.action_create_private_room) {
+            createRoom(false);
             return true;
         }
         return super.onOptionsItemSelected(item);

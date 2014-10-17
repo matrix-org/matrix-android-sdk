@@ -17,6 +17,7 @@ public class RoomSummary {
     private int mNumMembers;
     private Event mLatestEvent;
     private Collection<RoomMember> mMembers;
+    private String mInviter; // only populated if you've been invited.
 
     public RoomSummary() {}
 
@@ -47,6 +48,14 @@ public class RoomSummary {
 
     public Event getLatestEvent() {
         return mLatestEvent;
+    }
+
+    public boolean isInvited() {
+        return mInviter != null;
+    }
+
+    public String getInviterUserId() {
+        return mInviter;
     }
 
     public Collection<RoomMember> getMembers() {
@@ -112,6 +121,16 @@ public class RoomSummary {
      */
     public RoomSummary setLatestEvent(Event event) {
         mLatestEvent = event;
+        return this;
+    }
+
+    /**
+     * Set the user ID of the person who invited the user to this room.
+     * @param inviterUserId The user ID of the inviter
+     * @return This summary for chaining calls.
+     */
+    public RoomSummary setInviterUserId(String inviterUserId) {
+        mInviter = inviterUserId;
         return this;
     }
 }

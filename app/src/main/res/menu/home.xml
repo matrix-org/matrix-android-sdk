@@ -2,9 +2,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="org.matrix.matrixandroidsdk.HomeActivity" >
+    <item android:id="@+id/action_create_room"
+          android:title="@string/action_create_room"
+          android:icon="@drawable/ic_menu_btn_add"
+          app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/action_create_public_room"
+                android:title="@string/public_room" />
+            <item
+                android:id="@+id/action_create_private_room"
+                android:title="@string/private_room" />
+        </menu>
+    </item>
     <item android:id="@+id/action_public_rooms"
           android:title="@string/action_public_rooms"
-          android:icon="@drawable/ic_menu_allfriends"
+          android:icon="@drawable/ic_menu_mapmode"
           app:showAsAction="ifRoom" />
     <item android:id="@+id/action_settings"
         android:title="@string/action_settings"

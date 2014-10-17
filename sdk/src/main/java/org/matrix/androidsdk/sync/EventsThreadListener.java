@@ -22,5 +22,3 @@ public interface EventsThreadListener {
      */
     public void onEventsReceived(List<Event> events);
 }
-
-    

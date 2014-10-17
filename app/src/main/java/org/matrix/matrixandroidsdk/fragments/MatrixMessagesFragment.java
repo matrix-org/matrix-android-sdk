@@ -83,38 +83,8 @@ public class MatrixMessagesFragment extends Fragment {
             }
         }
 
-        if (!joinedRoom) {
-            Log.i(LOG_TAG, "Joining room >> " + mRoomId);
-            joinRoomThenGetMessages();
-        }
-        else {
-            getAndListenForMessages();
-        }
-    }
-
-    private void getAndListenForMessages() {
-        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
-        if (room != null) {
-            Log.i(LOG_TAG, "Loading stored messages.");
-            Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, -1);
-            mMatrixMessagesListener.onReceiveMessages(messages);
-            mEarliestToken = room.getPaginationToken();
-        }
-        else {
-            Log.i(LOG_TAG, "Requesting messages.");
-            mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
-                @Override
-                public void onSuccess(TokensChunkResponse<Event> info) {
-                    // return in reversed order since they come down in reversed order (newest first)
-                    Collections.reverse(info.chunk);
-                    mMatrixMessagesListener.onReceiveMessages(info.chunk);
-                    mEarliestToken = info.end;
-                }
-            });
-        }
-
-        // FIXME: There is a race here where you could miss messages. Ideally we should be using
-        // the initial sync messages and not re-requesting the same messages from /messages API.
+        // FIXME: There is a race here where you could get duplicate messages, where it comes down
+        // this stream and again from the store/messages API.
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onMessageReceived(Room room, Event event) {
@@ -135,13 +105,55 @@ public class MatrixMessagesFragment extends Fragment {
                 mMatrixMessagesListener.onReceiveMessages(events);
             }
         });
+
+        if (!joinedRoom) {
+            Log.i(LOG_TAG, "Joining room >> " + mRoomId);
+            joinRoomThenGetMessages();
+        }
+        else {
+            getMessages();
+        }
+    }
+
+    private void getMessages() {
+        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+        Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, -1);
+        if (messages.size() > 0) {
+            Log.i(LOG_TAG, "Loaded " + messages.size() + " stored messages.");
+            mMatrixMessagesListener.onReceiveMessages(messages);
+            mEarliestToken = room.getPaginationToken();
+        }
+        else {
+            Log.i(LOG_TAG, "Requesting messages.");
+            mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
+                @Override
+                public void onSuccess(TokensChunkResponse<Event> info) {
+                    // return in reversed order since they come down in reversed order (newest first)
+                    Collections.reverse(info.chunk);
+                    mMatrixMessagesListener.onReceiveMessages(info.chunk);
+                    mEarliestToken = info.end;
+                }
+            });
+        }
+
+
     }
 
     private void joinRoomThenGetMessages() {
         mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                getAndListenForMessages();
+                Log.i(LOG_TAG, "Joined room, requesting current state.");
+                // get current state
+                mSession.getRoomsApiClient().getRoomState(mRoomId, new MXApiClient.SimpleApiCallback<List<Event>>() {
+                    @Override
+                    public void onSuccess(List<Event> info) {
+                        Log.i(LOG_TAG, "Got current state: "+info.size()+" events.");
+                        // FIXME feels wrong to be doing this
+                        mSession.getDataHandler().handleEvents(info, false);
+                        getMessages();
+                    }
+                });
             }
 
         });
