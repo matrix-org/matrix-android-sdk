@@ -120,22 +120,6 @@ public class HomeActivity extends ActionBarActivity {
             }
         });
 
-        findViewById(R.id.button_newPrivateRoom).setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                createRoom(false);
-            }
-        });
-
-        findViewById(R.id.button_newPublicRoom).setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                createRoom(true);
-            }
-        });
-
         startEventStream();
     }
 
@@ -174,6 +158,14 @@ public class HomeActivity extends ActionBarActivity {
         }
         else if (id == R.id.action_logout) {
             CommonActivityUtils.logout(this);
+            return true;
+        }
+        else if (id == R.id.action_create_public_room) {
+            createRoom(true);
+            return true;
+        }
+        else if (id == R.id.action_create_private_room) {
+            createRoom(false);
             return true;
         }
         return super.onOptionsItemSelected(item);

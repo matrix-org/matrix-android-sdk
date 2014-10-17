@@ -16,45 +16,12 @@
         android:textStyle="bold"
         android:text="@string/my_rooms" />
 
-    <LinearLayout
-        android:id="@+id/layoutLinear_createRoomType"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_alignParentBottom="true">
-
-        <Button
-            android:id="@+id/button_newPrivateRoom"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/private_room"/>
-
-        <Button
-            android:id="@+id/button_newPublicRoom"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/public_room"/>
-
-    </LinearLayout>
-
-
-
-    <TextView
-        android:id="@+id/textView_static_createRoom"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/layoutLinear_createRoomType"
-        android:textStyle="bold"
-        android:text="@string/create" />
-
     <ListView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/listView_myRooms"
         android:layout_below="@id/textView_static_myRooms"
-        android:layout_above="@id/textView_static_createRoom"
+        android:layout_alignParentBottom="true"
         android:layout_centerVertical="true"/>
 
 
