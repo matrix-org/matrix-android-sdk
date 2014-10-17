@@ -158,7 +158,9 @@ public class RoomsApiClient extends MXApiClient {
      * @param callback on success callback
      */
     public void inviteToRoom(String roomId, String userId, final ApiCallback<Void> callback) {
-        mApi.invite(roomId, userId, new ConvertFailureCallback<Void>(callback) {
+        JsonObject content = new JsonObject();
+        content.addProperty("user_id", userId);
+        mApi.invite(roomId, content, new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);

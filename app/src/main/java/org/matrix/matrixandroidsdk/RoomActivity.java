@@ -1,5 +1,6 @@
 package org.matrix.matrixandroidsdk;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
@@ -11,6 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
@@ -141,6 +143,35 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
         else if (id == R.id.action_load_more) {
             mMatrixMessageListFragment.requestPagination();
+        }
+        else if (id == R.id.action_invite) {
+            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+            if (session != null) {
+                AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Invite User", "@localpart:domain", new CommonActivityUtils.OnSubmitListener() {
+                    @Override
+                    public void onSubmit(final String text) {
+                        if (TextUtils.isEmpty(text)) {
+                            return;
+                        }
+                        if (!text.startsWith("@") || !text.contains(":")) {
+                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        session.getRoomsApiClient().inviteToRoom(mRoomId, text.trim() , new MXApiClient.SimpleApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onCancelled() {
+
+                    }
+                });
+                alert.show();
+            }
         }
         else if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
