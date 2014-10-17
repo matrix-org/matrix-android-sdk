@@ -92,7 +92,7 @@ public class Matrix {
                 credentials.homeServer = "http://" + credentials.homeServer;
             }
         }
-        return new MXSession(new MXDataHandler(new MXMemoryStore()), credentials);
+        return new MXSession(new MXDataHandler(new MXMemoryStore(), credentials), credentials);
     }
 
     /**

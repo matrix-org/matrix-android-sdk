@@ -60,20 +60,32 @@ public class HomeActivity extends ActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    String selfUserId = mSession.getCredentials().userId;
+
                     RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
                     if (summary == null) {
                         // ROOM_CREATE events will be sent during initial sync. We want to ignore them
                         // until the initial sync is done (that is, only refresh the list when there
                         // are new rooms created AFTER we have synced).
-                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                            // be lazy for now and refresh the entire list.
-                            mAdapter.clear();
-                            loadSummaries();
+                        if (mInitialSyncComplete) {
+                            if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                                refreshAdapter();
+                            }
+                            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                try {
+                                    if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString()) &&
+                                            event.stateKey.equals(selfUserId)) {
+                                        // we were invited to a new room.
+                                        refreshAdapter();
+                                    }
+                                }
+                                catch (Exception e) {} // bad json
+                            }
                         }
                         return;
                     }
 
-                    String selfUserId = mSession.getCredentials().userId;
+
                     if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                             hasLeftRoom(selfUserId, summary)) {
                         // we've left this room, so refresh the entire list.
@@ -93,6 +105,11 @@ public class HomeActivity extends ActionBarActivity {
                     mAdapter.notifyDataSetChanged();
                 }
             });
+        }
+
+        private void refreshAdapter() {
+            mAdapter.clear();
+            loadSummaries();
         }
 
         private boolean hasLeftRoom(String selfUserId, RoomSummary summary) {

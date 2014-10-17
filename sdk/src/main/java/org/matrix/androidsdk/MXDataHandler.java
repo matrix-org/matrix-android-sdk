@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,18 +49,20 @@ public class MXDataHandler implements IMXEventListener {
 
     private Gson mGson;
     private IMXStore mStore;
+    private Credentials mCredentials;
     private volatile boolean mInitialSyncComplete = false;
 
     /**
      * Default constructor.
      * @param store the data storage implementation.
      */
-    public MXDataHandler(IMXStore store) {
+    public MXDataHandler(IMXStore store, Credentials credentials) {
         // The JSON -> object mapper
         mGson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
         mStore = store;
+        mCredentials = credentials;
     }
 
     public void addListener(IMXEventListener listener) {
@@ -84,7 +87,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void handleTokenResponse(String roomId, TokensChunkResponse<Event> response) {
-        Log.i(LOG_TAG, roomId + " has "+response.chunk.size()+" events. Token="+response.start);
+        Log.i(LOG_TAG, roomId + " has " + response.chunk.size() + " events. Token=" + response.start);
         // Handle messages
         handleEvents(response.chunk, true);
 
@@ -92,6 +95,23 @@ public class MXDataHandler implements IMXEventListener {
         Room room = mStore.getRoom(roomId);
         room.setPaginationToken(response.start);
         mStore.updateRoomState(room, null);
+    }
+
+    public void handleInvite(String roomId, String inviterUserId) {
+        Room room = mStore.getRoom(roomId);
+
+        // add the inviter and invitee
+        RoomMember member = new RoomMember();
+        member.membership = RoomMember.MEMBERSHIP_INVITE;
+        member.userId = mCredentials.userId;
+        room.setMember(mCredentials.userId, member);
+        RoomMember inviter = new RoomMember();
+        inviter.membership = RoomMember.MEMBERSHIP_JOIN;
+        inviter.userId = inviterUserId;
+        room.setMember(inviterUserId, inviter);
+
+        mStore.updateRoomState(room, null);
+        onInvitedToRoom(room);
     }
 
     public IMXStore getStore() {
@@ -214,6 +234,13 @@ public class MXDataHandler implements IMXEventListener {
     public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onRoomStateUpdated(room, event, oldVal, newVal);
+        }
+    }
+
+    @Override
+    public void onInvitedToRoom(Room room) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onInvitedToRoom(room);
         }
     }
 

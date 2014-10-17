@@ -15,9 +15,12 @@
  */
 package org.matrix.androidsdk.sync;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 
 import java.util.List;
@@ -39,11 +42,19 @@ public class EventsThreadListener implements IEventsThreadListener {
 
         // Convert rooms from response
         for (RoomResponse roomResponse : response.rooms) {
-            // Handle state events
-            mData.handleEvents(roomResponse.state);
+            if (roomResponse.state != null) {
+                // Handle state events
+                mData.handleEvents(roomResponse.state);
+            }
 
-            // handle messages / pagination token
-            mData.handleTokenResponse(roomResponse.roomId, roomResponse.messages);
+            if (roomResponse.messages != null && roomResponse.roomId != null) {
+                // handle messages / pagination token
+                mData.handleTokenResponse(roomResponse.roomId, roomResponse.messages);
+            }
+
+            if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
+                mData.handleInvite(roomResponse.roomId, roomResponse.inviter);
+            }
         }
 
         mData.onInitialSyncComplete();
