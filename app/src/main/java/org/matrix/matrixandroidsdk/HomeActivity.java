@@ -13,11 +13,13 @@ import android.widget.ListView;
 import org.matrix.androidsdk.MXApiClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
@@ -29,42 +31,69 @@ public class HomeActivity extends ActionBarActivity {
 
     private MXEventListener mListener = new MXEventListener() {
 
+        private boolean mInitialSyncComplete = false;
+
         @Override
         public void onInitialSyncComplete() {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    for (Room room : mSession.getDataHandler().getStore().getRooms()) {
-                        mAdapter.add(room.getRoomState());
+                    mInitialSyncComplete = true;
+                    loadSummaries();
+                }
+            });
+        }
+
+        @Override
+        public void onMessageReceived(Room room, final Event event) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.setLatestEvent(event);
+                }
+            });
+        }
+
+        @Override
+        public void onRoomStateUpdated(Room room, final Event event, Object oldVal, Object newVal) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
+                    if (summary == null) {
+                        // ROOM_CREATE events will be sent during initial sync. We want to ignore them
+                        // until the initial sync is done (that is, only refresh the list when there
+                        // are new rooms created AFTER we have synced).
+                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                            // be lazy for now and refresh the entire list.
+                            mAdapter.clear();
+                            loadSummaries();
+                        }
+                        return;
                     }
-                    mAdapter.sortRooms();
+                    summary.setLatestEvent(event);
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        try {
+                            summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
+                        }
+                        catch (Exception e) {} // malformed json, discard.
+                    }
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
                 }
             });
         }
 
-        @Override
-        public void onMessageReceived(Room room, Event event) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-
-                }
-            });
-        }
-
-        @Override
-        public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-
-                }
-            });
+        private void loadSummaries() {
+            for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                mAdapter.add(summary);
+            }
+            mAdapter.sortSummaries();
         }
     };
 
     private MXSession mSession;
-    private RoomsAdapter mAdapter;
+    private RoomSummaryAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,7 +107,7 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
-        mAdapter = new RoomsAdapter(this, R.layout.adapter_item_my_rooms);
+        mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
         myRoomList.setAdapter(mAdapter);
 
         mSession.getDataHandler().addListener(mListener);
@@ -87,7 +116,7 @@ public class HomeActivity extends ActionBarActivity {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                goToRoomPage(mAdapter.getItem(i).roomId);
+                goToRoomPage(mAdapter.getItem(i).getRoomId());
             }
         });
 

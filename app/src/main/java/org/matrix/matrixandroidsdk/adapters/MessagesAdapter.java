@@ -147,24 +147,11 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         }
 
         Event msg = getItem(position);
-        String body = msg.content.get("body") == null ? null : msg.content.get("body").getAsString();
 
-
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg);
+        CharSequence body = display.getTextualDisplay();
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
-
-        // check for html formatting
-        if (msg.content.has("formatted_body") && msg.content.has("format")) {
-            try {
-                String format = msg.content.getAsJsonPrimitive("format").getAsString();
-                if ("org.matrix.custom.html".equals(format)) {
-                    textView.setText(Html.fromHtml(msg.content.getAsJsonPrimitive("formatted_body").getAsString()));
-                }
-            }
-            catch (Exception e) {
-                // ignore: The json object was probably malformed and we have already set the fallback
-            }
-        }
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(msg.userId);
@@ -199,44 +186,8 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         }
         Event msg = getItem(position);
 
-        String notice = null;
-        if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(msg.type)) {
-            notice = mContext.getString(R.string.notice_topic_changed,
-                    msg.userId, msg.content.getAsJsonPrimitive("topic").getAsString());
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(msg.type)) {
-            notice = mContext.getString(R.string.notice_room_name_changed,
-                    msg.userId, msg.content.getAsJsonPrimitive("name").getAsString());
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(msg.type)) {
-            // m.room.member is used to represent at least 3 different changes in state: membership,
-            // avatar pic url and display name. We need to figure out which thing changed to display
-            // the right text.
-            JsonObject prevState = msg.prevContent;
-            if (prevState == null) {
-                // if there is no previous state, it has to be an invite or a join as they are the first
-                // m.room.member events for a user.
-                notice = getMembershipNotice(msg);
-            }
-            else {
-                // check if the membership changed
-                if (hasStringValueChanged(msg, "membership")) {
-                    notice = getMembershipNotice(msg);
-                }
-                // check if avatar url changed
-                else if (hasStringValueChanged(msg, "avatar_url")) {
-                    notice = getAvatarChangeNotice(msg);
-                }
-                // check if the display name changed.
-                else if (hasStringValueChanged(msg, "displayname")) {
-                    notice = getDisplayNameChangeNotice(msg);
-                }
-                else {
-                    // well shucks, I'm all out of ideas, let's whine.
-                    Log.e(LOG_TAG, "Redundant membership event. PREV=>"+prevState+" NOW=>"+msg.content);
-                }
-            }
-        }
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg);
+        CharSequence notice = display.getTextualDisplay();
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
         textView.setText(notice);
@@ -253,76 +204,16 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
 
         String emote = msg.userId + " ";
 
-        try {
-            emote += msg.content.getAsJsonPrimitive("body").getAsString();
-        }
-        catch (Exception e) {} // malformed json, ignore.
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg);
+        emote += display.getTextualDisplay();
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_emote);
         textView.setText(emote);
         return convertView;
     }
 
-
-    private String getMembershipNotice(Event msg) {
-        String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
-        if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-            return mContext.getString(R.string.notice_room_invite, msg.userId, msg.stateKey);
-        }
-        else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
-            return mContext.getString(R.string.notice_room_join, msg.userId);
-        }
-        else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
-            return mContext.getString(R.string.notice_room_leave, msg.userId);
-        }
-        else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-            return mContext.getString(R.string.notice_room_ban, msg.userId);
-        }
-        else {
-            // eh?
-            Log.e(LOG_TAG, "Unknown membership: "+membership);
-        }
-        return null;
-    }
-
     private String getTimestamp(long ts) {
         return mDateFormat.format(new Date(ts));
-    }
-
-    private String getAvatarChangeNotice(Event msg) {
-        // TODO: Pictures!
-        return mContext.getString(R.string.notice_avatar_url_changed, msg.userId);
-    }
-
-    private String getDisplayNameChangeNotice(Event msg) {
-        return mContext.getString(R.string.notice_display_name_changed,
-                msg.userId,
-                msg.prevContent.getAsJsonPrimitive("displayname").getAsString(),
-                msg.content.getAsJsonPrimitive("displayname").getAsString()
-        );
-    }
-
-    private boolean hasStringValueChanged(Event msg, String key) {
-        JsonObject prevContent = msg.prevContent;
-        if (prevContent.has(key) && msg.content.has(key)) {
-            String old = prevContent.get(key) == JsonNull.INSTANCE ? null : prevContent.get(key).getAsString();
-            String current = msg.content.get(key) == JsonNull.INSTANCE ? null : msg.content.get(key).getAsString();
-            if (old == null && current == null) {
-                return false;
-            }
-            else if (old != null) {
-                return !old.equals(current);
-            }
-            else {
-                return !current.equals(old);
-            }
-        }
-        else if (!prevContent.has(key) && !msg.content.has(key)) {
-            return false; // this key isn't in either prev or current
-        }
-        else {
-            return true; // this key is in one but not the other.
-        }
     }
 
     private void setBackgroundColour(View view, int position) {
@@ -341,14 +232,9 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
             }
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            if (event.prevContent != null) {
-                // check that something between prev and current has changed before accepting.
-                return
-                        hasStringValueChanged(event, "avatar_url") ||
-                        hasStringValueChanged(event, "displayname") ||
-                        hasStringValueChanged(event, "membership");
-            }
-            return true; // no prev content is a change.
+            // if we can display text for it, it's valid.
+            AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, event);
+            return display.getTextualDisplay() != null;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                  Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
