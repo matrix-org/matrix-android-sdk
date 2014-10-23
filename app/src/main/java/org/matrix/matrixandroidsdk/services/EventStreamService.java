@@ -29,21 +29,22 @@ public class EventStreamService extends Service {
     private static final int NOTIFICATION_ID = 42;
 
     private MXSession mSession;
-    private boolean mStarted;
+    private StreamAction mState = StreamAction.UNKNOWN;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
+        Log.d(LOG_TAG, "onStartCommand >> "+action);
         switch (action) {
             case START:
+            case RESUME:
                 start();
                 break;
             case STOP:
                 stop();
                 break;
             case PAUSE:
-                break;
-            case RESUME:
+                pause();
                 break;
             default:
                 break;
@@ -63,11 +64,15 @@ public class EventStreamService extends Service {
     }
 
     private void start() {
-        if (mStarted) {
+        if (mState == StreamAction.START) {
             Log.w(LOG_TAG, "Already started.");
             return;
         }
-        Log.d(LOG_TAG, "start()");
+        else if (mState == StreamAction.PAUSE) {
+            Log.i(LOG_TAG, "Resuming active stream.");
+            resume();
+            return;
+        }
         if (mSession == null) {
             mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (mSession == null) {
@@ -77,20 +82,37 @@ public class EventStreamService extends Service {
         }
 
         mSession.startEventStream();
-
-        Notification notification = buildNotification();
-        startForeground(NOTIFICATION_ID, notification);
-        mStarted = true;
+        startWithNotification();
     }
 
     private void stop() {
-        Log.d(LOG_TAG, "stop()");
         stopForeground(true);
         if (mSession != null) {
             mSession.stopEventStream();
         }
         mSession = null;
-        mStarted = false;
+        mState = StreamAction.STOP;
+    }
+
+    private void pause() {
+        stopForeground(true);
+        if (mSession != null) {
+            mSession.pauseEventStream();
+        }
+        mState = StreamAction.PAUSE;
+    }
+
+    private void resume() {
+        if (mSession != null) {
+            mSession.resumeEventStream();
+        }
+        startWithNotification();
+    }
+
+    private void startWithNotification() {
+        Notification notification = buildNotification();
+        startForeground(NOTIFICATION_ID, notification);
+        mState = StreamAction.START;
     }
 
     private Notification buildNotification() {

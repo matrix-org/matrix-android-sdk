@@ -43,7 +43,7 @@ public class CommonActivityUtils {
         // kill active connections
         Intent killStreamService = new Intent(context, EventStreamService.class);
         killStreamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
-                EventStreamService.StreamAction.STOP.ordinal());
+                EventStreamService.StreamAction.PAUSE.ordinal());
         context.startService(killStreamService);
     }
 
