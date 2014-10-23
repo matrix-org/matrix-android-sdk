@@ -16,7 +16,14 @@ import org.matrix.matrixandroidsdk.R;
  * A foreground service in charge of controlling whether the event stream is running or not.
  */
 public class EventStreamService extends Service {
-    public static final String EXTRA_KILL_STREAM = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_KILL_STREAM";
+    public static enum StreamAction {
+        UNKNOWN,
+        STOP,
+        START,
+        PAUSE,
+        RESUME
+    }
+    public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
@@ -26,13 +33,22 @@ public class EventStreamService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        boolean killStream = intent.getBooleanExtra(EXTRA_KILL_STREAM, false);
-        if (killStream) {
-            stop();
+        StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
+        switch (action) {
+            case START:
+                start();
+                break;
+            case STOP:
+                stop();
+                break;
+            case PAUSE:
+                break;
+            case RESUME:
+                break;
+            default:
+                break;
         }
-        else {
-            start();
-        }
+
         return START_NOT_STICKY;
     }
 

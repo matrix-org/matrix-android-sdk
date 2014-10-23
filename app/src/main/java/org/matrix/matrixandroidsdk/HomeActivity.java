@@ -183,6 +183,8 @@ public class HomeActivity extends ActionBarActivity {
 
     public void startEventStream() {
         Intent intent = new Intent(this, EventStreamService.class);
+        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
+                EventStreamService.StreamAction.START.ordinal());
         // TODO Add args to specify which session.
         startService(intent);
     }
@@ -201,15 +203,13 @@ public class HomeActivity extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+
+        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
             return true;
         }
-        else if (id == R.id.action_public_rooms) {
+
+        if (id == R.id.action_public_rooms) {
             goToPublicRoomPage();
-            return true;
-        }
-        else if (id == R.id.action_logout) {
-            CommonActivityUtils.logout(this);
             return true;
         }
         else if (id == R.id.action_create_public_room) {

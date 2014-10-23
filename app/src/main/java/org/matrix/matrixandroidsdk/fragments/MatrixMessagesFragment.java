@@ -136,8 +136,6 @@ public class MatrixMessagesFragment extends Fragment {
                 }
             });
         }
-
-
     }
 
     private void joinRoomThenGetMessages() {

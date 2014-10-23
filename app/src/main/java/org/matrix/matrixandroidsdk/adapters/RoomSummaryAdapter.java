@@ -56,10 +56,10 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
                     return -1;
                 }
 
-                if (lhs.getLatestEvent().ts > rhs.getLatestEvent().ts) {
+                if (lhs.getLatestEvent().origin_server_ts > rhs.getLatestEvent().origin_server_ts) {
                     return -1;
                 }
-                else if (lhs.getLatestEvent().ts < rhs.getLatestEvent().ts) {
+                else if (lhs.getLatestEvent().origin_server_ts < rhs.getLatestEvent().origin_server_ts) {
                     return 1;
                 }
                 return 0;
@@ -125,7 +125,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
             display.setPrependMessagesWithAuthor(true);
             message = display.getTextualDisplay();
 
-            timestamp = mDateFormat.format(new Date(summary.getLatestEvent().ts));
+            timestamp = mDateFormat.format(new Date(summary.getLatestEvent().origin_server_ts));
         }
 
         // check if this is an invite

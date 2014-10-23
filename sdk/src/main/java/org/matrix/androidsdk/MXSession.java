@@ -167,6 +167,14 @@ public class MXSession {
         startEventStream(new DefaultEventsThreadListener(mDataHandler));
     }
 
+    public void pauseEventStream() {
+        mEventsThread.pause();
+    }
+
+    public void resumeEventStream() {
+        mEventsThread.unpause();
+    }
+
     /**
      * Gracefully stop the event stream.
      */
