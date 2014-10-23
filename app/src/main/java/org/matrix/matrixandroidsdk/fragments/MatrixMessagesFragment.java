@@ -6,7 +6,7 @@ import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -126,7 +126,7 @@ public class MatrixMessagesFragment extends Fragment {
         }
         else {
             Log.i(LOG_TAG, "Requesting messages.");
-            mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
+            mSession.getRoomsApiClient().getLatestRoomMessages(mRoomId, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     // return in reversed order since they come down in reversed order (newest first)
@@ -141,12 +141,12 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoomThenGetMessages() {
-        mSession.getRoomsApiClient().joinRoom(mRoomId, new MXApiClient.SimpleApiCallback<Void>() {
+        mSession.getRoomsApiClient().joinRoom(mRoomId, new RestClient.SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.i(LOG_TAG, "Joined room, requesting current state.");
                 // get current state
-                mSession.getRoomsApiClient().getRoomState(mRoomId, new MXApiClient.SimpleApiCallback<List<Event>>() {
+                mSession.getRoomsApiClient().getRoomState(mRoomId, new RestClient.SimpleApiCallback<List<Event>>() {
                     @Override
                     public void onSuccess(List<Event> info) {
                         Log.i(LOG_TAG, "Got current state: "+info.size()+" events.");
@@ -176,7 +176,7 @@ public class MatrixMessagesFragment extends Fragment {
      * @param callback The callback to invoke when more messages have arrived.
      */
     public void requestPagination(final ApiCallback<List<Event>> callback) {
-        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new MXApiClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
+        mSession.getRoomsApiClient().getEarlierMessages(mRoomId, mEarliestToken, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
 
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
@@ -210,7 +210,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     public void send(Message message) {
-        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new MXApiClient.SimpleApiCallback<Event>() {
+        mSession.getRoomsApiClient().sendMessage(mRoomId, message, new RestClient.SimpleApiCallback<Event>() {
 
             @Override
             public void onSuccess(Event info) {

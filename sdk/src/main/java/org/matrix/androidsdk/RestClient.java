@@ -39,7 +39,7 @@ import retrofit.converter.GsonConverter;
 /**
  * Class for making Matrix API calls.
  */
-public abstract class MXApiClient {
+public abstract class RestClient {
 
     private static final String LOG_TAG = "MXApiClient";
 
@@ -120,7 +120,7 @@ public abstract class MXApiClient {
      * Public constructor.
      * @param hsUri The http[s] URI to the home server.
      */
-    public MXApiClient(Uri hsUri) {
+    public RestClient(Uri hsUri) {
         // sanity check
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
@@ -167,7 +167,7 @@ public abstract class MXApiClient {
      * Constructor providing the full user credentials. To use to avoid having to log the user in.
      * @param credentials the user credentials
      */
-    public MXApiClient(Credentials credentials) {
+    public RestClient(Credentials credentials) {
         this(Uri.parse(credentials.homeServer));
         mCredentials = credentials;
     }
@@ -191,6 +191,6 @@ public abstract class MXApiClient {
     /**
      * Default protected constructor for unit tests.
      */
-    protected MXApiClient() {
+    protected RestClient() {
     }
 }

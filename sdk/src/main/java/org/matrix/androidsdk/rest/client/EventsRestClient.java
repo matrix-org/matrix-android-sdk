@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.net.Uri;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.model.Event;
@@ -34,7 +34,7 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the events API.
  */
-public class EventsApiClient extends MXApiClient {
+public class EventsRestClient extends RestClient {
 
     protected static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
@@ -44,7 +44,7 @@ public class EventsApiClient extends MXApiClient {
      * Public constructor.
      * @param credentials the user's credentials
      */
-    public EventsApiClient(Credentials credentials) {
+    public EventsRestClient(Credentials credentials) {
         super(credentials);
     }
 
@@ -52,7 +52,7 @@ public class EventsApiClient extends MXApiClient {
      * Public constructor with the home server URI.
      * @param hsUri the home server URI
      */
-    public EventsApiClient(Uri hsUri) {
+    public EventsRestClient(Uri hsUri) {
         super(hsUri);
     }
 
@@ -60,7 +60,7 @@ public class EventsApiClient extends MXApiClient {
      * Protected constructor for unit tests.
      * @param api the events API
      */
-    protected EventsApiClient(EventsApi api) {
+    protected EventsRestClient(EventsApi api) {
         mApi = api;
     }
 
@@ -120,5 +120,8 @@ public class EventsApiClient extends MXApiClient {
      */
     public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
         return mApi.events(fromToken, timeoutMs);
+    }
+
+    public class LoadPublicRoomsCallback {
     }
 }

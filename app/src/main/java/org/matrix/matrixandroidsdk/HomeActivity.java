@@ -4,25 +4,21 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
-import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
-import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**
@@ -242,7 +238,7 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(null, null, "public", text, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new RestClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
@@ -264,7 +260,7 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(text, null, "private", null, new MXApiClient.SimpleApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(text, null, "private", null, new RestClient.SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {

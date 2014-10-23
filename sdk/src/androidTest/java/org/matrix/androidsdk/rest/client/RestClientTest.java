@@ -9,9 +9,10 @@ import junit.framework.TestCase;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.matrix.androidsdk.api.EventsApi;
-import org.matrix.androidsdk.api.response.PublicRoom;
-import org.matrix.androidsdk.api.response.TokensChunkResponse;
+import org.matrix.androidsdk.rest.ApiCallback;
+import org.matrix.androidsdk.rest.api.EventsApi;
+import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.test.JSONUtils;
 import org.matrix.androidsdk.test.RetrofitUtils;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests MXApiService.
  */
-public class MXApiClientTest extends TestCase {
+public class RestClientTest extends TestCase {
 
     private static final String BASE_URL = "http://localhost:8008/_matrix/client/api/v1";
     private static final String PATH = "/publicRooms";
@@ -88,14 +89,14 @@ public class MXApiClientTest extends TestCase {
         }).when(eventsApi).publicRooms(any(Callback.class));
 
 
-        EventsApiClient client = new EventsApiClient(eventsApi);
-        EventsApiClient.LoadPublicRoomsCallback cb = mock(EventsApiClient.LoadPublicRoomsCallback.class);
+        EventsRestClient client = new EventsRestClient(eventsApi);
+        ApiCallback<List<PublicRoom>> cb = mock(ApiCallback.class);
 
         // run the method being tested
         client.loadPublicRooms(cb);
 
         ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-        verify(cb, times(1)).onRoomsLoaded(captor.capture());
+        verify(cb, times(1)).onSuccess(captor.capture());
         List<PublicRoom> publicRooms = (List<PublicRoom>) captor.getValue();
 
         assertEquals(1, publicRooms.size());
@@ -126,11 +127,11 @@ public class MXApiClientTest extends TestCase {
             }
         }).when(eventsApi).publicRooms(any(Callback.class));
 
-        EventsApiClient client = new EventsApiClient(eventsApi);
-        EventsApiClient.LoadPublicRoomsCallback cb = mock(EventsApiClient.LoadPublicRoomsCallback.class);
+        EventsRestClient client = new EventsRestClient(eventsApi);
+        ApiCallback<List<PublicRoom>> cb = mock(ApiCallback.class);
 
         // run the method being tested
         client.loadPublicRooms(cb);
-        verify(cb, times(0)).onRoomsLoaded(any(List.class));
+        verify(cb, times(0)).onSuccess(any(List.class));
     }
 }

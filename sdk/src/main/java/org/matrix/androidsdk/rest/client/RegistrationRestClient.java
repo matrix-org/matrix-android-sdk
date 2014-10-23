@@ -19,7 +19,7 @@ import android.net.Uri;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -31,7 +31,7 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the registration API.
  */
-public class RegistrationApiClient extends MXApiClient {
+public class RegistrationRestClient extends RestClient {
 
     private RegistrationApi mApi;
 
@@ -39,7 +39,7 @@ public class RegistrationApiClient extends MXApiClient {
      * Public constructor.
      * @param hsUri the home server URI
      */
-    public RegistrationApiClient(Uri hsUri) {
+    public RegistrationRestClient(Uri hsUri) {
         super(hsUri);
     }
 

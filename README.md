@@ -37,23 +37,23 @@ MXSession session = new MXSession(credentials);
 
 sets up a session for interacting with the home server.
 
-The session gives access to the different APIs through API clients:
+The session gives access to the different APIs through the REST clients:
 
-```session.getEventsApiClient()``` for the events API
+```session.getEventsRestClient()``` for the events API
 
-```session.getProfileApiClient()``` for the profile API
+```session.getProfileRestClient()``` for the profile API
 
-```session.getPresenceApiClient()``` for the presence API
+```session.getPresenceRestClient()``` for the presence API
 
-```session.getRoomsApiClient()``` for the rooms API
+```session.getRoomsRestClient()``` for the rooms API
 
 For the complete list of methods, please refer to the [Javadoc].
 
-** Example **
+**Example**
 Getting the list of members of a chat room would look something like this:
 
 ```java
-session.getRooomApiClient().getRoomMembers(<roomId>, callback);
+session.getRoomsRestClient().getRoomMembers(<roomId>, callback);
 ```
 
 The same session object should be used for each request. This may require use

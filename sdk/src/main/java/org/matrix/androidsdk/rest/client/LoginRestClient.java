@@ -19,7 +19,7 @@ import android.net.Uri;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -31,7 +31,7 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the login API.
  */
-public class LoginApiClient extends MXApiClient {
+public class LoginRestClient extends RestClient {
 
     private LoginApi mApi;
 
@@ -39,7 +39,7 @@ public class LoginApiClient extends MXApiClient {
      * Public constructor.
      * @param hsUri the home server URI
      */
-    public LoginApiClient(Uri hsUri) {
+    public LoginRestClient(Uri hsUri) {
         super(hsUri);
     }
 

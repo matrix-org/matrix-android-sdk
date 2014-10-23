@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.client;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.RoomsApi;
@@ -36,7 +36,7 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the rooms API.
  */
-public class RoomsApiClient extends MXApiClient {
+public class RoomsRestClient extends RestClient {
 
     protected static final int MESSAGES_PAGINATION_LIMIT = 15;
 
@@ -46,7 +46,7 @@ public class RoomsApiClient extends MXApiClient {
      * Public constructor.
      * @param credentials the user's credentials
      */
-    public RoomsApiClient(Credentials credentials) {
+    public RoomsRestClient(Credentials credentials) {
         super(credentials);
     }
 

@@ -17,9 +17,9 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
-import org.matrix.androidsdk.MXApiClient;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.ApiCallback;
-import org.matrix.androidsdk.rest.client.EventsApiClient;
+import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -38,7 +38,7 @@ public class EventsThread extends Thread {
 
     private static final int RETRY_WAIT_TIME_MS = 10000;
 
-    private EventsApiClient mApiClient;
+    private EventsRestClient mApiClient;
     private EventsThreadListener mListener = null;
     private String mCurrentToken;
 
@@ -78,7 +78,7 @@ public class EventsThread extends Thread {
     }
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
-    private MXApiClient.ConvertFailureCallback eventsFailureCallback = new MXApiClient.ConvertFailureCallback(new DefaultApiCallback()) {
+    private RestClient.ConvertFailureCallback eventsFailureCallback = new RestClient.ConvertFailureCallback(new DefaultApiCallback()) {
         @Override
         public void success(Object o, Response response) {
             // This won't happen
@@ -90,7 +90,7 @@ public class EventsThread extends Thread {
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      */
-    public EventsThread(EventsApiClient apiClient, EventsThreadListener listener) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
