@@ -13,11 +13,23 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
  */
 public class CommonActivityUtils {
 
+    public static boolean handleMenuItemSelected(Activity activity, int id) {
+        if (id == R.id.action_logout) {
+            CommonActivityUtils.logout(activity);
+            return true;
+        }
+        else if (id == R.id.action_disconnect) {
+            CommonActivityUtils.disconnect(activity);
+            return true;
+        }
+        else if (id == R.id.action_settings) {
+            return true;
+        }
+        return false;
+    }
+
     public static void logout(Activity context) {
-        // kill active connections
-        Intent killStreamService = new Intent(context, EventStreamService.class);
-        killStreamService.putExtra(EventStreamService.EXTRA_KILL_STREAM, true);
-        context.startService(killStreamService);
+        disconnect(context);
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSession();
@@ -25,6 +37,14 @@ public class CommonActivityUtils {
         // go to login page
         context.startActivity(new Intent(context, LoginActivity.class));
         context.finish();
+    }
+
+    public static void disconnect(Activity context) {
+        // kill active connections
+        Intent killStreamService = new Intent(context, EventStreamService.class);
+        killStreamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
+                EventStreamService.StreamAction.PAUSE.ordinal());
+        context.startService(killStreamService);
     }
 
     public interface OnSubmitListener {

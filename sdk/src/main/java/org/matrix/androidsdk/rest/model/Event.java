@@ -41,7 +41,7 @@ public class Event {
     public String eventId;
     public String roomId;
     public String userId;
-    public long ts;
+    public long origin_server_ts;
     public long age;
 
     // Specific to state events

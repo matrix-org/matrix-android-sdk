@@ -10,6 +10,7 @@
     <string name="action_my_rooms">My Rooms</string>
     <string name="action_leave">Leave Room</string>
     <string name="action_invite">Invite</string>
+    <string name="action_disconnect">Disconnect</string>
     <string name="action_logout">Logout</string>
     <string name="action_load_more">Load more</string>
     <string name="action_create_room">Create...</string>

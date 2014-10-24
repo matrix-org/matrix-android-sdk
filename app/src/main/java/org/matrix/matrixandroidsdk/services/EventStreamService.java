@@ -16,23 +16,40 @@ import org.matrix.matrixandroidsdk.R;
  * A foreground service in charge of controlling whether the event stream is running or not.
  */
 public class EventStreamService extends Service {
-    public static final String EXTRA_KILL_STREAM = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_KILL_STREAM";
+    public static enum StreamAction {
+        UNKNOWN,
+        STOP,
+        START,
+        PAUSE,
+        RESUME
+    }
+    public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
 
     private MXSession mSession;
-    private boolean mStarted;
+    private StreamAction mState = StreamAction.UNKNOWN;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        boolean killStream = intent.getBooleanExtra(EXTRA_KILL_STREAM, false);
-        if (killStream) {
-            stop();
+        StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
+        Log.d(LOG_TAG, "onStartCommand >> "+action);
+        switch (action) {
+            case START:
+            case RESUME:
+                start();
+                break;
+            case STOP:
+                stop();
+                break;
+            case PAUSE:
+                pause();
+                break;
+            default:
+                break;
         }
-        else {
-            start();
-        }
+
         return START_NOT_STICKY;
     }
 
@@ -47,11 +64,15 @@ public class EventStreamService extends Service {
     }
 
     private void start() {
-        if (mStarted) {
+        if (mState == StreamAction.START) {
             Log.w(LOG_TAG, "Already started.");
             return;
         }
-        Log.d(LOG_TAG, "start()");
+        else if (mState == StreamAction.PAUSE) {
+            Log.i(LOG_TAG, "Resuming active stream.");
+            resume();
+            return;
+        }
         if (mSession == null) {
             mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (mSession == null) {
@@ -61,20 +82,37 @@ public class EventStreamService extends Service {
         }
 
         mSession.startEventStream();
-
-        Notification notification = buildNotification();
-        startForeground(NOTIFICATION_ID, notification);
-        mStarted = true;
+        startWithNotification();
     }
 
     private void stop() {
-        Log.d(LOG_TAG, "stop()");
         stopForeground(true);
         if (mSession != null) {
             mSession.stopEventStream();
         }
         mSession = null;
-        mStarted = false;
+        mState = StreamAction.STOP;
+    }
+
+    private void pause() {
+        stopForeground(true);
+        if (mSession != null) {
+            mSession.pauseEventStream();
+        }
+        mState = StreamAction.PAUSE;
+    }
+
+    private void resume() {
+        if (mSession != null) {
+            mSession.resumeEventStream();
+        }
+        startWithNotification();
+    }
+
+    private void startWithNotification() {
+        Notification notification = buildNotification();
+        startForeground(NOTIFICATION_ID, notification);
+        mState = StreamAction.START;
     }
 
     private Notification buildNotification() {

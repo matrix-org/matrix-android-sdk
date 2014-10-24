@@ -149,7 +149,11 @@ public class MXSession {
      * @param eventsListener the custom event listener
      */
     public void startEventStream(EventsThreadListener eventsListener) {
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+        if (mEventsThread != null) {
+            Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+            return;
+        }
+        mEventsThread = new EventsThread(mEventsRestClientiClient, eventsListener);
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
@@ -167,10 +171,19 @@ public class MXSession {
         startEventStream(new DefaultEventsThreadListener(mDataHandler));
     }
 
+    public void pauseEventStream() {
+        mEventsThread.pause();
+    }
+
+    public void resumeEventStream() {
+        mEventsThread.unpause();
+    }
+
     /**
      * Gracefully stop the event stream.
      */
     public void stopEventStream() {
         mEventsThread.kill();
+        mEventsThread = null;
     }
 }

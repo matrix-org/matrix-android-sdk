@@ -100,6 +100,7 @@ public class EventsThread extends Thread {
      * Pause the thread. It will resume where it left off when unpause()d.
      */
     public void pause() {
+        Log.i(LOG_TAG, "pause()");
         mPaused = true;
     }
 
@@ -107,9 +108,12 @@ public class EventsThread extends Thread {
      * Unpause the thread if it had previously been paused. If not, this does nothing.
      */
     public void unpause() {
+        Log.i(LOG_TAG, "unpause()");
         if (mPaused) {
             mPaused = false;
-            notify();
+            synchronized (this) {
+                notify();
+            }
         }
     }
 
@@ -153,8 +157,12 @@ public class EventsThread extends Thread {
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {
+                Log.i(LOG_TAG, "Event stream is paused. Waiting.");
                 try {
-                    wait();
+                    synchronized (this) {
+                        wait();
+                    }
+                    Log.i(LOG_TAG, "Event stream woken from pause.");
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
                 }
@@ -169,5 +177,6 @@ public class EventsThread extends Thread {
                 eventsFailureCallback.failure(error);
             }
         }
+        Log.d(LOG_TAG, "Event stream terminating.");
     }
 }

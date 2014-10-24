@@ -65,17 +65,16 @@ public class PublicRoomsActivity extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+
+        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
             return true;
         }
-        else if (id == R.id.action_my_rooms) {
+
+        if (id == R.id.action_my_rooms) {
             finish();
             return true;
         }
-        else if (id == R.id.action_logout) {
-            CommonActivityUtils.logout(this);
-            return true;
-        }
+
         return super.onOptionsItemSelected(item);
     }
 

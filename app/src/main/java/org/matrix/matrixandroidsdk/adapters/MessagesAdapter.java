@@ -157,7 +157,7 @@ public class MessagesAdapter extends ArrayAdapter<Event> {
         textView.setText(msg.userId);
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
-        textView.setText(getTimestamp(msg.ts));
+        textView.setText(getTimestamp(msg.origin_server_ts));
 
         setBackgroundColour(convertView, position);
         return convertView;
