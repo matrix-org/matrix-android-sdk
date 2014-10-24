@@ -153,7 +153,7 @@ public class MXSession {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
         }
-        mEventsThread = new EventsThread(mEventsRestClientiClient, eventsListener);
+        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
