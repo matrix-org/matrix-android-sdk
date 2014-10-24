@@ -43,8 +43,7 @@ public class RoomsRestClient extends RestClient {
     private RoomsApi mApi;
 
     /**
-     * Public constructor.
-     * @param credentials the user's credentials
+     * {@inheritDoc}
      */
     public RoomsRestClient(Credentials credentials) {
         super(credentials);

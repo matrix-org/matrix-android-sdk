@@ -34,6 +34,7 @@ import retrofit.client.Response;
 public class RegistrationRestClient extends RestClient {
 
     private RegistrationApi mApi;
+    private Uri mHsUri;
 
     /**
      * Public constructor.
@@ -41,6 +42,7 @@ public class RegistrationRestClient extends RestClient {
      */
     public RegistrationRestClient(Uri hsUri) {
         super(hsUri);
+        mHsUri = hsUri;
     }
 
     @Override
@@ -71,6 +73,8 @@ public class RegistrationRestClient extends RestClient {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                // Override the home server
+                mCredentials.homeServer = mHsUri.toString();
                 callback.onSuccess(mCredentials);
             }
         });

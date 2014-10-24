@@ -32,8 +32,7 @@ public class ProfileRestClient extends RestClient {
     private ProfileApi mApi;
 
     /**
-     * Public constructor.
-     * @param credentials the user's credentials
+     * {@inheritDoc}
      */
     public ProfileRestClient(Credentials credentials) {
         super(credentials);

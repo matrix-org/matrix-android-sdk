@@ -32,8 +32,7 @@ public class PresenceRestClient extends RestClient {
     private PresenceApi mApi;
 
     /**
-     * Public constructor.
-     * @param credentials the user's credentials
+     * {@inheritDoc}
      */
     public PresenceRestClient(Credentials credentials) {
         super(credentials);

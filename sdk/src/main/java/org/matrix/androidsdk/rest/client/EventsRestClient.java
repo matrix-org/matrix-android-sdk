@@ -41,8 +41,7 @@ public class EventsRestClient extends RestClient {
     private EventsApi mApi;
 
     /**
-     * Public constructor.
-     * @param credentials the user's credentials
+     * {@inheritDoc}
      */
     public EventsRestClient(Credentials credentials) {
         super(credentials);
