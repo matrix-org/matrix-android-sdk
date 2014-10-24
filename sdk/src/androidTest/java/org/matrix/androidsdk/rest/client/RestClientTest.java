@@ -5,7 +5,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import org.robolectric.RobolectricTestRunner;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,12 +27,14 @@ import java.util.List;
 import retrofit.Callback;
 import retrofit.client.Response;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests MXApiService.
  */
-public class RestClientTest extends TestCase {
+@RunWith(RobolectricTestRunner.class)
+public class RestClientTest {
 
     private static final String BASE_URL = "http://localhost:8008/_matrix/client/api/v1";
     private static final String PATH = "/publicRooms";
@@ -38,19 +43,12 @@ public class RestClientTest extends TestCase {
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .create();
 
-    protected void setUp() throws Exception {
-        super.setUp();
-    }
-
-    protected void tearDown() throws Exception {
-        super.tearDown();
-    }
-
     /**
      * Tests: MXApiService.loadPublicRooms(LoadPublicRoomsCallback)
      * Summary: Mocks up a single public room in the response and asserts that the callback contains
      * the mocked information.
      */
+    @Test
     public void testPublicRooms() throws Exception {
         final String roomId = "!faifuhew9:localhost";
         final String roomTopic = "This is a test room.";
@@ -112,6 +110,7 @@ public class RestClientTest extends TestCase {
      * Tests: MXApiService.loadPublicRooms(LoadPublicRoomsCallback)
      * Summary: Fails the public rooms HTTP call.
      */
+    @Test
     public void testPublicRoomsError() throws Exception {
         EventsApi eventsApi = mock(EventsApi.class);
 
