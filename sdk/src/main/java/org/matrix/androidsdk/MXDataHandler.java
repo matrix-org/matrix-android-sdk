@@ -103,11 +103,9 @@ public class MXDataHandler implements IMXEventListener {
         // add the inviter and invitee
         RoomMember member = new RoomMember();
         member.membership = RoomMember.MEMBERSHIP_INVITE;
-        member.userId = mCredentials.userId;
         room.setMember(mCredentials.userId, member);
         RoomMember inviter = new RoomMember();
         inviter.membership = RoomMember.MEMBERSHIP_JOIN;
-        inviter.userId = inviterUserId;
         room.setMember(inviterUserId, inviter);
 
         mStore.updateRoomState(room, null);
@@ -184,10 +182,10 @@ public class MXDataHandler implements IMXEventListener {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             RoomMember member = mGson.fromJson(event.content, RoomMember.class);
-            member.userId = event.userId;
+            String userId = event.userId;
             try {
                 if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString())) {
-                    member.userId = event.stateKey;
+                    userId = event.stateKey;
                 }
             }
             catch (Exception e) {
@@ -195,7 +193,7 @@ public class MXDataHandler implements IMXEventListener {
             }
             Room room = mStore.getRoom(event.roomId);
             RoomMember oldMember = room.getMember(event.userId);
-            room.setMember(member.userId, member);
+            room.setMember(userId, member);
             updateRoomState(room, event, oldMember, member);
         }
 

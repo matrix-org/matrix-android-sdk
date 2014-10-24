@@ -18,10 +18,23 @@ package org.matrix.androidsdk.rest.model;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember extends User {
+public class RoomMember {
     public static final String MEMBERSHIP_JOIN = "join";
     public static final String MEMBERSHIP_INVITE = "invite";
     public static final String MEMBERSHIP_LEAVE = "leave";
     public static final String MEMBERSHIP_BAN = "ban";
+
+    public String displayname;
+    public String avatarUrl;
     public String membership;
+
+    private User user;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 }

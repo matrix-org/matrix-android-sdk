@@ -116,7 +116,7 @@ public class HomeActivity extends ActionBarActivity {
         private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
             for (RoomMember member : summary.getMembers()) {
                 if (membership.equals(member.membership) &&
-                        selfUserId.equals(member.userId)) {
+                        selfUserId.equals(member.getUser().userId)) {
                     return true;
                 }
             }

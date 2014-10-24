@@ -15,12 +15,11 @@
  */
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Room {
@@ -45,6 +44,12 @@ public class Room {
     }
 
     public void setMember(String userId, RoomMember member) {
+        // Populate a basic user object if there is none
+        if (member.getUser() == null) {
+            User user = new User();
+            user.userId = userId;
+            member.setUser(user);
+        }
         mMembers.put(userId, member);
     }
 

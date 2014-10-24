@@ -87,9 +87,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             return null;
         }
         if (!TextUtils.isEmpty(member.displayname)) {
-            return withUserId ? member.displayname + "(" + member.userId +")" : member.displayname;
+            return withUserId ? member.displayname + "(" + member.getUser().userId +")" : member.displayname;
         }
-        return member.userId;
+        return member.getUser().userId;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
         textView.setText(mMembershipStrings.get(member.membership));
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
-        textView.setText(member.userId);
+        textView.setText(member.getUser().userId);
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.roomMembersAdapter_avatar);
         imageView.setTag(null);
