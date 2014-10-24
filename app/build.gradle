@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId "org.matrix.matrixandroidsdk"
-        minSdkVersion 9
+        minSdkVersion 11
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"

@@ -1,13 +1,18 @@
 package org.matrix.matrixandroidsdk.services;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -27,9 +32,32 @@ public class EventStreamService extends Service {
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
+    private static final int MSG_NOTIFICATION_ID = 43;
 
     private MXSession mSession;
     private StreamAction mState = StreamAction.UNKNOWN;
+
+    private MXEventListener mListener = new MXEventListener() {
+        private boolean mInitialSyncComplete = false;
+
+        @Override
+        public void onMessageReceived(Room room, Event event) {
+            if (!mInitialSyncComplete) {
+                return;
+            }
+            String from = event.userId;
+            String body = event.content.getAsJsonPrimitive("body").getAsString();
+            Notification n = buildMessageNotification(from, body);
+            NotificationManager nm = (NotificationManager)EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+            Log.w(LOG_TAG, "onMessageReceived >>>> "+event);
+            nm.notify(MSG_NOTIFICATION_ID, n);
+        }
+
+        @Override
+        public void onInitialSyncComplete() {
+            mInitialSyncComplete = true;
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -81,6 +109,7 @@ public class EventStreamService extends Service {
             }
         }
 
+        mSession.getDataHandler().addListener(mListener);
         mSession.startEventStream();
         startWithNotification();
     }
@@ -89,6 +118,7 @@ public class EventStreamService extends Service {
         stopForeground(true);
         if (mSession != null) {
             mSession.stopEventStream();
+            mSession.getDataHandler().removeListener(mListener);
         }
         mSession = null;
         mState = StreamAction.STOP;
@@ -113,6 +143,20 @@ public class EventStreamService extends Service {
         Notification notification = buildNotification();
         startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
+    }
+
+    private Notification buildMessageNotification(String from, String body) {
+        Notification.Builder builder = new Notification.Builder(this);
+        builder.setWhen(System.currentTimeMillis());
+        builder.setContentTitle(from + " (Matrix)");
+        builder.setContentText(body);
+        builder.setAutoCancel(true);
+        builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
+        Notification n = builder.getNotification();
+        n.flags |= Notification.FLAG_SHOW_LIGHTS;
+        n.defaults |= Notification.DEFAULT_LIGHTS;
+        n.defaults |= Notification.DEFAULT_VIBRATE;
+        return n;
     }
 
     private Notification buildNotification() {
