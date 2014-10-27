@@ -16,6 +16,13 @@ android {
     compileSdkVersion 18
     buildToolsVersion '19.1.0'
 
+   packagingOptions {                                                          
+        exclude 'LICENSE.txt'                                                   
+        exclude 'META-INF/LICENSE'                                              
+        exclude 'META-INF/LICENSE.txt'                                          
+        exclude 'META-INF/NOTICE'                                               
+    } 
+
     defaultConfig {
         applicationId "org.matrix.androidsdk"
         minSdkVersion 9
