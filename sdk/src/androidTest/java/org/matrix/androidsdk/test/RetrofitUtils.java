@@ -7,7 +7,7 @@ import com.google.gson.GsonBuilder;
 import junit.framework.Assert;
 
 import org.json.JSONObject;
-import org.matrix.androidsdk.api.response.MatrixError;
+import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
