@@ -21,11 +21,6 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onEventReceived(Event event) {
-
-    }
-
-    @Override
     public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
 
     }

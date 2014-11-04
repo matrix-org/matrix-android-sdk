@@ -20,12 +20,6 @@ public interface IMXEventListener {
     public void onMessageReceived(Room room, Event event);
 
     /**
-     * An event was received. This will be called for *every* event, including known events.
-     * @param event The event received.
-     */
-    public void onEventReceived(Event event);
-
-    /**
      * Room state has been updated via a room state event.
      * @param room The room which has been updated (post-update).
      * @param event The event which updated this room.
@@ -40,7 +34,7 @@ public interface IMXEventListener {
     public void onInitialSyncComplete();
 
     /**
-     * Called when the user is invited to a room via /initalSync.
+     * Called when the user is invited to a room via /initialSync.
      * @param room The room the user has been invited to.
      */
     public void onInvitedToRoom(Room room);

@@ -196,8 +196,6 @@ public class MXDataHandler implements IMXEventListener {
             room.setMember(userId, member);
             updateRoomState(room, event, oldMember, member);
         }
-
-        this.onEventReceived(event);
     }
 
     private void updateRoomState(Room room, Event event, Object oldVal, Object newVal) {
@@ -218,13 +216,6 @@ public class MXDataHandler implements IMXEventListener {
     public void onMessageReceived(Room room, Event event) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onMessageReceived(room, event);
-        }
-    }
-
-    @Override
-    public void onEventReceived(Event event) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onEventReceived(event);
         }
     }
 
