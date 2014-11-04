@@ -15,7 +15,13 @@
  */
 package org.matrix.androidsdk.data;
 
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
+
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The state of a room.
@@ -30,4 +36,24 @@ public class RoomState {
     public String joinRule;
     public String level;
     public List<String> aliases;
+
+    private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
+
+    public Collection<RoomMember> getMembers() {
+        return mMembers.values();
+    }
+
+    public void setMember(String userId, RoomMember member) {
+        // Populate a basic user object if there is none
+        if (member.getUser() == null) {
+            User user = new User();
+            user.userId = userId;
+            member.setUser(user);
+        }
+        mMembers.put(userId, member);
+    }
+
+    public RoomMember getMember(String userId) {
+        return mMembers.get(userId);
+    }
 }

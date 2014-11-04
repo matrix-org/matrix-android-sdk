@@ -112,8 +112,6 @@ This listener should subclass ```MXEventListener``` and override the methods as 
 
 ```onMessageReceived(room, event) ```
 
-```onEventReceived(Event event) ```
-
 ```onRoomStateUpdated(room, event, oldVal, newVal) ```
 
 ```onInitialSyncComplete() ```

@@ -16,19 +16,15 @@
 package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 public class Room {
 
     private String mRoomId;
     private String mPaginationToken;
     private RoomState mRoomState = new RoomState();
-
-    private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
+    private RoomState mOldState = new RoomState();
 
     public void setRoomId(String roomId) {
         mRoomId = roomId;
@@ -39,22 +35,20 @@ public class Room {
         return mRoomState;
     }
 
+    public RoomState getOldRoomState() {
+        return mOldState;
+    }
+
     public Collection<RoomMember> getMembers() {
-        return mMembers.values();
+        return mRoomState.getMembers();
     }
 
     public void setMember(String userId, RoomMember member) {
-        // Populate a basic user object if there is none
-        if (member.getUser() == null) {
-            User user = new User();
-            user.userId = userId;
-            member.setUser(user);
-        }
-        mMembers.put(userId, member);
+        mRoomState.setMember(userId, member);
     }
 
     public RoomMember getMember(String userId) {
-        return mMembers.get(userId);
+        return mRoomState.getMember(userId);
     }
 
     public String getRoomId() {
