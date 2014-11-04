@@ -25,6 +25,7 @@ import org.matrix.androidsdk.rest.model.MessageFeedback;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.User;
 
 import java.util.List;
 
@@ -120,11 +121,11 @@ public interface RoomsApi {
     /**
      * Invite a user to the given room.
      * @param roomId the room id
-     * @param userId the user id
+     * @param user a user object that just needs a user id
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/invite")
-    public void invite(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
+    public void invite(@Path("roomId") String roomId, @Body User user, Callback<Void> callback);
 
     /**
      * Join the given room.

@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
@@ -157,9 +158,9 @@ public class RoomsRestClient extends RestClient {
      * @param callback on success callback
      */
     public void inviteToRoom(String roomId, String userId, final ApiCallback<Void> callback) {
-        JsonObject content = new JsonObject();
-        content.addProperty("user_id", userId);
-        mApi.invite(roomId, content, new ConvertFailureCallback<Void>(callback) {
+        User user = new User();
+        user.userId = userId;
+        mApi.invite(roomId, user, new ConvertFailureCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
