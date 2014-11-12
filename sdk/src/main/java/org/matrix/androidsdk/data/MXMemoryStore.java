@@ -3,11 +3,13 @@ package org.matrix.androidsdk.data;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -53,7 +55,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeRoomEvent(Event event) {
+    public void storeRoomEvent(Event event, String token, Room.EventDirection direction) {
         LinkedHashSet<Event> events = mRoomEvents.get(event.roomId);
         if (events == null) {
             events = new LinkedHashSet<Event>();
@@ -63,19 +65,17 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public Collection<Event> getRoomEvents(String roomId, int limit) {
+    public TokensChunkResponse<Event> getRoomEvents(String roomId, String token) {
         LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+        TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
         if (events == null) {
-            return new ArrayList<Event>();
+            response.chunk = new ArrayList<Event>();
+            return response;
         }
-        if (limit > 0 && limit < events.size()) {  // snippy snippy
-            ArrayList<Event> eventList = new ArrayList<Event>(events);
-            // return the last [limit] entries, preserving order (so first element of this new list
-            // is the oldest)
-            return eventList.subList(eventList.size() - limit, eventList.size());
-        }
-
-        return events;
+        response.chunk = new ArrayList<Event>(events);
+        // We want a chunk that goes from most recent to least
+        Collections.reverse(response.chunk);
+        return response;
     }
 
     @Override
@@ -89,9 +89,9 @@ public class MXMemoryStore implements IMXStore {
 
         for (Room room : getRooms()) {
             RoomSummary summary = new RoomSummary();
-            Collection<Event> events = getRoomEvents(room.getRoomId(), 1);
-            for (Event e : events) {
-                summary.setLatestEvent(e);
+            Iterator<Event> it = mRoomEvents.get(room.getRoomId()).iterator();
+            while (it.hasNext()) {
+                summary.setLatestEvent(it.next());
             }
             summary.setMembers(room.getMembers());
             summary.setName(room.getName());
@@ -100,7 +100,6 @@ public class MXMemoryStore implements IMXStore {
 
             summaries.add(summary);
         }
-
 
         return summaries;
     }

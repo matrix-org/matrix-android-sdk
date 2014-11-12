@@ -31,4 +31,15 @@ public class User {
     public String presence;
     public long lastActiveAgo;
     public String statusMsg;
+
+    public User deepCopy() {
+        User copy = new User();
+        copy.userId = userId;
+        copy.displayname = displayname;
+        copy.avatarUrl = avatarUrl;
+        copy.presence = presence;
+        copy.lastActiveAgo = lastActiveAgo;
+        copy.statusMsg = statusMsg;
+        return copy;
+    }
 }

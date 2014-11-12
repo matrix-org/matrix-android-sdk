@@ -1,6 +1,7 @@
 package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
@@ -19,15 +20,14 @@ public interface IMXStore {
      * Store this non-state room event so it can be retrieved later.
      * @param event The event to be stored.
      */
-    public void storeRoomEvent(Event event);
+    public void storeRoomEvent(Event event, String token, Room.EventDirection direction);
 
     /**
      * Retrieve all non-state room events for this room.
      * @param roomId The room ID
-     * @param limit The max number of latest events to return. A limit less than 0 means "no limit".
      * @return A collection of events.
      */
-    public Collection<Event> getRoomEvents(String roomId, int limit);
+    public TokensChunkResponse<Event> getRoomEvents(String roomId, String token);
 
     /**
      * Update room state.

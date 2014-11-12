@@ -17,6 +17,7 @@ package org.matrix.androidsdk;
 
 import android.util.Log;
 
+import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -65,6 +66,12 @@ public class MXSession {
     public MXSession(MXDataHandler dataHandler, Credentials credentials) {
         this(credentials);
         mDataHandler = dataHandler;
+
+        // Initialize a data retriever with rest clients
+        DataRetriever dataRetriever = new DataRetriever();
+        dataRetriever.setRoomsRestClient(mRoomsRestClient);
+
+        mDataHandler.setDataRetriever(dataRetriever);
     }
 
     /**

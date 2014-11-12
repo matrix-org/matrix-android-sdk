@@ -41,7 +41,7 @@ public class EventStreamService extends Service {
         private boolean mInitialSyncComplete = false;
 
         @Override
-        public void onMessageReceived(Room room, Event event) {
+        public void onMessageEvent(Room room, Event event) {
             if (!mInitialSyncComplete) {
                 return;
             }
@@ -49,7 +49,7 @@ public class EventStreamService extends Service {
             String body = event.content.getAsJsonPrimitive("body").getAsString();
             Notification n = buildMessageNotification(from, body);
             NotificationManager nm = (NotificationManager)EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
-            Log.w(LOG_TAG, "onMessageReceived >>>> "+event);
+            Log.w(LOG_TAG, "onMessageEvent >>>> "+event);
             nm.notify(MSG_NOTIFICATION_ID, n);
         }
 
@@ -155,7 +155,7 @@ public class EventStreamService extends Service {
         Notification n = builder.getNotification();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
         n.defaults |= Notification.DEFAULT_LIGHTS;
-        n.defaults |= Notification.DEFAULT_VIBRATE;
+//        n.defaults |= Notification.DEFAULT_VIBRATE;
         return n;
     }
 

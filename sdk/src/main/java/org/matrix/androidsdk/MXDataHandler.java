@@ -21,6 +21,7 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -37,7 +38,7 @@ import java.util.List;
 /**
  * The data handler provides a layer to help manage matrix input and output.
  * <ul>
- * <li>It handles common API calls</li>
+ * <li>Handles events</li>
  * <li>Stores the data in its storage layer</li>
  * <li>Provides the means for an app to get callbacks for data changes</li>
  * </ul>
@@ -51,6 +52,7 @@ public class MXDataHandler implements IMXEventListener {
     private IMXStore mStore;
     private Credentials mCredentials;
     private volatile boolean mInitialSyncComplete = false;
+    private DataRetriever mDataRetriever;
 
     /**
      * Default constructor.
@@ -65,6 +67,11 @@ public class MXDataHandler implements IMXEventListener {
         mCredentials = credentials;
     }
 
+    public void setDataRetriever(DataRetriever dataRetriever) {
+        mDataRetriever = dataRetriever;
+        mDataRetriever.setStore(mStore);
+    }
+
     public void addListener(IMXEventListener listener) {
         mEventListeners.add(listener);
         if (mInitialSyncComplete) {
@@ -76,20 +83,10 @@ public class MXDataHandler implements IMXEventListener {
         mEventListeners.remove(listener);
     }
 
-    public void handleEvents(List<? extends Event> events) {
-        handleEvents(events, false);
-    }
-
-    public void handleEvents(List<? extends Event> events, boolean isTrackedNonStateEvents) {
-        for (Event event : events) {
-            handleEvent(event, isTrackedNonStateEvents);
-        }
-    }
-
     public void handleTokenResponse(String roomId, TokensChunkResponse<Event> response) {
         Log.i(LOG_TAG, roomId + " has " + response.chunk.size() + " events. Token=" + response.start);
         // Handle messages
-        handleEvents(response.chunk, true);
+        handleLiveEvents(response.chunk);
 
         // handle token
         Room room = mStore.getRoom(roomId);
@@ -116,16 +113,24 @@ public class MXDataHandler implements IMXEventListener {
         return mStore;
     }
 
-    private void handleEvent(Event event, boolean isTrackedNonStateEvents) {
-        // Some state events are 'tracked' in the message history in that they are displayed in a
-        // similar way to m.room.messages. We need to know if this event is from tracked events
-        // (e.g. /messages API or /initialSync > rooms > messages > chunk) or not, so we know if
-        // it should be added to the list of events for this room. Typically, events are NOT
-        // tracked. m.room.message events are ALWAYS tracked.
-        if (isTrackedNonStateEvents || Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            mStore.storeRoomEvent(event);
+    public void handleInitialRoomState(List<? extends Event> events) {
+        for (Event event : events) {
+            handleInitialRoomStateEvent(event);
         }
+    }
 
+    private void handleInitialRoomStateEvent(Event event) {
+        Room room = getRoom(event.roomId);
+        room.processStateEvent(event, Room.EventDirection.FORWARDS);
+    }
+
+    public void handleLiveEvents(List<? extends Event> events) {
+        for (Event event : events) {
+            handleLiveEvent(event);
+        }
+    }
+
+    private void handleLiveEvent(Event event) {
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = mGson.fromJson(event.content, User.class);
             User user = mStore.getUser(userPresence.userId);
@@ -137,87 +142,82 @@ public class MXDataHandler implements IMXEventListener {
                 user.presence = userPresence.presence;
                 user.lastActiveAgo = userPresence.lastActiveAgo;
             }
-            this.onUserPresenceUpdated(user);
+            this.onPresenceUpdate(event, user);
         }
-        // Room events
-        else if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            Room room = mStore.getRoom(event.roomId);
-            this.onMessageReceived(room, event);
-        }
-        // Room state events
-        else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
-            Room room = mStore.getRoom(event.roomId);
-            String oldName = room.getRoomState().name;
-            room.getRoomState().name = roomState.name;
-            updateRoomState(room, event, oldName, roomState.name);
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
-            Room room = mStore.getRoom(event.roomId);
-            String oldTopic = room.getRoomState().topic;
-            room.getRoomState().topic = roomState.topic;
-            updateRoomState(room, event, oldTopic, roomState.topic);
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
-            Room room = mStore.getRoom(event.roomId);
-            String oldCreator = room.getRoomState().creator;
-            room.getRoomState().creator = roomState.creator;
-            updateRoomState(room, event, oldCreator, roomState.creator);
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
-            Room room = mStore.getRoom(event.roomId);
-            String oldJoinRules = room.getRoomState().joinRule;
-            room.getRoomState().joinRule = roomState.joinRule;
-            updateRoomState(room, event, oldJoinRules, roomState.joinRule);
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
-            Room room = mStore.getRoom(event.roomId);
-            List<String> oldRoomAliases = room.getRoomState().aliases;
-            room.getRoomState().aliases = roomState.aliases;
-            updateRoomState(room, event, oldRoomAliases, roomState.aliases);
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = mGson.fromJson(event.content, RoomMember.class);
-            String userId = event.userId;
-            if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) {
-                userId = event.stateKey;
+
+        else if (event.roomId != null) {
+            Room room = getRoom(event.roomId);
+            mStore.storeRoomEvent(event, room.getLiveState().getToken(), Room.EventDirection.FORWARDS);
+            // Only start sending room events once the initial sync is complete so we know the room state is stable
+            if (mInitialSyncComplete) {
+                onLiveEvent(event, room.getLiveState().deepCopy());
             }
-            Room room = mStore.getRoom(event.roomId);
-            RoomMember oldMember = room.getMember(event.userId);
-            room.setMember(userId, member);
-            updateRoomState(room, event, oldMember, member);
+            if (event.stateKey != null) {
+                room.processStateEvent(event, Room.EventDirection.FORWARDS);
+            }
         }
     }
 
-    private void updateRoomState(Room room, Event event, Object oldVal, Object newVal) {
-        mStore.updateRoomState(room, event.type);
-        this.onRoomStateUpdated(room, event, oldVal, newVal);
+    private Room getRoom(String roomId) {
+        Room room = mStore.getRoom(roomId);
+        if (room == null) {
+            room = new Room();
+            room.setRoomId(roomId);
+            room.setEventListener(this);
+            room.setDataRetriever(mDataRetriever);
+            mStore.storeRoom(room);
+        }
+        return room;
     }
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners
 
     @Override
-    public void onUserPresenceUpdated(User user) {
+    public void onPresenceUpdate(Event event, User user) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onUserPresenceUpdated(user);
+            listener.onPresenceUpdate(event, user);
         }
     }
 
-    @Override
-    public void onMessageReceived(Room room, Event event) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onMessageReceived(room, event);
-        }
-    }
+//    @Override
+//    public void onMessageEvent(Event event, RoomState roomState, Room.EventDirection direction) {
+//        for (IMXEventListener listener : mEventListeners) {
+//            listener.onMessageEvent(event, roomState, direction);
+//        }
+//    }
 
     @Override
     public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onRoomStateUpdated(room, event, oldVal, newVal);
+        }
+    }
+
+    @Override
+    public void onMessageEvent(Room room, Event event) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onMessageEvent(room, event);
+        }
+    }
+
+    @Override
+    public void onLiveEvent(Event event, RoomState roomState) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onLiveEvent(event, roomState);
+        }
+    }
+
+    @Override
+    public void onBackEvent(Event event, RoomState roomState) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onBackEvent(event, roomState);
+        }
+    }
+
+    @Override
+    public void onRoomReady(Room room) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onRoomReady(room);
         }
     }
 
@@ -231,6 +231,11 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         mInitialSyncComplete = true;
+
+        for (Room room : mStore.getRooms()) {
+            onRoomReady(room);
+        }
+
         for (IMXEventListener listener : mEventListeners) {
             listener.onInitialSyncComplete();
         }

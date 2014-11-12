@@ -18,6 +18,7 @@ package org.matrix.androidsdk.sync;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -38,13 +39,13 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     @Override
     public void onInitialSyncComplete(InitialSyncResponse response) {
         // Handle presence events
-        mData.handleEvents(response.presence);
+        mData.handleLiveEvents(response.presence);
 
         // Convert rooms from response
         for (RoomResponse roomResponse : response.rooms) {
             if (roomResponse.state != null) {
                 // Handle state events
-                mData.handleEvents(roomResponse.state);
+                mData.handleInitialRoomState(roomResponse.state);
             }
 
             if (roomResponse.messages != null && roomResponse.roomId != null) {
@@ -62,6 +63,6 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
     @Override
     public void onEventsReceived(List<Event> events) {
-        mData.handleEvents(events);
+        mData.handleLiveEvents(events);
     }
 }

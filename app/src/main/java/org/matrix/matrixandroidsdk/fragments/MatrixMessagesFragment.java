@@ -9,6 +9,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -88,22 +89,20 @@ public class MatrixMessagesFragment extends Fragment {
         // this stream and again from the store/messages API.
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
-            public void onMessageReceived(Room room, Event event) {
-                process(room, event);
-            }
-
-            @Override
-            public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
-                process(room, event);
-            }
-
-            private void process(Room room, Event event) {
-                if (!mRoomId.equals(room.getRoomId())) {
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (!mRoomId.equals(roomState.roomId)) {
                     return;
                 }
                 List<Event> events = new ArrayList<Event>();
                 events.add(event);
                 mMatrixMessagesListener.onReceiveMessages(events);
+            }
+
+            @Override
+            public void onBackEvent(Event event, RoomState roomState) {
+                if (!mRoomId.equals(roomState.roomId)) {
+                    return;
+                }
             }
         });
 
@@ -118,9 +117,11 @@ public class MatrixMessagesFragment extends Fragment {
 
     private void getMessages() {
         Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
-        Collection<Event> messages = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, -1);
+        TokensChunkResponse<Event> response = mSession.getDataHandler().getStore().getRoomEvents(mRoomId, room.getLiveState().getToken());
+        List<Event> messages = response.chunk;
         if (messages.size() > 0) {
             Log.i(LOG_TAG, "Loaded " + messages.size() + " stored messages.");
+            Collections.reverse(messages);
             mMatrixMessagesListener.onReceiveMessages(messages);
             mEarliestToken = room.getPaginationToken();
         }
@@ -149,7 +150,7 @@ public class MatrixMessagesFragment extends Fragment {
                     public void onSuccess(List<Event> info) {
                         Log.i(LOG_TAG, "Got current state: "+info.size()+" events.");
                         // FIXME feels wrong to be doing this
-                        mSession.getDataHandler().handleEvents(info, false);
+                        mSession.getDataHandler().handleInitialRoomState(info);
                         getMessages();
                     }
                 });

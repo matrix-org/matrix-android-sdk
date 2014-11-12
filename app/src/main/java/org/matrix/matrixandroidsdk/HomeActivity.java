@@ -43,7 +43,7 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onMessageReceived(Room room, final Event event) {
+        public void onMessageEvent(Room room, final Event event) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

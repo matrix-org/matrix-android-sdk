@@ -37,4 +37,13 @@ public class RoomMember {
     public void setUser(User user) {
         this.user = user;
     }
+
+    public RoomMember deepCopy() {
+        RoomMember copy = new RoomMember();
+        copy.displayname = displayname;
+        copy.avatarUrl = avatarUrl;
+        copy.membership = membership;
+        copy.setUser(user.deepCopy());
+        return copy;
+    }
 }
