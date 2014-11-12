@@ -13,6 +13,7 @@ import android.widget.ListView;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -43,67 +44,61 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onMessageEvent(Room room, final Event event) {
+        public void onLiveEvent(final Event event, RoomState roomState) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     mAdapter.setLatestEvent(event);
-                }
-            });
-        }
 
-        @Override
-        public void onRoomStateUpdated(Room room, final Event event, Object oldVal, Object newVal) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    String selfUserId = mSession.getCredentials().userId;
+                    if (event.roomId != null) {
+                        String selfUserId = mSession.getCredentials().userId;
 
-                    RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
-                    if (summary == null) {
-                        // ROOM_CREATE events will be sent during initial sync. We want to ignore them
-                        // until the initial sync is done (that is, only refresh the list when there
-                        // are new rooms created AFTER we have synced).
-                        if (mInitialSyncComplete) {
-                            if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                                refreshAdapter();
-                            }
-                            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                                try {
-                                    if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString()) &&
-                                            event.stateKey.equals(selfUserId)) {
-                                        // we were invited to a new room.
-                                        refreshAdapter();
-                                    }
+                        RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
+                        if (summary == null) {
+                            // ROOM_CREATE events will be sent during initial sync. We want to ignore them
+                            // until the initial sync is done (that is, only refresh the list when there
+                            // are new rooms created AFTER we have synced).
+                            if (mInitialSyncComplete) {
+                                if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                                    refreshAdapter();
                                 }
-                                catch (Exception e) {} // bad json
+                                else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                    try {
+                                        if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString()) &&
+                                                event.stateKey.equals(selfUserId)) {
+                                            // we were invited to a new room.
+                                            refreshAdapter();
+                                        }
+                                    }
+                                    catch (Exception e) {} // bad json
+                                }
                             }
+                            return;
                         }
-                        return;
-                    }
-                    summary.setLatestEvent(event);
+                        summary.setLatestEvent(event);
 
-                    if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
-                            isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                        // we've left this room, so refresh the entire list.
-                        refreshAdapter();
-                        return;
-                    }
-
-
-                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-                        try {
-                            summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
+                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
+                                isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
+                            // we've left this room, so refresh the entire list.
+                            refreshAdapter();
+                            return;
                         }
-                        catch (Exception e) {} // malformed json, discard.
+
+
+                        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                            try {
+                                summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
+                            }
+                            catch (Exception e) {} // malformed json, discard.
+                        }
+                        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                            // force reload on aliases change so it can load the right name/alias
+                            refreshAdapter();
+                            return;
+                        }
+                        mAdapter.sortSummaries();
+                        mAdapter.notifyDataSetChanged();
                     }
-                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-                        // force reload on aliases change so it can load the right name/alias
-                        refreshAdapter();
-                        return;
-                    }
-                    mAdapter.sortSummaries();
-                    mAdapter.notifyDataSetChanged();
                 }
             });
         }
