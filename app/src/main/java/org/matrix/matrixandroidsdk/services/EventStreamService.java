@@ -11,6 +11,7 @@ import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.HomeActivity;
@@ -38,24 +39,14 @@ public class EventStreamService extends Service {
     private StreamAction mState = StreamAction.UNKNOWN;
 
     private MXEventListener mListener = new MXEventListener() {
-        private boolean mInitialSyncComplete = false;
-
         @Override
-        public void onMessageEvent(Room room, Event event) {
-            if (!mInitialSyncComplete) {
-                return;
-            }
+        public void onLiveEvent(Event event, RoomState roomState) {
             String from = event.userId;
             String body = event.content.getAsJsonPrimitive("body").getAsString();
             Notification n = buildMessageNotification(from, body);
             NotificationManager nm = (NotificationManager)EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             Log.w(LOG_TAG, "onMessageEvent >>>> "+event);
             nm.notify(MSG_NOTIFICATION_ID, n);
-        }
-
-        @Override
-        public void onInitialSyncComplete() {
-            mInitialSyncComplete = true;
         }
     };
 

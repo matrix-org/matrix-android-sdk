@@ -197,20 +197,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onRoomStateUpdated(room, event, oldVal, newVal);
-        }
-    }
-
-    @Override
-    public void onMessageEvent(Room room, Event event) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onMessageEvent(room, event);
-        }
-    }
-
-    @Override
     public void onLiveEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onLiveEvent(event, roomState);
@@ -225,13 +211,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onRoomReady(Room room) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onRoomReady(room);
-        }
-    }
-
-    @Override
     public void onInvitedToRoom(Room room) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onInvitedToRoom(room);
@@ -241,10 +220,6 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         mInitialSyncComplete = true;
-
-        for (Room room : mStore.getRooms()) {
-            onRoomReady(room);
-        }
 
         for (IMXEventListener listener : mEventListeners) {
             listener.onInitialSyncComplete();

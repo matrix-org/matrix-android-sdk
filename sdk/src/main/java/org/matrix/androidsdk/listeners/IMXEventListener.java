@@ -30,28 +30,18 @@ public interface IMXEventListener {
     public void onPresenceUpdate(Event event, User user);
 
     /**
-     * An m.room.message was received.
-     * @param event The event representing the message.
-//     * @param roomState The state of the room at the time of the message.
-//     * @param direction The event direction.
+     * A live room event was received.
+     * @param event the event
+     * @param roomState the room state at the time of the event
      */
-//    public void onMessageEvent(Event event, RoomState roomState, Room.EventDirection direction);
-    public void onMessageEvent(Room room, Event event);
-
     public void onLiveEvent(Event event, RoomState roomState);
 
-    public void onBackEvent(Event event, RoomState roomState);
-
-    public void onRoomReady(Room room);
-
     /**
-     * Room state has been updated via a room state event.
-     * @param room The room which has been updated (post-update).
-     * @param event The event which updated this room.
-     * @param oldVal The previous state value if the event is a known state event, else null.
-     * @param newVal The new state value if the event is a known state event.
+     * A back room event was received.
+     * @param event the event
+     * @param roomState the room state at the time of the event
      */
-    public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal);
+    public void onBackEvent(Event event, RoomState roomState);
 
     /**
      * The initial sync is complete and the store can be queried for current state.

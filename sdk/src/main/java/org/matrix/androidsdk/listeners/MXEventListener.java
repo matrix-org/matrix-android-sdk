@@ -32,28 +32,12 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-//    public void onMessageEvent(Event event, RoomState roomState, Room.EventDirection direction) {
-    public void onMessageEvent(Room room, Event event) {
-
-    }
-
-    @Override
     public void onLiveEvent(Event event, RoomState roomState) {
 
     }
 
     @Override
     public void onBackEvent(Event event, RoomState roomState) {
-
-    }
-
-    @Override
-    public void onRoomReady(Room room) {
-
-    }
-
-    @Override
-    public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
 
     }
 

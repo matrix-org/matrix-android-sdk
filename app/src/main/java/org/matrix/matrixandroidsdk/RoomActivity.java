@@ -17,6 +17,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
@@ -40,8 +41,8 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
     private MXEventListener mSessionListener = new MXEventListener() {
         @Override
-        public void onRoomStateUpdated(Room room, final Event event, Object oldVal, final Object newVal) {
-            if (!mRoomId.equals(room.getRoomId())) {
+        public void onLiveEvent(final Event event, final RoomState roomState) {
+            if (!mRoomId.equals(event.roomId)) {
                 return;
             }
             RoomActivity.this.runOnUiThread(new Runnable() {
@@ -50,20 +51,19 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 public void run() {
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name.");
-                        setTitle((String)newVal);
+                        setTitle(roomState.name);
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
-                        setTopic((String)newVal);
+                        setTopic(roomState.topic);
                     }
-                    if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name (via alias).");
                         Room room = mSession.getDataHandler().getRoom(mRoomId);
                         setTitle(room.getName());
                     }
                 }
             });
-
         }
     };
 

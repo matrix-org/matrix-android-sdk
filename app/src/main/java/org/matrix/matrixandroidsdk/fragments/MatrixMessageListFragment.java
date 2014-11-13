@@ -131,11 +131,6 @@ public class MatrixMessageListFragment extends Fragment implements IMXEventListe
     }
 
     @Override
-    public void onMessageEvent(Room room, Event event) {
-
-    }
-
-    @Override
     public void onLiveEvent(final Event event, RoomState roomState) {
         if (mRoomId.equals(event.roomId)) {
             mUiHandler.post(new Runnable() {
@@ -159,16 +154,6 @@ public class MatrixMessageListFragment extends Fragment implements IMXEventListe
                 }
             });
         }
-    }
-
-    @Override
-    public void onRoomReady(Room room) {
-
-    }
-
-    @Override
-    public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
-
     }
 
     @Override
