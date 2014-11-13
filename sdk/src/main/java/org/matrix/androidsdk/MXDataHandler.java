@@ -83,19 +83,8 @@ public class MXDataHandler implements IMXEventListener {
         mEventListeners.remove(listener);
     }
 
-    public void handleTokenResponse(String roomId, TokensChunkResponse<Event> response) {
-        Log.i(LOG_TAG, roomId + " has " + response.chunk.size() + " events. Token=" + response.start);
-        // Handle messages
-        handleLiveEvents(response.chunk);
-
-        // handle token
-        Room room = mStore.getRoom(roomId);
-        room.setPaginationToken(response.start);
-        mStore.updateRoomState(room, null);
-    }
-
     public void handleInvite(String roomId, String inviterUserId) {
-        Room room = mStore.getRoom(roomId);
+        Room room = getRoom(roomId);
 
         // add the inviter and invitee
         RoomMember member = new RoomMember();
@@ -113,24 +102,45 @@ public class MXDataHandler implements IMXEventListener {
         return mStore;
     }
 
-    public void handleInitialRoomState(List<? extends Event> events) {
+    /**
+     * Process an initial room state block of events.
+     * @param roomId the room id
+     * @param events the room state events
+     */
+    public void handleInitialRoomState(String roomId, List<? extends Event> events) {
+        Room room = getRoom(roomId);
         for (Event event : events) {
-            handleInitialRoomStateEvent(event);
+            room.processStateEvent(event, Room.EventDirection.FORWARDS);
         }
     }
 
-    private void handleInitialRoomStateEvent(Event event) {
-        Room room = getRoom(event.roomId);
-        room.processStateEvent(event, Room.EventDirection.FORWARDS);
+    /**
+     * Handle the room messages returned from the initial sync.
+     * @param roomId the room id
+     * @param response the object containing the tokens and messages
+     */
+    public void handleInitialRoomMessages(String roomId, TokensChunkResponse<Event> response) {
+        Log.i(LOG_TAG, roomId + " has " + response.chunk.size() + " events. Token=" + response.start);
+
+        mStore.storeRoomEvents(roomId, response, Room.EventDirection.FORWARDS);
     }
 
-    public void handleLiveEvents(List<? extends Event> events) {
+    /**
+     * Handle a list of events coming down from the event stream.
+     * @param events the live events
+     */
+    public void handleLiveEvents(List<Event> events) {
         for (Event event : events) {
             handleLiveEvent(event);
         }
     }
 
+    /**
+     * Handle events coming down from the event stream.
+     * @param event the live event
+     */
     private void handleLiveEvent(Event event) {
+        // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = mGson.fromJson(event.content, User.class);
             User user = mStore.getUser(userPresence.userId);
@@ -145,20 +155,27 @@ public class MXDataHandler implements IMXEventListener {
             this.onPresenceUpdate(event, user);
         }
 
+        // Room event
         else if (event.roomId != null) {
             Room room = getRoom(event.roomId);
-            mStore.storeRoomEvent(event, room.getLiveState().getToken(), Room.EventDirection.FORWARDS);
-            // Only start sending room events once the initial sync is complete so we know the room state is stable
-            if (mInitialSyncComplete) {
-                onLiveEvent(event, room.getLiveState().deepCopy());
-            }
+            mStore.storeLiveRoomEvent(event);
+            onLiveEvent(event, room.getLiveState().deepCopy());
             if (event.stateKey != null) {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
         }
+
+        else {
+            Log.e(LOG_TAG, "Unknown live event type: " + event.type);
+        }
     }
 
-    private Room getRoom(String roomId) {
+    /**
+     * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
+     * @param roomId the room id
+     * @return the corresponding room
+     */
+    public Room getRoom(String roomId) {
         Room room = mStore.getRoom(roomId);
         if (room == null) {
             room = new Room();
@@ -178,13 +195,6 @@ public class MXDataHandler implements IMXEventListener {
             listener.onPresenceUpdate(event, user);
         }
     }
-
-//    @Override
-//    public void onMessageEvent(Event event, RoomState roomState, Room.EventDirection direction) {
-//        for (IMXEventListener listener : mEventListeners) {
-//            listener.onMessageEvent(event, roomState, direction);
-//        }
-//    }
 
     @Override
     public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {

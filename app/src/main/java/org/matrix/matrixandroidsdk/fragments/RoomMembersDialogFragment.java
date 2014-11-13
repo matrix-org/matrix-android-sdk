@@ -67,7 +67,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 R.layout.adapter_item_room_members
         );
 
-        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+        Room room = mSession.getDataHandler().getRoom(mRoomId);
         if (room != null) {
             Collection<RoomMember> members = room.getMembers();
             if (members != null) {

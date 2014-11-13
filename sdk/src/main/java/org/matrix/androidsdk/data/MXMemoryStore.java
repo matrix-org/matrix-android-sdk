@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +23,7 @@ public class MXMemoryStore implements IMXStore {
     private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
     // room id -> set of events for this room (linked so insertion order is preserved)
     private Map<String, LinkedHashSet<Event>> mRoomEvents = new ConcurrentHashMap<String, LinkedHashSet<Event>>();
+    private Map<String, String> mRoomTokens = new ConcurrentHashMap<String, String>();
 
     @Override
     public Collection<Room> getRooms() {
@@ -36,7 +36,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Room getRoom(String roomId) {
-        return getOrCreateRoom(roomId);
+        return mRooms.get(roomId);
     }
 
     @Override
@@ -54,8 +54,17 @@ public class MXMemoryStore implements IMXStore {
         mRooms.put(room.getRoomId(), room);
     }
 
+    private LinkedHashSet<Event> getRoomEvents(String roomId) {
+        LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+        if (events == null) {
+            events = new LinkedHashSet<Event>();
+            mRoomEvents.put(roomId, events);
+        }
+        return events;
+    }
+
     @Override
-    public void storeRoomEvent(Event event, String token, Room.EventDirection direction) {
+    public void storeLiveRoomEvent(Event event) {
         LinkedHashSet<Event> events = mRoomEvents.get(event.roomId);
         if (events == null) {
             events = new LinkedHashSet<Event>();
@@ -65,17 +74,36 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+        if (direction == Room.EventDirection.FORWARDS) { // TODO: Implement backwards direction
+            LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+            if (events == null) {
+                events = new LinkedHashSet<Event>();
+                mRoomEvents.put(roomId, events);
+                mRoomTokens.put(roomId, eventsResponse.start);
+            }
+            events.addAll(eventsResponse.chunk);
+        }
+    }
+
+    @Override
     public TokensChunkResponse<Event> getRoomEvents(String roomId, String token) {
-        LinkedHashSet<Event> events = mRoomEvents.get(roomId);
-        TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
-        if (events == null) {
-            response.chunk = new ArrayList<Event>();
+        // For now, we return everything we have for the original null token request
+        // For older requests (providing a token), returning null for now
+        if (token == null) {
+            LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+            TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
+            if (events == null) {
+                response.chunk = new ArrayList<Event>();
+                return response;
+            }
+            response.chunk = new ArrayList<Event>(events);
+            // We want a chunk that goes from most recent to least
+            Collections.reverse(response.chunk);
+            response.end = mRoomTokens.get(roomId);
             return response;
         }
-        response.chunk = new ArrayList<Event>(events);
-        // We want a chunk that goes from most recent to least
-        Collections.reverse(response.chunk);
-        return response;
+        return null;
     }
 
     @Override
@@ -102,20 +130,5 @@ public class MXMemoryStore implements IMXStore {
         }
 
         return summaries;
-    }
-
-    private Room addRoom(String roomId) {
-        Room room = new Room();
-        room.setRoomId(roomId);
-        this.storeRoom(room);
-        return room;
-    }
-
-    private Room getOrCreateRoom(String roomId) {
-        Room room = mRooms.get(roomId);
-        if (room == null) {
-            room = addRoom(roomId);
-        }
-        return room;
     }
 }

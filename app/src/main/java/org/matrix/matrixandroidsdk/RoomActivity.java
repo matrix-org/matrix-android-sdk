@@ -58,7 +58,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                     }
                     if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name (via alias).");
-                        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+                        Room room = mSession.getDataHandler().getRoom(mRoomId);
                         setTitle(room.getName());
                     }
                 }
@@ -111,7 +111,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
 
         // set general room information
-        Room room = mSession.getDataHandler().getStore().getRoom(mRoomId);
+        Room room = mSession.getDataHandler().getRoom(mRoomId);
         setTitle(room.getName());
 
         setTopic(room.getTopic());

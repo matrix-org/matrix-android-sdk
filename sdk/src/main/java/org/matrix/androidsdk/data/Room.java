@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
@@ -27,6 +28,9 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Class representing a room and the interactions we have with it.
+ */
 public class Room {
 
     /**
@@ -48,6 +52,14 @@ public class Room {
         BACKWARDS
     }
 
+    /**
+     * Callback to implement to be informed when an operation is complete (pagination, ...).
+     */
+    public static interface OnCompleteCallback {
+        /** The operation is complete. */
+        public void onComplete();
+    }
+
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
@@ -62,6 +74,10 @@ public class Room {
         mGson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
+    }
+
+    public String getRoomId() {
+        return this.mRoomId;
     }
 
     public void setRoomId(String roomId) {
@@ -86,20 +102,8 @@ public class Room {
         return mLiveState.getMember(userId);
     }
 
-    public String getRoomId() {
-        return this.mRoomId;
-    }
-
     public String getTopic() {
         return this.mLiveState.topic;
-    }
-
-    public String getPaginationToken() {
-        return mBackState.getToken();
-    }
-
-    public void setPaginationToken(String token) {
-        mBackState.setToken(token);
     }
 
     public String getName() {
@@ -117,57 +121,94 @@ public class Room {
         }
     }
 
+    /**
+     * Set the data retriever for storage/server requests.
+     * @param dataRetriever should be the main DataRetriever object
+     */
     public void setDataRetriever(DataRetriever dataRetriever) {
         mDataRetriever = dataRetriever;
     }
 
+    /**
+     * Set the event listener to send back events to. This is typically the DataHandler for dispatching the events to listeners.
+     * @param eventListener should be the main data handler for dispatching back events to registered listeners.
+     */
     public void setEventListener(IMXEventListener eventListener) {
         mEventListener = eventListener;
     }
 
-    public void requestPagination() {
-        if (mBackState == null) {
-            mBackState = mLiveState.deepCopy();
-        }
+    /**
+     * Reset the back state so that future calls to paginate start over from live.
+     * Must be called when opening a room if interested in history.
+     */
+    public void resetBackState() {
+        mBackState = mLiveState.deepCopy();
+    }
 
+    public void loadState(final OnCompleteCallback callback) {
+
+    }
+
+    /**
+     * Request older messages. They will come down the onBackEvent callback.
+     * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
+     */
+    public void requestPagination(final OnCompleteCallback callback) {
         mDataRetriever.requestRoomPagination(mRoomId, mBackState.getToken(), new DataRetriever.PaginationCallback() {
             @Override
             public void onComplete(TokensChunkResponse<Event> response) {
+                mBackState.setToken(response.end);
                 for (Event event : response.chunk) {
                     if (event.stateKey != null) {
                         processStateEvent(event, EventDirection.BACKWARDS);
                     }
                     mEventListener.onBackEvent(event, mBackState.deepCopy());
                 }
+                if (callback != null) {
+                    callback.onComplete();
+                }
             }
         });
     }
 
+    /**
+     * Shorthand for {@link #requestPagination(org.matrix.androidsdk.data.Room.OnCompleteCallback)} with a null callback.
+     */
+    public void requestPagination() {
+        requestPagination(null);
+    }
+
+    /**
+     * Process a state event to keep the internal live and back states up to date.
+     * @param event the state event
+     * @param direction the direction; ie. forwards for live state, backwards for back state
+     */
     public void processStateEvent(Event event, EventDirection direction) {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
+        JsonObject contentToConsider = (direction == EventDirection.FORWARDS) ? event.content : event.prevContent;
 
         if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
             affectedState.name = roomState.name;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
             affectedState.topic = roomState.topic;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
             affectedState.creator = roomState.creator;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
             affectedState.joinRule = roomState.joinRule;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(event.content, RoomState.class);
+            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
             affectedState.aliases = roomState.aliases;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = mGson.fromJson(event.content, RoomMember.class);
+            RoomMember member = mGson.fromJson(contentToConsider, RoomMember.class);
             String userId = event.userId;
             if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) {
                 userId = event.stateKey;

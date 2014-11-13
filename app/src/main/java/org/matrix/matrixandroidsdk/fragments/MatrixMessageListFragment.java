@@ -11,8 +11,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
@@ -23,7 +26,7 @@ import java.util.List;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
+public class MatrixMessageListFragment extends Fragment implements IMXEventListener {
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
@@ -51,6 +54,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MessagesAdapter mAdapter;
     private ListView mMessageListView;
     private Handler mUiHandler;
+    private String mRoomId;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,6 +62,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         setRetainInstance(true);
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
+
+        Bundle args = getArguments();
+        mRoomId = args.getString(ARG_ROOM_ID);
     }
 
     @Override
@@ -106,20 +113,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    @Override
-    public void onReceiveMessages(final Collection<Event> events) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (Event event : events) {
-                    mAdapter.add(event);
-                }
-                // scroll to bottom
-                mMessageListView.setSelection(mMessageListView.getCount()-1);
-            }
-        });
-    }
-
     public void sendMessage(String body) {
         mMatrixMessagesFragment.sendMessage(body);
     }
@@ -129,19 +122,62 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void requestPagination() {
-        mMatrixMessagesFragment.requestPagination(new RestClient.SimpleApiCallback<List<Event>>() {
+        mMatrixMessagesFragment.requestPagination();
+    }
 
-            @Override
-            public void onSuccess(final List<Event> info) {
-                mUiHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (Event event : info) {
-                            mAdapter.addToFront(event);
-                        }
-                    }
-                });
-            }
-        });
+    @Override
+    public void onPresenceUpdate(Event event, User user) {
+
+    }
+
+    @Override
+    public void onMessageEvent(Room room, Event event) {
+
+    }
+
+    @Override
+    public void onLiveEvent(final Event event, RoomState roomState) {
+        if (mRoomId.equals(event.roomId)) {
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.add(event);
+                    // scroll to bottom
+                    mMessageListView.setSelection(mMessageListView.getCount() - 1);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onBackEvent(final Event event, RoomState roomState) {
+        if (mRoomId.equals(event.roomId)) {
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.addToFront(event);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onRoomReady(Room room) {
+
+    }
+
+    @Override
+    public void onRoomStateUpdated(Room room, Event event, Object oldVal, Object newVal) {
+
+    }
+
+    @Override
+    public void onInitialSyncComplete() {
+
+    }
+
+    @Override
+    public void onInvitedToRoom(Room room) {
+
     }
 }

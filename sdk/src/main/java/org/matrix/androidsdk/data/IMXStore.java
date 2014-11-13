@@ -5,6 +5,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -17,14 +18,23 @@ public interface IMXStore {
     public void storeRoom(Room room);
 
     /**
-     * Store this non-state room event so it can be retrieved later.
+     * Store a live room event.
      * @param event The event to be stored.
      */
-    public void storeRoomEvent(Event event, String token, Room.EventDirection direction);
+    public void storeLiveRoomEvent(Event event);
+
+    /**
+     * Store a block of room events either live or from pagination.
+     * @param roomId the room id
+     * @param eventsResponse The events to be stored.
+     * @param direction the direction; forwards for live, backwards for pagination
+     */
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction);
 
     /**
      * Retrieve all non-state room events for this room.
      * @param roomId The room ID
+     * @param token the associated token
      * @return A collection of events.
      */
     public TokensChunkResponse<Event> getRoomEvents(String roomId, String token);

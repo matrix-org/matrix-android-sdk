@@ -79,7 +79,7 @@ public class RoomState {
         copy.creator = creator;
         copy.joinRule = joinRule;
         copy.level = level;
-        copy.aliases = new ArrayList<String>(aliases);
+        copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
 
         Iterator it = mMembers.entrySet().iterator();
         while (it.hasNext()) {

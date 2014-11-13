@@ -25,7 +25,14 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
  */
 public class DataRetriever {
 
+    /**
+     * Callback to implement to receive the response from a pagination request.
+     */
     public static interface PaginationCallback {
+        /**
+         * Called when the request has been successfully completed.
+         * @param response the response
+         */
         public void onComplete(TokensChunkResponse<Event> response);
     }
 
@@ -40,7 +47,13 @@ public class DataRetriever {
         mRestClient = client;
     }
 
-    public void requestRoomPagination(String roomId, String token, final PaginationCallback callback) {
+    /**
+     * Request older messages than the given token. These will come from storage if available, from the server otherwise.
+     * @param roomId the room id
+     * @param token the token to go back from. Null to start from live.
+     * @param callback the onComplete callback
+     */
+    public void requestRoomPagination(final String roomId, String token, final PaginationCallback callback) {
         TokensChunkResponse<Event> storageResponse = mStore.getRoomEvents(roomId, token);
         if (storageResponse != null) {
             callback.onComplete(storageResponse);
@@ -49,11 +62,10 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
+                    mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onComplete(info);
                 }
             });
         }
     }
-
-
 }
