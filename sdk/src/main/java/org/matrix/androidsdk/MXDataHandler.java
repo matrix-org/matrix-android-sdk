@@ -17,10 +17,6 @@ package org.matrix.androidsdk;
 
 import android.util.Log;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
@@ -31,6 +27,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +45,6 @@ public class MXDataHandler implements IMXEventListener {
 
     private List<IMXEventListener> mEventListeners = new ArrayList<IMXEventListener>();
 
-    private Gson mGson;
     private IMXStore mStore;
     private Credentials mCredentials;
     private volatile boolean mInitialSyncComplete = false;
@@ -59,10 +55,6 @@ public class MXDataHandler implements IMXEventListener {
      * @param store the data storage implementation.
      */
     public MXDataHandler(IMXStore store, Credentials credentials) {
-        // The JSON -> object mapper
-        mGson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .create();
         mStore = store;
         mCredentials = credentials;
     }
@@ -142,7 +134,7 @@ public class MXDataHandler implements IMXEventListener {
     private void handleLiveEvent(Event event) {
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
-            User userPresence = mGson.fromJson(event.content, User.class);
+            User userPresence = JsonUtils.toUser(event.content);
             User user = mStore.getUser(userPresence.userId);
             if (user == null) {
                 user = userPresence;

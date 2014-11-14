@@ -32,14 +32,14 @@ public interface IMXEventListener {
     /**
      * A live room event was received.
      * @param event the event
-     * @param roomState the room state at the time of the event
+     * @param roomState the room state right before the event
      */
     public void onLiveEvent(Event event, RoomState roomState);
 
     /**
      * A back room event was received.
      * @param event the event
-     * @param roomState the room state at the time of the event
+     * @param roomState the room state right before the event
      */
     public void onBackEvent(Event event, RoomState roomState);
 

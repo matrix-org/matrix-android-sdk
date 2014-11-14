@@ -20,6 +20,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 
@@ -41,7 +42,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
     private MXEventListener mSessionListener = new MXEventListener() {
         @Override
-        public void onLiveEvent(final Event event, final RoomState roomState) {
+        public void onLiveEvent(final Event event, RoomState roomState) {
             if (!mRoomId.equals(event.roomId)) {
                 return;
             }
@@ -51,14 +52,18 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 public void run() {
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name.");
+                        // The room state provided by the callback hasn't taken the event into account
+                        RoomState roomState = JsonUtils.toRoomState(event.content);
                         setTitle(roomState.name);
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
+                        RoomState roomState = JsonUtils.toRoomState(event.content);
                         setTopic(roomState.topic);
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name (via alias).");
+                        // FIXME: Won't work because the event hasn't been processed by the room yet
                         Room room = mSession.getDataHandler().getRoom(mRoomId);
                         setTitle(room.getName());
                     }

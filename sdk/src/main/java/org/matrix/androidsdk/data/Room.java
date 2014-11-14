@@ -15,18 +15,15 @@
  */
 package org.matrix.androidsdk.data;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -64,17 +61,8 @@ public class Room {
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
 
-    private Gson mGson;
-
     private DataRetriever mDataRetriever;
     private IMXEventListener mEventListener;
-
-    public Room() {
-        // The JSON -> object mapper
-        mGson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .create();
-    }
 
     public String getRoomId() {
         return this.mRoomId;
@@ -188,27 +176,27 @@ public class Room {
         JsonObject contentToConsider = (direction == EventDirection.FORWARDS) ? event.content : event.prevContent;
 
         if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             affectedState.name = roomState.name;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             affectedState.topic = roomState.topic;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             affectedState.creator = roomState.creator;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             affectedState.joinRule = roomState.joinRule;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = mGson.fromJson(contentToConsider, RoomState.class);
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             affectedState.aliases = roomState.aliases;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = mGson.fromJson(contentToConsider, RoomMember.class);
+            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
             String userId = event.userId;
             if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) {
                 userId = event.stateKey;
