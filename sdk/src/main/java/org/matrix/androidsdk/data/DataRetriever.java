@@ -62,6 +62,10 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
+                    // The first event is a duplicate of the last one we previously had
+                    if (info.chunk.size() > 1) {
+                        info.chunk.remove(0);
+                    }
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onComplete(info);
                 }
