@@ -41,12 +41,14 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
         @Override
         public void onLiveEvent(Event event, RoomState roomState) {
-            String from = event.userId;
-            String body = event.content.getAsJsonPrimitive("body").getAsString();
-            Notification n = buildMessageNotification(from, body);
-            NotificationManager nm = (NotificationManager)EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
-            Log.w(LOG_TAG, "onMessageEvent >>>> "+event);
-            nm.notify(MSG_NOTIFICATION_ID, n);
+            if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+                String from = event.userId;
+                String body = event.content.getAsJsonPrimitive("body").getAsString();
+                Notification n = buildMessageNotification(from, body);
+                NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+                Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
+                nm.notify(MSG_NOTIFICATION_ID, n);
+            }
         }
     };
 
