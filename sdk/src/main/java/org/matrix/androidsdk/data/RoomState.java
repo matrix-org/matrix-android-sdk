@@ -69,6 +69,10 @@ public class RoomState {
         return mMembers.get(userId);
     }
 
+    public void removeMember(String userId) {
+        mMembers.remove(userId);
+    }
+
     public RoomState deepCopy() {
         RoomState copy = new RoomState();
         copy.roomId = roomId;

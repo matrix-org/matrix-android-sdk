@@ -43,6 +43,10 @@ public class DataRetriever {
         mStore = store;
     }
 
+    public RoomsRestClient getRoomsRestClient() {
+        return mRestClient;
+    }
+
     public void setRoomsRestClient(RoomsRestClient client) {
         mRestClient = client;
     }

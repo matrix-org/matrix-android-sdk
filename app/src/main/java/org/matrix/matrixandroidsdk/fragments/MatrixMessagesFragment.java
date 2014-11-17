@@ -9,7 +9,9 @@ import android.widget.Toast;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -45,6 +47,10 @@ public class MatrixMessagesFragment extends Fragment {
     private Context mContext;
     private Room mRoom;
 
+    // This will be used in the case where the room is being joined to ignore the initial live join event which we'll get
+    // instead from the first pagination request
+    private boolean ignoreLiveEvents = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,10 +79,23 @@ public class MatrixMessagesFragment extends Fragment {
 
         // FIXME: There is a race here where you could get duplicate messages, where it comes down
         // this stream and again from the store/messages API.
-        mSession.getDataHandler().addListener(mMatrixMessagesListener);
+        mSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (!ignoreLiveEvents) {
+                    mMatrixMessagesListener.onLiveEvent(event, roomState);
+                }
+            }
+
+            @Override
+            public void onBackEvent(Event event, RoomState roomState) {
+                mMatrixMessagesListener.onBackEvent(event, roomState);
+            }
+        });
 
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
+            ignoreLiveEvents = true;
             joinRoomThenGetMessages();
         }
         else {
@@ -85,22 +104,11 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoomThenGetMessages() {
-        mSession.getRoomsApiClient().joinRoom(mRoom.getRoomId(), new RestClient.SimpleApiCallback<Void>() {
+        mRoom.join(new Room.OnCompleteCallback() {
             @Override
-            public void onSuccess(Void info) {
-                Log.i(LOG_TAG, "Joined room, requesting current state.");
-                // get current state
-                mSession.getRoomsApiClient().getRoomState(mRoom.getRoomId(), new RestClient.SimpleApiCallback<List<Event>>() {
-                    @Override
-                    public void onSuccess(List<Event> info) {
-                        Log.i(LOG_TAG, "Got current state: "+info.size()+" events.");
-                        // FIXME feels wrong to be doing this
-                        mSession.getDataHandler().handleInitialRoomState(mRoom.getRoomId(), info);
-                        mRoom.requestPagination();
-                    }
-                });
+            public void onComplete() {
+                mRoom.requestPagination();
             }
-
         });
     }
 

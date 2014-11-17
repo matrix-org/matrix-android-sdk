@@ -17,13 +17,16 @@ package org.matrix.androidsdk.data;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -63,6 +66,7 @@ public class Room {
 
     private DataRetriever mDataRetriever;
     private IMXEventListener mEventListener;
+    private RoomsRestClient mRoomsRestClient;
 
     public String getRoomId() {
         return this.mRoomId;
@@ -126,6 +130,14 @@ public class Room {
     }
 
     /**
+     * Set the REST client for making server calls via the rooms API.
+     * @param restClient should be the main rooms REST client held by the session
+     */
+    public void setRoomsRestClient(RoomsRestClient restClient) {
+        mRoomsRestClient = restClient;
+    }
+
+    /**
      * Reset the back state so that future calls to paginate start over from live.
      * Must be called when opening a room if interested in history.
      */
@@ -133,8 +145,45 @@ public class Room {
         mBackState = mLiveState.deepCopy();
     }
 
-    public void loadState(final OnCompleteCallback callback) {
+    /**
+     * Process a state event to keep the internal live and back states up to date.
+     * @param event the state event
+     * @param direction the direction; ie. forwards for live state, backwards for back state
+     */
+    public void processStateEvent(Event event, EventDirection direction) {
+        RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
+        JsonObject contentToConsider = (direction == EventDirection.FORWARDS) ? event.content : event.prevContent;
 
+        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            affectedState.name = (roomState == null) ? null : roomState.name;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            affectedState.topic = (roomState == null) ? null : roomState.topic;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            affectedState.creator = (roomState == null) ? null : roomState.creator;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            affectedState.joinRule = (roomState == null) ? null : roomState.joinRule;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            affectedState.aliases = (roomState == null) ? null : roomState.aliases;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
+            String userId = event.stateKey;
+            if (member == null) {
+                affectedState.removeMember(userId);
+            }
+            else {
+                affectedState.setMember(userId, member);
+            }
+        }
     }
 
     /**
@@ -167,41 +216,24 @@ public class Room {
     }
 
     /**
-     * Process a state event to keep the internal live and back states up to date.
-     * @param event the state event
-     * @param direction the direction; ie. forwards for live state, backwards for back state
+     * Join the room. If successful, the room's current state will be retrieved.
+     * @param callback onComplete callback
      */
-    public void processStateEvent(Event event, EventDirection direction) {
-        RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        JsonObject contentToConsider = (direction == EventDirection.FORWARDS) ? event.content : event.prevContent;
-
-        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.name = roomState.name;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.topic = roomState.topic;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.creator = roomState.creator;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.joinRule = roomState.joinRule;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.aliases = roomState.aliases;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
-            String userId = event.userId;
-            if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) {
-                userId = event.stateKey;
+    public void join(final OnCompleteCallback callback) {
+        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new RestClient.SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                // Once we've joined, we can get the room's state
+                mDataRetriever.getRoomsRestClient().getRoomState(mRoomId, new RestClient.SimpleApiCallback<List<Event>>() {
+                    @Override
+                    public void onSuccess(List<Event> info) {
+                        for (Event event : info) {
+                            processStateEvent(event, EventDirection.FORWARDS);
+                        }
+                        callback.onComplete();
+                    }
+                });
             }
-            affectedState.setMember(userId, member);
-        }
+        });
     }
 }
