@@ -47,10 +47,6 @@ public class MatrixMessagesFragment extends Fragment {
     private Context mContext;
     private Room mRoom;
 
-    // This will be used in the case where the room is being joined to ignore the initial live join event which we'll get
-    // instead from the first pagination request
-    private boolean ignoreLiveEvents = false;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,9 +78,7 @@ public class MatrixMessagesFragment extends Fragment {
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                if (!ignoreLiveEvents) {
-                    mMatrixMessagesListener.onLiveEvent(event, roomState);
-                }
+                mMatrixMessagesListener.onLiveEvent(event, roomState);
             }
 
             @Override
@@ -95,7 +89,6 @@ public class MatrixMessagesFragment extends Fragment {
 
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
-            ignoreLiveEvents = true;
             joinRoomThenGetMessages();
         }
         else {

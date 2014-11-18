@@ -86,7 +86,7 @@ public class MXDataHandler implements IMXEventListener {
         inviter.membership = RoomMember.MEMBERSHIP_JOIN;
         room.setMember(inviterUserId, inviter);
 
-        mStore.updateRoomState(room, null);
+        mStore.storeSummary(roomId, null);
         onInvitedToRoom(room);
     }
 

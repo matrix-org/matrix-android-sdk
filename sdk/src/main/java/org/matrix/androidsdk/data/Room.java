@@ -216,7 +216,7 @@ public class Room {
     }
 
     /**
-     * Join the room. If successful, the room's current state will be retrieved.
+     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      * @param callback onComplete callback
      */
     public void join(final OnCompleteCallback callback) {

@@ -39,14 +39,6 @@ public interface IMXStore {
      */
     public TokensChunkResponse<Event> getRoomEvents(String roomId, String token);
 
-    /**
-     * Update room state.
-     * @param room The room to update.
-     * @param stateEventType The state event type which was updated. Can be null to clobber the room.
-     */
-    public void updateRoomState(Room room, String stateEventType);
-
-
     // Design note: This is part of the store interface so the concrete implementation can leverage
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
     //              compared to calling getRooms() then getRoomEvents(roomId, limit=1) for each room
@@ -57,4 +49,11 @@ public interface IMXStore {
      * @return A collection of room summaries.
      */
     public Collection<RoomSummary> getSummaries();
+
+    /**
+     * Store the summary for the given room id.
+     * @param roomId the room id
+     * @param event the latest event of the room
+     */
+    public void storeSummary(String roomId, Event event);
 }
