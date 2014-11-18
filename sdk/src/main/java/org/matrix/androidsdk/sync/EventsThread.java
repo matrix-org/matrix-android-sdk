@@ -142,6 +142,13 @@ public class EventsThread extends Thread {
                     // unblock the events thread
                     latch.countDown();
                 }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    super.onNetworkError(e);
+                    // unblock the events thread
+                    latch.countDown();
+                }
             });
 
             // block until the initial sync callback is invoked.
