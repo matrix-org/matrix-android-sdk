@@ -11,10 +11,6 @@
           android:title="@string/action_members"
           android:orderInCategory="100"
           app:showAsAction="ifRoom" />
-    <item android:id="@+id/action_load_more"
-          android:title="@string/action_load_more"
-          android:orderInCategory="100"
-          app:showAsAction="never" />
     <item android:id="@+id/action_leave"
           android:title="@string/action_leave"
           android:orderInCategory="100"

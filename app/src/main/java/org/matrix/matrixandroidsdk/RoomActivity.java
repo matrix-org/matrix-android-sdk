@@ -152,10 +152,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
 
 
-        if (id == R.id.action_load_more) {
-            mMatrixMessageListFragment.requestPagination();
-        }
-        else if (id == R.id.action_invite) {
+        if (id == R.id.action_invite) {
             final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
                 AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Invite User", "@localpart:domain", new CommonActivityUtils.OnSubmitListener() {

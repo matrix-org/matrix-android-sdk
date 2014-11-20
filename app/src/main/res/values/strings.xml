@@ -12,7 +12,6 @@
     <string name="action_invite">Invite</string>
     <string name="action_disconnect">Disconnect</string>
     <string name="action_logout">Logout</string>
-    <string name="action_load_more">Load more</string>
     <string name="action_create_room">Create...</string>
     <string name="title_activity_public_rooms">Public Rooms</string>
     <string name="my_rooms">My rooms</string>
