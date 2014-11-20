@@ -78,16 +78,21 @@ public class MXDataHandler implements IMXEventListener {
     public void handleInvite(String roomId, String inviterUserId) {
         Room room = getRoom(roomId);
 
-        // add the inviter and invitee
+        // add yourself
         RoomMember member = new RoomMember();
         member.membership = RoomMember.MEMBERSHIP_INVITE;
         room.setMember(mCredentials.userId, member);
-        RoomMember inviter = new RoomMember();
-        inviter.membership = RoomMember.MEMBERSHIP_JOIN;
-        room.setMember(inviterUserId, inviter);
 
-        mStore.storeSummary(roomId, null);
-        onInvitedToRoom(room);
+        // Build a fake invite event
+        Event inviteEvent = new Event();
+        inviteEvent.roomId = roomId;
+        inviteEvent.stateKey = mCredentials.userId;
+        inviteEvent.userId = inviterUserId;
+        inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
+        inviteEvent.origin_server_ts = System.currentTimeMillis(); // This is where it's fake
+        inviteEvent.content = JsonUtils.toJson(member);
+
+        mStore.storeSummary(roomId, inviteEvent);
     }
 
     public IMXStore getStore() {
@@ -150,11 +155,13 @@ public class MXDataHandler implements IMXEventListener {
         // Room event
         else if (event.roomId != null) {
             Room room = getRoom(event.roomId);
-            mStore.storeLiveRoomEvent(event);
-            onLiveEvent(event, room.getLiveState().deepCopy());
+            // The room state we send with the callback is the one before the current event was processed
+            RoomState beforeState = room.getLiveState().deepCopy();
             if (event.stateKey != null) {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
+            mStore.storeLiveRoomEvent(event);
+            onLiveEvent(event, beforeState);
         }
 
         else {
@@ -199,13 +206,6 @@ public class MXDataHandler implements IMXEventListener {
     public void onBackEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onBackEvent(event, roomState);
-        }
-    }
-
-    @Override
-    public void onInvitedToRoom(Room room) {
-        for (IMXEventListener listener : mEventListeners) {
-            listener.onInvitedToRoom(room);
         }
     }
 

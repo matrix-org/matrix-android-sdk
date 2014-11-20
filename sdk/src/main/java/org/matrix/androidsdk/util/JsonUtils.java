@@ -44,4 +44,8 @@ public class JsonUtils {
     public static RoomMember toRoomMember(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, RoomMember.class);
     }
+
+    public static JsonObject toJson(RoomMember roomMember) {
+        return (JsonObject) gson.toJsonTree(roomMember);
+    }
 }

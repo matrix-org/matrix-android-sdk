@@ -45,9 +45,4 @@ public class MXEventListener implements IMXEventListener {
     public void onInitialSyncComplete() {
 
     }
-
-    @Override
-    public void onInvitedToRoom(Room room) {
-
-    }
 }
