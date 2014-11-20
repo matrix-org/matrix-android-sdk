@@ -176,9 +176,4 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
     }
-
-    @Override
-    public void onJoinComplete() {
-        requestPagination();
-    }
 }

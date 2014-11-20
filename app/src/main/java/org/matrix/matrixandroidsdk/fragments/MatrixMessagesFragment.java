@@ -42,7 +42,6 @@ public class MatrixMessagesFragment extends Fragment {
     public static interface MatrixMessagesListener {
         public void onLiveEvent(Event event, RoomState roomState);
         public void onBackEvent(Event event, RoomState roomState);
-        public void onJoinComplete();
     }
 
     private MatrixMessagesListener mMatrixMessagesListener;
@@ -109,7 +108,6 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onComplete() {
                 mJoinedRoom = true;
-//                mMatrixMessagesListener.onJoinComplete();
             }
         });
     }
