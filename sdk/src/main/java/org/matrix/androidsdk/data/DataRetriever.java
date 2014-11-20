@@ -67,7 +67,7 @@ public class DataRetriever {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     // The first event is a duplicate of the last one we previously had
-                    if (info.chunk.size() > 1) {
+                    if (info.chunk.size() > 0) {
                         info.chunk.remove(0);
                     }
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);

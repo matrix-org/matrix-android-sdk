@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.data.Room;
@@ -26,7 +27,7 @@ import java.util.List;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements IMXEventListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
@@ -83,6 +84,7 @@ public class MatrixMessageListFragment extends Fragment implements IMXEventListe
             );
         }
         mMessageListView.setAdapter(mAdapter);
+        mMessageListView.setSelection(0);
 
         return v;
     }
@@ -101,6 +103,23 @@ public class MatrixMessageListFragment extends Fragment implements IMXEventListe
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                // If we scroll to the top, load more history
+                if (firstVisibleItem == 0) {
+                    requestPagination();
+                }
+            }
+        });
+    }
 
     @Override
     public void onAttach(Activity activity) {
@@ -122,47 +141,44 @@ public class MatrixMessageListFragment extends Fragment implements IMXEventListe
     }
 
     public void requestPagination() {
-        mMatrixMessagesFragment.requestPagination();
-    }
+        final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-    @Override
-    public void onPresenceUpdate(Event event, User user) {
-
+        mMatrixMessagesFragment.requestPagination(new Room.PaginationCompleteCallback() {
+            @Override
+            public void onComplete(final int count) {
+                // Scroll the list down to where it was before adding rows to the top
+                mUiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mMessageListView.setSelection(firstPos + count);
+                    }
+                });
+            }
+        });
     }
 
     @Override
     public void onLiveEvent(final Event event, RoomState roomState) {
-        if (mRoomId.equals(event.roomId)) {
-            mUiHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mAdapter.add(event);
-                    // scroll to bottom
-                    mMessageListView.setSelection(mMessageListView.getCount() - 1);
-                }
-            });
-        }
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.add(event);
+            }
+        });
     }
 
     @Override
     public void onBackEvent(final Event event, RoomState roomState) {
-        if (mRoomId.equals(event.roomId)) {
-            mUiHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mAdapter.addToFront(event);
-                }
-            });
-        }
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.addToFront(event);
+            }
+        });
     }
 
     @Override
-    public void onInitialSyncComplete() {
-
-    }
-
-    @Override
-    public void onInvitedToRoom(Room room) {
-
+    public void onJoinComplete() {
+        requestPagination();
     }
 }

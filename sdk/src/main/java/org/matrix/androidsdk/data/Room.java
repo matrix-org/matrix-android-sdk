@@ -60,6 +60,14 @@ public class Room {
         public void onComplete();
     }
 
+    /**
+     * Callback to implement to be informed when an operation is complete (pagination, ...).
+     */
+    public static interface PaginationCompleteCallback {
+        /** The operation is complete. */
+        public void onComplete(int count);
+    }
+
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
@@ -67,6 +75,9 @@ public class Room {
     private DataRetriever mDataRetriever;
     private IMXEventListener mEventListener;
     private RoomsRestClient mRoomsRestClient;
+
+    private boolean isPaginating = false;
+    private boolean canStillPaginate = true;
 
     public String getRoomId() {
         return this.mRoomId;
@@ -143,6 +154,7 @@ public class Room {
      */
     public void resetBackState() {
         mBackState = mLiveState.deepCopy();
+        canStillPaginate = true;
     }
 
     /**
@@ -190,7 +202,9 @@ public class Room {
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      */
-    public void requestPagination(final OnCompleteCallback callback) {
+    public void requestPagination(final PaginationCompleteCallback callback) {
+        if (isPaginating || !canStillPaginate) return; // One at a time please
+        isPaginating = true;
         mDataRetriever.requestRoomPagination(mRoomId, mBackState.getToken(), new DataRetriever.PaginationCallback() {
             @Override
             public void onComplete(TokensChunkResponse<Event> response) {
@@ -201,15 +215,19 @@ public class Room {
                     }
                     mEventListener.onBackEvent(event, mBackState.deepCopy());
                 }
-                if (callback != null) {
-                    callback.onComplete();
+                if (response.chunk.size() == 0) {
+                    canStillPaginate = false;
                 }
+                if (callback != null) {
+                    callback.onComplete(response.chunk.size());
+                }
+                isPaginating = false;
             }
         });
     }
 
     /**
-     * Shorthand for {@link #requestPagination(org.matrix.androidsdk.data.Room.OnCompleteCallback)} with a null callback.
+     * Shorthand for {@link #requestPagination(org.matrix.androidsdk.data.Room.PaginationCompleteCallback)} with a null callback.
      */
     public void requestPagination() {
         requestPagination(null);

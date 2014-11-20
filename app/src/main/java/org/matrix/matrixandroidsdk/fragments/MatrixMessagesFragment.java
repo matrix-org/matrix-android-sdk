@@ -10,15 +10,12 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.matrixandroidsdk.Matrix;
-
-import java.util.List;
 
 /**
  * A non-UI fragment containing logic for extracting messages from a room, including handling
@@ -33,7 +30,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     private static final String LOG_TAG = "MatrixMessagesFragment";
 
-    public static MatrixMessagesFragment newInstance(String roomId, IMXEventListener listener) {
+    public static MatrixMessagesFragment newInstance(String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
@@ -42,10 +39,17 @@ public class MatrixMessagesFragment extends Fragment {
         return fragment;
     }
 
-    private IMXEventListener mMatrixMessagesListener;
+    public static interface MatrixMessagesListener {
+        public void onLiveEvent(Event event, RoomState roomState);
+        public void onBackEvent(Event event, RoomState roomState);
+        public void onJoinComplete();
+    }
+
+    private MatrixMessagesListener mMatrixMessagesListener;
     private MXSession mSession;
     private Context mContext;
     private Room mRoom;
+    private boolean mJoinedRoom = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -63,13 +67,12 @@ public class MatrixMessagesFragment extends Fragment {
         }
 
         // check if this room has been joined, if not, join it then get messages.
-        boolean joinedRoom = false;
         mRoom = mSession.getDataHandler().getRoom(roomId);
         mRoom.resetBackState();
         if (mRoom != null) {
             RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
             if (self != null && "join".equals(self.membership)) {
-                joinedRoom = true;
+                mJoinedRoom = true;
             }
         }
 
@@ -78,29 +81,35 @@ public class MatrixMessagesFragment extends Fragment {
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onLiveEvent(event, roomState);
+                if (mRoom.getRoomId().equals(event.roomId)) {
+                    mMatrixMessagesListener.onLiveEvent(event, roomState);
+                }
             }
 
             @Override
             public void onBackEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onBackEvent(event, roomState);
+                if (mRoom.getRoomId().equals(event.roomId)) {
+                    mMatrixMessagesListener.onBackEvent(event, roomState);
+                }
             }
         });
 
-        if (!joinedRoom) {
+        if (!mJoinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
-            joinRoomThenGetMessages();
+            joinRoom();
         }
         else {
-            mRoom.requestPagination();
+            // Let's leave it up to the layer above to request pagination
+//            mRoom.requestPagination();
         }
     }
 
-    private void joinRoomThenGetMessages() {
+    private void joinRoom() {
         mRoom.join(new Room.OnCompleteCallback() {
             @Override
             public void onComplete() {
-                mRoom.requestPagination();
+                mJoinedRoom = true;
+//                mMatrixMessagesListener.onJoinComplete();
             }
         });
     }
@@ -112,15 +121,18 @@ public class MatrixMessagesFragment extends Fragment {
      * a Fragment or an Activity can directly receive callbacks.
      * @param listener the listener for this fragment
      */
-    public void setMatrixMessagesListener(IMXEventListener listener) {
+    public void setMatrixMessagesListener(MatrixMessagesListener listener) {
         mMatrixMessagesListener = listener;
     }
 
     /**
      * Request earlier messages in this room.
      */
-    public void requestPagination() {
-        mRoom.requestPagination();
+    public void requestPagination(Room.PaginationCompleteCallback callback) {
+        // If the room is not yet joined, pagination requests will fail
+        if (mJoinedRoom) {
+            mRoom.requestPagination(callback);
+        }
     }
 
     /**
