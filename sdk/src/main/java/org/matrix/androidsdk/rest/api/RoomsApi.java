@@ -151,7 +151,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/ban")
-    public void ban(@Path("roomId") String roomId, @Field("user_id") String userId, @Field("reason") String reason, Callback<Void> callback);
+    public void ban(@Path("roomId") String roomId, @Query("user_id") String userId, @Query("reason") String reason, Callback<Void> callback);
 
     /**
      * Change the membership state for a user in a room.
@@ -227,4 +227,13 @@ public interface RoomsApi {
      */
     @GET("/rooms/{roomId}/state")
     public void state(@Path("roomId") String roomId, Callback<List<Event>> callback);
+
+    /**
+     * Get the initial information concerning a specific room.
+     * @param roomId the room id
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/initialSync")
+    public void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
 }

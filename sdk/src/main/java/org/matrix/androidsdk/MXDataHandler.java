@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -75,7 +76,39 @@ public class MXDataHandler implements IMXEventListener {
         mEventListeners.remove(listener);
     }
 
-    public void handleInvite(String roomId, String inviterUserId) {
+    /**
+     * Handle the room data received from an initial sync (global or per room)
+     * @param roomResponse the room response object
+     */
+    public void handleInitialRoomResponse(RoomResponse roomResponse) {
+        if (roomResponse.roomId != null) {
+            Room room = getRoom(roomResponse.roomId);
+
+            // Handle state events
+            if (roomResponse.state != null) {
+                for (Event event : roomResponse.state) {
+                    room.processStateEvent(event, Room.EventDirection.FORWARDS);
+                }
+            }
+
+            // Handle messages / pagination token
+            if (roomResponse.messages != null) {
+                mStore.storeRoomEvents(roomResponse.roomId, roomResponse.messages, Room.EventDirection.FORWARDS);
+            }
+
+            // Handle presence
+            if (roomResponse.presence != null) {
+                handleLiveEvents(roomResponse.presence);
+            }
+
+            // Handle the special case where the room is an invite
+            if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
+                handleInitialSyncInvite(roomResponse.roomId, roomResponse.inviter);
+            }
+        }
+    }
+
+    private void handleInitialSyncInvite(String roomId, String inviterUserId) {
         Room room = getRoom(roomId);
 
         // add yourself
@@ -97,29 +130,6 @@ public class MXDataHandler implements IMXEventListener {
 
     public IMXStore getStore() {
         return mStore;
-    }
-
-    /**
-     * Process an initial room state block of events.
-     * @param roomId the room id
-     * @param events the room state events
-     */
-    public void handleInitialRoomState(String roomId, List<? extends Event> events) {
-        Room room = getRoom(roomId);
-        for (Event event : events) {
-            room.processStateEvent(event, Room.EventDirection.FORWARDS);
-        }
-    }
-
-    /**
-     * Handle the room messages returned from the initial sync.
-     * @param roomId the room id
-     * @param response the object containing the tokens and messages
-     */
-    public void handleInitialRoomMessages(String roomId, TokensChunkResponse<Event> response) {
-        Log.i(LOG_TAG, roomId + " has " + response.chunk.size() + " events. Token=" + response.start);
-
-        mStore.storeRoomEvents(roomId, response, Room.EventDirection.FORWARDS);
     }
 
     /**
@@ -179,7 +189,7 @@ public class MXDataHandler implements IMXEventListener {
         if (room == null) {
             room = new Room();
             room.setRoomId(roomId);
-            room.setEventListener(this);
+            room.setDataHandler(this);
             room.setDataRetriever(mDataRetriever);
             mStore.storeRoom(room);
         }

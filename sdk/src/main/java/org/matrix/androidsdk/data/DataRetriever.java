@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 /**
@@ -66,12 +67,16 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
-                    // The first event is a duplicate of the last one we previously had
-                    if (info.chunk.size() > 0) {
-                        info.chunk.remove(0);
-                    }
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onComplete(info);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    // When we've retrieved all the messages from a room, the pagination token is some invalid value
+                    if (MatrixError.UNKNOWN.equals(e.errcode)) {
+                        callback.onComplete(null);
+                    }
                 }
             });
         }

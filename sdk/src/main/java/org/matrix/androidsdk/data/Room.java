@@ -17,11 +17,13 @@ package org.matrix.androidsdk.data;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -73,8 +75,7 @@ public class Room {
     private RoomState mBackState = new RoomState();
 
     private DataRetriever mDataRetriever;
-    private IMXEventListener mEventListener;
-    private RoomsRestClient mRoomsRestClient;
+    private MXDataHandler mDataHandler;
 
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
@@ -134,18 +135,10 @@ public class Room {
 
     /**
      * Set the event listener to send back events to. This is typically the DataHandler for dispatching the events to listeners.
-     * @param eventListener should be the main data handler for dispatching back events to registered listeners.
+     * @param dataHandler should be the main data handler for dispatching back events to registered listeners.
      */
-    public void setEventListener(IMXEventListener eventListener) {
-        mEventListener = eventListener;
-    }
-
-    /**
-     * Set the REST client for making server calls via the rooms API.
-     * @param restClient should be the main rooms REST client held by the session
-     */
-    public void setRoomsRestClient(RoomsRestClient restClient) {
-        mRoomsRestClient = restClient;
+    public void setDataHandler(MXDataHandler dataHandler) {
+        mDataHandler = dataHandler;
     }
 
     /**
@@ -208,18 +201,23 @@ public class Room {
         mDataRetriever.requestRoomPagination(mRoomId, mBackState.getToken(), new DataRetriever.PaginationCallback() {
             @Override
             public void onComplete(TokensChunkResponse<Event> response) {
-                mBackState.setToken(response.end);
-                for (Event event : response.chunk) {
-                    if (event.stateKey != null) {
-                        processStateEvent(event, EventDirection.BACKWARDS);
-                    }
-                    mEventListener.onBackEvent(event, mBackState.deepCopy());
-                }
-                if (response.chunk.size() == 0) {
+                if (response == null) {
                     canStillPaginate = false;
                 }
-                if (callback != null) {
-                    callback.onComplete(response.chunk.size());
+                else {
+                    mBackState.setToken(response.end);
+                    for (Event event : response.chunk) {
+                        if (event.stateKey != null) {
+                            processStateEvent(event, EventDirection.BACKWARDS);
+                        }
+                        mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                    }
+                    if (response.chunk.size() == 0) {
+                        canStillPaginate = false;
+                    }
+                    if (callback != null) {
+                        callback.onComplete(response.chunk.size());
+                    }
                 }
                 isPaginating = false;
             }
@@ -242,12 +240,10 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 // Once we've joined, we can get the room's state
-                mDataRetriever.getRoomsRestClient().getRoomState(mRoomId, new RestClient.SimpleApiCallback<List<Event>>() {
+                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new RestClient.SimpleApiCallback<RoomResponse>() {
                     @Override
-                    public void onSuccess(List<Event> info) {
-                        for (Event event : info) {
-                            processStateEvent(event, EventDirection.FORWARDS);
-                        }
+                    public void onSuccess(RoomResponse roomInfo) {
+                        mDataHandler.handleInitialRoomResponse(roomInfo);
                         callback.onComplete();
                     }
                 });

@@ -24,7 +24,7 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import java.util.List;
 
 /**
- * Listener for the events thread.
+ * Listener for the events thread that sends data back to a data handler.
  */
 public class DefaultEventsThreadListener implements EventsThreadListener {
     private MXDataHandler mData;
@@ -40,21 +40,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
         // Convert rooms from response
         for (RoomResponse roomResponse : response.rooms) {
-            if (roomResponse.roomId != null) {
-                if (roomResponse.state != null) {
-                    // Handle state events
-                    mData.handleInitialRoomState(roomResponse.roomId, roomResponse.state);
-                }
-
-                if (roomResponse.messages != null) {
-                    // handle messages / pagination token
-                    mData.handleInitialRoomMessages(roomResponse.roomId, roomResponse.messages);
-                }
-
-                if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
-                    mData.handleInvite(roomResponse.roomId, roomResponse.inviter);
-                }
-            }
+            mData.handleInitialRoomResponse(roomResponse);
         }
 
         mData.onInitialSyncComplete();

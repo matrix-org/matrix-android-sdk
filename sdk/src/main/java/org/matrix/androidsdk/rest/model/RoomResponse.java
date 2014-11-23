@@ -18,12 +18,13 @@ package org.matrix.androidsdk.rest.model;
 import java.util.List;
 
 /**
- * Class representing a room from a JSON response.
+ * Class representing a room from a JSON response from room or global initial sync.
  */
 public class RoomResponse {
     public String roomId;
     public TokensChunkResponse<Event> messages;
     public List<Event> state;
+    public List<Event> presence;
     public String membership;
     public String visibility;
     public String inviter;

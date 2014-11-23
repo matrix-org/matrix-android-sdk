@@ -28,6 +28,7 @@ public class MatrixError {
     public static final String USER_IN_USE = "M_USER_IN_USE";
     public static final String ROOM_IN_USE = "M_ROOM_IN_USE";
     public static final String BAD_PAGINATION = "M_BAD_PAGINATION";
+    public static final String UNKNOWN= "M_UNKNOWN";
 
     public String errcode;
     public String error;

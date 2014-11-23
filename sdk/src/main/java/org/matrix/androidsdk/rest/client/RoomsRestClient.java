@@ -25,6 +25,7 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -65,7 +66,7 @@ public class RoomsRestClient extends RestClient {
 
     /**
      * Send a message to a room.
-     * @param roomId the the room id
+     * @param roomId the room id
      * @param message the message
      * @param callback the callback containing the created event if successful
      */
@@ -80,7 +81,7 @@ public class RoomsRestClient extends RestClient {
 
     /**
      * Send a message to a room.
-     * @param roomId the the room id
+     * @param roomId the room id
      * @param eventType the type of event
      * @param content the event content
      * @param callback the callback containing the created event if successful
@@ -154,7 +155,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Invite a user to a room.
      * @param roomId the room id
-     * @param userId the the user id
+     * @param userId the user id
      * @param callback on success callback
      */
     public void inviteToRoom(String roomId, String userId, final ApiCallback<Void> callback) {
@@ -199,7 +200,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Ban a user from a room.
      * @param roomId the room id
-     * @param userId the the user id
+     * @param userId the user id
      * @param reason the reason for the ban
      * @param callback on success callback
      */
@@ -231,6 +232,20 @@ public class RoomsRestClient extends RestClient {
             @Override
             public void success(CreateRoomResponse createRoomResponse, Response response) {
                 callback.onSuccess(createRoomResponse);
+            }
+        });
+    }
+
+    /**
+     * Perform an initial sync on the room
+     * @param roomId the room id
+     * @param callback the callback in case of success
+     */
+    public void initialSync(String roomId, final ApiCallback<RoomResponse> callback) {
+        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new ConvertFailureCallback<RoomResponse>(callback) {
+            @Override
+            public void success(RoomResponse roomResponse, Response response) {
+                callback.onSuccess(roomResponse);
             }
         });
     }
