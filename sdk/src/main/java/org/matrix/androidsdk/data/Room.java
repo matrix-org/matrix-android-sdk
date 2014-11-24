@@ -19,8 +19,6 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -28,7 +26,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -63,9 +60,9 @@ public class Room {
     }
 
     /**
-     * Callback to implement to be informed when an operation is complete (pagination, ...).
+     * Callback to implement to be informed when an history request is complete.
      */
-    public static interface PaginationCompleteCallback {
+    public static interface HistoryCompleteCallback {
         /** The operation is complete. */
         public void onComplete(int count);
     }
@@ -145,7 +142,7 @@ public class Room {
      * Reset the back state so that future calls to paginate start over from live.
      * Must be called when opening a room if interested in history.
      */
-    public void resetBackState() {
+    public void initHistory() {
         mBackState = mLiveState.deepCopy();
         canStillPaginate = true;
     }
@@ -195,16 +192,15 @@ public class Room {
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      */
-    public void requestPagination(final PaginationCompleteCallback callback) {
+    public void requestHistory(final HistoryCompleteCallback callback) {
         if (isPaginating || !canStillPaginate) return; // One at a time please
         isPaginating = true;
-        mDataRetriever.requestRoomPagination(mRoomId, mBackState.getToken(), new DataRetriever.PaginationCallback() {
+        mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new DataRetriever.HistoryCallback() {
             @Override
             public void onComplete(TokensChunkResponse<Event> response) {
                 if (response == null) {
                     canStillPaginate = false;
-                }
-                else {
+                } else {
                     mBackState.setToken(response.end);
                     for (Event event : response.chunk) {
                         if (event.stateKey != null) {
@@ -225,10 +221,10 @@ public class Room {
     }
 
     /**
-     * Shorthand for {@link #requestPagination(org.matrix.androidsdk.data.Room.PaginationCompleteCallback)} with a null callback.
+     * Shorthand for {@link #requestHistory(org.matrix.androidsdk.data.Room.HistoryCompleteCallback)} with a null callback.
      */
-    public void requestPagination() {
-        requestPagination(null);
+    public void requestHistory() {
+        requestHistory(null);
     }
 
     /**

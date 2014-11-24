@@ -67,7 +67,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         // check if this room has been joined, if not, join it then get messages.
         mRoom = mSession.getDataHandler().getRoom(roomId);
-        mRoom.resetBackState();
+        mRoom.initHistory();
         if (mRoom != null) {
             RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
             if (self != null && "join".equals(self.membership)) {
@@ -102,7 +102,7 @@ public class MatrixMessagesFragment extends Fragment {
         }
         else {
             // Let's leave it up to the layer above to request pagination
-//            mRoom.requestPagination();
+//            mRoom.requestHistory();
         }
     }
 
@@ -129,10 +129,10 @@ public class MatrixMessagesFragment extends Fragment {
     /**
      * Request earlier messages in this room.
      */
-    public void requestPagination(Room.PaginationCompleteCallback callback) {
+    public void requestHistory(Room.HistoryCompleteCallback callback) {
         // If the room is not yet joined, pagination requests will fail
         if (mJoinedRoom) {
-            mRoom.requestPagination(callback);
+            mRoom.requestHistory(callback);
         }
     }
 

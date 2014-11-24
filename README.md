@@ -62,7 +62,7 @@ example.
 
 The event stream
 ----------------
-One important part of any Matrix-enabled app will be listening to the event stream, the live flow of events.
+One important part of any Matrix-enabled app will be listening to the event stream, the live flow of events (messages, state changes, etc.).
 This is done by using:
 
 ```java
@@ -75,11 +75,13 @@ control whether the event stream is running in the background or not.
 
 The data handler
 ----------------
-The data handler provides a layer to help manage data from the events stream:
+The data handler provides a layer to help manage data from the events stream. While it is possible to write an app with no
+data handler and manually make API calls, using one is highly recommended for most uses. The data handler :
 
  * Handles events from the events stream
  * Stores the data in its storage layer
- * Provides the means for an app to get callbacks for data changes
+ * Provides the means for an app to get callbacks for events
+ * Provides and maintains room objects for room-specific operations (getting messages, joining, kicking, inviting, etc.)
 
 ```java
 MXDataHandler dataHandler = new MXDataHandler(new MXMemoryStore());
@@ -87,20 +89,20 @@ MXDataHandler dataHandler = new MXDataHandler(new MXMemoryStore());
 
 creates a data handler with the default in-memory storage implementation.
 
-#### Setting up the session
+### Setting up the session
 
 ```java
 MXSession session = new MXSession(credentials, dataHandler);
 ```
 
-#### Starting the event stream
+### Starting the event stream
 
 ```java
 session.startEventStream();
 ```
 
-#### Registering a listener
-To be informed of data updates due to the processing of events, the app needs to implement an event listener.
+### Registering a listener
+To be informed of events, the app needs to implement an event listener.
 
 ```java
 session.getDataHandler().addListener(eventListener);
@@ -108,13 +110,51 @@ session.getDataHandler().addListener(eventListener);
 
 This listener should subclass ```MXEventListener``` and override the methods as needed:
 
-```onUserPresenceUpdated(user) ```
+```onPresenceUpdate(event, user) ```
+Triggered when a user's presence has been updated.
 
-```onMessageReceived(room, event) ```
+```onLiveEvent(event, roomState) ```
+Triggered when a live event has come down the event stream.
 
-```onRoomStateUpdated(room, event, oldVal, newVal) ```
+```onBackEvent(event, roomState) ```
+Triggered when an old event (from history), or back event, has been returned after a request for more history.
 
 ```onInitialSyncComplete() ```
+Triggered when the initial sync process has completed. The initial sync is the first call the event stream makes
+to initialize the state of all known rooms, users, etc.
+
+### The Room object
+The Room object provides methods to interact with a room (getting message history, joining, etc).
+
+```java
+Room room = session.getDataHandler().getRoom(roomId);
+```
+
+gets (or creates) the room object associated with the given room ID.
+
+#### Room state
+The RoomState object represents the room's state at a certain point in time: its name, topic, visibility (public/private), members, etc.
+onLiveEvent and onBackEvent callbacks (see Registering a listener) return the event, but also the state of the room at the time of the event to
+serve as context for building the display (e.g. the user's display name at the time of their message). The state provided is the one before
+processing the event, if the event happens to change the state of the room.
+
+#### Room history
+When entering a room, an app usually wants to display the last messages. This is done by calling
+
+```java
+room.requestHistory();
+```
+
+The events are then returned through the ```onBackEvent(event, roomState)``` callback in reverse order (most recent first).
+
+This does not trigger all of the room's history to be returned but only about 15 messages. Calling ```requestHistory()``` again will then
+retrieve the next (earlier) 15 or so, and so on. To start requesting history from the current live state (e.g. when opening or reopening a room),
+
+```java
+room.initHistory();
+```
+
+must be called prior to the history requests.
 
 **See the sample app and Javadoc for more details.**
 

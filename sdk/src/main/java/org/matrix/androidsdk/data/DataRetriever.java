@@ -29,7 +29,7 @@ public class DataRetriever {
     /**
      * Callback to implement to receive the response from a pagination request.
      */
-    public static interface PaginationCallback {
+    public static interface HistoryCallback {
         /**
          * Called when the request has been successfully completed.
          * @param response the response
@@ -58,7 +58,7 @@ public class DataRetriever {
      * @param token the token to go back from. Null to start from live.
      * @param callback the onComplete callback
      */
-    public void requestRoomPagination(final String roomId, String token, final PaginationCallback callback) {
+    public void requestRoomHistory(final String roomId, String token, final HistoryCallback callback) {
         TokensChunkResponse<Event> storageResponse = mStore.getRoomEvents(roomId, token);
         if (storageResponse != null) {
             callback.onComplete(storageResponse);

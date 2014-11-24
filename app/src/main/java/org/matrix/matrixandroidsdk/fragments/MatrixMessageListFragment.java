@@ -14,14 +14,9 @@ import android.widget.ListView;
 
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * UI Fragment containing matrix messages for a given room.
@@ -115,7 +110,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 // If we scroll to the top, load more history
                 if (firstVisibleItem == 0) {
-                    requestPagination();
+                    requestHistory();
                 }
             }
         });
@@ -140,10 +135,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMatrixMessagesFragment.sendEmote(emote);
     }
 
-    public void requestPagination() {
+    public void requestHistory() {
         final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-        mMatrixMessagesFragment.requestPagination(new Room.PaginationCompleteCallback() {
+        mMatrixMessagesFragment.requestHistory(new Room.HistoryCompleteCallback() {
             @Override
             public void onComplete(final int count) {
                 // Scroll the list down to where it was before adding rows to the top
