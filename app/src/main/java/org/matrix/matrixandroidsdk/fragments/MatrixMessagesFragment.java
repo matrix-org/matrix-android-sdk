@@ -81,7 +81,10 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (mRoom.getRoomId().equals(event.roomId)) {
-                    mMatrixMessagesListener.onLiveEvent(event, roomState);
+                    // Wait to have fully joined before handling live events. They will come back down when paginating.
+                    if (mJoinedRoom) {
+                        mMatrixMessagesListener.onLiveEvent(event, roomState);
+                    }
                 }
             }
 

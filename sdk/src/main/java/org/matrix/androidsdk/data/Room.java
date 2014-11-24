@@ -239,7 +239,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new RestClient.SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                // Once we've joined, we can get the room's state
+                // Once we've joined, we run an initial sync on the room to have all of its information
                 mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new RestClient.SimpleApiCallback<RoomResponse>() {
                     @Override
                     public void onSuccess(RoomResponse roomInfo) {
