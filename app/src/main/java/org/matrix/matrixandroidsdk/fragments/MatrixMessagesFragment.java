@@ -70,29 +70,20 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.initHistory();
         if (mRoom != null) {
             RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
-            if (self != null && "join".equals(self.membership)) {
+            if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
                 mJoinedRoom = true;
             }
         }
 
-        // FIXME: There is a race here where you could get duplicate messages, where it comes down
-        // this stream and again from the store/messages API.
-        mSession.getDataHandler().addListener(new MXEventListener() {
+        mRoom.addEventListener(new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                if (mRoom.getRoomId().equals(event.roomId)) {
-                    // Wait to have fully joined before handling live events. They will come back down when paginating.
-                    if (mJoinedRoom) {
-                        mMatrixMessagesListener.onLiveEvent(event, roomState);
-                    }
-                }
+                mMatrixMessagesListener.onLiveEvent(event, roomState);
             }
 
             @Override
             public void onBackEvent(Event event, RoomState roomState) {
-                if (mRoom.getRoomId().equals(event.roomId)) {
-                    mMatrixMessagesListener.onBackEvent(event, roomState);
-                }
+                mMatrixMessagesListener.onBackEvent(event, roomState);
             }
         });
 

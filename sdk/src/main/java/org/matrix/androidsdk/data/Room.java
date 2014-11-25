@@ -19,13 +19,19 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -74,8 +80,14 @@ public class Room {
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
 
+    // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
+    // This is needed to find the right one when removing the listener.
+    private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
+
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
+    // This is used to block live events until the state is fully processed and ready
+    private boolean isReady = false;
 
     public String getRoomId() {
         return this.mRoomId;
@@ -139,7 +151,51 @@ public class Room {
     }
 
     /**
-     * Reset the back state so that future calls to paginate start over from live.
+     * Add an event listener to this room. Only events relative to the room will come down.
+     * @param eventListener the event listener to add
+     */
+    public void addEventListener(final IMXEventListener eventListener) {
+        // Create a global listener that we'll add to the data handler
+        IMXEventListener globalListener = new MXEventListener() {
+            @Override
+            public void onPresenceUpdate(Event event, User user) {
+                // Only pass event through if the user is a member of the room
+                if (getMember(user.userId) != null) {
+                    eventListener.onPresenceUpdate(event, user);
+                }
+            }
+
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                // Filter out events for other rooms and events while we are joining (before the room is ready)
+                if (mRoomId.equals(event.roomId) && isReady) {
+                    eventListener.onLiveEvent(event, roomState);
+                }
+            }
+
+            @Override
+            public void onBackEvent(Event event, RoomState roomState) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(event.roomId)) {
+                    eventListener.onBackEvent(event, roomState);
+                }
+            }
+        };
+        mEventListeners.put(eventListener, globalListener);
+        mDataHandler.addListener(globalListener);
+    }
+
+    /**
+     * Remove an event listener.
+     * @param eventListener the event listener to remove
+     */
+    public void removeEventListener(IMXEventListener eventListener) {
+        mDataHandler.addListener(mEventListeners.get(eventListener));
+        mEventListeners.remove(eventListener);
+    }
+
+    /**
+     * Reset the back state so that future history requests start over from live.
      * Must be called when opening a room if interested in history.
      */
     public void initHistory() {
@@ -186,6 +242,17 @@ public class Room {
                 affectedState.setMember(userId, member);
             }
         }
+    }
+
+    /**
+     * Process the live state events for the room. Only once this is done is the room considered ready to pass on events.
+     * @param stateEvents the state events describing the state of the room
+     */
+    public void processLiveState(List<Event> stateEvents) {
+        for (Event event : stateEvents) {
+            processStateEvent(event, EventDirection.FORWARDS);
+        }
+        isReady = true;
     }
 
     /**
@@ -239,7 +306,7 @@ public class Room {
                 mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new RestClient.SimpleApiCallback<RoomResponse>() {
                     @Override
                     public void onSuccess(RoomResponse roomInfo) {
-                        mDataHandler.handleInitialRoomResponse(roomInfo);
+                        mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
                         callback.onComplete();
                     }
                 });

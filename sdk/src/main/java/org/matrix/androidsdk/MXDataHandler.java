@@ -77,34 +77,40 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Handle the room data received from an initial sync (global or per room)
+     * Handle the room data received from a per-room initial sync
+     * @param roomResponse the room response object
+     * @param room the associated room
+     */
+    public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
+        // Handle state events
+        if (roomResponse.state != null) {
+            room.processLiveState(roomResponse.state);
+        }
+
+        // Handle messages / pagination token
+        if (roomResponse.messages != null) {
+            mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
+        }
+
+        // Handle presence
+        if (roomResponse.presence != null) {
+            handleLiveEvents(roomResponse.presence);
+        }
+
+        // Handle the special case where the room is an invite
+        if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
+            handleInitialSyncInvite(room.getRoomId(), roomResponse.inviter);
+        }
+    }
+
+    /**
+     * Handle the room data received from a global initial sync
      * @param roomResponse the room response object
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse) {
         if (roomResponse.roomId != null) {
             Room room = getRoom(roomResponse.roomId);
-
-            // Handle state events
-            if (roomResponse.state != null) {
-                for (Event event : roomResponse.state) {
-                    room.processStateEvent(event, Room.EventDirection.FORWARDS);
-                }
-            }
-
-            // Handle messages / pagination token
-            if (roomResponse.messages != null) {
-                mStore.storeRoomEvents(roomResponse.roomId, roomResponse.messages, Room.EventDirection.FORWARDS);
-            }
-
-            // Handle presence
-            if (roomResponse.presence != null) {
-                handleLiveEvents(roomResponse.presence);
-            }
-
-            // Handle the special case where the room is an invite
-            if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
-                handleInitialSyncInvite(roomResponse.roomId, roomResponse.inviter);
-            }
+            handleInitialRoomResponse(roomResponse, room);
         }
     }
 
