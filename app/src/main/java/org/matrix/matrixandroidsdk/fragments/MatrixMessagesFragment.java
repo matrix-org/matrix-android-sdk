@@ -48,7 +48,6 @@ public class MatrixMessagesFragment extends Fragment {
     private MXSession mSession;
     private Context mContext;
     private Room mRoom;
-    private boolean mJoinedRoom = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,11 +66,12 @@ public class MatrixMessagesFragment extends Fragment {
 
         // check if this room has been joined, if not, join it then get messages.
         mRoom = mSession.getDataHandler().getRoom(roomId);
+        boolean joinedRoom = false;
         mRoom.initHistory();
         if (mRoom != null) {
             RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
             if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
-                mJoinedRoom = true;
+                joinedRoom = true;
             }
         }
 
@@ -87,7 +87,7 @@ public class MatrixMessagesFragment extends Fragment {
             }
         });
 
-        if (!mJoinedRoom) {
+        if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
             joinRoom();
         }
@@ -98,12 +98,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoom() {
-        mRoom.join(new Room.OnCompleteCallback() {
-            @Override
-            public void onComplete() {
-                mJoinedRoom = true;
-            }
-        });
+        mRoom.join();
     }
 
     /* Public API below */
@@ -121,10 +116,7 @@ public class MatrixMessagesFragment extends Fragment {
      * Request earlier messages in this room.
      */
     public void requestHistory(Room.HistoryCompleteCallback callback) {
-        // If the room is not yet joined, pagination requests will fail
-        if (mJoinedRoom) {
-            mRoom.requestHistory(callback);
-        }
+        mRoom.requestHistory(callback);
     }
 
     /**

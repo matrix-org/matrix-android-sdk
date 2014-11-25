@@ -86,7 +86,7 @@ public class Room {
 
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
-    // This is used to block live events until the state is fully processed and ready
+    // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
 
     public String getRoomId() {
@@ -260,7 +260,11 @@ public class Room {
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      */
     public void requestHistory(final HistoryCompleteCallback callback) {
-        if (isPaginating || !canStillPaginate) return; // One at a time please
+        if (isPaginating // One at a time please
+                || !canStillPaginate // If we have already reached the end of history
+                || !isReady) { // If the room is not finished being set up
+            return;
+        }
         isPaginating = true;
         mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new DataRetriever.HistoryCallback() {
             @Override
@@ -307,10 +311,19 @@ public class Room {
                     @Override
                     public void onSuccess(RoomResponse roomInfo) {
                         mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
-                        callback.onComplete();
+                        if (callback != null) {
+                            callback.onComplete();
+                        }
                     }
                 });
             }
         });
+    }
+
+    /**
+     * Shorthand for {@link #join(org.matrix.androidsdk.data.Room.OnCompleteCallback)} with a null callback.
+     */
+    public void join() {
+        join(null);
     }
 }
