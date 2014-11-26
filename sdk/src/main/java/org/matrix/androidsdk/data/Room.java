@@ -18,9 +18,9 @@ package org.matrix.androidsdk.data;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -303,11 +303,11 @@ public class Room {
      * @param callback onComplete callback
      */
     public void join(final OnCompleteCallback callback) {
-        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new RestClient.SimpleApiCallback<Void>() {
+        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // Once we've joined, we run an initial sync on the room to have all of its information
-                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new RestClient.SimpleApiCallback<RoomResponse>() {
+                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>() {
                     @Override
                     public void onSuccess(RoomResponse roomInfo) {
                         mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);

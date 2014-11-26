@@ -19,8 +19,9 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.RoomsApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
@@ -71,7 +72,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback containing the created event if successful
      */
     public void sendMessage(String roomId, Message message, final ApiCallback<Event> callback) {
-        mApi.sendMessage(roomId, message, new ConvertFailureCallback<Event>(callback) {
+        mApi.sendMessage(roomId, message, new FailureAdapterCallback<Event>(callback) {
             @Override
             public void success(Event event, Response response) {
                 callback.onSuccess(event);
@@ -87,7 +88,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback containing the created event if successful
      */
     public void sendEvent(String roomId, String eventType, JsonObject content, final ApiCallback<Event> callback) {
-        mApi.send(roomId, eventType, content, new ConvertFailureCallback<Event>(callback) {
+        mApi.send(roomId, eventType, content, new FailureAdapterCallback<Event>(callback) {
             @Override
             public void success(Event event, Response response) {
                 callback.onSuccess(event);
@@ -101,7 +102,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
     public void getLatestRoomMessages(String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new ConvertFailureCallback<TokensChunkResponse<Event>>(callback) {
+        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new FailureAdapterCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void success(TokensChunkResponse<Event> messageTokensChunkResponse, Response response) {
                 callback.onSuccess(messageTokensChunkResponse);
@@ -116,7 +117,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
     public void getEarlierMessages(String roomId, String fromToken, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new ConvertFailureCallback<TokensChunkResponse<Event>>(callback) {
+        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new FailureAdapterCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void success(TokensChunkResponse<Event> messageTokensChunkResponse, Response response) {
                 callback.onSuccess(messageTokensChunkResponse);
@@ -130,7 +131,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback called with the response
      */
     public void getRoomMembers(String roomId, final ApiCallback<List<RoomMember>> callback) {
-        mApi.members(roomId, new ConvertFailureCallback<TokensChunkResponse<RoomMember>>(callback) {
+        mApi.members(roomId, new FailureAdapterCallback<TokensChunkResponse<RoomMember>>(callback) {
             @Override
             public void success(TokensChunkResponse<RoomMember> messageTokensChunkResponse, Response response) {
                 callback.onSuccess(messageTokensChunkResponse.chunk);
@@ -144,7 +145,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback called with the response
      */
     public void getRoomState(String roomId, final ApiCallback<List<Event>> callback) {
-        mApi.state(roomId, new ConvertFailureCallback<List<Event>>(callback) {
+        mApi.state(roomId, new FailureAdapterCallback<List<Event>>(callback) {
             @Override
             public void success(List<Event> stateEvents, Response response) {
                 callback.onSuccess(stateEvents);
@@ -161,7 +162,7 @@ public class RoomsRestClient extends RestClient {
     public void inviteToRoom(String roomId, String userId, final ApiCallback<Void> callback) {
         User user = new User();
         user.userId = userId;
-        mApi.invite(roomId, user, new ConvertFailureCallback<Void>(callback) {
+        mApi.invite(roomId, user, new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -175,7 +176,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback on success callback
      */
     public void joinRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.join(roomId, new JsonObject(), new ConvertFailureCallback<Void>(callback) {
+        mApi.join(roomId, new JsonObject(), new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -189,7 +190,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback on success callback
      */
     public void leaveRoom(String roomId, final ApiCallback<Void> callback) {
-        mApi.leave(roomId, new JsonObject(), new ConvertFailureCallback<Void>(callback) {
+        mApi.leave(roomId, new JsonObject(), new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -205,7 +206,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback on success callback
      */
     public void banFromRoom(String roomId, String userId, String reason, final ApiCallback<Void> callback) {
-        mApi.ban(roomId, userId, reason, new ConvertFailureCallback<Void>(callback) {
+        mApi.ban(roomId, userId, reason, new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -228,7 +229,7 @@ public class RoomsRestClient extends RestClient {
         roomState.visibility = visibility;
         roomState.roomAliasName = alias;
 
-        mApi.createRoom(roomState, new ConvertFailureCallback<CreateRoomResponse>(callback) {
+        mApi.createRoom(roomState, new FailureAdapterCallback<CreateRoomResponse>(callback) {
             @Override
             public void success(CreateRoomResponse createRoomResponse, Response response) {
                 callback.onSuccess(createRoomResponse);
@@ -242,7 +243,7 @@ public class RoomsRestClient extends RestClient {
      * @param callback the callback in case of success
      */
     public void initialSync(String roomId, final ApiCallback<RoomResponse> callback) {
-        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new ConvertFailureCallback<RoomResponse>(callback) {
+        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new FailureAdapterCallback<RoomResponse>(callback) {
             @Override
             public void success(RoomResponse roomResponse, Response response) {
                 callback.onSuccess(roomResponse);

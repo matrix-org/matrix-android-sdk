@@ -17,12 +17,12 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
-import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.ApiCallback;
+import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
+import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.concurrent.CountDownLatch;
@@ -46,54 +46,36 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mKilling = false;
 
+    // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
+    private FailureAdapterCallback mEventsFailureCallback;
+
     /**
-     * Shared implementation of the API callback for all API calls from this class.
-     * {@inheritDoc}
+     * Default constructor.
+     * @param apiClient API client to make the events API calls
+     * @param listener a listener to inform
+     * @param failureCallback an ApiCallback to be informed of failures
      */
-    private class DefaultApiCallback<T> implements ApiCallback<T> {
-        @Override
-        public void onSuccess(T info) {
-        }
-
-        @Override
-        public void onNetworkError(Exception e) {
-            Log.e(LOG_TAG, "Network error: " + e.getMessage());
-            Log.i(LOG_TAG, "Waiting a bit before retrying");
-            try {
-                Thread.sleep(RETRY_WAIT_TIME_MS);
-            } catch (InterruptedException e1) {
-                Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
-            }
-        }
-
-        @Override
-        public void onMatrixError(MatrixError e) {
-            // TODO: Handle Matrix errors
-        }
-
-        @Override
-        public void onUnexpectedError(Exception e) {
-            Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, ApiFailureCallback failureCallback) {
+        super("Events thread");
+        mApiClient = apiClient;
+        mListener = listener;
+        if (failureCallback != null) {
+            mEventsFailureCallback = new FailureAdapterCallback(failureCallback) {
+                @Override
+                public void success(Object o, Response response) {
+                    // This won't happen
+                }
+            };
         }
     }
 
-    // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
-    private RestClient.ConvertFailureCallback eventsFailureCallback = new RestClient.ConvertFailureCallback(new DefaultApiCallback()) {
-        @Override
-        public void success(Object o, Response response) {
-            // This won't happen
-        }
-    };
-
     /**
-     *
+     * Constructor with no custom error handling.
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      */
     public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
-        super("Events thread");
-        mApiClient = apiClient;
-        mListener = listener;
+        this(apiClient, listener, null);
     }
 
     /**
@@ -132,7 +114,7 @@ public class EventsThread extends Thread {
         // Start with initial sync
         while (!mInitialSyncDone) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mApiClient.initialSync(new DefaultApiCallback<InitialSyncResponse>() {
+            mApiClient.initialSync(new SimpleApiCallback<InitialSyncResponse>() {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
@@ -145,7 +127,6 @@ public class EventsThread extends Thread {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    super.onNetworkError(e);
                     // unblock the events thread
                     latch.countDown();
                 }
@@ -181,7 +162,13 @@ public class EventsThread extends Thread {
                 mCurrentToken = eventsResponse.end;
             }
             catch (RetrofitError error) {
-                eventsFailureCallback.failure(error);
+                mEventsFailureCallback.failure(error);
+                Log.i(LOG_TAG, "Waiting a bit before retrying");
+                try {
+                    Thread.sleep(RETRY_WAIT_TIME_MS);
+                } catch (InterruptedException e1) {
+                    Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                }
             }
         }
         Log.d(LOG_TAG, "Event stream terminating.");

@@ -18,6 +18,7 @@ package org.matrix.androidsdk;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -151,31 +152,58 @@ public class MXSession {
     }
 
     /**
-     * Start the event stream (events thread that listens for events) with a custom event listener.
-     * Use this version if not using a data handler.
-     * @param eventsListener the custom event listener
+     * Start the event stream (events thread that listens for events) with an event listener and failure listener.
+     * @param eventsListener the event listener or null if using a DataHandler
+     * @param failureCallback the failure callback or null for a default minimal implementation
      */
-    public void startEventStream(EventsThreadListener eventsListener) {
+    public void startEventStream(EventsThreadListener eventsListener, ApiCallback failureCallback) {
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
         }
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+
+        if (eventsListener == null) {
+            if (mDataHandler == null) {
+                Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
+                return;
+            }
+            eventsListener = new DefaultEventsThreadListener(mDataHandler);
+        }
+
+        if (failureCallback == null) {
+            mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+        }
+        else {
+            mEventsThread = new EventsThread(mEventsRestClient, eventsListener, failureCallback);
+        }
+
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
     }
 
     /**
-     * Start the event stream (events thread that listens for events).
-     * Use this version if using a data handler.
+     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
+     * with no specific error management.
+     */
+    public void startEventStream(EventsThreadListener eventsListener) {
+        startEventStream(eventsListener, null);
+    }
+
+    /**
+     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
+     * using a DataHandler and a specific failure callback.
+     */
+    public void startEventStream(ApiCallback failureCallback) {
+        startEventStream(null, failureCallback);
+    }
+
+    /**
+     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
+     * using a DataHandler and no specific failure callback.
      */
     public void startEventStream() {
-        if (mDataHandler == null) {
-            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
-            return;
-        }
-        startEventStream(new DefaultEventsThreadListener(mDataHandler));
+        startEventStream(null, null);
     }
 
     public void pauseEventStream() {

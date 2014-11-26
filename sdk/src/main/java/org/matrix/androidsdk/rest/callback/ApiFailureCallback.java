@@ -13,21 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest;
+package org.matrix.androidsdk.rest.callback;
 
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
- * Generic callback interface for asynchronously returning information.
- * @param <T> the type of information to return on success
+ * Callback interface for asynchronously returning API call failures.
  */
-public interface ApiCallback<T> {
-
-    /**
-     * Called if the API call is successful.
-     * @param info the returned information
-     */
-    public void onSuccess(T info);
+public interface ApiFailureCallback {
 
     /**
      * Called if there is a network error.

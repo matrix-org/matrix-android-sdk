@@ -23,16 +23,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
-import org.matrix.androidsdk.rest.ApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.concurrent.TimeUnit;
 
-import retrofit.Callback;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
-import retrofit.RetrofitError;
 import retrofit.client.OkClient;
 import retrofit.converter.GsonConverter;
 
@@ -41,7 +37,7 @@ import retrofit.converter.GsonConverter;
  */
 public abstract class RestClient {
 
-    private static final String LOG_TAG = "MXApiClient";
+    private static final String LOG_TAG = "RestClient";
 
     private static final String URI_PREFIX = "/_matrix/client/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
@@ -52,69 +48,6 @@ public abstract class RestClient {
     protected Credentials mCredentials;
 
     protected Gson gson;
-
-    /**
-     * A stub implementation of {@link ApiCallback} which only chosen callbacks
-     * can be implemented.
-     */
-    public static class SimpleApiCallback<T> implements ApiCallback<T> {
-
-        @Override
-        public void onSuccess(T info) {
-
-        }
-
-        @Override
-        public void onNetworkError(Exception e) {
-
-        }
-
-        @Override
-        public void onMatrixError(MatrixError e) {
-
-        }
-
-        @Override
-        public void onUnexpectedError(Exception e) {
-
-        }
-    }
-
-    /**
-     * Custom Retrofit error callback class that will call one of our ApiCallback error callbacks on a Retrofit failure.
-     * When subclassing this, the Retrofit callback success call needs to be implemented.
-     * @param <T> the type to return on success
-     */
-    public abstract static class ConvertFailureCallback<T> implements Callback<T> {
-
-        private ApiCallback apiCallback;
-
-        public ConvertFailureCallback(ApiCallback apiCallback) {
-            this.apiCallback = apiCallback;
-        }
-
-        /**
-         * Default failure implementation that calls the right error handler
-         * @param error
-         */
-        @Override
-        public void failure(RetrofitError error) {
-            Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl()+" body=" + error.getBody());
-            if (error.isNetworkError()) {
-                apiCallback.onNetworkError(error);
-            }
-            else {
-                // Try to convert this into a Matrix error
-                MatrixError mxError = (MatrixError) error.getBodyAs(MatrixError.class);
-                if (mxError != null) {
-                    apiCallback.onMatrixError(mxError);
-                }
-                else {
-                    apiCallback.onUnexpectedError(error);
-                }
-            }
-        }
-    }
 
     /**
      * Public constructor.

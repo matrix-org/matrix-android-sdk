@@ -10,7 +10,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
@@ -31,7 +31,7 @@ public class PublicRoomsActivity extends ActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new EventsRestClient.SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {

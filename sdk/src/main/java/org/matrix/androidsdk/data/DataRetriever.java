@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -64,7 +64,7 @@ public class DataRetriever {
             callback.onComplete(storageResponse);
         }
         else {
-            mRestClient.getEarlierMessages(roomId, token, new RestClient.SimpleApiCallback<TokensChunkResponse<Event>>() {
+            mRestClient.getEarlierMessages(roomId, token, new SimpleApiCallback<TokensChunkResponse<Event>>() {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);

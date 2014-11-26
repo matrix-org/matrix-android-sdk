@@ -16,8 +16,9 @@
 package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.PresenceApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
@@ -62,7 +63,7 @@ public class PresenceRestClient extends RestClient {
         userPresence.presence = presence;
         userPresence.statusMsg = statusMsg;
 
-        mApi.presenceStatus(mCredentials.userId, userPresence, new ConvertFailureCallback<Void>(callback) {
+        mApi.presenceStatus(mCredentials.userId, userPresence, new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -76,7 +77,7 @@ public class PresenceRestClient extends RestClient {
      * @param callback on success callback containing a User object with populated presence and statusMsg fields
      */
     public void getPresence(String userId, final ApiCallback<User> callback) {
-        mApi.presenceStatus(userId, new ConvertFailureCallback<User>(callback) {
+        mApi.presenceStatus(userId, new FailureAdapterCallback<User>(callback) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user);

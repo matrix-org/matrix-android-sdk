@@ -18,8 +18,9 @@ package org.matrix.androidsdk.rest.client;
 import android.net.Uri;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.EventsApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
@@ -81,7 +82,7 @@ public class EventsRestClient extends RestClient {
      * @param callback callback to provide the list of public rooms on success
      */
     public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
-        mApi.publicRooms(new ConvertFailureCallback<TokensChunkResponse<PublicRoom>>(callback) {
+        mApi.publicRooms(new FailureAdapterCallback<TokensChunkResponse<PublicRoom>>(callback) {
             @Override
             public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
                 callback.onSuccess(typedResponse.chunk);
@@ -94,7 +95,7 @@ public class EventsRestClient extends RestClient {
      * @param callback callback to provide the information
      */
     public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
-        mApi.initialSync(10, new ConvertFailureCallback<InitialSyncResponse>(callback) {
+        mApi.initialSync(10, new FailureAdapterCallback<InitialSyncResponse>(callback) {
             @Override
             public void success(InitialSyncResponse initialSync, Response response) {
                 callback.onSuccess(initialSync);

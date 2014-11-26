@@ -10,12 +10,11 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -233,7 +232,7 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(null, null, "public", text, new RestClient.SimpleApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(null, null, "public", text, new SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {
@@ -255,7 +254,7 @@ public class HomeActivity extends ActionBarActivity {
                         return;
                     }
                     MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(text, null, "private", null, new RestClient.SimpleApiCallback<CreateRoomResponse>() {
+                    session.getRoomsApiClient().createRoom(text, null, "private", null, new SimpleApiCallback<CreateRoomResponse>() {
 
                         @Override
                         public void onSuccess(CreateRoomResponse info) {

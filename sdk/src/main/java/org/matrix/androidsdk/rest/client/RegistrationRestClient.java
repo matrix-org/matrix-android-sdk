@@ -20,8 +20,9 @@ import android.net.Uri;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.ApiCallback;
 import org.matrix.androidsdk.rest.api.RegistrationApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 
@@ -69,7 +70,7 @@ public class RegistrationRestClient extends RestClient {
         params.user = user;
         params.password = password;
 
-        mApi.register(params, new ConvertFailureCallback<JsonObject>(callback) {
+        mApi.register(params, new FailureAdapterCallback<JsonObject>(callback) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
