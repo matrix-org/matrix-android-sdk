@@ -49,6 +49,9 @@ public class PublicRoomsActivity extends ActionBarActivity {
                 goToRoom(roomId);
             }
         });
+
+        // The error listener needs the current activity
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
 

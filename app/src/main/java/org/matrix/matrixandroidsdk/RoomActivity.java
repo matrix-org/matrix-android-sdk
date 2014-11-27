@@ -124,6 +124,9 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
         // listen for room name or topic changes
         mSession.getDataHandler().addListener(mSessionListener);
+
+        // The error listener needs the current activity
+        mSession.setFailureCallback(new ErrorListener(this));
     }
 
     @Override
