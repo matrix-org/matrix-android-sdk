@@ -48,34 +48,31 @@ public class EventsThread extends Thread {
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private FailureAdapterCallback mEventsFailureCallback;
+    private ApiFailureCallback mFailureCallback;
 
     /**
      * Default constructor.
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
-     * @param failureCallback an ApiCallback to be informed of failures
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, ApiFailureCallback failureCallback) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
-        if (failureCallback != null) {
-            mEventsFailureCallback = new FailureAdapterCallback(failureCallback) {
-                @Override
-                public void success(Object o, Response response) {
-                    // This won't happen
-                }
-            };
-        }
     }
 
     /**
-     * Constructor with no custom error handling.
-     * @param apiClient API client to make the events API calls
-     * @param listener a listener to inform
+     * Set the failure callback.
+     * @param failureCallback
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
-        this(apiClient, listener, null);
+    public void setFailureCallback(ApiFailureCallback failureCallback) {
+        mFailureCallback = failureCallback;
+        mEventsFailureCallback = new FailureAdapterCallback(failureCallback) {
+            @Override
+            public void success(Object o, Response response) {
+                // This won't happen
+            }
+        };
     }
 
     /**
@@ -114,7 +111,7 @@ public class EventsThread extends Thread {
         // Start with initial sync
         while (!mInitialSyncDone) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mApiClient.initialSync(new SimpleApiCallback<InitialSyncResponse>() {
+            mApiClient.initialSync(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
@@ -127,6 +124,7 @@ public class EventsThread extends Thread {
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    super.onNetworkError(e);
                     // unblock the events thread
                     latch.countDown();
                 }

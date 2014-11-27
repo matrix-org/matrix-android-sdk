@@ -163,6 +163,8 @@ public class HomeActivity extends ActionBarActivity {
         });
 
         startEventStream();
+
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
     @Override

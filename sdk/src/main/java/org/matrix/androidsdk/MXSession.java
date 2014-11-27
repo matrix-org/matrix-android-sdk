@@ -18,7 +18,7 @@ package org.matrix.androidsdk;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -45,6 +45,8 @@ public class MXSession {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
+
+    private ApiFailureCallback mFailureCallback;
 
     /**
      * Create a basic session for direct API calls.
@@ -152,11 +154,10 @@ public class MXSession {
     }
 
     /**
-     * Start the event stream (events thread that listens for events) with an event listener and failure listener.
+     * Start the event stream (events thread that listens for events) with an event listener.
      * @param eventsListener the event listener or null if using a DataHandler
-     * @param failureCallback the failure callback or null for a default minimal implementation
      */
-    public void startEventStream(EventsThreadListener eventsListener, ApiCallback failureCallback) {
+    public void startEventStream(EventsThreadListener eventsListener) {
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
@@ -170,40 +171,29 @@ public class MXSession {
             eventsListener = new DefaultEventsThreadListener(mDataHandler);
         }
 
-        if (failureCallback == null) {
-            mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+        if (mFailureCallback != null) {
+            mEventsThread.setFailureCallback(mFailureCallback);
         }
-        else {
-            mEventsThread = new EventsThread(mEventsRestClient, eventsListener, failureCallback);
-        }
-
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
     }
 
     /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
-     * with no specific error management.
-     */
-    public void startEventStream(EventsThreadListener eventsListener) {
-        startEventStream(eventsListener, null);
-    }
-
-    /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
-     * using a DataHandler and a specific failure callback.
-     */
-    public void startEventStream(ApiCallback failureCallback) {
-        startEventStream(null, failureCallback);
-    }
-
-    /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener, org.matrix.androidsdk.rest.callback.ApiCallback)}
+     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
      */
     public void startEventStream() {
-        startEventStream(null, null);
+        startEventStream(null);
+    }
+
+    /**
+     * Gracefully stop the event stream.
+     */
+    public void stopEventStream() {
+        mEventsThread.kill();
+        mEventsThread = null;
     }
 
     public void pauseEventStream() {
@@ -215,10 +205,13 @@ public class MXSession {
     }
 
     /**
-     * Gracefully stop the event stream.
+     * Set a global failure callback implementation.
+     * @param failureCallback the failure callback
      */
-    public void stopEventStream() {
-        mEventsThread.kill();
-        mEventsThread = null;
+    public void setFailureCallback(ApiFailureCallback failureCallback) {
+        mFailureCallback = failureCallback;
+        if (mEventsThread != null) {
+            mEventsThread.setFailureCallback(failureCallback);
+        }
     }
 }

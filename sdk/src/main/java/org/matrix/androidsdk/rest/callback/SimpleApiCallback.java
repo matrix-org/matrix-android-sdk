@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
-import android.util.Log;
-
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -27,22 +25,48 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     private static final String LOG_TAG = "SimpleApiCallback";
 
+    /**
+     * Failure callback to pass on failures to.
+     */
+    private ApiFailureCallback failureCallback;
+
+    /**
+     * Default constructor.
+     */
+    public SimpleApiCallback() {
+    }
+
+    /**
+     * Constructor to delegate failure callback to another object. This allows us to stack failure callback implementations
+     * in a decorator-type approach.
+     * @param failureCallback the failure callback implementation to delegate to
+     */
+    public SimpleApiCallback(ApiFailureCallback failureCallback) {
+        this.failureCallback = failureCallback;
+    }
+
     @Override
     public void onSuccess(T info) {
     }
 
     @Override
     public void onNetworkError(Exception e) {
-        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+        if (failureCallback != null) {
+            failureCallback.onNetworkError(e);
+        }
     }
 
     @Override
     public void onMatrixError(MatrixError e) {
-        Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
+        if (failureCallback != null) {
+            failureCallback.onMatrixError(e);
+        }
     }
 
     @Override
     public void onUnexpectedError(Exception e) {
-        Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+        if (failureCallback != null) {
+            failureCallback.onUnexpectedError(e);
+        }
     }
 }
