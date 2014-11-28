@@ -65,7 +65,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                         Log.e(LOG_TAG, "Updating room name (via alias).");
                         // FIXME: Won't work because the event hasn't been processed by the room yet
                         Room room = mSession.getDataHandler().getRoom(mRoomId);
-                        setTitle(room.getName());
+                        setTitle(room.getName(mSession.getCredentials().userId));
                     }
                 }
             });
@@ -117,7 +117,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
         // set general room information
         Room room = mSession.getDataHandler().getRoom(mRoomId);
-        setTitle(room.getName());
+        setTitle(room.getName(mSession.getCredentials().userId));
 
         setTopic(room.getTopic());
 

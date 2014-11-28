@@ -119,19 +119,16 @@ public class Room {
         return this.mLiveState.topic;
     }
 
-    public String getName() {
-        if (this.mLiveState.name != null) {
-            return this.mLiveState.name;
-        }
-        else if (this.mLiveState.roomAliasName != null) {
-            return this.mLiveState.roomAliasName;
-        }
-        else if (this.mLiveState.aliases != null && this.mLiveState.aliases.size() > 0) {
-            return this.mLiveState.aliases.get(0);
-        }
-        else {
-            return this.mRoomId;
-        }
+    public String getName(String selfUserId) {
+        return mLiveState.getDisplayName(selfUserId);
+    }
+
+    public String getVisibility() {
+        return mLiveState.visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        mLiveState.visibility = visibility;
     }
 
     /**

@@ -87,6 +87,11 @@ public class MXDataHandler implements IMXEventListener {
             room.processLiveState(roomResponse.state);
         }
 
+        // Handle visibility
+        if (roomResponse.visibility != null) {
+            room.setVisibility(roomResponse.visibility);
+        }
+
         // Handle messages / pagination token
         if (roomResponse.messages != null) {
             mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
@@ -96,7 +101,7 @@ public class MXDataHandler implements IMXEventListener {
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
             beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-            mStore.storeSummary(room.getRoomId(), lastEvent, beforeLiveRoomState);
+            mStore.storeSummary(room.getRoomId(), lastEvent, beforeLiveRoomState, mCredentials.userId);
         }
 
         // Handle presence
@@ -138,7 +143,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.origin_server_ts = System.currentTimeMillis(); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mStore.storeSummary(roomId, inviteEvent, null);
+        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
     }
 
     public IMXStore getStore() {
@@ -184,7 +189,7 @@ public class MXDataHandler implements IMXEventListener {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
             mStore.storeLiveRoomEvent(event);
-            mStore.storeSummary(event.roomId, event, beforeState);
+            mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
             onLiveEvent(event, beforeState);
         }
 

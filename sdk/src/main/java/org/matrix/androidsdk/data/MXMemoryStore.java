@@ -89,7 +89,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeSummary(String roomId, Event event, RoomState roomState) {
+    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
         Room room = mRooms.get(roomId);
         if (room != null) { // Should always be the case
             RoomSummary summary = mRoomSummaries.get(roomId);
@@ -99,7 +99,7 @@ public class MXMemoryStore implements IMXStore {
             summary.setLatestEvent(event);
             summary.setLatestRoomState(roomState);
             summary.setMembers(room.getMembers());
-            summary.setName(room.getName());
+            summary.setName(room.getName(selfUserId));
             summary.setRoomId(room.getRoomId());
             summary.setTopic(room.getTopic());
 

@@ -54,6 +54,8 @@ public interface IMXStore {
      * Store the summary for the given room id.
      * @param roomId the room id
      * @param event the latest event of the room
+     * @param roomState the room state - used to display the event
+     * @param selfUserId our own user id - used to display the room name
      */
-    public void storeSummary(String roomId, Event event, RoomState roomState);
+    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
 }

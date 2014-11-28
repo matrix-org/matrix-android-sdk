@@ -33,6 +33,9 @@ import java.util.Map;
  * The state of a room.
  */
 public class RoomState {
+    public static final String VISIBILITY_PRIVATE = "private";
+    public static final String VISIBILITY_PUBLIC = "public";
+
     // Public members used for JSON mapping
     public String roomId;
     public String name;
@@ -77,6 +80,10 @@ public class RoomState {
         mMembers.remove(userId);
     }
 
+    /**
+     * Make a deep copy of this room state object.
+     * @return the copy
+     */
     public RoomState deepCopy() {
         RoomState copy = new RoomState();
         copy.roomId = roomId;
@@ -98,6 +105,68 @@ public class RoomState {
         return copy;
     }
 
+    /**
+     * Build and return the room's display name.
+     * @param selfUserId this user's user id (to exclude from members)
+     * @return the display name
+     */
+    public String getDisplayName(String selfUserId) {
+        String displayName = null, alias = null;
+
+        if ((aliases != null) && (aliases.size() != 0)) {
+            alias = aliases.get(0);
+        }
+
+        if (name != null) {
+            displayName = name;
+        }
+        else if (alias != null) {
+            displayName = alias;
+        }
+
+        else if (VISIBILITY_PRIVATE.equals(visibility)) {
+            Iterator it = mMembers.entrySet().iterator();
+            Map.Entry<String, RoomMember> otherUserPair = null;
+            // A One2One private room can default to being called like the other guy
+            if ((mMembers.size() == 2) && (selfUserId != null)) {
+                while (it.hasNext()) {
+                    Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+                    if (!selfUserId.equals(pair.getKey())) {
+                        otherUserPair = pair;
+                        break;
+                    }
+                }
+            }
+            // A private room with just one user (probably you) can be shown as the name of the user
+            else if (mMembers.size() == 1) {
+                otherUserPair = (Map.Entry<String, RoomMember>) it.next();
+            }
+
+            if (otherUserPair != null) {
+                if (otherUserPair.getValue().getName() != null) {
+                    displayName = otherUserPair.getValue().getName(); // The member name
+                } else {
+                    displayName = otherUserPair.getKey(); // The user id
+                }
+            }
+        }
+
+        if ((displayName != null) && (alias != null) && !displayName.equals(alias)) {
+            displayName += " (" + alias + ")";
+        }
+
+        if (displayName == null) {
+            displayName = roomId;
+        }
+
+        return displayName;
+    }
+
+    /**
+     * Apply the given event (relevant for state changes) to our state.
+     * @param event the event
+     * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
+     */
     public void applyState(Event event, Room.EventDirection direction) {
         if (event.stateKey == null) return; // Ignore non-state events
 
