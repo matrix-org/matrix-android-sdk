@@ -210,38 +210,7 @@ public class Room {
      */
     public void processStateEvent(Event event, EventDirection direction) {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        JsonObject contentToConsider = (direction == EventDirection.FORWARDS) ? event.content : event.prevContent;
-
-        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.name = (roomState == null) ? null : roomState.name;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.topic = (roomState == null) ? null : roomState.topic;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.creator = (roomState == null) ? null : roomState.creator;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.joinRule = (roomState == null) ? null : roomState.joinRule;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            affectedState.aliases = (roomState == null) ? null : roomState.aliases;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
-            String userId = event.stateKey;
-            if (member == null) {
-                affectedState.removeMember(userId);
-            }
-            else {
-                affectedState.setMember(userId, member);
-            }
-        }
+        affectedState.applyState(event, direction);
     }
 
     /**

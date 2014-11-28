@@ -81,11 +81,12 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
      * Set the latest event for a room summary.
      * @param event The latest event
      */
-    public void setLatestEvent(Event event) {
+    public void setLatestEvent(Event event, RoomState roomState) {
         for (int i=0; i<getCount(); i++) {
             RoomSummary summary = getItem(i);
             if (event.roomId.equals(summary.getRoomId())) {
                 summary.setLatestEvent(event);
+                summary.setLatestRoomState(roomState);
                 sortSummaries();
                 notifyDataSetChanged();
                 break;
@@ -121,7 +122,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         }
 
         if (summary.getLatestEvent() != null) {
-            AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent());
+            AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), summary.getLatestRoomState());
             display.setPrependMessagesWithAuthor(true);
             message = display.getTextualDisplay();
 

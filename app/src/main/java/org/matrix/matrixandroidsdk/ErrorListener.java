@@ -38,7 +38,7 @@ public class ErrorListener implements ApiFailureCallback {
         mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(mActivity, "Connection error", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mActivity, "Network error", Toast.LENGTH_SHORT).show();
             }
         });
     }

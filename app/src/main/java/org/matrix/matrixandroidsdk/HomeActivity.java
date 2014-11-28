@@ -43,11 +43,11 @@ public class HomeActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onLiveEvent(final Event event, RoomState roomState) {
+        public void onLiveEvent(final Event event, final RoomState roomState) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.setLatestEvent(event);
+                    mAdapter.setLatestEvent(event, roomState);
 
                     if (event.roomId != null) {
                         String selfUserId = mSession.getCredentials().userId;
@@ -75,6 +75,7 @@ public class HomeActivity extends ActionBarActivity {
                             return;
                         }
                         summary.setLatestEvent(event);
+                        summary.setLatestRoomState(roomState);
 
                         if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                 isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {

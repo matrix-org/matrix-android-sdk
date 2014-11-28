@@ -13,6 +13,7 @@ import android.widget.TextView;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -33,10 +34,12 @@ public class AdapterUtils {
         private Event mEvent;
         private Context mContext;
         private boolean mPrependAuthor;
+        private RoomState mRoomState;
 
-        public EventDisplay(Context context, Event event) {
+        public EventDisplay(Context context, Event event, RoomState roomState) {
             mContext = context.getApplicationContext();
             mEvent = event;
+            mRoomState = roomState;
         }
 
         /**
@@ -49,6 +52,11 @@ public class AdapterUtils {
             mPrependAuthor = prepend;
         }
 
+        private String getUserDisplayName(String userId) {
+            RoomMember roomMember = mRoomState.getMember(userId);
+            return (roomMember != null) ? roomMember.getName() : userId;
+        }
+
         /**
          * Get the textual body for this event.
          * @return The text or null if it isn't possible.
@@ -56,6 +64,7 @@ public class AdapterUtils {
         public CharSequence getTextualDisplay() {
             CharSequence text = null;
             try {
+                String userDisplayName = getUserDisplayName(mEvent.userId);
                 if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                     // all m.room.message events should support the 'body' key fallback, so use it.
                     text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
@@ -73,18 +82,18 @@ public class AdapterUtils {
                     }
 
                     if (mPrependAuthor) {
-                        text = mContext.getString(R.string.summary_message, mEvent.userId, text);
+                        text = mContext.getString(R.string.summary_message, userDisplayName, text);
                     }
                 }
                 else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                     // pretty print 'XXX changed the topic to YYYY'
                     text = mContext.getString(R.string.notice_topic_changed,
-                            mEvent.userId, mEvent.content.getAsJsonPrimitive("topic").getAsString());
+                            userDisplayName, mEvent.content.getAsJsonPrimitive("topic").getAsString());
                 }
                 else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
                     // pretty print 'XXX changed the room name to YYYY'
                     text = mContext.getString(R.string.notice_room_name_changed,
-                            mEvent.userId, mEvent.content.getAsJsonPrimitive("name").getAsString());
+                            userDisplayName, mEvent.content.getAsJsonPrimitive("name").getAsString());
                 }
                 else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
                     // m.room.member is used to represent at least 3 different changes in state: membership,
@@ -125,17 +134,18 @@ public class AdapterUtils {
 
         private String getMembershipNotice(Event msg) {
             String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
+            String userDisplayName = getUserDisplayName(msg.userId);
             if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-                return mContext.getString(R.string.notice_room_invite, msg.userId, msg.stateKey);
+                return mContext.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey));
             }
             else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_join, msg.userId);
+                return mContext.getString(R.string.notice_room_join, userDisplayName);
             }
             else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
-                return mContext.getString(R.string.notice_room_leave, msg.userId);
+                return mContext.getString(R.string.notice_room_leave, userDisplayName);
             }
             else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_ban, msg.userId);
+                return mContext.getString(R.string.notice_room_ban, userDisplayName);
             }
             else {
                 // eh?
@@ -146,13 +156,12 @@ public class AdapterUtils {
 
         private String getAvatarChangeNotice(Event msg) {
             // TODO: Pictures!
-            return mContext.getString(R.string.notice_avatar_url_changed, msg.userId);
+            return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.userId));
         }
 
         private String getDisplayNameChangeNotice(Event msg) {
             return mContext.getString(R.string.notice_display_name_changed,
-                    msg.userId,
-                    msg.prevContent.getAsJsonPrimitive("displayname").getAsString(),
+                    getUserDisplayName(msg.userId),
                     msg.content.getAsJsonPrimitive("displayname").getAsString()
             );
         }

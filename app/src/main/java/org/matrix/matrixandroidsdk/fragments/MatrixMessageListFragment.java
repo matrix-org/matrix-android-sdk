@@ -153,21 +153,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onLiveEvent(final Event event, RoomState roomState) {
+    public void onLiveEvent(final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAdapter.add(event);
+                mAdapter.add(event, roomState);
             }
         });
     }
 
     @Override
-    public void onBackEvent(final Event event, RoomState roomState) {
+    public void onBackEvent(final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAdapter.addToFront(event);
+                mAdapter.addToFront(event, roomState);
             }
         });
     }

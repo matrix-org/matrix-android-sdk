@@ -15,8 +15,12 @@
  */
 package org.matrix.androidsdk.data;
 
+import com.google.gson.JsonObject;
+
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,5 +96,42 @@ public class RoomState {
         }
 
         return copy;
+    }
+
+    public void applyState(Event event, Room.EventDirection direction) {
+        if (event.stateKey == null) return; // Ignore non-state events
+
+        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.content : event.prevContent;
+
+        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            name = (roomState == null) ? null : roomState.name;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            topic = (roomState == null) ? null : roomState.topic;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            creator = (roomState == null) ? null : roomState.creator;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            joinRule = (roomState == null) ? null : roomState.joinRule;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+            aliases = (roomState == null) ? null : roomState.aliases;
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
+            String userId = event.stateKey;
+            if (member == null) {
+                removeMember(userId);
+            }
+            else {
+                setMember(userId, member);
+            }
+        }
     }
 }

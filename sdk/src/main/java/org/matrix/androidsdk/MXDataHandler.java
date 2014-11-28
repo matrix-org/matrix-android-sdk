@@ -90,6 +90,13 @@ public class MXDataHandler implements IMXEventListener {
         // Handle messages / pagination token
         if (roomResponse.messages != null) {
             mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
+
+            // To store the summary, we need the last event and the room state from just before
+            Event lastEvent = roomResponse.messages.chunk.get(roomResponse.messages.chunk.size() - 1);
+            RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+            beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+
+            mStore.storeSummary(room.getRoomId(), lastEvent, beforeLiveRoomState);
         }
 
         // Handle presence
@@ -131,7 +138,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.origin_server_ts = System.currentTimeMillis(); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mStore.storeSummary(roomId, inviteEvent);
+        mStore.storeSummary(roomId, inviteEvent, null);
     }
 
     public IMXStore getStore() {
@@ -177,6 +184,7 @@ public class MXDataHandler implements IMXEventListener {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
             mStore.storeLiveRoomEvent(event);
+            mStore.storeSummary(event.roomId, event, beforeState);
             onLiveEvent(event, beforeState);
         }
 

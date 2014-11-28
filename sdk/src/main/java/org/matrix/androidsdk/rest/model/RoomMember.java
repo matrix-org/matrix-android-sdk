@@ -38,6 +38,21 @@ public class RoomMember {
         this.user = user;
     }
 
+    public String getName() {
+        if (displayname != null) {
+            return displayname;
+        }
+        if (user != null) {
+            if (user.displayname != null) {
+                return user.displayname;
+            }
+            else {
+                return user.userId;
+            }
+        }
+        return null;
+    }
+
     public RoomMember deepCopy() {
         RoomMember copy = new RoomMember();
         copy.displayname = displayname;

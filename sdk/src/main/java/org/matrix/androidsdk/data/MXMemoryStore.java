@@ -73,7 +73,6 @@ public class MXMemoryStore implements IMXStore {
             // wait for the first pagination request to set things right
             events.add(event);
         }
-        storeSummary(event.roomId, event);
     }
 
     @Override
@@ -86,14 +85,11 @@ public class MXMemoryStore implements IMXStore {
                 mRoomTokens.put(roomId, eventsResponse.start);
             }
             events.addAll(eventsResponse.chunk);
-
-            // Store summary
-            storeSummary(roomId, eventsResponse.chunk.get(eventsResponse.chunk.size() - 1));
         }
     }
 
     @Override
-    public void storeSummary(String roomId, Event event) {
+    public void storeSummary(String roomId, Event event, RoomState roomState) {
         Room room = mRooms.get(roomId);
         if (room != null) { // Should always be the case
             RoomSummary summary = mRoomSummaries.get(roomId);
@@ -101,6 +97,7 @@ public class MXMemoryStore implements IMXStore {
                 summary = new RoomSummary();
             }
             summary.setLatestEvent(event);
+            summary.setLatestRoomState(roomState);
             summary.setMembers(room.getMembers());
             summary.setName(room.getName());
             summary.setRoomId(room.getRoomId());

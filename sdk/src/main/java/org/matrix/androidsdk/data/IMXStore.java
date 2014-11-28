@@ -55,5 +55,5 @@ public interface IMXStore {
      * @param roomId the room id
      * @param event the latest event of the room
      */
-    public void storeSummary(String roomId, Event event);
+    public void storeSummary(String roomId, Event event, RoomState roomState);
 }

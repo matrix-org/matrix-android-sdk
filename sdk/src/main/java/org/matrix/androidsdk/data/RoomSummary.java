@@ -16,6 +16,7 @@ public class RoomSummary {
     private String mTopic;
     private int mNumMembers;
     private Event mLatestEvent;
+    private RoomState mLatestRoomState;
     private Collection<RoomMember> mMembers;
     private String mInviter; // only populated if you've been invited.
 
@@ -48,6 +49,10 @@ public class RoomSummary {
 
     public Event getLatestEvent() {
         return mLatestEvent;
+    }
+
+    public RoomState getLatestRoomState() {
+        return mLatestRoomState;
     }
 
     public boolean isInvited() {
@@ -121,6 +126,16 @@ public class RoomSummary {
      */
     public RoomSummary setLatestEvent(Event event) {
         mLatestEvent = event;
+        return this;
+    }
+
+    /**
+     * Set the latest tracked event (e.g. the latest m.room.message)
+     * @param roomState The room state of the latest event.
+     * @return This summary for chaining calls.
+     */
+    public RoomSummary setLatestRoomState(RoomState roomState) {
+        mLatestRoomState = roomState;
         return this;
     }
 
