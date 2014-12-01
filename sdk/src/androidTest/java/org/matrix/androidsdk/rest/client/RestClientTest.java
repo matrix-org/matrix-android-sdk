@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.matrix.androidsdk.rest.ApiCallback;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
