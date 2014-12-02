@@ -53,6 +53,16 @@ public class RoomMember {
         return null;
     }
 
+    public String getAvatarUrl() {
+        if (avatarUrl != null) {
+            return avatarUrl;
+        }
+        if ((user != null) && (user.avatarUrl != null)) {
+            return user.avatarUrl;
+        }
+        return null;
+    }
+
     public RoomMember deepCopy() {
         RoomMember copy = new RoomMember();
         copy.displayname = displayname;

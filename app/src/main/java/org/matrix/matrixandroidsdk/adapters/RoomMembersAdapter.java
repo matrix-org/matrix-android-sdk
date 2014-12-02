@@ -30,7 +30,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
 
     /**
-     * Construct an adapter which will display a list of rooms.
+     * Construct an adapter which will display a list of room members.
      * @param context Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
@@ -101,7 +101,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         RoomMember member = getItem(position);
 
         TextView textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_name);
-        textView.setText(getMemberName(member, false));
+        textView.setText(member.getName());
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
         textView.setText(mMembershipStrings.get(member.membership));
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);

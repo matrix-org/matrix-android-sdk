@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,13 +75,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public void addToFront(Event event, RoomState roomState) {
         if (isKnownEvent(event, roomState)) {
-            this.insert(new MessageRow(event, roomState), 0);
+            insert(new MessageRow(event, roomState), 0);
         }
     }
 
     public void add(Event event, RoomState roomState) {
         if (isKnownEvent(event, roomState)) {
-            super.add(new MessageRow(event, roomState));
+            add(new MessageRow(event, roomState));
         }
     }
 
@@ -150,8 +151,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
+        RoomState roomState = row.getRoomState();
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, row.getRoomState());
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
         CharSequence body = display.getTextualDisplay();
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
@@ -161,6 +163,18 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
         textView.setText(getTimestamp(msg.origin_server_ts));
+
+        // Sender avatar
+        RoomMember sender = roomState.getMember(msg.userId);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        avatarView.setTag(null);
+        avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        if (sender != null) {
+            String url = sender.getAvatarUrl();
+            if (!TextUtils.isEmpty(url)) {
+                AdapterUtils.loadBitmap(avatarView, url);
+            }
+        }
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -173,13 +187,28 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
+        RoomState roomState = row.getRoomState();
+
         String thumbUrl = msg.content.get("thumbnail_url") == null ? null : msg.content.get("thumbnail_url").getAsString();
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
         AdapterUtils.loadBitmap(imageView, thumbUrl);
 
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
-        textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
+        textView.setText(getUserDisplayName(msg.userId, roomState));
+
+        // Sender avatar
+        RoomMember sender = roomState.getMember(msg.userId);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        avatarView.setTag(null);
+        avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        if (sender != null) {
+            String url = sender.getAvatarUrl();
+            if (!TextUtils.isEmpty(url)) {
+                AdapterUtils.loadBitmap(avatarView, url);
+            }
+        }
+
         setBackgroundColour(convertView, position);
         return convertView;
     }
@@ -191,12 +220,25 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
+        RoomState roomState = row.getRoomState();
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, row.getRoomState());
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
         CharSequence notice = display.getTextualDisplay();
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
         textView.setText(notice);
+
+        // Sender avatar
+        RoomMember sender = roomState.getMember(msg.userId);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        avatarView.setTag(null);
+        avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        if (sender != null) {
+            String url = sender.getAvatarUrl();
+            if (!TextUtils.isEmpty(url)) {
+                AdapterUtils.loadBitmap(avatarView, url);
+            }
+        }
 
         return convertView;
     }
@@ -208,10 +250,23 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
+        RoomState roomState = row.getRoomState();
 
-        String emote = msg.userId + " ";
+        // Sender avatar
+        RoomMember sender = roomState.getMember(msg.userId);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        avatarView.setTag(null);
+        avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        if (sender != null) {
+            String url = sender.getAvatarUrl();
+            if (!TextUtils.isEmpty(url)) {
+                AdapterUtils.loadBitmap(avatarView, url);
+            }
+        }
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, row.getRoomState());
+        String emote = getUserDisplayName(msg.userId, roomState) + " ";
+
+        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
         emote += display.getTextualDisplay();
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_emote);
