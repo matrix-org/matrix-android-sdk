@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Matrix Android SDK</string>
+    <string name="app_name">Matrix Console</string>
     <string name="title_activity_home">Matrix Home</string>
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>
