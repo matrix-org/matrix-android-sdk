@@ -26,7 +26,7 @@ public class LoginActivity extends ActionBarActivity {
         setContentView(R.layout.activity_login);
 
         if (hasCredentials()) {
-            goToHomepage();
+            goToSplash();
             finish();
         }
 
@@ -54,7 +54,7 @@ public class LoginActivity extends ActionBarActivity {
             public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
                 Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
-                goToHomepage();
+                goToSplash();
                 LoginActivity.this.finish();
             }
 
@@ -71,7 +71,7 @@ public class LoginActivity extends ActionBarActivity {
     }
 
 
-    private void goToHomepage() {
-        startActivity(new Intent(this, HomeActivity.class));
+    private void goToSplash() {
+        startActivity(new Intent(this, SplashActivity.class));
     }
 }

@@ -164,10 +164,6 @@ public class HomeActivity extends ActionBarActivity {
                 goToRoomPage(mAdapter.getItem(i).getRoomId());
             }
         });
-
-        startEventStream();
-
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
     @Override
@@ -175,15 +171,6 @@ public class HomeActivity extends ActionBarActivity {
         super.onDestroy();
         mSession.getDataHandler().removeListener(mListener);
     }
-
-    public void startEventStream() {
-        Intent intent = new Intent(this, EventStreamService.class);
-        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
-                EventStreamService.StreamAction.START.ordinal());
-        // TODO Add args to specify which session.
-        startService(intent);
-    }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
