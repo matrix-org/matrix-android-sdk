@@ -143,6 +143,8 @@ public class HomeActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        getActionBar().setDisplayShowTitleEnabled(false);
+
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {
             finish();

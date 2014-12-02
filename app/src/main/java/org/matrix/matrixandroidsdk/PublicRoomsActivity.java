@@ -27,6 +27,8 @@ public class PublicRoomsActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_public_rooms);
 
+        getActionBar().setDisplayHomeAsUpEnabled(true);
+
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);

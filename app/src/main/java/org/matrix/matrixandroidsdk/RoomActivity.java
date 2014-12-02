@@ -77,6 +77,8 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
+        getActionBar().setDisplayHomeAsUpEnabled(true);
+
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
             Log.e(LOG_TAG, "No room ID extra.");
