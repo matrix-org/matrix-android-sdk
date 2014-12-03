@@ -12,8 +12,8 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
@@ -138,9 +138,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void requestHistory() {
         final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-        mMatrixMessagesFragment.requestHistory(new Room.HistoryCompleteCallback() {
+        mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
             @Override
-            public void onComplete(final int count) {
+            public void onSuccess(final Integer count) {
                 // Scroll the list down to where it was before adding rows to the top
                 mUiHandler.post(new Runnable() {
                     @Override

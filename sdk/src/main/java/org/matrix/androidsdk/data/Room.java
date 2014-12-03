@@ -20,8 +20,10 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -55,22 +57,6 @@ public class Room {
          * The direction for old events requested through pagination.
          */
         BACKWARDS
-    }
-
-    /**
-     * Callback to implement to be informed when an operation is complete (pagination, ...).
-     */
-    public static interface OnCompleteCallback {
-        /** The operation is complete. */
-        public void onComplete();
-    }
-
-    /**
-     * Callback to implement to be informed when an history request is complete.
-     */
-    public static interface HistoryCompleteCallback {
-        /** The operation is complete. */
-        public void onComplete(int count);
     }
 
     private String mRoomId;
@@ -225,40 +211,58 @@ public class Room {
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      */
-    public void requestHistory(final HistoryCompleteCallback callback) {
+    public void requestHistory(final ApiCallback<Integer> callback) {
         if (isPaginating // One at a time please
                 || !canStillPaginate // If we have already reached the end of history
                 || !isReady) { // If the room is not finished being set up
             return;
         }
         isPaginating = true;
-        mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new DataRetriever.HistoryCallback() {
+        mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
-            public void onComplete(TokensChunkResponse<Event> response) {
-                if (response == null) {
+            public void onSuccess(TokensChunkResponse<Event> response) {
+                mBackState.setToken(response.end);
+                for (Event event : response.chunk) {
+                    if (event.stateKey != null) {
+                        processStateEvent(event, EventDirection.BACKWARDS);
+                    }
+                    mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                }
+                if (response.chunk.size() == 0) {
                     canStillPaginate = false;
-                } else {
-                    mBackState.setToken(response.end);
-                    for (Event event : response.chunk) {
-                        if (event.stateKey != null) {
-                            processStateEvent(event, EventDirection.BACKWARDS);
-                        }
-                        mDataHandler.onBackEvent(event, mBackState.deepCopy());
-                    }
-                    if (response.chunk.size() == 0) {
-                        canStillPaginate = false;
-                    }
-                    if (callback != null) {
-                        callback.onComplete(response.chunk.size());
-                    }
+                }
+                if (callback != null) {
+                    callback.onSuccess(response.chunk.size());
                 }
                 isPaginating = false;
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                // When we've retrieved all the messages from a room, the pagination token is some invalid value
+                if (MatrixError.UNKNOWN.equals(e.errcode)) {
+                    canStillPaginate = false;
+                }
+                isPaginating = false;
+                super.onMatrixError(e);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                isPaginating = false;
+                super.onNetworkError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                isPaginating = false;
+                super.onUnexpectedError(e);
             }
         });
     }
 
     /**
-     * Shorthand for {@link #requestHistory(org.matrix.androidsdk.data.Room.HistoryCompleteCallback)} with a null callback.
+     * Shorthand for {@link #requestHistory(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
      */
     public void requestHistory() {
         requestHistory(null);
@@ -268,17 +272,17 @@ public class Room {
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      * @param callback onComplete callback
      */
-    public void join(final OnCompleteCallback callback) {
-        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>() {
+    public void join(final ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>(callback) {
             @Override
-            public void onSuccess(Void info) {
+            public void onSuccess(final Void info) {
                 // Once we've joined, we run an initial sync on the room to have all of its information
-                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>() {
+                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
                     @Override
                     public void onSuccess(RoomResponse roomInfo) {
                         mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
                         if (callback != null) {
-                            callback.onComplete();
+                            callback.onSuccess(info);
                         }
                     }
                 });
@@ -287,9 +291,13 @@ public class Room {
     }
 
     /**
-     * Shorthand for {@link #join(org.matrix.androidsdk.data.Room.OnCompleteCallback)} with a null callback.
+     * Shorthand for {@link #join(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
      */
     public void join() {
         join(null);
+    }
+
+    public void invite(String userId, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userId, callback);
     }
 }
