@@ -24,6 +24,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -208,6 +209,15 @@ public class Room {
     }
 
     /**
+     * Send a message to the room.
+     * @param message the message
+     * @param callback the callback with the created event
+     */
+    public void sendMessage(Message message, ApiCallback<Event> callback) {
+        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, message, callback);
+    }
+
+    /**
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      */
@@ -270,7 +280,7 @@ public class Room {
 
     /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
-     * @param callback onComplete callback
+     * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>(callback) {
@@ -297,7 +307,20 @@ public class Room {
         join(null);
     }
 
+    /**
+     * Invite a user to this room.
+     * @param userId the user id
+     * @param callback the callback for when done
+     */
     public void invite(String userId, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userId, callback);
+    }
+
+    /**
+     * Leave the room.
+     * @param callback the callback for when done
+     */
+    public void leave(ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, callback);
     }
 }

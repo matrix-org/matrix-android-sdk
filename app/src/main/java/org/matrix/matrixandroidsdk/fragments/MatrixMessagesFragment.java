@@ -143,7 +143,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     public void send(Message message) {
-        mSession.getRoomsApiClient().sendMessage(mRoom.getRoomId(), message, new SimpleApiCallback<Event>() {
+        mRoom.sendMessage(message, new SimpleApiCallback<Event>() {
 
             @Override
             public void onSuccess(Event info) {
