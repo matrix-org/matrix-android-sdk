@@ -96,6 +96,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(args.getString(ARG_ROOM_ID), this);
             fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
         }
+        else {
+            // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
+            mMatrixMessagesFragment.setMatrixMessagesListener(this);
+        }
     }
 
     @Override

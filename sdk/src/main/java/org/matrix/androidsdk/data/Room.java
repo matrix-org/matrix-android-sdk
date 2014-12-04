@@ -174,7 +174,7 @@ public class Room {
      * @param eventListener the event listener to remove
      */
     public void removeEventListener(IMXEventListener eventListener) {
-        mDataHandler.addListener(mEventListeners.get(eventListener));
+        mDataHandler.removeListener(mEventListeners.get(eventListener));
         mEventListeners.remove(eventListener);
     }
 
