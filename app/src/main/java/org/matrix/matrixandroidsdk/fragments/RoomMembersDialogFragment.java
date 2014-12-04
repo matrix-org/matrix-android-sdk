@@ -1,27 +1,36 @@
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A dialog fragment showing a list of room members for a given room.
  */
 public class RoomMembersDialogFragment extends DialogFragment {
+    private static final String LOG_TAG = "RoomMembersDialogFragment";
+
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment.ARG_ROOM_ID";
 
     public static RoomMembersDialogFragment newInstance(String roomId) {
@@ -67,7 +76,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 R.layout.adapter_item_room_members
         );
 
-        Room room = mSession.getDataHandler().getRoom(mRoomId);
+        final Room room = mSession.getDataHandler().getRoom(mRoomId);
         if (room != null) {
             Collection<RoomMember> members = room.getMembers();
             if (members != null) {
@@ -79,6 +88,58 @@ public class RoomMembersDialogFragment extends DialogFragment {
         }
 
         mListView.setAdapter(mAdapter);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            private static final int OPTION_CANCEL = 0;
+            private static final int OPTION_KICK = 1;
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Get the member and display the possible actions for them
+                final RoomMember roomMember = mAdapter.getItem(position);
+
+                // TODO: Filter out unavailable options (depending on power levels and the member's state)
+                final List<Integer> options = Arrays.asList(new Integer[] {OPTION_KICK, OPTION_CANCEL});
+
+                new AlertDialog.Builder(getActivity())
+                        .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (options.get(which)) {
+                                    case OPTION_CANCEL:
+                                        dialog.cancel();
+                                        break;
+                                    case OPTION_KICK:
+                                        room.kick(roomMember.getUser().userId, new SimpleApiCallback<Void>());
+                                        dialog.dismiss();
+                                        break;
+                                    default:
+                                        Log.e(LOG_TAG, "Unknown option: " + which);
+                                }
+                            }
+                        })
+                        .create()
+                        .show();
+            }
+
+            private String[] buildOptionLabels(List<Integer> options) {
+                String[] labels = new String[options.size()];
+                for (int i = 0; i < options.size(); i++) {
+                    String label = "";
+                    switch (options.get(i)) {
+                        case OPTION_CANCEL:
+                            label = getString(R.string.cancel);
+                            break;
+                        case OPTION_KICK:
+                            label = getString(R.string.kick);
+                            break;
+                    }
+                    labels[i] = label;
+                }
+
+                return labels;
+            }
+        });
 
         return v;
     }

@@ -323,4 +323,13 @@ public class Room {
     public void leave(ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, callback);
     }
+
+    /**
+     * Kick a user from the room.
+     * @param userId the user id
+     * @param callback the async callback
+     */
+    public void kick(String userId, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().kickFromRoom(mRoomId, userId, callback);
+    }
 }

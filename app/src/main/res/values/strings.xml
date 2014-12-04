@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <string name="cancel">Cancel</string>
+
     <string name="app_name">Matrix Console</string>
     <string name="title_activity_home">Matrix Home</string>
     <string name="action_settings">Settings</string>
@@ -27,6 +29,7 @@
     <string name="membership_invite">Invited</string>
     <string name="membership_join">Joined</string>
     <string name="membership_leave">Left</string>
+    <string name="membership_kick">Kicked</string>
     <string name="membership_ban">Banned</string>
 
     <string name="notice_room_invite">%1$s invited %2$s to the room.</string>
@@ -44,5 +47,7 @@
     </plurals>
 
     <string name="summary_message">%1$s: %2$s</string>
+
+    <string name="kick">Kick</string>
 
 </resources>
