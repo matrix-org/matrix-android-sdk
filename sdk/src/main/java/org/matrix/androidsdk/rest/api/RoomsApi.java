@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.api;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
@@ -146,12 +147,11 @@ public interface RoomsApi {
     /**
      * Ban a user from the given room.
      * @param roomId the room id
-     * @param userId the user id
-     * @param reason the reason for banning
+     * @param user the banned user object (userId and reason for ban)
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/ban")
-    public void ban(@Path("roomId") String roomId, @Query("user_id") String userId, @Query("reason") String reason, Callback<Void> callback);
+    public void ban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
 
     /**
      * Change the membership state for a user in a room.

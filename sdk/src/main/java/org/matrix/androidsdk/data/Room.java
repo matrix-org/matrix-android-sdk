@@ -22,6 +22,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
@@ -331,5 +332,25 @@ public class Room {
      */
     public void kick(String userId, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().kickFromRoom(mRoomId, userId, callback);
+    }
+
+    /**
+     * Ban a user from the room.
+     * @param userId the user id
+     * @param callback the async callback
+     */
+    public void ban(String userId, ApiCallback<Void> callback) {
+        BannedUser user = new BannedUser();
+        user.userId = userId;
+        mDataRetriever.getRoomsRestClient().banFromRoom(mRoomId, user, callback);
+    }
+
+    /**
+     * Unban a user.
+     * @param userId the user id
+     * @param callback the async callback
+     */
+    public void unban(String userId, ApiCallback<Void> callback) {
+        kick(userId, callback);
     }
 }

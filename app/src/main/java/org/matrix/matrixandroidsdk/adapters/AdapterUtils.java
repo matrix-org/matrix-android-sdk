@@ -151,7 +151,7 @@ public class AdapterUtils {
                 }
             }
             else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_ban, userDisplayName);
+                return mContext.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey));
             }
             else {
                 // eh?

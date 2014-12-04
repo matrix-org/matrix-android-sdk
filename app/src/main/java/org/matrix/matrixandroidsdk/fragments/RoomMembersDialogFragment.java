@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -94,6 +95,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_KICK = 1;
+            private static final int OPTION_BAN = 2;
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -101,7 +103,16 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 final RoomMember roomMember = mAdapter.getItem(position);
 
                 // TODO: Filter out unavailable options (depending on power levels and the member's state)
-                final List<Integer> options = Arrays.asList(new Integer[] {OPTION_KICK, OPTION_CANCEL});
+                final List<Integer> options = Arrays.asList(new Integer[] {OPTION_KICK, OPTION_BAN, OPTION_CANCEL});
+
+                final ApiCallback callback = new SimpleApiCallback() {
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (MatrixError.FORBIDDEN.equals(e.errcode)) {
+                            Toast.makeText(getActivity(), R.string.error_forbidden, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                };
 
                 new AlertDialog.Builder(getActivity())
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -112,14 +123,11 @@ public class RoomMembersDialogFragment extends DialogFragment {
                                         dialog.cancel();
                                         break;
                                     case OPTION_KICK:
-                                        room.kick(roomMember.getUser().userId, new SimpleApiCallback<Void>() {
-                                            @Override
-                                            public void onMatrixError(MatrixError e) {
-                                                if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                                                    Toast.makeText(getActivity(), R.string.error_forbidden, Toast.LENGTH_SHORT).show();
-                                                }
-                                            }
-                                        });
+                                        room.kick(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    case OPTION_BAN:
+                                        room.ban(roomMember.getUser().userId, callback);
                                         dialog.dismiss();
                                         break;
                                     default:
@@ -141,6 +149,9 @@ public class RoomMembersDialogFragment extends DialogFragment {
                             break;
                         case OPTION_KICK:
                             label = getString(R.string.kick);
+                            break;
+                        case OPTION_BAN:
+                            label = getString(R.string.ban);
                             break;
                     }
                     labels[i] = label;

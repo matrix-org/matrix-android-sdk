@@ -22,6 +22,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
+import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
@@ -220,12 +221,11 @@ public class RoomsRestClient extends RestClient {
     /**
      * Ban a user from a room.
      * @param roomId the room id
-     * @param userId the user id
-     * @param reason the reason for the ban
+     * @param user the banned user object (userId and reason for ban)
      * @param callback the async callback
      */
-    public void banFromRoom(String roomId, String userId, String reason, final ApiCallback<Void> callback) {
-        mApi.ban(roomId, userId, reason, new FailureAdapterCallback<Void>(callback) {
+    public void banFromRoom(String roomId, BannedUser user, final ApiCallback<Void> callback) {
+        mApi.ban(roomId, user, new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
