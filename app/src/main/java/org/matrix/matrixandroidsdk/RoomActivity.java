@@ -72,7 +72,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
