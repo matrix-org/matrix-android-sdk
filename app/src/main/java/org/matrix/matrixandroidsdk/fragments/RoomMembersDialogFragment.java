@@ -12,10 +12,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -110,7 +112,14 @@ public class RoomMembersDialogFragment extends DialogFragment {
                                         dialog.cancel();
                                         break;
                                     case OPTION_KICK:
-                                        room.kick(roomMember.getUser().userId, new SimpleApiCallback<Void>());
+                                        room.kick(roomMember.getUser().userId, new SimpleApiCallback<Void>() {
+                                            @Override
+                                            public void onMatrixError(MatrixError e) {
+                                                if (MatrixError.FORBIDDEN.equals(e.errcode)) {
+                                                    Toast.makeText(getActivity(), R.string.error_forbidden, Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        });
                                         dialog.dismiss();
                                         break;
                                     default:

@@ -35,6 +35,7 @@
     <string name="notice_room_invite">%1$s invited %2$s to the room.</string>
     <string name="notice_room_join">%1$s joined the room.</string>
     <string name="notice_room_leave">%1$s left the room.</string>
+    <string name="notice_room_kick">%1$s kicked %2$s from the room.</string>
     <string name="notice_room_ban">%1$s was banned from the room.</string>
     <string name="notice_avatar_url_changed">%1$s changed their avatar.</string>
     <string name="notice_display_name_changed">%1$s changed their display name to %2$s.</string>
@@ -49,5 +50,7 @@
     <string name="summary_message">%1$s: %2$s</string>
 
     <string name="kick">Kick</string>
+
+    <string name="error_forbidden">You are not allowed to do that</string>
 
 </resources>
