@@ -52,6 +52,4 @@
     <string name="kick">Kick</string>
     <string name="ban">Ban</string>
 
-    <string name="error_forbidden">You are not allowed to do that</string>
-
 </resources>

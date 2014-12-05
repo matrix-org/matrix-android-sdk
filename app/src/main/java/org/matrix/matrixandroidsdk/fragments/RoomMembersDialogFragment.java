@@ -109,7 +109,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                            Toast.makeText(getActivity(), R.string.error_forbidden, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getActivity(), e.error, Toast.LENGTH_LONG).show();
                         }
                     }
                 };
