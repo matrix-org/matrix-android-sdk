@@ -56,6 +56,17 @@ public class PublicRoomsActivity extends ActionBarActivity {
         Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CommonActivityUtils.pauseEventStream(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CommonActivityUtils.resumeEventStream(this);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

@@ -47,6 +47,18 @@ public class CommonActivityUtils {
         context.startService(killStreamService);
     }
 
+    public static void pauseEventStream(Activity activity) {
+        Intent streamService = new Intent(activity, EventStreamService.class);
+        streamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.PAUSE.ordinal());
+        activity.startService(streamService);
+    }
+
+    public static void resumeEventStream(Activity activity) {
+        Intent streamService = new Intent(activity, EventStreamService.class);
+        streamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.RESUME.ordinal());
+        activity.startService(streamService);
+    }
+
     public interface OnSubmitListener {
         public void onSubmit(String text);
         public void onCancelled();

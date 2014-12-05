@@ -55,8 +55,7 @@ public class SplashActivity extends Activity {
 
         // Start the event stream service
         Intent intent = new Intent(this, EventStreamService.class);
-        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
-                EventStreamService.StreamAction.START.ordinal());
+        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
         // TODO Add args to specify which session.
         startService(intent);
 

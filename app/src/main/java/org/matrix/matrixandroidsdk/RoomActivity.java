@@ -132,6 +132,17 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         mRoom.removeEventListener(mEventListener);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CommonActivityUtils.pauseEventStream(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CommonActivityUtils.resumeEventStream(this);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
