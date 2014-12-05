@@ -49,7 +49,9 @@
 
     <string name="summary_message">%1$s: %2$s</string>
 
+    <string name="invite">Invite</string>
     <string name="kick">Kick</string>
     <string name="ban">Ban</string>
+    <string name="unban">Un-ban</string>
 
 </resources>

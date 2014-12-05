@@ -24,6 +24,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -96,14 +97,33 @@ public class RoomMembersDialogFragment extends DialogFragment {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_KICK = 1;
             private static final int OPTION_BAN = 2;
+            private static final int OPTION_UNBAN = 3;
+            private static final int OPTION_INVITE = 4;
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // Get the member and display the possible actions for them
                 final RoomMember roomMember = mAdapter.getItem(position);
 
-                // TODO: Filter out unavailable options (depending on power levels and the member's state)
-                final List<Integer> options = Arrays.asList(new Integer[] {OPTION_KICK, OPTION_BAN, OPTION_CANCEL});
+                // TODO: Filter out forbidden options based on power levels
+                final List<Integer> options = new ArrayList<Integer>();
+                if (RoomMember.MEMBERSHIP_LEAVE.equals(roomMember.membership)) {
+                    options.add(OPTION_INVITE);
+                }
+                if (RoomMember.MEMBERSHIP_INVITE.equals(roomMember.membership)
+                        || RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership)) {
+                    options.add(OPTION_KICK);
+                }
+                if (!RoomMember.MEMBERSHIP_BAN.equals(roomMember.membership)) {
+                    options.add(OPTION_BAN);
+                }
+                else {
+                    options.add(OPTION_UNBAN);
+                }
+                if (options.size() == 0) {
+                    return;
+                }
+                options.add(OPTION_CANCEL);
 
                 final ApiCallback callback = new SimpleApiCallback() {
                     @Override
@@ -130,6 +150,14 @@ public class RoomMembersDialogFragment extends DialogFragment {
                                         room.ban(roomMember.getUser().userId, callback);
                                         dialog.dismiss();
                                         break;
+                                    case OPTION_UNBAN:
+                                        room.unban(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    case OPTION_INVITE:
+                                        room.invite(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
                                     default:
                                         Log.e(LOG_TAG, "Unknown option: " + which);
                                 }
@@ -152,6 +180,12 @@ public class RoomMembersDialogFragment extends DialogFragment {
                             break;
                         case OPTION_BAN:
                             label = getString(R.string.ban);
+                            break;
+                        case OPTION_UNBAN:
+                            label = getString(R.string.unban);
+                            break;
+                        case OPTION_INVITE:
+                            label = getString(R.string.invite);
                             break;
                     }
                     labels[i] = label;
