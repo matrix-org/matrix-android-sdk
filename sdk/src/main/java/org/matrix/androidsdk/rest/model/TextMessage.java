@@ -17,7 +17,6 @@ package org.matrix.androidsdk.rest.model;
 
 public class TextMessage extends Message {
     public String body;
-    public long hsobTs;
 
     public TextMessage() {
         msgtype = MSGTYPE_TEXT;
