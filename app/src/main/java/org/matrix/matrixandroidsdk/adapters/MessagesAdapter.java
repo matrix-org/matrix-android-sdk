@@ -207,7 +207,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 public void onClick(View v) {
                     Intent viewImageIntent = new Intent();
                     viewImageIntent.setAction(Intent.ACTION_VIEW);
-                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : null;
+                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
                     viewImageIntent.setDataAndType(Uri.parse(imageMessage.url), type);
                     mContext.startActivity(viewImageIntent);
                 }
