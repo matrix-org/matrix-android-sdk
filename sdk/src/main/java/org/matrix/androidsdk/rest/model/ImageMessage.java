@@ -21,4 +21,8 @@ public class ImageMessage extends Message {
     public ImageInfo thumbnailInfo;
     public String url;
     public String thumbnailUrl;
+
+    public ImageMessage() {
+        msgtype = MSGTYPE_IMAGE;
+    }
 }
