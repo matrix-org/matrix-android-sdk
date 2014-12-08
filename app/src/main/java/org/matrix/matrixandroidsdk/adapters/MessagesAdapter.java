@@ -1,7 +1,10 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.text.TextUtils;
+import android.text.method.CharacterPickerDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,8 +17,10 @@ import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.R;
 
 import java.text.DateFormat;
@@ -189,10 +194,25 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        String thumbUrl = msg.content.get("thumbnail_url") == null ? null : msg.content.get("thumbnail_url").getAsString();
+        final ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
+
+        String thumbUrl = ((imageMessage == null) || (imageMessage.thumbnailUrl == null)) ? null : imageMessage.thumbnailUrl;
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
         AdapterUtils.loadBitmap(imageView, thumbUrl);
+
+        if ((imageMessage != null) && (imageMessage.url != null)) {
+            imageView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent viewImageIntent = new Intent();
+                    viewImageIntent.setAction(Intent.ACTION_VIEW);
+                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : null;
+                    viewImageIntent.setDataAndType(Uri.parse(imageMessage.url), type);
+                    mContext.startActivity(viewImageIntent);
+                }
+            });
+        }
 
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(getUserDisplayName(msg.userId, roomState));

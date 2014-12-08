@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -47,5 +48,9 @@ public class JsonUtils {
 
     public static JsonObject toJson(RoomMember roomMember) {
         return (JsonObject) gson.toJsonTree(roomMember);
+    }
+
+    public static ImageMessage toImageMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, ImageMessage.class);
     }
 }
