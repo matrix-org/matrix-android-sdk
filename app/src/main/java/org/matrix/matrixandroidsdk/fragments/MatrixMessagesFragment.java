@@ -9,7 +9,9 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
@@ -44,8 +46,10 @@ public class MatrixMessagesFragment extends Fragment {
         public void onBackEvent(Event event, RoomState roomState);
     }
 
+    // The listener to send messages back
     private MatrixMessagesListener mMatrixMessagesListener;
-    private MXSession mSession;
+    // The adapted listener to register to the SDK
+    private IMXEventListener mEventListener;
     private Context mContext;
     private Room mRoom;
 
@@ -55,27 +59,27 @@ public class MatrixMessagesFragment extends Fragment {
         setRetainInstance(true);
         mContext = getActivity().getApplicationContext();
         // TODO : Specify which session should be used.
-        mSession = Matrix.getInstance(mContext).getDefaultSession();
+        MXSession session = Matrix.getInstance(mContext).getDefaultSession();
         String roomId = getArguments().getString(ARG_ROOM_ID);
         if (roomId == null) {
             throw new RuntimeException("Must have a room ID specified.");
         }
-        if (mSession == null) {
+        if (session == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
 
         // check if this room has been joined, if not, join it then get messages.
-        mRoom = mSession.getDataHandler().getRoom(roomId);
+        mRoom = session.getDataHandler().getRoom(roomId);
         boolean joinedRoom = false;
         mRoom.initHistory();
         if (mRoom != null) {
-            RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
+            RoomMember self = mRoom.getMember(session.getCredentials().userId);
             if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
                 joinedRoom = true;
             }
         }
 
-        mRoom.addEventListener(new MXEventListener() {
+        mEventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 mMatrixMessagesListener.onLiveEvent(event, roomState);
@@ -85,7 +89,9 @@ public class MatrixMessagesFragment extends Fragment {
             public void onBackEvent(Event event, RoomState roomState) {
                 mMatrixMessagesListener.onBackEvent(event, roomState);
             }
-        });
+        };
+
+        mRoom.addEventListener(mEventListener);
 
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
@@ -95,6 +101,12 @@ public class MatrixMessagesFragment extends Fragment {
             // Let's leave it up to the layer above to request pagination
 //            mRoom.requestHistory();
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mRoom.removeEventListener(mEventListener);
     }
 
     private void joinRoom() {
@@ -115,7 +127,7 @@ public class MatrixMessagesFragment extends Fragment {
     /**
      * Request earlier messages in this room.
      */
-    public void requestHistory(Room.HistoryCompleteCallback callback) {
+    public void requestHistory(ApiCallback<Integer> callback) {
         mRoom.requestHistory(callback);
     }
 
@@ -142,7 +154,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     public void send(Message message) {
-        mSession.getRoomsApiClient().sendMessage(mRoom.getRoomId(), message, new SimpleApiCallback<Event>() {
+        mRoom.sendMessage(message, new SimpleApiCallback<Event>() {
 
             @Override
             public void onSuccess(Event info) {

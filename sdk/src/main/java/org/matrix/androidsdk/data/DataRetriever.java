@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.data;
 
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
@@ -25,17 +26,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
  */
 public class DataRetriever {
-
-    /**
-     * Callback to implement to receive the response from a pagination request.
-     */
-    public static interface HistoryCallback {
-        /**
-         * Called when the request has been successfully completed.
-         * @param response the response
-         */
-        public void onComplete(TokensChunkResponse<Event> response);
-    }
 
     private IMXStore mStore;
     private RoomsRestClient mRestClient;
@@ -58,25 +48,17 @@ public class DataRetriever {
      * @param token the token to go back from. Null to start from live.
      * @param callback the onComplete callback
      */
-    public void requestRoomHistory(final String roomId, String token, final HistoryCallback callback) {
+    public void requestRoomHistory(final String roomId, String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         TokensChunkResponse<Event> storageResponse = mStore.getRoomEvents(roomId, token);
         if (storageResponse != null) {
-            callback.onComplete(storageResponse);
+            callback.onSuccess(storageResponse);
         }
         else {
-            mRestClient.getEarlierMessages(roomId, token, new SimpleApiCallback<TokensChunkResponse<Event>>() {
+            mRestClient.getEarlierMessages(roomId, token, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
-                    callback.onComplete(info);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    // When we've retrieved all the messages from a room, the pagination token is some invalid value
-                    if (MatrixError.UNKNOWN.equals(e.errcode)) {
-                        callback.onComplete(null);
-                    }
+                    callback.onSuccess(info);
                 }
             });
         }

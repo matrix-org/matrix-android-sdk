@@ -27,6 +27,8 @@ public class PublicRoomsActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_public_rooms);
 
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         final GridView publicRoomsGridView = (GridView) findViewById(R.id.gridView_publicRoomList);
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
@@ -54,6 +56,17 @@ public class PublicRoomsActivity extends ActionBarActivity {
         Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CommonActivityUtils.pauseEventStream(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CommonActivityUtils.resumeEventStream(this);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

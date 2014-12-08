@@ -22,6 +22,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
+import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
@@ -128,7 +129,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Get the list of members for the given room.
      * @param roomId the room id
-     * @param callback the callback called with the response
+     * @param callback the async callback
      */
     public void getRoomMembers(String roomId, final ApiCallback<List<RoomMember>> callback) {
         mApi.members(roomId, new FailureAdapterCallback<TokensChunkResponse<RoomMember>>(callback) {
@@ -142,7 +143,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Get the list of members for the given room.
      * @param roomId the room id
-     * @param callback the callback called with the response
+     * @param callback the async callback
      */
     public void getRoomState(String roomId, final ApiCallback<List<Event>> callback) {
         mApi.state(roomId, new FailureAdapterCallback<List<Event>>(callback) {
@@ -157,7 +158,7 @@ public class RoomsRestClient extends RestClient {
      * Invite a user to a room.
      * @param roomId the room id
      * @param userId the user id
-     * @param callback on success callback
+     * @param callback the async callback
      */
     public void inviteToRoom(String roomId, String userId, final ApiCallback<Void> callback) {
         User user = new User();
@@ -173,7 +174,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Join a room.
      * @param roomId the room id
-     * @param callback on success callback
+     * @param callback the async callback
      */
     public void joinRoom(String roomId, final ApiCallback<Void> callback) {
         mApi.join(roomId, new JsonObject(), new FailureAdapterCallback<Void>(callback) {
@@ -187,7 +188,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Leave a room.
      * @param roomId the room id
-     * @param callback on success callback
+     * @param callback the async callback
      */
     public void leaveRoom(String roomId, final ApiCallback<Void> callback) {
         mApi.leave(roomId, new JsonObject(), new FailureAdapterCallback<Void>(callback) {
@@ -199,14 +200,32 @@ public class RoomsRestClient extends RestClient {
     }
 
     /**
-     * Ban a user from a room.
+     * Kick a user from a room.
      * @param roomId the room id
      * @param userId the user id
-     * @param reason the reason for the ban
-     * @param callback on success callback
+     * @param callback the async callback
      */
-    public void banFromRoom(String roomId, String userId, String reason, final ApiCallback<Void> callback) {
-        mApi.ban(roomId, userId, reason, new FailureAdapterCallback<Void>(callback) {
+    public void kickFromRoom(String roomId, String userId, final ApiCallback<Void> callback) {
+        // Kicking is done by posting that the user is now in a "leave" state
+        RoomMember member = new RoomMember();
+        member.membership = RoomMember.MEMBERSHIP_LEAVE;
+
+        mApi.roomMember(roomId, userId, member, new FailureAdapterCallback<Void>(callback) {
+            @Override
+            public void success(Void aVoid, Response response) {
+                callback.onSuccess(aVoid);
+            }
+        });
+    }
+
+    /**
+     * Ban a user from a room.
+     * @param roomId the room id
+     * @param user the banned user object (userId and reason for ban)
+     * @param callback the async callback
+     */
+    public void banFromRoom(String roomId, BannedUser user, final ApiCallback<Void> callback) {
+        mApi.ban(roomId, user, new FailureAdapterCallback<Void>(callback) {
             @Override
             public void success(Void aVoid, Response response) {
                 callback.onSuccess(aVoid);
@@ -220,7 +239,7 @@ public class RoomsRestClient extends RestClient {
      * @param topic the room topic
      * @param visibility the room visibility
      * @param alias an optional room alias
-     * @param callback the callback in case of success
+     * @param callback the async callback
      */
     public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<CreateRoomResponse> callback) {
         RoomState roomState = new RoomState();
@@ -240,7 +259,7 @@ public class RoomsRestClient extends RestClient {
     /**
      * Perform an initial sync on the room
      * @param roomId the room id
-     * @param callback the callback in case of success
+     * @param callback the async callback
      */
     public void initialSync(String roomId, final ApiCallback<RoomResponse> callback) {
         mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new FailureAdapterCallback<RoomResponse>(callback) {

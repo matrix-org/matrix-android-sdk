@@ -142,10 +142,16 @@ public class AdapterUtils {
                 return mContext.getString(R.string.notice_room_join, userDisplayName);
             }
             else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
-                return mContext.getString(R.string.notice_room_leave, userDisplayName);
+                // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
+                if (msg.userId.equals(msg.stateKey)) {
+                    return mContext.getString(R.string.notice_room_leave, userDisplayName);
+                }
+                else {
+                    return mContext.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey));
+                }
             }
             else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_ban, userDisplayName);
+                return mContext.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey));
             }
             else {
                 // eh?

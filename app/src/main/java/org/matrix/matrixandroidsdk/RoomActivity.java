@@ -38,14 +38,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
-    private String mRoomId;
+    private Room mRoom;
 
-    private MXEventListener mSessionListener = new MXEventListener() {
+    private MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onLiveEvent(final Event event, RoomState roomState) {
-            if (!mRoomId.equals(event.roomId)) {
-                return;
-            }
             RoomActivity.this.runOnUiThread(new Runnable() {
 
                 @Override
@@ -63,9 +60,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room name (via alias).");
-                        // FIXME: Won't work because the event hasn't been processed by the room yet
-                        Room room = mSession.getDataHandler().getRoom(mRoomId);
-                        setTitle(room.getName(mSession.getCredentials().userId));
+                        setTitle(mRoom.getName(mSession.getCredentials().userId));
                     }
                 }
             });
@@ -77,14 +72,16 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
             Log.e(LOG_TAG, "No room ID extra.");
             finish();
             return;
         }
-        mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        Log.i(LOG_TAG, "Displaying "+mRoomId);
+        String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
+        Log.i(LOG_TAG, "Displaying "+roomId);
 
         findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
 
@@ -106,24 +103,24 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             return;
         }
 
+        mRoom = mSession.getDataHandler().getRoom(roomId);
+
         FragmentManager fm = getSupportFragmentManager();
         mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
         if (mMatrixMessageListFragment == null) {
             // this fragment displays messages and handles all message logic
-            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoomId);
+            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoom.getRoomId());
             fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
         // set general room information
-        Room room = mSession.getDataHandler().getRoom(mRoomId);
-        setTitle(room.getName(mSession.getCredentials().userId));
+        setTitle(mRoom.getName(mSession.getCredentials().userId));
 
-        setTopic(room.getTopic());
-
+        setTopic(mRoom.getTopic());
 
         // listen for room name or topic changes
-        mSession.getDataHandler().addListener(mSessionListener);
+        mRoom.addEventListener(mEventListener);
 
         // The error listener needs the current activity
         mSession.setFailureCallback(new ErrorListener(this));
@@ -132,9 +129,20 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mSession.getDataHandler().removeListener(mSessionListener);
+        mRoom.removeEventListener(mEventListener);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CommonActivityUtils.pauseEventStream(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CommonActivityUtils.resumeEventStream(this);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -168,7 +176,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                             Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
                             return;
                         }
-                        session.getRoomsApiClient().inviteToRoom(mRoomId, text.trim() , new SimpleApiCallback<Void>() {
+                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
                                 Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
@@ -187,7 +195,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         else if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                session.getRoomsApiClient().leaveRoom(mRoomId, new SimpleApiCallback<Void>() {
+                mRoom.leave(new SimpleApiCallback<Void>() {
 
                     @Override
                     public void onSuccess(Void info) {
@@ -203,7 +211,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             if (fragment != null) {
                 fragment.dismissAllowingStateLoss();
             }
-            fragment = RoomMembersDialogFragment.newInstance(mRoomId);
+            fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
             fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
         }
         return super.onOptionsItemSelected(item);

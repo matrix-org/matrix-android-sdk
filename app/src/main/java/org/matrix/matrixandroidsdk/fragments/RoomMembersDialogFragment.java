@@ -1,27 +1,40 @@
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A dialog fragment showing a list of room members for a given room.
  */
 public class RoomMembersDialogFragment extends DialogFragment {
+    private static final String LOG_TAG = "RoomMembersDialogFragment";
+
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment.ARG_ROOM_ID";
 
     public static RoomMembersDialogFragment newInstance(String roomId) {
@@ -67,7 +80,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 R.layout.adapter_item_room_members
         );
 
-        Room room = mSession.getDataHandler().getRoom(mRoomId);
+        final Room room = mSession.getDataHandler().getRoom(mRoomId);
         if (room != null) {
             Collection<RoomMember> members = room.getMembers();
             if (members != null) {
@@ -79,6 +92,108 @@ public class RoomMembersDialogFragment extends DialogFragment {
         }
 
         mListView.setAdapter(mAdapter);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            private static final int OPTION_CANCEL = 0;
+            private static final int OPTION_KICK = 1;
+            private static final int OPTION_BAN = 2;
+            private static final int OPTION_UNBAN = 3;
+            private static final int OPTION_INVITE = 4;
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Get the member and display the possible actions for them
+                final RoomMember roomMember = mAdapter.getItem(position);
+
+                // TODO: Filter out forbidden options based on power levels
+                final List<Integer> options = new ArrayList<Integer>();
+                if (RoomMember.MEMBERSHIP_LEAVE.equals(roomMember.membership)) {
+                    options.add(OPTION_INVITE);
+                }
+                if (RoomMember.MEMBERSHIP_INVITE.equals(roomMember.membership)
+                        || RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership)) {
+                    options.add(OPTION_KICK);
+                }
+                if (!RoomMember.MEMBERSHIP_BAN.equals(roomMember.membership)) {
+                    options.add(OPTION_BAN);
+                }
+                else {
+                    options.add(OPTION_UNBAN);
+                }
+                if (options.size() == 0) {
+                    return;
+                }
+                options.add(OPTION_CANCEL);
+
+                final ApiCallback callback = new SimpleApiCallback() {
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (MatrixError.FORBIDDEN.equals(e.errcode)) {
+                            Toast.makeText(getActivity(), e.error, Toast.LENGTH_LONG).show();
+                        }
+                    }
+                };
+
+                new AlertDialog.Builder(getActivity())
+                        .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (options.get(which)) {
+                                    case OPTION_CANCEL:
+                                        dialog.cancel();
+                                        break;
+                                    case OPTION_KICK:
+                                        room.kick(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    case OPTION_BAN:
+                                        room.ban(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    case OPTION_UNBAN:
+                                        room.unban(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    case OPTION_INVITE:
+                                        room.invite(roomMember.getUser().userId, callback);
+                                        dialog.dismiss();
+                                        break;
+                                    default:
+                                        Log.e(LOG_TAG, "Unknown option: " + which);
+                                }
+                            }
+                        })
+                        .create()
+                        .show();
+            }
+
+            private String[] buildOptionLabels(List<Integer> options) {
+                String[] labels = new String[options.size()];
+                for (int i = 0; i < options.size(); i++) {
+                    String label = "";
+                    switch (options.get(i)) {
+                        case OPTION_CANCEL:
+                            label = getString(R.string.cancel);
+                            break;
+                        case OPTION_KICK:
+                            label = getString(R.string.kick);
+                            break;
+                        case OPTION_BAN:
+                            label = getString(R.string.ban);
+                            break;
+                        case OPTION_UNBAN:
+                            label = getString(R.string.unban);
+                            break;
+                        case OPTION_INVITE:
+                            label = getString(R.string.invite);
+                            break;
+                    }
+                    labels[i] = label;
+                }
+
+                return labels;
+            }
+        });
 
         return v;
     }

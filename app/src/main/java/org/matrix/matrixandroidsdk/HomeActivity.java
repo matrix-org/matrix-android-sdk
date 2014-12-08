@@ -143,6 +143,8 @@ public class HomeActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        getActionBar().setDisplayShowTitleEnabled(false);
+
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {
             finish();
@@ -162,10 +164,6 @@ public class HomeActivity extends ActionBarActivity {
                 goToRoomPage(mAdapter.getItem(i).getRoomId());
             }
         });
-
-        startEventStream();
-
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
     }
 
     @Override
@@ -174,14 +172,17 @@ public class HomeActivity extends ActionBarActivity {
         mSession.getDataHandler().removeListener(mListener);
     }
 
-    public void startEventStream() {
-        Intent intent = new Intent(this, EventStreamService.class);
-        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
-                EventStreamService.StreamAction.START.ordinal());
-        // TODO Add args to specify which session.
-        startService(intent);
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CommonActivityUtils.pauseEventStream(this);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CommonActivityUtils.resumeEventStream(this);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
