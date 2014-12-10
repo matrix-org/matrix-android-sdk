@@ -1,27 +1,27 @@
-apply plugin: 'com.android.library'
-
 buildscript {
     repositories {
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.12.+'
+        classpath 'com.android.tools.build:gradle:0.13.+'
         classpath 'org.robolectric:robolectric-gradle-plugin:0.13.0'
     }
 }
+
+apply plugin: 'com.android.library'
 apply plugin: 'robolectric'
 
 android {
-    compileSdkVersion 18
+    compileSdkVersion 19
     buildToolsVersion '19.1.0'
 
-   packagingOptions {                                                          
-        exclude 'LICENSE.txt'                                                   
-        exclude 'META-INF/LICENSE'                                              
-        exclude 'META-INF/LICENSE.txt'                                          
-        exclude 'META-INF/NOTICE'                                               
-    } 
+    packagingOptions {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+    }
 
     defaultConfig {
         applicationId "org.matrix.androidsdk"
@@ -44,18 +44,21 @@ android {
     }
 }
 
+robolectric {
+    include '**/*Test.class'
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
     compile 'com.squareup.okhttp:okhttp:2.0.0'
-    compile 'com.google.dexmaker:dexmaker-mockito:1.0'
-    compile 'com.google.dexmaker:dexmaker:1.0'
-    androidTestCompile('junit:junit:4.11') {                                    
+    androidTestCompile 'org.mockito:mockito-core:1.+'
+    androidTestCompile('junit:junit:4.11') {
         exclude module: 'hamcrest-core'                                         
     }
-    androidTestCompile('org.robolectric:robolectric:2.3') {
+    androidTestCompile('org.robolectric:robolectric:2.4') {
         exclude module: 'classworlds'
         exclude module: 'commons-logging'
         exclude module: 'httpclient'

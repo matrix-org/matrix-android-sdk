@@ -160,7 +160,9 @@ public class EventsThread extends Thread {
                 mCurrentToken = eventsResponse.end;
             }
             catch (RetrofitError error) {
-                mEventsFailureCallback.failure(error);
+                if (mEventsFailureCallback != null) {
+                    mEventsFailureCallback.failure(error);
+                }
                 Log.i(LOG_TAG, "Waiting a bit before retrying");
                 try {
                     Thread.sleep(RETRY_WAIT_TIME_MS);

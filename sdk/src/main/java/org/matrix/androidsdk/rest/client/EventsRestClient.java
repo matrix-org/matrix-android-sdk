@@ -121,7 +121,4 @@ public class EventsRestClient extends RestClient {
     public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
         return mApi.events(fromToken, timeoutMs);
     }
-
-    public class LoadPublicRoomsCallback {
-    }
 }
