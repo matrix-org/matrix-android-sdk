@@ -18,7 +18,7 @@ package org.matrix.androidsdk.sync;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
-import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
@@ -28,7 +28,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import java.util.concurrent.CountDownLatch;
 
 import retrofit.RetrofitError;
-import retrofit.client.Response;
 
 /**
  * Thread that continually watches the event stream and sends events to its listener.
@@ -47,7 +46,7 @@ public class EventsThread extends Thread {
     private boolean mKilling = false;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
-    private FailureAdapterCallback mEventsFailureCallback;
+    private RestAdapterCallback mEventsFailureCallback;
     private ApiFailureCallback mFailureCallback;
 
     /**
@@ -67,12 +66,7 @@ public class EventsThread extends Thread {
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
-        mEventsFailureCallback = new FailureAdapterCallback(failureCallback) {
-            @Override
-            public void success(Object o, Response response) {
-                // This won't happen
-            }
-        };
+        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback));
     }
 
     /**

@@ -22,7 +22,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.FailureAdapterCallback;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 
@@ -70,7 +70,7 @@ public class LoginRestClient extends RestClient {
         params.user = user;
         params.password = password;
 
-        mApi.login(params, new FailureAdapterCallback<JsonObject>(callback) {
+        mApi.login(params, new RestAdapterCallback<JsonObject>(callback) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
