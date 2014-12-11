@@ -354,4 +354,22 @@ public class Room {
         // Unbanning is just setting a member's state to left, like kick
         kick(userId, callback);
     }
+
+    /**
+     * Update the room's name.
+     * @param name the new name
+     * @param callback the async callback
+     */
+    public void updateName(String name, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateName(getRoomId(), name, callback);
+    }
+
+    /**
+     * Update the room's topic.
+     * @param topic the new topic
+     * @param callback the async callback
+     */
+    public void updateTopic(String topic, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateTopic(getRoomId(), topic, callback);
+    }
 }

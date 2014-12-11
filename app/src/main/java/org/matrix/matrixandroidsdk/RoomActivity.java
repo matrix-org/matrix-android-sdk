@@ -214,6 +214,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
             fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
         }
+        else if (id == R.id.action_info) {
+            Intent startRoomInfoIntent = new Intent(this, RoomInfoActivity.class);
+            startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+            startActivity(startRoomInfoIntent);
+        }
         return super.onOptionsItemSelected(item);
     }
 
