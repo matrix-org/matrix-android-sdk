@@ -110,7 +110,12 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoom() {
-        mRoom.join();
+        mRoom.join(new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                requestHistory();
+            }
+        });
     }
 
     /* Public API below */
@@ -126,9 +131,17 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Request earlier messages in this room.
+     * @param callback the callback
      */
     public void requestHistory(ApiCallback<Integer> callback) {
         mRoom.requestHistory(callback);
+    }
+
+    /**
+     * Request earlier messages in this room with no callback.
+     */
+    public void requestHistory() {
+        mRoom.requestHistory();
     }
 
     /**

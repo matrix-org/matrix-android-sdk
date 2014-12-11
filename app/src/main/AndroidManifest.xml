@@ -32,7 +32,8 @@
         <activity
             android:name=".RoomActivity"
             android:label="@string/title_activity_room"
-            android:parentActivityName=".HomeActivity">
+            android:parentActivityName=".HomeActivity"
+            android:windowSoftInputMode="stateHidden">
         </activity>
         <activity
             android:name=".PublicRoomsActivity"
