@@ -98,8 +98,7 @@ public class MatrixMessagesFragment extends Fragment {
             joinRoom();
         }
         else {
-            // Let's leave it up to the layer above to request pagination
-//            mRoom.requestHistory();
+            mRoom.requestHistory();
         }
     }
 

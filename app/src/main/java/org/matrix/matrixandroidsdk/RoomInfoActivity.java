@@ -122,7 +122,7 @@ public class RoomInfoActivity extends ActionBarActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(RoomInfoActivity.this, "Changes successfully made", Toast.LENGTH_LONG).show();
+                        Toast.makeText(RoomInfoActivity.this, R.string.message_changes_successful, Toast.LENGTH_LONG).show();
                     }
                 });
             }

@@ -7,6 +7,7 @@
     <string name="title_activity_public_rooms">Public Rooms</string>
     <string name="title_activity_room_info">Room info</string>
 
+    <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
 
     <string name="action_settings">Settings</string>
@@ -29,6 +30,11 @@
     <string name="matrix_login">Matrix Login</string>
     <string name="login">Login</string>
     <string name="hs_url">Home Server URL</string>
+
+    <string name="create_room_set_alias">Set room alias</string>
+    <string name="create_room_alias_hint">room-alias</string>
+    <string name="create_room_set_name">Set room name</string>
+    <string name="create_room_name_hint">My room</string>
 
     <string name="membership_invite">Invited</string>
     <string name="membership_join">Joined</string>
@@ -57,5 +63,7 @@
     <string name="kick">Kick</string>
     <string name="ban">Ban</string>
     <string name="unban">Un-ban</string>
+
+    <string name="message_changes_successful">Changes successfully made</string>
 
 </resources>

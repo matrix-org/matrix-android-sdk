@@ -18,11 +18,15 @@ package org.matrix.androidsdk;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -213,5 +217,29 @@ public class MXSession {
         if (mEventsThread != null) {
             mEventsThread.setFailureCallback(failureCallback);
         }
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     * @param name the room name
+     * @param topic the room topic
+     * @param visibility the room visibility
+     * @param alias the room alias
+     * @param callback the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
+        mRoomsRestClient.createRoom(name, topic, visibility, alias, new SimpleApiCallback<CreateRoomResponse>(callback) {
+            @Override
+            public void onSuccess(CreateRoomResponse info) {
+                final String roomId = info.roomId;
+                Room createdRoom = mDataHandler.getRoom(roomId);
+                createdRoom.initialSync(new SimpleApiCallback<Void>(callback) {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        callback.onSuccess(roomId);
+                    }
+                });
+            }
+        });
     }
 }

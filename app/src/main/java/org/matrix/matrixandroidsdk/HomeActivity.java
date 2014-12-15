@@ -19,7 +19,6 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
-import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
@@ -228,51 +227,32 @@ public class HomeActivity extends ActionBarActivity {
     }
 
     private void createRoom(final boolean isPublic) {
-        if (isPublic) {
-            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Alias", "alias-name", new CommonActivityUtils.OnSubmitListener() {
-                @Override
-                public void onSubmit(String text) {
-                    if (text.length() == 0) {
-                        return;
-                    }
-                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(null, null, "public", text, new SimpleApiCallback<CreateRoomResponse>() {
+        final String roomVisibility = isPublic ? RoomState.VISIBILITY_PUBLIC : RoomState.VISIBILITY_PRIVATE;
+        // For public rooms, we ask for the alias; for private, the room name
+        String alertTitle = getString(isPublic ? R.string.create_room_set_alias : R.string.create_room_set_name);
+        String textFieldHint = getString(isPublic ? R.string.create_room_alias_hint : R.string.create_room_name_hint);
 
-                        @Override
-                        public void onSuccess(CreateRoomResponse info) {
-                            goToRoomPage(info.roomId);
-                        }
-                    });
+        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, new CommonActivityUtils.OnSubmitListener() {
+            @Override
+            public void onSubmit(String text) {
+                if (text.length() == 0) {
+                    return;
                 }
+                MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                String alias = isPublic ? text : null;
+                String name = isPublic ? null : text;
+                session.createRoom(name, null, roomVisibility, alias, new SimpleApiCallback<String>() {
 
-                @Override
-                public void onCancelled() {}
-            });
-            alert.show();
-        }
-        else {
-            AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Set Room Name", "My Room", new CommonActivityUtils.OnSubmitListener() {
-                @Override
-                public void onSubmit(String text) {
-                    if (text.length() == 0) {
-                        return;
+                    @Override
+                    public void onSuccess(String info) {
+                        goToRoomPage(info);
                     }
-                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    session.getRoomsApiClient().createRoom(text, null, "private", null, new SimpleApiCallback<CreateRoomResponse>() {
+                });
+            }
 
-                        @Override
-                        public void onSuccess(CreateRoomResponse info) {
-                            goToRoomPage(info.roomId);
-                        }
-                    });
-                }
-
-                @Override
-                public void onCancelled() {}
-            });
-            alert.show();
-        }
+            @Override
+            public void onCancelled() {}
+        });
+        alert.show();
     }
-
-
 }
