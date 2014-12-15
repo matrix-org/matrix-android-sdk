@@ -7,7 +7,9 @@
     <ImageView
         android:id="@+id/avatar_img"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scaleType="centerInside"
+        android:adjustViewBounds="true"/>
 
     <ImageView
         android:layout_width="match_parent"
