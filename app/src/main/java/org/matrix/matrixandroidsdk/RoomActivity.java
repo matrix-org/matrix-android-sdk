@@ -133,18 +133,6 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        CommonActivityUtils.pauseEventStream(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        CommonActivityUtils.resumeEventStream(this);
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.room, menu);
@@ -213,6 +201,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
             }
             fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
             fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
+        }
+        else if (id == R.id.action_info) {
+            Intent startRoomInfoIntent = new Intent(this, RoomInfoActivity.class);
+            startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+            startActivity(startRoomInfoIntent);
         }
         return super.onOptionsItemSelected(item);
     }

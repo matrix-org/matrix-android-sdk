@@ -34,7 +34,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      * @param context Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
-     *                         an ImageView with the ID roomMembersAdapter_avatar.
+     *                         an ImageView with the ID avatar_img.
      */
     public RoomMembersAdapter(Context context, int layoutResourceId) {
         super(context, layoutResourceId);
@@ -107,7 +107,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
         textView.setText(member.getUser().userId);
 
-        ImageView imageView = (ImageView) convertView.findViewById(R.id.roomMembersAdapter_avatar);
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.avatar_img);
         imageView.setTag(null);
         imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         String url = member.avatarUrl;

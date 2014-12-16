@@ -4,16 +4,13 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal">
 
-    <ImageView
-        android:id="@+id/messagesAdapter_avatar"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginRight="4dp" />
+    <include layout="@layout/round_avatar" />
 
     <RelativeLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="4dp"
         android:paddingBottom="5dp">
 
         <TextView

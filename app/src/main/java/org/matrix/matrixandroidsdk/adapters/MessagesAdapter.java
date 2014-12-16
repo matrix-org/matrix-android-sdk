@@ -171,7 +171,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
-        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
@@ -207,7 +207,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 public void onClick(View v) {
                     Intent viewImageIntent = new Intent();
                     viewImageIntent.setAction(Intent.ACTION_VIEW);
-                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : null;
+                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
                     viewImageIntent.setDataAndType(Uri.parse(imageMessage.url), type);
                     mContext.startActivity(viewImageIntent);
                 }
@@ -219,7 +219,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
-        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
@@ -250,7 +250,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
-        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
@@ -274,7 +274,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
-        ImageView avatarView = (ImageView) convertView.findViewById(R.id.messagesAdapter_avatar);
+        ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {

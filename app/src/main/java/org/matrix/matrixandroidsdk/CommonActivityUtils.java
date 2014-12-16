@@ -72,14 +72,13 @@ public class CommonActivityUtils {
         }
         alert.setTitle(title);
         alert.setView(input);
-        alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        alert.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
                 String value = input.getText().toString().trim();
                 listener.onSubmit(value);
             }
         });
-        alert.setNegativeButton("Cancel",
-            new DialogInterface.OnClickListener() {
+        alert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int whichButton) {
                     dialog.cancel();
                     listener.onCancelled();

@@ -21,20 +21,21 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
+import retrofit.client.Response;
 
-/**
- * Custom Retrofit error callback class that will call one of our ApiCallback error callbacks on a Retrofit failure.
- * When subclassing this, the Retrofit callback success call needs to be implemented.
- * @param <T> the type to return on success
- */
-public abstract class FailureAdapterCallback<T> implements Callback<T> {
+public class RestAdapterCallback<T> implements Callback<T> {
 
-    private static final String LOG_TAG = "FailureAdapterCallback";
+    private static final String LOG_TAG = "RestAdapterCallback";
 
-    private ApiFailureCallback failureCallback;
+    private ApiCallback apiCallback;
 
-    public FailureAdapterCallback(ApiFailureCallback failureCallback) {
-        this.failureCallback = failureCallback;
+    public RestAdapterCallback(ApiCallback apiCallback) {
+        this.apiCallback = apiCallback;
+    }
+
+    @Override
+    public void success(T t, Response response) {
+        apiCallback.onSuccess(t);
     }
 
     /**
@@ -45,16 +46,16 @@ public abstract class FailureAdapterCallback<T> implements Callback<T> {
     public void failure(RetrofitError error) {
         Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl() + " body=" + error.getBody());
         if (error.isNetworkError()) {
-            failureCallback.onNetworkError(error);
+            apiCallback.onNetworkError(error);
         }
         else {
             // Try to convert this into a Matrix error
             MatrixError mxError = (MatrixError) error.getBodyAs(MatrixError.class);
             if (mxError != null) {
-                failureCallback.onMatrixError(mxError);
+                apiCallback.onMatrixError(mxError);
             }
             else {
-                failureCallback.onUnexpectedError(error);
+                apiCallback.onUnexpectedError(error);
             }
         }
     }

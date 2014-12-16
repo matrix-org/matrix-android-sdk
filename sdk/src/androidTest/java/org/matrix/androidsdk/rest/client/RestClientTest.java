@@ -31,7 +31,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests MXApiService.
+ * Unit tests RestClient.
  */
 @RunWith(RobolectricTestRunner.class)
 public class RestClientTest {

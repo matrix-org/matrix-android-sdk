@@ -22,6 +22,9 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
  */
@@ -57,6 +60,13 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
+                    // Watch for the one event overlap
+                    Event oldestEvent = mStore.getOldestEvent(roomId);
+                    Event firstReturnedEvent = info.chunk.get(0);
+                    if ((oldestEvent != null) && (firstReturnedEvent != null)
+                            && oldestEvent.eventId.equals(firstReturnedEvent.eventId)) {
+                        info.chunk.remove(0);
+                    }
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onSuccess(info);
                 }

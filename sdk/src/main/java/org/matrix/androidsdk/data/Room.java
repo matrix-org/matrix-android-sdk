@@ -286,17 +286,25 @@ public class Room {
     public void join(final ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>(callback) {
             @Override
-            public void onSuccess(final Void info) {
+            public void onSuccess(final Void aVoid) {
                 // Once we've joined, we run an initial sync on the room to have all of its information
-                mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
-                    @Override
-                    public void onSuccess(RoomResponse roomInfo) {
-                        mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
-                        if (callback != null) {
-                            callback.onSuccess(info);
-                        }
-                    }
-                });
+                initialSync(callback);
+            }
+        });
+    }
+
+    /**
+     * Perform a room-level initial sync to get latest messages and pagination token.
+     * @param callback the async callback
+     */
+    public void initialSync(final ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
+            @Override
+            public void onSuccess(RoomResponse roomInfo) {
+                mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+                if (callback != null) {
+                    callback.onSuccess(null);
+                }
             }
         });
     }
@@ -353,5 +361,23 @@ public class Room {
     public void unban(String userId, ApiCallback<Void> callback) {
         // Unbanning is just setting a member's state to left, like kick
         kick(userId, callback);
+    }
+
+    /**
+     * Update the room's name.
+     * @param name the new name
+     * @param callback the async callback
+     */
+    public void updateName(String name, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateName(getRoomId(), name, callback);
+    }
+
+    /**
+     * Update the room's topic.
+     * @param topic the new topic
+     * @param callback the async callback
+     */
+    public void updateTopic(String topic, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateTopic(getRoomId(), topic, callback);
     }
 }

@@ -57,18 +57,6 @@ public class PublicRoomsActivity extends ActionBarActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        CommonActivityUtils.pauseEventStream(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        CommonActivityUtils.resumeEventStream(this);
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.public_rooms, menu);

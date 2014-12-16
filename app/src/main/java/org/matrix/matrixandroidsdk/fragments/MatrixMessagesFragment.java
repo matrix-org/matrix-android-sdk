@@ -98,8 +98,7 @@ public class MatrixMessagesFragment extends Fragment {
             joinRoom();
         }
         else {
-            // Let's leave it up to the layer above to request pagination
-//            mRoom.requestHistory();
+            mRoom.requestHistory();
         }
     }
 
@@ -110,7 +109,12 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void joinRoom() {
-        mRoom.join();
+        mRoom.join(new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                requestHistory();
+            }
+        });
     }
 
     /* Public API below */
@@ -126,9 +130,17 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Request earlier messages in this room.
+     * @param callback the callback
      */
     public void requestHistory(ApiCallback<Integer> callback) {
         mRoom.requestHistory(callback);
+    }
+
+    /**
+     * Request earlier messages in this room with no callback.
+     */
+    public void requestHistory() {
+        mRoom.requestHistory();
     }
 
     /**
