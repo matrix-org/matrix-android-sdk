@@ -39,6 +39,13 @@ public interface IMXStore {
      */
     public TokensChunkResponse<Event> getRoomEvents(String roomId, String token);
 
+    /**
+     * Get the oldest event from the given room (to prevent pagination overlap).
+     * @param roomId the room id
+     * @return the event
+     */
+    public Event getOldestEvent(String roomId);
+
     // Design note: This is part of the store interface so the concrete implementation can leverage
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
     //              compared to calling getRooms() then getRoomEvents(roomId, limit=1) for each room

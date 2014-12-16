@@ -56,13 +56,17 @@ public class MXMemoryStore implements IMXStore {
         mRooms.put(room.getRoomId(), room);
     }
 
-    private LinkedHashSet<Event> getRoomEvents(String roomId) {
+    @Override
+    public Event getOldestEvent(String roomId) {
         LinkedHashSet<Event> events = mRoomEvents.get(roomId);
-        if (events == null) {
-            events = new LinkedHashSet<Event>();
-            mRoomEvents.put(roomId, events);
+
+        if (events != null) {
+            Iterator<Event> it = events.iterator();
+            if (it.hasNext()) {
+                return it.next();
+            }
         }
-        return events;
+        return null;
     }
 
     @Override
