@@ -91,18 +91,6 @@ public class RoomInfoActivity extends ActionBarActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        CommonActivityUtils.pauseEventStream(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        CommonActivityUtils.resumeEventStream(this);
-    }
-
-    @Override
     protected void onDestroy() {
         // Save changes when we leave
         saveChanges();
