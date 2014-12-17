@@ -52,11 +52,18 @@ public class Matrix {
     }
 
     /**
+     * Clears the default session and the login credentials.
+     */
+    public synchronized void clearDefaultSessionAndCredentials() {
+        mDefaultSession = null;
+        mLoginStorage.setDefaultCredentials(null);
+    }
+
+    /**
      * Clears the default session.
      */
     public synchronized void clearDefaultSession() {
         mDefaultSession = null;
-        mLoginStorage.setDefaultCredentials(null);
     }
 
     /**
