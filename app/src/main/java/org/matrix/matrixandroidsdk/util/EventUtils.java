@@ -19,6 +19,7 @@ import android.content.Context;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -82,7 +83,23 @@ public class EventUtils {
         return pattern.matcher(longString).find();
     }
 
-    public static boolean shouldNotify(Event event) {
-        return true;
+    public static boolean shouldNotify(Context context, Event event) {
+        // TODO: Return false when the user is currently viewing the room
+
+        if (shouldHighlight(context, event)) {
+            return true;
+        }
+
+        if (!Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            return false;
+        }
+
+        MXSession session = Matrix.getInstance(context).getDefaultSession();
+        Room room = session.getDataHandler().getRoom(event.roomId);
+        if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
+                && !event.userId.equals(session.getCredentials().userId)) {
+            return true;
+        }
+        return false;
     }
 }

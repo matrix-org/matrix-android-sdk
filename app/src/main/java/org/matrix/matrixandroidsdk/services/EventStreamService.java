@@ -17,6 +17,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.util.EventUtils;
 
 /**
  * A foreground service in charge of controlling whether the event stream is running or not.
@@ -41,7 +42,7 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
         @Override
         public void onLiveEvent(Event event, RoomState roomState) {
-            if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            if (EventUtils.shouldNotify(EventStreamService.this, event)) {
                 String from = event.userId;
                 String body = event.content.getAsJsonPrimitive("body").getAsString();
                 Notification n = buildMessageNotification(from, body);
