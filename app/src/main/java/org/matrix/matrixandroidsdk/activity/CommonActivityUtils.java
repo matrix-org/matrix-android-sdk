@@ -1,4 +1,4 @@
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -6,6 +6,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.widget.EditText;
 
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**

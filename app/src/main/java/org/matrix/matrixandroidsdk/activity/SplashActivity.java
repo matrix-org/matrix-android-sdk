@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -22,6 +22,9 @@ import android.os.Bundle;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.matrixandroidsdk.ErrorListener;
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 public class SplashActivity extends Activity {

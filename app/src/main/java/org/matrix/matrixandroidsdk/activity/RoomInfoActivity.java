@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,6 +29,8 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 
 /**
  * Activity for displaying and editing room information.

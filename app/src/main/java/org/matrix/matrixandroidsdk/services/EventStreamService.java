@@ -10,11 +10,10 @@ import android.os.IBinder;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.matrixandroidsdk.HomeActivity;
+import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.util.EventUtils;
