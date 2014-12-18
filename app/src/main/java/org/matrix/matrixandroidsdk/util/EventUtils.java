@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 
 import java.util.regex.Pattern;
 
@@ -83,8 +84,22 @@ public class EventUtils {
         return pattern.matcher(longString).find();
     }
 
+    /**
+     * Whether the given event should trigger a notification.
+     * @param context the context
+     * @param event the event
+     * @return true if the event should trigger a notification
+     */
     public static boolean shouldNotify(Context context, Event event) {
-        // TODO: Return false when the user is currently viewing the room
+        // Only room events trigger notifications
+        if (event.roomId == null) {
+            return false;
+        }
+
+        // No notification if the user is currently viewing the room
+        if (event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+            return false;
+        }
 
         if (shouldHighlight(context, event)) {
             return true;
