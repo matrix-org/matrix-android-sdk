@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.text.method.CharacterPickerDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +21,7 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -162,6 +162,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         CharSequence body = display.getTextualDisplay();
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
+
+        // Highlight the message or not
+        textView.setTextColor(EventUtils.shouldHighlight(mContext, msg) ? 0xff0000ff : 0xff000000);
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));

@@ -1,4 +1,4 @@
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
@@ -12,6 +12,9 @@ import android.widget.GridView;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.matrixandroidsdk.ErrorListener;
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
 import java.util.List;

@@ -7,16 +7,19 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.matrixandroidsdk.HomeActivity;
+import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.util.EventUtils;
 
 /**
  * A foreground service in charge of controlling whether the event stream is running or not.
@@ -41,10 +44,10 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
         @Override
         public void onLiveEvent(Event event, RoomState roomState) {
-            if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            if (EventUtils.shouldNotify(EventStreamService.this, event)) {
                 String from = event.userId;
                 String body = event.content.getAsJsonPrimitive("body").getAsString();
-                Notification n = buildMessageNotification(from, body);
+                Notification n = buildMessageNotification(from, body, event.roomId);
                 NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
                 Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
                 nm.notify(MSG_NOTIFICATION_ID, n);
@@ -138,14 +141,25 @@ public class EventStreamService extends Service {
         mState = StreamAction.START;
     }
 
-    private Notification buildMessageNotification(String from, String body) {
-        Notification.Builder builder = new Notification.Builder(this);
+    private Notification buildMessageNotification(String from, String body, String roomId) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setWhen(System.currentTimeMillis());
         builder.setContentTitle(from + " (Matrix)");
         builder.setContentText(body);
         builder.setAutoCancel(true);
         builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
-        Notification n = builder.getNotification();
+
+        // Build the pending intent for when the notification is clicked
+        Intent roomIntent = new Intent(this, RoomActivity.class);
+        roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+        // Recreate the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this)
+                .addParentStack(RoomActivity.class)
+                .addNextIntent(roomIntent);
+
+        builder.setContentIntent(stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
         n.defaults |= Notification.DEFAULT_LIGHTS;
 //        n.defaults |= Notification.DEFAULT_VIBRATE;

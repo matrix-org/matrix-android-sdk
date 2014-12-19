@@ -1,4 +1,4 @@
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -18,6 +18,8 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 
 /**

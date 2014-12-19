@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 
 public class ErrorListener implements ApiFailureCallback {
 

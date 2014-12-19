@@ -1,4 +1,4 @@
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -21,6 +21,10 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.matrixandroidsdk.ErrorListener;
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 
@@ -130,6 +134,18 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     public void onDestroy() {
         super.onDestroy();
         mRoom.removeEventListener(mEventListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        ViewedRoomTracker.getInstance().setViewedRoomId(null);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
     }
 
     @Override

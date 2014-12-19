@@ -1,4 +1,4 @@
-package org.matrix.matrixandroidsdk;
+package org.matrix.matrixandroidsdk.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -6,6 +6,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.widget.EditText;
 
+import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**
@@ -15,11 +17,11 @@ public class CommonActivityUtils {
 
     public static boolean handleMenuItemSelected(Activity activity, int id) {
         if (id == R.id.action_logout) {
-            CommonActivityUtils.logout(activity);
+            logout(activity);
             return true;
         }
         else if (id == R.id.action_disconnect) {
-            CommonActivityUtils.disconnect(activity);
+            disconnect(activity);
             return true;
         }
         else if (id == R.id.action_settings) {
@@ -29,10 +31,10 @@ public class CommonActivityUtils {
     }
 
     public static void logout(Activity context) {
-        disconnect(context);
+        stopEventStream(context);
 
         // clear credentials
-        Matrix.getInstance(context).clearDefaultSession();
+        Matrix.getInstance(context).clearDefaultSessionAndCredentials();
 
         // go to login page
         context.startActivity(new Intent(context, LoginActivity.class));
@@ -40,10 +42,18 @@ public class CommonActivityUtils {
     }
 
     public static void disconnect(Activity context) {
+        stopEventStream(context);
+
+        // Clear session
+        Matrix.getInstance(context).clearDefaultSession();
+
+        context.finish();
+    }
+
+    public static void stopEventStream(Activity context) {
         // kill active connections
         Intent killStreamService = new Intent(context, EventStreamService.class);
-        killStreamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION,
-                EventStreamService.StreamAction.STOP.ordinal());
+        killStreamService.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.STOP.ordinal());
         context.startService(killStreamService);
     }
 

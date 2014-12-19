@@ -22,7 +22,9 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.rest.model.User;
 
 /**
@@ -48,6 +50,14 @@ public class JsonUtils {
 
     public static JsonObject toJson(RoomMember roomMember) {
         return (JsonObject) gson.toJsonTree(roomMember);
+    }
+
+    public static Message toMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, Message.class);
+    }
+
+    public static TextMessage toTextMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, TextMessage.class);
     }
 
     public static ImageMessage toImageMessage(JsonObject jsonObject) {
