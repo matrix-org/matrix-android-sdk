@@ -44,6 +44,11 @@ public class MatrixMessagesFragment extends Fragment {
     public static interface MatrixMessagesListener {
         public void onLiveEvent(Event event, RoomState roomState);
         public void onBackEvent(Event event, RoomState roomState);
+
+        /**
+         * Called when the first batch of messages is loaded.
+         */
+        public void onInitialMessagesLoaded();
     }
 
     // The listener to send messages back
@@ -98,7 +103,7 @@ public class MatrixMessagesFragment extends Fragment {
             joinRoom();
         }
         else {
-            mRoom.requestHistory();
+            requestInitialHistory();
         }
     }
 
@@ -112,7 +117,19 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.join(new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                requestHistory();
+                requestInitialHistory();
+            }
+        });
+    }
+
+    /**
+     * Request messages in this room upon entering.
+     */
+    private void requestInitialHistory() {
+        requestHistory(new SimpleApiCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer info) {
+                mMatrixMessagesListener.onInitialMessagesLoaded();
             }
         });
     }
@@ -134,13 +151,6 @@ public class MatrixMessagesFragment extends Fragment {
      */
     public void requestHistory(ApiCallback<Integer> callback) {
         mRoom.requestHistory(callback);
-    }
-
-    /**
-     * Request earlier messages in this room with no callback.
-     */
-    public void requestHistory() {
-        mRoom.requestHistory();
     }
 
     /**
