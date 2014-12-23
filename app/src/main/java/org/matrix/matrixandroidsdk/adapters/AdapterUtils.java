@@ -243,28 +243,23 @@ public class AdapterUtils {
         protected Bitmap doInBackground(Integer... params) {
             try {
                 // check the in-memory cache
-                String keySuffix = "";
-                if (params.length == 2) {
-                    keySuffix = "-" + params[0] + "-" + params[1];
-                }
-                String key = mUrl + keySuffix;
+                String key = mUrl;
                 Bitmap bm = sMemoryCache.get(key);
                 if (bm != null) {
                     Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " found in cache");
                     return bm;
                 }
 
-
                 URL url = new URL(mUrl);
                 Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
                 InputStream stream = url.openConnection().getInputStream();
-                BitmapFactory.Options o = decodeBitmapDimensions(stream);
-                //int sampleSize = getSampleSize(o.outWidth, o.outHeight, mMaxPx);
-                close(stream); // checking the sample size processed the stream so it's useless now.
-                stream = url.openConnection().getInputStream();
+//                BitmapFactory.Options o = decodeBitmapDimensions(stream);
+//                int sampleSize = getSampleSize(o.outWidth, o.outHeight, mMaxPx);
+//                close(stream); // checking the sample size processed the stream so it's useless now.
+//                stream = url.openConnection().getInputStream();
                 // decode within the limits specified.
                 BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-                //bitmapOptions.inSampleSize = sampleSize;
+//                bitmapOptions.inSampleSize = sampleSize;
                 bitmapOptions.inDither = true;
                 bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 Bitmap bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
