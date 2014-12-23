@@ -7,8 +7,8 @@
               android:paddingBottom="5dp">
 
     <include layout="@layout/round_avatar"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_width="@dimen/member_list_avatar_size"
+        android:layout_height="@dimen/member_list_avatar_size"
         android:padding="4dp"/>
 
     <LinearLayout
