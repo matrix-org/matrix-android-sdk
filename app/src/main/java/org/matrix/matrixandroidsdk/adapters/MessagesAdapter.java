@@ -16,10 +16,13 @@ import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
@@ -43,6 +46,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private static final int ROW_TYPE_IMAGE = 1;
     private static final int ROW_TYPE_NOTICE = 2;
     private static final int ROW_TYPE_EMOTE = 3;
+
+    private static final int MAX_IMAGE_WIDTH = 320;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -180,7 +185,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (sender != null) {
             String url = sender.getAvatarUrl();
             if (!TextUtils.isEmpty(url)) {
-                AdapterUtils.loadBitmap(avatarView, url);
+                loadAvatar(avatarView, url);
             }
         }
 
@@ -199,10 +204,36 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
 
-        String thumbUrl = ((imageMessage == null) || (imageMessage.thumbnailUrl == null)) ? null : imageMessage.thumbnailUrl;
+        String thumbUrl = null;
+        ImageInfo imageInfo = null;
+        if (imageMessage != null) {
+            // Backwards compatibility with events from before Synapse 0.6.0
+            if (imageMessage.thumbnailUrl != null) {
+                thumbUrl = imageMessage.thumbnailUrl;
+            } else if (imageMessage.url != null) {
+                thumbUrl = imageMessage.url;
+                imageInfo = imageMessage.info;
+            }
+        }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
-        AdapterUtils.loadBitmap(imageView, thumbUrl);
+
+        if (imageInfo != null) {
+            // Bound the width of the thumbnail
+            int w, h;
+            if (imageInfo.w > MAX_IMAGE_WIDTH) {
+                w = MAX_IMAGE_WIDTH;
+                h = imageInfo.h * MAX_IMAGE_WIDTH / imageInfo.w;
+            }
+            else {
+                w = imageInfo.w;
+                h = imageInfo.h;
+            }
+            AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, w, h);
+        }
+        else {
+            AdapterUtils.loadBitmap(imageView, thumbUrl);
+        }
 
         if ((imageMessage != null) && (imageMessage.url != null)) {
             imageView.setOnClickListener(new View.OnClickListener() {
@@ -211,7 +242,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     Intent viewImageIntent = new Intent();
                     viewImageIntent.setAction(Intent.ACTION_VIEW);
                     String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
-                    viewImageIntent.setDataAndType(Uri.parse(imageMessage.url), type);
+                    String hsUrl = Matrix.getInstance(getContext()).getDefaultSession().getCredentials().homeServer;
+                    String downloadableUrl = ContentUtils.getDownloadableUrl(hsUrl, imageMessage.url);
+                    viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
                     mContext.startActivity(viewImageIntent);
                 }
             });
@@ -228,7 +261,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (sender != null) {
             String url = sender.getAvatarUrl();
             if (!TextUtils.isEmpty(url)) {
-                AdapterUtils.loadBitmap(avatarView, url);
+                loadAvatar(avatarView, url);
             }
         }
 
@@ -259,11 +292,16 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (sender != null) {
             String url = sender.getAvatarUrl();
             if (!TextUtils.isEmpty(url)) {
-                AdapterUtils.loadBitmap(avatarView, url);
+                loadAvatar(avatarView, url);
             }
         }
 
         return convertView;
+    }
+
+    private void loadAvatar(ImageView avatarView, String url) {
+        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
+        AdapterUtils.loadThumbnailBitmap(avatarView, url, size, size);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {
@@ -283,7 +321,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (sender != null) {
             String url = sender.getAvatarUrl();
             if (!TextUtils.isEmpty(url)) {
-                AdapterUtils.loadBitmap(avatarView, url);
+                loadAvatar(avatarView, url);
             }
         }
 

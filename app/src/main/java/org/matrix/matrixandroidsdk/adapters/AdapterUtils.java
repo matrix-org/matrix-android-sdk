@@ -15,8 +15,11 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
 import java.io.IOException;
@@ -201,9 +204,19 @@ public class AdapterUtils {
 
 
     public static void loadBitmap(ImageView imageView, String url) {
-        imageView.setTag(url);
-        BitmapWorkerTask task = new BitmapWorkerTask(imageView, url);
+        String hsUrl = Matrix.getInstance(imageView.getContext()).getDefaultSession().getCredentials().homeServer;
+        String downloadableUrl = ContentUtils.getDownloadableUrl(hsUrl, url);
+        imageView.setTag(downloadableUrl);
+        BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
         task.execute();
+    }
+
+    public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
+        String hsUrl = Matrix.getInstance(imageView.getContext()).getDefaultSession().getCredentials().homeServer;
+        String downloadableUrl = ContentUtils.getDownloadableThumbnailUrl(hsUrl, url, width, height, ContentUtils.METHOD_SCALE);
+        imageView.setTag(downloadableUrl);
+        BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
+        task.execute(width, height);
     }
 
     static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
@@ -219,16 +232,10 @@ public class AdapterUtils {
 
         private final WeakReference<ImageView> mImageViewReference;
         private String mUrl;
-        private int mMaxPx;
 
         public BitmapWorkerTask(ImageView imageView, String url) {
-            this(imageView, url, 320);
-        }
-
-        public BitmapWorkerTask(ImageView imageView, String url, int maxPx) {
             mImageViewReference = new WeakReference<ImageView>(imageView);
             mUrl = url;
-            mMaxPx = maxPx;
         }
 
         // Decode image in background.
@@ -236,9 +243,14 @@ public class AdapterUtils {
         protected Bitmap doInBackground(Integer... params) {
             try {
                 // check the in-memory cache
-                String key = mUrl +"-" + mMaxPx;
+                String keySuffix = "";
+                if (params.length == 2) {
+                    keySuffix = "-" + params[0] + "-" + params[1];
+                }
+                String key = mUrl + keySuffix;
                 Bitmap bm = sMemoryCache.get(key);
                 if (bm != null) {
+                    Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " found in cache");
                     return bm;
                 }
 
@@ -247,12 +259,12 @@ public class AdapterUtils {
                 Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
                 InputStream stream = url.openConnection().getInputStream();
                 BitmapFactory.Options o = decodeBitmapDimensions(stream);
-                int sampleSize = getSampleSize(o.outWidth, o.outHeight, mMaxPx);
+                //int sampleSize = getSampleSize(o.outWidth, o.outHeight, mMaxPx);
                 close(stream); // checking the sample size processed the stream so it's useless now.
                 stream = url.openConnection().getInputStream();
                 // decode within the limits specified.
                 BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-                bitmapOptions.inSampleSize = sampleSize;
+                //bitmapOptions.inSampleSize = sampleSize;
                 bitmapOptions.inDither = true;
                 bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 Bitmap bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
