@@ -8,17 +8,15 @@ import android.support.v4.util.LruCache;
 import android.text.Html;
 import android.util.Log;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
@@ -204,16 +202,16 @@ public class AdapterUtils {
 
 
     public static void loadBitmap(ImageView imageView, String url) {
-        String hsUrl = Matrix.getInstance(imageView.getContext()).getDefaultSession().getCredentials().homeServer;
-        String downloadableUrl = ContentUtils.getDownloadableUrl(hsUrl, url);
+        ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
+        String downloadableUrl = contentManager.getDownloadableUrl(url);
         imageView.setTag(downloadableUrl);
         BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
         task.execute();
     }
 
     public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
-        String hsUrl = Matrix.getInstance(imageView.getContext()).getDefaultSession().getCredentials().homeServer;
-        String downloadableUrl = ContentUtils.getDownloadableThumbnailUrl(hsUrl, url, width, height, ContentUtils.METHOD_SCALE);
+        ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
+        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
         imageView.setTag(downloadableUrl);
         BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
         task.execute(width, height);
@@ -246,7 +244,6 @@ public class AdapterUtils {
                 String key = mUrl;
                 Bitmap bm = sMemoryCache.get(key);
                 if (bm != null) {
-                    Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " found in cache");
                     return bm;
                 }
 

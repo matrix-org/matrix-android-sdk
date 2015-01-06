@@ -15,9 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-public class ImageInfo {
-    public String mimetype;
-    public int w;
-    public int h;
-    public long size;
+public class ContentResponse {
+
+    public String contentUri;
 }

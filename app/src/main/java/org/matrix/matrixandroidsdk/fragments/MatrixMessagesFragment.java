@@ -14,6 +14,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
@@ -160,8 +161,11 @@ public class MatrixMessagesFragment extends Fragment {
     public void sendMessage(String body) {
         TextMessage message = new TextMessage();
         message.body = body;
-        message.msgtype = Message.MSGTYPE_TEXT;
         send(message);
+    }
+
+    public void sendImage(ImageMessage imageMessage) {
+        send(imageMessage);
     }
 
     /**

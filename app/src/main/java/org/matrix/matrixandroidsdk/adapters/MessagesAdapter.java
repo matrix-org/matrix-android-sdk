@@ -20,7 +20,7 @@ import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -242,8 +242,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     Intent viewImageIntent = new Intent();
                     viewImageIntent.setAction(Intent.ACTION_VIEW);
                     String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
-                    String hsUrl = Matrix.getInstance(getContext()).getDefaultSession().getCredentials().homeServer;
-                    String downloadableUrl = ContentUtils.getDownloadableUrl(hsUrl, imageMessage.url);
+                    ContentManager contentManager = Matrix.getInstance(getContext()).getDefaultSession().getContentManager();
+                    String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
                     viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
                     mContext.startActivity(viewImageIntent);
                 }

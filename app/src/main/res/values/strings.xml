@@ -66,4 +66,6 @@
 
     <string name="message_changes_successful">Changes successfully made</string>
 
+    <string name="option_attach_image">Attach image</string>
+
 </resources>
