@@ -159,7 +159,7 @@ must be called prior to the history requests.
 The content manager
 -------------------
 Matrix home servers provide a content API for the downloading and uploading of content (images, videos, files, etc.).
-The content manager the wrapper around that API.
+The content manager provides the wrapper around that API.
 
 ```java
 session.getContentManager();
