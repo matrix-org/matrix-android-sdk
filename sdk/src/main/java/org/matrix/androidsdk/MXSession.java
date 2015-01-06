@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
+import org.matrix.androidsdk.util.ContentManager;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -52,6 +53,8 @@ public class MXSession {
 
     private ApiFailureCallback mFailureCallback;
 
+    private ContentManager mContentManager;
+
     /**
      * Create a basic session for direct API calls.
      * @param credentials the user credentials
@@ -63,6 +66,8 @@ public class MXSession {
         mProfileRestClient = new ProfileRestClient(credentials);
         mPresenceRestClient = new PresenceRestClient(credentials);
         mRoomsRestClient = new RoomsRestClient(credentials);
+
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
 
     /**
@@ -91,6 +96,8 @@ public class MXSession {
         mProfileRestClient.setCredentials(credentials);
         mPresenceRestClient.setCredentials(credentials);
         mRoomsRestClient.setCredentials(credentials);
+
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
 
     /**
@@ -155,6 +162,14 @@ public class MXSession {
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
         this.mRoomsRestClient = roomsRestClient;
+    }
+
+    /**
+     * Get the content manager (for uploading and downloading content) associated with the session.
+     * @return
+     */
+    public ContentManager getContentManager() {
+        return mContentManager;
     }
 
     /**

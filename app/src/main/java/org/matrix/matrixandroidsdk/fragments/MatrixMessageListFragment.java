@@ -15,6 +15,7 @@ import android.widget.ListView;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
@@ -133,6 +134,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     public void sendMessage(String body) {
         mMatrixMessagesFragment.sendMessage(body);
+    }
+
+    public void sendImage(ImageMessage imageMessage) {
+        mMatrixMessagesFragment.sendImage(imageMessage);
     }
 
     public void sendEmote(String emote) {

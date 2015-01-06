@@ -15,38 +15,40 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.webkit.MimeTypeMap;
+
+import org.matrix.androidsdk.rest.model.ImageInfo;
+
+import java.io.File;
+
+/**
+ * Static content utility methods.
+ */
 public class ContentUtils {
 
-    public static final String MATRIX_CONTENT_URI_SCHEME = "mxc://";
+    /**
+     * Build an ImageInfo object based on the image at the given path.
+     * @param filePath the path to the image in storage
+     * @return the image info
+     */
+    public static ImageInfo getImageInfoFromFile(String filePath) {
+        ImageInfo imageInfo = new ImageInfo();
+        Bitmap imageBitmap = BitmapFactory.decodeFile(filePath);
+        imageInfo.w = imageBitmap.getWidth();
+        imageInfo.h = imageBitmap.getHeight();
 
-    public static final String METHOD_CROP = "crop";
-    public static final String METHOD_SCALE = "scale";
+        File file = new File(filePath);
+        imageInfo.size = file.length();
 
-    private static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1";
+        imageInfo.mimetype = getMimeType(filePath);
 
-    public static String getDownloadableUrl(String hsUrl, String contentUrl) {
-        if (contentUrl == null) return null;
-        if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
-            String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            return hsUrl + URI_PREFIX_CONTENT_API + "/download/" + mediaServerAndId;
-        }
-        else {
-            return contentUrl;
-        }
+        return imageInfo;
     }
 
-    public static String getDownloadableThumbnailUrl(String hsUrl, String contentUrl, int width, int height, String method) {
-        if (contentUrl == null) return null;
-        if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
-            String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            String url = hsUrl + URI_PREFIX_CONTENT_API + "/thumbnail/" + mediaServerAndId;
-            url += "?width=" + width;
-            url += "&height=" + height;
-            url += "&method=" + method;
-            return url;
-        }
-        else {
-            return contentUrl;
-        }
+    public static String getMimeType(String filePath) {
+        MimeTypeMap mime = MimeTypeMap.getSingleton();
+        return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1));
     }
 }

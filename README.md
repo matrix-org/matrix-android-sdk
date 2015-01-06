@@ -156,6 +156,45 @@ room.initHistory();
 
 must be called prior to the history requests.
 
+The content manager
+-------------------
+Matrix home servers provide a content API for the downloading and uploading of content (images, videos, files, etc.).
+The content manager provides the wrapper around that API.
+
+```java
+session.getContentManager();
+```
+
+retrieves the content manager associated with the given session.
+
+### Downloading content
+Content hosted by a home server is identified (in events, avatar URLs, etc.) by a URI with a mxc scheme (mxc://matrix.org/xxxx for example).
+To obtain the underlying HTTP URI for retrieving the content, use
+
+```java
+contentManager.getDownloadableUrl(contentUrl);
+```
+
+where contentUrl is the mxc:// content URL.
+
+For images, an additional method exists for returning thumbnails instead of full-sized images:
+
+```java
+contentManager.getDownloadableThumbnailUrl(contentUrl, width, height, method);
+```
+
+which allows you to request a specific width, height, and scale method (between scale and crop).
+
+### Uploading content
+To upload content from a file, use
+
+```java
+contentManager.uploadContent(filePath, callback);
+```
+
+specifying the file path and a callback method which will return an object on completion containing the mxc-style URI where the uploaded
+content can now be found.
+
 **See the sample app and Javadoc for more details.**
 
 License

@@ -1,7 +1,11 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -19,7 +23,11 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -39,6 +47,8 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
+
+    private static final int REQUEST_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
@@ -95,6 +105,52 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 String body = editText.getText().toString();
                 sendMessage(body);
                 editText.setText("");
+            }
+        });
+
+        findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
+            private static final int OPTION_CANCEL = 0;
+            private static final int OPTION_ATTACH_IMAGE = 1;
+
+            @Override
+            public void onClick(View v) {
+                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_CANCEL};
+
+                new AlertDialog.Builder(RoomActivity.this)
+                        .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (options[which]) {
+                                    case OPTION_CANCEL:
+                                        dialog.cancel();
+                                        break;
+                                    case OPTION_ATTACH_IMAGE:
+                                        Intent fileIntent = new Intent(Intent.ACTION_PICK);
+                                        fileIntent.setType("image/*");
+                                        startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                        break;
+                                }
+                            }
+                        })
+                        .show();
+            }
+
+            private String[] buildOptionLabels(int[] options) {
+                String[] labels = new String[options.length];
+                for (int i = 0; i < options.length; i++) {
+                    String label = "";
+                    switch (options[i]) {
+                        case OPTION_CANCEL:
+                            label = getString(R.string.cancel);
+                            break;
+                        case OPTION_ATTACH_IMAGE:
+                            label = getString(R.string.option_attach_image);
+                            break;
+                    }
+                    labels[i] = label;
+                }
+
+                return labels;
             }
         });
 
@@ -244,4 +300,40 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == REQUEST_IMAGE) {
+                Uri selectedImageUri = data.getData();
+                final String selectedPath = getPath(selectedImageUri);
+                Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+                mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadComplete(ContentResponse uploadResponse) {
+                        if (uploadResponse != null) {
+                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+                            // Build the image message
+                            ImageMessage message = new ImageMessage();
+                            message.url = uploadResponse.contentUri;
+                            message.body = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
+
+                            message.info = ContentUtils.getImageInfoFromFile(selectedPath);
+
+                            mMatrixMessageListFragment.sendImage(message);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    public String getPath(Uri uri) {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = managedQuery(uri, projection, null, null, null);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }
 }
