@@ -27,7 +27,7 @@ import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.ResourceUtils;
+import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -319,7 +319,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                             message.url = uploadResponse.contentUri;
                             message.body = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
 
-                            message.info = ResourceUtils.getImageInfoFromFile(selectedPath);
+                            message.info = ContentUtils.getImageInfoFromFile(selectedPath);
 
                             mMatrixMessageListFragment.sendImage(message);
                         }

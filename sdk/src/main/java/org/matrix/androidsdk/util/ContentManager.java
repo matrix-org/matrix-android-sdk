@@ -160,9 +160,9 @@ public class ContentManager {
                 conn.setRequestMethod("POST");
 
                 // TODO: Handle other file types
-                String mimeType = ResourceUtils.getMimeType(fileName);
+                String mimeType = ContentUtils.getMimeType(fileName);
                 if (mimeType.startsWith("image/")) {
-                    ImageInfo imageInfo = ResourceUtils.getImageInfoFromFile(fileName);
+                    ImageInfo imageInfo = ContentUtils.getImageInfoFromFile(fileName);
                     conn.setRequestProperty("Content-type", imageInfo.mimetype);
                     conn.setRequestProperty("Content-length", String.valueOf(imageInfo.size));
                 }

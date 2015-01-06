@@ -26,7 +26,7 @@ import java.io.File;
 /**
  * Static content utility methods.
  */
-public class ResourceUtils {
+public class ContentUtils {
 
     /**
      * Build an ImageInfo object based on the image at the given path.
