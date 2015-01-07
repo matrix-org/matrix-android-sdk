@@ -307,7 +307,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
                 Uri selectedImageUri = data.getData();
-                final String selectedPath = getPath(selectedImageUri);
+                final String selectedPath = getImagePath(selectedImageUri);
                 Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
                 mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
                     @Override
@@ -329,11 +329,11 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         }
     }
 
-    public String getPath(Uri uri) {
+    private String getImagePath(Uri uri) {
         String[] projection = { MediaStore.Images.Media.DATA };
         Cursor cursor = managedQuery(uri, projection, null, null, null);
-        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
         cursor.moveToFirst();
-        return cursor.getString(column_index);
+        return cursor.getString(columnIndex);
     }
 }

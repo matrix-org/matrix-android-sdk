@@ -138,7 +138,7 @@ public class EventsThreadTest {
         eventsThread.start();
 
         // Verify that it recovers from the error and moves on
-        verify(mockListener, timeout(1000)).onInitialSyncComplete(any(InitialSyncResponse.class));
+        verify(mockListener, timeout(11000)).onInitialSyncComplete(any(InitialSyncResponse.class));
     }
 
     /**
@@ -156,7 +156,7 @@ public class EventsThreadTest {
         eventsThread.start();
 
         // Verify that it recovers from the error and moves on
-        verify(mockListener, timeout(1000)).onInitialSyncComplete(any(InitialSyncResponse.class));
+        verify(mockListener, timeout(11000)).onInitialSyncComplete(any(InitialSyncResponse.class));
         // Verify that the failure listener gets the error
         verify(mockFailureCallback).onNetworkError(any(Exception.class));
     }

@@ -23,6 +23,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.concurrent.CountDownLatch;
@@ -116,11 +117,32 @@ public class EventsThread extends Thread {
                     latch.countDown();
                 }
 
+                private void sleepAndUnblock() {
+                    Log.i(LOG_TAG, "Waiting a bit before retrying");
+                    try {
+                        Thread.sleep(RETRY_WAIT_TIME_MS);
+                    } catch (InterruptedException e1) {
+                        Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                    }
+                    latch.countDown();
+                }
+
                 @Override
                 public void onNetworkError(Exception e) {
                     super.onNetworkError(e);
-                    // unblock the events thread
-                    latch.countDown();
+                    sleepAndUnblock();
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    super.onMatrixError(e);
+                    sleepAndUnblock();
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    super.onUnexpectedError(e);
+                    sleepAndUnblock();
                 }
             });
 

@@ -44,13 +44,19 @@ public class RestAdapterCallback<T> implements Callback<T> {
      */
     @Override
     public void failure(RetrofitError error) {
-        Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl() + " body=" + error.getBody());
+        Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
         if (error.isNetworkError()) {
             apiCallback.onNetworkError(error);
         }
         else {
             // Try to convert this into a Matrix error
-            MatrixError mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+            MatrixError mxError;
+            try {
+                mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+            }
+            catch (Exception e) {
+                mxError = null;
+            }
             if (mxError != null) {
                 apiCallback.onMatrixError(mxError);
             }
