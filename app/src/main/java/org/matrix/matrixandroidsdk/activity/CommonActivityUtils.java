@@ -25,6 +25,7 @@ public class CommonActivityUtils {
             return true;
         }
         else if (id == R.id.action_settings) {
+            activity.startActivity(new Intent(activity, SettingsActivity.class));
             return true;
         }
         return false;

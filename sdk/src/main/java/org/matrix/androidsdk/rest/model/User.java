@@ -32,14 +32,20 @@ public class User {
     public long lastActiveAgo;
     public String statusMsg;
 
+    protected void clone(User user) {
+        if (user != null) {
+            userId = user.userId;
+            displayname = user.displayname;
+            avatarUrl = user.avatarUrl;
+            presence = user.presence;
+            lastActiveAgo = user.lastActiveAgo;
+            statusMsg = user.statusMsg;
+        }
+    }
+
     public User deepCopy() {
         User copy = new User();
-        copy.userId = userId;
-        copy.displayname = displayname;
-        copy.avatarUrl = avatarUrl;
-        copy.presence = presence;
-        copy.lastActiveAgo = lastActiveAgo;
-        copy.statusMsg = statusMsg;
+        copy.clone(this);
         return copy;
     }
 }

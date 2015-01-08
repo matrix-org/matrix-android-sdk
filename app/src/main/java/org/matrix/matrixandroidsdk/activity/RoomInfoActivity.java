@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.util.UIUtils;
 
 /**
  * Activity for displaying and editing room information.
@@ -106,43 +107,14 @@ public class RoomInfoActivity extends ActionBarActivity {
         String nameFromForm = mNameField.getText().toString();
         String topicFromForm = mTopicField.getText().toString();
 
-        ApiCallback<Void> changeCallback = new SimpleApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(RoomInfoActivity.this, R.string.message_changes_successful, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
+        ApiCallback<Void> changeCallback = UIUtils.buildOnChangeCallback(this);
 
-            @Override
-            public void onMatrixError(final MatrixError e) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(RoomInfoActivity.this, e.error, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-        };
-
-        if (hasFieldChanged(roomState.name, nameFromForm)) {
+        if (UIUtils.hasFieldChanged(roomState.name, nameFromForm)) {
             mRoom.updateName(nameFromForm, changeCallback);
         }
 
-        if (hasFieldChanged(roomState.topic, topicFromForm)) {
+        if (UIUtils.hasFieldChanged(roomState.topic, topicFromForm)) {
             mRoom.updateTopic(topicFromForm, changeCallback);
-        }
-    }
-
-    private boolean hasFieldChanged(String oldVal, String newVal) {
-        if (oldVal == null) {
-            return (newVal != null) && (newVal.length() != 0);
-        }
-        else {
-            return !oldVal.equals(newVal);
         }
     }
 }

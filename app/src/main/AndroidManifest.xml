@@ -62,6 +62,16 @@
                 android:value=".activity.RoomActivity"/>
 
         </activity>
+        <activity
+            android:name=".activity.SettingsActivity"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".activity.HomeActivity">
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".activity.HomeActivity"/>
+
+        </activity>
         <service android:name=".services.EventStreamService" />
     </application>
 

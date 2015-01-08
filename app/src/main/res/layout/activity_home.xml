@@ -13,7 +13,7 @@
         android:id="@+id/textView_static_myRooms"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textStyle="bold"
+        style="@style/title"
         android:text="@string/my_rooms" />
 
     <ListView
