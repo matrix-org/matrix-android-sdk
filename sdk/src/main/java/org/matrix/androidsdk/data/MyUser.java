@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -40,8 +41,15 @@ public class MyUser extends User {
      * @param displayName the new name
      * @param callback the async callback
      */
-    public void updateDisplayName(String displayName, ApiCallback<Void> callback) {
-        mProfileRestClient.updateDisplayname(displayName, callback);
+    public void updateDisplayName(final String displayName, ApiCallback<Void> callback) {
+        mProfileRestClient.updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
+            @Override
+            public void onSuccess(Void info) {
+                // Update the object member before calling the given callback
+                MyUser.this.displayname = displayName;
+                super.onSuccess(info);
+            }
+        });
     }
 
     /**
@@ -49,7 +57,14 @@ public class MyUser extends User {
      * @param avatarUrl the new avatar URL
      * @param callback the async callback
      */
-    public void updateAvatarUrl(String avatarUrl, ApiCallback<Void> callback) {
-        mProfileRestClient.updateAvatarUrl(avatarUrl, callback);
+    public void updateAvatarUrl(final String avatarUrl, ApiCallback<Void> callback) {
+        mProfileRestClient.updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
+            @Override
+            public void onSuccess(Void info) {
+                // Update the object member before calling the given callback
+                MyUser.this.avatarUrl = avatarUrl;
+                super.onSuccess(info);
+            }
+        });
     }
 }

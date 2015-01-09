@@ -35,6 +35,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
+import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 
 /**
@@ -307,7 +308,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
                 Uri selectedImageUri = data.getData();
-                final String selectedPath = getImagePath(selectedImageUri);
+                final String selectedPath = ResourceUtils.getImagePath(this, selectedImageUri);
                 Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
                 mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
                     @Override
@@ -327,13 +328,5 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 });
             }
         }
-    }
-
-    private String getImagePath(Uri uri) {
-        String[] projection = { MediaStore.Images.Media.DATA };
-        Cursor cursor = managedQuery(uri, projection, null, null, null);
-        int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(columnIndex);
     }
 }

@@ -47,6 +47,10 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     @Override
     public void onSuccess(T info) {
+        // If the delegate has an onSuccess implementation, use it
+        if (failureCallback instanceof ApiCallback) {
+            ((ApiCallback) failureCallback).onSuccess(info);
+        }
     }
 
     @Override

@@ -12,25 +12,37 @@
         style="@style/title"
         android:text="@string/settings_title_profile"/>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/imageView_avatar"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginRight="10dp"/>
+            android:layout_width="@dimen/profile_avatar_size"
+            android:layout_height="@dimen/profile_avatar_size"
+            android:layout_alignParentLeft="true"
+            android:layout_marginRight="10dp"
+            android:scaleType="centerCrop"/>
 
         <EditText
             android:id="@+id/editText_displayName"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_gravity="bottom"/>
+            android:layout_toRightOf="@id/imageView_avatar"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"/>
 
-    </LinearLayout>
+        <Button
+            android:id="@+id/button_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/imageView_avatar"
+            android:layout_below="@id/editText_displayName"
+            android:layout_alignParentRight="true"
+            android:text="@string/save"
+            android:enabled="false"/>
+
+    </RelativeLayout>
 
     <TextView
         android:layout_width="match_parent"

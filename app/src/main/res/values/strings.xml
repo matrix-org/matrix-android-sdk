@@ -10,6 +10,9 @@
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="stay">Stay</string>
+    <string name="leave">Leave</string>
 
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>
@@ -66,6 +69,7 @@
     <string name="unban">Un-ban</string>
 
     <string name="message_changes_successful">Changes successfully made</string>
+    <string name="message_unsaved_changes">There are unsaved changes. Leaving will discard them.</string>
 
     <string name="option_attach_image">Attach image</string>
 
