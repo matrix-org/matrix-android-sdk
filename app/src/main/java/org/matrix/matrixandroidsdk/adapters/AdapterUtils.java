@@ -211,7 +211,7 @@ public class AdapterUtils {
 
     public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
-        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_CROP);
         imageView.setTag(downloadableUrl);
         BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
         task.execute(width, height);
