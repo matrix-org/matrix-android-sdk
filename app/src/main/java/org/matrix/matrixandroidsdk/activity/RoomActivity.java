@@ -35,6 +35,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
+import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 
 /**
@@ -61,20 +62,16 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-                        Log.e(LOG_TAG, "Updating room name.");
-                        // The room state provided by the callback hasn't taken the event into account
-                        RoomState roomState = JsonUtils.toRoomState(event.content);
-                        setTitle(roomState.name);
+                    // The various events that could possibly change the room title
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                        setTitle(mRoom.getName(mSession.getCredentials().userId));
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
                         RoomState roomState = JsonUtils.toRoomState(event.content);
                         setTopic(roomState.topic);
-                    }
-                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-                        Log.e(LOG_TAG, "Updating room name (via alias).");
-                        setTitle(mRoom.getName(mSession.getCredentials().userId));
                     }
                 }
             });
@@ -307,7 +304,7 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
                 Uri selectedImageUri = data.getData();
-                final String selectedPath = getImagePath(selectedImageUri);
+                final String selectedPath = ResourceUtils.getImagePath(this, selectedImageUri);
                 Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
                 mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
                     @Override
@@ -327,13 +324,5 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
                 });
             }
         }
-    }
-
-    private String getImagePath(Uri uri) {
-        String[] projection = { MediaStore.Images.Media.DATA };
-        Cursor cursor = managedQuery(uri, projection, null, null, null);
-        int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(columnIndex);
     }
 }

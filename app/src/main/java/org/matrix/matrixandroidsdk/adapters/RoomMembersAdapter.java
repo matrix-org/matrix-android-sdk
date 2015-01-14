@@ -1,7 +1,10 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +13,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;
@@ -87,9 +92,23 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             return null;
         }
         if (!TextUtils.isEmpty(member.displayname)) {
-            return withUserId ? member.displayname + "(" + member.getUser().userId +")" : member.displayname;
+            return withUserId ? member.displayname + "(" + member.getUserId() +")" : member.displayname;
         }
-        return member.getUser().userId;
+        return member.getUserId();
+    }
+
+    public void updateMember(String userId, RoomMember member) {
+        for (int i = 0; i < getCount(); i++) {
+            RoomMember m = getItem(i);
+            if (userId.equals(m.getUserId())) {
+                // Copy members
+                m.displayname = member.displayname;
+                m.avatarUrl = member.avatarUrl;
+                m.membership = member.membership;
+                notifyDataSetChanged();
+                break;
+            }
+        }
     }
 
     @Override
@@ -100,12 +119,28 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         RoomMember member = getItem(position);
 
+        User user = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getUser(member.getUserId());
+
+        // Member name and last seen time
         TextView textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_name);
-        textView.setText(member.getName());
+
+        if (user == null) {
+            textView.setText(member.getName());
+        }
+        else {
+            String memberName = member.getName();
+            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.lastActiveAgo) + ")";
+
+            SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
+            int lastSeenTextColor = mContext.getResources().getColor(R.color.member_list_last_seen_text);
+            ssb.setSpan(new ForegroundColorSpan(lastSeenTextColor), memberName.length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            textView.setText(ssb);
+        }
+
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
         textView.setText(mMembershipStrings.get(member.membership));
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
-        textView.setText(member.getUser().userId);
+        textView.setText(member.getUserId());
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.avatar_img);
         imageView.setTag(null);
@@ -116,12 +151,42 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             AdapterUtils.loadThumbnailBitmap(imageView, url, size, size);
         }
 
+        // The presence ring
+        ImageView presenceRing = (ImageView) convertView.findViewById(R.id.imageView_presenceRing);
+        presenceRing.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
+        if (user != null) {
+            if (User.PRESENCE_ONLINE.equals(user.presence)) {
+                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_online));
+            } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
+                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
+            }
+        }
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {
-            convertView.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
+            convertView.setBackgroundColor(position % 2 == 0 ? mEvenColourResId : mOddColourResId);
         }
 
         return convertView;
 
+    }
+
+    private String buildLastActiveDisplay(long lastActiveAgo) {
+        lastActiveAgo /= 1000; // In seconds
+        if (lastActiveAgo < 60) {
+            return mContext.getString(R.string.last_seen_secs, lastActiveAgo);
+        }
+
+        lastActiveAgo /= 60; // In minutes
+        if (lastActiveAgo < 60) {
+            return mContext.getString(R.string.last_seen_mins, lastActiveAgo);
+        }
+
+        lastActiveAgo /= 60; // In hours
+        if (lastActiveAgo < 24) {
+            return mContext.getString(R.string.last_seen_hours, lastActiveAgo);
+        }
+
+        lastActiveAgo /= 24; // In days
+        return mContext.getString(R.string.last_seen_days, lastActiveAgo);
     }
 }

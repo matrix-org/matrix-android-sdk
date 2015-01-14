@@ -18,6 +18,7 @@ package org.matrix.androidsdk;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
@@ -27,6 +28,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -44,6 +46,7 @@ public class MXSession {
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
+    private MyUser mMyUser;
 
     // Api clients
     private EventsRestClient mEventsRestClient;
@@ -84,20 +87,6 @@ public class MXSession {
         dataRetriever.setRoomsRestClient(mRoomsRestClient);
 
         mDataHandler.setDataRetriever(dataRetriever);
-    }
-
-    /**
-     * Set the credentials to use.
-     * @param credentials the credentials
-     */
-    public void setCredentials(Credentials credentials) {
-        mCredentials = credentials;
-        mEventsRestClient.setCredentials(credentials);
-        mProfileRestClient.setCredentials(credentials);
-        mPresenceRestClient.setCredentials(credentials);
-        mRoomsRestClient.setCredentials(credentials);
-
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
 
     /**
@@ -166,10 +155,25 @@ public class MXSession {
 
     /**
      * Get the content manager (for uploading and downloading content) associated with the session.
-     * @return
+     * @return the content manager
      */
     public ContentManager getContentManager() {
         return mContentManager;
+    }
+
+    /**
+     * Get the session's current user. The MyUser object provides methods for updating user properties which are not possible for other users.
+     * @return the session's MyUser object
+     */
+    public MyUser getMyUser() {
+        // MyUser is initialized as late as possible to have a better chance at having the info in storage,
+        // which should be the case if this is called after the initial sync
+        if (mMyUser == null) {
+            // TODO: Handle the case where the user is null by loading the user information from the server
+            mMyUser = new MyUser(mDataHandler.getStore().getUser(mCredentials.userId));
+            mMyUser.setProfileRestClient(mProfileRestClient);
+        }
+        return mMyUser;
     }
 
     /**

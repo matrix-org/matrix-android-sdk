@@ -6,10 +6,22 @@
               android:layout_height="wrap_content"
               android:paddingBottom="5dp">
 
-    <include layout="@layout/round_avatar"
+    <FrameLayout
         android:layout_width="@dimen/member_list_avatar_size"
         android:layout_height="@dimen/member_list_avatar_size"
-        android:padding="4dp"/>
+        android:padding="4dp">
+
+        <include layout="@layout/round_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <ImageView
+            android:id="@+id/imageView_presenceRing"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/presence_ring"/>
+
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

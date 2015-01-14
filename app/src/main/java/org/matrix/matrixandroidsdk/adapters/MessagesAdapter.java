@@ -183,7 +183,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
-            String url = sender.getAvatarUrl();
+            String url = sender.avatarUrl;
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarView, url);
             }
@@ -259,7 +259,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
-            String url = sender.getAvatarUrl();
+            String url = sender.avatarUrl;
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarView, url);
             }
@@ -290,7 +290,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
-            String url = sender.getAvatarUrl();
+            String url = sender.avatarUrl;
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarView, url);
             }
@@ -319,7 +319,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         if (sender != null) {
-            String url = sender.getAvatarUrl();
+            String url = sender.avatarUrl;
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarView, url);
             }

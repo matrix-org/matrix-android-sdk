@@ -6,9 +6,13 @@
     <string name="title_activity_room">Matrix Room</string>
     <string name="title_activity_public_rooms">Public Rooms</string>
     <string name="title_activity_room_info">Room info</string>
+    <string name="title_activity_settings">Settings</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="stay">Stay</string>
+    <string name="leave">Leave</string>
 
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>
@@ -57,6 +61,12 @@
         <item quantity="other">%1$s users</item>
     </plurals>
 
+    <!-- Last seen time -->
+    <string name="last_seen_secs">%ds</string>
+    <string name="last_seen_mins">%dm</string>
+    <string name="last_seen_hours">%dh</string>
+    <string name="last_seen_days">%dd</string>
+
     <string name="summary_message">%1$s: %2$s</string>
 
     <string name="invite">Invite</string>
@@ -65,7 +75,16 @@
     <string name="unban">Un-ban</string>
 
     <string name="message_changes_successful">Changes successfully made</string>
+    <string name="message_unsaved_changes">There are unsaved changes. Leaving will discard them.</string>
 
     <string name="option_attach_image">Attach image</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title_profile">Profile</string>
+    <string name="settings_title_config">Configuration</string>
+    <string name="settings_config_home_server">Home server: %s</string>
+    <string name="settings_config_identity_server">Identity server: %s</string>
+    <string name="settings_config_user_id">User ID: %s</string>
+    <string name="settings_config_access_token">Access token: %s</string>
 
 </resources>
