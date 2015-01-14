@@ -62,20 +62,16 @@ public class RoomActivity extends ActionBarActivity implements MatrixMessageList
 
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-                        Log.e(LOG_TAG, "Updating room name.");
-                        // The room state provided by the callback hasn't taken the event into account
-                        RoomState roomState = JsonUtils.toRoomState(event.content);
-                        setTitle(roomState.name);
+                    // The various events that could possibly change the room title
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                        setTitle(mRoom.getName(mSession.getCredentials().userId));
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
                         RoomState roomState = JsonUtils.toRoomState(event.content);
                         setTopic(roomState.topic);
-                    }
-                    else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-                        Log.e(LOG_TAG, "Updating room name (via alias).");
-                        setTitle(mRoom.getName(mSession.getCredentials().userId));
                     }
                 }
             });
