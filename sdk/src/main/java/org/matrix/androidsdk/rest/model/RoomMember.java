@@ -28,37 +28,22 @@ public class RoomMember {
     public String avatarUrl;
     public String membership;
 
-    private User user;
+    private String userId;
 
-    public User getUser() {
-        return user;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getName() {
         if (displayname != null) {
             return displayname;
         }
-        if (user != null) {
-            if (user.displayname != null) {
-                return user.displayname;
-            }
-            else {
-                return user.userId;
-            }
-        }
-        return null;
-    }
-
-    public String getAvatarUrl() {
-        if (avatarUrl != null) {
-            return avatarUrl;
-        }
-        if ((user != null) && (user.avatarUrl != null)) {
-            return user.avatarUrl;
+        if (userId != null) {
+            return userId;
         }
         return null;
     }
@@ -68,7 +53,7 @@ public class RoomMember {
         copy.displayname = displayname;
         copy.avatarUrl = avatarUrl;
         copy.membership = membership;
-        copy.setUser(user.deepCopy());
+        copy.setUserId(userId);
         return copy;
     }
 }

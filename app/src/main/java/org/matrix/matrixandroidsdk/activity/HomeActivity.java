@@ -15,7 +15,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -112,7 +111,7 @@ public class HomeActivity extends ActionBarActivity {
         private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
             for (RoomMember member : summary.getMembers()) {
                 if (membership.equals(member.membership) &&
-                        selfUserId.equals(member.getUser().userId)) {
+                        selfUserId.equals(member.getUserId())) {
                     return true;
                 }
             }

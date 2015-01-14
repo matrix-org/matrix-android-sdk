@@ -64,10 +64,8 @@ public class RoomState {
 
     public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
-        if (member.getUser() == null) {
-            User user = new User();
-            user.userId = userId;
-            member.setUser(user);
+        if (member.getUserId() == null) {
+            member.setUserId(userId);
         }
         mMembers.put(userId, member);
     }
