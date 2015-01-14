@@ -6,4 +6,6 @@
     <color name="presence_online">#38af00</color>
     <color name="presence_unavailable">#ffcc00</color>
 
+    <color name="member_list_last_seen_text">#aaa</color>
+
 </resources>
