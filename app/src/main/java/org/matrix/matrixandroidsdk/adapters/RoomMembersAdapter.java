@@ -12,13 +12,17 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * An adapter which can display m.room.member content.
@@ -31,6 +35,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     private int mOddColourResId;
     private int mEvenColourResId;
+
+    private PowerLevels mPowerLevels;
+    private int maxPowerLevel;
 
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
 
@@ -81,6 +88,20 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
+    }
+
+    public void setPowerLevels(PowerLevels powerLevels) {
+        mPowerLevels = powerLevels;
+        if (powerLevels != null) {
+            // Process power levels to find the max. The display will show power levels as a fraction of this
+            maxPowerLevel = powerLevels.usersDefault;
+            Iterator it = powerLevels.users.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Integer> pair = (Map.Entry<String, Integer>) it.next();
+                if (pair.getValue() > maxPowerLevel) maxPowerLevel = pair.getValue();
+            }
+        }
+        notifyDataSetChanged();
     }
 
     public String getMemberName(RoomMember member) {
@@ -160,6 +181,17 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
             }
+        }
+
+        // The power level disc
+        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.powerDisc);
+        if (mPowerLevels == null) {
+            pieFractionView.setVisibility(View.GONE);
+        }
+        else {
+            int powerLevel = mPowerLevels.getUserPowerLevel(member.getUserId());
+            pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
+            pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
         }
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {

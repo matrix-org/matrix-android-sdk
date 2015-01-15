@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -44,11 +45,11 @@ public class RoomState {
     public String visibility;
     public String creator;
     public String joinRule;
-    public String level;
     public List<String> aliases;
 
     private String token;
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
+    private PowerLevels powerLevels;
 
     public String getToken() {
         return token;
@@ -78,6 +79,14 @@ public class RoomState {
         mMembers.remove(userId);
     }
 
+    public PowerLevels getPowerLevels() {
+        return powerLevels;
+    }
+
+    public void setPowerLevels(PowerLevels powerLevels) {
+        this.powerLevels = powerLevels;
+    }
+
     /**
      * Make a deep copy of this room state object.
      * @return the copy
@@ -91,7 +100,6 @@ public class RoomState {
         copy.visibility = visibility;
         copy.creator = creator;
         copy.joinRule = joinRule;
-        copy.level = level;
         copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
 
         Iterator it = mMembers.entrySet().iterator();
@@ -99,6 +107,8 @@ public class RoomState {
             Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
             copy.setMember(pair.getKey(), pair.getValue().deepCopy());
         }
+
+        copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
 
         return copy;
     }
@@ -199,6 +209,9 @@ public class RoomState {
             else {
                 setMember(userId, member);
             }
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+            powerLevels = JsonUtils.toPowerLevels(contentToConsider);
         }
     }
 }

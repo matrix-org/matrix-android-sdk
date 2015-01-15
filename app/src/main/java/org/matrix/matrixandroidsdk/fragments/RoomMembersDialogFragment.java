@@ -83,14 +83,17 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
             @Override
             public void onLiveEvent(final Event event, RoomState roomState) {
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
+                uiThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                             mAdapter.updateMember(event.stateKey, JsonUtils.toRoomMember(event.content));
                         }
-                    });
-                }
+                        else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+                            mAdapter.setPowerLevels(JsonUtils.toPowerLevels(event.content));
+                        }
+                    }
+                });
             }
         });
     }
@@ -120,6 +123,8 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 mAdapter.sortMembers();
             }
         }
+
+        mAdapter.setPowerLevels(room.getLiveState().getPowerLevels());
 
         mListView.setAdapter(mAdapter);
 
