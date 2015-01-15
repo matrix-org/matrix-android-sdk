@@ -24,14 +24,17 @@
         </activity>
         <activity
             android:name=".activity.SplashActivity"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>
         <activity
             android:name=".activity.HomeActivity"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_home" >
         </activity>
         <activity
             android:name=".activity.RoomActivity"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_room"
             android:parentActivityName=".activity.HomeActivity"
             android:launchMode="singleTop"
@@ -44,6 +47,7 @@
         </activity>
         <activity
             android:name=".activity.PublicRoomsActivity"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_public_rooms"
             android:parentActivityName=".activity.HomeActivity">
 
@@ -54,6 +58,7 @@
         </activity>
         <activity
             android:name=".activity.RoomInfoActivity"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_room_info"
             android:parentActivityName=".activity.RoomActivity">
 
@@ -64,6 +69,7 @@
         </activity>
         <activity
             android:name=".activity.SettingsActivity"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".activity.HomeActivity">
 
