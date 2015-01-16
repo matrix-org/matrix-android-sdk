@@ -71,12 +71,13 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         mSession.getDataHandler().getRoom(mRoomId).addEventListener(new MXEventListener() {
             @Override
-            public void onPresenceUpdate(Event event, User user) {
+            public void onPresenceUpdate(Event event, final User user) {
                 // Someone's presence has changed, reprocess the whole list
                 uiThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mAdapter.notifyDataSetChanged();
+                        mAdapter.saveUser(user);
+                        mAdapter.sortMembers();
                     }
                 });
             }
@@ -119,6 +120,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
             if (members != null) {
                 for (RoomMember m : members) {
                     mAdapter.add(m);
+                    mAdapter.saveUser(mSession.getDataHandler().getStore().getUser(m.getUserId()));
                 }
                 mAdapter.sortMembers();
             }
