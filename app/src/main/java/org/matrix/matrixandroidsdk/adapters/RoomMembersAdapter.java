@@ -150,7 +150,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
         else {
             String memberName = member.getName();
-            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.lastActiveAgo) + ")";
+            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.getRealLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
             int lastSeenTextColor = mContext.getResources().getColor(R.color.member_list_last_seen_text);
