@@ -12,13 +12,16 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * An adapter which can display m.room.member content.
@@ -32,7 +35,64 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private int mOddColourResId;
     private int mEvenColourResId;
 
+    private PowerLevels mPowerLevels;
+    private int maxPowerLevel;
+
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
+
+    private Map<String, User> mUserMap = new HashMap<String, User>();
+
+    // Comparator to order members alphabetically
+    private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
+        @Override
+        public int compare(RoomMember member1, RoomMember member2) {
+            String lhs = getMemberName(member1);
+            String rhs = getMemberName(member2);
+            if (lhs == null) {
+                return -1;
+            }
+            else if (rhs == null) {
+                return 1;
+            }
+            if (lhs.startsWith("@")) {
+                lhs = lhs.substring(1);
+            }
+            if (rhs.startsWith("@")) {
+                rhs = rhs.substring(1);
+            }
+            return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+        }
+    };
+
+    // Comparator to order members by last active time
+    private Comparator<RoomMember> lastActiveComparator = new Comparator<RoomMember>() {
+        @Override
+        public int compare(RoomMember lhs, RoomMember rhs) {
+            User lUser = mUserMap.get(lhs.getUserId());
+            User rUser = mUserMap.get(rhs.getUserId());
+
+            // Null cases
+            if (lUser == null) {
+                if (rUser == null) {
+                    // Fall back to alphabetical order
+                    return alphaComparator.compare(lhs, rhs);
+                }
+                return 1;
+            }
+            if (rUser == null) {
+                return -1;
+            }
+
+            // Non-null cases
+            long lLastActive = lUser.getRealLastActiveAgo();
+            long rLastActive = rUser.getRealLastActiveAgo();
+            if (lLastActive < rLastActive) return -1;
+            if (lLastActive > rLastActive) return 1;
+
+            // Fall back to alphabetical order
+            return alphaComparator.compare(lhs, rhs);
+        }
+    };
 
     /**
      * Construct an adapter which will display a list of room members.
@@ -56,31 +116,33 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     }
 
     public void sortMembers() {
-        this.sort(new Comparator<RoomMember>() {
-            @Override
-            public int compare(RoomMember member1, RoomMember member2) {
-                String lhs = getMemberName(member1);
-                String rhs = getMemberName(member2);
-                if (lhs == null) {
-                    return -1;
-                }
-                else if (rhs == null) {
-                    return 1;
-                }
-                if (lhs.startsWith("@")) {
-                    lhs = lhs.substring(1);
-                }
-                if (rhs.startsWith("@")) {
-                    rhs = rhs.substring(1);
-                }
-                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
-            }
-        });
+        sort(lastActiveComparator);
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
+    }
+
+    public void setPowerLevels(PowerLevels powerLevels) {
+        mPowerLevels = powerLevels;
+        if (powerLevels != null) {
+            // Process power levels to find the max. The display will show power levels as a fraction of this
+            maxPowerLevel = powerLevels.usersDefault;
+            Iterator it = powerLevels.users.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Integer> pair = (Map.Entry<String, Integer>) it.next();
+                if (pair.getValue() > maxPowerLevel) maxPowerLevel = pair.getValue();
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    public void saveUser(User user) {
+        if (user != null) {
+            mUserMap.put(user.userId, user);
+        }
+        notifyDataSetChanged();
     }
 
     public String getMemberName(RoomMember member) {
@@ -119,7 +181,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         RoomMember member = getItem(position);
 
-        User user = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getUser(member.getUserId());
+        User user = mUserMap.get(member.getUserId());
 
         // Member name and last seen time
         TextView textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_name);
@@ -129,7 +191,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
         else {
             String memberName = member.getName();
-            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.lastActiveAgo) + ")";
+            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.getRealLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
             int lastSeenTextColor = mContext.getResources().getColor(R.color.member_list_last_seen_text);
@@ -160,6 +222,17 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
             }
+        }
+
+        // The power level disc
+        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.powerDisc);
+        if (mPowerLevels == null) {
+            pieFractionView.setVisibility(View.GONE);
+        }
+        else {
+            int powerLevel = mPowerLevels.getUserPowerLevel(member.getUserId());
+            pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
+            pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
         }
 
         if (mOddColourResId != 0 && mEvenColourResId != 0) {

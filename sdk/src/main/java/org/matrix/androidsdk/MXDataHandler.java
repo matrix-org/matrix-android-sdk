@@ -25,7 +25,6 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -171,11 +170,13 @@ public class MXDataHandler implements IMXEventListener {
             User user = mStore.getUser(userPresence.userId);
             if (user == null) {
                 user = userPresence;
+                user.lastActiveReceived();
                 mStore.storeUser(user);
             }
             else {
                 user.presence = userPresence.presence;
                 user.lastActiveAgo = userPresence.lastActiveAgo;
+                user.lastActiveReceived();
             }
             this.onPresenceUpdate(event, user);
         }

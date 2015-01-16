@@ -32,6 +32,10 @@ public class User {
     public long lastActiveAgo;
     public String statusMsg;
 
+    // Used to provide a more realistic last active time:
+    // the last active ago time provided by the server + the time that has gone by since
+    private long lastPresenceTs;
+
     protected void clone(User user) {
         if (user != null) {
             userId = user.userId;
@@ -47,5 +51,20 @@ public class User {
         User copy = new User();
         copy.clone(this);
         return copy;
+    }
+
+    /**
+     * Sets the last-active-ago-time received time to now.
+     */
+    public void lastActiveReceived() {
+        lastPresenceTs = System.currentTimeMillis();
+    }
+
+    /**
+     * Get the user's last active ago time by adding the one given by the server and the time since elapsed.
+     * @return how long ago the user was last active (in ms)
+     */
+    public long getRealLastActiveAgo() {
+        return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
     }
 }

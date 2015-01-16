@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.rest.model.User;
@@ -67,5 +68,9 @@ public class JsonUtils {
 
     public static ContentResponse toContentResponse(String jsonString) {
         return gson.fromJson(jsonString, ContentResponse.class);
+    }
+
+    public static PowerLevels toPowerLevels(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, PowerLevels.class);
     }
 }
