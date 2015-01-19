@@ -134,4 +134,9 @@ public class MXMemoryStore implements IMXStore {
     public Collection<RoomSummary> getSummaries() {
         return mRoomSummaries.values();
     }
+
+    @Override
+    public RoomSummary getSummary(String roomId) {
+        return mRoomSummaries.get(roomId);
+    }
 }

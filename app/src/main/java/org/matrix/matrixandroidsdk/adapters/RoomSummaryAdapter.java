@@ -42,7 +42,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
-        setNotifyOnChange(true);
+        setNotifyOnChange(false);
     }
 
     public void sortSummaries() {
@@ -82,15 +82,12 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
      * @param event The latest event
      */
     public void setLatestEvent(Event event, RoomState roomState) {
-        for (int i=0; i<getCount(); i++) {
-            RoomSummary summary = getItem(i);
-            if (event.roomId.equals(summary.getRoomId())) {
-                summary.setLatestEvent(event);
-                summary.setLatestRoomState(roomState);
-                sortSummaries();
-                notifyDataSetChanged();
-                break;
-            }
+        RoomSummary summary = getSummaryByRoomId(event.roomId);
+        if (summary != null) {
+            summary.setLatestEvent(event);
+            summary.setLatestRoomState(roomState);
+            sortSummaries();
+            notifyDataSetChanged();
         }
     }
 
