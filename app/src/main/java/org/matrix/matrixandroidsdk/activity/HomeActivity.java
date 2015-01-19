@@ -103,7 +103,8 @@ public class HomeActivity extends ActionBarActivity {
                     || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)
                     || Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)
                     || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type);
+                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type);
         }
 
         private void addNewRoom(String roomId) {
