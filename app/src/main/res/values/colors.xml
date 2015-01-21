@@ -11,4 +11,9 @@
     <color name="pie_fraction_fill">#f00</color>
     <color name="pie_fraction_rest">#aaa</color>
 
+    <color name="message_normal">#000</color>
+    <color name="message_highlighted">#00f</color>
+    <color name="message_sending">#aaa</color>
+    <color name="message_not_sent">#f00</color>
+
 </resources>

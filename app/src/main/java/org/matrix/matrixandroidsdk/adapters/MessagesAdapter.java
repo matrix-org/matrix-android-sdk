@@ -55,8 +55,17 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
     private LayoutInflater mLayoutInflater;
 
+    // To keep track of events and avoid duplicates. For instance, we add a message event
+    // when the current user sends one but it will also come down the event stream
+    private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
+
     private int mOddColourResId;
     private int mEvenColourResId;
+
+    private int normalColor;
+    private int notSentColor;
+    private int sendingColor;
+    private int highlightColor;
 
     private DateFormat mDateFormat;
 
@@ -71,6 +80,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         setNotifyOnChange(true);
+
+        normalColor = context.getResources().getColor(R.color.message_normal);
+        notSentColor = context.getResources().getColor(R.color.message_not_sent);
+        sendingColor = context.getResources().getColor(R.color.message_sending);
+        highlightColor = context.getResources().getColor(R.color.message_highlighted);
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
@@ -84,15 +98,31 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     public void addToFront(Event event, RoomState roomState) {
-        if (isKnownEvent(event, roomState)) {
-            insert(new MessageRow(event, roomState), 0);
+        MessageRow row = new MessageRow(event, roomState);
+        if (shouldSave(row)) {
+            insert(row, 0);
+            if (row.getEvent().eventId != null) {
+                mEventRowMap.put(row.getEvent().eventId, row);
+            }
         }
     }
 
     public void add(Event event, RoomState roomState) {
-        if (isKnownEvent(event, roomState)) {
-            add(new MessageRow(event, roomState));
+        add(new MessageRow(event, roomState));
+    }
+
+    @Override
+    public void add(MessageRow row) {
+        if (shouldSave(row)) {
+            super.add(row);
+            if (row.getEvent().eventId != null) {
+                mEventRowMap.put(row.getEvent().eventId, row);
+            }
         }
+    }
+
+    private boolean shouldSave(MessageRow row) {
+        return (isKnownEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
     }
 
     @Override
@@ -168,14 +198,24 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         textView.setText(body);
 
-        // Highlight the message or not
-        textView.setTextColor(EventUtils.shouldHighlight(mContext, msg) ? 0xff0000ff : 0xff000000);
+        int textColor;
+        switch (row.getSentState()) {
+            case SENDING:
+                textColor = sendingColor;
+                break;
+            case NOT_SENT:
+                textColor = notSentColor;
+                break;
+            default:
+                textColor = EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor;
+        }
+        textView.setTextColor(textColor);
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
 
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
-        textView.setText(getTimestamp(msg.origin_server_ts));
+        textView.setText(getTimestamp(msg.originServerTs));
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);

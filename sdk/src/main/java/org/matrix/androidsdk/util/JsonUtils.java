@@ -58,6 +58,10 @@ public class JsonUtils {
         return gson.fromJson(jsonObject, Message.class);
     }
 
+    public static JsonObject toJson(Message message) {
+        return (JsonObject) gson.toJsonTree(message);
+    }
+
     public static TextMessage toTextMessage(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, TextMessage.class);
     }

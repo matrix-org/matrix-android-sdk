@@ -41,7 +41,7 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 /**
  * Displays a single room with messages.
  */
-public class RoomActivity extends ActionBarActivity implements MatrixMessageListFragment.MatrixMessageListListener {
+public class RoomActivity extends ActionBarActivity {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
