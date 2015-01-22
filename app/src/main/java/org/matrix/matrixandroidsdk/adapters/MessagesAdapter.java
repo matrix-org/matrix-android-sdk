@@ -63,6 +63,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mEvenColourResId;
 
     private int normalColor;
+    private int emoteColor;
     private int notSentColor;
     private int sendingColor;
     private int highlightColor;
@@ -82,6 +83,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         setNotifyOnChange(true);
 
         normalColor = context.getResources().getColor(R.color.message_normal);
+        emoteColor = context.getResources().getColor(R.color.message_emote);
         notSentColor = context.getResources().getColor(R.color.message_not_sent);
         sendingColor = context.getResources().getColor(R.color.message_sending);
         highlightColor = context.getResources().getColor(R.color.message_highlighted);
@@ -372,6 +374,20 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_emote);
         textView.setText(emote);
+
+        int textColor;
+        switch (row.getSentState()) {
+            case SENDING:
+                textColor = sendingColor;
+                break;
+            case NOT_SENT:
+                textColor = notSentColor;
+                break;
+            default:
+                textColor = emoteColor;
+        }
+        textView.setTextColor(textColor);
+
         return convertView;
     }
 

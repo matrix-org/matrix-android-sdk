@@ -17,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="#FFDD88DD"
+            android:textColor="@color/message_emote"
             android:text="thinks of an emote"
             android:id="@+id/messagesAdapter_emote"/>
 
