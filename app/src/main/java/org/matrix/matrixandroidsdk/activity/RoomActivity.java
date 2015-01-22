@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -306,10 +307,16 @@ public class RoomActivity extends ActionBarActivity {
                 Uri selectedImageUri = data.getData();
                 final String selectedPath = ResourceUtils.getImagePath(this, selectedImageUri);
                 Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+
+                final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
+
                 mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
                     @Override
                     public void onUploadComplete(ContentResponse uploadResponse) {
-                        if (uploadResponse != null) {
+                        if (uploadResponse == null) {
+                            Toast.makeText(RoomActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
+                        }
+                        else {
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                             // Build the image message
                             ImageMessage message = new ImageMessage();
@@ -320,6 +327,7 @@ public class RoomActivity extends ActionBarActivity {
 
                             mMatrixMessageListFragment.sendImage(message);
                         }
+                        progressDialog.dismiss();
                     }
                 });
             }
