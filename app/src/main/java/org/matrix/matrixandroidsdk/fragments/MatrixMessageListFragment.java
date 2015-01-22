@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.fragments;
 
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,14 +11,30 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.EmoteMessage;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.TextMessage;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * UI Fragment containing matrix messages for a given room.
@@ -42,16 +59,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return f;
     }
 
-    public interface MatrixMessageListListener {
-
-    }
-
-    private MatrixMessageListListener mMatrixMessageListListener;
     private MatrixMessagesFragment mMatrixMessagesFragment;
     private MessagesAdapter mAdapter;
     private ListView mMessageListView;
     private Handler mUiHandler;
-    private String mRoomId;
+    private MXSession mSession;
+    private Room mRoom;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,8 +73,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
 
+        mSession = Matrix.getInstance(getActivity()).getDefaultSession();
+
         Bundle args = getArguments();
-        mRoomId = args.getString(ARG_ROOM_ID);
+        String roomId = args.getString(ARG_ROOM_ID);
+        mRoom = mSession.getDataHandler().getRoom(roomId);
     }
 
     @Override
@@ -81,6 +97,55 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
+
+        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            private static final int OPTION_CANCEL = 0;
+            private static final int OPTION_RESEND = 1;
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final MessageRow messageRow = mAdapter.getItem(position);
+                if (messageRow.getSentState() == MessageRow.SentState.NOT_SENT) {
+                    final List<Integer> options = Arrays.asList(OPTION_RESEND, OPTION_CANCEL);
+
+                    new AlertDialog.Builder(getActivity())
+                            .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    switch (options.get(which)) {
+                                        case OPTION_CANCEL:
+                                            dialog.cancel();
+                                            break;
+                                        case OPTION_RESEND:
+                                            Message message = JsonUtils.toMessage(messageRow.getEvent().content);
+                                            send(message);
+                                            break;
+                                    }
+                                }
+                            })
+                            .create()
+                            .show();
+                }
+            }
+
+            private String[] buildOptionLabels(List<Integer> options) {
+                String[] labels = new String[options.size()];
+                for (int i = 0; i < options.size(); i++) {
+                    String label = "";
+                    switch (options.get(i)) {
+                        case OPTION_CANCEL:
+                            label = getString(R.string.cancel);
+                            break;
+                        case OPTION_RESEND:
+                            label = getString(R.string.resend);
+                            break;
+                    }
+                    labels[i] = label;
+                }
+
+                return labels;
+            }
+        });
 
         return v;
     }
@@ -121,27 +186,64 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mMatrixMessageListListener = (MatrixMessageListListener)activity;
-        }
-        catch (ClassCastException e) {
-            throw new ClassCastException("Activity "+activity+" must implement MatrixMessageListListener");
-        }
-    }
-
     public void sendMessage(String body) {
-        mMatrixMessagesFragment.sendMessage(body);
+        TextMessage message = new TextMessage();
+        message.body = body;
+        send(message);
     }
 
     public void sendImage(ImageMessage imageMessage) {
-        mMatrixMessagesFragment.sendImage(imageMessage);
+        send(imageMessage);
     }
 
     public void sendEmote(String emote) {
-        mMatrixMessagesFragment.sendEmote(emote);
+        EmoteMessage message = new EmoteMessage();
+        message.body = emote;
+        send(message);
+    }
+
+    private void send(Message message) {
+        Event dummyEvent = new Event();
+        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
+        dummyEvent.content = JsonUtils.toJson(message);
+        dummyEvent.originServerTs = System.currentTimeMillis();
+        dummyEvent.userId = mSession.getCredentials().userId;
+
+        final MessageRow tmpRow = new MessageRow(dummyEvent, mRoom.getLiveState());
+        tmpRow.setSentState(MessageRow.SentState.SENDING);
+
+        mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event info) {
+                mAdapter.remove(tmpRow);
+                mAdapter.add(info, mRoom.getLiveState());
+            }
+
+            private void markError() {
+                tmpRow.setSentState(MessageRow.SentState.NOT_SENT);
+                mAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                markError();
+                Toast.makeText(getActivity(), "Unable to send message. Connection error.", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                markError();
+                Toast.makeText(getActivity(), "Unable to send message. " + e.error + ".", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                markError();
+                Toast.makeText(getActivity(), "Unable to send message.", Toast.LENGTH_LONG).show();
+            }
+        });
+
+        mAdapter.add(tmpRow);
     }
 
     public void requestHistory() {

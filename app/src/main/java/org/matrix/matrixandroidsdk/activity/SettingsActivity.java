@@ -16,6 +16,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -30,6 +31,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
@@ -190,10 +192,16 @@ public class SettingsActivity extends ActionBarActivity {
             final String selectedPath = ResourceUtils.getImagePath(this, newAvatarUri);
             Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
             MXSession session = Matrix.getInstance(this).getDefaultSession();
+
+            final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
+
             session.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadComplete(ContentResponse uploadResponse) {
-                    if (uploadResponse != null) {
+                    if (uploadResponse == null) {
+                        Toast.makeText(SettingsActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
+                    }
+                    else {
                         Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         mMyUser.updateAvatarUrl(uploadResponse.contentUri, new SimpleApiCallback<Void>(changeCallback) {
                             @Override
@@ -204,6 +212,7 @@ public class SettingsActivity extends ActionBarActivity {
                             }
                         });
                     }
+                    progressDialog.dismiss();
                 }
             });
         }

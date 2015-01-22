@@ -11,12 +11,14 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
@@ -37,7 +39,11 @@ public class HomeActivity extends ActionBarActivity {
                 @Override
                 public void run() {
                     mInitialSyncComplete = true;
-                    loadSummaries();
+                    for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                        addSummary(summary);
+                    }
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
                 }
             });
         }
@@ -47,10 +53,11 @@ public class HomeActivity extends ActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.setLatestEvent(event, roomState);
+                    if ((event.roomId != null) && isDisplayableEvent(event)) {
+                        mAdapter.setLatestEvent(event, roomState);
 
-                    if (event.roomId != null) {
                         String selfUserId = mSession.getCredentials().userId;
+                        Room room = mSession.getDataHandler().getRoom(event.roomId);
 
                         RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
                         if (summary == null) {
@@ -59,43 +66,30 @@ public class HomeActivity extends ActionBarActivity {
                             // are new rooms created AFTER we have synced).
                             if (mInitialSyncComplete) {
                                 if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                                    refreshAdapter();
-                                }
-                                else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                                    try {
-                                        if (RoomMember.MEMBERSHIP_INVITE.equals(event.content.getAsJsonPrimitive("membership").getAsString()) &&
-                                                event.stateKey.equals(selfUserId)) {
-                                            // we were invited to a new room.
-                                            refreshAdapter();
-                                        }
+                                    addNewRoom(event.roomId);
+                                } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                    RoomMember member = JsonUtils.toRoomMember(event.content);
+                                    if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership) && event.stateKey.equals(selfUserId)) {
+                                        // we were invited to a new room.
+                                        addNewRoom(event.roomId);
                                     }
-                                    catch (Exception e) {} // bad json
                                 }
                             }
-                            return;
                         }
-                        summary.setLatestEvent(event);
-                        summary.setLatestRoomState(roomState);
 
-                        if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
+                        // If we've left the room, remove it from the list
+                        else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                 isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                            // we've left this room, so refresh the entire list.
-                            refreshAdapter();
-                            return;
+                            mAdapter.remove(summary);
                         }
 
+                        // Watch for potential room name changes
+                        else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                                || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                                || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                            summary.setName(room.getName(mSession.getCredentials().userId));
+                        }
 
-                        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-                            try {
-                                summary.setName(event.content.getAsJsonPrimitive("name").getAsString());
-                            }
-                            catch (Exception e) {} // malformed json, discard.
-                        }
-                        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-                            // force reload on aliases change so it can load the right name/alias
-                            refreshAdapter();
-                            return;
-                        }
                         mAdapter.sortSummaries();
                         mAdapter.notifyDataSetChanged();
                     }
@@ -103,35 +97,42 @@ public class HomeActivity extends ActionBarActivity {
             });
         }
 
-        private void refreshAdapter() {
-            mAdapter.clear();
-            loadSummaries();
+        // White list of displayable events
+        private boolean isDisplayableEvent(Event event) {
+            return Event.EVENT_TYPE_MESSAGE.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                    || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type);
+        }
+
+        private void addNewRoom(String roomId) {
+            RoomSummary summary = mSession.getDataHandler().getStore().getSummary(roomId);
+            addSummary(summary);
+            mAdapter.sortSummaries();
         }
 
         private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
             for (RoomMember member : summary.getMembers()) {
-                if (membership.equals(member.membership) &&
-                        selfUserId.equals(member.getUserId())) {
+                if (membership.equals(member.membership) && selfUserId.equals(member.getUserId())) {
                     return true;
                 }
             }
             return false;
         }
 
-        private void loadSummaries() {
+        private void addSummary(RoomSummary summary) {
             String selfUserId = mSession.getCredentials().userId;
-            for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
-                boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
-                if (isInvited) {
-                    summary.setName("Room Invitation");
-                }
-
-                // only add summaries to rooms we have not left.
-                if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                    mAdapter.add(summary);
-                }
+            boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
+            if (isInvited) {
+                summary.setName("Room Invitation");
             }
-            mAdapter.sortSummaries();
+
+            // only add summaries to rooms we have not left.
+            if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
+                mAdapter.add(summary);
+            }
         }
     };
 

@@ -1,7 +1,6 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,7 +41,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
-        setNotifyOnChange(true);
+        setNotifyOnChange(false);
     }
 
     public void sortSummaries() {
@@ -56,10 +55,10 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
                     return -1;
                 }
 
-                if (lhs.getLatestEvent().origin_server_ts > rhs.getLatestEvent().origin_server_ts) {
+                if (lhs.getLatestEvent().originServerTs > rhs.getLatestEvent().originServerTs) {
                     return -1;
                 }
-                else if (lhs.getLatestEvent().origin_server_ts < rhs.getLatestEvent().origin_server_ts) {
+                else if (lhs.getLatestEvent().originServerTs < rhs.getLatestEvent().originServerTs) {
                     return 1;
                 }
                 return 0;
@@ -82,15 +81,12 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
      * @param event The latest event
      */
     public void setLatestEvent(Event event, RoomState roomState) {
-        for (int i=0; i<getCount(); i++) {
-            RoomSummary summary = getItem(i);
-            if (event.roomId.equals(summary.getRoomId())) {
-                summary.setLatestEvent(event);
-                summary.setLatestRoomState(roomState);
-                sortSummaries();
-                notifyDataSetChanged();
-                break;
-            }
+        RoomSummary summary = getSummaryByRoomId(event.roomId);
+        if (summary != null) {
+            summary.setLatestEvent(event);
+            summary.setLatestRoomState(roomState);
+            sortSummaries();
+            notifyDataSetChanged();
         }
     }
 
@@ -126,7 +122,7 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
             display.setPrependMessagesWithAuthor(true);
             message = display.getTextualDisplay();
 
-            timestamp = mDateFormat.format(new Date(summary.getLatestEvent().origin_server_ts));
+            timestamp = mDateFormat.format(new Date(summary.getLatestEvent().originServerTs));
         }
 
         // check if this is an invite

@@ -22,6 +22,14 @@ public class MessageRow {
     private Event event;
     private RoomState roomState;
 
+    public enum SentState {
+        SENT, // Normal case: true for received messages and messages successfully sent to the server
+        SENDING, // Awaiting response from server after having sent the message
+        NOT_SENT // The server returned an error when trying to send the message
+    }
+
+    private SentState sentState = SentState.SENT;
+
     public MessageRow(Event event, RoomState roomState) {
         this.event = event;
         this.roomState = roomState;
@@ -33,5 +41,13 @@ public class MessageRow {
 
     public RoomState getRoomState() {
         return roomState;
+    }
+
+    public SentState getSentState() {
+        return sentState;
+    }
+
+    public void setSentState(SentState sentState) {
+        this.sentState = sentState;
     }
 }

@@ -139,7 +139,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.stateKey = mCredentials.userId;
         inviteEvent.userId = inviterUserId;
         inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
-        inviteEvent.origin_server_ts = System.currentTimeMillis(); // This is where it's fake
+        inviteEvent.originServerTs = System.currentTimeMillis(); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
         mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
@@ -189,8 +189,10 @@ public class MXDataHandler implements IMXEventListener {
             if (event.stateKey != null) {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
-            mStore.storeLiveRoomEvent(event);
-            mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
+            if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                mStore.storeLiveRoomEvent(event);
+                mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
+            }
             onLiveEvent(event, beforeState);
         }
 

@@ -24,6 +24,7 @@ public class Event {
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
+    public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
     public static final String EVENT_TYPE_STATE_ROOM_TOPIC = "m.room.topic";
     public static final String EVENT_TYPE_STATE_ROOM_MEMBER = "m.room.member";
@@ -38,7 +39,7 @@ public class Event {
     public String eventId;
     public String roomId;
     public String userId;
-    public long origin_server_ts;
+    public long originServerTs;
     public long age;
 
     // Specific to state events

@@ -58,6 +58,13 @@ public interface IMXStore {
     public Collection<RoomSummary> getSummaries();
 
     /**
+     * Get the stored summary for the given room.
+     * @param roomId the room id
+     * @return the summary for the room
+     */
+    public RoomSummary getSummary(String roomId);
+
+    /**
      * Store the summary for the given room id.
      * @param roomId the room id
      * @param event the latest event of the room

@@ -55,17 +55,17 @@ public class EventUtils {
         }
 
         Message msg = JsonUtils.toMessage(event.content);
-        if (Message.MSGTYPE_TEXT.equals(msg.msgtype)) {
-            TextMessage textMsg = JsonUtils.toTextMessage(event.content);
+        if (msg instanceof TextMessage) {
+            String body = ((TextMessage) msg).body;
 
             // Extract "bob" from "@bob:matrix.org"
             String namePart = myUserId.substring(1, myUserId.indexOf(':'));
-            if (caseInsensitiveFind(namePart, textMsg.body)) {
+            if (caseInsensitiveFind(namePart, body)) {
                 return true;
             }
             Room room = session.getDataHandler().getRoom(event.roomId);
             RoomMember myMember = room.getMember(myUserId);
-            if (caseInsensitiveFind(myMember.displayname, textMsg.body)) {
+            if (caseInsensitiveFind(myMember.displayname, body)) {
                 return true;
             }
         }

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -14,10 +13,8 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.matrixandroidsdk.Matrix;
 
 /**
@@ -154,49 +151,7 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.requestHistory(callback);
     }
 
-    /**
-     * Send a text message in this room.
-     * @param body The text to send.
-     */
-    public void sendMessage(String body) {
-        TextMessage message = new TextMessage();
-        message.body = body;
-        send(message);
-    }
-
-    public void sendImage(ImageMessage imageMessage) {
-        send(imageMessage);
-    }
-
-    /**
-     * Send an emote message in this room.
-     * @param emote The emote to send.
-     */
-    public void sendEmote(String emote) {
-        TextMessage message = new TextMessage();
-        message.body = emote;
-        message.msgtype = Message.MSGTYPE_EMOTE;
-        send(message);
-    }
-
-    public void send(Message message) {
-        mRoom.sendMessage(message, new SimpleApiCallback<Event>() {
-
-            @Override
-            public void onSuccess(Event info) {
-                Log.d(LOG_TAG, "onSuccess >>>> " + info);
-                // TODO: This should probably be fed back to the caller.
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Toast.makeText(mContext, "Unable to send message. Connection error.", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Toast.makeText(mContext, "Unable to send message.", Toast.LENGTH_SHORT).show();
-            }
-        });
+    public void send(Message message, ApiCallback<Event> callback) {
+        mRoom.sendMessage(message, callback);
     }
 }

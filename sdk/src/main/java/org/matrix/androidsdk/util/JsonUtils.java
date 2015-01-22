@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
+import org.matrix.androidsdk.rest.model.EmoteMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -55,7 +56,25 @@ public class JsonUtils {
     }
 
     public static Message toMessage(JsonObject jsonObject) {
-        return gson.fromJson(jsonObject, Message.class);
+        Message message = gson.fromJson(jsonObject, Message.class);
+
+        // Try to return the right subclass
+        if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
+            return toTextMessage(jsonObject);
+        }
+        if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
+            return toEmoteMessage(jsonObject);
+        }
+        else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
+            return toImageMessage(jsonObject);
+        }
+
+        // Fall back to the generic Message type
+        return message;
+    }
+
+    public static JsonObject toJson(Message message) {
+        return (JsonObject) gson.toJsonTree(message);
     }
 
     public static TextMessage toTextMessage(JsonObject jsonObject) {
@@ -64,6 +83,10 @@ public class JsonUtils {
 
     public static ImageMessage toImageMessage(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, ImageMessage.class);
+    }
+
+    public static EmoteMessage toEmoteMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, EmoteMessage.class);
     }
 
     public static ContentResponse toContentResponse(String jsonString) {
