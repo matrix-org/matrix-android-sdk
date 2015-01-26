@@ -28,7 +28,6 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -172,6 +171,7 @@ public class MXSession {
             // TODO: Handle the case where the user is null by loading the user information from the server
             mMyUser = new MyUser(mDataHandler.getStore().getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
+            mMyUser.setPresenceRestClient(mPresenceRestClient);
         }
         return mMyUser;
     }

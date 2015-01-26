@@ -53,7 +53,7 @@ public class RoomMember {
         copy.displayname = displayname;
         copy.avatarUrl = avatarUrl;
         copy.membership = membership;
-        copy.setUserId(userId);
+        copy.userId = userId;
         return copy;
     }
 }

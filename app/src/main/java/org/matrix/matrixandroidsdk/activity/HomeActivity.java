@@ -20,6 +20,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 
@@ -171,6 +172,18 @@ public class HomeActivity extends ActionBarActivity {
     public void onDestroy() {
         super.onDestroy();
         mSession.getDataHandler().removeListener(mListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     @Override

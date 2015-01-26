@@ -171,6 +171,7 @@ public class MXDataHandler implements IMXEventListener {
             if (user == null) {
                 user = userPresence;
                 user.lastActiveReceived();
+                user.setDataHandler(this);
                 mStore.storeUser(user);
             }
             else {

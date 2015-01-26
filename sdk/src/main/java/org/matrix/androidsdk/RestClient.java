@@ -24,7 +24,9 @@ import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.JsonUtils;
 
+import java.lang.reflect.Modifier;
 import java.util.concurrent.TimeUnit;
 
 import retrofit.RequestInterceptor;
@@ -60,9 +62,7 @@ public abstract class RestClient {
         }
 
         // The JSON -> object mapper
-        gson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .create();
+        gson = JsonUtils.getGson();
 
         // HTTP client
         OkHttpClient okHttpClient = new OkHttpClient();

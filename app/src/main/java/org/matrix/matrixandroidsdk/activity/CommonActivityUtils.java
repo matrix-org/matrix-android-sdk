@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.widget.EditText;
 
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
@@ -33,6 +34,9 @@ public class CommonActivityUtils {
 
     public static void logout(Activity context) {
         stopEventStream(context);
+
+        // Publish to the server that we're now offline
+        MyPresenceManager.getInstance(context).advertiseOffline();
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSessionAndCredentials();
