@@ -67,8 +67,6 @@ public class MyPresenceManager {
         mHandler = new Handler(Looper.getMainLooper());
 
         myUser.addEventListener(new MXEventListener() {
-            private Map<String, Integer> presencePriorityMap = new HashMap<String, Integer>();
-
             @Override
             public void onPresenceUpdate(Event event, User user) {
                 myUser.presence = user.presence;
