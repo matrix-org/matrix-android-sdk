@@ -16,7 +16,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
 
@@ -26,8 +28,11 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
 
     private int mOddColourResId;
     private int mEvenColourResId;
+    private int mUnreadColor;
 
     private DateFormat mDateFormat;
+
+    private Map<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
 
     /**
      * Construct an adapter which will display a list of rooms.
@@ -42,6 +47,8 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         setNotifyOnChange(false);
+
+        mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
     }
 
     public void sortSummaries() {
@@ -90,6 +97,18 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         }
     }
 
+    public void incrementUnreadCount(String roomId) {
+        Integer count = mUnreadCountMap.get(roomId);
+        if (count == null) {
+            count = 0;
+        }
+        mUnreadCountMap.put(roomId, count + 1);
+    }
+
+    public void resetUnreadCount(String roomId) {
+        mUnreadCountMap.put(roomId, 0);
+    }
+
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
@@ -102,6 +121,10 @@ public class RoomSummaryAdapter extends ArrayAdapter<RoomSummary> {
         }
 
         RoomSummary summary = getItem(position);
+
+        Integer unreadCount = mUnreadCountMap.get(summary.getRoomId());
+        // Zero for transparent
+        convertView.setBackgroundColor(((unreadCount == null) || (unreadCount == 0)) ? 0 : mUnreadColor);
 
         String numMembers = null;
         CharSequence message = summary.getRoomTopic();

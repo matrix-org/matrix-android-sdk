@@ -4,7 +4,7 @@
 
     <color name="presence_unknown">#aaa</color>
     <color name="presence_online">#38af00</color>
-    <color name="presence_unavailable">#ffcc00</color>
+    <color name="presence_unavailable">#fc0</color>
 
     <color name="member_list_last_seen_text">#aaa</color>
 
@@ -16,5 +16,7 @@
     <color name="message_highlighted">#00f</color>
     <color name="message_sending">#aaa</color>
     <color name="message_not_sent">#f00</color>
+
+    <color name="room_summary_unread_background">#ede</color>
 
 </resources>
