@@ -35,46 +35,15 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the events API.
  */
-public class EventsRestClient extends RestClient {
+public class EventsRestClient extends RestClient<EventsApi> {
 
     protected static final int EVENT_STREAM_TIMEOUT_MS = 30000;
-
-    private EventsApi mApi;
 
     /**
      * {@inheritDoc}
      */
     public EventsRestClient(Credentials credentials) {
-        super(credentials);
-    }
-
-    /**
-     * Public constructor with the home server URI.
-     * @param hsUri the home server URI
-     */
-    public EventsRestClient(Uri hsUri) {
-        super(hsUri);
-    }
-
-    /**
-     * Protected constructor for unit tests.
-     * @param api the events API
-     */
-    protected EventsRestClient(EventsApi api) {
-        mApi = api;
-    }
-
-    @Override
-    protected void initApi(RestAdapter restAdapter) {
-        mApi = restAdapter.create(EventsApi.class);
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     * @param api the api object
-     */
-    protected void setApi(EventsApi api) {
-        mApi = api;
+        super(credentials, EventsApi.class);
     }
 
     /**

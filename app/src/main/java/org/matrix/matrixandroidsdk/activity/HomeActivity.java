@@ -20,7 +20,9 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 
 /**
@@ -88,6 +90,11 @@ public class HomeActivity extends ActionBarActivity {
                                 || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
                                 || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                             summary.setName(room.getName(mSession.getCredentials().userId));
+                        }
+
+                        // If we're not currently viewing this room, increment the unread count
+                        if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+                            mAdapter.incrementUnreadCount(event.roomId);
                         }
 
                         mAdapter.sortSummaries();
@@ -162,7 +169,10 @@ public class HomeActivity extends ActionBarActivity {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                goToRoomPage(mAdapter.getItem(i).getRoomId());
+                String roomId = mAdapter.getItem(i).getRoomId();
+                goToRoomPage(roomId);
+                mAdapter.resetUnreadCount(roomId);
+                mAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -171,6 +181,18 @@ public class HomeActivity extends ActionBarActivity {
     public void onDestroy() {
         super.onDestroy();
         mSession.getDataHandler().removeListener(mListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     @Override

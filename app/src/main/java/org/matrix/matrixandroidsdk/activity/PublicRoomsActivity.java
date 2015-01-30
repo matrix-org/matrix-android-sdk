@@ -14,6 +14,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.RoomsAdapter;
 
@@ -57,6 +58,18 @@ public class PublicRoomsActivity extends ActionBarActivity {
 
         // The error listener needs the current activity
         Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     @Override

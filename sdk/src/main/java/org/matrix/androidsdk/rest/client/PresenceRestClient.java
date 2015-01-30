@@ -22,34 +22,16 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
-import retrofit.RestAdapter;
-import retrofit.client.Response;
-
 /**
  * Class used to make requests to the presence API.
  */
-public class PresenceRestClient extends RestClient {
-
-    private PresenceApi mApi;
+public class PresenceRestClient extends RestClient<PresenceApi> {
 
     /**
      * {@inheritDoc}
      */
     public PresenceRestClient(Credentials credentials) {
-        super(credentials);
-    }
-
-    @Override
-    protected void initApi(RestAdapter restAdapter) {
-        mApi = restAdapter.create(PresenceApi.class);
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     * @param api the api object
-     */
-    protected void setApi(PresenceApi api) {
-        mApi = api;
+        super(credentials, PresenceApi.class);
     }
 
     /**

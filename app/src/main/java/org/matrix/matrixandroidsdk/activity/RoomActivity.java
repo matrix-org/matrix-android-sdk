@@ -32,6 +32,7 @@ import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
@@ -194,12 +195,14 @@ public class RoomActivity extends ActionBarActivity {
     protected void onPause() {
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     @Override

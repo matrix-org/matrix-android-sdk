@@ -23,12 +23,15 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.EmoteMessage;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.rest.model.User;
+
+import java.lang.reflect.Modifier;
 
 /**
  * Static methods for converting json into objects.
@@ -37,7 +40,12 @@ public class JsonUtils {
 
     private static Gson gson = new GsonBuilder()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .create();
+
+    public static Gson getGson() {
+        return gson;
+    }
 
     public static RoomState toRoomState(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, RoomState.class);
@@ -95,5 +103,9 @@ public class JsonUtils {
 
     public static PowerLevels toPowerLevels(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, PowerLevels.class);
+    }
+
+    public static JsonObject toJson(Event event) {
+        return (JsonObject) gson.toJsonTree(event);
     }
 }

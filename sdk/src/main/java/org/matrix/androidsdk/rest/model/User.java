@@ -15,6 +15,14 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXEventListener;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Class representing a user.
  */
@@ -29,12 +37,18 @@ public class User {
     public String displayname;
     public String avatarUrl;
     public String presence;
-    public long lastActiveAgo;
+    public Long lastActiveAgo;
     public String statusMsg;
 
     // Used to provide a more realistic last active time:
     // the last active ago time provided by the server + the time that has gone by since
     private long lastPresenceTs;
+
+    // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
+    // This is needed to find the right one when removing the listener.
+    private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
+
+    private MXDataHandler mDataHandler;
 
     protected void clone(User user) {
         if (user != null) {
@@ -44,6 +58,8 @@ public class User {
             presence = user.presence;
             lastActiveAgo = user.lastActiveAgo;
             statusMsg = user.statusMsg;
+
+            mDataHandler = user.mDataHandler;
         }
     }
 
@@ -66,5 +82,41 @@ public class User {
      */
     public long getRealLastActiveAgo() {
         return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
+    }
+
+    /**
+     * Set the event listener to send back events to. This is typically the DataHandler for dispatching the events to listeners.
+     * @param dataHandler should be the main data handler for dispatching back events to registered listeners.
+     */
+    public void setDataHandler(MXDataHandler dataHandler) {
+        mDataHandler = dataHandler;
+    }
+
+    /**
+     * Add an event listener to this room. Only events relative to the room will come down.
+     * @param eventListener the event listener to add
+     */
+    public void addEventListener(final IMXEventListener eventListener) {
+        // Create a global listener that we'll add to the data handler
+        IMXEventListener globalListener = new MXEventListener() {
+            @Override
+            public void onPresenceUpdate(Event event, User user) {
+                // Only pass event through for this user
+                if (user.userId.equals(userId)) {
+                    eventListener.onPresenceUpdate(event, user);
+                }
+            }
+        };
+        mEventListeners.put(eventListener, globalListener);
+        mDataHandler.addListener(globalListener);
+    }
+
+    /**
+     * Remove an event listener.
+     * @param eventListener the event listener to remove
+     */
+    public void removeEventListener(IMXEventListener eventListener) {
+        mDataHandler.removeListener(mEventListeners.get(eventListener));
+        mEventListeners.remove(eventListener);
     }
 }

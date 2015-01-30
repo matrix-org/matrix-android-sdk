@@ -40,6 +40,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
@@ -122,6 +123,18 @@ public class SettingsActivity extends ActionBarActivity {
 
         TextView tokenTextView = (TextView) findViewById(R.id.textView_configAccessToken);
         tokenTextView.setText(getString(R.string.settings_config_access_token, session.getCredentials().accessToken));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     @Override

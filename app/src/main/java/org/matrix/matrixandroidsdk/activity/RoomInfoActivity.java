@@ -30,6 +30,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
@@ -99,6 +100,18 @@ public class RoomInfoActivity extends ActionBarActivity {
         saveChanges();
 
         super.onDestroy();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MyPresenceManager.getInstance(this).advertiseOnline();
     }
 
     private void saveChanges() {

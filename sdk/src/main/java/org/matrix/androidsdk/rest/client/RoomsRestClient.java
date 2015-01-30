@@ -40,30 +40,15 @@ import retrofit.client.Response;
 /**
  * Class used to make requests to the rooms API.
  */
-public class RoomsRestClient extends RestClient {
+public class RoomsRestClient extends RestClient<RoomsApi> {
 
     protected static final int MESSAGES_PAGINATION_LIMIT = 15;
-
-    private RoomsApi mApi;
 
     /**
      * {@inheritDoc}
      */
     public RoomsRestClient(Credentials credentials) {
-        super(credentials);
-    }
-
-    @Override
-    protected void initApi(RestAdapter restAdapter) {
-        mApi = restAdapter.create(RoomsApi.class);
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     * @param api the api object
-     */
-    protected void setApi(RoomsApi api) {
-        mApi = api;
+        super(credentials, RoomsApi.class);
     }
 
     /**

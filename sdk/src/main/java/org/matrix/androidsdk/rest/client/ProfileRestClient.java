@@ -22,34 +22,18 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
-import retrofit.RestAdapter;
 import retrofit.client.Response;
 
 /**
  * Class used to make requests to the profile API.
  */
-public class ProfileRestClient extends RestClient {
-
-    private ProfileApi mApi;
+public class ProfileRestClient extends RestClient<ProfileApi> {
 
     /**
      * {@inheritDoc}
      */
     public ProfileRestClient(Credentials credentials) {
-        super(credentials);
-    }
-
-    @Override
-    protected void initApi(RestAdapter restAdapter) {
-        mApi = restAdapter.create(ProfileApi.class);
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     * @param api the api object
-     */
-    protected void setApi(ProfileApi api) {
-        mApi = api;
+        super(credentials, ProfileApi.class);
     }
 
     /**

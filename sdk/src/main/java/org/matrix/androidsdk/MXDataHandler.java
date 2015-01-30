@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ public class MXDataHandler implements IMXEventListener {
     private Credentials mCredentials;
     private volatile boolean mInitialSyncComplete = false;
     private DataRetriever mDataRetriever;
+    private BingRulesManager mBingRulesManager;
 
     /**
      * Default constructor.
@@ -62,6 +64,11 @@ public class MXDataHandler implements IMXEventListener {
     public void setDataRetriever(DataRetriever dataRetriever) {
         mDataRetriever = dataRetriever;
         mDataRetriever.setStore(mStore);
+    }
+
+    public void setPushRulesManager(BingRulesManager bingRulesManager) {
+        mBingRulesManager = bingRulesManager;
+        mBingRulesManager.loadRules(null);
     }
 
     public void addListener(IMXEventListener listener) {
@@ -171,6 +178,7 @@ public class MXDataHandler implements IMXEventListener {
             if (user == null) {
                 user = userPresence;
                 user.lastActiveReceived();
+                user.setDataHandler(this);
                 mStore.storeUser(user);
             }
             else {
@@ -193,7 +201,20 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.storeLiveRoomEvent(event);
                 mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
             }
+
+//            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+//                if (event.redacts != null) {
+//                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
+//                }
+//            }
+
             onLiveEvent(event, beforeState);
+
+            // If the bing rules apply, bing
+            if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                    && (mBingRulesManager != null) && mBingRulesManager.shouldBing(event)) {
+                onBingEvent(event, beforeState);
+            }
         }
 
         else {
@@ -238,6 +259,13 @@ public class MXDataHandler implements IMXEventListener {
     public void onBackEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onBackEvent(event, roomState);
+        }
+    }
+
+    @Override
+    public void onBingEvent(Event event, RoomState roomState) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onBingEvent(event, roomState);
         }
     }
 

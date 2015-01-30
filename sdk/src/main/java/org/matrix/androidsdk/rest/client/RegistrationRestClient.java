@@ -26,15 +26,13 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 
-import retrofit.RestAdapter;
 import retrofit.client.Response;
 
 /**
  * Class used to make requests to the registration API.
  */
-public class RegistrationRestClient extends RestClient {
+public class RegistrationRestClient extends RestClient<RegistrationApi> {
 
-    private RegistrationApi mApi;
     private Uri mHsUri;
 
     /**
@@ -42,21 +40,8 @@ public class RegistrationRestClient extends RestClient {
      * @param hsUri the home server URI
      */
     public RegistrationRestClient(Uri hsUri) {
-        super(hsUri);
+        super(hsUri, RegistrationApi.class);
         mHsUri = hsUri;
-    }
-
-    @Override
-    protected void initApi(RestAdapter restAdapter) {
-        mApi = restAdapter.create(RegistrationApi.class);
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     * @param api the api object
-     */
-    protected void setApi(RegistrationApi api) {
-        mApi = api;
     }
 
     /**
