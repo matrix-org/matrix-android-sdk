@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -37,7 +38,7 @@ import retrofit.converter.GsonConverter;
 /**
  * Class for making Matrix API calls.
  */
-public abstract class RestClient {
+public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
@@ -49,13 +50,15 @@ public abstract class RestClient {
 
     protected Credentials mCredentials;
 
+    protected T mApi;
+
     protected Gson gson;
 
     /**
      * Public constructor.
      * @param hsUri The http[s] URI to the home server.
      */
-    public RestClient(Uri hsUri) {
+    public RestClient(Uri hsUri, Class<T> type) {
         // sanity check
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
@@ -87,21 +90,15 @@ public abstract class RestClient {
 
         restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
-        initApi(restAdapter);
+        mApi = restAdapter.create(type);
     }
-
-    /**
-     * Initialize the API object using the given RestAdapter.
-     * @param restAdapter the Retrofit RestAdapter used to create API objects
-     */
-    protected abstract void initApi(RestAdapter restAdapter);
 
     /**
      * Constructor providing the full user credentials. To use to avoid having to log the user in.
      * @param credentials the user credentials
      */
-    public RestClient(Credentials credentials) {
-        this(Uri.parse(credentials.homeServer));
+    public RestClient(Credentials credentials, Class<T> type) {
+        this(Uri.parse(credentials.homeServer), type);
         mCredentials = credentials;
     }
 
@@ -125,5 +122,13 @@ public abstract class RestClient {
      * Default protected constructor for unit tests.
      */
     protected RestClient() {
+    }
+
+    /**
+     * Protected setter for injection by unit tests.
+     * @param api the api object
+     */
+    protected void setApi(T api) {
+        mApi = api;
     }
 }

@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.EmoteMessage;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -102,5 +103,9 @@ public class JsonUtils {
 
     public static PowerLevels toPowerLevels(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, PowerLevels.class);
+    }
+
+    public static JsonObject toJson(Event event) {
+        return (JsonObject) gson.toJsonTree(event);
     }
 }

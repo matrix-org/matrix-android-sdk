@@ -15,6 +15,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -43,15 +44,23 @@ public class EventStreamService extends Service {
 
     private MXEventListener mListener = new MXEventListener() {
         @Override
-        public void onLiveEvent(Event event, RoomState roomState) {
-            if (EventUtils.shouldNotify(EventStreamService.this, event)) {
-                String from = event.userId;
-                String body = event.content.getAsJsonPrimitive("body").getAsString();
-                Notification n = buildMessageNotification(from, body, event.roomId);
-                NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
-                Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
-                nm.notify(MSG_NOTIFICATION_ID, n);
+        public void onBingEvent(Event event, RoomState roomState) {
+            // Just don't bing for the room the user's currently in
+            if ((event.roomId != null) && event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+                return;
             }
+//            if (EventUtils.shouldNotify(EventStreamService.this, event)) {
+            String from = event.userId;
+            // FIXME: Support event contents with no body
+            if (!event.content.has("body")) {
+                return;
+            }
+            String body = event.content.getAsJsonPrimitive("body").getAsString();
+            Notification n = buildMessageNotification(from, body, event.roomId);
+            NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+            Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
+            nm.notify(MSG_NOTIFICATION_ID, n);
+//            }
         }
     };
 

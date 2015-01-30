@@ -43,6 +43,8 @@ public interface IMXEventListener {
      */
     public void onBackEvent(Event event, RoomState roomState);
 
+    public void onBingEvent(Event event, RoomState roomState);
+
     /**
      * The initial sync is complete and the store can be queried for current state.
      */
