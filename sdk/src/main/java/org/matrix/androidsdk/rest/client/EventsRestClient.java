@@ -46,6 +46,10 @@ public class EventsRestClient extends RestClient<EventsApi> {
         super(credentials, EventsApi.class);
     }
 
+    protected EventsRestClient(EventsApi api) {
+        mApi = api;
+    }
+
     /**
      * Get the list of the home server's public rooms.
      * @param callback callback to provide the list of public rooms on success
