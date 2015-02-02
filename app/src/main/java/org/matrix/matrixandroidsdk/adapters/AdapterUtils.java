@@ -1,5 +1,6 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,8 +21,11 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 
@@ -219,8 +223,18 @@ public class AdapterUtils {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl = contentManager.getDownloadableUrl(url);
         imageView.setTag(downloadableUrl);
-        BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
-        task.execute();
+
+        // check if the bitmap is already cached
+        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
+
+        if (null != bitmap) {
+            // display it
+            imageView.setImageBitmap(bitmap);
+        } else {
+            // download it in background
+            BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
+            task.execute();
+        }
     }
 
     public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
@@ -229,7 +243,7 @@ public class AdapterUtils {
         imageView.setTag(downloadableUrl);
 
         // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl);
+        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
 
         if (null != bitmap) {
             // display it
@@ -243,7 +257,7 @@ public class AdapterUtils {
 
     static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
 
-        private static final int MEMORY_CACHE_MB = 6;
+        private static final int MEMORY_CACHE_MB = 16;
 
         private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
             @Override
@@ -260,13 +274,35 @@ public class AdapterUtils {
             mUrl = url;
         }
 
-        public static Bitmap bitmapForURL(String url) {
+        public static Bitmap bitmapForURL(String url, Context context) {
             Bitmap bitmap = null;
 
             // sanity check
             if (null != url) {
                 synchronized (sMemoryCache) {
                     bitmap = sMemoryCache.get(url);
+                }
+
+                // check if the image has not been saved in file system
+                if ((null == bitmap) && (null != context)) {
+                    String filename  = "file" + url.hashCode();
+
+                    try {
+                        FileInputStream fis = context.openFileInput(filename);
+                        if (null != fis) {
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                            bitmap = BitmapFactory.decodeStream(fis, null, options);
+
+                            if (null != bitmap) {
+                                synchronized (sMemoryCache) {
+                                    sMemoryCache.put(url, bitmap);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+
+                    }
                 }
             }
 
@@ -279,11 +315,7 @@ public class AdapterUtils {
             try {
                 // check the in-memory cache
                 String key = mUrl;
-                Bitmap bm = null;
-
-                synchronized (sMemoryCache) {
-                    bm = sMemoryCache.get(key);
-                }
+                Bitmap bm = BitmapWorkerTask.bitmapForURL(key, mImageViewReference.get().getContext().getApplicationContext());
 
                 if (bm != null) {
                     return bm;
@@ -292,22 +324,41 @@ public class AdapterUtils {
                 URL url = new URL(mUrl);
                 Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
                 InputStream stream = url.openConnection().getInputStream();
-//                BitmapFactory.Options o = decodeBitmapDimensions(stream);
-//                int sampleSize = getSampleSize(o.outWidth, o.outHeight, mMaxPx);
-//                close(stream); // checking the sample size processed the stream so it's useless now.
-//                stream = url.openConnection().getInputStream();
-                // decode within the limits specified.
-                BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-//                bitmapOptions.inSampleSize = sampleSize;
-                bitmapOptions.inDither = true;
-                bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
-                close(stream);
-                if (bitmap != null) {
-                    synchronized (sMemoryCache) {
-                        cacheBitmap(key, bitmap);
+                Bitmap bitmap;
+
+                ImageView imageView = mImageViewReference.get();
+
+                if ((null != imageView) && (null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
+                    String filename  = "file" + url.hashCode();
+                    Context context = imageView.getContext().getApplicationContext();
+                    FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+
+                    try{
+                        byte[] buf = new byte[1024*32];
+                        int len;
+                        while((len = stream.read(buf)) != -1) {
+                            fos.write(buf, 0, len);
+                        }
+                    } catch (Exception e) {
                     }
+
+                    fos.flush();
+                    fos.close();
+                    close(stream);
+
+                    // get the bitmap from the filesytem
+                    bitmap = BitmapWorkerTask.bitmapForURL(key, context);
+                } else {
+                    BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+                    bitmapOptions.inDither = true;
+                    bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                    bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
                 }
+
+                synchronized (sMemoryCache) {
+                    cacheBitmap(key, bitmap);
+                }
+
                 return bitmap;
             }
             catch (Exception e) {
