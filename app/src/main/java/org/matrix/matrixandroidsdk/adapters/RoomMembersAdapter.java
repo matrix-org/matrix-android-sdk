@@ -72,14 +72,14 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             User rUser = mUserMap.get(rhs.getUserId());
 
             // Null cases
-            if (lUser == null) {
-                if (rUser == null) {
+            if ((lUser == null) || (lUser.lastActiveAgo == null)) {
+                if ((rUser == null) || (rUser.lastActiveAgo == null)) {
                     // Fall back to alphabetical order
                     return alphaComparator.compare(lhs, rhs);
                 }
                 return 1;
             }
-            if (rUser == null) {
+            if ((rUser == null) || (rUser.lastActiveAgo == null)) {
                 return -1;
             }
 
@@ -186,7 +186,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         // Member name and last seen time
         TextView textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_name);
 
-        if (user == null) {
+        if ((user == null) || (user.lastActiveAgo == null)) {
             textView.setText(member.getName());
         }
         else {
