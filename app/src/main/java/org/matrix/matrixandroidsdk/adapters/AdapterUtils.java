@@ -213,8 +213,18 @@ public class AdapterUtils {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_CROP);
         imageView.setTag(downloadableUrl);
-        BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
-        task.execute(width, height);
+
+        // check if the bitmap is already cached
+        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl);
+
+        if (null != bitmap) {
+            // display it
+            imageView.setImageBitmap(bitmap);
+        } else {
+            // download it in background
+            BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
+            task.execute(width, height);
+        }
     }
 
     static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
@@ -236,13 +246,31 @@ public class AdapterUtils {
             mUrl = url;
         }
 
+        public static Bitmap bitmapForURL(String url) {
+            Bitmap bitmap = null;
+
+            // sanity check
+            if (null != url) {
+                synchronized (sMemoryCache) {
+                    bitmap = sMemoryCache.get(url);
+                }
+            }
+
+            return bitmap;
+        }
+
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(Integer... params) {
             try {
                 // check the in-memory cache
                 String key = mUrl;
-                Bitmap bm = sMemoryCache.get(key);
+                Bitmap bm = null;
+
+                synchronized (sMemoryCache) {
+                    bm = sMemoryCache.get(key);
+                }
+
                 if (bm != null) {
                     return bm;
                 }
@@ -262,7 +290,9 @@ public class AdapterUtils {
                 Bitmap bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
                 close(stream);
                 if (bitmap != null) {
-                    cacheBitmap(key, bitmap);
+                    synchronized (sMemoryCache) {
+                        cacheBitmap(key, bitmap);
+                    }
                 }
                 return bitmap;
             }
