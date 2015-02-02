@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.gson.JsonNull;
 import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.data.RoomState;
@@ -323,7 +324,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
         CharSequence notice = display.getTextualDisplay();
 
-        TextView textView = (TextView)  convertView.findViewById(R.id.messagesAdapter_notice);
+        TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_notice);
         textView.setText(notice);
 
         // Sender avatar
@@ -331,11 +332,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
         avatarView.setTag(null);
         avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+
+        String url = null;
+
         if (sender != null) {
-            String url = sender.avatarUrl;
-            if (!TextUtils.isEmpty(url)) {
-                loadAvatar(avatarView, url);
+            url = sender.avatarUrl;
+        } else {
+            // check if the avatar_url is defined in the event body
+            // roomState is updated after managing this event
+            // so, this user could miss
+            if (msg.content.has("avatar_url")) {
+                url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
             }
+        }
+
+        if (!TextUtils.isEmpty(url)) {
+            loadAvatar(avatarView, url);
         }
 
         return convertView;

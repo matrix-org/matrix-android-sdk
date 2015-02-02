@@ -135,7 +135,21 @@ public class AdapterUtils {
 
         private String getMembershipNotice(Event msg) {
             String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
-            String userDisplayName = getUserDisplayName(msg.userId);
+            String userDisplayName = null;
+
+            // the displayname could be defined in the event
+            // use it instead of the getUserDisplayName result
+            // the user could have joined the before his roomMember has been created.
+            if (msg.content.has("displayname")) {
+                userDisplayName =  msg.content.get("displayname") == JsonNull.INSTANCE ? null : msg.content.get("displayname").getAsString();
+            }
+
+            // cannot retrieve the display name from the event
+            if (null == userDisplayName) {
+                // retrieve it by the room members list
+                userDisplayName = getUserDisplayName(msg.userId);
+            }
+
             if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
                 return mContext.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey));
             }
