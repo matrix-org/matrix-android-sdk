@@ -72,6 +72,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int sendingColor;
     private int highlightColor;
 
+    public boolean displayMessageTimestamp;
+
     private DateFormat mDateFormat;
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
@@ -230,14 +232,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         if (isMyEvent) {
             if (null != leftTextView) {
-                leftTextView.setVisibility(View.VISIBLE);
+                leftTextView.setVisibility(displayMessageTimestamp ? View.VISIBLE : View.INVISIBLE);
                 leftTextView.setText(getTimestamp(msg.originServerTs));
             }
             rightTextView.setVisibility(View.GONE);
         } else {
             leftTextView.setVisibility(View.GONE);
             if (null != rightTextView) {
-                rightTextView.setVisibility(View.VISIBLE);
+                rightTextView.setVisibility(displayMessageTimestamp ? View.VISIBLE : View.INVISIBLE);
                 rightTextView.setText(getTimestamp(msg.originServerTs));
             }
         }
