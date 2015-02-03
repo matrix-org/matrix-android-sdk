@@ -189,7 +189,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     // return true if convertView is merged with previous View
-    private boolean manageMergedView(int position, View convertView) {
+    private boolean mergeView(int position, View convertView) {
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
@@ -220,12 +220,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
 
         if (null != textView) {
-            if (hideUserInfo) {
-                textView.setVisibility(View.GONE);
-            } else {
-                textView.setVisibility(View.VISIBLE);
-                textView.setText(getTimestamp(msg.originServerTs));
-            }
+            textView.setText(getTimestamp(msg.originServerTs));
         }
 
         // Sender avatar
@@ -290,7 +285,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
-        Boolean isViewMerged = this.manageMergedView(position, convertView);
+        Boolean isViewMerged = this.mergeView(position, convertView);
 
         // if the messages are merged
         // the thumbnail is hidden
@@ -369,7 +364,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        Boolean isViewMerged = this.manageMergedView(position, convertView);
+        Boolean isViewMerged = this.mergeView(position, convertView);
 
         // if the messages are merged
         // the thumbnail is hidden
@@ -406,7 +401,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_notice);
         noticeTextView.setText(notice);
 
-        Boolean isViewMerged = this.manageMergedView(position, convertView);
+        Boolean isViewMerged = this.mergeView(position, convertView);
 
         // if the messages are merged
         // the thumbnail is hidden
@@ -462,7 +457,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         emoteTextView.setTextColor(textColor);
 
-        Boolean isViewMerged = this.manageMergedView(position, convertView);
+        Boolean isViewMerged = this.mergeView(position, convertView);
 
         // if the messages are merged
         // the thumbnail is hidden

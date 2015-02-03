@@ -9,20 +9,32 @@
         android:id="@+id/round_avatar_layout"/>
 
     <LinearLayout
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginLeft="4dp"
-        android:gravity="center_vertical"
         android:paddingBottom="5dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical|left"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="#FFAAAAAA"
             android:text="A message body goes here"
             android:id="@+id/messagesAdapter_notice"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:layout_gravity="center_vertical|right"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:textColor="#FFAAAAAA"
+            android:text="1970/01/01 00:00:00"
+            android:id="@+id/messagesAdapter_timestamp"/>
 
 
     </LinearLayout>
