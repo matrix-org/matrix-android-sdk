@@ -286,23 +286,31 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
+        ViewGroup.MarginLayoutParams subViewLayout = (ViewGroup.MarginLayoutParams)subView.getLayoutParams();
+
+        // if the messages are merged
+        // the thumbnail is hidden
+        // and the subview must be moved to left to be aligned with the previous body
+        View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
+        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
+
         if (!isMyEvent) {
-            // if the messages are merged
-            // the thumbnail is hidden
-            // and the text body must be moved to left to be aligned with the previous body
-            View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
-            ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
-
-            ViewGroup.MarginLayoutParams bodyLayout = (ViewGroup.MarginLayoutParams) subView.getLayoutParams();
-
             if (isMergedView) {
-                bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
+                subViewLayout.setMargins(avatarLayout.width, subViewLayout.topMargin, 4, subViewLayout.bottomMargin);
 
             } else {
-                bodyLayout.setMargins(0, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
+                subViewLayout.setMargins(4, subViewLayout.topMargin, 4, subViewLayout.bottomMargin);
             }
-            subView.setLayoutParams(bodyLayout);
+            subView.setLayoutParams(subViewLayout);
+        } else {
+            if (isMergedView) {
+                subViewLayout.setMargins(4, subViewLayout.topMargin, avatarLayout.width, subViewLayout.bottomMargin);
+            } else  {
+                subViewLayout.setMargins(4, subViewLayout.topMargin, 4, subViewLayout.bottomMargin);
+            }
         }
+
+        subView.setLayoutParams(subViewLayout);
 
         return isMergedView;
     }
@@ -334,7 +342,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
+        MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
+        Boolean isMyEvent = myUser.userId.equals(msg.userId);
+
         this.manageSubView(position, convertView, bodyTextView);
+
+        bodyTextView.setGravity(isMyEvent ? Gravity.RIGHT : Gravity.LEFT);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -347,7 +360,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
-        RoomState roomState = row.getRoomState();
 
         final ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
 
@@ -418,7 +430,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_notice);
         noticeTextView.setText(notice);
 
+        MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
+        Boolean isMyEvent = myUser.userId.equals(msg.userId);
+
         this.manageSubView(position, convertView, noticeTextView);
+
+        noticeTextView.setGravity(isMyEvent ? Gravity.RIGHT : Gravity.LEFT);
 
         return convertView;
     }
@@ -458,8 +475,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         emoteTextView.setTextColor(textColor);
 
+        MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
+        Boolean isMyEvent = myUser.userId.equals(msg.userId);
+
         this.manageSubView(position, convertView, emoteTextView);
-       
+
+        emoteTextView.setGravity(isMyEvent ? Gravity.RIGHT : Gravity.LEFT);
+
         return convertView;
     }
 
