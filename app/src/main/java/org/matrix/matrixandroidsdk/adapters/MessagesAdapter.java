@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +17,7 @@ import android.widget.TextView;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonPrimitive;
 
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -189,10 +191,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     // return true if convertView is merged with previous View
-    private boolean mergeView(int position, View convertView) {
+    private boolean manageSubView(int position, View convertView, View subView) {
+
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
+
+        MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
+        Boolean isMyEvent = myUser.userId.equals(msg.userId);
 
         //
         String prevUserId = null;
@@ -204,37 +210,62 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        boolean hideUserInfo = (null != prevUserId) && (prevUserId.equals(msg.userId));
+        boolean isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         if (null != textView) {
-            if (hideUserInfo) {
+            if (isMergedView) {
                 textView.setVisibility(View.GONE);
+            } else if (isMyEvent) {
+                textView.setVisibility(View.INVISIBLE);
             } else {
                 textView.setVisibility(View.VISIBLE);
                 textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
             }
         }
 
-        textView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp);
+        TextView leftTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_left);
+        TextView rightTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_right);
 
-        if (null != textView) {
-            textView.setText(getTimestamp(msg.originServerTs));
+        if (isMyEvent) {
+            if (null != leftTextView) {
+                leftTextView.setVisibility(View.VISIBLE);
+                leftTextView.setText(getTimestamp(msg.originServerTs));
+            }
+            rightTextView.setVisibility(View.GONE);
+        } else {
+            leftTextView.setVisibility(View.GONE);
+            if (null != rightTextView) {
+                rightTextView.setVisibility(View.VISIBLE);
+                rightTextView.setText(getTimestamp(msg.originServerTs));
+            }
         }
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
-        ImageView avatarView = (ImageView) convertView.findViewById(R.id.avatar_img);
 
-        View view = convertView.findViewById(R.id.round_avatar_layout);
+        View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
+        View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
+        View avatarLayoutView;
 
-        if (hideUserInfo) {
-            view.setVisibility(View.GONE);
+        if (isMyEvent) {
+            avatarLayoutView = avatarRightView;
+            avatarLeftView.setVisibility(View.GONE);
+
         } else {
-            view.setVisibility(View.VISIBLE);
-            avatarView.setTag(null);
-            avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            avatarLayoutView = avatarLeftView;
+            avatarRightView.setVisibility(View.GONE);
+        }
+
+        ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
+
+        if (isMergedView) {
+            avatarLayoutView.setVisibility(View.GONE);
+        } else {
+            avatarLayoutView.setVisibility(View.VISIBLE);
+            avatarImageView.setTag(null);
+            avatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
 
             String url = null;
 
@@ -251,11 +282,29 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             if (!TextUtils.isEmpty(url)) {
-                loadAvatar(avatarView, url);
+                loadAvatar(avatarImageView, url);
             }
         }
 
-        return hideUserInfo;
+        if (!isMyEvent) {
+            // if the messages are merged
+            // the thumbnail is hidden
+            // and the text body must be moved to left to be aligned with the previous body
+            View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
+            ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
+
+            ViewGroup.MarginLayoutParams bodyLayout = (ViewGroup.MarginLayoutParams) subView.getLayoutParams();
+
+            if (isMergedView) {
+                bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
+
+            } else {
+                bodyLayout.setMargins(0, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
+            }
+            subView.setLayoutParams(bodyLayout);
+        }
+
+        return isMergedView;
     }
 
     private View getTextView(int position, View convertView, ViewGroup parent) {
@@ -285,23 +334,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
-        Boolean isViewMerged = this.mergeView(position, convertView);
-
-        // if the messages are merged
-        // the thumbnail is hidden
-        // and the text body must be moved to left to be aligned with the previous body
-        View view = convertView.findViewById(R.id.round_avatar_layout);
-        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
-
-        ViewGroup.MarginLayoutParams bodyLayout = (ViewGroup.MarginLayoutParams)bodyTextView.getLayoutParams();
-
-        if (isViewMerged) {
-            bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
-
-        } else {
-            bodyLayout.setMargins(0, bodyLayout.topMargin, bodyLayout.rightMargin, bodyLayout.bottomMargin);
-        }
-        bodyTextView.setLayoutParams(bodyLayout);
+        this.manageSubView(position, convertView, bodyTextView);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -364,23 +397,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        Boolean isViewMerged = this.mergeView(position, convertView);
-
-        // if the messages are merged
-        // the thumbnail is hidden
-        // and the text body must be moved to left to be aligned with the previous body
-        View view = convertView.findViewById(R.id.round_avatar_layout);
-        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
-
-        ViewGroup.MarginLayoutParams imageLayout = (ViewGroup.MarginLayoutParams)imageView.getLayoutParams();
-
-        if (isViewMerged) {
-            imageLayout.setMargins(avatarLayout.width, imageLayout.topMargin, imageLayout.rightMargin, imageLayout.bottomMargin);
-
-        } else {
-            imageLayout.setMargins(0, imageLayout.topMargin, imageLayout.rightMargin, imageLayout.bottomMargin);
-        }
-        imageView.setLayoutParams(imageLayout);
+        this.manageSubView(position, convertView, imageView);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -401,23 +418,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_notice);
         noticeTextView.setText(notice);
 
-        Boolean isViewMerged = this.mergeView(position, convertView);
-
-        // if the messages are merged
-        // the thumbnail is hidden
-        // and the text body must be moved to left to be aligned with the previous body
-        View view = convertView.findViewById(R.id.round_avatar_layout);
-        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
-
-        ViewGroup.MarginLayoutParams NoticeLayout = (ViewGroup.MarginLayoutParams)noticeTextView.getLayoutParams();
-
-        if (isViewMerged) {
-            NoticeLayout.setMargins(avatarLayout.width, NoticeLayout.topMargin, NoticeLayout.rightMargin, NoticeLayout.bottomMargin);
-
-        } else {
-            NoticeLayout.setMargins(0, NoticeLayout.topMargin, NoticeLayout.rightMargin, NoticeLayout.bottomMargin);
-        }
-        noticeTextView.setLayoutParams(NoticeLayout);
+        this.manageSubView(position, convertView, noticeTextView);
 
         return convertView;
     }
@@ -457,24 +458,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         emoteTextView.setTextColor(textColor);
 
-        Boolean isViewMerged = this.mergeView(position, convertView);
-
-        // if the messages are merged
-        // the thumbnail is hidden
-        // and the text body must be moved to left to be aligned with the previous body
-        View view = convertView.findViewById(R.id.round_avatar_layout);
-        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
-
-        ViewGroup.MarginLayoutParams emoteLayout = (ViewGroup.MarginLayoutParams)emoteTextView.getLayoutParams();
-
-        if (isViewMerged) {
-            emoteLayout.setMargins(avatarLayout.width, emoteLayout.topMargin, emoteLayout.rightMargin, emoteLayout.bottomMargin);
-
-        } else {
-            emoteLayout.setMargins(0, emoteLayout.topMargin, emoteLayout.rightMargin, emoteLayout.bottomMargin);
-        }
-        emoteTextView.setLayoutParams(emoteLayout);
-
+        this.manageSubView(position, convertView, emoteTextView);
+       
         return convertView;
     }
 

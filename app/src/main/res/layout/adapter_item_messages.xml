@@ -5,13 +5,14 @@
     android:orientation="horizontal">
 
     <include layout="@layout/round_avatar"
-             android:id="@+id/round_avatar_layout"/>
+             android:id="@+id/messagesAdapter_roundAvatar_left"/>
 
     <LinearLayout
         android:orientation="vertical"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="4dp"
+        android:layout_weight="1"
+        android:layout_marginLeft="0dp"
         android:paddingBottom="5dp">
 
         <LinearLayout
@@ -38,9 +39,23 @@
             android:orientation="horizontal">
 
             <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:layout_gravity="left"
+                android:gravity="left"
+                android:paddingLeft="0dp"
+                android:paddingRight="8dp"
+                android:textColor="#FFAAAAAA"
+                android:text="1970/01/01 00:00:00"
+                android:id="@+id/messagesAdapter_timestamp_left"/>
+
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:layout_gravity="left"
                 android:text="A message body goes here"
@@ -57,9 +72,12 @@
                 android:paddingRight="4dp"
                 android:textColor="#FFAAAAAA"
                 android:text="1970/01/01 00:00:00"
-                android:id="@+id/messagesAdapter_timestamp"/>
+                android:id="@+id/messagesAdapter_timestamp_right"/>
         </LinearLayout>
 
     </LinearLayout>
+
+    <include layout="@layout/round_avatar"
+        android:id="@+id/messagesAdapter_roundAvatar_right"/>
 
 </LinearLayout>
