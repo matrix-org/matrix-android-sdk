@@ -2,15 +2,18 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:paddingBottom="2dp">
     android:orientation="horizontal">
 
-    <include layout="@layout/round_avatar" />
+    <include layout="@layout/round_avatar"
+        android:id="@+id/round_avatar_layout"/>
 
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginLeft="4dp"
+        android:gravity="center_vertical"
         android:paddingBottom="5dp">
 
         <TextView

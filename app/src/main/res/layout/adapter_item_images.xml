@@ -4,7 +4,8 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal">
 
-    <include layout="@layout/round_avatar" />
+    <include layout="@layout/round_avatar"
+        android:id="@+id/round_avatar_layout"/>
 
     <RelativeLayout
         android:orientation="vertical"
