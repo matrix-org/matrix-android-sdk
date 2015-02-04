@@ -232,7 +232,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         TextView leftTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_left);
         TextView rightTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_right);
-        TextView tsTextView = null;
+        TextView tsTextView;
 
         if (isMyEvent) {
             tsTextView = leftTsTextView;
@@ -320,8 +320,31 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             subView.setLayoutParams(bodyLayout);
         } else {
+            // did not compute the width of each item in the list
+            // so, check if the rows are merged (the user sent several messages)
+            boolean paddingLeft = isMergedView;
 
-            subViewLinearLayout.gravity =  Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+            // but also check for the first message
+            // if the message is going to be merged
+            if (!paddingLeft) {
+                String nextUserId = null;
+
+                if ((position+1) < this.getCount()) {
+                    MessageRow nextRow = getItem(position+1);
+
+                    if (null != nextRow) {
+                        nextUserId = nextRow.getEvent().userId;
+                    }
+                }
+
+                paddingLeft = (null != nextUserId) && (nextUserId.equals(msg.userId));
+            }
+
+            if (paddingLeft) {
+                subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+            } else {
+                subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+            }
             if (isMergedView) {
                 bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
             } else {
