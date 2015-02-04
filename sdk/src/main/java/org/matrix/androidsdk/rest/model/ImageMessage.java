@@ -16,7 +16,6 @@
 package org.matrix.androidsdk.rest.model;
 
 public class ImageMessage extends Message {
-    public String body;
     public ImageInfo info;
     public ImageInfo thumbnailInfo;
     public String url;

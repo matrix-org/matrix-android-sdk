@@ -134,19 +134,20 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event event = row.getEvent();
 
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            String msgType = event.content.getAsJsonPrimitive("msgtype").getAsString();
+            Message message = JsonUtils.toMessage(event.content);
 
-            if (msgType.equals(Message.MSGTYPE_TEXT)) {
+            if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
                 return ROW_TYPE_TEXT;
             }
-            else if (msgType.equals(Message.MSGTYPE_IMAGE)) {
+            else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
                 return ROW_TYPE_IMAGE;
             }
-            else if (msgType.equals(Message.MSGTYPE_EMOTE)) {
+            else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
                 return ROW_TYPE_EMOTE;
             }
             else {
-                throw new RuntimeException("Unknown msgtype: " + msgType);
+                // Default is to display the body as text
+                return ROW_TYPE_TEXT;
             }
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
@@ -414,22 +415,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     private boolean isKnownEvent(Event event, RoomState roomState) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            JsonPrimitive j = event.content.getAsJsonPrimitive("msgtype");
-            String msgType = j == null ? null : j.getAsString();
-            if (Message.MSGTYPE_IMAGE.equals(msgType) || Message.MSGTYPE_TEXT.equals(msgType) ||
-                    Message.MSGTYPE_EMOTE.equals(msgType)) {
-                return true;
-            }
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)
+                || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
+                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            return true;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
             AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            return true;
         }
         return false;
     }

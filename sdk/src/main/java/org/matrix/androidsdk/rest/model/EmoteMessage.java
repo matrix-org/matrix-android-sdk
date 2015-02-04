@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-public class EmoteMessage extends TextMessage {
+public class EmoteMessage extends Message {
     public EmoteMessage() {
         msgtype = MSGTYPE_EMOTE;
     }
