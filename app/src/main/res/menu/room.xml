@@ -2,21 +2,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="org.matrix.matrixandroidsdk.RoomActivity" >
-    <item
-        android:id="@+id/action_invite"
-        android:title="@string/action_invite"
-        android:icon="@drawable/ic_menu_invite"
-        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/action_members"
         android:title="@string/action_members"
-        android:icon="@drawable/ic_menu_allfriends"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/action_info"
         android:title="@string/action_room_info"
-        android:icon="@drawable/ic_menu_info_details"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/action_leave"
         android:title="@string/action_leave"

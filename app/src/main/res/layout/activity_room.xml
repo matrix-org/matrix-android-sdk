@@ -4,24 +4,10 @@
     android:layout_height="match_parent"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingTop="0dp"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:background="@color/room_background"
     tools:context="org.matrix.matrixandroidsdk.activity.RoomActivity">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="A room topic will go here"
-        android:id="@+id/textView_roomTopic"
-        android:singleLine="true"
-        android:ellipsize="marquee"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:focusable="false"
-        android:scrollHorizontally="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"/>
 
     <ImageButton
         android:layout_width="wrap_content"
@@ -50,12 +36,12 @@
         android:layout_centerHorizontal="true"/>
 
     <LinearLayout
-        android:layout_below="@id/textView_roomTopic"
         android:layout_above="@id/editText_messageBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/anchor_fragment_messages"
         android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
         android:orientation="vertical"/>
 
 </RelativeLayout>

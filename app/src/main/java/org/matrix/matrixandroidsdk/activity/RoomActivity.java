@@ -110,10 +110,11 @@ public class RoomActivity extends ActionBarActivity {
         findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_IMAGE = 1;
+            private static final int OPTION_INVITE = 2;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_INVITE, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -127,6 +128,37 @@ public class RoomActivity extends ActionBarActivity {
                                         Intent fileIntent = new Intent(Intent.ACTION_PICK);
                                         fileIntent.setType("image/*");
                                         startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                        break;
+                                    case OPTION_INVITE: {
+                                            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                                            if (session != null) {
+                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", new CommonActivityUtils.OnSubmitListener() {
+                                                    @Override
+                                                    public void onSubmit(final String text) {
+                                                        if (TextUtils.isEmpty(text)) {
+                                                            return;
+                                                        }
+                                                        if (!text.startsWith("@") || !text.contains(":")) {
+                                                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
+                                                            return;
+                                                        }
+                                                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void info) {
+                                                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                                                            }
+                                                        });
+                                                    }
+
+                                                    @Override
+                                                    public void onCancelled() {
+
+                                                    }
+                                                });
+                                                alert.show();
+                                            }
+                                        }
+
                                         break;
                                 }
                             }
@@ -144,6 +176,9 @@ public class RoomActivity extends ActionBarActivity {
                             break;
                         case OPTION_ATTACH_IMAGE:
                             label = getString(R.string.option_attach_image);
+                            break;
+                        case OPTION_INVITE:
+                            label = getString(R.string.option_invite);
                             break;
                     }
                     labels[i] = label;
@@ -175,7 +210,6 @@ public class RoomActivity extends ActionBarActivity {
 
         // set general room information
         setTitle(mRoom.getName(mSession.getCredentials().userId));
-
         setTopic(mRoom.getTopic());
 
         // listen for room name or topic changes
@@ -223,37 +257,7 @@ public class RoomActivity extends ActionBarActivity {
             return true;
         }
 
-
-        if (id == R.id.action_invite) {
-            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, "Invite User", "@localpart:domain", new CommonActivityUtils.OnSubmitListener() {
-                    @Override
-                    public void onSubmit(final String text) {
-                        if (TextUtils.isEmpty(text)) {
-                            return;
-                        }
-                        if (!text.startsWith("@") || !text.contains(":")) {
-                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onCancelled() {
-
-                    }
-                });
-                alert.show();
-            }
-        }
-        else if (id == R.id.action_leave) {
+        if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
                 mRoom.leave(new SimpleApiCallback<Void>() {
@@ -284,9 +288,7 @@ public class RoomActivity extends ActionBarActivity {
     }
 
     private void setTopic(String topic) {
-        TextView topicView = ((TextView)findViewById(R.id.textView_roomTopic));
-        topicView.setText(topic);
-        topicView.setSelected(true); // make the marquee scroll
+        this.getActionBar().setSubtitle(topic);
     }
 
     private void sendMessage(String body) {

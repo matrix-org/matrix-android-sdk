@@ -245,15 +245,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         tsTextView.setVisibility(View.VISIBLE);
         tsTextView.setText(displayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
 
-        if (!tsTextView.hasOnClickListeners()) {
-            tsTextView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    MessagesAdapter.this.displayMessageTimestamp = !MessagesAdapter.this.displayMessageTimestamp;
-                    MessagesAdapter.this.notifyDataSetChanged();
-                }
-            });
-        }
+        tsTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MessagesAdapter.this.displayMessageTimestamp = !MessagesAdapter.this.displayMessageTimestamp;
+                MessagesAdapter.this.notifyDataSetChanged();
+            }
+        });
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
