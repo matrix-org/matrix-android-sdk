@@ -65,6 +65,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
+    private boolean displayMessageTimestamp;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,6 +79,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Bundle args = getArguments();
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
+
+        displayMessageTimestamp = false;
     }
 
     @Override
@@ -95,9 +98,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     R.layout.adapter_item_message_emote
             );
         }
+        mAdapter.displayMessageTimestamp = displayMessageTimestamp;
+
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
-
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_RESEND = 1;
@@ -125,6 +129,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             })
                             .create()
                             .show();
+                } else {
+                    displayMessageTimestamp = !displayMessageTimestamp;
+                    mAdapter.displayMessageTimestamp = displayMessageTimestamp;
+                    mAdapter.notifyDataSetChanged();
                 }
             }
 
@@ -217,6 +225,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void onSuccess(Event info) {
                 mAdapter.remove(tmpRow);
                 mAdapter.add(info, mRoom.getLiveState());
+                // NotifyOnChange has been disabled to avoid useless refreshes
+                mAdapter.notifyDataSetChanged();
             }
 
             private void markError() {
@@ -244,6 +254,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         mAdapter.add(tmpRow);
+        // NotifyOnChange has been disabled to avoid useless refreshes
+        mAdapter.notifyDataSetChanged();
     }
 
     public void requestHistory() {
@@ -256,6 +268,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mUiHandler.post(new Runnable() {
                     @Override
                     public void run() {
+                        // refresh the list only at the end of the sync
+                        // else the one by one message refresh gives a weird UX
+                        // The application is almost frozen during the
+                        mAdapter.notifyDataSetChanged();
                         mMessageListView.setSelection(firstPos + count);
                     }
                 });
@@ -269,6 +285,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void run() {
                 mAdapter.add(event, roomState);
+                mAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -289,6 +306,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
+                // refresh the list only at the end of the sync
+                // else the one by one message refresh gives a weird UX
+                // The application is almost frozen during the
+                mAdapter.notifyDataSetChanged();
                 mMessageListView.setSelection(mAdapter.getCount() - 1);
             }
         });
