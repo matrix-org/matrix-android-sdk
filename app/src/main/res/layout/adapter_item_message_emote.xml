@@ -13,6 +13,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_gravity="center_vertical"
         android:layout_marginLeft="4dp"
         android:paddingBottom="5dp">
 
@@ -28,15 +29,24 @@
             android:text="1970/01/01 00:00:00"
             android:id="@+id/messagesAdapter_timestamp_left"/>
 
-        <TextView
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_gravity="center_vertical|left"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="@color/message_emote"
-            android:text="thinks of an emote"
-            android:id="@+id/messagesAdapter_emote"/>
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:id="@+id/messagesAdapter_body_layout">
+
+            <TextView
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_vertical|left"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/message_emote"
+                android:text="thinks of an emote"
+                android:id="@+id/messagesAdapter_emote"/>
+
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
