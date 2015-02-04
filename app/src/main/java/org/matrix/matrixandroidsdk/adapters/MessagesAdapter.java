@@ -87,7 +87,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
-        setNotifyOnChange(true);
+        // the refresh will be triggered only when it is required
+        // for example, retrieve the historical messages triggers a refresh for each message
+        setNotifyOnChange(false);
 
         normalColor = context.getResources().getColor(R.color.message_normal);
         emoteColor = context.getResources().getColor(R.color.message_emote);
@@ -127,6 +129,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
+            this.notifyDataSetChanged();
         }
     }
 
