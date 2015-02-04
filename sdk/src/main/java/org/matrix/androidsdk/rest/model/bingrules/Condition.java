@@ -15,10 +15,13 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import org.matrix.androidsdk.rest.model.Event;
+
 public class Condition {
     public static final String KIND_EVENT_MATCH = "event_match";
+    public static final String KIND_DEVICE = "device";
+    public static final String KIND_CONTAINS_DISPLAY_NAME = "contains_display_name";
+    public static final String KIND_ROOM_MEMBER_COUNT = "room_member_count";
 
     public String kind;
-    public String key;
-    public String pattern;
 }

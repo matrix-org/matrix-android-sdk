@@ -15,16 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-import com.google.gson.annotations.SerializedName;
+public class DeviceCondition extends Condition {
+    public String profileTag;
 
-import java.util.List;
-
-public class BingRuleSet {
-    public List<BingRule> override;
-    public List<ContentRule> content;
-    public List<BingRule> room;
-    public List<BingRule> sender;
-    public List<BingRule> underride;
-    @SerializedName("default")
-    public List<BingRule> defaults;
+    public DeviceCondition() {
+        kind = Condition.KIND_DEVICE;
+    }
 }

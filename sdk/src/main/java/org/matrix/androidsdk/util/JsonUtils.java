@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.EmoteMessage;
 import org.matrix.androidsdk.rest.model.Event;
@@ -30,6 +31,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.Condition;
 
 import java.lang.reflect.Modifier;
 
@@ -41,6 +43,7 @@ public class JsonUtils {
     private static Gson gson = new GsonBuilder()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
+            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
             .create();
 
     public static Gson getGson() {
@@ -70,7 +73,7 @@ public class JsonUtils {
         if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
             return toTextMessage(jsonObject);
         }
-        if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
+        else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
             return toEmoteMessage(jsonObject);
         }
         else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {

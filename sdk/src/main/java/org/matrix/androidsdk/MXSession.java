@@ -54,6 +54,7 @@ public class MXSession {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
+    private BingRulesRestClient mBingRulesRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -70,6 +71,7 @@ public class MXSession {
         mProfileRestClient = new ProfileRestClient(credentials);
         mPresenceRestClient = new PresenceRestClient(credentials);
         mRoomsRestClient = new RoomsRestClient(credentials);
+        mBingRulesRestClient = new BingRulesRestClient(credentials);
 
         mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
@@ -89,7 +91,7 @@ public class MXSession {
 
         mDataHandler.setDataRetriever(dataRetriever);
 
-        mDataHandler.setPushRulesManager(new BingRulesManager(new BingRulesRestClient(credentials)));
+        mDataHandler.setPushRulesManager(new BingRulesManager(this));
     }
 
     /**
@@ -130,6 +132,14 @@ public class MXSession {
      */
     public PresenceRestClient getPresenceApiClient() {
         return mPresenceRestClient;
+    }
+
+    /**
+     * Get the API client for requests to the bing rules API.
+     * @return the bing rules API client
+     */
+    public BingRulesRestClient getBingRulesApiClient() {
+        return mBingRulesRestClient;
     }
 
     /**
