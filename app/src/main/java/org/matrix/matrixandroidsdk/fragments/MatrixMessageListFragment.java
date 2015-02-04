@@ -129,10 +129,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             })
                             .create()
                             .show();
-                } else {
-                    displayMessageTimestamp = !displayMessageTimestamp;
-                    mAdapter.displayMessageTimestamp = displayMessageTimestamp;
-                    mAdapter.notifyDataSetChanged();
                 }
             }
 

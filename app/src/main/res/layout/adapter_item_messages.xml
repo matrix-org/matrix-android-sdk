@@ -64,6 +64,7 @@
                     android:layout_width="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:layout_gravity="left"
+                    android:textIsSelectable="true"
                     android:text="A message body goes here"
                     android:autoLink="web"
                     android:id="@+id/messagesAdapter_body"/>

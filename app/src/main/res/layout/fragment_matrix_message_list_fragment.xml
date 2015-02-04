@@ -11,6 +11,10 @@
         android:id="@+id/listView_messages"
         android:divider="#ffffff"
         android:dividerHeight="0px"
+
+        android:childDivider="@android:color/transparent"
+        android:listSelector="@android:color/transparent"
+        android:cacheColorHint="@android:color/transparent"
         android:transcriptMode="normal" />
 
 </LinearLayout>

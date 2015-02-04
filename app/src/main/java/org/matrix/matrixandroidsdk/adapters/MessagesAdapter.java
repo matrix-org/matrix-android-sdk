@@ -230,21 +230,29 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        TextView leftTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_left);
-        TextView rightTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_right);
+        TextView leftTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_left);
+        TextView rightTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_right);
+        TextView tsTextView = null;
 
         if (isMyEvent) {
-            if (null != leftTextView) {
-                leftTextView.setVisibility(displayMessageTimestamp ? View.VISIBLE : View.INVISIBLE);
-                leftTextView.setText(getTimestamp(msg.originServerTs));
-            }
-            rightTextView.setVisibility(View.GONE);
+            tsTextView = leftTsTextView;
+            rightTsTextView.setVisibility(View.GONE);
         } else {
-            leftTextView.setVisibility(View.GONE);
-            if (null != rightTextView) {
-                rightTextView.setVisibility(displayMessageTimestamp ? View.VISIBLE : View.INVISIBLE);
-                rightTextView.setText(getTimestamp(msg.originServerTs));
-            }
+            leftTsTextView.setVisibility(View.GONE);
+            tsTextView = rightTsTextView;
+        }
+
+        tsTextView.setVisibility(View.VISIBLE);
+        tsTextView.setText(displayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
+
+        if (!tsTextView.hasOnClickListeners()) {
+            tsTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MessagesAdapter.this.displayMessageTimestamp = !MessagesAdapter.this.displayMessageTimestamp;
+                    MessagesAdapter.this.notifyDataSetChanged();
+                }
+            });
         }
 
         // Sender avatar
@@ -338,8 +346,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
-        CharSequence body = display.getTextualDisplay();
-        TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+        final CharSequence body = display.getTextualDisplay();
+        final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         bodyTextView.setText(body);
 
         int textColor;
