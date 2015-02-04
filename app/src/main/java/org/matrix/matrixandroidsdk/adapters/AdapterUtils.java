@@ -74,15 +74,11 @@ public class AdapterUtils {
                     // all m.room.message events should support the 'body' key fallback, so use it.
                     text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
 
-                    // check for more specific formatting.
-                    String msgType = mEvent.content.getAsJsonPrimitive("msgtype").getAsString();
-                    if (msgType.equals(Message.MSGTYPE_TEXT)) {
-                        // check for html formatting
-                        if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
-                            String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
-                            if ("org.matrix.custom.html".equals(format)) {
-                                text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
-                            }
+                    // check for html formatting
+                    if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
+                        String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
+                        if ("org.matrix.custom.html".equals(format)) {
+                            text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
                         }
                     }
 

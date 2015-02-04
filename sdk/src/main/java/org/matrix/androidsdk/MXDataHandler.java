@@ -202,11 +202,11 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
             }
 
-//            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-//                if (event.redacts != null) {
-//                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
-//                }
-//            }
+            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                if (event.redacts != null) {
+                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
+                }
+            }
 
             onLiveEvent(event, beforeState);
 

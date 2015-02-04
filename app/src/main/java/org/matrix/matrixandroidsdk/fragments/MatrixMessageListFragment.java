@@ -280,7 +280,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAdapter.add(event, roomState);
+                if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                    mAdapter.removeEventById(event.redacts);
+                }
+                else {
+                    mAdapter.add(event, roomState);
+                }
                 mAdapter.notifyDataSetChanged();
             }
         });

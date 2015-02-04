@@ -2,6 +2,8 @@ package org.matrix.androidsdk.data;
 
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -10,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,8 +24,8 @@ public class MXMemoryStore implements IMXStore {
 
     private Map<String, Room> mRooms = new ConcurrentHashMap<String, Room>();
     private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
-    // room id -> set of events for this room (linked so insertion order is preserved)
-    private Map<String, LinkedHashSet<Event>> mRoomEvents = new ConcurrentHashMap<String, LinkedHashSet<Event>>();
+    // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
+    private Map<String, LinkedHashMap<String, Event>> mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
     private Map<String, String> mRoomTokens = new ConcurrentHashMap<String, String>();
 
     private Map<String, RoomSummary> mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
@@ -58,10 +61,10 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Event getOldestEvent(String roomId) {
-        LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
         if (events != null) {
-            Iterator<Event> it = events.iterator();
+            Iterator<Event> it = events.values().iterator();
             if (it.hasNext()) {
                 return it.next();
             }
@@ -71,24 +74,37 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeLiveRoomEvent(Event event) {
-        LinkedHashSet<Event> events = mRoomEvents.get(event.roomId);
+        LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
         if (events != null) {
             // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
             // wait for the first pagination request to set things right
-            events.add(event);
+            events.put(event.eventId, event);
         }
     }
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
         if (direction == Room.EventDirection.FORWARDS) { // TODO: Implement backwards direction
-            LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events == null) {
-                events = new LinkedHashSet<Event>();
+                events = new LinkedHashMap<String, Event>();
                 mRoomEvents.put(roomId, events);
                 mRoomTokens.put(roomId, eventsResponse.start);
             }
-            events.addAll(eventsResponse.chunk);
+            for (Event event : eventsResponse.chunk) {
+                events.put(event.eventId, event);
+            }
+        }
+    }
+
+    @Override
+    public void updateEventContent(String roomId, String eventId, JsonObject newContent) {
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        if (events != null) {
+            Event event = events.get(eventId);
+            if (event != null) {
+                event.content = newContent;
+            }
         }
     }
 
@@ -116,12 +132,12 @@ public class MXMemoryStore implements IMXStore {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
         if (token == null) {
-            LinkedHashSet<Event> events = mRoomEvents.get(roomId);
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events == null) {
                 return null;
             }
             TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
-            response.chunk = new ArrayList<Event>(events);
+            response.chunk = new ArrayList<Event>(events.values());
             // We want a chunk that goes from most recent to least
             Collections.reverse(response.chunk);
             response.end = mRoomTokens.get(roomId);

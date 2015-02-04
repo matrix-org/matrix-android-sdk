@@ -12,11 +12,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.gson.JsonNull;
-import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
@@ -133,8 +131,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    public void removeEventById(String eventId) {
+        MessageRow row = mEventRowMap.get(eventId);
+        if (row != null) {
+            remove(row);
+        }
+    }
+
     private boolean shouldSave(MessageRow row) {
-        return (isKnownEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
+        return (isDisplayableEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
     }
 
     @Override
@@ -522,9 +527,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
-    private boolean isKnownEvent(Event event, RoomState roomState) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)
-                || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
+    private boolean isDisplayableEvent(Event event, RoomState roomState) {
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            // A message is displayable as long as it has a body
+            Message message = JsonUtils.toMessage(event.content);
+            return (message.body != null) && (!message.body.equals(""));
+        }
+        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return true;
         }

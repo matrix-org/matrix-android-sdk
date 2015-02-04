@@ -25,6 +25,9 @@ public class Event {
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
     public static final String EVENT_TYPE_TYPING = "m.typing";
+    public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
+
+    // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
     public static final String EVENT_TYPE_STATE_ROOM_TOPIC = "m.room.topic";
     public static final String EVENT_TYPE_STATE_ROOM_MEMBER = "m.room.member";
@@ -45,4 +48,7 @@ public class Event {
     // Specific to state events
     public String stateKey;
     public JsonObject prevContent;
+
+    // Specific to redactions
+    public String redacts;
 }
