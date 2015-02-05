@@ -147,7 +147,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public PublicRoom getPublicRoomAt(int index) {
-        return mPublicRoomsList.get(index);
+        if (mSearchedPattern.length() > 0) {
+            return mFilteredPublicRoomsList.get(index);
+        } else {
+            return mPublicRoomsList.get(index);
+        }
     }
     /**
      * recents list management
@@ -158,7 +162,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public RoomSummary getRoomSummaryAt(int index) {
-        return mRecentsSummariesList.get(index);
+        if (mSearchedPattern.length() > 0) {
+            return mFilteredRecentsSummariesList.get(index);
+        } else {
+            return mRecentsSummariesList.get(index);
+        }
     }
 
     public void removeRoomSummary(RoomSummary roomSummary) {
