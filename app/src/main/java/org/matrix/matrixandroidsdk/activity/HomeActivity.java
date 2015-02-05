@@ -2,13 +2,11 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
+import android.widget.ExpandableListView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -17,6 +15,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -25,14 +24,20 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 
+import java.util.List;
+
 /**
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
  * new rooms.
  */
 public class HomeActivity extends MXCActionBarActivity {
+    private ExpandableListView mMyRoomList = null;
+
+    public static int recentsGroupIndex = 0;
+    public static int publicRoomsGroupIndex = 1;
+    private List<PublicRoom> mPublicRooms = null;
 
     private MXEventListener mListener = new MXEventListener() {
-
         private boolean mInitialSyncComplete = false;
 
         @Override
@@ -44,8 +49,13 @@ public class HomeActivity extends MXCActionBarActivity {
                     for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
                         addSummary(summary);
                     }
+                    mAdapter.setPublicRoomsList(mPublicRooms);
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
+                    mMyRoomList.expandGroup(recentsGroupIndex);
+
+                    // load the public load in background
+                    refreshPublicRoomsList();
                 }
             });
         }
@@ -82,7 +92,7 @@ public class HomeActivity extends MXCActionBarActivity {
                         // If we've left the room, remove it from the list
                         else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                 isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                            mAdapter.remove(summary);
+                            mAdapter.removeRoomSummary(summary);
                         }
 
                         // Watch for potential room name changes
@@ -138,13 +148,23 @@ public class HomeActivity extends MXCActionBarActivity {
 
             // only add summaries to rooms we have not left.
             if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                mAdapter.add(summary);
+                mAdapter.addRoomSummary(summary);
             }
         }
     };
 
     private MXSession mSession;
     private RoomSummaryAdapter mAdapter;
+
+    private void refreshPublicRoomsList() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+            @Override
+            public void onSuccess(List<PublicRoom> publicRooms) {
+                mAdapter.setPublicRoomsList(publicRooms);
+                mPublicRooms = publicRooms;
+            }
+        });
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,20 +179,54 @@ public class HomeActivity extends MXCActionBarActivity {
             return;
         }
 
-        final ListView myRoomList = (ListView)findViewById(R.id.listView_myRooms);
+        mMyRoomList = (ExpandableListView)findViewById(R.id.listView_myRooms);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
-        myRoomList.setAdapter(mAdapter);
+        mMyRoomList.setAdapter(mAdapter);
 
         mSession.getDataHandler().addListener(mListener);
 
-        myRoomList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-
+        mMyRoomList.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                String roomId = mAdapter.getItem(i).getRoomId();
+            public boolean onChildClick(ExpandableListView parent, View v,
+                                        int groupPosition, int childPosition, long id) {
+                String roomId;
+
+                if (groupPosition == recentsGroupIndex) {
+                    roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+                    mAdapter.resetUnreadCount(roomId);
+                } else {
+                    roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
+                }
+
                 goToRoomPage(roomId);
-                mAdapter.resetUnreadCount(roomId);
                 mAdapter.notifyDataSetChanged();
+
+                return true;
+            }
+        });
+
+        mMyRoomList.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
+            @Override
+            public void onGroupCollapse (int groupPosition) {
+                if (groupPosition == publicRoomsGroupIndex) {
+                    if (!mMyRoomList.isGroupExpanded(recentsGroupIndex)) {
+                        mMyRoomList.expandGroup(recentsGroupIndex);
+                    }
+                } else {
+                    if (!mMyRoomList.isGroupExpanded(publicRoomsGroupIndex)) {
+                        mMyRoomList.expandGroup(publicRoomsGroupIndex);
+                    }
+                }
+            }
+        });
+
+
+        mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
+            @Override
+            public void onGroupExpand (int groupPosition) {
+                if (groupPosition == publicRoomsGroupIndex) {
+                    refreshPublicRoomsList();
+                }
             }
         });
     }
@@ -213,11 +267,7 @@ public class HomeActivity extends MXCActionBarActivity {
             return true;
         }
 
-        if (id == R.id.action_public_rooms) {
-            goToPublicRoomPage();
-            return true;
-        }
-        else if (id == R.id.action_create_public_room) {
+         if (id == R.id.action_create_public_room) {
             createRoom(true);
             return true;
         }
@@ -232,7 +282,7 @@ public class HomeActivity extends MXCActionBarActivity {
         startActivity(new Intent(this, PublicRoomsActivity.class));
     }
 
-    private void goToRoomPage(String roomId) {
+    public void goToRoomPage(String roomId) {
         Intent intent = new Intent(this, RoomActivity.class);
         intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
         startActivity(intent);

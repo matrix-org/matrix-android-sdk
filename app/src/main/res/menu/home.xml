@@ -15,10 +15,6 @@
                 android:title="@string/private_room" />
         </menu>
     </item>
-    <item android:id="@+id/action_public_rooms"
-          android:title="@string/action_public_rooms"
-          android:icon="@drawable/ic_menu_mapmode"
-          app:showAsAction="ifRoom" />
     <item android:id="@+id/action_settings"
         android:title="@string/action_settings"
         android:orderInCategory="100"
