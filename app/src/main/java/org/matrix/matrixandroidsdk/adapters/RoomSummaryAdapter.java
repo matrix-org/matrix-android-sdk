@@ -47,6 +47,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
 
+    private List<RoomSummary>mFilteredRecentsSummariesList;
+    private List<PublicRoom>mFilteredPublicRoomsList;
+
+    private String mSearchedPattern = "";
+
     private DateFormat mDateFormat;
 
     private Map<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
@@ -69,6 +74,63 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
     }
+
+    /**
+     *  search management
+     */
+
+    public void setSearchedPattern(String pattern) {
+        if (null == pattern) {
+            pattern = "";
+        }
+
+        if (!pattern.equals(mSearchedPattern)) {
+            mSearchedPattern = pattern.toLowerCase();
+            this.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
+        mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
+
+        // there is a pattern to search
+        if (mSearchedPattern.length() > 0) {
+
+            // search in the recent rooms
+            for (RoomSummary summary : mRecentsSummariesList) {
+                String roomName = summary.getRoomName();
+
+                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                    mFilteredRecentsSummariesList.add(summary);
+                } else {
+                    String topic = summary.getRoomTopic();
+
+                    if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        mFilteredRecentsSummariesList.add(summary);
+                    }
+                }
+            }
+
+            for (PublicRoom publicRoom : mPublicRoomsList) {
+                String roomName = publicRoom.name;
+
+                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                    mFilteredPublicRoomsList.add(publicRoom);
+                } else {
+                    String alias = publicRoom.roomAliasName;
+
+                    if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        mFilteredPublicRoomsList.add(publicRoom);
+                    }
+                }
+            }
+        }
+
+        super.notifyDataSetChanged();
+    }
+
     /**
      * publics list management
      */
@@ -210,7 +272,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
 
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            RoomSummary summary = mRecentsSummariesList.get(childPosition);
+
+            List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
+
+            RoomSummary summary = summariesList.get(childPosition);
 
             Integer unreadCount = mUnreadCountMap.get(summary.getRoomId());
             // Zero for transparent
@@ -257,7 +322,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
         } else {
-            RoomState room = mPublicRoomsList.get(childPosition);
+            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
+
+            RoomState room = publicRoomsList.get(childPosition);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
             textView.setText(getRoomName(room));
@@ -307,9 +374,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     @Override
     public int getChildrenCount(int groupPosition) {
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            return mRecentsSummariesList.size();
+            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
         } else {
-            return mPublicRoomsList.size();
+            return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
         }
     }
 

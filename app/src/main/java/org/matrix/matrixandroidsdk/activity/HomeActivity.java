@@ -3,9 +3,13 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
 
 import org.matrix.androidsdk.MXSession;
@@ -155,6 +159,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private MXSession mSession;
     private RoomSummaryAdapter mAdapter;
+    private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
         Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
@@ -179,7 +184,7 @@ public class HomeActivity extends MXCActionBarActivity {
             return;
         }
 
-        mMyRoomList = (ExpandableListView)findViewById(R.id.listView_myRooms);
+        mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
         mMyRoomList.setAdapter(mAdapter);
 
@@ -207,7 +212,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
         mMyRoomList.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
             @Override
-            public void onGroupCollapse (int groupPosition) {
+            public void onGroupCollapse(int groupPosition) {
                 if (groupPosition == publicRoomsGroupIndex) {
                     if (!mMyRoomList.isGroupExpanded(recentsGroupIndex)) {
                         mMyRoomList.expandGroup(recentsGroupIndex);
@@ -223,12 +228,46 @@ public class HomeActivity extends MXCActionBarActivity {
 
         mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
             @Override
-            public void onGroupExpand (int groupPosition) {
+            public void onGroupExpand(int groupPosition) {
                 if (groupPosition == publicRoomsGroupIndex) {
                     refreshPublicRoomsList();
                 }
             }
         });
+
+        mSearchRoomEditText = (EditText) this.findViewById(R.id.editText_search_room);
+        mSearchRoomEditText.addTextChangedListener(new TextWatcher() {
+            public void afterTextChanged(android.text.Editable s) {
+                mAdapter.setSearchedPattern(s.toString());
+                mMyRoomList.smoothScrollToPosition(0);
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+        });
+    }
+
+    private void toggleSearchButton() {
+        if (mSearchRoomEditText.getVisibility() == View.GONE) {
+            mSearchRoomEditText.setVisibility(View.VISIBLE);
+            mMyRoomList.expandGroup(recentsGroupIndex);
+            mMyRoomList.expandGroup(publicRoomsGroupIndex);
+        } else {
+            mSearchRoomEditText.setVisibility(View.GONE);
+            // force to hide the keyboard
+            mSearchRoomEditText.postDelayed(new Runnable() {
+                public void run() {
+                    InputMethodManager keyboard = (InputMethodManager) getSystemService(getApplication().INPUT_METHOD_SERVICE);
+                    keyboard.hideSoftInputFromWindow(
+                            mSearchRoomEditText.getWindowToken(), 0);
+                }
+            }, 200);
+        }
+
+        mSearchRoomEditText.setText("");
     }
 
     @Override
@@ -267,7 +306,11 @@ public class HomeActivity extends MXCActionBarActivity {
             return true;
         }
 
-         if (id == R.id.action_create_public_room) {
+        if (id == R.id.search_room) {
+            toggleSearchButton();
+            return true;
+        }
+        else if (id == R.id.action_create_public_room) {
             createRoom(true);
             return true;
         }
