@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
