@@ -20,7 +20,7 @@ import org.matrix.matrixandroidsdk.R;
 /**
  * Displays the login screen.
  */
-public class LoginActivity extends ActionBarActivity {
+public class LoginActivity extends MXCActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -27,7 +27,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
-public class SplashActivity extends Activity {
+public class SplashActivity extends MXCActionBarActivity {
 
     private MXSession mSession;
 

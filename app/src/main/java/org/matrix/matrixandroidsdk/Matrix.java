@@ -7,6 +7,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
+import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ public class Matrix {
 
     protected Matrix(Context appContext) {
         mLoginStorage = new LoginStorage(appContext.getApplicationContext());
+        RageShake.getInstance().start(appContext.getApplicationContext());
     }
 
     public synchronized static Matrix getInstance(Context appContext) {

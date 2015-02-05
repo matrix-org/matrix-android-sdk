@@ -46,7 +46,7 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
-public class SettingsActivity extends ActionBarActivity {
+public class SettingsActivity extends MXCActionBarActivity {
 
     private static final String LOG_TAG = "SettingsActivity";
 
