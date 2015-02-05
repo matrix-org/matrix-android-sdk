@@ -154,4 +154,8 @@ public class MatrixMessagesFragment extends Fragment {
     public void send(Message message, ApiCallback<Event> callback) {
         mRoom.sendMessage(message, callback);
     }
+
+    public void redact(String eventId, ApiCallback<Event> callback) {
+        mRoom.redact(eventId, callback);
+    }
 }

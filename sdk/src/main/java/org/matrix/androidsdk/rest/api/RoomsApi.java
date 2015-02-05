@@ -236,4 +236,13 @@ public interface RoomsApi {
      */
     @GET("/rooms/{roomId}/initialSync")
     public void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
+
+    /**
+     * Redact an event from the room>.
+     * @param roomId the room id
+     * @param eventId the event id of the event to redact
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/rooms/{roomId}/redact/{eventId}")
+    public void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
 }

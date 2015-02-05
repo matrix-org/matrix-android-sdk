@@ -27,9 +27,11 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -99,16 +101,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
-        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_RESEND = 1;
+            private static final int OPTION_REDACT = 2;
 
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 final MessageRow messageRow = mAdapter.getItem(position);
+                final List<Integer> options = new ArrayList<Integer>();
                 if (messageRow.getSentState() == MessageRow.SentState.NOT_SENT) {
-                    final List<Integer> options = Arrays.asList(OPTION_RESEND, OPTION_CANCEL);
+                    options.add(OPTION_RESEND);
+                } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
+                    options.add(OPTION_REDACT);
+                }
 
+                if (options.size() != 0) {
+                    options.add(OPTION_CANCEL);
                     new AlertDialog.Builder(getActivity())
                             .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
                                 @Override
@@ -121,12 +130,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             Message message = JsonUtils.toMessage(messageRow.getEvent().content);
                                             send(message);
                                             break;
+                                        case OPTION_REDACT:
+                                            redactEvent(messageRow.getEvent().eventId);
+                                            break;
                                     }
                                 }
                             })
                             .create()
                             .show();
+
+                    return true;
                 }
+
+                return false;
             }
 
             private String[] buildOptionLabels(List<Integer> options) {
@@ -139,6 +155,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             break;
                         case OPTION_RESEND:
                             label = getString(R.string.resend);
+                            break;
+                        case OPTION_REDACT:
+                            label = getString(R.string.redact);
                             break;
                     }
                     labels[i] = label;
@@ -273,6 +292,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 });
             }
         });
+    }
+
+    private void redactEvent(String eventId) {
+        // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
+        mMatrixMessagesFragment.redact(eventId,
+                new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), "Couldn't redact")));
     }
 
     @Override

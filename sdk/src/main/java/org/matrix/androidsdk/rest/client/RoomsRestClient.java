@@ -220,4 +220,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.roomTopic(roomId, roomState, new RestAdapterCallback<Void>(callback));
     }
+
+    /**
+     * Redact an event.
+     * @param roomId the room id
+     * @param eventId the event id
+     * @param callback the callback containing the created event if successful
+     */
+    public void redact(String roomId, String eventId, ApiCallback<Event> callback) {
+        mApi.redact(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(callback));
+    }
 }

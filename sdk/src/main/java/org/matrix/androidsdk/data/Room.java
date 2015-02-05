@@ -380,4 +380,13 @@ public class Room {
     public void updateTopic(String topic, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().updateTopic(getRoomId(), topic, callback);
     }
+
+    /**
+     * Redact an event from the room.
+     * @param eventId the event's id
+     * @param callback the callback with the created event
+     */
+    public void redact(String eventId, ApiCallback<Event> callback) {
+        mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
+    }
 }
