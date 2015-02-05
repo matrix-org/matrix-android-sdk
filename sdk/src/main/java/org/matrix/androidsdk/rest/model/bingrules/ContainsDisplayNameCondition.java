@@ -17,7 +17,6 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.regex.Pattern;
@@ -33,8 +32,8 @@ public class ContainsDisplayNameCondition extends Condition {
     public boolean isSatisfied(Event event, String myDisplayName) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Message msg = JsonUtils.toMessage(event.content);
-            if (msg instanceof TextMessage) {
-                return caseInsensitiveFind(myDisplayName, ((TextMessage) msg).body);
+            if (msg.body != null) {
+                return caseInsensitiveFind(myDisplayName, msg.body);
             }
         }
         return false;

@@ -71,12 +71,18 @@ public class ContainsDisplayNameConditionTest {
     }
 
     @Test
-    public void testOtherMessageType() {
+    public void testOtherMessageTypes() {
         setEventMessage("m.image", "'body': 'Bob.jpeg'");
-        assertFalse(condition.isSatisfied(event, displayName));
+        assertTrue(condition.isSatisfied(event, displayName));
 
         setEventMessage("m.image", "'url': 'Bob'");
         assertFalse(condition.isSatisfied(event, displayName));
+
+        setEventMessage("m.notice", "'body': 'Bob did something or other'");
+        assertTrue(condition.isSatisfied(event, displayName));
+
+        setEventMessage("m.emote", "'body': 'is angry with Bob'");
+        assertTrue(condition.isSatisfied(event, displayName));
     }
 
     @Test

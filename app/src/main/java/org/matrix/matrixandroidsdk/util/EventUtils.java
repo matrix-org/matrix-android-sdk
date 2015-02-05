@@ -23,7 +23,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
@@ -55,19 +54,17 @@ public class EventUtils {
         }
 
         Message msg = JsonUtils.toMessage(event.content);
-        if (msg instanceof TextMessage) {
-            String body = ((TextMessage) msg).body;
+        String body = msg.body;
 
-            // Extract "bob" from "@bob:matrix.org"
-            String namePart = myUserId.substring(1, myUserId.indexOf(':'));
-            if (caseInsensitiveFind(namePart, body)) {
-                return true;
-            }
-            Room room = session.getDataHandler().getRoom(event.roomId);
-            RoomMember myMember = room.getMember(myUserId);
-            if (caseInsensitiveFind(myMember.displayname, body)) {
-                return true;
-            }
+        // Extract "bob" from "@bob:matrix.org"
+        String namePart = myUserId.substring(1, myUserId.indexOf(':'));
+        if (caseInsensitiveFind(namePart, body)) {
+            return true;
+        }
+        Room room = session.getDataHandler().getRoom(event.roomId);
+        RoomMember myMember = room.getMember(myUserId);
+        if (caseInsensitiveFind(myMember.displayname, body)) {
+            return true;
         }
 
         return false;

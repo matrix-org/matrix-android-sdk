@@ -4,9 +4,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -16,7 +14,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -297,7 +294,7 @@ public class RoomActivity extends ActionBarActivity {
                 mMatrixMessageListFragment.sendEmote(body.substring(4));
             }
             else {
-                mMatrixMessageListFragment.sendMessage(body);
+                mMatrixMessageListFragment.sendTextMessage(body);
             }
         }
 

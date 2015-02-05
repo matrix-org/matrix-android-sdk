@@ -20,19 +20,16 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.EmoteMessage;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.TextMessage;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -190,8 +187,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    public void sendMessage(String body) {
-        TextMessage message = new TextMessage();
+    public void sendTextMessage(String body) {
+        sendMessage(Message.MSGTYPE_TEXT, body);
+    }
+
+    private void sendMessage(String msgType, String body) {
+        Message message = new Message();
+        message.msgtype = msgType;
         message.body = body;
         send(message);
     }
@@ -201,9 +203,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void sendEmote(String emote) {
-        EmoteMessage message = new EmoteMessage();
-        message.body = emote;
-        send(message);
+        sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
     private void send(Message message) {
