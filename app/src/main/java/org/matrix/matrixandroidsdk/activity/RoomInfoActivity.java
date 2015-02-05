@@ -37,7 +37,7 @@ import org.matrix.matrixandroidsdk.util.UIUtils;
 /**
  * Activity for displaying and editing room information.
  */
-public class RoomInfoActivity extends ActionBarActivity {
+public class RoomInfoActivity extends MXCActionBarActivity {
 
     private static final String LOG_TAG = "RoomInfoActivity";
 

@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Displays a list of available public rooms.
  */
-public class PublicRoomsActivity extends ActionBarActivity {
+public class PublicRoomsActivity extends MXCActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

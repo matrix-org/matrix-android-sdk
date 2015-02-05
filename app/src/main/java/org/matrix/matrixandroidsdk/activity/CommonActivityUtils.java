@@ -10,6 +10,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.RageShake;
 
 /**
  * Contains useful functions which are called in multiple activities.
@@ -100,6 +101,11 @@ public class CommonActivityUtils {
                 }
             }
         );
-        return alert.create();
+
+        AlertDialog dialog = alert.create();
+        // add the dialog to be rendered in the screenshot
+        RageShake.getInstance().registerDialog(dialog);
+        
+        return dialog;
     }
 }

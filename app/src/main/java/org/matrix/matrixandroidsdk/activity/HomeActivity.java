@@ -29,7 +29,7 @@ import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
  * new rooms.
  */
-public class HomeActivity extends ActionBarActivity {
+public class HomeActivity extends MXCActionBarActivity {
 
     private MXEventListener mListener = new MXEventListener() {
 
