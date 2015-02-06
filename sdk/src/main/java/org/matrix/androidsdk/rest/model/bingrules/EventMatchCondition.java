@@ -38,6 +38,9 @@ public class EventMatchCondition extends Condition {
         JsonObject eventJson = JsonUtils.toJson(event);
         // Extract the value that we want to match
         String fieldVal = extractField(eventJson, key);
+        if (fieldVal == null) {
+            return false;
+        }
         // Process the pattern
         String patternRegex = globToRegex(pattern);
 

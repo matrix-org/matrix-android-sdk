@@ -15,16 +15,22 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import com.google.gson.JsonElement;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class BingRule {
     public static final String ACTION_NOTIFY = "notify";
     public static final String ACTION_DONT_NOTIFY = "dont_notify";
+    public static final String ACTION_COALESCE = "coalesce";
 
     public String ruleId;
     public List<Condition> conditions;
-    public List<String> actions;
+    public List<JsonElement> actions;
+    @SerializedName("default")
+    public boolean isDefault;
 
     public void addCondition(Condition condition) {
         if (conditions == null) {

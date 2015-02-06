@@ -15,9 +15,10 @@
  */
 package org.matrix.androidsdk.util;
 
+import com.google.gson.JsonElement;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -29,7 +30,6 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
-import org.matrix.androidsdk.rest.model.bingrules.DeviceCondition;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 
@@ -74,6 +74,7 @@ public class BingRulesManager {
                     callback.onSuccess(null);
                 }
             }
+            // FIXME: This needs a retry strategy in case of network error and something else for other errors
         });
     }
 
@@ -90,15 +91,19 @@ public class BingRulesManager {
             // Go down the rule list until we find a match
             for (BingRule bingRule : mRules) {
                 if (eventMatchesConditions(event, bingRule.conditions)) {
-                    for (String action : bingRule.actions) {
-                        if (BingRule.ACTION_NOTIFY.equals(action)) {
-                            return true;
-                        }
-                        else if (BingRule.ACTION_DONT_NOTIFY.equals(action)) {
-                            return false;
+                    for (JsonElement action : bingRule.actions) {
+                        if (action.isJsonPrimitive()) {
+                            if (BingRule.ACTION_NOTIFY.equals(action.getAsString())
+                                    || BingRule.ACTION_COALESCE.equals(action.getAsString())) {
+                                return true;
+                            } else if (BingRule.ACTION_DONT_NOTIFY.equals(action.getAsString())) {
+                                return false;
+                            }
                         }
                         // FIXME: Support other actions
                     }
+                    // No supported actions were found, just bing
+                    return true;
                 }
             }
         }
@@ -158,9 +163,6 @@ public class BingRulesManager {
         }
         if (ruleSet.underride != null) {
             mRules.addAll(ruleSet.underride);
-        }
-        if (ruleSet.defaults != null) {
-            mRules.addAll(ruleSet.defaults);
         }
     }
 

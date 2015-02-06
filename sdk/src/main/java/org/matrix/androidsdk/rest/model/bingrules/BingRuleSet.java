@@ -25,6 +25,4 @@ public class BingRuleSet {
     public List<BingRule> room;
     public List<BingRule> sender;
     public List<BingRule> underride;
-    @SerializedName("default")
-    public List<BingRule> defaults;
 }
