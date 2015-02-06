@@ -57,7 +57,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private DateFormat mDateFormat;
 
-    private Map<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
+    private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
 
     /**
      * Construct an adapter which will display a list of rooms.
@@ -76,6 +76,17 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mRecentsSummariesList = new ArrayList<RoomSummary>();
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
+    }
+
+    /**
+     *  unread messages map
+     */
+    public  HashMap<String, Integer> getUnreadCountMap() {
+        return mUnreadCountMap;
+    }
+
+    public void setUnreadCountMap(HashMap<String, Integer> map) {
+        mUnreadCountMap = map;
     }
 
     /**
