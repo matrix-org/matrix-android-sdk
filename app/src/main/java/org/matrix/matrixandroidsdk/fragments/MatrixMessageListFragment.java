@@ -64,7 +64,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
-    private boolean displayMessageTimestamp;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,8 +77,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Bundle args = getArguments();
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
-
-        displayMessageTimestamp = false;
     }
 
     @Override
@@ -97,8 +94,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     R.layout.adapter_item_message_emote
             );
         }
-        mAdapter.displayMessageTimestamp = displayMessageTimestamp;
-
+        
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
         mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {

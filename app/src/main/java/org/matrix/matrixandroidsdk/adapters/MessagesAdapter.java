@@ -71,7 +71,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int sendingColor;
     private int highlightColor;
 
-    public boolean displayMessageTimestamp;
+    private static boolean mDisplayMessageTimestamp = false;
 
     private DateFormat mDateFormat;
 
@@ -261,12 +261,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         tsTextView.setVisibility(View.VISIBLE);
-        tsTextView.setText(displayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
+        tsTextView.setText(mDisplayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
 
         tsTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MessagesAdapter.this.displayMessageTimestamp = !MessagesAdapter.this.displayMessageTimestamp;
+                MessagesAdapter.this.mDisplayMessageTimestamp = !MessagesAdapter.this.mDisplayMessageTimestamp;
                 MessagesAdapter.this.notifyDataSetChanged();
             }
         });
