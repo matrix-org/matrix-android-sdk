@@ -71,7 +71,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int sendingColor;
     private int highlightColor;
 
-    public boolean displayMessageTimestamp;
+    private static boolean mDisplayMessageTimestamp = false;
 
     private DateFormat mDateFormat;
 
@@ -222,7 +222,20 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
+        String nextUserId = null;
+
+        if ((position+1) < this.getCount()) {
+            MessageRow nextRow = getItem(position+1);
+
+            if (null != nextRow) {
+                nextUserId = nextRow.getEvent().userId;
+            }
+        }
+
+        // isMergedView -> the message is going to be merged with the previous one
+        // willBeMerged -> false if it is the last message of the user
         boolean isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
+        boolean willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
@@ -248,12 +261,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         tsTextView.setVisibility(View.VISIBLE);
-        tsTextView.setText(displayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
+        tsTextView.setText(mDisplayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
 
         tsTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MessagesAdapter.this.displayMessageTimestamp = !MessagesAdapter.this.displayMessageTimestamp;
+                MessagesAdapter.this.mDisplayMessageTimestamp = !MessagesAdapter.this.mDisplayMessageTimestamp;
                 MessagesAdapter.this.notifyDataSetChanged();
             }
         });
@@ -325,23 +338,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else {
             // did not compute the width of each item in the list
             // so, check if the rows are merged (the user sent several messages)
-            boolean paddingLeft = isMergedView;
-
-            // but also check for the first message
-            // if the message is going to be merged
-            if (!paddingLeft) {
-                String nextUserId = null;
-
-                if ((position+1) < this.getCount()) {
-                    MessageRow nextRow = getItem(position+1);
-
-                    if (null != nextRow) {
-                        nextUserId = nextRow.getEvent().userId;
-                    }
-                }
-
-                paddingLeft = (null != nextUserId) && (nextUserId.equals(msg.userId));
-            }
+            boolean paddingLeft = isMergedView || willBeMerged;
 
             if (paddingLeft) {
                 subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
@@ -358,6 +355,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         bodyLayoutView.setLayoutParams(bodyLayout);
         subView.setLayoutParams(subViewLinearLayout);
 
+        view = convertView.findViewById(R.id.messagesAdapter_message_separator);
+
+        if (null != view) {
+            view.setVisibility((willBeMerged || ((position+1) == this.getCount())) ? View.GONE : View.VISIBLE);
+        }
 
         return isMergedView;
     }

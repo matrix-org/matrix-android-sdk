@@ -2,6 +2,7 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +35,8 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.net.ssl.SSLContext;
+
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private Context mContext;
@@ -47,9 +50,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
 
+    private List<RoomSummary>mFilteredRecentsSummariesList;
+    private List<PublicRoom>mFilteredPublicRoomsList;
+
+    private String mSearchedPattern = "";
+
     private DateFormat mDateFormat;
 
-    private Map<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
+    private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
 
     /**
      * Construct an adapter which will display a list of rooms.
@@ -69,6 +77,74 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
     }
+
+    /**
+     *  unread messages map
+     */
+    public  HashMap<String, Integer> getUnreadCountMap() {
+        return mUnreadCountMap;
+    }
+
+    public void setUnreadCountMap(HashMap<String, Integer> map) {
+        mUnreadCountMap = map;
+    }
+
+    /**
+     *  search management
+     */
+
+    public void setSearchedPattern(String pattern) {
+        if (null == pattern) {
+            pattern = "";
+        }
+
+        if (!pattern.equals(mSearchedPattern)) {
+            mSearchedPattern = pattern.toLowerCase();
+            this.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
+        mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
+
+        // there is a pattern to search
+        if (mSearchedPattern.length() > 0) {
+
+            // search in the recent rooms
+            for (RoomSummary summary : mRecentsSummariesList) {
+                String roomName = summary.getRoomName();
+
+                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                    mFilteredRecentsSummariesList.add(summary);
+                } else {
+                    String topic = summary.getRoomTopic();
+
+                    if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        mFilteredRecentsSummariesList.add(summary);
+                    }
+                }
+            }
+
+            for (PublicRoom publicRoom : mPublicRoomsList) {
+                String roomName = publicRoom.name;
+
+                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                    mFilteredPublicRoomsList.add(publicRoom);
+                } else {
+                    String alias = publicRoom.roomAliasName;
+
+                    if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        mFilteredPublicRoomsList.add(publicRoom);
+                    }
+                }
+            }
+        }
+
+        super.notifyDataSetChanged();
+    }
+
     /**
      * publics list management
      */
@@ -85,7 +161,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public PublicRoom getPublicRoomAt(int index) {
-        return mPublicRoomsList.get(index);
+        if (mSearchedPattern.length() > 0) {
+            return mFilteredPublicRoomsList.get(index);
+        } else {
+            return mPublicRoomsList.get(index);
+        }
     }
     /**
      * recents list management
@@ -96,7 +176,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public RoomSummary getRoomSummaryAt(int index) {
-        return mRecentsSummariesList.get(index);
+        if (mSearchedPattern.length() > 0) {
+            return mFilteredRecentsSummariesList.get(index);
+        } else {
+            return mRecentsSummariesList.get(index);
+        }
     }
 
     public void removeRoomSummary(RoomSummary roomSummary) {
@@ -210,25 +294,37 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
 
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            RoomSummary summary = mRecentsSummariesList.get(childPosition);
+
+            List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
+
+            RoomSummary summary = summariesList.get(childPosition);
 
             Integer unreadCount = mUnreadCountMap.get(summary.getRoomId());
             // Zero for transparent
             convertView.setBackgroundColor(((unreadCount == null) || (unreadCount == 0)) ? 0 : mUnreadColor);
 
-            String numMembers = null;
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
-            textView.setText(summary.getRoomName());
 
-            if (summary.getNumMembers() > 0) {
-                numMembers = mContext.getResources().getQuantityString(
-                        R.plurals.num_members, summary.getNumMembers(),
-                        summary.getNumMembers()
-                );
+            // the public rooms are displayed with bold fonts
+            if ((null != summary.getLatestRoomState()) && (null != summary.getLatestRoomState().visibility) && summary.getLatestRoomState().visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+                textView.setTypeface(null, Typeface.BOLD);
+            } else {
+                textView.setTypeface(null, Typeface.NORMAL);
             }
+
+            // display the unread messages count
+            String roomNameMessage = summary.getRoomName();
+
+            if (null != roomNameMessage) {
+                if ((null != unreadCount) && (unreadCount > 0)) {
+                    roomNameMessage += " (" + unreadCount + ")";
+                }
+            }
+
+            textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
                 AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), summary.getLatestRoomState());
@@ -248,27 +344,24 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_numUsers);
-            textView.setVisibility(View.VISIBLE);
-            textView.setText(numMembers);
 
             if (mOddColourResId != 0 && mEvenColourResId != 0) {
                 convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
             }
 
         } else {
-            RoomState room = mPublicRoomsList.get(childPosition);
+            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
+
+            RoomState room = publicRoomsList.get(childPosition);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
+            textView.setTypeface(null, Typeface.BOLD);
             textView.setText(getRoomName(room));
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
             textView.setText(room.topic);
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.GONE);
-
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_numUsers);
             textView.setVisibility(View.GONE);
 
             convertView.setBackgroundColor(0);
@@ -286,7 +379,20 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         TextView heading = (TextView) convertView.findViewById(R.id.heading);
 
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            heading.setText(mContext.getResources().getString(R.string.my_rooms));
+
+            int unreadCount = 0;
+
+            for(Integer i : mUnreadCountMap.values()) {
+                unreadCount += i;
+            }
+
+            String header = mContext.getResources().getString(R.string.my_rooms);
+
+            if (unreadCount > 0) {
+                header += " ("  + unreadCount + ")";
+            }
+
+            heading.setText(header);
         } else {
             heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
         }
@@ -307,9 +413,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     @Override
     public int getChildrenCount(int groupPosition) {
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            return mRecentsSummariesList.size();
+            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
         } else {
-            return mPublicRoomsList.size();
+            return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
         }
     }
 
