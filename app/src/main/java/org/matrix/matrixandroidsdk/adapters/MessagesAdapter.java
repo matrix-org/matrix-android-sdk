@@ -336,15 +336,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             subView.setLayoutParams(bodyLayout);
         } else {
-            // did not compute the width of each item in the list
-            // so, check if the rows are merged (the user sent several messages)
-            boolean paddingLeft = isMergedView || willBeMerged;
-
-            if (paddingLeft) {
-                subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
-            } else {
-                subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
-            }
+            subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+            
             if (isMergedView) {
                 bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
             } else {
