@@ -361,7 +361,20 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         TextView heading = (TextView) convertView.findViewById(R.id.heading);
 
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-            heading.setText(mContext.getResources().getString(R.string.my_rooms));
+
+            int unreadCount = 0;
+
+            for(Integer i : mUnreadCountMap.values()) {
+                unreadCount += i;
+            }
+
+            String header = mContext.getResources().getString(R.string.my_rooms);
+
+            if (unreadCount > 0) {
+                header += " ("  + unreadCount + ")";
+            }
+
+            heading.setText(header);
         } else {
             heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
         }
