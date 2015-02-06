@@ -2,67 +2,93 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingBottom="2dp">
-    android:orientation="horizontal">
-
-    <include layout="@layout/round_avatar"
-        android:id="@+id/messagesAdapter_roundAvatar_left"/>
+    android:orientation="vertical">
 
     <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_gravity="center_vertical"
-        android:layout_marginLeft="4dp"
-        android:paddingBottom="5dp">
+        android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:textSize="9sp"
-            android:layout_gravity="center_vertical|left"
-            android:gravity="left"
-            android:paddingLeft="0dp"
-            android:paddingRight="8dp"
-            android:textColor="#FFAAAAAA"
-            android:text="1970/01/01 00:00:00"
-            android:id="@+id/messagesAdapter_timestamp_left"/>
+        <include layout="@layout/round_avatar"
+            android:id="@+id/messagesAdapter_roundAvatar_left"/>
 
-        <FrameLayout
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:paddingLeft="4dp"
-            android:paddingRight="4dp"
-            android:id="@+id/messagesAdapter_body_layout">
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="4dp"
+            android:paddingBottom="5dp">
 
             <TextView
-                android:layout_height="wrap_content"
                 android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textSize="9sp"
                 android:layout_gravity="center_vertical|left"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/message_emote"
-                android:text="thinks of an emote"
-                android:id="@+id/messagesAdapter_emote"/>
+                android:gravity="left"
+                android:paddingLeft="0dp"
+                android:paddingRight="8dp"
+                android:textColor="#FFAAAAAA"
+                android:text="1970/01/01 00:00:00"
+                android:id="@+id/messagesAdapter_timestamp_left"/>
 
-        </FrameLayout>
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:id="@+id/messagesAdapter_body_layout">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:textSize="9sp"
-            android:layout_gravity="center_vertical|right"
-            android:gravity="right"
-            android:paddingLeft="4dp"
-            android:paddingRight="4dp"
-            android:textColor="#FFAAAAAA"
-            android:text="1970/01/01 00:00:00"
-            android:id="@+id/messagesAdapter_timestamp_right"/>
-        android:id="@+id/messagesAdapter_roundAvatar_right"/>
+                <TextView
+                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"
+                    android:layout_gravity="center_vertical|left"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="@color/message_emote"
+                    android:text="thinks of an emote"
+                    android:id="@+id/messagesAdapter_emote"/>
+
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textSize="9sp"
+                android:layout_gravity="center_vertical|right"
+                android:gravity="right"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:textColor="#FFAAAAAA"
+                android:text="1970/01/01 00:00:00"
+                android:id="@+id/messagesAdapter_timestamp_right"/>
+            android:id="@+id/messagesAdapter_roundAvatar_right"/>
+        </LinearLayout>
+
+        <include layout="@layout/round_avatar"
+            android:id="@+id/messagesAdapter_roundAvatar_right"/>
+
     </LinearLayout>
 
-    <include layout="@layout/round_avatar"
-        android:id="@+id/messagesAdapter_roundAvatar_right"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/messagesAdapter_message_separator"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="5dp" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:background="#DDDDDD"
+            android:layout_height="1dp" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="5dp" />
+    </LinearLayout>
 
 </LinearLayout>
