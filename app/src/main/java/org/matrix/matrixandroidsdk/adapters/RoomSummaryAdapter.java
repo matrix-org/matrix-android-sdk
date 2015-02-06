@@ -2,6 +2,7 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +34,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.net.ssl.SSLContext;
 
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
@@ -289,19 +292,28 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             // Zero for transparent
             convertView.setBackgroundColor(((unreadCount == null) || (unreadCount == 0)) ? 0 : mUnreadColor);
 
-            String numMembers = null;
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
-            textView.setText(summary.getRoomName());
 
-            if (summary.getNumMembers() > 0) {
-                numMembers = mContext.getResources().getQuantityString(
-                        R.plurals.num_members, summary.getNumMembers(),
-                        summary.getNumMembers()
-                );
+            // the public rooms are displayed with bold fonts
+            if ((null != summary.getLatestRoomState()) && (null != summary.getLatestRoomState().visibility) && summary.getLatestRoomState().visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+                textView.setTypeface(null, Typeface.BOLD);
+            } else {
+                textView.setTypeface(null, Typeface.NORMAL);
             }
+
+            // display the unread messages count
+            String roomNameMessage = summary.getRoomName();
+
+            if (null != roomNameMessage) {
+                if ((null != unreadCount) && (unreadCount > 0)) {
+                    roomNameMessage += " (" + unreadCount + ")";
+                }
+            }
+
+            textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
                 AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), summary.getLatestRoomState());
@@ -321,9 +333,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_numUsers);
-            textView.setVisibility(View.VISIBLE);
-            textView.setText(numMembers);
 
             if (mOddColourResId != 0 && mEvenColourResId != 0) {
                 convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
@@ -335,15 +344,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             RoomState room = publicRoomsList.get(childPosition);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
+            textView.setTypeface(null, Typeface.BOLD);
             textView.setText(getRoomName(room));
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
             textView.setText(room.topic);
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.GONE);
-
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_numUsers);
             textView.setVisibility(View.GONE);
 
             convertView.setBackgroundColor(0);
