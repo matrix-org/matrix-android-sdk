@@ -358,7 +358,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         view = convertView.findViewById(R.id.messagesAdapter_message_separator);
 
         if (null != view) {
-            view.setVisibility(willBeMerged ? View.GONE : View.VISIBLE);
+            view.setVisibility((willBeMerged || ((position+1) == this.getCount())) ? View.GONE : View.VISIBLE);
         }
 
         return isMergedView;
