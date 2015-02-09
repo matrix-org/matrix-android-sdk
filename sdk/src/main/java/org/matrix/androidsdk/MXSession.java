@@ -186,6 +186,8 @@ public class MXSession {
             mMyUser = new MyUser(mDataHandler.getStore().getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
+            // ensure that the user ID is set event if the oneself user is not found.
+            mMyUser.userId = mCredentials.userId;
         }
         return mMyUser;
     }
