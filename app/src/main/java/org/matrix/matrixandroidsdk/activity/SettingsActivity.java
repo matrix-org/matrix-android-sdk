@@ -19,6 +19,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -113,10 +114,27 @@ public class SettingsActivity extends MXCActionBarActivity {
         });
 
         // Config information
+
+        String versionName = "";
+
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            versionName = pInfo.versionName;
+        } catch (Exception e) {
+
+        }
+
+        TextView consoleVersionTextView = (TextView) findViewById(R.id.textView_matrixConsoleVersion);
+        consoleVersionTextView.setText(getString(R.string.settings_config_console_version, versionName));
+
+        TextView sdkVersionTextView = (TextView) findViewById(R.id.textView_matrixSDKVersion);
+        sdkVersionTextView.setText(getString(R.string.settings_config_sdk_version, versionName));
+
+        TextView buildNumberTextView = (TextView) findViewById(R.id.textView_matrixBuildNumber);
+        buildNumberTextView.setText(getString(R.string.settings_config_build_number, ""));
+
         TextView hsTextView = (TextView) findViewById(R.id.textView_configHomeServer);
         hsTextView.setText(getString(R.string.settings_config_home_server, session.getCredentials().homeServer));
-
-//        TextView isTextView = (TextView) findViewById(R.id.textView_configIdentityServer);
 
         TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
         userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
