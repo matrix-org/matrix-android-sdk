@@ -88,6 +88,10 @@
     <!-- Settings screen -->
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
+    <string name="settings_config_console_version">matrixConsole version: %s</string>
+    <string name="settings_config_sdk_version">SDK version: %s</string>
+    <string name="settings_config_build_number">Build: %s</string>
+
     <string name="settings_config_home_server">Home server: %s</string>
     <string name="settings_config_identity_server">Identity server: %s</string>
     <string name="settings_config_user_id">User ID: %s</string>

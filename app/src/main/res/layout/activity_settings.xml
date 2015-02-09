@@ -55,10 +55,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
-    <!--<TextView-->
-        <!--android:id="@+id/textView_configIdentityServer"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"/>-->
+    <TextView
+        android:id="@+id/textView_matrixConsoleVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:id="@+id/textView_matrixSDKVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:id="@+id/textView_matrixBuildNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 
     <TextView
         android:id="@+id/textView_configUserId"
