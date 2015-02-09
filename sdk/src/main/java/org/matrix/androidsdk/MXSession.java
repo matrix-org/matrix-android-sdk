@@ -182,11 +182,10 @@ public class MXSession {
         // MyUser is initialized as late as possible to have a better chance at having the info in storage,
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
-            // TODO: Handle the case where the user is null by loading the user information from the server
             mMyUser = new MyUser(mDataHandler.getStore().getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
-            // ensure that the user ID is set event if the oneself user is not found.
+            // Handle the case where the user is null by loading the user information from the server
             mMyUser.userId = mCredentials.userId;
         }
         return mMyUser;

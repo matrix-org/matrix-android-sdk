@@ -71,6 +71,12 @@ public class MXDataHandler implements IMXEventListener {
         mBingRulesManager.loadRules(null);
     }
 
+    public void refreshPushRules() {
+        if (null != mBingRulesManager) {
+            mBingRulesManager.loadRules(null);
+        }
+    }
+
     public void addListener(IMXEventListener listener) {
         mEventListeners.add(listener);
         if (mInitialSyncComplete) {
