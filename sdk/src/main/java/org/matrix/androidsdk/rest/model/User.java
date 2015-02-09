@@ -20,6 +20,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +50,7 @@ public class User {
     private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
 
     private MXDataHandler mDataHandler;
+    private ArrayList<IMXEventListener> pendingListeners = new ArrayList<IMXEventListener>();
 
     protected void clone(User user) {
         if (user != null) {
@@ -58,6 +60,7 @@ public class User {
             presence = user.presence;
             lastActiveAgo = user.lastActiveAgo;
             statusMsg = user.statusMsg;
+            pendingListeners = user.pendingListeners;
 
             mDataHandler = user.mDataHandler;
         }
@@ -90,6 +93,10 @@ public class User {
      */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
+
+        for(IMXEventListener listener : pendingListeners) {
+            mDataHandler.addListener(listener);
+        }
     }
 
     /**
@@ -108,7 +115,13 @@ public class User {
             }
         };
         mEventListeners.put(eventListener, globalListener);
-        mDataHandler.addListener(globalListener);
+
+        // the handler could be set later
+        if (null != mDataHandler) {
+            mDataHandler.addListener(globalListener);
+        } else {
+            pendingListeners.add(globalListener);
+        }
     }
 
     /**
@@ -116,7 +129,13 @@ public class User {
      * @param eventListener the event listener to remove
      */
     public void removeEventListener(IMXEventListener eventListener) {
-        mDataHandler.removeListener(mEventListeners.get(eventListener));
+
+        if (null != mDataHandler) {
+            mDataHandler.removeListener(mEventListeners.get(eventListener));
+        } else {
+            pendingListeners.remove(mEventListeners.get(eventListener));
+        }
+
         mEventListeners.remove(eventListener);
     }
 }
