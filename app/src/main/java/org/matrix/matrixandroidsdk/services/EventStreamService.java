@@ -6,6 +6,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
@@ -157,6 +159,9 @@ public class EventStreamService extends Service {
         builder.setContentText(body);
         builder.setAutoCancel(true);
         builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
+        builder.setTicker(from + ":" + body);
+        /*Uri uri= RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        builder.setSound(uri);*/
 
         // Build the pending intent for when the notification is clicked
         Intent roomIntent = new Intent(this, RoomActivity.class);
@@ -171,7 +176,7 @@ public class EventStreamService extends Service {
         Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
         n.defaults |= Notification.DEFAULT_LIGHTS;
-//        n.defaults |= Notification.DEFAULT_VIBRATE;
+        //n.defaults |= Notification.DEFAULT_VIBRATE;
         return n;
     }
 
