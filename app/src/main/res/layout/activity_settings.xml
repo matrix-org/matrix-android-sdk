@@ -42,6 +42,14 @@
             android:text="@string/save"
             android:enabled="false"/>
 
+        <ProgressBar
+            android:id="@+id/profile_mask"
+            android:layout_height="@dimen/profile_avatar_size"
+            android:layout_width="match_parent"
+            android:background="#99CCCCCC"
+            android:layout_alignParentLeft="true"
+            android:indeterminate="true" />
+
     </RelativeLayout>
 
     <TextView

@@ -62,6 +62,16 @@ public class SettingsActivity extends MXCActionBarActivity {
 
     private Uri newAvatarUri;
 
+    void refreshProfileThumbnail() {
+        mAvatarImageView = (ImageView) findViewById(R.id.imageView_avatar);
+        if (mMyUser.avatarUrl == null) {
+            mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        } else {
+            int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
+            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,14 +81,8 @@ public class SettingsActivity extends MXCActionBarActivity {
         MXSession session = Matrix.getInstance(this).getDefaultSession();
         mMyUser = session.getMyUser();
 
-        mAvatarImageView = (ImageView) findViewById(R.id.imageView_avatar);
-        if (mMyUser.avatarUrl == null) {
-            mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
-        }
-        else {
-            int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size);
-        }
+        refreshProfileThumbnail();
+
         mAvatarImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -153,6 +157,32 @@ public class SettingsActivity extends MXCActionBarActivity {
     protected void onResume() {
         super.onResume();
         MyPresenceManager.getInstance(this).advertiseOnline();
+
+        final View refreshingView = findViewById(R.id.profile_mask);
+        refreshingView.setVisibility(View.VISIBLE);
+
+        final MXSession session = Matrix.getInstance(this).getDefaultSession();
+
+        // refresh the myUser profile
+        if ((null != session) && (null !=  session.getProfileApiClient())) {
+
+            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>() {
+                @Override
+                public void onSuccess(String displayname) {
+                    mMyUser.displayname = displayname;
+                    mDisplayNameEditText.setText(mMyUser.displayname);
+
+                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>() {
+                        @Override
+                        public void onSuccess(String avatarUrl) {
+                            mMyUser.avatarUrl = avatarUrl;
+                            refreshProfileThumbnail();
+                            refreshingView.setVisibility(View.GONE);
+                        }
+                    });
+                }
+            });
+        }
     }
 
     @Override
