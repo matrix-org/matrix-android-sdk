@@ -1,10 +1,13 @@
 package org.matrix.matrixandroidsdk.services;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -12,17 +15,23 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.PublicRoomsActivity;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
+
+import java.util.ArrayList;
 
 /**
  * A foreground service in charge of controlling whether the event stream is running or not.
@@ -44,26 +53,129 @@ public class EventStreamService extends Service {
     private MXSession mSession;
     private StreamAction mState = StreamAction.UNKNOWN;
 
+    private static ArrayList<String> mUnnotifiedRooms = new ArrayList<String>();
+
+    private AlertDialog mAlertDialog = null;
+
     private MXEventListener mListener = new MXEventListener() {
+
+        @Override
+        public void onBingRulesUpdate() {
+            mUnnotifiedRooms = new ArrayList<String>();
+        }
+
         @Override
         public void onBingEvent(Event event, RoomState roomState) {
+
+            final String roomId = event.roomId;
+
             // Just don't bing for the room the user's currently in
-            if ((event.roomId != null) && event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+            if ((roomId != null) && event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
                 return;
             }
-//            if (EventUtils.shouldNotify(EventStreamService.this, event)) {
+
             String from = event.userId;
             // FIXME: Support event contents with no body
             if (!event.content.has("body")) {
                 return;
             }
-            String body = event.content.getAsJsonPrimitive("body").getAsString();
-            Notification n = buildMessageNotification(from, body, event.roomId);
-            NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
-            Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
-            nm.notify(MSG_NOTIFICATION_ID, n);
+
+            final String body = event.content.getAsJsonPrimitive("body").getAsString();
+
+            if (null != ConsoleApplication.getCurrentActivity()) {
+
+                final Activity activity = ConsoleApplication.getCurrentActivity();
+
+                // the user decided to ignore any notification from this room
+                if (mUnnotifiedRooms.indexOf(roomId) >= 0) {
+                    return;
+                }
+
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String title = "";
+
+                        if (null != mSession.getDataHandler()) {
+                            Room room = mSession.getDataHandler().getRoom(roomId);
+
+                            if (null != room) {
+                                title = room.getName(mSession.getCredentials().userId);
+                            }
+                        }
+
+                        if (null != mAlertDialog) {
+                            mAlertDialog.dismiss();;
+                        }
+
+                        // The user is trying to leave with unsaved changes. Warn about that
+                        mAlertDialog = new AlertDialog.Builder(activity)
+                                .setTitle(title)
+                                .setMessage(body)
+                                .setPositiveButton(getResources().getString(R.string.view), new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+
+                                        activity.runOnUiThread(new
+                                           Runnable() {
+                                               @Override
+                                               public void run () {
+                                                   // if the activity is not the home activity
+                                                   if (!(activity instanceof HomeActivity)) {
+                                                       // pop to the home activity
+                                                       Intent intent = new Intent(activity, HomeActivity.class);
+                                                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                                       activity.startActivity(intent);
+
+                                                       activity.runOnUiThread(new
+                                                              Runnable() {
+                                                                  @Override
+                                                                  public void run () {
+                                                                      // and open the room
+                                                                      Activity homeActivity = ConsoleApplication.getCurrentActivity();
+                                                                      Intent intent = new Intent(homeActivity, RoomActivity.class);
+                                                                      intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                                                      homeActivity.startActivity(intent);
+                                                                  }
+                                                              });
+                                                   } else {
+                                                       // already to the home activity
+                                                       // so just need to open the room activity
+                                                       Intent intent = new Intent(activity, RoomActivity.class);
+                                                       intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                                       activity.startActivity(intent);
+                                                   }
+                                               }
+                                           }
+                                        );
+                                    }
+                                })
+                                .setNegativeButton(getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+
+                                        // the user will ignore any event until the application is debackgrounded
+                                        if (mUnnotifiedRooms.indexOf(roomId) < 0) {
+                                            mUnnotifiedRooms.add(roomId);
+                                        }
+                                    }
+                                })
+                                .create();
+
+                        mAlertDialog .show();
+                    }
+                });
+            } else {
+                Notification n = buildMessageNotification(from, body, event.roomId);
+                NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+                Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
+                nm.notify(MSG_NOTIFICATION_ID, n);
+            }
 //            }
         }
+
     };
 
     @Override
@@ -200,5 +312,11 @@ public class EventStreamService extends Service {
                 pi);
         notification.flags |= Notification.FLAG_NO_CLEAR;
         return notification;
+    }
+
+    public static void acceptAlertNotificationsFrom(String RoomId) {
+        if (null != RoomId) {
+            mUnnotifiedRooms.remove(RoomId);
+        }
     }
 }

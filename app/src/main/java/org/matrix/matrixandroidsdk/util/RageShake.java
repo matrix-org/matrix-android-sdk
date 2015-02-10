@@ -41,6 +41,7 @@ import android.view.View;
 import android.view.WindowManager;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.androidsdk.data.MyUser;
 
@@ -51,8 +52,6 @@ public class RageShake implements SensorEventListener {
     private static RageShake instance;
 
     private Context mContext;
-
-    private Activity mCurrentActivity = null;
 
     // weak refs so dead dialogs can be GCed
     private List<WeakReference<Dialog>> mDialogs;
@@ -80,10 +79,6 @@ public class RageShake implements SensorEventListener {
 
     public void registerDialog(Dialog d) {
         mDialogs.add(new WeakReference<Dialog>(d));
-    }
-
-    public void setCurrentActivity(Activity activity) {
-        mCurrentActivity = activity;
     }
 
     public void sendBugReport() {
@@ -123,7 +118,7 @@ public class RageShake implements SensorEventListener {
                 intent.setType("image/jpg");
                 intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path));
 
-                mCurrentActivity.startActivity(intent);
+                ConsoleApplication.getCurrentActivity().startActivity(intent);
             } catch (Exception e) {
             }
         }
@@ -131,12 +126,12 @@ public class RageShake implements SensorEventListener {
 
     public void promptForReport() {
         // Cannot prompt for bug, no active activity.
-        if (mCurrentActivity == null) {
+        if (ConsoleApplication.getCurrentActivity() == null) {
             return;
         }
 
         // The user is trying to leave with unsaved changes. Warn about that
-        new AlertDialog.Builder(mCurrentActivity)
+        new AlertDialog.Builder(ConsoleApplication.getCurrentActivity())
                 .setMessage("You seem to be shaking the phone in frustration. Would you like to submit a bug report?")
                 .setPositiveButton("YES", new DialogInterface.OnClickListener() {
                     @Override
@@ -157,21 +152,21 @@ public class RageShake implements SensorEventListener {
     }
 
     private Bitmap takeScreenshot() {
-        if (mCurrentActivity == null) {
+        if (ConsoleApplication.getCurrentActivity() == null) {
             return null;
         }
         
         // get content view
-        View contentView = mCurrentActivity.findViewById(android.R.id.content);
+        View contentView = ConsoleApplication.getCurrentActivity().findViewById(android.R.id.content);
         if (contentView == null) {
-            Log.e(LOG_TAG, "Cannot find content view on " + mCurrentActivity + ". Cannot take screenshot.");
+            Log.e(LOG_TAG, "Cannot find content view on " + ConsoleApplication.getCurrentActivity() + ". Cannot take screenshot.");
             return null;
         }
         
         // get the root view to snapshot
         View rootView = contentView.getRootView();
         if (rootView == null) {
-            Log.e(LOG_TAG, "Cannot find root view on " + mCurrentActivity + ". Cannot take screenshot.");
+            Log.e(LOG_TAG, "Cannot find root view on " + ConsoleApplication.getCurrentActivity() + ". Cannot take screenshot.");
             return null;
         }
         // refresh it
@@ -245,7 +240,7 @@ public class RageShake implements SensorEventListener {
             }
         }
         catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "Cannot get drawing cache for "+mCurrentActivity+" OOM.");
+            Log.e(LOG_TAG, "Cannot get drawing cache for "+ ConsoleApplication.getCurrentActivity() +" OOM.");
         }
         catch (Exception e) {
             Log.e(LOG_TAG, "Cannot get snapshot of screen: "+e);

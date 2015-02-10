@@ -15,6 +15,7 @@
  */
 
 package org.matrix.matrixandroidsdk;
+import android.app.Activity;
 import android.app.Application;
 
 import java.util.Timer;
@@ -60,5 +61,11 @@ public class ConsoleApplication extends Application {
 
         this.wasInBackground = false;
     }
+
+    static private Activity mCurrentActivity = null;
+    public static void setCurrentActivity(Activity activity) {
+        mCurrentActivity = activity;
+    }
+    public static Activity getCurrentActivity() { return mCurrentActivity; }
 }
 

@@ -18,7 +18,8 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.support.v7.app.ActionBarActivity;
 
-import org.matrix.matrixandroidsdk.util.RageShake;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
+import org.matrix.matrixandroidsdk.Matrix;
 
 /**
  * extends ActionBarActivity to manage the rageshake
@@ -28,12 +29,21 @@ public class MXCActionBarActivity extends ActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        RageShake.getInstance().setCurrentActivity(null);
+        ConsoleApplication.setCurrentActivity(null);
+
+        ((ConsoleApplication)getApplication()).startActivityTransitionTimer();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        RageShake.getInstance().setCurrentActivity(this);
+        ConsoleApplication.setCurrentActivity(this);
+
+        // refresh the push rules when debackgrounding the application
+        if (((ConsoleApplication)getApplication()).wasInBackground) {
+            Matrix.getInstance(getApplicationContext()).getDefaultSession().getDataHandler().refreshPushRules();
+        }
+
+        ((ConsoleApplication)getApplication()).stopActivityTransitionTimer();
     }
 }

@@ -34,6 +34,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
+import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 
@@ -234,6 +235,9 @@ public class RoomActivity extends MXCActionBarActivity {
         super.onResume();
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
         MyPresenceManager.getInstance(this).advertiseOnline();
+
+        // allow to display new message alert for incoming message
+        EventStreamService.acceptAlertNotificationsFrom(mRoom.getRoomId());
     }
 
     @Override

@@ -47,6 +47,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onBingRulesUpdate() {
+
+    }
+
+    @Override
     public void onInitialSyncComplete() {
 
     }

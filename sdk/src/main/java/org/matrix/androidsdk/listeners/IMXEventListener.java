@@ -43,7 +43,19 @@ public interface IMXEventListener {
      */
     public void onBackEvent(Event event, RoomState roomState);
 
+    /**
+     * A received event fulfills the bing rules
+     *
+     * @param event the event
+     * @param roomState the room state right before the event
+     */
     public void onBingEvent(Event event, RoomState roomState);
+
+    /**
+     * The bing rules have been updated
+     *
+     */
+    public void onBingRulesUpdate();
 
     /**
      * The initial sync is complete and the store can be queried for current state.

@@ -22,7 +22,10 @@ import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -68,12 +71,22 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         mBingRulesManager = bingRulesManager;
-        mBingRulesManager.loadRules(null);
+        mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                MXDataHandler.this.onBingRulesUpdate();
+            }
+        });
     }
 
     public void refreshPushRules() {
         if (null != mBingRulesManager) {
-            mBingRulesManager.loadRules(null);
+            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    MXDataHandler.this.onBingRulesUpdate();
+                }
+            });
         }
     }
 
@@ -272,6 +285,14 @@ public class MXDataHandler implements IMXEventListener {
     public void onBingEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             listener.onBingEvent(event, roomState);
+        }
+    }
+
+
+    @Override
+    public void onBingRulesUpdate() {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onBingRulesUpdate();
         }
     }
 
