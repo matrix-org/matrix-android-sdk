@@ -23,6 +23,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -36,6 +37,8 @@ import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 /**
  * Displays a single room with messages.
@@ -301,31 +304,46 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
-                Uri selectedImageUri = data.getData();
-                final String selectedPath = ResourceUtils.getImagePath(this, selectedImageUri);
-                Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+                InputStream contentStream = null;
+                // Declare temporary variable for try/catch, assign to final later.
+                String tmpContentMimeType = null;
+                try {
+                    contentStream = getContentResolver().openInputStream(data.getData());
+                    tmpContentMimeType = getContentResolver().getType(data.getData());
+                } catch (FileNotFoundException e) {
+                    Log.e(LOG_TAG, "Failed to open image input stream", e);
+                    Toast.makeText(RoomActivity.this,
+                            getString(R.string.message_failed_to_upload),
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                final String contentMimeType = tmpContentMimeType;
+                Log.d(LOG_TAG, "Selected image to upload: " + data.getData());
 
                 final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-                mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
+                mSession.getContentManager().uploadContent(contentStream, contentMimeType, new ContentManager.UploadCallback() {
                     @Override
                     public void onUploadComplete(ContentResponse uploadResponse) {
                         if (uploadResponse == null) {
-                            Toast.makeText(RoomActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
+                            Toast.makeText(RoomActivity.this,
+                                    getString(R.string.message_failed_to_upload),
+                                    Toast.LENGTH_LONG).show();
                         }
                         else {
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                             // Build the image message
                             ImageMessage message = new ImageMessage();
                             message.url = uploadResponse.contentUri;
-                            message.body = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
+                            message.body = data.getDataString().substring(data.getDataString().lastIndexOf('/') + 1);
 
-                            message.info = ContentUtils.getImageInfoFromFile(selectedPath);
+                            message.info = new ImageInfo();
+                            message.info.mimetype = contentMimeType;
 
                             mMatrixMessageListFragment.sendImage(message);
                         }

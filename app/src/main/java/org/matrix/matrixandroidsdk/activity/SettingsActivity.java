@@ -47,6 +47,9 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+
 public class SettingsActivity extends MXCActionBarActivity {
 
     private static final String LOG_TAG = "SettingsActivity";
@@ -220,17 +223,30 @@ public class SettingsActivity extends MXCActionBarActivity {
         }
 
         if (newAvatarUri != null) {
-            final String selectedPath = ResourceUtils.getImagePath(this, newAvatarUri);
-            Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+            Log.d(LOG_TAG, "Selected image to upload: " + newAvatarUri);
+            InputStream contentStream = null;
+            String contentMimeType = null;
+            try {
+                contentStream = getContentResolver().openInputStream(newAvatarUri);
+                contentMimeType = getContentResolver().getType(newAvatarUri);
+            } catch (FileNotFoundException e) {
+                Log.e(LOG_TAG, "Failed to open image upload input stream", e);
+                Toast.makeText(SettingsActivity.this,
+                        getString(R.string.settings_failed_to_upload_avatar),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
+            session.getContentManager().uploadContent(contentStream, contentMimeType, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadComplete(ContentResponse uploadResponse) {
                     if (uploadResponse == null) {
-                        Toast.makeText(SettingsActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
+                        Toast.makeText(SettingsActivity.this,
+                                getString(R.string.settings_failed_to_upload_avatar),
+                                Toast.LENGTH_LONG).show();
                     }
                     else {
                         Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);

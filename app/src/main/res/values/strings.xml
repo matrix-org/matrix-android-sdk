@@ -80,6 +80,7 @@
     <string name="message_changes_successful">Changes successfully made</string>
     <string name="message_unsaved_changes">There are unsaved changes. Leaving will discard them.</string>
     <string name="message_uploading">Uploading&#8230;</string>
+    <string name="message_failed_to_upload">Failed to upload image</string>
 
     <string name="option_attach_image">Attach image</string>
     <string name="option_attach_video">Attach video</string>
@@ -97,4 +98,5 @@
     <string name="settings_config_user_id">User ID: %s</string>
     <string name="settings_config_access_token">Access token: %s</string>
 
+    <string name="settings_failed_to_upload_avatar">Failed to upload avatar</string>
 </resources>

@@ -109,33 +109,33 @@ public class ContentManager {
 
     /**
      * Upload a file.
-     * @param fileName the file path
+     * @param contentStream a stream with the content to upload
      * @param callback the async callback returning a mxc: URI to access the uploaded file
      */
-    public void uploadContent(String fileName, UploadCallback callback) {
-        new ContentUploadTask(callback).execute(fileName, mHsUri, mAccessToken);
+    public void uploadContent(InputStream contentStream, String mimeType, UploadCallback callback) {
+        new ContentUploadTask(contentStream, mimeType, callback).execute();
     }
 
     /**
      * Private AsyncTask used to upload files.
      */
-    private static class ContentUploadTask extends AsyncTask<String, Void, String> {
+    private class ContentUploadTask extends AsyncTask<Void, Void, String> {
 
         private UploadCallback callback;
+        private String mimeType;
+        private InputStream contentStream;
 
-        public ContentUploadTask(UploadCallback callback) {
+        public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback) {
             this.callback = callback;
+            this.mimeType = mimeType;
+            this.contentStream = contentStream;
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected String doInBackground(Void... params) {
             HttpURLConnection conn;
             DataOutputStream dos;
             DataInputStream inStream;
-
-            String fileName = params[0];
-            String hsUrl = params[1];
-            String accessToken = params[2];
 
             int bytesRead, bytesAvailable, bufferSize;
 
@@ -145,12 +145,10 @@ public class ContentManager {
 
             String responseFromServer = null;
 
-            String urlString = hsUrl + URI_PREFIX_CONTENT_API + "/upload?access_token=" + accessToken;
+            String urlString = mHsUri + URI_PREFIX_CONTENT_API + "/upload?access_token=" + mAccessToken;
 
             try
             {
-                FileInputStream fileInputStream = new FileInputStream(new File(fileName));
-
                 URL url = new URL(urlString);
 
                 conn = (HttpURLConnection) url.openConnection();
@@ -159,35 +157,30 @@ public class ContentManager {
                 conn.setUseCaches(false);
                 conn.setRequestMethod("POST");
 
-                // TODO: Handle other file types
-                String mimeType = ContentUtils.getMimeType(fileName);
-                if (mimeType.startsWith("image/")) {
-                    ImageInfo imageInfo = ContentUtils.getImageInfoFromFile(fileName);
-                    conn.setRequestProperty("Content-type", imageInfo.mimetype);
-                    conn.setRequestProperty("Content-length", String.valueOf(imageInfo.size));
-                }
+                conn.setRequestProperty("Content-Type", mimeType);
+                // TODO: Add (optional) way to specify Content-Length
 
                 conn.connect();
 
                 dos = new DataOutputStream(conn.getOutputStream() );
 
                 // create a buffer of maximum size
-                bytesAvailable = fileInputStream.available();
+                bytesAvailable = contentStream.available();
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
                 buffer = new byte[bufferSize];
 
                 // read file and write it into form...
-                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                bytesRead = contentStream.read(buffer, 0, bufferSize);
 
                 while (bytesRead > 0) {
                     dos.write(buffer, 0, bufferSize);
-                    bytesAvailable = fileInputStream.available();
+                    bytesAvailable = contentStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                    bytesRead = contentStream.read(buffer, 0, bufferSize);
                 }
 
                 // close streams
-                fileInputStream.close();
+                contentStream.close();
                 dos.flush();
                 dos.close();
 
