@@ -143,11 +143,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return (isDisplayableEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
     }
 
-    @Override
-    public int getItemViewType(int position) {
-        MessageRow row = getItem(position);
-        Event event = row.getEvent();
-
+    private int getItemViewType(Event event) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Message message = JsonUtils.toMessage(event.content);
 
@@ -166,13 +162,20 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
+                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return ROW_TYPE_NOTICE;
         }
         else {
             throw new RuntimeException("Unknown event type: " + event.type);
         }
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        MessageRow row = getItem(position);
+
+        return getItemViewType(row.getEvent());
     }
 
     @Override
@@ -204,7 +207,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     // return true if convertView is merged with previous View
-    private boolean manageSubView(int position, View convertView, View subView) {
+    private boolean manageSubView(int position, View convertView, View subView, int msgType) {
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
@@ -213,30 +216,36 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
         Boolean isMyEvent = myUser.userId.equals(msg.userId);
 
-        //
-        String prevUserId = null;
-        if (position > 0) {
-            MessageRow prevRow = getItem(position-1);
-
-            if (null != prevRow) {
-                prevUserId = prevRow.getEvent().userId;
-            }
-        }
-
-        String nextUserId = null;
-
-        if ((position+1) < this.getCount()) {
-            MessageRow nextRow = getItem(position+1);
-
-            if (null != nextRow) {
-                nextUserId = nextRow.getEvent().userId;
-            }
-        }
-
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
-        boolean isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
-        boolean willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
+        boolean isMergedView = false;
+        boolean willBeMerged = false;
+
+        // the notice messages are never merged
+        if (msgType != ROW_TYPE_NOTICE) {
+            //
+            String prevUserId = null;
+            if (position > 0) {
+                MessageRow prevRow = getItem(position - 1);
+
+                if ((null != prevRow) && (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                    prevUserId = prevRow.getEvent().userId;
+                }
+            }
+
+            String nextUserId = null;
+
+            if ((position + 1) < this.getCount()) {
+                MessageRow nextRow = getItem(position + 1);
+
+                if ((null != nextRow) && (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                    nextUserId = nextRow.getEvent().userId;
+                }
+            }
+
+            isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
+            willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
+        }
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
@@ -291,7 +300,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             final String roomId = roomState.roomId;
 
             avatarLeftView.setClickable(true);
-  
+
             // click on the avatar opens the details page
             avatarLeftView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -401,7 +410,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, bodyTextView);
+        this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -463,7 +472,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        this.manageSubView(position, convertView, imageView);
+        this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -484,7 +493,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_notice);
         noticeTextView.setText(notice);
 
-        this.manageSubView(position, convertView, noticeTextView);
+        this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
         return convertView;
     }
@@ -524,7 +533,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         emoteTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, emoteTextView);
+        this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
         return convertView;
     }
