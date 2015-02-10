@@ -27,6 +27,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.ContactDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.text.DateFormat;
@@ -285,6 +286,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else {
             avatarLayoutView = avatarLeftView;
             avatarRightView.setVisibility(View.GONE);
+
+            final String userId = msg.userId;
+            final String roomId = roomState.roomId;
+
+            avatarLeftView.setClickable(true);
+  
+            // click on the avatar opens the details page
+            avatarLeftView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent startRoomInfoIntent = new Intent(mContext, ContactDetailsActivity.class);
+                    startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_ROOM_ID, roomId);
+                    startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_USER_ID, userId);
+                    mContext.startActivity(startRoomInfoIntent);
+                }
+            });
         }
 
         ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
