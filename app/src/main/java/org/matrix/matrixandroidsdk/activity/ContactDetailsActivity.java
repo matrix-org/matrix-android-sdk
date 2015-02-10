@@ -28,11 +28,16 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
@@ -49,6 +54,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
 
     // info
     private Room mRoom;
+    private String mRoomId;
     private String mUserId;
     private RoomMember mMember;
     private MXSession mSession;
@@ -69,7 +75,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
             finish();
             return;
         }
-        String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
+        mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
 
         if (!intent.hasExtra(EXTRA_USER_ID)) {
             Log.e(LOG_TAG, "No user ID extra.");
@@ -80,7 +86,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
         mUserId = intent.getStringExtra(EXTRA_USER_ID);
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        mRoom = mSession.getDataHandler().getRoom(roomId);
+        mRoom = mSession.getDataHandler().getRoom(mRoomId);
 
         if (null == mRoom) {
             Log.e(LOG_TAG, "The room is not found");
@@ -99,7 +105,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
 
         // sanity checks
         if (null == mMember) {
-            Log.e(LOG_TAG, "The user " + mUserId + " is not in the room " + roomId);
+            Log.e(LOG_TAG, "The user " + mUserId + " is not in the room " + mRoomId);
             finish();
             return;
         }
@@ -213,6 +219,34 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
             });
         }
 
+       mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(new MXEventListener() {
+            @Override
+            public void onLiveEvent(final Event event, RoomState roomState) {
+                ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                  @Override
+                  public void run() {
+                      // check if the event is received for the current room
+                      if ((null != event.roomId) && (event.roomId.equals(mRoom.getRoomId()))) {
+                          // check if there is a member update
+                          if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
+
+                              // update only if it is the current user
+                              if ((null != event.userId) && (event.userId.equals(mUserId))) {
+                                  ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                                      @Override
+                                      public void run() {
+                                          //
+                                          ContactDetailsActivity.this.refreshRoomMember();
+                                          ContactDetailsActivity.this.refresh();
+                                      }
+                                  });
+                              }
+                          }
+                      }
+                  }
+              });
+            }
+        });
         // load the thumbnail
         mThumbnailImageView = (ImageView) findViewById(R.id.imageView_avatar);
 
@@ -221,6 +255,21 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
 
         // refresh the activity views
         refresh();
+    }
+
+    private void refreshRoomMember() {
+        mRoom = mSession.getDataHandler().getRoom(mRoomId);
+
+        if (null != mRoom){
+            // find out the room member
+            Collection<RoomMember> members = mRoom.getMembers();
+            for (RoomMember member : members) {
+                if (member.getUserId().equals(mUserId)) {
+                    mMember = member;
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -310,9 +359,9 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
      * refresh the profile thumbnail
      */
     private void refreshProfileThumbnail() {
-        if (mMember.avatarUrl == null) {
-            mThumbnailImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
-        } else {
+        mThumbnailImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+
+        if (mMember.avatarUrl != null) {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
             AdapterUtils.loadThumbnailBitmap(mThumbnailImageView, mMember.avatarUrl, size, size);
         }
