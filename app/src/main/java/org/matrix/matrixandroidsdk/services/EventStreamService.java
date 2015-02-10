@@ -24,6 +24,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -105,7 +106,7 @@ public class EventStreamService extends Service {
                         }
 
                         if (null != mAlertDialog) {
-                            mAlertDialog.dismiss();;
+                            mAlertDialog.dismiss();
                         }
 
                         // The user is trying to leave with unsaved changes. Warn about that
@@ -116,39 +117,7 @@ public class EventStreamService extends Service {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
-
-                                        activity.runOnUiThread(new
-                                           Runnable() {
-                                               @Override
-                                               public void run () {
-                                                   // if the activity is not the home activity
-                                                   if (!(activity instanceof HomeActivity)) {
-                                                       // pop to the home activity
-                                                       Intent intent = new Intent(activity, HomeActivity.class);
-                                                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                                       activity.startActivity(intent);
-
-                                                       activity.runOnUiThread(new
-                                                              Runnable() {
-                                                                  @Override
-                                                                  public void run () {
-                                                                      // and open the room
-                                                                      Activity homeActivity = ConsoleApplication.getCurrentActivity();
-                                                                      Intent intent = new Intent(homeActivity, RoomActivity.class);
-                                                                      intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                                                                      homeActivity.startActivity(intent);
-                                                                  }
-                                                              });
-                                                   } else {
-                                                       // already to the home activity
-                                                       // so just need to open the room activity
-                                                       Intent intent = new Intent(activity, RoomActivity.class);
-                                                       intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                                                       activity.startActivity(intent);
-                                                   }
-                                               }
-                                           }
-                                        );
+                                        CommonActivityUtils.goToRoomPage(roomId, activity);
                                     }
                                 })
                                 .setNegativeButton(getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {

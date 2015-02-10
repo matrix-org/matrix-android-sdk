@@ -5,12 +5,25 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.widget.EditText;
+import android.widget.Toast;
 
+import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
+
+import java.lang.reflect.Member;
+import java.util.Collection;
 
 /**
  * Contains useful functions which are called in multiple activities.
@@ -107,5 +120,142 @@ public class CommonActivityUtils {
         RageShake.getInstance().registerDialog(dialog);
         
         return dialog;
+    }
+
+    public static void goToRoomPage(final String roomId, final Activity fromActivity) {
+        fromActivity.runOnUiThread(new Runnable() {
+           @Override
+               public void run() {
+                   // if the activity is not the home activity
+                   if (!(fromActivity instanceof HomeActivity)) {
+                       // pop to the home activity
+                       Intent intent = new Intent(fromActivity, HomeActivity.class);
+                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                       fromActivity.startActivity(intent);
+
+                       fromActivity.runOnUiThread(new Runnable() {
+                          @Override
+                          public void run() {
+                              // and open the room
+                              Activity homeActivity = ConsoleApplication.getCurrentActivity();
+                              Intent intent = new Intent(homeActivity, RoomActivity.class);
+                              intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                              homeActivity.startActivity(intent);
+                          }
+                      });
+                   } else {
+                       // already to the home activity
+                       // so just need to open the room activity
+                       Intent intent = new Intent(fromActivity, RoomActivity.class);
+                       intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                       fromActivity.startActivity(intent);
+                   }
+               }
+           }
+        );
+    }
+
+    public static void goToOneToOneRoom(final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+
+        // sanity check
+        if (null == otherUserId) {
+            return;
+        }
+
+        // check first if the 1:1 room already exists
+        final MXSession session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+
+        // sanity check
+        if (null == session) {
+            return;
+        }
+
+        // so, list the existing room, and search the 2 users room with this other users
+        String roomId = null;
+        Collection<Room> rooms = session.getDataHandler().getStore().getRooms();
+
+        for(Room room : rooms) {
+            Collection<RoomMember>members = room.getMembers();
+
+            if (members.size() == 2) {
+                for(RoomMember member : members) {
+                    if (member.getUserId().equals(otherUserId)) {
+                        roomId = room.getRoomId();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // the room already exists -> switch to it
+        if (null != roomId) {
+            CommonActivityUtils.goToRoomPage(roomId, fromActivity);
+
+            // everything is ok
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+        } else {
+
+            session.createRoom(null, null, RoomState.VISIBILITY_PRIVATE, null, new SimpleApiCallback<String>() {
+
+                @Override
+                public void onSuccess(String roomId) {
+                    final Room room = session.getDataHandler().getRoom(roomId);
+
+                    room.invite(otherUserId, new SimpleApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity);
+
+                            callback.onSuccess(null);
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            if (null != callback) {
+                                callback.onMatrixError( e);
+                            }
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+
+                    });
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError( e);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
     }
 }

@@ -35,6 +35,9 @@ public class RoomMemberCountCondition extends Condition {
     }
 
     public boolean isSatisfied(Room room) {
+        // sanity check
+        if (room == null) return false;
+
         if (parseError) return false;
 
         // Parse the is field into prefix and number the first time

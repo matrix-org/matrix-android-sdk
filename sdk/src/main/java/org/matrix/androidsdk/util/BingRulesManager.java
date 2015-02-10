@@ -112,7 +112,7 @@ public class BingRulesManager {
     }
 
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {
-        if (conditions != null) {
+        if ((conditions != null) && (event != null)) {
             for (Condition condition : conditions) {
                 if (condition instanceof EventMatchCondition) {
                     if (!((EventMatchCondition) condition).isSatisfied(event)) {
@@ -121,10 +121,15 @@ public class BingRulesManager {
                 }
                 else if (condition instanceof ContainsDisplayNameCondition) {
                     if (event.roomId != null) {
-                        // Best way to get your display name for now
-                        String myDisplayName = mDataHandler.getRoom(event.roomId).getMember(mMyUserId).displayname;
-                        if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
-                            return false;
+                        Room room = mDataHandler.getRoom(event.roomId);
+
+                        // sanity checks
+                        if ((null != room) && (null != room.getMember(mMyUserId))) {
+                            // Best way to get your display name for now
+                            String myDisplayName = room.getMember(mMyUserId).displayname;
+                            if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
+                                return false;
+                            }
                         }
                     }
                 }

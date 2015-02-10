@@ -7,6 +7,7 @@
     <string name="title_activity_public_rooms">Public Rooms</string>
     <string name="title_activity_room_info">Room info</string>
     <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_contact_details">Contact Details</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
@@ -16,6 +17,8 @@
     <string name="resend">Resend</string>
     <string name="redact">Redact</string>
     <string name="view">View</string>
+    <string name="set_power_level">Power level</string>
+    <string name="chat">Chat</string>
 
     <string name="action_settings">Settings</string>
     <string name="action_members">Member list</string>

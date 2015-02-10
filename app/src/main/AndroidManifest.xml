@@ -75,6 +75,16 @@
                 android:value=".activity.HomeActivity"/>
 
         </activity>
+        <activity
+            android:name=".activity.ContactDetailsActivity"
+            android:label="@string/title_activity_contact_details"
+            android:parentActivityName=".activity.RoomActivity">
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".activity.RoomActivity"/>
+
+        </activity>
         <service android:name=".services.EventStreamService" />
     </application>
 

@@ -218,7 +218,7 @@ public class HomeActivity extends MXCActionBarActivity {
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
                 }
 
-                goToRoomPage(roomId);
+                CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 mAdapter.notifyDataSetChanged();
 
                 return true;
@@ -353,12 +353,6 @@ public class HomeActivity extends MXCActionBarActivity {
         startActivity(new Intent(this, PublicRoomsActivity.class));
     }
 
-    public void goToRoomPage(String roomId) {
-        Intent intent = new Intent(this, RoomActivity.class);
-        intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-        startActivity(intent);
-    }
-
     private void createRoom(final boolean isPublic) {
         final String roomVisibility = isPublic ? RoomState.VISIBILITY_PUBLIC : RoomState.VISIBILITY_PRIVATE;
         // For public rooms, we ask for the alias; for private, the room name
@@ -378,7 +372,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
                     @Override
                     public void onSuccess(String info) {
-                        goToRoomPage(info);
+                        CommonActivityUtils.goToRoomPage(info, HomeActivity.this);
                     }
                 });
             }
