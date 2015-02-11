@@ -76,8 +76,8 @@
 
         </activity>
         <activity
-            android:name=".activity.ContactDetailsActivity"
-            android:label="@string/title_activity_contact_details"
+            android:name=".activity.MemberDetailsActivity"
+            android:label="@string/title_activity_member_details"
             android:parentActivityName=".activity.RoomActivity">
 
             <meta-data

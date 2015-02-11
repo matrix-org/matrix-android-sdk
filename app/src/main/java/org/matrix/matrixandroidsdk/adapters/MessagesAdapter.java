@@ -27,7 +27,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.ContactDetailsActivity;
+import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.text.DateFormat;
@@ -305,9 +305,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             avatarLeftView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent startRoomInfoIntent = new Intent(mContext, ContactDetailsActivity.class);
-                    startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_ROOM_ID, roomId);
-                    startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_USER_ID, userId);
+                    Intent startRoomInfoIntent = new Intent(mContext, MemberDetailsActivity.class);
+                    startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, roomId);
+                    startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, userId);
                     mContext.startActivity(startRoomInfoIntent);
                 }
             });

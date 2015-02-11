@@ -36,8 +36,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
@@ -45,12 +43,12 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class ContactDetailsActivity extends MXCActionBarActivity {
+public class MemberDetailsActivity extends MXCActionBarActivity {
 
-    private static final String LOG_TAG = "ContactDetailsActivity";
+    private static final String LOG_TAG = "MemberDetailsActivity";
 
-    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.ContactDetailsActivity.EXTRA_ROOM_ID";
-    public static final String EXTRA_USER_ID = "org.matrix.matrixandroidsdk.ContactDetailsActivity.EXTRA_USER_ID";
+    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.MemberDetailsActivity.EXTRA_ROOM_ID";
+    public static final String EXTRA_USER_ID = "org.matrix.matrixandroidsdk.MemberDetailsActivity.EXTRA_USER_ID";
 
     // info
     private Room mRoom;
@@ -67,7 +65,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_contact_details);
+        setContentView(R.layout.activity_member_details);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
@@ -128,15 +126,15 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
                         @Override
                         public void onMatrixError(MatrixError e) {
                             if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                                Toast.makeText(ContactDetailsActivity.this, e.error, Toast.LENGTH_LONG).show();
+                                Toast.makeText(MemberDetailsActivity.this, e.error, Toast.LENGTH_LONG).show();
                             }
 
-                            ContactDetailsActivity.this.refresh();
+                            MemberDetailsActivity.this.refresh();
                         }
 
                         @Override
                         public void onSuccess(Void info) {
-                            ContactDetailsActivity.this.refresh();
+                            MemberDetailsActivity.this.refresh();
                         }
                     };
 
@@ -159,28 +157,28 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
                         mRoom.invite(mMember.getUserId(), callback);
                     } else  if (text.equals(getResources().getString(R.string.chat))) {
                         refreshingView.setVisibility(View.VISIBLE);
-                        ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                        MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToOneToOneRoom(mUserId, ContactDetailsActivity.this, new SimpleApiCallback<Void>() {
+                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>() {
                                     @Override
                                     public void onMatrixError(MatrixError e) {
                                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                                            Toast.makeText(ContactDetailsActivity.this, e.error, Toast.LENGTH_LONG).show();
+                                            Toast.makeText(MemberDetailsActivity.this, e.error, Toast.LENGTH_LONG).show();
                                         }
-                                        ContactDetailsActivity.this.refresh();
+                                        MemberDetailsActivity.this.refresh();
                                     }
 
                                     @Override
                                     public void onNetworkError(Exception e) {
-                                        Toast.makeText(ContactDetailsActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                        ContactDetailsActivity.this.refresh();
+                                        Toast.makeText(MemberDetailsActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        MemberDetailsActivity.this.refresh();
                                     }
 
                                     @Override
                                     public void onUnexpectedError(Exception e) {
-                                        Toast.makeText(ContactDetailsActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                        ContactDetailsActivity.this.refresh();
+                                        Toast.makeText(MemberDetailsActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        MemberDetailsActivity.this.refresh();
                                     }
                                 });
                             }
@@ -189,7 +187,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
                         String title = getResources().getString(R.string.set_power_level);
                         String initText =  mRoom.getLiveState().getPowerLevels().getUserPowerLevel(mUserId) + "";
 
-                        final AlertDialog alert = CommonActivityUtils.createEditTextAlert(ContactDetailsActivity.this,title,null,initText,new CommonActivityUtils.OnSubmitListener() {
+                        final AlertDialog alert = CommonActivityUtils.createEditTextAlert(MemberDetailsActivity.this,title,null,initText,new CommonActivityUtils.OnSubmitListener() {
                             @Override
                             public void onSubmit(String text) {
                                 if (text.length() == 0) {
@@ -208,17 +206,17 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
                                     refreshingView.setVisibility(View.VISIBLE);
                                     mRoom.updateUserPowerLevels(mMember.getUserId(), newPowerLevel, callback);
                                 } else {
-                                    ContactDetailsActivity.this.refresh();
+                                    MemberDetailsActivity.this.refresh();
                                 }
                             }
 
                             @Override
                             public void onCancelled() {
-                                ContactDetailsActivity.this.refresh();
+                                MemberDetailsActivity.this.refresh();
                             }
                         });
 
-                        ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                        MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 alert.show();
@@ -232,7 +230,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
        mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(new MXEventListener() {
             @Override
             public void onLiveEvent(final Event event, RoomState roomState) {
-                ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                   @Override
                   public void run() {
                       // check if the event is received for the current room
@@ -242,12 +240,12 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
 
                               // update only if it is the current user
                               if ((null != event.userId) && (event.userId.equals(mUserId))) {
-                                  ContactDetailsActivity.this.runOnUiThread(new Runnable() {
+                                  MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                                       @Override
                                       public void run() {
                                           //
-                                          ContactDetailsActivity.this.refreshRoomMember();
-                                          ContactDetailsActivity.this.refresh();
+                                          MemberDetailsActivity.this.refreshRoomMember();
+                                          MemberDetailsActivity.this.refresh();
                                       }
                                   });
                               }

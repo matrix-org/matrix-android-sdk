@@ -31,7 +31,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.ContactDetailsActivity;
+import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.activity.RoomInfoActivity;
 import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
@@ -146,9 +146,9 @@ public class RoomMembersDialogFragment extends DialogFragment {
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Intent startRoomInfoIntent = new Intent(activity, ContactDetailsActivity.class);
-                        startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_ROOM_ID, mRoomId);
-                        startRoomInfoIntent.putExtra(ContactDetailsActivity.EXTRA_USER_ID, roomMember.getUserId());
+                        Intent startRoomInfoIntent = new Intent(activity, MemberDetailsActivity.class);
+                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, mRoomId);
+                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, roomMember.getUserId());
                         startActivity(startRoomInfoIntent);
                     }
                 });
