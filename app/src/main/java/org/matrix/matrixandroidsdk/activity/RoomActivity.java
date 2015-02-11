@@ -45,7 +45,7 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 /**
  * Displays a single room with messages.
  */
-public class RoomActivity extends MXCActionBarActivity {
+public class RoomActivity extends MXCActionBarActivity implements MatrixMessageListFragment.MatrixMessageListFragmentListener {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
@@ -226,6 +226,11 @@ public class RoomActivity extends MXCActionBarActivity {
         setTitle(mRoom.getName(mSession.getCredentials().userId));
         setTopic(mRoom.getTopic());
 
+        // warn when the initial sync is performed
+        // The events listeners are not triggered until the room initial sync is done.
+        // So, the room name might be invalid until this first sync.
+        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
+
         // listen for room name or topic changes
         mRoom.addEventListener(mEventListener);
 
@@ -244,6 +249,7 @@ public class RoomActivity extends MXCActionBarActivity {
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(null);
     }
 
     @Override
@@ -254,6 +260,11 @@ public class RoomActivity extends MXCActionBarActivity {
 
         // allow to display new message alert for incoming message
         EventStreamService.acceptAlertNotificationsFrom(mRoom.getRoomId());
+
+        // warn when the initial sync is performed
+        // The events listeners are not triggered until the room initial sync is done.
+        // So, the room name might be invalid until this first sync.
+        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
     }
 
     @Override
@@ -475,5 +486,12 @@ public class RoomActivity extends MXCActionBarActivity {
                 });
             }
         }
+    }
+
+    @Override
+    public void onInitialMessagesLoaded() {
+        // set general room information
+        setTitle(mRoom.getName(mSession.getCredentials().userId));
+        setTopic(mRoom.getTopic());
     }
 }

@@ -40,10 +40,21 @@ import java.util.List;
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
+
+    public static interface MatrixMessageListFragmentListener {
+        /**
+         * Called when the first batch of messages is loaded.
+         */
+        public void onInitialMessagesLoaded();
+    }
+
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+
+    // listener to warn activity that the initial sync is done
+    private MatrixMessageListFragmentListener mMatrixMessageListFragmentListener = null;
 
     public static MatrixMessageListFragment newInstance(String roomId) {
         return newInstance(roomId, R.layout.fragment_matrix_message_list_fragment);
@@ -333,7 +344,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // The application is almost frozen during the
                 mAdapter.notifyDataSetChanged();
                 mMessageListView.setSelection(mAdapter.getCount() - 1);
+
+                if (null != mMatrixMessageListFragmentListener) {
+                    mMatrixMessageListFragmentListener.onInitialMessagesLoaded();
+                }
             }
         });
+    }
+
+    /**
+     * Set the listener which will be informed of matrix messages. This setter is provided so either
+     * a Fragment or an Activity can directly receive callbacks.
+     * @param listener the listener for this fragment
+     */
+    public void setMatrixMessageListFragmentListener(MatrixMessageListFragmentListener listener) {
+        mMatrixMessageListFragmentListener = listener;
     }
 }
