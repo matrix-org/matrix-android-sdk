@@ -158,7 +158,7 @@ public class ContentManager {
                 conn.setRequestMethod("POST");
 
                 conn.setRequestProperty("Content-Type", mimeType);
-                // TODO: Add (optional) way to specify Content-Length
+                conn.setRequestProperty("Content-Length", Integer.toString(contentStream.available()));
 
                 conn.connect();
 
