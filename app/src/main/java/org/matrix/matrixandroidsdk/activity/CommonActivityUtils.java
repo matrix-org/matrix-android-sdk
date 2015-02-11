@@ -93,11 +93,15 @@ public class CommonActivityUtils {
         public void onCancelled();
     }
 
-    public static AlertDialog createEditTextAlert(Activity context, String title, String hint, final OnSubmitListener listener) {
+    public static AlertDialog createEditTextAlert(Activity context, String title, String hint, String initialText, final OnSubmitListener listener) {
         final AlertDialog.Builder alert = new AlertDialog.Builder(context);
         final EditText input = new EditText(context);
         if (hint != null) {
             input.setHint(hint);
+        }
+
+        if (initialText != null) {
+            input.setText(initialText);
         }
         alert.setTitle(title);
         alert.setView(input);
@@ -107,6 +111,7 @@ public class CommonActivityUtils {
                 listener.onSubmit(value);
             }
         });
+
         alert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int whichButton) {
                     dialog.cancel();

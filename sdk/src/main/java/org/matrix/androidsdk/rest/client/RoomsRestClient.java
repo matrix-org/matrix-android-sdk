@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -229,5 +230,15 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      */
     public void redact(String roomId, String eventId, ApiCallback<Event> callback) {
         mApi.redact(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(callback));
+    }
+
+    /**
+     * Update the power levels.
+     * @param roomId the room id
+     * @param powerLevels the new powerLevels
+     * @param callback the async callback
+     */
+    public void updatePowerLevels(String roomId, PowerLevels powerLevels, ApiCallback<Void> callback) {
+        mApi.powerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(callback));
     }
 }

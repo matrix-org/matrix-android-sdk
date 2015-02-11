@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -351,6 +352,18 @@ public class Room {
         BannedUser user = new BannedUser();
         user.userId = userId;
         mDataRetriever.getRoomsRestClient().banFromRoom(mRoomId, user, callback);
+    }
+
+    /**
+     * Update the power level of the user userId
+     * @param userId the user id
+     * @param powerLevel the new power level
+     * @param callback the callback with the created event
+     */
+    public void updateUserPowerLevels(String userId, int powerLevel, ApiCallback<Void> callback) {
+        PowerLevels powerLevels = getLiveState().getPowerLevels().deepCopy();
+        powerLevels.setUserPowerLevel(userId, powerLevel);
+        mDataRetriever.getRoomsRestClient().updatePowerLevels(mRoomId, powerLevels, callback);
     }
 
     /**

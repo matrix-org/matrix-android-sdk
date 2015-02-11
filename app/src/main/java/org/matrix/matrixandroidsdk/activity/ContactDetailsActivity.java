@@ -187,19 +187,29 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
                         });
                     } else  if (text.equals(getResources().getString(R.string.set_power_level))) {
                         String title = getResources().getString(R.string.set_power_level);
-                        String hint =  mRoom.getLiveState().getPowerLevels().getUserPowerLevel(mUserId) + "";
+                        String initText =  mRoom.getLiveState().getPowerLevels().getUserPowerLevel(mUserId) + "";
 
-                        final AlertDialog alert = CommonActivityUtils.createEditTextAlert(ContactDetailsActivity.this,title,hint, new CommonActivityUtils.OnSubmitListener() {
+                        final AlertDialog alert = CommonActivityUtils.createEditTextAlert(ContactDetailsActivity.this,title,null,initText,new CommonActivityUtils.OnSubmitListener() {
                             @Override
                             public void onSubmit(String text) {
                                 if (text.length() == 0) {
                                     return;
                                 }
-                                refreshingView.setVisibility(View.VISIBLE);
 
-                                //  Todo allow to set the power user
+                                int newPowerLevel = -1;
 
-                                ContactDetailsActivity.this.refresh();
+                                try {
+                                    newPowerLevel = Integer.parseInt(text);
+                                }
+                                catch (Exception e) {
+                                }
+
+                                if (newPowerLevel >= 0) {
+                                    refreshingView.setVisibility(View.VISIBLE);
+                                    mRoom.updateUserPowerLevels(mMember.getUserId(), newPowerLevel, callback);
+                                } else {
+                                    ContactDetailsActivity.this.refresh();
+                                }
                             }
 
                             @Override
@@ -298,7 +308,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
             buttonTitles.add(getResources().getString(R.string.leave));
 
             if (userPowerLevel >= powerLevels.stateDefault) {
-               // buttonTitles.add(getResources().getString(R.string.set_power_level));
+                buttonTitles.add(getResources().getString(R.string.set_power_level));
             }
         } else {
 
@@ -330,7 +340,7 @@ public class ContactDetailsActivity extends MXCActionBarActivity {
 
             // update power level
             if (myPowerLevel >= powerLevels.stateDefault) {
-                //buttonTitles.add(getResources().getString(R.string.set_power_level));
+                buttonTitles.add(getResources().getString(R.string.set_power_level));
             }
 
             // allow to invite an user if the room has > 2 users

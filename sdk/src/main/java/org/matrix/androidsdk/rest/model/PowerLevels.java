@@ -56,4 +56,10 @@ public class PowerLevels {
         Integer powerLevel = users.get(userId);
         return (powerLevel != null) ? powerLevel : usersDefault;
     }
+
+    public void setUserPowerLevel(String userId, int powerLevel) {
+        if (null != userId) {
+            users.put(userId, new Integer(powerLevel));
+        }
+    }
 }

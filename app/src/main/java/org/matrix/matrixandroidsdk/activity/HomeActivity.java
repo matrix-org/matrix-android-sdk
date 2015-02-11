@@ -359,7 +359,7 @@ public class HomeActivity extends MXCActionBarActivity {
         String alertTitle = getString(isPublic ? R.string.create_room_set_alias : R.string.create_room_set_name);
         String textFieldHint = getString(isPublic ? R.string.create_room_alias_hint : R.string.create_room_name_hint);
 
-        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, new CommonActivityUtils.OnSubmitListener() {
+        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, null, new CommonActivityUtils.OnSubmitListener() {
             @Override
             public void onSubmit(String text) {
                 if (text.length() == 0) {

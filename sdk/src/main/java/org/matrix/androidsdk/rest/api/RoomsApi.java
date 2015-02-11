@@ -23,6 +23,7 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.MessageFeedback;
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -109,6 +110,15 @@ public interface RoomsApi {
      */
     @GET("/rooms/{roomId}/state/m.room.name")
     public void roomName(@Path("roomId") String roomId, Callback<RoomState> callback);
+
+    /**
+     * Update the power levels
+     * @param roomId the room id
+     * @param powerLevels the new power levels
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.power_levels")
+    public void powerLevels(@Path("roomId") String roomId, @Body PowerLevels powerLevels, Callback<Void> callback);
 
     /**
      * Send feedback for an event.

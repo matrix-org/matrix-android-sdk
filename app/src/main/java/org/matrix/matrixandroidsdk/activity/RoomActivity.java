@@ -130,7 +130,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                     case OPTION_INVITE: {
                                             final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
                                             if (session != null) {
-                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", new CommonActivityUtils.OnSubmitListener() {
+                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
                                                     @Override
                                                     public void onSubmit(final String text) {
                                                         if (TextUtils.isEmpty(text)) {
