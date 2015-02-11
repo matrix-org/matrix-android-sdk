@@ -72,7 +72,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int sendingColor;
     private int highlightColor;
 
-    private static boolean mDisplayMessageTimestamp = false;
+    private static boolean mDisplayMessageTimestamp = true;
 
     private DateFormat mDateFormat;
 
