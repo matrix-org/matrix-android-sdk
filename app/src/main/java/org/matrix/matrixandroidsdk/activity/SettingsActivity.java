@@ -22,7 +22,6 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -46,9 +45,6 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
-
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 
 public class SettingsActivity extends MXCActionBarActivity {
 
@@ -224,23 +220,19 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         if (newAvatarUri != null) {
             Log.d(LOG_TAG, "Selected image to upload: " + newAvatarUri);
-            InputStream contentStream = null;
-            String contentMimeType = null;
-            try {
-                contentStream = getContentResolver().openInputStream(newAvatarUri);
-                contentMimeType = getContentResolver().getType(newAvatarUri);
-            } catch (FileNotFoundException e) {
-                Log.e(LOG_TAG, "Failed to open image upload input stream", e);
+            ResourceUtils.Resource resource = ResourceUtils.openResource(this, newAvatarUri);
+            if (resource == null) {
                 Toast.makeText(SettingsActivity.this,
                         getString(R.string.settings_failed_to_upload_avatar),
                         Toast.LENGTH_LONG).show();
                 return;
             }
+
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(contentStream, contentMimeType, new ContentManager.UploadCallback() {
+            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadComplete(ContentResponse uploadResponse) {
                     if (uploadResponse == null) {
