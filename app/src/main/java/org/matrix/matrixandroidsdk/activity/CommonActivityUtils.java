@@ -115,10 +115,16 @@ public class CommonActivityUtils {
         alert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int whichButton) {
                     dialog.cancel();
-                    listener.onCancelled();
                 }
             }
         );
+
+        alert.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                listener.onCancelled();
+            }
+        });
 
         AlertDialog dialog = alert.create();
         // add the dialog to be rendered in the screenshot
