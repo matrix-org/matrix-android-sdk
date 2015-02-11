@@ -137,6 +137,12 @@ public class AdapterUtils {
             String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
             String userDisplayName = null;
 
+            String prevMembership = null;
+
+            if (null != msg.prevContent) {
+                prevMembership = msg.prevContent.getAsJsonPrimitive("membership").getAsString();
+            }
+
             // the displayname could be defined in the event
             // use it instead of the getUserDisplayName result
             // the user could have joined the before his roomMember has been created.
@@ -160,9 +166,12 @@ public class AdapterUtils {
                 // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
                 if (msg.userId.equals(msg.stateKey)) {
                     return mContext.getString(R.string.notice_room_leave, userDisplayName);
-                }
-                else {
-                    return mContext.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey));
+                } else if (null != prevMembership) {
+                    if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                        return mContext.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey));
+                    } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                        return mContext.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey));
+                    }
                 }
             }
             else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
