@@ -120,8 +120,9 @@ public class AdapterUtils {
                             text = getDisplayNameChangeNotice(mEvent);
                         }
                         else {
-                            // well shucks, I'm all out of ideas, let's whine.
-                            Log.e(LOG_TAG, "Redundant membership event. PREV=>"+prevState+" NOW=>"+mEvent.content);
+                            // assume it is a membership notice
+                            // some other members could also play with the application
+                            text = getMembershipNotice(mEvent);
                         }
                     }
                 }
