@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -346,11 +348,15 @@ public class Room {
     /**
      * Ban a user from the room.
      * @param userId the user id
+     * @param reason ban readon
      * @param callback the async callback
      */
-    public void ban(String userId, ApiCallback<Void> callback) {
+    public void ban(String userId, String reason, ApiCallback<Void> callback) {
         BannedUser user = new BannedUser();
         user.userId = userId;
+        if (!TextUtils.isEmpty(reason)) {
+            user.reason = reason;
+        }
         mDataRetriever.getRoomsRestClient().banFromRoom(mRoomId, user, callback);
     }
 

@@ -68,6 +68,7 @@
         <activity
             android:name=".activity.SettingsActivity"
             android:label="@string/title_activity_settings"
+            android:windowSoftInputMode="stateHidden"
             android:parentActivityName=".activity.HomeActivity">
 
             <meta-data

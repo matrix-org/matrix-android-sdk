@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.app.ExpandableListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -17,13 +18,16 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -48,6 +52,18 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
+
+    // defines the command line operations
+    // the user can write theses messages to perform some room events
+    private static final String CMD_CHANGE_DISPLAY_NAME = "/nick";
+    private static final String CMD_EMOTE = "/me";
+    private static final String CMD_JOIN_ROOM = "/join";
+    private static final String CMD_KICK_USER = "/kick";
+    private static final String CMD_BAN_USER = "/ban";
+    private static final String CMD_UNBAN_USER = "/unban";
+    private static final String CMD_SET_USER_POWER_LEVEL = "/op";
+    private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
+
 
     private static final int REQUEST_IMAGE = 0;
 
@@ -292,16 +308,137 @@ public class RoomActivity extends MXCActionBarActivity {
         this.getActionBar().setSubtitle(topic);
     }
 
-    private void sendMessage(String body) {
-        if (!TextUtils.isEmpty(body)) {
-            if (body.length() > 4 && (body.toLowerCase().startsWith("/me ") || body.toLowerCase().startsWith("/em "))) {
-                mMatrixMessageListFragment.sendEmote(body.substring(4));
-            }
-            else {
-                mMatrixMessageListFragment.sendTextMessage(body);
+
+    /**
+     * check if the text message is an IRC command.
+     * If it is an IRC command, it is executed
+     * @param body
+     * @return true if body defines an IRC command
+     */
+    private boolean manageIRCCommand(String body) {
+        boolean isIRCCmd = false;
+
+        // check if it has the IRC marker
+        if ((null != body) && (body.startsWith("/"))) {
+            MXSession session = Matrix.getInstance(this).getDefaultSession();
+
+            final ApiCallback callback = new SimpleApiCallback<Void>() {
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (MatrixError.FORBIDDEN.equals(e.errcode)) {
+                        Toast.makeText(RoomActivity.this, e.error, Toast.LENGTH_LONG).show();
+                    }
+                }
+            };
+
+            if (body.startsWith(CMD_CHANGE_DISPLAY_NAME)) {
+                isIRCCmd = true;
+
+                String newDisplayname = body.substring(CMD_CHANGE_DISPLAY_NAME.length()).trim();
+
+                if (newDisplayname.length() > 0) {
+                    MyUser myUser = session.getMyUser();
+
+                    myUser.updateDisplayName(newDisplayname, callback);
+                }
+            } else if (body.startsWith(CMD_EMOTE)) {
+                isIRCCmd = true;
+
+                String message = body.substring(CMD_EMOTE.length()).trim();
+
+                if (message.length() > 0) {
+                    mMatrixMessageListFragment.sendEmote(message);
+                }
+            } else if (body.startsWith(CMD_JOIN_ROOM)) {
+                isIRCCmd = true;
+
+                String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
+
+                if (roomAlias.length() > 0) {
+                    session.joinRoomByRoomAlias(roomAlias,new SimpleApiCallback<String>() {
+
+                        @Override
+                        public void onSuccess(String roomId) {
+                            if (null != roomId) {
+                                CommonActivityUtils.goToRoomPage(roomId, RoomActivity.this);
+                            }
+                        }
+                    });
+                }
+            } else if (body.startsWith(CMD_KICK_USER)) {
+                isIRCCmd = true;
+
+                String params = body.substring(CMD_KICK_USER.length()).trim();
+                String[] paramsList = params.split(" ");
+
+                String kickedUserID = paramsList[0];
+
+                if (kickedUserID.length() > 0) {
+                    mRoom.kick(kickedUserID, callback);
+                }
+            } else if (body.startsWith(CMD_BAN_USER)) {
+                isIRCCmd = true;
+
+                String params = body.substring(CMD_BAN_USER.length()).trim();
+                String[] paramsList = params.split(" ");
+
+                String bannedUserID = paramsList[0];
+                String reason = params.substring(bannedUserID.length()).trim();
+
+                if (bannedUserID.length() > 0) {
+                    mRoom.ban(bannedUserID, reason, callback);
+                }
+            } else if (body.startsWith(CMD_UNBAN_USER)) {
+                isIRCCmd = true;
+
+                String params = body.substring(CMD_UNBAN_USER.length()).trim();
+                String[] paramsList = params.split(" ");
+
+                String unbannedUserID = paramsList[0];
+
+                if (unbannedUserID.length() > 0) {
+                    mRoom.unban(unbannedUserID, callback);
+                }
+            } else if (body.startsWith(CMD_SET_USER_POWER_LEVEL)) {
+                isIRCCmd = true;
+
+                String params = body.substring(CMD_SET_USER_POWER_LEVEL.length()).trim();
+                String[] paramsList = params.split(" ");
+
+                String userID = paramsList[0];
+                String powerLevelsAsString  = params.substring(userID.length()).trim();
+
+                try {
+                    if ((userID.length() > 0) && (powerLevelsAsString.length() > 0)) {
+                        mRoom.updateUserPowerLevels(userID, Integer.parseInt(powerLevelsAsString), callback);
+                    }
+                } catch(Exception e){
+
+                }
+            } else if (body.startsWith(CMD_RESET_USER_POWER_LEVEL)) {
+                isIRCCmd = true;
+
+                String params = body.substring(CMD_RESET_USER_POWER_LEVEL.length()).trim();
+                String[] paramsList = params.split(" ");
+
+                String userID = paramsList[0];
+
+                if (userID.length() > 0) {
+                    mRoom.updateUserPowerLevels(userID, 0, callback);
+                }
             }
         }
 
+        return isIRCCmd;
+    }
+
+
+    private void sendMessage(String body) {
+        if (!TextUtils.isEmpty(body)) {
+            if (!manageIRCCommand(body)) {
+                mMatrixMessageListFragment.sendTextMessage(body);
+            }
+        }
     }
 
     @Override

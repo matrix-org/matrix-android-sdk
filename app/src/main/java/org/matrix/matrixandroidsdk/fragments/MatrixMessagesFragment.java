@@ -74,8 +74,12 @@ public class MatrixMessagesFragment extends Fragment {
         // check if this room has been joined, if not, join it then get messages.
         mRoom = session.getDataHandler().getRoom(roomId);
         boolean joinedRoom = false;
+
         mRoom.initHistory();
-        if (mRoom != null) {
+
+        // check if some required fields are initialized
+        // else, the joining could have been half broken.
+        if (mRoom != null && (null != mRoom.getLiveState().creator) && (null != mRoom.getLiveState().getToken())) {
             RoomMember self = mRoom.getMember(session.getCredentials().userId);
             if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
                 joinedRoom = true;

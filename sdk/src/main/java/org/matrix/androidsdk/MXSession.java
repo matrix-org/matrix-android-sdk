@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -44,6 +45,7 @@ public class MXSession {
 
     private static final String LOG_TAG = "MXSession";
 
+    private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
@@ -86,10 +88,9 @@ public class MXSession {
         mDataHandler = dataHandler;
 
         // Initialize a data retriever with rest clients
-        DataRetriever dataRetriever = new DataRetriever();
-        dataRetriever.setRoomsRestClient(mRoomsRestClient);
-
-        mDataHandler.setDataRetriever(dataRetriever);
+        mDataRetriever = new DataRetriever();
+        mDataRetriever.setRoomsRestClient(mRoomsRestClient);
+        mDataHandler.setDataRetriever(mDataRetriever);
 
         mDataHandler.setPushRulesManager(new BingRulesManager(this));
     }
@@ -275,5 +276,30 @@ public class MXSession {
                 });
             }
         });
+    }
+
+    /**
+     * Join a room by its roomAlias
+     * @param alias the room alias
+     * @param callback the async callback once the room is joined. The RoomId is provided.
+     */
+    public void joinRoomByRoomAlias(String alias, final ApiCallback<String> callback) {
+        // sanity check
+        if ((null != mDataHandler) && (null != alias)) {
+
+            String urlEncodedAlias = alias;
+            try {
+                urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
+            }
+            catch (Exception e) {
+            }
+
+            mDataRetriever.getRoomsRestClient().joinRoomByAlias(urlEncodedAlias, new SimpleApiCallback<RoomResponse>(callback) {
+                @Override
+                public void onSuccess(final RoomResponse roomResponse) {
+                    callback.onSuccess(roomResponse.roomId);
+                }
+            });
+        }
     }
 }

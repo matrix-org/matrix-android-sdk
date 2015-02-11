@@ -1,91 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp">
+    android:layout_height="match_parent">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="@style/title"
-        android:text="@string/settings_title_profile"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <ImageView
-            android:id="@+id/imageView_avatar"
-            android:layout_width="@dimen/profile_avatar_size"
-            android:layout_height="@dimen/profile_avatar_size"
-            android:layout_alignParentLeft="true"
-            android:layout_marginRight="10dp"
-            android:scaleType="centerCrop"/>
-
-        <EditText
-            android:id="@+id/editText_displayName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/imageView_avatar"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"/>
-
-        <Button
-            android:id="@+id/button_save"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/imageView_avatar"
-            android:layout_below="@id/editText_displayName"
-            android:layout_alignParentRight="true"
-            android:text="@string/save"
-            android:enabled="false"/>
-
-        <ProgressBar
-            android:id="@+id/profile_mask"
-            android:layout_height="@dimen/profile_avatar_size"
+        <TextView
             android:layout_width="match_parent"
-            android:background="#99CCCCCC"
-            android:layout_alignParentLeft="true"
-            android:indeterminate="true" />
+            android:layout_height="wrap_content"
+            style="@style/title"
+            android:text="@string/settings_title_profile"/>
 
-    </RelativeLayout>
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="@style/title"
-        android:text="@string/settings_title_config"/>
+            <ImageView
+                android:id="@+id/imageView_avatar"
+                android:layout_width="@dimen/profile_avatar_size"
+                android:layout_height="@dimen/profile_avatar_size"
+                android:layout_alignParentLeft="true"
+                android:layout_marginRight="10dp"
+                android:scaleType="centerCrop"/>
 
-    <TextView
-        android:id="@+id/textView_configHomeServer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+            <EditText
+                android:id="@+id/editText_displayName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toRightOf="@id/imageView_avatar"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true"/>
 
-    <TextView
-        android:id="@+id/textView_matrixConsoleVersion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+            <Button
+                android:id="@+id/button_save"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toRightOf="@id/imageView_avatar"
+                android:layout_below="@id/editText_displayName"
+                android:layout_alignParentRight="true"
+                android:text="@string/save"
+                android:enabled="false"/>
 
-    <TextView
-        android:id="@+id/textView_matrixSDKVersion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+            <ProgressBar
+                android:id="@+id/profile_mask"
+                android:layout_height="@dimen/profile_avatar_size"
+                android:layout_width="match_parent"
+                android:background="#99CCCCCC"
+                android:layout_alignParentLeft="true"
+                android:indeterminate="true" />
 
-    <TextView
-        android:id="@+id/textView_matrixBuildNumber"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        </RelativeLayout>
 
-    <TextView
-        android:id="@+id/textView_configUserId"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        <TextView
+            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/title"
+            android:text="@string/settings_title_config"/>
 
-    <TextView
-        android:id="@+id/textView_configAccessToken"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        <TextView
+            android:id="@+id/textView_configHomeServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/textView_matrixConsoleVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/textView_matrixSDKVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/textView_matrixBuildNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/textView_configUserId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/textView_configAccessToken"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/title"
+            android:text="@string/settings_title_commands"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_command_commands"/>
+
+
+
+    </LinearLayout>
+</ScrollView>

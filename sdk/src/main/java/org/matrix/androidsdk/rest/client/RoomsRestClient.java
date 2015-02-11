@@ -137,6 +137,15 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Join a room by its roomAlias or its roomId
+     * @param roomId_Alias the room id or the room alias
+     * @param callback the async callback
+     */
+    public void joinRoomByAlias(String roomId_Alias, ApiCallback<RoomResponse> callback) {
+        mApi.joinRoomByAlias(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback));
+    }
+
+    /**
      * Leave a room.
      * @param roomId the room id
      * @param callback the async callback

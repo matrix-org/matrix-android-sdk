@@ -148,7 +148,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         mRoom.kick(mMember.getUserId(), callback);
                     } else  if (text.equals(getResources().getString(R.string.ban))) {
                         refreshingView.setVisibility(View.VISIBLE);
-                        mRoom.ban(mMember.getUserId(), callback);
+                        mRoom.ban(mMember.getUserId(), null, callback);
                     } else  if (text.equals(getResources().getString(R.string.unban))) {
                         refreshingView.setVisibility(View.VISIBLE);
                         mRoom.unban(mMember.getUserId(), callback);
