@@ -16,15 +16,11 @@
         android:hint="@string/action_search_room"
         android:inputType="text"
         android:imeOptions="actionSearch"
-        android:focusable="true"
-        />
+        android:focusable="true"/>
 
     <ExpandableListView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/listView_myRooms"
-        android:layout_below="@id/editText_search_room"
-        android:layout_alignParentBottom="true"
-        />
-
+        android:layout_below="@id/editText_search_room" />
 </RelativeLayout>
