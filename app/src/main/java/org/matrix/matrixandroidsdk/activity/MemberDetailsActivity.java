@@ -234,21 +234,19 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                   @Override
                   public void run() {
                       // check if the event is received for the current room
-                      if ((null != event.roomId) && (event.roomId.equals(mRoom.getRoomId()))) {
-                          // check if there is a member update
-                          if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
+                      // check if there is a member update
+                      if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
 
-                              // update only if it is the current user
-                              if ((null != event.userId) && (event.userId.equals(mUserId))) {
-                                  MemberDetailsActivity.this.runOnUiThread(new Runnable() {
-                                      @Override
-                                      public void run() {
-                                          //
-                                          MemberDetailsActivity.this.refreshRoomMember();
-                                          MemberDetailsActivity.this.refresh();
-                                      }
-                                  });
-                              }
+                          // update only if it is the current user
+                          if ((null != event.userId) && (event.userId.equals(mUserId))) {
+                              MemberDetailsActivity.this.runOnUiThread(new Runnable() {
+                                  @Override
+                                  public void run() {
+                                      //
+                                      MemberDetailsActivity.this.refreshRoomMember();
+                                      MemberDetailsActivity.this.refresh();
+                                  }
+                              });
                           }
                       }
                   }
