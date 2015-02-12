@@ -84,15 +84,49 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
-        if (direction == Room.EventDirection.FORWARDS) { // TODO: Implement backwards direction
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-            if (events == null) {
-                events = new LinkedHashMap<String, Event>();
-                mRoomEvents.put(roomId, events);
-                mRoomTokens.put(roomId, eventsResponse.start);
-            }
+
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        if (events == null) {
+            events = new LinkedHashMap<String, Event>();
+            mRoomEvents.put(roomId, events);
+        }
+
+        if (direction == Room.EventDirection.FORWARDS) {
+            mRoomTokens.put(roomId, eventsResponse.start);
+
             for (Event event : eventsResponse.chunk) {
                 events.put(event.eventId, event);
+            }
+
+        } else { // BACKWARD
+            Collection<Event>eventsList = events.values();
+
+            // no stored events
+            if (events.size() == 0) {
+                // insert the catchup events in reverse order
+                for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                    Event backEvent = eventsResponse.chunk.get(index);
+                    events.put(backEvent.eventId, backEvent);
+                }
+
+                // define a token
+                mRoomTokens.put(roomId, eventsResponse.start);
+            } else {
+                LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
+
+                // insert the catchup events in reverse order
+                for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                    Event backEvent = eventsResponse.chunk.get(index);
+                    events2.put(backEvent.eventId, backEvent);
+                }
+
+                // add the previous added Events
+                for (Event event : eventsList) {
+                    events2.put(event.eventId, event);
+                }
+
+                // store the new list
+                mRoomEvents.put(roomId, events2);
             }
         }
     }
