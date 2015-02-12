@@ -85,7 +85,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 public void run() {
                    if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
                        mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                       mAdapter.notifyDataSetChanged();
                    }
                 }
             });

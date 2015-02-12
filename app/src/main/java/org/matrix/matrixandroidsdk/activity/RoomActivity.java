@@ -268,6 +268,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
         mMatrixMessageListFragment.setMatrixMessageListFragmentListener(null);
+        // warn other member that the typing is ended
+        cancelTypingNotification();
     }
 
     @Override
@@ -617,5 +619,23 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 RoomActivity.this.handleTypingNotification(typingStatus);
             }
         });
+    }
+
+    void cancelTypingNotification() {
+        if (0 != mLastTypingDate) {
+            if (mTypingTimerTask != null) {
+                mTypingTimerTask.cancel();
+                mTypingTimerTask = null;
+            }
+            if (mTypingTimer != null) {
+                mTypingTimer.cancel();
+                mTypingTimer = null;
+            }
+
+            mLastTypingDate = 0;
+
+            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>() {
+            });
+        }
     }
 }

@@ -572,6 +572,26 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     public void setTypingUsers(ArrayList<String> typingUsers) {
-        mTypingUsers = typingUsers;
+        boolean refresh = mTypingUsers.size() != typingUsers.size();
+
+        // same length -> ensure that there is an update
+        if (!refresh) {
+            // do not refresh if the both lists empty
+            if (mTypingUsers.size() != 0) {
+                for(String userId : mTypingUsers) {
+                    // one userID is defined in one list not in the other one
+                    if (typingUsers.indexOf(userId) < 0) {
+                        refresh = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+         mTypingUsers = typingUsers;
+
+        if (refresh) {
+            notifyDataSetChanged();
+        }
     }
 }
