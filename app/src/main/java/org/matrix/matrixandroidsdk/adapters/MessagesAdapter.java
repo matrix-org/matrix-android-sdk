@@ -32,6 +32,7 @@ import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -54,6 +55,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private static final int MAX_IMAGE_WIDTH = 320;
 
     private static final String LOG_TAG = "MessagesAdapter";
+
+    private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     private Context mContext;
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
@@ -174,7 +177,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     @Override
     public int getItemViewType(int position) {
         MessageRow row = getItem(position);
-
         return getItemViewType(row.getEvent());
     }
 
@@ -208,7 +210,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // return true if convertView is merged with previous View
     private boolean manageSubView(int position, View convertView, View subView, int msgType) {
-
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
@@ -339,6 +340,10 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarImageView, url);
             }
+
+            // display the typing icon when required
+            ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
+            typingImage.setVisibility((mTypingUsers.indexOf(msg.userId) >= 0) ? View.VISIBLE : View.GONE);
         }
 
         // if the messages are merged
@@ -566,5 +571,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return false;
     }
 
-
+    public void setTypingUsers(ArrayList<String> typingUsers) {
+        mTypingUsers = typingUsers;
+    }
 }

@@ -17,7 +17,10 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -35,6 +38,8 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -79,6 +84,9 @@ public class Room {
     private boolean canStillPaginate = true;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
+
+    // userIds list
+    private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     public String getRoomId() {
         return this.mRoomId;
@@ -157,6 +165,26 @@ public class Room {
             public void onLiveEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
                 if (mRoomId.equals(event.roomId) && isReady) {
+
+                    if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
+                        // Typing notifications events are not room messages nor room state events
+                        // They are just volatile information
+
+                        if (event.content.has("user_ids")) {
+                            mTypingUsers = null;
+
+                            try {
+                                mTypingUsers =  (new Gson()).fromJson(event.content.get("user_ids"), new TypeToken<List<String>>(){}.getType());
+                            } catch (Exception e) {
+
+                            }
+
+                            // avoid null list
+                            if (null == mTypingUsers) {
+                                mTypingUsers = new ArrayList<String>();
+                            }
+                        }
+                    }
                     eventListener.onLiveEvent(event, roomState);
                 }
             }
@@ -407,5 +435,13 @@ public class Room {
      */
     public void redact(String eventId, ApiCallback<Event> callback) {
         mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
+    }
+
+    /**
+     * Get typing users
+     * @return the userIds list
+     */
+    public ArrayList<String> getTypingUsers() {
+        return (null == mTypingUsers) ? new ArrayList<String>() : mTypingUsers;
     }
 }

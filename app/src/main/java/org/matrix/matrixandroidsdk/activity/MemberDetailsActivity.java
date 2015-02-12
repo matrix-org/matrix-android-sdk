@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
@@ -61,6 +62,33 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
     private ImageView mThumbnailImageView;
     private TextView mMatrixIdTextView;
     private ArrayList<Button>mButtonsList;
+
+    private MXEventListener mEventListener = new MXEventListener() {
+        @Override
+        public void onLiveEvent(final Event event, RoomState roomState) {
+            MemberDetailsActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // check if the event is received for the current room
+                    // check if there is a member update
+                    if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
+
+                        // update only if it is the current user
+                        if ((null != event.userId) && (event.userId.equals(mUserId))) {
+                            MemberDetailsActivity.this.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //
+                                    MemberDetailsActivity.this.refreshRoomMember();
+                                    MemberDetailsActivity.this.refresh();
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -227,32 +255,8 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
             });
         }
 
-       mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(new MXEventListener() {
-            @Override
-            public void onLiveEvent(final Event event, RoomState roomState) {
-                MemberDetailsActivity.this.runOnUiThread(new Runnable() {
-                  @Override
-                  public void run() {
-                      // check if the event is received for the current room
-                      // check if there is a member update
-                      if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
+        mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventListener);
 
-                          // update only if it is the current user
-                          if ((null != event.userId) && (event.userId.equals(mUserId))) {
-                              MemberDetailsActivity.this.runOnUiThread(new Runnable() {
-                                  @Override
-                                  public void run() {
-                                      //
-                                      MemberDetailsActivity.this.refreshRoomMember();
-                                      MemberDetailsActivity.this.refresh();
-                                  }
-                              });
-                          }
-                      }
-                  }
-              });
-            }
-        });
         // load the thumbnail
         mThumbnailImageView = (ImageView) findViewById(R.id.imageView_avatar);
 
@@ -381,5 +385,11 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mRoom.removeEventListener(mEventListener);
     }
 }

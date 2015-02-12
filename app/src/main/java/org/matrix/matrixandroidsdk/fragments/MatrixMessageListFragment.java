@@ -18,6 +18,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -76,6 +77,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MXSession mSession;
     private Room mRoom;
 
+    private MXEventListener mEventListener = new MXEventListener() {
+        @Override
+        public void onLiveEvent(final Event event, RoomState roomState) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                   if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
+                       mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                       mAdapter.notifyDataSetChanged();
+                   }
+                }
+            });
+        }
+    };
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,7 +121,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     R.layout.adapter_item_message_emote
             );
         }
-        
+        mAdapter.setTypingUsers(mRoom.getTypingUsers());
+
+        mRoom.addEventListener(mEventListener);
+
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
         mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -213,6 +232,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mRoom.removeEventListener(mEventListener);
+    }
+
     public void sendTextMessage(String body) {
         sendMessage(Message.MSGTYPE_TEXT, body);
     }
@@ -315,7 +340,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                 }
-                else {
+                else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     mAdapter.add(event, roomState);
                 }
                 mAdapter.notifyDataSetChanged();
