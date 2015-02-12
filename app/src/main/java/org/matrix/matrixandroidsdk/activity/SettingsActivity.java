@@ -22,7 +22,6 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -220,17 +219,26 @@ public class SettingsActivity extends MXCActionBarActivity {
         }
 
         if (newAvatarUri != null) {
-            final String selectedPath = ResourceUtils.getImagePath(this, newAvatarUri);
-            Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+            Log.d(LOG_TAG, "Selected image to upload: " + newAvatarUri);
+            ResourceUtils.Resource resource = ResourceUtils.openResource(this, newAvatarUri);
+            if (resource == null) {
+                Toast.makeText(SettingsActivity.this,
+                        getString(R.string.settings_failed_to_upload_avatar),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
+            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadComplete(ContentResponse uploadResponse) {
                     if (uploadResponse == null) {
-                        Toast.makeText(SettingsActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
+                        Toast.makeText(SettingsActivity.this,
+                                getString(R.string.settings_failed_to_upload_avatar),
+                                Toast.LENGTH_LONG).show();
                     }
                     else {
                         Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);

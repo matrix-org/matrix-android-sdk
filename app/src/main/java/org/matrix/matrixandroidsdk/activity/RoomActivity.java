@@ -5,9 +5,8 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.support.v4.app.FragmentManager;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
@@ -23,9 +22,9 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -35,7 +34,6 @@ import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
-
 
 /**
  * Displays a single room with messages.
@@ -301,31 +299,39 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
-                Uri selectedImageUri = data.getData();
-                final String selectedPath = ResourceUtils.getImagePath(this, selectedImageUri);
-                Log.d(LOG_TAG, "Selected image to upload: " + selectedPath);
+                final Uri imageUri = data.getData();
+                final ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
+                if (resource == null) {
+                    Toast.makeText(RoomActivity.this,
+                            getString(R.string.message_failed_to_upload),
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Log.d(LOG_TAG, "Selected image to upload: " + imageUri);
 
                 final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-                mSession.getContentManager().uploadContent(selectedPath, new ContentManager.UploadCallback() {
+                mSession.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
                     @Override
                     public void onUploadComplete(ContentResponse uploadResponse) {
                         if (uploadResponse == null) {
-                            Toast.makeText(RoomActivity.this, "Failed to upload", Toast.LENGTH_LONG).show();
-                        }
-                        else {
+                            Toast.makeText(RoomActivity.this,
+                                    getString(R.string.message_failed_to_upload),
+                                    Toast.LENGTH_LONG).show();
+                        } else {
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                             // Build the image message
                             ImageMessage message = new ImageMessage();
                             message.url = uploadResponse.contentUri;
-                            message.body = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
+                            message.body = imageUri.getLastPathSegment();
 
-                            message.info = ContentUtils.getImageInfoFromFile(selectedPath);
+                            message.info = new ImageInfo();
+                            message.info.mimetype = resource.mimeType;
 
                             mMatrixMessageListFragment.sendImage(message);
                         }
