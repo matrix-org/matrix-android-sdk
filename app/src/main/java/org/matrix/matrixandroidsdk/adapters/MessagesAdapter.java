@@ -113,6 +113,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void addToFront(Event event, RoomState roomState) {
         MessageRow row = new MessageRow(event, roomState);
         if (shouldSave(row)) {
+            // ensure that notifyDataSetChanged is not called
+            // it seems that setNotifyOnChange is resetted to to  default value
+            setNotifyOnChange(false);
             insert(row, 0);
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);

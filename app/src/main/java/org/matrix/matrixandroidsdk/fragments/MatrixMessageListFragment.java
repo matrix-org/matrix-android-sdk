@@ -76,20 +76,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
-
-    private MXEventListener mEventListener = new MXEventListener() {
-        @Override
-        public void onLiveEvent(final Event event, RoomState roomState) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                   if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
-                       mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                   }
-                }
-            });
-        }
-    };
+    // avoid to catch up old content if the initial sync is in progress
+    private boolean mIsInitialSyncing = true;
+    private boolean mIsCatchingUp = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -121,9 +110,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             );
         }
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
-
-        mRoom.addEventListener(mEventListener);
-
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
         mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -219,12 +205,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
+                //check only when the user scrolls the content
+                if  (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
+                    int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
+                    int lastVisibleRow = mMessageListView.getLastVisiblePosition();
+                    int count = mMessageListView.getCount();
+
+                    // All the messages are displayed within the same page
+                    if ((count > 0) && (firstVisibleRow == 0) && (lastVisibleRow == (count - 1)) && (!mIsInitialSyncing)) {
+                        requestHistory();
+                    }
+                }
             }
 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 // If we scroll to the top, load more history
-                if (firstVisibleItem == 0) {
+                // so not load history if there is an initial sync progress
+                // or the whole room content fits in a single page
+                if ((firstVisibleItem == 0) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount)) {
                     requestHistory();
                 }
             }
@@ -234,7 +233,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mRoom.removeEventListener(mEventListener);
     }
 
     public void sendTextMessage(String body) {
@@ -305,24 +303,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void requestHistory() {
-        final int firstPos = mMessageListView.getFirstVisiblePosition();
+        // avoid launching catchup if there is already one in progress
+        if (!mIsCatchingUp) {
+            mIsCatchingUp = true;
+            final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-        mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
-            @Override
-            public void onSuccess(final Integer count) {
-                // Scroll the list down to where it was before adding rows to the top
-                mUiHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // refresh the list only at the end of the sync
-                        // else the one by one message refresh gives a weird UX
-                        // The application is almost frozen during the
-                        mAdapter.notifyDataSetChanged();
-                        mMessageListView.setSelection(firstPos + count);
-                    }
-                });
-            }
-        });
+            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
+                @Override
+                public void onSuccess(final Integer count) {
+                    // Scroll the list down to where it was before adding rows to the top
+                    mUiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // refresh the list only at the end of the sync
+                            // else the one by one message refresh gives a weird UX
+                            // The application is almost frozen during the
+                            mAdapter.notifyDataSetChanged();
+                            mMessageListView.setSelection(firstPos + count);
+                            mIsCatchingUp = false;
+                        }
+                    });
+                }
+            });
+        }
     }
 
     private void redactEvent(String eventId) {
@@ -338,11 +341,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
+                    mAdapter.notifyDataSetChanged();
                 }
-                else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                    mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                }
+                else  {
                     mAdapter.add(event, roomState);
+                    mAdapter.notifyDataSetChanged();
                 }
-                mAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -372,6 +379,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (null != mMatrixMessageListFragmentListener) {
                     mMatrixMessageListFragmentListener.onInitialMessagesLoaded();
                 }
+
+                mIsInitialSyncing = false;
             }
         });
     }
