@@ -75,14 +75,17 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom = session.getDataHandler().getRoom(roomId);
         boolean joinedRoom = false;
 
-        mRoom.initHistory();
-
-        // check if some required fields are initialized
-        // else, the joining could have been half broken.
-        if (mRoom != null && (null != mRoom.getLiveState().creator) && (null != mRoom.getLiveState().getToken())) {
-            RoomMember self = mRoom.getMember(session.getCredentials().userId);
-            if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
-                joinedRoom = true;
+        // does the room already exist ?
+        if (mRoom != null) {
+            // init the history
+            mRoom.initHistory();
+            // check if some required fields are initialized
+            // else, the joining could have been half broken (network error)
+            if (null != mRoom.getLiveState().creator) {
+                RoomMember self = mRoom.getMember(session.getCredentials().userId);
+                if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
+                    joinedRoom = true;
+                }
             }
         }
 
