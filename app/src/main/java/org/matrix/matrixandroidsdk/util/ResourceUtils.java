@@ -16,26 +16,44 @@
 package org.matrix.matrixandroidsdk.util;
 
 import android.app.Activity;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.MediaStore;
+import android.util.Log;
+
+import java.io.InputStream;
 
 /**
  * Static resource utility methods.
  */
 public class ResourceUtils {
 
+    private static final String LOG_TAG = "ResourceUtils";
+
+    public static class Resource {
+        public final InputStream contentStream;
+        public final String mimeType;
+
+        public Resource(InputStream contentStream, String mimeType) {
+            this.contentStream = contentStream;
+            this.mimeType = mimeType;
+        }
+    }
+
     /**
-     * Get the file path of an image given its URI returned from onActivityResult.
+     * Get a resource stream and metadata about it given its URI returned from onActivityResult.
+     *
      * @param activity the activity
      * @param uri the URI
-     * @return the file path
+     * @return a {@link Resource} encapsulating the opened resource stream and associated metadata
+     *      or {@code null} if opening the resource stream failed.
      */
-    public static String getImagePath(Activity activity, Uri uri) {
-        String[] projection = { MediaStore.Images.Media.DATA };
-        Cursor cursor = activity.managedQuery(uri, projection, null, null, null);
-        int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(columnIndex);
+    public static Resource openResource(Activity activity, Uri uri) {
+        try {
+            return new Resource(
+                    activity.getContentResolver().openInputStream(uri),
+                    activity.getContentResolver().getType(uri));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to open resource input stream", e);
+            return null;
+        }
     }
 }

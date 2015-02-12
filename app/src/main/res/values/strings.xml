@@ -85,6 +85,7 @@
     <string name="message_changes_successful">Changes successfully made</string>
     <string name="message_unsaved_changes">There are unsaved changes. Leaving will discard them.</string>
     <string name="message_uploading">Uploading&#8230;</string>
+    <string name="message_failed_to_upload">Failed to upload image</string>
 
     <string name="option_attach_image">Attach image</string>
     <string name="option_attach_video">Attach video</string>
@@ -102,9 +103,6 @@
     <string name="settings_config_identity_server">Identity server: %s</string>
     <string name="settings_config_user_id">User ID: %s</string>
     <string name="settings_config_access_token">Access token: %s</string>
-
     <string name="settings_command_commands">The following commands are available in the room chat:\r\n\r\n /nick &#60;display_name&#62;&#58; change your display name\r\n /me &#60;action&#62;&#58; send the action you are doing. /me will be replaced by your display name\r\n /join &#60;room_alias&#62;&#58; join a room\r\n /kick &#60;user_id&#62; [&#60;reason>]&#58; kick the user\r\n /ban &#60;user_id&#62; [&#60;reason&#62;]&#58; ban the user\r\n /unban &#60;user_id&#62;&#58; unban the user\r\n /op &#60;user_id&#62; &#60;power_level&#62;&#58; set user power level\r\n /deop &#60;user_id&#62;&#58; reset user power level to the room default value</string>
-
-
-
+    <string name="settings_failed_to_upload_avatar">Failed to upload avatar</string>
 </resources>
