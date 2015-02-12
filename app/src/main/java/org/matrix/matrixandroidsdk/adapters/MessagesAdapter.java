@@ -343,7 +343,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             // display the typing icon when required
             ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
-            typingImage.setVisibility((mTypingUsers.indexOf(msg.userId) >= 0) ? View.VISIBLE : View.GONE);
+            typingImage.setVisibility((!isMyEvent && (mTypingUsers.indexOf(msg.userId) >= 0)) ? View.VISIBLE : View.GONE);
         }
 
         // if the messages are merged

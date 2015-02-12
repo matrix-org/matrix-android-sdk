@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.List;
@@ -181,6 +182,16 @@ public interface RoomsApi {
      */
     @GET("/rooms/{roomId}/state/m.room.member/{userId}")
     public void roomMember(@Path("roomId") String roomId, @Path("userId") String userId, Callback<RoomMember> callback);
+
+    /**
+     * Update the typing notification
+     * @param roomId the room id
+     * @param userId the user id
+     * @param typing the typing notification
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/typing/{userId}")
+    public void typing(@Path("roomId") String roomId, @Path("userId") String userId, @Body Typing typing, Callback<Void> callback);
 
     /**
      * Join the room with the given alias.

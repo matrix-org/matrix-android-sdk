@@ -30,13 +30,18 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
 
+import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.PUT;
+import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.
@@ -249,5 +254,23 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      */
     public void updatePowerLevels(String roomId, PowerLevels powerLevels, ApiCallback<Void> callback) {
         mApi.powerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(callback));
+    }
+
+    /**
+     * send typing notification
+     * @param roomId the room id
+     * @param userId the user id
+     *
+     * @param callback the async callback
+     */
+    public void sendTypingNotification(String roomId, String userId, boolean isTyping, int timeout,  ApiCallback<Void> callback) {
+        Typing typing = new Typing();
+        typing.typing = isTyping;
+
+        if (-1 != timeout) {
+            typing.timeout = timeout;
+        }
+
+        mApi.typing(roomId, userId, typing, new RestAdapterCallback<Void>(callback));
     }
 }

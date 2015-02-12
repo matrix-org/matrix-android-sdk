@@ -1,14 +1,14 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
-import android.app.ExpandableListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
+import android.os.Bundle;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +40,9 @@ import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 /**
  * Displays a single room with messages.
  */
@@ -50,6 +53,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
+    private static final int TYPING_TIMEOUT_MS = 10000;
 
     // defines the command line operations
     // the user can write theses messages to perform some room events
@@ -62,12 +66,16 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String CMD_SET_USER_POWER_LEVEL = "/op";
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
-
     private static final int REQUEST_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    // typing event management
+    private Timer mTypingTimer = null;
+    private TimerTask mTypingTimerTask;
+    private long  mLastTypingDate = 0;
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -200,6 +208,18 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             }
         });
 
+        final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+        editText.addTextChangedListener(new TextWatcher() {
+            public void afterTextChanged(android.text.Editable s) {
+                handleTypingNotification(editText.getText().length() != 0);
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+        });
 
         // make sure we're logged in.
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
@@ -499,5 +519,103 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         // set general room information
         setTitle(mRoom.getName(mSession.getCredentials().userId));
         setTopic(mRoom.getTopic());
+    }
+
+    /**
+     * send a typing event notification
+     * @param isTyping typing param
+     */
+    void handleTypingNotification(boolean isTyping) {
+        int notificationTimeoutMS = -1;
+        if (isTyping) {
+            // Check whether a typing event has been already reported to server (We wait for the end of the local timout before considering this new event)
+            if (null != mTypingTimer) {
+                // Refresh date of the last observed typing
+                System.currentTimeMillis();
+                mLastTypingDate = System.currentTimeMillis();
+                return;
+            }
+
+            int timerTimeoutInMs = TYPING_TIMEOUT_MS;
+
+            if (0 != mLastTypingDate) {
+                long lastTypingAge = System.currentTimeMillis() - mLastTypingDate;
+                if (lastTypingAge < timerTimeoutInMs) {
+                    // Subtract the time interval since last typing from the timer timeout
+                    timerTimeoutInMs -= lastTypingAge;
+                } else {
+                    timerTimeoutInMs = 0;
+                }
+            } else {
+                // Keep date of this typing event
+                mLastTypingDate = System.currentTimeMillis();
+            }
+
+            if (timerTimeoutInMs > 0) {
+                mTypingTimer = new Timer();
+                mTypingTimerTask = new TimerTask() {
+                    public void run() {
+                        if (mTypingTimerTask != null) {
+                            mTypingTimerTask.cancel();
+                            mTypingTimerTask = null;
+                        }
+
+                        if (mTypingTimer != null) {
+                            mTypingTimer.cancel();
+                            mTypingTimer = null;
+                        }
+                        // Post a new typing notification
+                        RoomActivity.this.handleTypingNotification(0 != mLastTypingDate);
+                    }
+                };
+                mTypingTimer.schedule(mTypingTimerTask, TYPING_TIMEOUT_MS);
+
+                // Compute the notification timeout in ms (consider the double of the local typing timeout)
+                notificationTimeoutMS = TYPING_TIMEOUT_MS * 2;
+            } else {
+                // This typing event is too old, we will ignore it
+                isTyping = false;
+            }
+        }
+        else {
+            // Cancel any typing timer
+            if (mTypingTimerTask != null) {
+                mTypingTimerTask.cancel();
+                mTypingTimerTask = null;
+            }
+
+            if (mTypingTimer != null) {
+                mTypingTimer.cancel();
+                mTypingTimer = null;
+            }
+            // Reset last typing date
+            mLastTypingDate = 0;
+        }
+
+        final boolean typingStatus = isTyping;
+
+        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                // Reset last typing date
+                mLastTypingDate = 0;
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (mTypingTimerTask != null) {
+                    mTypingTimerTask.cancel();
+                    mTypingTimerTask = null;
+                }
+
+                if (mTypingTimer != null) {
+                    mTypingTimer.cancel();
+                    mTypingTimer = null;
+                }
+
+                // Send again
+                RoomActivity.this.handleTypingNotification(typingStatus);
+            }
+        });
     }
 }

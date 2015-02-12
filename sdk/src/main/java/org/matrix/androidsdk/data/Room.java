@@ -76,6 +76,8 @@ public class Room {
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
 
+    private String mMyUserId = null;
+
     // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
     // This is needed to find the right one when removing the listener.
     private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
@@ -129,6 +131,8 @@ public class Room {
     public void setVisibility(String visibility) {
         mLiveState.visibility = visibility;
     }
+
+    public void setMyUserId(String userId) { mMyUserId = userId; }
 
     /**
      * Set the data retriever for storage/server requests.
@@ -443,5 +447,14 @@ public class Room {
      */
     public ArrayList<String> getTypingUsers() {
         return (null == mTypingUsers) ? new ArrayList<String>() : mTypingUsers;
+    }
+
+    /**
+     * Send a typing notification
+     * @param isTyping typing status
+     * @param timeout the typing timeout
+     */
+    public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
     }
 }

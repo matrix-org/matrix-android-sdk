@@ -253,6 +253,7 @@ public class MXDataHandler implements IMXEventListener {
             room.setRoomId(roomId);
             room.setDataHandler(this);
             room.setDataRetriever(mDataRetriever);
+            room.setMyUserId(mCredentials.userId);
             mStore.storeRoom(room);
         }
         return room;
