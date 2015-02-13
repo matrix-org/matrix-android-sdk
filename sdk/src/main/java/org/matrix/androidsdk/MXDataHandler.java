@@ -216,16 +216,8 @@ public class MXDataHandler implements IMXEventListener {
             if (event.stateKey != null) {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
-            if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                mStore.storeLiveRoomEvent(event);
-                mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
-            }
 
-            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                if (event.redacts != null) {
-                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
-                }
-            }
+            storeLiveRoomEvent(event);
 
             onLiveEvent(event, beforeState);
 
@@ -257,6 +249,27 @@ public class MXDataHandler implements IMXEventListener {
             mStore.storeRoom(room);
         }
         return room;
+    }
+
+    /**
+     * Store a live room event.
+     * @param event The event to be stored.
+     */
+    public void storeLiveRoomEvent(Event event) {
+        Room room = getRoom(event.roomId);
+        // The room state we send with the callback is the one before the current event was processed
+        RoomState beforeState = room.getLiveState().deepCopy();
+
+        if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+            mStore.storeLiveRoomEvent(event);
+            mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
+        }
+
+        if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+            if (event.redacts != null) {
+                mStore.updateEventContent(event.roomId, event.redacts, event.content);
+            }
+        }
     }
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners

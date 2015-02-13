@@ -121,7 +121,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 final MessageRow messageRow = mAdapter.getItem(position);
                 final List<Integer> options = new ArrayList<Integer>();
-                if (messageRow.getSentState() == MessageRow.SentState.NOT_SENT) {
+                if ((messageRow.getSentState() == MessageRow.SentState.NOT_SENT) || (messageRow.getEvent().isUnsent)) {
                     options.add(OPTION_RESEND);
                 } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
                     options.add(OPTION_REDACT);
@@ -266,34 +266,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
             @Override
-            public void onSuccess(Event info) {
+            public void onSuccess(Event event) {
                 mAdapter.remove(tmpRow);
-                mAdapter.add(info, mRoom.getLiveState());
-                // NotifyOnChange has been disabled to avoid useless refreshes
+                mAdapter.add(event, mRoom.getLiveState());
+
+                if (event.isUnsent) {
+                    if (null != event.unsentException) {
+                        Toast.makeText(getActivity(), "Unable to send message.", Toast.LENGTH_LONG).show();
+                    } else if (null != event.unsentMatrixError) {
+                        Toast.makeText(getActivity(), "Unable to send message. " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                    }
+                }
+
                 mAdapter.notifyDataSetChanged();
             }
 
-            private void markError() {
-                tmpRow.setSentState(MessageRow.SentState.NOT_SENT);
-                mAdapter.notifyDataSetChanged();
-            }
-
+            // theses 3 methods will never be called
             @Override
             public void onNetworkError(Exception e) {
-                markError();
-                Toast.makeText(getActivity(), "Unable to send message. Connection error.", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                markError();
-                Toast.makeText(getActivity(), "Unable to send message. " + e.error + ".", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                markError();
-                Toast.makeText(getActivity(), "Unable to send message.", Toast.LENGTH_LONG).show();
             }
         });
 

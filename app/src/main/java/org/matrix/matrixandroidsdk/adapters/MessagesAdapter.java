@@ -414,7 +414,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textColor = notSentColor;
                 break;
             default:
-                textColor = EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor;
+                textColor = row.getEvent().isUnsent ? notSentColor : (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
         }
         bodyTextView.setTextColor(textColor);
 

@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.widget.Toast;
+
 import com.google.gson.JsonObject;
 
 /**
@@ -51,4 +53,10 @@ public class Event {
 
     // Specific to redactions
     public String redacts;
+
+    // unsent message management
+    public boolean isUnsent = false;
+    // store the exception triggered when unsent
+    public Exception unsentException = null;
+    public MatrixError unsentMatrixError = null;
 }

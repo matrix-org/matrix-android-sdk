@@ -246,11 +246,54 @@ public class Room {
 
     /**
      * Send a message to the room.
+     * The error callbacks will never been called
+     * The provided event contains the error description.
      * @param message the message
      * @param callback the callback with the created event
      */
-    public void sendMessage(Message message, ApiCallback<Event> callback) {
-        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, message, callback);
+    public void sendMessage(final Message message, final ApiCallback<Event> callback) {
+        final ApiCallback<Event> localCB = new ApiCallback<Event>() {
+                @Override
+                public void onSuccess(Event info) {
+                    callback.onSuccess(info);
+                }
+
+                private Event storeUnsentMessage() {
+                    Event dummyEvent = new Event();
+                    dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
+                    dummyEvent.content = JsonUtils.toJson(message);
+                    dummyEvent.originServerTs = System.currentTimeMillis();
+                    dummyEvent.userId = mMyUserId;
+                    dummyEvent.isUnsent = true;
+                    dummyEvent.roomId = mRoomId;
+                    mDataHandler.storeLiveRoomEvent(dummyEvent);
+
+                    return dummyEvent;
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    Event event = storeUnsentMessage();
+                    event.unsentException = e;
+                    callback.onSuccess(event);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Event event = storeUnsentMessage();
+                    event.unsentMatrixError = e;
+                    callback.onSuccess(event);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Event event = storeUnsentMessage();
+                    event.unsentException = e;
+                    callback.onSuccess(event);
+                }
+            };
+
+        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, message, localCB);
     }
 
     /**
