@@ -248,9 +248,10 @@ public class MatrixMessagesFragment extends Fragment {
     /**
      * Request earlier messages in this room.
      * @param callback the callback
+     * @return true if the request is really started
      */
-    public void requestHistory(ApiCallback<Integer> callback) {
-        mRoom.requestHistory(callback);
+    public boolean requestHistory(ApiCallback<Integer> callback) {
+        return mRoom.requestHistory(callback);
     }
 
     public void send(Message message, ApiCallback<Event> callback) {

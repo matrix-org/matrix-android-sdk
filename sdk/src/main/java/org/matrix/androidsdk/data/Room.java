@@ -299,12 +299,13 @@ public class Room {
     /**
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @return true if request starts
      */
-    public void requestHistory(final ApiCallback<Integer> callback) {
+    public boolean requestHistory(final ApiCallback<Integer> callback) {
         if (isPaginating // One at a time please
                 || !canStillPaginate // If we have already reached the end of history
                 || !isReady) { // If the room is not finished being set up
-            return;
+            return false;
         }
         isPaginating = true;
         mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
@@ -348,13 +349,16 @@ public class Room {
                 super.onUnexpectedError(e);
             }
         });
+
+        return true;
     }
 
     /**
      * Shorthand for {@link #requestHistory(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
+     * @return true if the request starts
      */
-    public void requestHistory() {
-        requestHistory(null);
+    public boolean requestHistory() {
+        return requestHistory(null);
     }
 
     /**

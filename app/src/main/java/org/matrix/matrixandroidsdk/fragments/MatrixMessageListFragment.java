@@ -341,9 +341,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-            displayLoadingProgress();
-
-            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
+            boolean isStarted = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
                 @Override
                 public void onSuccess(final Integer count) {
                     dismissLoadingProgress();
@@ -404,6 +402,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mIsCatchingUp = false;
                 }
             });
+
+            if (isStarted) {
+                displayLoadingProgress();
+            }
         }
     }
 
