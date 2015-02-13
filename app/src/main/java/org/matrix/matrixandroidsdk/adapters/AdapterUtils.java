@@ -235,7 +235,7 @@ public class AdapterUtils {
 
     public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
-        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_CROP);
+        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
         imageView.setTag(downloadableUrl);
 
         // check if the bitmap is already cached
