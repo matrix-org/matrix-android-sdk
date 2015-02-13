@@ -52,8 +52,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private static final int ROW_TYPE_NOTICE = 2;
     private static final int ROW_TYPE_EMOTE = 3;
 
-    private static final int MAX_IMAGE_WIDTH = 320;
-
     private static final String LOG_TAG = "MessagesAdapter";
 
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -448,22 +446,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
-        if (imageInfo != null) {
-            // Bound the width of the thumbnail
-            int w, h;
-            if (imageInfo.w > MAX_IMAGE_WIDTH) {
-                w = MAX_IMAGE_WIDTH;
-                h = imageInfo.h * MAX_IMAGE_WIDTH / imageInfo.w;
-            }
-            else {
-                w = imageInfo.w;
-                h = imageInfo.h;
-            }
-            AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, w, h);
-        }
-        else {
-            AdapterUtils.loadBitmap(imageView, thumbUrl);
-        }
+        int maxImageWidth = parent.getWidth() / 2;
+        int maxImageHeight = parent.getHeight() / 2;
+        AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+        // The API doesn't make any strong guarantees about the thumbnail size, so also scale
+        // locally if needed.
+        imageView.setMaxWidth(maxImageWidth);
+        imageView.setMaxHeight(maxImageHeight);
 
         if ((imageMessage != null) && (imageMessage.url != null)) {
             imageView.setOnClickListener(new View.OnClickListener() {
