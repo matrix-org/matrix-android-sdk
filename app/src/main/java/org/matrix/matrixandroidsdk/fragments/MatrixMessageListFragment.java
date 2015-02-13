@@ -446,6 +446,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
+    public void onDeletedEvent(Event event) {
+        mAdapter.removeEventById(event.eventId);
+    }
+
+    @Override
     public void onInitialMessagesLoaded() {
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {

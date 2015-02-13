@@ -47,6 +47,7 @@ public class MatrixMessagesFragment extends Fragment {
     public static interface MatrixMessagesListener {
         public void onLiveEvent(Event event, RoomState roomState);
         public void onBackEvent(Event event, RoomState roomState);
+        public void onDeletedEvent(Event event);
 
         /**
          * Called when the first batch of messages is loaded.
@@ -104,6 +105,12 @@ public class MatrixMessagesFragment extends Fragment {
             public void onBackEvent(Event event, RoomState roomState) {
                 mMatrixMessagesListener.onBackEvent(event, roomState);
             }
+
+            @Override
+            public void onDeletedEvent(Event event)  {
+                mMatrixMessagesListener.onDeletedEvent(event);
+            }
+
         };
 
         mRoom.addEventListener(mEventListener);

@@ -43,7 +43,10 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onBingEvent(Event event, RoomState roomState) {
+    }
 
+    @Override
+    public void onDeletedEvent(Event event) {
     }
 
     @Override

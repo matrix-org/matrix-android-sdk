@@ -26,6 +26,12 @@ public interface IMXStore {
     public void storeLiveRoomEvent(Event event);
 
     /**
+     * Delete an event
+     * @param event The event to be deleted.
+     */
+    public void deleteEvent(Event event);
+
+    /**
      * Store a block of room events either live or from pagination.
      * @param roomId the room id
      * @param eventsResponse The events to be stored.
@@ -47,6 +53,13 @@ public interface IMXStore {
      * @return the event
      */
     public Event getOldestEvent(String roomId);
+
+    /**
+     * Get the latest event from the given room (to update summary for example)
+     * @param roomId the room id
+     * @return the event
+     */
+    public Event getLatestEvent(String roomId);
 
     /**
      * Update an existing event. If the event is not stored, nothing is done.
@@ -82,4 +95,13 @@ public interface IMXStore {
      * @param selfUserId our own user id - used to display the room name
      */
     public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
+
+    /**
+     * Return the list of latest unsent events.
+     * The provided events are the unsent ones since the last sent one.
+     * They are ordered.
+     * @param roomId the room id
+     * @return list of unsent events
+     */
+    public Collection<Event> getLatestUnsentEvents(String roomId);
 }

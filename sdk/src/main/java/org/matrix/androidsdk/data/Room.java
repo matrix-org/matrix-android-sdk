@@ -15,7 +15,9 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.os.Looper;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -41,9 +43,13 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Handler;
+
+import retrofit.RetrofitError;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -200,6 +206,15 @@ public class Room {
                     eventListener.onBackEvent(event, roomState);
                 }
             }
+
+            @Override
+            public void onDeletedEvent(Event event) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(event.roomId)) {
+                    eventListener.onDeletedEvent(event);
+                }
+            }
+
         };
         mEventListeners.put(eventListener, globalListener);
         mDataHandler.addListener(globalListener);
@@ -266,6 +281,8 @@ public class Room {
                     dummyEvent.userId = mMyUserId;
                     dummyEvent.isUnsent = true;
                     dummyEvent.roomId = mRoomId;
+                    // create a dummy identifier
+                    dummyEvent.eventId = mRoomId + "-" + dummyEvent.originServerTs;
                     mDataHandler.storeLiveRoomEvent(dummyEvent);
 
                     return dummyEvent;
@@ -503,5 +520,69 @@ public class Room {
      */
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
+    }
+
+    /**
+     * Resend the unsend messages
+     */
+    public void resendUnsentEvents() {
+        Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
+
+        // something to resend
+        if (events.size() > 0) {
+            ArrayList<Event> eventsList = new ArrayList<Event>(events);
+            ArrayList<Event> unsentEvents = new ArrayList<Event>();
+
+            // check if some events are already sending
+            // to avoid send them twice
+            // some network issues could happen
+            // eg connected send some unsent messages but do not send all of them
+            // deconnected -> connected : some messages could be sent twice
+            for(Event event : eventsList){
+                if (!event.isSending) {
+                    event.isSending = true;
+                    unsentEvents.add(event);
+                }
+            }
+
+            resendEventsList(unsentEvents, 0);
+        }
+    }
+
+    /**
+     * Resend events list.
+     * Wait that the event is resent before sending the next one
+     * to keep the genuine order
+     */
+    private void resendEventsList(final ArrayList<Event> evensList, final int index) {
+        if ((evensList.size() > 0) && (index < evensList.size())) {
+            final Event oldEvent = evensList.get(index);
+
+            sendMessage(JsonUtils.toMessage(oldEvent.content), new ApiCallback<Event>() {
+                @Override
+                public void onSuccess(Event sentEvent) {
+                    oldEvent.isSending = false;
+                    mDataHandler.deleteRoomEvent(oldEvent);
+                    mDataHandler.onDeletedEvent(oldEvent);
+                    mDataHandler.onLiveEvent(sentEvent, getLiveState());
+
+					// send the next one
+                    Room.this.resendEventsList(evensList, index + 1);
+                }
+
+                // theses 3 methods will never be called
+                @Override
+                public void onNetworkError(Exception e) {
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                }
+            });
+        }
     }
 }

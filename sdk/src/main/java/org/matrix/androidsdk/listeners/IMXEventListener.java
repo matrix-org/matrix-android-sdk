@@ -52,6 +52,13 @@ public interface IMXEventListener {
     public void onBingEvent(Event event, RoomState roomState);
 
     /**
+     * An event has been deleted
+     *
+     * @param event the event
+     */
+    public void onDeletedEvent(Event event);
+
+    /**
      * The bing rules have been updated
      *
      */

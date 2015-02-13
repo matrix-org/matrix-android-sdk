@@ -614,9 +614,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     mTypingTimer.cancel();
                     mTypingTimer = null;
                 }
-
-                // Send again
-                RoomActivity.this.handleTypingNotification(typingStatus);
+                // do not send again
+                // assume that the typing event is optional
             }
         });
     }

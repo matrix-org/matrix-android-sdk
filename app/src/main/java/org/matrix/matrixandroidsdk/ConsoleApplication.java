@@ -33,7 +33,6 @@ public class ConsoleApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
         mActivityTransitionTimer = null;
         mActivityTransitionTimerTask = null;
         wasInBackground = false;

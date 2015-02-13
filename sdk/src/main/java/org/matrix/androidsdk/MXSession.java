@@ -15,11 +15,16 @@
  */
 package org.matrix.androidsdk;
 
+import android.content.Context;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -29,6 +34,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -36,6 +42,10 @@ import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.JsonUtils;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -62,6 +72,9 @@ public class MXSession {
 
     private ContentManager mContentManager;
 
+    private Context mAppContent;
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
     /**
      * Create a basic session for direct API calls.
      * @param credentials the user credentials
@@ -82,8 +95,9 @@ public class MXSession {
      * Create a user session with a data handler.
      * @param dataHandler the data handler
      * @param credentials the user credentials
+     * @param appContext the application context
      */
-    public MXSession(MXDataHandler dataHandler, Credentials credentials) {
+    public MXSession(MXDataHandler dataHandler, Credentials credentials, Context appContext) {
         this(credentials);
         mDataHandler = dataHandler;
 
@@ -93,6 +107,23 @@ public class MXSession {
         mDataHandler.setDataRetriever(mDataRetriever);
 
         mDataHandler.setPushRulesManager(new BingRulesManager(this));
+
+        // application context
+        mAppContent = appContext;
+
+        mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
+        mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
+        // add a default listener
+        // to resend the unsent messages
+        mNetworkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
+            @Override
+            public void onNetworkConnectionUpdate(boolean isConnected) {
+                if (isConnected) {
+                    MXSession.this.resendUnsentMessages();
+                }
+            }
+        });
     }
 
     /**
@@ -300,6 +331,17 @@ public class MXSession {
                     callback.onSuccess(roomResponse.roomId);
                 }
             });
+        }
+    }
+
+    /**
+     * Resend the unsent message
+     */
+    private void resendUnsentMessages() {
+        Collection<Room> rooms = mDataHandler.getStore().getRooms();
+
+        for(Room room : rooms) {
+            room.resendUnsentEvents();
         }
     }
 }

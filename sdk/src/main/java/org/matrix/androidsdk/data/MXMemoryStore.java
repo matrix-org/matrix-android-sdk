@@ -14,7 +14,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -72,6 +74,29 @@ public class MXMemoryStore implements IMXStore {
         return null;
     }
 
+    /**
+     * Get the latest event from the given room (to update summary for example)
+     * @param roomId the room id
+     * @return the event
+     */
+    public Event getLatestEvent(String roomId) {
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+        if (events != null) {
+            Iterator<Event> it = events.values().iterator();
+            if (it.hasNext()) {
+                Event lastEvent = null;
+
+                while(it.hasNext()) {
+                    lastEvent = it.next();
+                }
+
+                return lastEvent;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void storeLiveRoomEvent(Event event) {
         LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
@@ -79,6 +104,14 @@ public class MXMemoryStore implements IMXStore {
             // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
             // wait for the first pagination request to set things right
             events.put(event.eventId, event);
+        }
+    }
+
+    @Override
+    public void deleteEvent(Event event) {
+        LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+        if ((events != null) && (event.eventId != null)) {
+            events.remove(event.eventId);
         }
     }
 
@@ -145,7 +178,7 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
         Room room = mRooms.get(roomId);
-        if (room != null) { // Should always be the case
+        if ((room != null) && (event != null)) { // Should always be true
             RoomSummary summary = mRoomSummaries.get(roomId);
             if (summary == null) {
                 summary = new RoomSummary();
@@ -188,5 +221,36 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public RoomSummary getSummary(String roomId) {
         return mRoomSummaries.get(roomId);
+    }
+
+    /**
+     * Return the list of latest unsent events.
+     * The provided events are the unsent ones since the last sent one.
+     * They are ordered.
+     * @param roomId the room id
+     * @return list of unsent events
+     */
+    public Collection<Event> getLatestUnsentEvents(String roomId) {
+        ArrayList<Event> unsentRoomEvents = new ArrayList<Event>();
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+        // contain some events
+        if ((null != events) && (events.size() > 0)) {
+            ArrayList<Event>eventsList = new ArrayList(events.values());
+
+            for(int index = events.size()-1; index >= 0; index--) {
+                Event event = eventsList.get(index);
+
+                if (event.isUnsent) {
+                    unsentRoomEvents.add(event);
+                } else {
+                    //break;
+                }
+            }
+
+            Collections.reverse(unsentRoomEvents);
+        }
+
+        return unsentRoomEvents;
     }
 }

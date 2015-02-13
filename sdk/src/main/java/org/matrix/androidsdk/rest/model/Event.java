@@ -59,4 +59,8 @@ public class Event {
     // store the exception triggered when unsent
     public Exception unsentException = null;
     public MatrixError unsentMatrixError = null;
+
+    // message is currently sent to the server
+    public boolean isSending = false;
+
 }

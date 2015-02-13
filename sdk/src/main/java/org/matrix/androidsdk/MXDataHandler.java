@@ -257,18 +257,36 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void storeLiveRoomEvent(Event event) {
         Room room = getRoom(event.roomId);
-        // The room state we send with the callback is the one before the current event was processed
-        RoomState beforeState = room.getLiveState().deepCopy();
 
-        if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
-            mStore.storeLiveRoomEvent(event);
-            mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
-        }
+        // sanity check
+        if (null != room) {
+            // The room state we send with the callback is the one before the current event was processed
+            RoomState beforeState = room.getLiveState().deepCopy();
 
-        if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-            if (event.redacts != null) {
-                mStore.updateEventContent(event.roomId, event.redacts, event.content);
+            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                if (event.redacts != null) {
+                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
+                }
+            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                mStore.storeLiveRoomEvent(event);
+                mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
             }
+        }
+    }
+
+    /**
+     * Delete an event.
+     * @param event The event to be stored.
+     */
+    public void deleteRoomEvent(Event event) {
+        Room room = getRoom(event.roomId);
+
+        if (null != room) {
+            mStore.deleteEvent(event);
+            Event lastEvent = mStore.getLatestEvent(event.roomId);
+            RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+
+            mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
         }
     }
 
@@ -302,6 +320,12 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    @Override
+    public void onDeletedEvent(Event event) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onDeletedEvent(event);
+        }
+    }
 
     @Override
     public void onBingRulesUpdate() {

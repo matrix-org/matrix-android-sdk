@@ -21,10 +21,12 @@ public class Matrix {
 
     private LoginStorage mLoginStorage;
     private MXSession mDefaultSession;
+    private Context mAppContext;
 
     protected Matrix(Context appContext) {
-        mLoginStorage = new LoginStorage(appContext.getApplicationContext());
-        RageShake.getInstance().start(appContext.getApplicationContext());
+        mAppContext = appContext.getApplicationContext();
+        mLoginStorage = new LoginStorage(mAppContext);
+        RageShake.getInstance().start(mAppContext);
     }
 
     public synchronized static Matrix getInstance(Context appContext) {
@@ -101,7 +103,7 @@ public class Matrix {
                 credentials.homeServer = "http://" + credentials.homeServer;
             }
         }
-        return new MXSession(new MXDataHandler(new MXMemoryStore(), credentials), credentials);
+        return new MXSession(new MXDataHandler(new MXMemoryStore(), credentials), credentials, mAppContext);
     }
 
     /**
