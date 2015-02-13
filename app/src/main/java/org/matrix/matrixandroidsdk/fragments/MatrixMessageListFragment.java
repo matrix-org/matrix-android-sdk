@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,12 +30,15 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import retrofit.RetrofitError;
 
 /**
  * UI Fragment containing matrix messages for a given room.
@@ -53,6 +57,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+    private static final String LOG_TAG = "ErrorListener";
 
     // listener to warn activity that the initial sync is done
     private MatrixMessageListFragmentListener mMatrixMessageListFragmentListener = null;
@@ -272,7 +277,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (event.isUnsent) {
                     if (null != event.unsentException) {
-                        Toast.makeText(getActivity(), "Unable to send message.", Toast.LENGTH_LONG).show();
+                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError)event.unsentException).isNetworkError())  {
+                            Toast.makeText(getActivity(), "Unable to send message (Network error)", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(getActivity(), "Unable to send message. " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        }
                     } else if (null != event.unsentMatrixError) {
                         Toast.makeText(getActivity(), "Unable to send message. " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
                     }
@@ -300,15 +309,45 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.notifyDataSetChanged();
     }
 
+    private void displayLoadingProgress() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+
+                if (null != progressView) {
+                    progressView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void dismissLoadingProgress() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+
+                if (null != progressView) {
+                    progressView.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
     public void requestHistory() {
         // avoid launching catchup if there is already one in progress
         if (!mIsCatchingUp) {
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
 
+            displayLoadingProgress();
+
             mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
                 @Override
                 public void onSuccess(final Integer count) {
+                    dismissLoadingProgress();
+
                     // Scroll the list down to where it was before adding rows to the top
                     mUiHandler.post(new Runnable() {
                         @Override
@@ -321,6 +360,48 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mIsCatchingUp = false;
                         }
                     });
+                }
+
+                // TODO manage auto restart
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "Network error: " + e.getMessage());
+
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), "Network error", Toast.LENGTH_SHORT).show();
+                            MatrixMessageListFragment.this.dismissLoadingProgress();
+                            mIsCatchingUp = false;
+                        }
+                    });
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
+                    // The access token was not recognized: log out
+                    if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
+                        CommonActivityUtils.logout(MatrixMessageListFragment.this.getActivity());
+                    }
+
+                    final MatrixError matrixError = e;
+
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), "Matrix error : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                            MatrixMessageListFragment.this.dismissLoadingProgress();
+                            mIsCatchingUp = false;
+                        }
+                    });
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+                    MatrixMessageListFragment.this.dismissLoadingProgress();
+                    mIsCatchingUp = false;
                 }
             });
         }

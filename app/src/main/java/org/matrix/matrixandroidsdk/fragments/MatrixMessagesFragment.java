@@ -4,6 +4,8 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -13,9 +15,12 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 
 /**
  * A non-UI fragment containing logic for extracting messages from a room, including handling
@@ -118,11 +123,78 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.removeEventListener(mEventListener);
     }
 
+    private void displayLoadingProgress() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+
+                if ((null != progressView) && (progressView.getVisibility() != View.VISIBLE)) {
+                    progressView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void dismissLoadingProgress() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+
+                if (null != progressView) {
+                    progressView.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
     private void joinRoom() {
+        displayLoadingProgress();
+
         mRoom.join(new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 requestInitialHistory();
+            }
+
+            // TODO manage auto restart
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "Network error: " + e.getMessage());
+
+                MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), "Network error", Toast.LENGTH_SHORT).show();
+                        MatrixMessagesFragment.this.dismissLoadingProgress();
+                    }
+                });
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
+                // The access token was not recognized: log out
+                if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
+                    CommonActivityUtils.logout(MatrixMessagesFragment.this.getActivity());
+                }
+
+                final MatrixError matrixError = e;
+
+                MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), "Matrix error : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                        MatrixMessagesFragment.this.dismissLoadingProgress();
+                    }
+                });
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+                MatrixMessagesFragment.this.dismissLoadingProgress();
             }
         });
     }
@@ -131,10 +203,33 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     private void requestInitialHistory() {
+        displayLoadingProgress();
+
+        // TODO add auto join when the network comes back
+
         requestHistory(new SimpleApiCallback<Integer>() {
             @Override
             public void onSuccess(Integer info) {
+                MatrixMessagesFragment.this.dismissLoadingProgress();
                 mMatrixMessagesListener.onInitialMessagesLoaded();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                MatrixMessagesFragment.this.dismissLoadingProgress();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Toast.makeText(getActivity(), e.error, Toast.LENGTH_LONG).show();
+                MatrixMessagesFragment.this.dismissLoadingProgress();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                MatrixMessagesFragment.this.dismissLoadingProgress();
+                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }

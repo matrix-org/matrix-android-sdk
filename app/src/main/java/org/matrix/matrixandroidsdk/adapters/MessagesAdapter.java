@@ -537,7 +537,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textColor = notSentColor;
                 break;
             default:
-                textColor = emoteColor;
+                textColor = row.getEvent().isUnsent ? notSentColor : emoteColor;
         }
         emoteTextView.setTextColor(textColor);
 
