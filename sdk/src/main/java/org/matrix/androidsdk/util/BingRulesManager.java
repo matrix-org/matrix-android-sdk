@@ -107,8 +107,8 @@ public class BingRulesManager {
                 }
             }
         }
-        // The default is to bing
-        return true;
+        // The default is not to bing
+        return false;
     }
 
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {
