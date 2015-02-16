@@ -54,16 +54,7 @@ public class EventStreamService extends Service {
     private MXSession mSession;
     private StreamAction mState = StreamAction.UNKNOWN;
 
-    private static ArrayList<String> mUnnotifiedRooms = new ArrayList<String>();
-
-    private AlertDialog mAlertDialog = null;
-
     private MXEventListener mListener = new MXEventListener() {
-
-        @Override
-        public void onBingRulesUpdate() {
-            mUnnotifiedRooms = new ArrayList<String>();
-        }
 
         @Override
         public void onBingEvent(Event event, RoomState roomState) {
@@ -83,68 +74,11 @@ public class EventStreamService extends Service {
 
             final String body = event.content.getAsJsonPrimitive("body").getAsString();
 
-            if (null != ConsoleApplication.getCurrentActivity()) {
-
-                final Activity activity = ConsoleApplication.getCurrentActivity();
-
-                // the user decided to ignore any notification from this room
-                if (mUnnotifiedRooms.indexOf(roomId) >= 0) {
-                    return;
-                }
-
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        String title = "";
-
-                        if (null != mSession.getDataHandler()) {
-                            Room room = mSession.getDataHandler().getRoom(roomId);
-
-                            if (null != room) {
-                                title = room.getName(mSession.getCredentials().userId);
-                            }
-                        }
-
-                        if (null != mAlertDialog) {
-                            mAlertDialog.dismiss();
-                        }
-
-                        // The user is trying to leave with unsaved changes. Warn about that
-                        mAlertDialog = new AlertDialog.Builder(activity)
-                                .setTitle(title)
-                                .setMessage(body)
-                                .setPositiveButton(getResources().getString(R.string.view), new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.dismiss();
-                                        CommonActivityUtils.goToRoomPage(roomId, activity);
-                                    }
-                                })
-                                .setNegativeButton(getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.dismiss();
-
-                                        // the user will ignore any event until the application is debackgrounded
-                                        if (mUnnotifiedRooms.indexOf(roomId) < 0) {
-                                            mUnnotifiedRooms.add(roomId);
-                                        }
-                                    }
-                                })
-                                .create();
-
-                        mAlertDialog .show();
-                    }
-                });
-            } else {
-                Notification n = buildMessageNotification(from, body, event.roomId);
-                NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
-                Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
-                nm.notify(MSG_NOTIFICATION_ID, n);
-            }
-//            }
+            Notification n = buildMessageNotification(from, body, event.roomId);
+            NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+            Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
+            nm.notify(MSG_NOTIFICATION_ID, n);
         }
-
     };
 
     @Override
@@ -281,11 +215,5 @@ public class EventStreamService extends Service {
                 pi);
         notification.flags |= Notification.FLAG_NO_CLEAR;
         return notification;
-    }
-
-    public static void acceptAlertNotificationsFrom(String RoomId) {
-        if (null != RoomId) {
-            mUnnotifiedRooms.remove(RoomId);
-        }
     }
 }

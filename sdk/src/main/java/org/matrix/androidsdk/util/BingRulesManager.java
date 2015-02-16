@@ -84,9 +84,20 @@ public class BingRulesManager {
      * @return true to bing, false otherwise
      */
     public boolean shouldBing(Event event) {
+        // sanity check
+        if (null == event) {
+            return false;
+        }
+
         if (!isReady) {
             return false;
         }
+
+        // do not trigger notification for oneself messages
+        if ((null != event.userId) && (event.userId.equals(mMyUserId))) {
+            return false;
+        }
+
         if (mRules != null) {
             // Go down the rule list until we find a match
             for (BingRule bingRule : mRules) {

@@ -278,9 +278,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
         MyPresenceManager.getInstance(this).advertiseOnline();
 
-        // allow to display new message alert for incoming message
-        EventStreamService.acceptAlertNotificationsFrom(mRoom.getRoomId());
-
         // warn when the initial sync is performed
         // The events listeners are not triggered until the room initial sync is done.
         // So, the room name might be invalid until this first sync.
