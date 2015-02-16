@@ -143,7 +143,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             dialog.cancel();
                                             break;
                                         case OPTION_RESEND:
-                                            Message message = JsonUtils.toMessage(messageRow.getEvent().content);
+                                            Event event = messageRow.getEvent();
+                                            mAdapter.removeEventById(event.eventId);
+                                            Message message = JsonUtils.toMessage(event.content);
                                             send(message);
                                             break;
                                         case OPTION_REDACT:
