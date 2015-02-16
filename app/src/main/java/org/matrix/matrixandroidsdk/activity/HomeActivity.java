@@ -110,8 +110,8 @@ public class HomeActivity extends MXCActionBarActivity {
                             summary.setName(room.getName(mSession.getCredentials().userId));
                         }
 
-                        // If we're not currently viewing this room, increment the unread count
-                        if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+                        // If we're not currently viewing this room or not sent by myself, increment the unread count
+                        if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
                             mAdapter.incrementUnreadCount(event.roomId);
                         }
 
