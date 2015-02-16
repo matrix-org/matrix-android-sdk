@@ -35,7 +35,12 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     @Override
     public void success(T t, Response response) {
-        apiCallback.onSuccess(t);
+        // add try catch to prevent application crashes while managing destroyed object
+        try {
+            apiCallback.onSuccess(t);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
+        }
     }
 
     /**
@@ -46,7 +51,11 @@ public class RestAdapterCallback<T> implements Callback<T> {
     public void failure(RetrofitError error) {
         Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
         if (error.isNetworkError()) {
-            apiCallback.onNetworkError(error);
+            try {
+                apiCallback.onNetworkError(error);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+            }
         }
         else {
             // Try to convert this into a Matrix error
@@ -58,10 +67,18 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 mxError = null;
             }
             if (mxError != null) {
-                apiCallback.onMatrixError(mxError);
+                try {
+                    apiCallback.onMatrixError(mxError);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                }
             }
             else {
-                apiCallback.onUnexpectedError(error);
+                try {
+                    apiCallback.onUnexpectedError(error);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                }
             }
         }
     }
