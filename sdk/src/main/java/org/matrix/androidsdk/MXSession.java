@@ -114,6 +114,12 @@ public class MXSession {
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
+        mEventsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mProfileRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mPresenceRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mRoomsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mBingRulesRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+
         // add a default listener
         // to resend the unsent messages
         mNetworkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {

@@ -15,10 +15,13 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.util.Log;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -36,18 +39,14 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
 
-import retrofit.Callback;
-import retrofit.RestAdapter;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.
  */
 public class RoomsRestClient extends RestClient<RoomsApi> {
 
+    private static final String LOG_TAG = "RoomsRestClient";
     protected static final int MESSAGES_PAGINATION_LIMIT = 15;
 
     /**
@@ -64,7 +63,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendMessage(String roomId, Message message, ApiCallback<Event> callback) {
-        mApi.sendMessage(roomId, message, new RestAdapterCallback<Event>(callback));
+        // the messages have their dedicated method in MXSession to be resent if there is no avaliable network
+        mApi.sendMessage(roomId, message, new RestAdapterCallback<Event>(callback, null));
     }
 
     /**
@@ -74,8 +74,24 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param content the event content
      * @param callback the callback containing the created event if successful
      */
-    public void sendEvent(String roomId, String eventType, JsonObject content, ApiCallback<Event> callback) {
-        mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(callback));
+    public void sendEvent(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
+
+        mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend sendEvent " + roomId);
+
+                        sendEvent(roomId, eventType, content, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -83,8 +99,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getLatestRoomMessages(String roomId, ApiCallback<TokensChunkResponse<Event>> callback) {
-        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(callback));
+    public void getLatestRoomMessages(final String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend getLatestRoomMessages " + roomId);
+                        getLatestRoomMessages(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -93,8 +123,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param fromToken the token identifying the message to start from
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getEarlierMessages(String roomId, String fromToken, ApiCallback<TokensChunkResponse<Event>> callback) {
-        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(callback));
+    public void getEarlierMessages(final String roomId, final String fromToken, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend getEarlierMessages " + roomId);
+                        getEarlierMessages(roomId, fromToken, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -102,11 +146,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the async callback
      */
-    public void getRoomMembers(String roomId, final ApiCallback<List<RoomMember>> callback) {
-        mApi.members(roomId, new RestAdapterCallback<TokensChunkResponse<RoomMember>>(callback) {
+    public void getRoomMembers(final String roomId, final ApiCallback<List<RoomMember>> callback) {
+        mApi.members(roomId, new RestAdapterCallback<TokensChunkResponse<RoomMember>>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend getRoomMembers " + roomId);
+                        getRoomMembers(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }) {
             @Override
             public void success(TokensChunkResponse<RoomMember> messageTokensChunkResponse, Response response) {
-                callback.onSuccess(messageTokensChunkResponse.chunk);
+                try {
+                    callback.onSuccess(messageTokensChunkResponse.chunk);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "getRoomMembers Exception " + e.getMessage());
+                }
             }
         });
     }
@@ -116,8 +178,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the async callback
      */
-    public void getRoomState(String roomId, ApiCallback<List<Event>> callback) {
-        mApi.state(roomId, new RestAdapterCallback<List<Event>>(callback));
+    public void getRoomState(final String roomId, final ApiCallback<List<Event>> callback) {
+        mApi.state(roomId, new RestAdapterCallback<List<Event>>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend getRoomState " + roomId);
+                        getRoomState(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -126,10 +202,24 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param userId the user id
      * @param callback the async callback
      */
-    public void inviteToRoom(String roomId, String userId, ApiCallback<Void> callback) {
+    public void inviteToRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
         User user = new User();
         user.userId = userId;
-        mApi.invite(roomId, user, new RestAdapterCallback<Void>(callback));
+        mApi.invite(roomId, user, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend inviteToRoom " + roomId);
+                        inviteToRoom(roomId, userId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -137,8 +227,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the async callback
      */
-    public void joinRoom(String roomId, ApiCallback<Void> callback) {
-        mApi.join(roomId, new JsonObject(), new RestAdapterCallback<Void>(callback));
+    public void joinRoom(final String roomId, final ApiCallback<Void> callback) {
+        mApi.join(roomId, new JsonObject(), new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend joinRoom " + roomId);
+                        joinRoom(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -146,8 +250,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId_Alias the room id or the room alias
      * @param callback the async callback
      */
-    public void joinRoomByAlias(String roomId_Alias, ApiCallback<RoomResponse> callback) {
-        mApi.joinRoomByAlias(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback));
+    public void joinRoomByAlias(final String roomId_Alias, final ApiCallback<RoomResponse> callback) {
+        mApi.joinRoomByAlias(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend joinRoomByAlias " + roomId_Alias);
+                        joinRoomByAlias(roomId_Alias, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -155,8 +273,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the async callback
      */
-    public void leaveRoom(String roomId, ApiCallback<Void> callback) {
-        mApi.leave(roomId, new JsonObject(), new RestAdapterCallback<Void>(callback));
+    public void leaveRoom(final String roomId, final ApiCallback<Void> callback) {
+        mApi.leave(roomId, new JsonObject(), new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend leaveRoom " + roomId);
+                        leaveRoom(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -165,12 +297,26 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param userId the user id
      * @param callback the async callback
      */
-    public void kickFromRoom(String roomId, String userId, ApiCallback<Void> callback) {
+    public void kickFromRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
         // Kicking is done by posting that the user is now in a "leave" state
         RoomMember member = new RoomMember();
         member.membership = RoomMember.MEMBERSHIP_LEAVE;
 
-        mApi.roomMember(roomId, userId, member, new RestAdapterCallback<Void>(callback));
+        mApi.roomMember(roomId, userId, member, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend kickFromRoom " + roomId);
+                        kickFromRoom(roomId, userId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -179,8 +325,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param user the banned user object (userId and reason for ban)
      * @param callback the async callback
      */
-    public void banFromRoom(String roomId, BannedUser user, ApiCallback<Void> callback) {
-        mApi.ban(roomId, user, new RestAdapterCallback<Void>(callback));
+    public void banFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
+        mApi.ban(roomId, user, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend banFromRoom " + roomId);
+                        banFromRoom(roomId, user, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -191,14 +351,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param alias an optional room alias
      * @param callback the async callback
      */
-    public void createRoom(String name, String topic, String visibility, String alias, ApiCallback<CreateRoomResponse> callback) {
+    public void createRoom(final String name, final String topic, final String visibility, final String alias, final ApiCallback<CreateRoomResponse> callback) {
+
         RoomState roomState = new RoomState();
         roomState.name = name;
         roomState.topic = topic;
         roomState.visibility = visibility;
         roomState.roomAliasName = alias;
 
-        mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(callback));
+        mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend createRoom " + name);
+                        createRoom(name, topic, visibility, alias, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -206,8 +381,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param callback the async callback
      */
-    public void initialSync(String roomId, ApiCallback<RoomResponse> callback) {
-        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(callback));
+    public void initialSync(final String roomId, final ApiCallback<RoomResponse> callback) {
+        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend initialSync " + roomId);
+                        initialSync(roomId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -216,11 +405,25 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param name the room name
      * @param callback the async callback
      */
-    public void updateName(String roomId, String name, ApiCallback<Void> callback) {
+    public void updateName(final String roomId, final String name, final ApiCallback<Void> callback) {
         RoomState roomState = new RoomState();
         roomState.name = name;
 
-        mApi.roomName(roomId, roomState, new RestAdapterCallback<Void>(callback));
+        mApi.roomName(roomId, roomState, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend updateName " + roomId);
+                        updateName(roomId, name, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -229,11 +432,25 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param topic the room topic
      * @param callback the async callback
      */
-    public void updateTopic(String roomId, String topic, ApiCallback<Void> callback) {
+    public void updateTopic(final String roomId, final String topic, final ApiCallback<Void> callback) {
         RoomState roomState = new RoomState();
         roomState.topic = topic;
 
-        mApi.roomTopic(roomId, roomState, new RestAdapterCallback<Void>(callback));
+        mApi.roomTopic(roomId, roomState, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend updateTopic " + roomId);
+                        updateTopic(roomId, topic, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -242,8 +459,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param eventId the event id
      * @param callback the callback containing the created event if successful
      */
-    public void redact(String roomId, String eventId, ApiCallback<Event> callback) {
-        mApi.redact(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(callback));
+    public void redact(final String roomId, final String eventId, final ApiCallback<Event> callback) {
+        mApi.redact(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend redact " + roomId);
+                        redact(roomId, eventId, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -252,8 +483,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param powerLevels the new powerLevels
      * @param callback the async callback
      */
-    public void updatePowerLevels(String roomId, PowerLevels powerLevels, ApiCallback<Void> callback) {
-        mApi.powerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(callback));
+    public void updatePowerLevels(final String roomId, final PowerLevels powerLevels, final ApiCallback<Void> callback) {
+        mApi.powerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        Log.e(LOG_TAG, "resend updatePowerLevels " + roomId);
+                        updatePowerLevels(roomId, powerLevels, callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**
@@ -271,6 +516,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             typing.timeout = timeout;
         }
 
-        mApi.typing(roomId, userId, typing, new RestAdapterCallback<Void>(callback));
+        // never resend typing on network error
+        mApi.typing(roomId, userId, typing, new RestAdapterCallback<Void>(callback, null));
     }
 }

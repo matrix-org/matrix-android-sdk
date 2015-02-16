@@ -16,8 +16,11 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.net.Uri;
+import android.util.Log;
 
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -55,7 +58,20 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback callback to provide the list of public rooms on success
      */
     public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
-        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(callback) {
+        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        loadPublicRooms(callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }) {
             @Override
             public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
                 callback.onSuccess(typedResponse.chunk);
@@ -68,7 +84,20 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback callback to provide the information
      */
     public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
-        mApi.initialSync(10, new RestAdapterCallback<InitialSyncResponse>(callback));
+        mApi.initialSync(10, new RestAdapterCallback<InitialSyncResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
+                    @Override
+                    public void onNetworkConnectionUpdate(boolean isConnected) {
+                        initialSync(callback);
+                    }
+                };
+
+                // add to the network listener until it gets a data connection
+                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
+            }
+        }));
     }
 
     /**

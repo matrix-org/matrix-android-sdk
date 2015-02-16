@@ -41,8 +41,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param userId the user id
      * @param callback the callback to return the name on success
      */
-    public void displayname(String userId, final ApiCallback<String> callback) {
-        mApi.displayname(userId, new RestAdapterCallback<User>(callback) {
+    public void displayname(final String userId, final ApiCallback<String> callback) {
+        mApi.displayname(userId, new RestAdapterCallback<User>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                displayname(userId, callback);
+            }
+        }) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user.displayname);
@@ -55,11 +60,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param newName the new name
      * @param callback the callback if the call succeeds
      */
-    public void updateDisplayname(String newName, final ApiCallback<Void> callback) {
+    public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
         User user = new User();
         user.displayname = newName;
 
-        mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(callback));
+        // don't retry if the network comes back
+        // let the user chooses what he want to do
+        mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(callback, null));
     }
 
     /**
@@ -67,8 +74,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param userId the user id
      * @param callback the callback to return the URL on success
      */
-    public void avatarUrl(String userId, final ApiCallback<String> callback) {
-        mApi.avatarUrl(userId, new RestAdapterCallback<User>(callback) {
+    public void avatarUrl(final String userId, final ApiCallback<String> callback) {
+        mApi.avatarUrl(userId, new RestAdapterCallback<User>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onNetworkFailed() {
+                avatarUrl(userId, callback);
+            }
+        }) {
             @Override
             public void success(User user, Response response) {
                 callback.onSuccess(user.avatarUrl);
@@ -85,6 +97,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.avatarUrl = newUrl;
 
-        mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(callback));
+        mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(callback, null));
     }
 }

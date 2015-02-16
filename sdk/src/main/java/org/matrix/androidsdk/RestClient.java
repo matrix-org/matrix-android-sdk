@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -53,6 +54,8 @@ public class RestClient<T> {
     protected T mApi;
 
     protected Gson gson;
+
+    protected NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     /**
      * Public constructor.
@@ -100,6 +103,14 @@ public class RestClient<T> {
     public RestClient(Credentials credentials, Class<T> type) {
         this(Uri.parse(credentials.homeServer), type);
         mCredentials = credentials;
+    }
+
+    /**
+     * Update the nerwork listener
+     * @param networkConnectivityReceiver the new network listener
+     */
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 
     /**

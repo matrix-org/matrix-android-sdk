@@ -67,7 +67,7 @@ public class EventsThread extends Thread {
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
-        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback));
+        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback), null);
     }
 
     /**

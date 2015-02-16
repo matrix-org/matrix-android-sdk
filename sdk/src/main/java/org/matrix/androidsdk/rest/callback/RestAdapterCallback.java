@@ -27,17 +27,28 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     private static final String LOG_TAG = "RestAdapterCallback";
 
-    private ApiCallback apiCallback;
+    /**
+     * Callback when a request failed after a network error.
+     * This callback should manage the request auto resent.
+     */
+    public interface RequestRetryCallBack {
+        public void onNetworkFailed();
+    }
 
-    public RestAdapterCallback(ApiCallback apiCallback) {
-        this.apiCallback = apiCallback;
+    private ApiCallback mApiCallback;
+    private RequestRetryCallBack mRequestRetryCallBack;
+
+
+    public RestAdapterCallback(ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
+        this.mApiCallback = apiCallback;
+        this.mRequestRetryCallBack = requestRetryCallBack;
     }
 
     @Override
     public void success(T t, Response response) {
         // add try catch to prevent application crashes while managing destroyed object
         try {
-            apiCallback.onSuccess(t);
+            mApiCallback.onSuccess(t);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
         }
@@ -52,7 +63,11 @@ public class RestAdapterCallback<T> implements Callback<T> {
         Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
         if (error.isNetworkError()) {
             try {
-                apiCallback.onNetworkError(error);
+                mApiCallback.onNetworkError(error);
+
+                if (null != mRequestRetryCallBack) {
+                    mRequestRetryCallBack.onNetworkFailed();
+                }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
             }
@@ -68,14 +83,14 @@ public class RestAdapterCallback<T> implements Callback<T> {
             }
             if (mxError != null) {
                 try {
-                    apiCallback.onMatrixError(mxError);
+                    mApiCallback.onMatrixError(mxError);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
                 }
             }
             else {
                 try {
-                    apiCallback.onUnexpectedError(error);
+                    mApiCallback.onUnexpectedError(error);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                 }

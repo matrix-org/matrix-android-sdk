@@ -55,7 +55,7 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
         params.user = user;
         params.password = password;
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(callback) {
+        mApi.register(params, new RestAdapterCallback<JsonObject>(callback, null) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);

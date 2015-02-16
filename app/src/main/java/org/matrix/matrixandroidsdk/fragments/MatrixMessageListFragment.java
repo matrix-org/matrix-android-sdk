@@ -366,6 +366,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                    dismissLoadingProgress();
 
                     MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -379,6 +380,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    dismissLoadingProgress();
+
                     Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
                     // The access token was not recognized: log out
                     if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
@@ -399,6 +402,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    dismissLoadingProgress();
+
                     Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
                     MatrixMessageListFragment.this.dismissLoadingProgress();
                     mIsCatchingUp = false;

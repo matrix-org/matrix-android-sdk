@@ -34,7 +34,12 @@ import java.util.Map;
 public class NetworkConnectivityReceiver extends BroadcastReceiver {
     private static final String LOG_TAG = "NetworkConnectivityReceiver";
 
+    // any network state listener
     private List<IMXNetworkEventListener> mNetworkEventListeners = new ArrayList<IMXNetworkEventListener>();
+
+    // the one call listeners are listeners which are expected to be called ONCE
+    // the device is connected to a data network
+    private List<IMXNetworkEventListener> mOnNetworkConnectedEventListeners = new ArrayList<IMXNetworkEventListener>();
 
     private boolean mIsConnected = false;
 
@@ -61,19 +66,48 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     }
 
     /**
+     * Add a ONE CALL network event listener.
+     * The listener is called when a data connection is established.
+     * The listener is removed from the listeners list once its callback is called.
+     * @param networkEventListener the event listener to add
+     */
+    public void addOnConnectedEventListener(final IMXNetworkEventListener networkEventListener) {
+        if (null != networkEventListener) {
+            mOnNetworkConnectedEventListeners.add(networkEventListener);
+        }
+    }
+
+    /**
      * Remove a network event listener.
      * @param networkEventListener the event listener to remove
      */
     public void removeEventListener(final IMXNetworkEventListener networkEventListener) {
         mNetworkEventListeners.remove(networkEventListener);
+        mOnNetworkConnectedEventListeners.remove(networkEventListener);
     }
 
     /**
      * Warn the listener that a network updated has been triggered
      */
     public synchronized void onNetworkUpdate() {
-        for(IMXNetworkEventListener listener : mNetworkEventListeners) {
+        for (IMXNetworkEventListener listener : mNetworkEventListeners) {
             listener.onNetworkConnectionUpdate(mIsConnected);
         }
+
+        // onConnected listeners are called once
+        // and only when there is an available network connection
+        if (mIsConnected) {
+            for (IMXNetworkEventListener listener : mOnNetworkConnectedEventListeners) {
+                listener.onNetworkConnectionUpdate(mIsConnected);
+                mOnNetworkConnectedEventListeners.remove(listener);
+            }
+        }
+    }
+
+    /**
+     * @return true if the application is connected to a data network
+     */
+    public boolean isConnected() {
+        return mIsConnected;
     }
 }
