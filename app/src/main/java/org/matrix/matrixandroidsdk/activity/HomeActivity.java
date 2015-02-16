@@ -180,7 +180,10 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        getActionBar().setDisplayShowTitleEnabled(false);
+        // sanity check
+        if (null != getActionBar()) {
+            getActionBar().setDisplayShowTitleEnabled(false);
+        }
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {

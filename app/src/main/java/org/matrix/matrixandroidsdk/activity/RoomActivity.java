@@ -333,7 +333,9 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     }
 
     private void setTopic(String topic) {
-        this.getActionBar().setSubtitle(topic);
+        if (null !=  this.getActionBar()) {
+            this.getActionBar().setSubtitle(topic);
+        }
     }
 
 
