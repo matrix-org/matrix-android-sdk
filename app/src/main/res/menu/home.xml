@@ -22,6 +22,10 @@
         android:icon="@drawable/ic_menu_search"
         app:showAsAction="ifRoom" />
 
+    <item android:id="@+id/action_mark_all_as_read"
+        android:title="@string/action_mark_all_as_read"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
     <item android:id="@+id/action_settings"
         android:title="@string/action_settings"
         android:orderInCategory="100"

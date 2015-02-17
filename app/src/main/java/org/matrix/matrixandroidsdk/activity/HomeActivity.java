@@ -337,7 +337,11 @@ public class HomeActivity extends MXCActionBarActivity {
             return true;
         }
 
-        if (id == R.id.search_room) {
+        if (id == R.id.action_mark_all_as_read) {
+            markAllMessagesAsRead();
+            return true;
+        }
+        else if (id == R.id.search_room) {
             toggleSearchButton();
             return true;
         }
@@ -345,10 +349,7 @@ public class HomeActivity extends MXCActionBarActivity {
             createRoom(true);
             return true;
         }
-        else if (id == R.id.action_create_private_room) {
-            createRoom(false);
-            return true;
-        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -384,5 +385,10 @@ public class HomeActivity extends MXCActionBarActivity {
             public void onCancelled() {}
         });
         alert.show();
+    }
+
+    private void markAllMessagesAsRead(){
+        mAdapter.resetUnreadCounts();
+        mAdapter.notifyDataSetChanged();
     }
 }

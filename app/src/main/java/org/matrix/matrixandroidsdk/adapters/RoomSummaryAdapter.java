@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
@@ -171,6 +172,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * recents list management
      */
 
+    public List<RoomSummary> getRecentsSummariesList() {
+        return mRecentsSummariesList;
+    }
+
     public void addRoomSummary(RoomSummary roomSummary) {
         mRecentsSummariesList.add(roomSummary);
     }
@@ -221,6 +226,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     public void resetUnreadCount(String roomId) {
         mUnreadCountMap.put(roomId, 0);
+    }
+
+    public void resetUnreadCounts() {
+        Set<String> roomIds = mUnreadCountMap.keySet();
+
+        for(String roomId : roomIds) {
+            resetUnreadCount(roomId);
+        }
     }
 
 
