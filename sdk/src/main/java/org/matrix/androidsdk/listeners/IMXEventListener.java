@@ -19,6 +19,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
 public interface IMXEventListener {
 
@@ -45,11 +46,14 @@ public interface IMXEventListener {
 
     /**
      * A received event fulfills the bing rules
+     * The first matched bing rule is provided in paramater to perform
+     * dedicated action like playing a notification sound.
      *
      * @param event the event
      * @param roomState the room state right before the event
+     * @param bingRule the bing rule
      */
-    public void onBingEvent(Event event, RoomState roomState);
+    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
      * An event has been deleted

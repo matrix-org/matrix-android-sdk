@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
@@ -227,10 +228,12 @@ public class MXDataHandler implements IMXEventListener {
 
             onLiveEvent(event, beforeState);
 
+            BingRule bingRule = null;
+
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                    && (mBingRulesManager != null) && mBingRulesManager.shouldBing(event)) {
-                onBingEvent(event, beforeState);
+                    && (mBingRulesManager != null) && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))) {
+                onBingEvent(event, beforeState, bingRule);
             }
         }
 
@@ -321,9 +324,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onBingEvent(Event event, RoomState roomState) {
+    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onBingEvent(event, roomState);
+            listener.onBingEvent(event, roomState, bingRule);
         }
     }
 

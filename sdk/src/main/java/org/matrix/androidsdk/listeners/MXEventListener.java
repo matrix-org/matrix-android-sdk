@@ -19,6 +19,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
 /**
  * A no-op class implementing {@link IMXEventListener} so listeners can just implement the methods
@@ -42,7 +43,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onBingEvent(Event event, RoomState roomState) {
+    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
     }
 
     @Override

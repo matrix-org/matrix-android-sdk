@@ -46,6 +46,7 @@ public class BingRulesManager {
     private MXDataHandler mDataHandler;
 
     private List<BingRule> mRules = new ArrayList<BingRule>();
+    private BingRule mDefaultBingRule = new BingRule(true);
 
     private boolean isReady = false;
 
@@ -79,23 +80,23 @@ public class BingRulesManager {
     }
 
     /**
-     * Returns whether the given event should bing according to the currently loaded set of bing rules.
+     * Returns the first notifiable bing rule which fulfills its condition with this event.
      * @param event the event
-     * @return true to bing, false otherwise
+     * @return the first matched bing rule, null if none
      */
-    public boolean shouldBing(Event event) {
+    public BingRule fulfilledBingRule(Event event) {
         // sanity check
         if (null == event) {
-            return false;
+            return null;
         }
 
         if (!isReady) {
-            return false;
+            return null;
         }
 
         // do not trigger notification for oneself messages
         if ((null != event.userId) && (event.userId.equals(mMyUserId))) {
-            return false;
+            return null;
         }
 
         if (mRules != null) {
@@ -104,22 +105,23 @@ public class BingRulesManager {
                 if (eventMatchesConditions(event, bingRule.conditions)) {
                     for (JsonElement action : bingRule.actions) {
                         if (action.isJsonPrimitive()) {
-                            if (BingRule.ACTION_NOTIFY.equals(action.getAsString())
-                                    || BingRule.ACTION_COALESCE.equals(action.getAsString())) {
-                                return true;
-                            } else if (BingRule.ACTION_DONT_NOTIFY.equals(action.getAsString())) {
-                                return false;
+                            String actionString = action.getAsString();
+
+                            if (BingRule.ACTION_NOTIFY.equals(actionString) || BingRule.ACTION_COALESCE.equals(actionString)) {
+                                return bingRule;
+                            } else if (BingRule.ACTION_DONT_NOTIFY.equals(actionString)) {
+                                return null;
                             }
                         }
                         // FIXME: Support other actions
                     }
                     // No supported actions were found, just bing
-                    return true;
+                    return mDefaultBingRule;
                 }
             }
         }
         // The default is to bing
-        return true;
+        return mDefaultBingRule;
     }
 
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {

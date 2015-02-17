@@ -15,8 +15,12 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,17 +29,49 @@ public class BingRule {
     public static final String ACTION_NOTIFY = "notify";
     public static final String ACTION_DONT_NOTIFY = "dont_notify";
     public static final String ACTION_COALESCE = "coalesce";
+    private static final String ACTION_PARAMETER_SET_TWEAK = "set_tweak";
+    private static final String ACTION_SET_TWEAK_SOUND_VALUE = "sound";
 
-    public String ruleId;
-    public List<Condition> conditions;
-    public List<JsonElement> actions;
+    public String ruleId = null;
+    public List<Condition> conditions = null;
+    public List<JsonElement> actions = null;
     @SerializedName("default")
-    public boolean isDefault;
+    public boolean isDefault = false;
+
+    public BingRule(boolean isDefaultValue) {
+        this.isDefault = isDefaultValue;
+    }
+
+    public BingRule() {
+        this.isDefault = false;
+    }
 
     public void addCondition(Condition condition) {
         if (conditions == null) {
             conditions = new ArrayList<Condition>();
         }
         conditions.add(condition);
+    }
+
+    public boolean shouldPlaySound() {
+        boolean playSound = false;
+
+        if (null != actions) {
+            try {
+                for (JsonElement json : actions) {
+                    if (json.isJsonObject()) {
+                        JsonObject object = json.getAsJsonObject();
+
+                        if (object.has(ACTION_PARAMETER_SET_TWEAK)) {
+                            playSound = object.get(ACTION_PARAMETER_SET_TWEAK).getAsString().equals(ACTION_SET_TWEAK_SOUND_VALUE);
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+
+            }
+        }
+        return playSound;
     }
 }

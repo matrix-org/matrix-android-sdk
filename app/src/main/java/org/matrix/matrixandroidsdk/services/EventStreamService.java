@@ -22,6 +22,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
@@ -57,7 +58,7 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
 
         @Override
-        public void onBingEvent(Event event, RoomState roomState) {
+        public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
 
             final String roomId = event.roomId;
 
@@ -76,6 +77,11 @@ public class EventStreamService extends Service {
 
             Notification n = buildMessageNotification(from, body, event.roomId);
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+
+            if (bingRule.shouldPlaySound()) {
+                n.defaults |= Notification.DEFAULT_SOUND;
+            }
+
             Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
             nm.notify(MSG_NOTIFICATION_ID, n);
         }
