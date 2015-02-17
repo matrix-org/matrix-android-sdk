@@ -2,6 +2,8 @@ package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,18 +24,26 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
+import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -143,13 +153,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             dialog.cancel();
                                             break;
                                         case OPTION_RESEND:
-                                            Event event = messageRow.getEvent();
-                                            mAdapter.removeEventById(event.eventId);
-                                            Message message = JsonUtils.toMessage(event.content);
-                                            send(message);
+                                            getActivity().runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    resend(messageRow.getEvent());
+                                                }
+                                            });
+
                                             break;
                                         case OPTION_REDACT:
-                                            redactEvent(messageRow.getEvent().eventId);
+                                            getActivity().runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    redactEvent(messageRow.getEvent().eventId);
+                                                }
+                                            });
                                             break;
                                     }
                                 }
@@ -261,6 +279,47 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
+    private void resend(Event event) {
+        // remove the event
+        mSession.getDataHandler().deleteRoomEvent(event);
+        mAdapter.removeEventById(event.eventId);
+
+        // send it again
+        final Message message = JsonUtils.toMessage(event.content);
+
+        // resend an image ?
+        if (message instanceof ImageMessage) {
+            ImageMessage imageMessage = (ImageMessage)message;
+
+            // media has not been uploaded
+            if (imageMessage.url.startsWith("file:")) {
+                if (getActivity() instanceof RoomActivity) {
+                    RoomActivity roomActivity = (RoomActivity)getActivity();
+
+                    String filename;
+                    // try to parse it
+                    try {
+                        Uri uri = Uri.parse(imageMessage.url);
+                        filename = uri.getPath();
+                        FileInputStream  fis = new FileInputStream (new File(filename));
+
+                        if (null != fis) {
+                            roomActivity.uploadImageContent(fis, imageMessage.info.mimetype, imageMessage, null);
+                            return;
+                        }
+                    } catch (Exception e) {
+
+                    }
+                } else {
+                    // don't know how to resend the event
+                    return;
+                }
+            }
+        }
+
+        send(message);
+    }
+
     private void send(Message message) {
         Event dummyEvent = new Event();
         dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
@@ -270,6 +329,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         final MessageRow tmpRow = new MessageRow(dummyEvent, mRoom.getLiveState());
         tmpRow.setSentState(MessageRow.SentState.SENDING);
+        mAdapter.add(tmpRow);
+        // NotifyOnChange has been disabled to avoid useless refreshes
+        mAdapter.notifyDataSetChanged();
 
         mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
             @Override
@@ -305,10 +367,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void onUnexpectedError(Exception e) {
             }
         });
-
-        mAdapter.add(tmpRow);
-        // NotifyOnChange has been disabled to avoid useless refreshes
-        mAdapter.notifyDataSetChanged();
     }
 
     private void displayLoadingProgress() {

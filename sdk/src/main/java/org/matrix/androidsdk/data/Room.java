@@ -15,8 +15,12 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.graphics.Bitmap;
+import android.media.Image;
+import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -30,7 +34,10 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -38,18 +45,17 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.lang.reflect.Type;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
-
-import retrofit.RetrofitError;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -81,6 +87,7 @@ public class Room {
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
+    private ContentManager mContentManager;
 
     private String mMyUserId = null;
 
@@ -139,6 +146,10 @@ public class Room {
     }
 
     public void setMyUserId(String userId) { mMyUserId = userId; }
+
+    public void setContentManager(ContentManager contentManager) {
+        mContentManager = contentManager;
+    }
 
     /**
      * Set the data retriever for storage/server requests.
@@ -310,6 +321,18 @@ public class Room {
                 }
             };
 
+        // check if the media upload has failed
+        // do not send the message if the upload fails
+        // but save it in the message MXStore
+        if (message instanceof ImageMessage) {
+            ImageMessage imageMessage = (ImageMessage)message;
+
+            // file url -> the upload has failed
+            if (imageMessage.url.startsWith("file:")) {
+                localCB.onMatrixError(null);
+                return;
+            }
+        }
         mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, message, localCB);
     }
 
@@ -558,31 +581,99 @@ public class Room {
         if ((evensList.size() > 0) && (index < evensList.size())) {
             final Event oldEvent = evensList.get(index);
 
-            sendMessage(JsonUtils.toMessage(oldEvent.content), new ApiCallback<Event>() {
-                @Override
-                public void onSuccess(Event sentEvent) {
-                    oldEvent.isSending = false;
-                    mDataHandler.deleteRoomEvent(oldEvent);
-                    mDataHandler.onDeletedEvent(oldEvent);
-                    mDataHandler.onLiveEvent(sentEvent, getLiveState());
+            boolean hasPreviousTask = false;
+            final Message message = JsonUtils.toMessage(oldEvent.content);
 
-					// send the next one
-                    Room.this.resendEventsList(evensList, index + 1);
-                }
+            if (message instanceof ImageMessage) {
+                final ImageMessage imageMessage = (ImageMessage) message;
 
-                // theses 3 methods will never be called
-                @Override
-                public void onNetworkError(Exception e) {
-                }
+                if (imageMessage.url.startsWith("file:")) {
+                    String filename;
+                    // try to parse it
+                    try {
+                        Uri uri = Uri.parse(imageMessage.url);
+                        filename = uri.getPath();
+                        FileInputStream fis = new FileInputStream(new File(filename));
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                }
+                        hasPreviousTask = true;
 
-                @Override
-                public void onUnexpectedError(Exception e) {
+                        if (null != fis) {
+                            mContentManager.uploadContent(fis, imageMessage.info.mimetype, new ContentManager.UploadCallback() {
+                                @Override
+                                public void onUploadComplete(ContentResponse uploadResponse) {
+
+                                    ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);
+
+                                    if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                                        uploadedMessage.url = uploadResponse.contentUri;
+                                    } else {
+                                        // keep the URL
+                                        uploadedMessage.url = imageMessage.url;
+                                        uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;
+                                    }
+
+                                    sendMessage(uploadedMessage, new ApiCallback<Event>() {
+                                        @Override
+                                        public void onSuccess(Event sentEvent) {
+                                            oldEvent.isSending = false;
+                                            mDataHandler.deleteRoomEvent(oldEvent);
+                                            mDataHandler.onDeletedEvent(oldEvent);
+                                            mDataHandler.onLiveEvent(sentEvent, getLiveState());
+
+                                            // send the next one
+                                            Room.this.resendEventsList(evensList, index + 1);
+                                        }
+
+                                        // theses 3 methods will never be called
+                                        @Override
+                                        public void onNetworkError(Exception e) {
+                                        }
+
+                                        @Override
+                                        public void onMatrixError(MatrixError e) {
+                                        }
+
+                                        @Override
+                                        public void onUnexpectedError(Exception e) {
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+
+                    }
                 }
-            });
+            }
+
+            // no pending request
+            if (!hasPreviousTask) {
+                sendMessage(message, new ApiCallback<Event>() {
+                    @Override
+                    public void onSuccess(Event sentEvent) {
+                        oldEvent.isSending = false;
+                        mDataHandler.deleteRoomEvent(oldEvent);
+                        mDataHandler.onDeletedEvent(oldEvent);
+                        mDataHandler.onLiveEvent(sentEvent, getLiveState());
+
+                        // send the next one
+                        Room.this.resendEventsList(evensList, index + 1);
+                    }
+
+                    // theses 3 methods will never be called
+                    @Override
+                    public void onNetworkError(Exception e) {
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                    }
+                });
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -63,6 +64,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendMessage(String roomId, Message message, ApiCallback<Event> callback) {
+        // the image message uses the thumbnail URL as a cache
+        // it should not be sent
+        if (message instanceof ImageMessage) {
+            ((ImageMessage)message).thumbnailUrl = null;
+        }
+
         // the messages have their dedicated method in MXSession to be resent if there is no avaliable network
         mApi.sendMessage(roomId, message, new RestAdapterCallback<Event>(callback, null));
     }

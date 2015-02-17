@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
 import android.text.Html;
@@ -21,13 +22,17 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
+import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 
 /**
  * Contains useful functions for adapters.
@@ -221,10 +226,74 @@ public class AdapterUtils {
         }
     }
 
+    /**
+     * Save a bitmap to the local cache
+     * it could be used for unsent media to allow them to be resent.
+     * @param bitmap the bitmap to save
+     * @return the media cache URL
+     */
+    public static String saveBitmap(Bitmap bitmap, Context context) {
+        String filename = "file" + System.currentTimeMillis();
+        String cacheURL = null;
+
+        try {
+            FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+
+            fos.flush();
+            fos.close();
+
+            cacheURL = Uri.fromFile(context.getFileStreamPath(filename)).toString();
+        } catch (Exception e) {
+
+        }
+
+        return cacheURL;
+    }
+
+    /**
+     * Save a media to the local cache
+     * it could be used for unsent media to allow them to be resent.
+     * @param stream the file stream to save
+     * @return the media cache URL
+     */
+    public static String saveMedia(InputStream stream, Context context) {
+        String filename = "file" + System.currentTimeMillis();
+        String cacheURL = null;
+
+        try {
+            FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+
+            try {
+                byte[] buf = new byte[1024 * 32];
+
+                int len;
+                while ((len = stream.read(buf)) != -1) {
+                    fos.write(buf, 0, len);
+                }
+            } catch (Exception e) {
+            }
+
+            fos.flush();
+            fos.close();
+            stream.close();
+
+            cacheURL = Uri.fromFile(context.getFileStreamPath(filename)).toString();
+        } catch (Exception e) {
+
+        }
+
+        return cacheURL;
+    }
+
+    // return a bitmap from the cache
+    // null if it does not exist
+    public static Bitmap bitmapForUrl(String url, Context context) {
+        return  BitmapWorkerTask.bitmapForURL(url,context);
+    }
 
     // Bitmap loading and storage
-
-
     public static void loadBitmap(ImageView imageView, String url) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl = contentManager.getDownloadableUrl(url);
@@ -291,10 +360,35 @@ public class AdapterUtils {
 
                 // check if the image has not been saved in file system
                 if ((null == bitmap) && (null != context)) {
-                    String filename  = "file" + url.hashCode();
+                    String filename = null;
+
+                    // the url is a file path
+                    if (url.startsWith("file:")) {
+
+                        // try to parse it
+                        try {
+                            Uri uri = Uri.parse(url);
+                            filename = uri.getPath();
+
+                        } catch (Exception e) {
+
+                        }
+                    }
+
+                    // not a valid file name
+                    if (null == filename) {
+                        filename = "file" + url.hashCode();;
+                    }
 
                     try {
-                        FileInputStream fis = context.openFileInput(filename);
+                        FileInputStream fis;
+
+                        if (filename.startsWith(File.separator)) {
+                            fis = new FileInputStream (new File(filename));
+                        } else {
+                            fis = context.openFileInput(filename);
+                        }
+
                         if (null != fis) {
                             BitmapFactory.Options options = new BitmapFactory.Options();
                             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -305,8 +399,11 @@ public class AdapterUtils {
                                     sMemoryCache.put(url, bitmap);
                                 }
                             }
+
+                            fis.close();
                         }
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "bitmapForURL() "+e);
 
                     }
                 }

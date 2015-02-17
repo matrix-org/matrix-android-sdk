@@ -2,8 +2,10 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
@@ -35,11 +37,13 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.InputStream;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -471,6 +475,96 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
     }
 
+    /**
+     * upload an image content.
+     * It might be triggered from a media selection : imageUri is used to compute thumbnails.
+     * Or, it could have been called to resend an image.
+     * @param mediaStream the image stream
+     * @param mimeType the image mine type
+     * @param retriedMessage the imagemessage to resend
+     * @param anImageUri the selected image URI
+     */
+    public void uploadImageContent(InputStream mediaStream, final String mimeType, final ImageMessage retriedMessage, final Uri anImageUri) {
+        final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
+
+        mSession.getContentManager().uploadContent(mediaStream, mimeType, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadComplete(ContentResponse uploadResponse) {
+
+                // Build the image message
+                ImageMessage message = new ImageMessage();
+
+                if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                    message.url = uploadResponse.contentUri;
+                    Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+                } else {
+                    Log.d(LOG_TAG, "Failed to upload");
+
+                    // try to resend an image
+                    if (null != retriedMessage) {
+                        message.url = retriedMessage.url;
+                        message.thumbnailUrl = retriedMessage.thumbnailUrl;
+                    } else {
+
+                        try {
+                            InputStream stream = RoomActivity.this.getContentResolver().openInputStream(anImageUri);
+                            message.url = AdapterUtils.saveMedia(stream, RoomActivity.this);
+
+                            // build our own thumbnail
+                            if (null != message.url) {
+                                Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(message.url, RoomActivity.this);
+
+                                double thumbnailWidth = fullSizeBitmap.getWidth();
+                                double thumbnailHeight = fullSizeBitmap.getHeight();
+
+                                // the thumbnails are reduced to a 256 * 256 pixels
+                                if (thumbnailWidth > thumbnailHeight) {
+                                    thumbnailWidth = 256.0;
+                                    thumbnailHeight = thumbnailWidth * fullSizeBitmap.getHeight() / fullSizeBitmap.getWidth();
+                                } else {
+                                    thumbnailHeight = 256.0;
+                                    thumbnailWidth = thumbnailHeight * fullSizeBitmap.getWidth() / fullSizeBitmap.getHeight();
+                                }
+
+                                Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                                message.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, RoomActivity.this);
+                            } else {
+                                message.thumbnailUrl = null;
+                            }
+
+                        } catch (Exception e) {
+                            // really fail to upload the image...
+                        }
+                    }
+                }
+
+                if (null != anImageUri) {
+                    message.body = anImageUri.getLastPathSegment();
+                } else if (null != retriedMessage) {
+                    message.body = retriedMessage.body;
+                }
+
+                message.info = new ImageInfo();
+                message.info.mimetype = mimeType;
+                // message to display in the summary recents
+                message.body = "Image";
+
+                // warn the user that the media upload fails
+                if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                    Toast.makeText(RoomActivity.this,
+                            getString(R.string.message_failed_to_upload),
+                            Toast.LENGTH_LONG).show();
+                }
+
+                // sanity check
+                if (message.url != null) {
+                    mMatrixMessageListFragment.sendImage(message);
+                }
+                progressDialog.dismiss();
+            }
+        });
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -487,30 +581,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 }
                 Log.d(LOG_TAG, "Selected image to upload: " + imageUri);
 
-                final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
-
-                mSession.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
-                    @Override
-                    public void onUploadComplete(ContentResponse uploadResponse) {
-                        if (uploadResponse == null) {
-                            Toast.makeText(RoomActivity.this,
-                                    getString(R.string.message_failed_to_upload),
-                                    Toast.LENGTH_LONG).show();
-                        } else {
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                            // Build the image message
-                            ImageMessage message = new ImageMessage();
-                            message.url = uploadResponse.contentUri;
-                            message.body = imageUri.getLastPathSegment();
-
-                            message.info = new ImageInfo();
-                            message.info.mimetype = resource.mimeType;
-
-                            mMatrixMessageListFragment.sendImage(message);
-                        }
-                        progressDialog.dismiss();
-                    }
-                });
+                uploadImageContent(resource.contentStream, resource.mimeType, null, imageUri) ;
             }
         }
     }

@@ -105,8 +105,8 @@ public class MXSession {
         mDataRetriever = new DataRetriever();
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setDataRetriever(mDataRetriever);
-
         mDataHandler.setPushRulesManager(new BingRulesManager(this));
+        mDataHandler.setContentManager(mContentManager);
 
         // application context
         mAppContent = appContext;

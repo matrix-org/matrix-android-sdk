@@ -2,6 +2,7 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
@@ -453,6 +454,21 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);
         imageView.setMaxHeight(maxImageHeight);
+
+        int backgroundColor;
+
+        switch (row.getSentState()) {
+            case SENDING:
+                backgroundColor = sendingColor;
+                break;
+            case NOT_SENT:
+                backgroundColor = notSentColor;
+                break;
+            default:
+                backgroundColor = row.getEvent().isUnsent ? notSentColor : Color.TRANSPARENT;
+        }
+
+        (convertView.findViewById(R.id.messagesAdapter_body_layout)).setBackgroundColor(backgroundColor);
 
         if ((imageMessage != null) && (imageMessage.url != null)) {
             imageView.setOnClickListener(new View.OnClickListener() {

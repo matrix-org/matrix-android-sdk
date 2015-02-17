@@ -135,7 +135,6 @@ public class ContentManager {
         protected String doInBackground(Void... params) {
             HttpURLConnection conn;
             DataOutputStream dos;
-            DataInputStream inStream;
 
             int bytesRead, bytesAvailable, bufferSize;
 
