@@ -208,6 +208,11 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         imageView.setTag(null);
         imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         String url = member.avatarUrl;
+
+        if (TextUtils.isEmpty(url)) {
+            url = AdapterUtils.getIdenticonURL(member.getUserId());
+        }
+
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
             AdapterUtils.loadThumbnailBitmap(imageView, url, size, size);

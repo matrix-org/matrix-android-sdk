@@ -226,6 +226,21 @@ public class AdapterUtils {
         }
     }
 
+    public static String getIdenticonURL(String userId) {
+        // sanity check
+        if (null != userId) {
+            String urlEncodedUser = null;
+            try {
+                urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
+            } catch (Exception e) {
+            }
+
+            return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;
+        }
+
+        return null;
+    }
+
     /**
      * Save a bitmap to the local cache
      * it could be used for unsent media to allow them to be resent.

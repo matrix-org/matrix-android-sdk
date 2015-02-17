@@ -339,6 +339,10 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
+            if (TextUtils.isEmpty(url)) {
+                url = AdapterUtils.getIdenticonURL(sender.getUserId());
+            }
+
             if (!TextUtils.isEmpty(url)) {
                 loadAvatar(avatarImageView, url);
             }

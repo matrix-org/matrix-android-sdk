@@ -96,7 +96,14 @@ public class ContentManager {
         if (contentUrl == null) return null;
         if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
             String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            String url = mHsUri + URI_PREFIX_CONTENT_API + "/thumbnail/" + mediaServerAndId;
+            String url = mHsUri + URI_PREFIX_CONTENT_API + "/";
+
+            // identicon server has no thumbnail path
+            if (mediaServerAndId.indexOf("identicon") < 0) {
+                url += "thumbnail/";
+            }
+
+            url +=  mediaServerAndId;
             url += "?width=" + width;
             url += "&height=" + height;
             url += "&method=" + method;
