@@ -18,5 +18,6 @@
     <color name="message_not_sent">#f00</color>
 
     <color name="room_summary_unread_background">#ede</color>
+    <color name="room_summary_highlight_background">#ff88BBFF</color>
 
 </resources>

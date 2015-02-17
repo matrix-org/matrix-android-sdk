@@ -7,7 +7,6 @@ import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
@@ -27,6 +26,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
+import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -113,6 +113,10 @@ public class HomeActivity extends MXCActionBarActivity {
                         // If we're not currently viewing this room or not sent by myself, increment the unread count
                         if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
                             mAdapter.incrementUnreadCount(event.roomId);
+
+                            if (EventUtils.shouldHighlight(HomeActivity.this, event)) {
+                                mAdapter.highlightRoom(event.roomId);
+                            }
                         }
 
                         mAdapter.sortSummaries();

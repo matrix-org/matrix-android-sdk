@@ -47,6 +47,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mOddColourResId;
     private int mEvenColourResId;
     private int mUnreadColor;
+    private int mHighlightColor;
 
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
@@ -58,6 +59,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private DateFormat mDateFormat;
 
+    private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
     private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
 
     /**
@@ -77,6 +79,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mRecentsSummariesList = new ArrayList<RoomSummary>();
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
+        mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
     }
 
     /**
@@ -224,8 +227,15 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mUnreadCountMap.put(roomId, count + 1);
     }
 
+    public void highlightRoom(String roomId) {
+        if (mHighLightedRooms.indexOf(roomId) < 0) {
+            mHighLightedRooms.add(roomId);
+        }
+    }
+
     public void resetUnreadCount(String roomId) {
         mUnreadCountMap.put(roomId, 0);
+        mHighLightedRooms.remove(roomId);
     }
 
     public void resetUnreadCounts() {
@@ -313,8 +323,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             RoomSummary summary = summariesList.get(childPosition);
 
             Integer unreadCount = mUnreadCountMap.get(summary.getRoomId());
-            // Zero for transparent
-            convertView.setBackgroundColor(((unreadCount == null) || (unreadCount == 0)) ? 0 : mUnreadColor);
+
+            if ((unreadCount == null) || (unreadCount == 0)) {
+                convertView.setBackgroundColor(0);
+            } else if (mHighLightedRooms.indexOf(summary.getRoomId()) >= 0) {
+                convertView.setBackgroundColor(mHighlightColor);
+            } else {
+                convertView.setBackgroundColor(mUnreadColor);
+            }
 
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;

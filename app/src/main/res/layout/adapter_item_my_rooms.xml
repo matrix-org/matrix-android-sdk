@@ -29,7 +29,7 @@
             android:textSize="10sp"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="Jan 1 00:00"
-            android:textColor="#FFAAAAAA"
+            android:textColor="#FF888888"
             android:id="@+id/roomSummaryAdapter_ts"/>
 
     </LinearLayout>
@@ -41,7 +41,7 @@
         android:text="Small Text"
         android:singleLine="true"
         android:ellipsize="end"
-        android:textColor="#FFAAAAAA"
+        android:textColor="#FF888888"
         android:id="@+id/roomSummaryAdapter_message"/>
 
 </LinearLayout>
