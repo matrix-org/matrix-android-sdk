@@ -54,7 +54,7 @@ import retrofit.RetrofitError;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterClickListener {
 
     public static interface MatrixMessageListFragmentListener {
         /**
@@ -127,79 +127,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
         mMessageListView.setSelection(0);
-        mMessageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            private static final int OPTION_CANCEL = 0;
-            private static final int OPTION_RESEND = 1;
-            private static final int OPTION_REDACT = 2;
-
+        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                final MessageRow messageRow = mAdapter.getItem(position);
-                final List<Integer> options = new ArrayList<Integer>();
-                if ((messageRow.getSentState() == MessageRow.SentState.NOT_SENT) || (messageRow.getEvent().isUnsent)) {
-                    options.add(OPTION_RESEND);
-                } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
-                    options.add(OPTION_REDACT);
-                }
-
-                if (options.size() != 0) {
-                    options.add(OPTION_CANCEL);
-                    new AlertDialog.Builder(getActivity())
-                            .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    switch (options.get(which)) {
-                                        case OPTION_CANCEL:
-                                            dialog.cancel();
-                                            break;
-                                        case OPTION_RESEND:
-                                            getActivity().runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    resend(messageRow.getEvent());
-                                                }
-                                            });
-
-                                            break;
-                                        case OPTION_REDACT:
-                                            getActivity().runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    redactEvent(messageRow.getEvent().eventId);
-                                                }
-                                            });
-                                            break;
-                                    }
-                                }
-                            })
-                            .create()
-                            .show();
-
-                    return true;
-                }
-
-                return false;
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                MatrixMessageListFragment.this.onItemClick(position);
             }
+        });
 
-            private String[] buildOptionLabels(List<Integer> options) {
-                String[] labels = new String[options.size()];
-                for (int i = 0; i < options.size(); i++) {
-                    String label = "";
-                    switch (options.get(i)) {
-                        case OPTION_CANCEL:
-                            label = getString(R.string.cancel);
-                            break;
-                        case OPTION_RESEND:
-                            label = getString(R.string.resend);
-                            break;
-                        case OPTION_REDACT:
-                            label = getString(R.string.redact);
-                            break;
-                    }
-                    labels[i] = label;
-                }
-
-                return labels;
+        mAdapter.setMessagesAdapterClickListener(new MessagesAdapter.MessagesAdapterClickListener() {
+            @Override
+            public void onItemClick(int position) {
+                MatrixMessageListFragment.this.onItemClick(position);
             }
         });
 
@@ -543,5 +481,77 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void setMatrixMessageListFragmentListener(MatrixMessageListFragmentListener listener) {
         mMatrixMessageListFragmentListener = listener;
+    }
+
+    /**
+     * Item selection management
+     */
+    private static final int OPTION_CANCEL = 0;
+    private static final int OPTION_RESEND = 1;
+    private static final int OPTION_REDACT = 2;
+
+    private String[] buildOptionLabels(List<Integer> options) {
+        String[] labels = new String[options.size()];
+        for (int i = 0; i < options.size(); i++) {
+            String label = "";
+            switch (options.get(i)) {
+                case OPTION_CANCEL:
+                    label = getString(R.string.cancel);
+                    break;
+                case OPTION_RESEND:
+                    label = getString(R.string.resend);
+                    break;
+                case OPTION_REDACT:
+                    label = getString(R.string.redact);
+                    break;
+            }
+            labels[i] = label;
+        }
+
+        return labels;
+    }
+
+    public void onItemClick(int position) {
+        final MessageRow messageRow = mAdapter.getItem(position);
+        final List<Integer> options = new ArrayList<Integer>();
+        if ((messageRow.getSentState() == MessageRow.SentState.NOT_SENT) || (messageRow.getEvent().isUnsent)) {
+            options.add(OPTION_RESEND);
+        } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
+            options.add(OPTION_REDACT);
+        }
+
+        if (options.size() != 0) {
+            options.add(OPTION_CANCEL);
+            new AlertDialog.Builder(getActivity())
+                    .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            switch (options.get(which)) {
+                                case OPTION_CANCEL:
+                                    dialog.cancel();
+                                    break;
+                                case OPTION_RESEND:
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            resend(messageRow.getEvent());
+                                        }
+                                    });
+
+                                    break;
+                                case OPTION_REDACT:
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            redactEvent(messageRow.getEvent().eventId);
+                                        }
+                                    });
+                                    break;
+                            }
+                        }
+                    })
+                    .create()
+                    .show();
+        }
     }
 }

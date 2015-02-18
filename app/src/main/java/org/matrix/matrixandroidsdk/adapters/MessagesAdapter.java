@@ -43,6 +43,14 @@ import java.util.Locale;
  * can include topic changes (m.room.topic) and room member changes (m.room.member).
  */
 public class MessagesAdapter extends ArrayAdapter<MessageRow> {
+    public static interface MessagesAdapterClickListener {
+        /**
+         * Called when the body item is clicked.
+         * Some views like textView don't dispatch the click event
+         * to their parent view.
+         */
+        public void onItemClick(int position);
+    }
 
     // text, images, notices(topics, room names, membership changes,
     // displayname changes, avatar url changes), and emotes!
@@ -73,6 +81,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int notSentColor;
     private int sendingColor;
     private int highlightColor;
+
+    private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
 
     private static boolean mDisplayMessageTimestamp = true;
 
@@ -394,7 +404,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return isMergedView;
     }
 
-    private View getTextView(int position, View convertView, ViewGroup parent) {
+    private View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
@@ -420,6 +430,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textColor = row.getEvent().isUnsent ? notSentColor : (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
         }
         bodyTextView.setTextColor(textColor);
+
+        bodyTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
@@ -605,5 +624,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (refresh) {
             notifyDataSetChanged();
         }
+    }
+
+    public void setMessagesAdapterClickListener(MessagesAdapterClickListener messagesAdapterClickListener) {
+        mMessagesAdapterClickListener = messagesAdapterClickListener;
     }
 }
