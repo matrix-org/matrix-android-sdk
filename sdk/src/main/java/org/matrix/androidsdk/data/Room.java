@@ -328,7 +328,7 @@ public class Room {
             ImageMessage imageMessage = (ImageMessage)message;
 
             // file url -> the upload has failed
-            if (imageMessage.url.startsWith("file:")) {
+            if (imageMessage.isLocalContent()) {
                 localCB.onMatrixError(null);
                 return;
             }
@@ -587,7 +587,7 @@ public class Room {
             if (message instanceof ImageMessage) {
                 final ImageMessage imageMessage = (ImageMessage) message;
 
-                if (imageMessage.url.startsWith("file:")) {
+                if (imageMessage.isLocalContent()) {
                     String filename;
                     // try to parse it
                     try {
@@ -601,15 +601,17 @@ public class Room {
                             mContentManager.uploadContent(fis, imageMessage.info.mimetype, new ContentManager.UploadCallback() {
                                 @Override
                                 public void onUploadComplete(ContentResponse uploadResponse) {
-
                                     ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);
 
                                     if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                                        // a thumbnail url could have been set if the upload has failed
+                                        // it is a file URL one but it must not be sent
+                                        uploadedMessage.thumbnailUrl = null;
                                         uploadedMessage.url = uploadResponse.contentUri;
                                     } else {
-                                        // keep the URL
-                                        uploadedMessage.url = imageMessage.url;
+                                        // keep the URLs
                                         uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;
+                                        uploadedMessage.url = imageMessage.url;
                                     }
 
                                     sendMessage(uploadedMessage, new ApiCallback<Event>() {

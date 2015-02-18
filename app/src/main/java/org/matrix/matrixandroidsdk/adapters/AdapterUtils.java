@@ -377,16 +377,19 @@ public class AdapterUtils {
                 if ((null == bitmap) && (null != context)) {
                     String filename = null;
 
-                    // the url is a file path
+                    // the url is a file one
                     if (url.startsWith("file:")) {
-
                         // try to parse it
                         try {
                             Uri uri = Uri.parse(url);
                             filename = uri.getPath();
 
                         } catch (Exception e) {
+                        }
 
+                        // cannot extract the filename -> sorry
+                        if (null == filename) {
+                            return null;
                         }
                     }
 

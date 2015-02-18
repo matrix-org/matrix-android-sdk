@@ -490,11 +490,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         mSession.getContentManager().uploadContent(mediaStream, mimeType, new ContentManager.UploadCallback() {
             @Override
             public void onUploadComplete(ContentResponse uploadResponse) {
-
                 // Build the image message
                 ImageMessage message = new ImageMessage();
 
                 if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                    // a thumbnail url could have been set if the upload has failed
+                    // it is a file URL one but it must not be sent
+                    message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
                     Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                 } else {

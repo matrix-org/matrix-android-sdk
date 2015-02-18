@@ -292,7 +292,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             ImageMessage imageMessage = (ImageMessage)message;
 
             // media has not been uploaded
-            if (imageMessage.url.startsWith("file:")) {
+            if (imageMessage.isLocalContent()) {
                 if (getActivity() instanceof RoomActivity) {
                     RoomActivity roomActivity = (RoomActivity)getActivity();
 

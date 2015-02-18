@@ -24,4 +24,8 @@ public class ImageMessage extends Message {
     public ImageMessage() {
         msgtype = MSGTYPE_IMAGE;
     }
+
+    public boolean isLocalContent() {
+        return (null != url) && (url.startsWith("file://"));
+    }
 }
