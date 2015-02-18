@@ -59,7 +59,7 @@ public class PowerLevels {
 
     public void setUserPowerLevel(String userId, int powerLevel) {
         if (null != userId) {
-            users.put(userId, new Integer(powerLevel));
+            users.put(userId, Integer.valueOf(powerLevel));
         }
     }
 }
