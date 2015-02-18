@@ -96,6 +96,12 @@ public class ContentManager {
         if (contentUrl == null) return null;
         if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
             String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
+
+            // ignore the #auto pattern
+            if (mediaServerAndId.endsWith("#auto")) {
+                mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
+            }
+
             String url = mHsUri + URI_PREFIX_CONTENT_API + "/";
 
             // identicon server has no thumbnail path
