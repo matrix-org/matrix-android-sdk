@@ -517,7 +517,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onItemClick(int position) {
         final MessageRow messageRow = mAdapter.getItem(position);
         final List<Integer> options = new ArrayList<Integer>();
-        if ((messageRow.getSentState() == MessageRow.SentState.NOT_SENT) || (messageRow.getEvent().isUnsent)) {
+        if (messageRow.getSentState() == MessageRow.SentState.NOT_SENT) {
             options.add(OPTION_RESEND);
         } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
             options.add(OPTION_REDACT);

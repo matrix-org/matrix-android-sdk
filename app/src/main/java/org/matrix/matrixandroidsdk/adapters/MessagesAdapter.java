@@ -287,7 +287,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         tsTextView.setVisibility(View.VISIBLE);
         tsTextView.setText(getTimestamp(msg.originServerTs));
 
-        if ((row.getSentState() == MessageRow.SentState.NOT_SENT) || (row.getEvent().isUnsent)) {
+        if (row.getSentState() == MessageRow.SentState.NOT_SENT) {
             tsTextView.setTextColor(notSentColor);
         } else {
 
@@ -427,7 +427,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textColor = notSentColor;
                 break;
             default:
-                textColor = row.getEvent().isUnsent ? notSentColor : (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
+                textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
         }
         bodyTextView.setTextColor(textColor);
 
@@ -494,7 +494,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 backgroundColor = notSentColor;
                 break;
             default:
-                backgroundColor = row.getEvent().isUnsent ? notSentColor : Color.TRANSPARENT;
+                backgroundColor = Color.TRANSPARENT;
         }
 
         (convertView.findViewById(R.id.messagesAdapter_body_layout)).setBackgroundColor(backgroundColor);
@@ -571,7 +571,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textColor = notSentColor;
                 break;
             default:
-                textColor = row.getEvent().isUnsent ? notSentColor : emoteColor;
+                textColor = emoteColor;
         }
         emoteTextView.setTextColor(textColor);
 

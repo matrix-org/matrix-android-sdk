@@ -25,7 +25,7 @@ public class MessageRow {
     public enum SentState {
         SENT, // Normal case: true for received messages and messages successfully sent to the server
         SENDING, // Awaiting response from server after having sent the message
-        NOT_SENT // The server returned an error when trying to send the message
+        NOT_SENT // The message is in a temporary state : the message failed to be sent but the list is not refreshed
     }
 
     private SentState sentState = SentState.SENT;
@@ -44,6 +44,10 @@ public class MessageRow {
     }
 
     public SentState getSentState() {
+        if (event.isUnsent) {
+            return SentState.NOT_SENT;
+        }
+
         return sentState;
     }
 
