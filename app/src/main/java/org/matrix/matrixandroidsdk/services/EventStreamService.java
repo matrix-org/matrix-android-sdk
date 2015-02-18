@@ -181,8 +181,6 @@ public class EventStreamService extends Service {
         builder.setAutoCancel(true);
         builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
         builder.setTicker(from + ":" + body);
-        /*Uri uri= RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        builder.setSound(uri);*/
 
         // Build the pending intent for when the notification is clicked
         Intent roomIntent = new Intent(this, RoomActivity.class);
@@ -194,10 +192,15 @@ public class EventStreamService extends Service {
 
         builder.setContentIntent(stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
 
+        // display the message with more than 1 lines when the device supports it
+        NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
+        textStyle.bigText(from + ":" + body);
+        builder.setStyle(textStyle);
+
         Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
         n.defaults |= Notification.DEFAULT_LIGHTS;
-        //n.defaults |= Notification.DEFAULT_VIBRATE;
+
         return n;
     }
 
