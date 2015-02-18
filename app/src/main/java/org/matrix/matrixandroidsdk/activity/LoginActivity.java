@@ -51,13 +51,24 @@ public class LoginActivity extends MXCActionBarActivity {
         LoginRestClient client = new LoginRestClient(Uri.parse(hsUrl));
         // TODO: This client should check that it can use u/p login on this home server!!!
         client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>() {
-
             @Override
             public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
                 Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
                 goToSplash();
                 LoginActivity.this.finish();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                String msg = "Unable to login: Network error";
+                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                String msg = "Unable to login: " + e.getMessage();
+                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
             }
 
             @Override
