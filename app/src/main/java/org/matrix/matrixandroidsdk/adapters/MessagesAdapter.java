@@ -233,6 +233,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         boolean isMergedView = false;
         boolean willBeMerged = false;
 
+        convertView.setClickable(false);
+
         // the notice messages are never merged
         if (msgType != ROW_TYPE_NOTICE) {
             //
@@ -284,6 +286,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         tsTextView.setVisibility(View.VISIBLE);
         tsTextView.setText(getTimestamp(msg.originServerTs));
+
+        if ((row.getSentState() == MessageRow.SentState.NOT_SENT) || (row.getEvent().isUnsent)) {
+            tsTextView.setTextColor(notSentColor);
+        } else {
+
+            tsTextView.setTextColor(Color.parseColor("#FFAAAAAA"));
+        }
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
@@ -422,24 +431,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
-        bodyTextView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                // trap the touch up
-                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-                    // warn listener of click events if there is no selection
-                    if (!bodyTextView.hasSelection() && (null != mMessagesAdapterClickListener)) {
-                        bodyTextView.requestFocus();
-                        mMessagesAdapterClickListener.onItemClick(position);
-                        return true;
-                    }
-                }
+        this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
-                return false;
+        // add a click listener because the text view gains the focus.
+        //  mMessageListView.setOnItemClickListener is never called.
+        convertView.setClickable(true);
+        // click on the avatar opens the details page
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // warn listener of click events if there is no selection
+                if (!bodyTextView.hasSelection() && (null != mMessagesAdapterClickListener)) {
+                    bodyTextView.requestFocus();
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
             }
         });
-
-        this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
         setBackgroundColour(convertView, position);
         return convertView;
