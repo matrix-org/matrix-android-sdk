@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -83,8 +84,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int highlightColor;
 
     private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
-
-    private static boolean mDisplayMessageTimestamp = true;
 
     private DateFormat mDateFormat;
 
@@ -284,15 +283,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         tsTextView.setVisibility(View.VISIBLE);
-        tsTextView.setText(mDisplayMessageTimestamp ? getTimestamp(msg.originServerTs) : "            ");
-
-        tsTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MessagesAdapter.this.mDisplayMessageTimestamp = !MessagesAdapter.this.mDisplayMessageTimestamp;
-                MessagesAdapter.this.notifyDataSetChanged();
-            }
-        });
+        tsTextView.setText(getTimestamp(msg.originServerTs));
 
         // Sender avatar
         RoomMember sender = roomState.getMember(msg.userId);
@@ -431,12 +422,20 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         bodyTextView.setTextColor(textColor);
 
-        bodyTextView.setOnClickListener(new View.OnClickListener() {
+        bodyTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                // trap the touch up
+                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                    // warn listener of click events if there is no selection
+                    if (!bodyTextView.hasSelection() && (null != mMessagesAdapterClickListener)) {
+                        bodyTextView.requestFocus();
+                        mMessagesAdapterClickListener.onItemClick(position);
+                        return true;
+                    }
                 }
+
+                return false;
             }
         });
 

@@ -91,6 +91,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
+
+    private AlertDialog mRedactResendAlert = null;
+
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
@@ -520,15 +523,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             options.add(OPTION_REDACT);
         }
 
-        if (options.size() != 0) {
+        // do not launch an other alert if the user did not manage this one.
+        if ((options.size() != 0) && (null == mRedactResendAlert)) {
             options.add(OPTION_CANCEL);
-            new AlertDialog.Builder(getActivity())
+            mRedactResendAlert = new AlertDialog.Builder(getActivity())
                     .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             switch (options.get(which)) {
                                 case OPTION_CANCEL:
                                     dialog.cancel();
+                                    mRedactResendAlert = null;
                                     break;
                                 case OPTION_RESEND:
                                     getActivity().runOnUiThread(new Runnable() {
@@ -537,7 +542,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             resend(messageRow.getEvent());
                                         }
                                     });
-
+                                    mRedactResendAlert = null;
                                     break;
                                 case OPTION_REDACT:
                                     getActivity().runOnUiThread(new Runnable() {
@@ -546,12 +551,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             redactEvent(messageRow.getEvent().eventId);
                                         }
                                     });
+                                    mRedactResendAlert = null;
                                     break;
                             }
                         }
                     })
-                    .create()
-                    .show();
+                    .create();
+
+            mRedactResendAlert.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    mRedactResendAlert = null;
+                }
+            });
+
+            mRedactResendAlert.show();
         }
     }
 }
