@@ -25,7 +25,9 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.TextView;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -36,12 +38,25 @@ import org.matrix.matrixandroidsdk.R;
 
 public class LockScreenActivity extends Activity { // do NOT extend from UC*Activity, we do not want to login on this screen!
     public static final String EXTRA_SENDER_NAME = "extra_sender_name";
-    public static final String EXTRA_MESAGE_BODY = "extra_chat_body";
+    public static final String EXTRA_MESSAGE_BODY = "extra_chat_body";
     public static final String EXTRA_ROOM_ID = "extra_room_id";
+
+    private static LockScreenActivity mLockScreenActivity = null;
+
+    public static boolean isDisplayingALockScreenActivity() {
+        return (null != mLockScreenActivity);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // kill any running alert
+        if (null != mLockScreenActivity) {
+            mLockScreenActivity.finish();
+        }
+
+        mLockScreenActivity = this;
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
         window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
@@ -56,6 +71,7 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
         notificationsManager.cancelAll();
 
         Intent intent = getIntent();
+
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
             finish();
             return;
@@ -66,10 +82,15 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
             return;
         }
 
-        // set the sender as title
-        setTitle(intent.getStringExtra(EXTRA_SENDER_NAME));
-
         final String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
+        final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        final Room room = session.getDataHandler().getRoom(roomId);
+
+        // display the room name as title
+        setTitle(room.getName(session.getCredentials().userId));
+
+        ((TextView)findViewById(R.id.lock_screen_sender)).setText( intent.getStringExtra(EXTRA_SENDER_NAME) + " : ");
+        ((TextView)findViewById(R.id.lock_screen_body)).setText( intent.getStringExtra(EXTRA_MESSAGE_BODY));
 
         findViewById(R.id.lock_screen_sendbutton).setOnClickListener(new View.OnClickListener() {
 
@@ -81,8 +102,6 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
                 Message message = new Message();
                 message.msgtype = Message.MSGTYPE_TEXT;
                 message.body = body;
-
-                Room room = Matrix.getInstance(getApplicationContext()).getDefaultSession().getDataHandler().getRoom(roomId);
 
                 if (null != room) {
                     room.sendMessage(message, new ApiCallback<Event>() {
@@ -114,5 +133,13 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
         });
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // only one instance of LockScreenActivity must be active
+        if (this == mLockScreenActivity) {
+            mLockScreenActivity = null;
+        }
+    }
 
 }

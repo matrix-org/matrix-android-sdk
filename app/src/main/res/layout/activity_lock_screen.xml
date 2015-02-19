@@ -2,15 +2,36 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:layout_gravity="bottom" >
+    android:orientation="vertical" >
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:layout_gravity="left"
+        android:textColor="#FFAAAAAA"
+        android:text="SENDER"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:id="@+id/lock_screen_sender"/>
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:layout_gravity="left"
+        android:textIsSelectable="false"
+        android:text="A message body goes here"
+        android:id="@+id/lock_screen_body"/>
+
     <LinearLayout
         android:id="@+id/lock_screen_chat_send_area"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:padding="5dp"
         android:layout_gravity="center" >
 
         <EditText
@@ -19,6 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="left"
             android:layout_weight="1"
+            android:textAppearance="?android:attr/textAppearanceMedium"
             android:hint="Type here..."/>
 
         <ImageButton
@@ -27,7 +49,8 @@
             android:layout_height="wrap_content"
             android:layout_gravity="right"
             android:background="@android:drawable/ic_menu_send"
-            android:textColor="#000"
-            android:textSize="16sp" />
+            android:textColor="#000" />
     </LinearLayout>
+
+
 </LinearLayout>

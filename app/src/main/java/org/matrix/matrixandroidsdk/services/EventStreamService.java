@@ -22,6 +22,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
@@ -70,16 +71,31 @@ public class EventStreamService extends Service {
                 return;
             }
 
-            String from = event.userId;
+            String senderID = event.userId;
             // FIXME: Support event contents with no body
             if (!event.content.has("body")) {
                 return;
             }
 
+            Room room = mSession.getDataHandler().getRoom(roomId);
+
+            // invalid room ?
+            if(null == room) {
+                return;
+            }
+
+            RoomMember member = room.getMember(senderID);
+
+            // invalid member
+            if (null == member) {
+                return;
+            }
+
             final String body = event.content.getAsJsonPrimitive("body").getAsString();
 
-            Notification n = buildMessageNotification(from, body, event.roomId);
+            Notification n = buildMessageNotification(member.getName(), body, event.roomId);
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.cancelAll();
 
             if (bingRule.shouldPlaySound()) {
                 n.defaults |= Notification.DEFAULT_SOUND;
@@ -179,6 +195,7 @@ public class EventStreamService extends Service {
     private Notification buildMessageNotification(String from, String body, String roomId) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setWhen(System.currentTimeMillis());
+
         builder.setContentTitle(from + " (Matrix)");
         builder.setContentText(body);
         builder.setAutoCancel(true);
@@ -202,26 +219,29 @@ public class EventStreamService extends Service {
         textStyle.bigText(from + ":" + body);
         builder.setStyle(textStyle);
 
+        // do not offer to quick respond if the user did not dismiss the previous one
+        if (!LockScreenActivity.isDisplayingALockScreenActivity()) {
+            // offer to type a quick answer (i.e. without launching the application)
+            Intent quickReplyIntent = new Intent(this, LockScreenActivity.class);
+            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ROOM_ID, roomId);
+            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
+            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESSAGE_BODY, body);
+            // the action must be unique else the parameters are ignored
+            quickReplyIntent.setAction(QUICK_LAUNCH_ACTION + ((int) (System.currentTimeMillis())));
+            PendingIntent pIntent = PendingIntent.getActivity(this, 0, quickReplyIntent, 0);
+            builder.addAction(R.drawable.ic_menu_edit, getString(R.string.action_quick_reply), pIntent);
 
-        // offer to type a quick answer (i.e. without launching the application)
-        Intent quickReplyIntent = new Intent(this, LockScreenActivity.class);
-        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ROOM_ID, roomId);
-        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
-        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESAGE_BODY, body);
-        quickReplyIntent.setAction(QUICK_LAUNCH_ACTION);
-        PendingIntent pIntent = PendingIntent.getActivity(this, 0, quickReplyIntent, 0);
-        builder.addAction(R.drawable.ic_menu_edit, getString(R.string.action_quick_reply), pIntent);
-
-        // Build the pending intent for when the notification is clicked
-        Intent roomIntentTap = new Intent(this, RoomActivity.class);
-        roomIntentTap.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-        roomIntentTap.setAction(TAP_TO_VIEW_ACTION);
-        // Recreate the back stack
-        TaskStackBuilder stackBuildertap = TaskStackBuilder.create(this)
-                .addParentStack(RoomActivity.class)
-                .addNextIntent(roomIntentTap);
-        builder.addAction(R.drawable.ic_menu_start_conversation, getString(R.string.action_open), stackBuildertap.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
-
+            // Build the pending intent for when the notification is clicked
+            Intent roomIntentTap = new Intent(this, RoomActivity.class);
+            roomIntentTap.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+            // the action must be unique else the parameters are ignored
+            roomIntentTap.setAction(TAP_TO_VIEW_ACTION + ((int) (System.currentTimeMillis())));
+            // Recreate the back stack
+            TaskStackBuilder stackBuildertap = TaskStackBuilder.create(this)
+                    .addParentStack(RoomActivity.class)
+                    .addNextIntent(roomIntentTap);
+            builder.addAction(R.drawable.ic_menu_start_conversation, getString(R.string.action_open), stackBuildertap.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+        }
 
         Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;

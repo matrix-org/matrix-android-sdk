@@ -120,7 +120,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
 
         // the user has tapped on the "View" notification button
-        if ((null != intent.getAction()) && (intent.getAction().equals(EventStreamService.TAP_TO_VIEW_ACTION))) {
+        if ((null != intent.getAction()) && (intent.getAction().startsWith(EventStreamService.TAP_TO_VIEW_ACTION))) {
             // remove any pending notifications
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
