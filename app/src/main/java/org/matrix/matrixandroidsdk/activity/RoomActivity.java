@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -117,6 +118,15 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             finish();
             return;
         }
+
+        // the user has tapped on the "View" notification button
+        if ((null != intent.getAction()) && (intent.getAction().equals(EventStreamService.TAP_TO_VIEW_ACTION))) {
+            // remove any pending notifications
+            NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationsManager.cancelAll();
+        }
+
+
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
 

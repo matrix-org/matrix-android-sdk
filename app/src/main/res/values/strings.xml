@@ -32,6 +32,8 @@
     <string name="action_room_info">Room info</string>
     <string name="action_search_room">Search room</string>
     <string name="action_mark_all_as_read">Mark all as read</string>
+    <string name="action_quick_reply">Quick reply</string>
+    <string name="action_open">Open</string>
 
     <string name="my_rooms">My rooms</string>
     <string name="private_room">Private Room</string>

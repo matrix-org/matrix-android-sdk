@@ -29,6 +29,7 @@ import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.LockScreenActivity;
 import org.matrix.matrixandroidsdk.activity.PublicRoomsActivity;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
@@ -47,6 +48,8 @@ public class EventStreamService extends Service {
         RESUME
     }
     public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
+    public static final String QUICK_LAUNCH_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.QUICK_LAUNCH_ACTION";
+    public static final String TAP_TO_VIEW_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.TAP_TO_VIEW_ACTION";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
@@ -182,20 +185,43 @@ public class EventStreamService extends Service {
         builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
         builder.setTicker(from + ":" + body);
 
-        // Build the pending intent for when the notification is clicked
-        Intent roomIntent = new Intent(this, RoomActivity.class);
-        roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-        // Recreate the back stack
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this)
-                .addParentStack(RoomActivity.class)
-                .addNextIntent(roomIntent);
+        {
+            // Build the pending intent for when the notification is clicked
+            Intent roomIntent = new Intent(this, RoomActivity.class);
+            roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+            // Recreate the back stack
+            TaskStackBuilder stackBuilder = TaskStackBuilder.create(this)
+                    .addParentStack(RoomActivity.class)
+                    .addNextIntent(roomIntent);
 
-        builder.setContentIntent(stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+            builder.setContentIntent(stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+        }
 
         // display the message with more than 1 lines when the device supports it
         NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
         textStyle.bigText(from + ":" + body);
         builder.setStyle(textStyle);
+
+
+        // offer to type a quick answer (i.e. without launching the application)
+        Intent quickReplyIntent = new Intent(this, LockScreenActivity.class);
+        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ROOM_ID, roomId);
+        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
+        quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESAGE_BODY, body);
+        quickReplyIntent.setAction(QUICK_LAUNCH_ACTION);
+        PendingIntent pIntent = PendingIntent.getActivity(this, 0, quickReplyIntent, 0);
+        builder.addAction(R.drawable.ic_menu_edit, getString(R.string.action_quick_reply), pIntent);
+
+        // Build the pending intent for when the notification is clicked
+        Intent roomIntentTap = new Intent(this, RoomActivity.class);
+        roomIntentTap.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+        roomIntentTap.setAction(TAP_TO_VIEW_ACTION);
+        // Recreate the back stack
+        TaskStackBuilder stackBuildertap = TaskStackBuilder.create(this)
+                .addParentStack(RoomActivity.class)
+                .addNextIntent(roomIntentTap);
+        builder.addAction(R.drawable.ic_menu_start_conversation, getString(R.string.action_open), stackBuildertap.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+
 
         Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
