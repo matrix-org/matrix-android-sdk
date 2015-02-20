@@ -141,9 +141,6 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
         userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
-
-        TextView tokenTextView = (TextView) findViewById(R.id.textView_configAccessToken);
-        tokenTextView.setText(getString(R.string.settings_config_access_token, session.getCredentials().accessToken));
     }
 
     @Override

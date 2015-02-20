@@ -503,13 +503,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent viewImageIntent = new Intent();
-                    viewImageIntent.setAction(Intent.ACTION_VIEW);
-                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
-                    ContentManager contentManager = Matrix.getInstance(getContext()).getDefaultSession().getContentManager();
-                    String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
-                    viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
-                    mContext.startActivity(viewImageIntent);
+                    if (!imageMessage.isLocalContent()) {
+                        Intent viewImageIntent = new Intent();
+                        viewImageIntent.setAction(Intent.ACTION_VIEW);
+                        String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
+                        ContentManager contentManager = Matrix.getInstance(getContext()).getDefaultSession().getContentManager();
+                        String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
+                        viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
+                        mContext.startActivity(viewImageIntent);
+                    }
                 }
             });
         }

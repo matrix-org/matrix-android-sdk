@@ -61,7 +61,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
     @Override
     public void failure(RetrofitError error) {
         Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
+
         if (error.isNetworkError()) {
+
             try {
                 mApiCallback.onNetworkError(error);
 

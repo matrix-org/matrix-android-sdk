@@ -196,11 +196,10 @@ public class EventStreamService extends Service {
     private Notification buildMessageNotification(String from, String body, String roomId) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setWhen(System.currentTimeMillis());
-
-        builder.setContentTitle(from + " (Matrix)");
+        builder.setContentTitle(from);
         builder.setContentText(body);
         builder.setAutoCancel(true);
-        builder.setSmallIcon(R.drawable.ic_menu_start_conversation);
+        builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
         builder.setTicker(from + ":" + body);
 
         {

@@ -36,12 +36,16 @@ public class ErrorListener implements ApiFailureCallback {
     @Override
     public void onNetworkError(Exception e) {
         Log.e(LOG_TAG, "Network error: " + e.getMessage());
-        mActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+
+        // do not trigger toaster if the application is in background
+        if (!((ConsoleApplication)mActivity.getApplication()).isInBackground) {
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
                 Toast.makeText(mActivity, mActivity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
-            }
-        });
+                }
+            });
+        }
     }
 
     @Override
