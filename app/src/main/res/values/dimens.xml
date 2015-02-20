@@ -1,7 +1,7 @@
 <resources>
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="activity_horizontal_margin">14dp</dimen>
-    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">5dp</dimen>
 
     <dimen name="chat_avatar_size">40dp</dimen>
     <dimen name="chat_avatar_keyboard_size">15dp</dimen>

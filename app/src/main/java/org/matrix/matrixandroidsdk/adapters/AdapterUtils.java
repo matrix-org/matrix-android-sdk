@@ -76,19 +76,26 @@ public class AdapterUtils {
             try {
                 String userDisplayName = getUserDisplayName(mEvent.userId);
                 if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
-                    // all m.room.message events should support the 'body' key fallback, so use it.
-                    text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
 
-                    // check for html formatting
-                    if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
-                        String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
-                        if ("org.matrix.custom.html".equals(format)) {
-                            text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
+                    String msgtype = (null != mEvent.content.get("msgtype")) ? mEvent.content.get("msgtype").getAsString() : "";
+
+                    if (msgtype.equals(Message.MSGTYPE_IMAGE)) {
+                        text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
+                    } else {
+                        // all m.room.message events should support the 'body' key fallback, so use it.
+                        text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
+
+                        // check for html formatting
+                        if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
+                            String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
+                            if ("org.matrix.custom.html".equals(format)) {
+                                text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
+                            }
                         }
-                    }
 
-                    if (mPrependAuthor) {
-                        text = mContext.getString(R.string.summary_message, userDisplayName, text);
+                        if (mPrependAuthor) {
+                            text = mContext.getString(R.string.summary_message, userDisplayName, text);
+                        }
                     }
                 }
                 else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {

@@ -18,6 +18,7 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.support.v7.app.ActionBarActivity;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 
@@ -41,7 +42,16 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
         // refresh the push rules when debackgrounding the application
         if (((ConsoleApplication)getApplication()).wasInBackground) {
-            Matrix.getInstance(getApplicationContext()).getDefaultSession().getDataHandler().refreshPushRules();
+            Matrix matrixInstance =  Matrix.getInstance(getApplicationContext());
+
+            // sanity check
+            if (null != matrixInstance) {
+                final MXSession session = matrixInstance.getDefaultSession();
+
+                if ((null != session) && (null != session.getDataHandler())) {
+                    session.getDataHandler().refreshPushRules();
+                }
+            }
         }
 
         ((ConsoleApplication)getApplication()).stopActivityTransitionTimer();
