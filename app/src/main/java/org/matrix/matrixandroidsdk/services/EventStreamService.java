@@ -187,8 +187,9 @@ public class EventStreamService extends Service {
     }
 
     private void startWithNotification() {
-        Notification notification = buildNotification();
-        startForeground(NOTIFICATION_ID, notification);
+        // remove the listening for events notification
+        //Notification notification = buildNotification();
+        //startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
     }
 

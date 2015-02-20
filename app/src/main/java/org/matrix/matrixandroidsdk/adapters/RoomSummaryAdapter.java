@@ -365,7 +365,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             // check if this is an invite
             if (summary.isInvited()) {
-                message = summary.getInviterUserId() + "'s invitation";
+                message = mContext.getString(R.string.summary_user_invitation, summary.getInviterUserId());
             }
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);

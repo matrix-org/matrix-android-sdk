@@ -67,6 +67,11 @@
     <string name="notice_topic_changed">%1$s changed the topic to %2$s.</string>
     <string name="notice_room_name_changed">%1$s changed the room name to %2$s.</string>
 
+    <!-- general errors -->
+    <string name="network_error">Network error</string>
+    <string name="matrix_error">Matrix error</string>
+    <string name="unexpected_error">Unexpected error</string>
+
     <plurals name="num_members">
         <item quantity="one">%1$s user</item>
         <item quantity="other">%1$s users</item>
@@ -79,6 +84,8 @@
     <string name="last_seen_days">%dd</string>
 
     <string name="summary_message">%1$s: %2$s</string>
+    <string name="summary_invitation">Room Invitation</string>
+    <string name="summary_user_invitation">%1$s\'s invitation</string>
 
     <string name="invite">Invite</string>
     <string name="kick">Kick</string>
@@ -94,6 +101,18 @@
     <string name="option_attach_video">Attach video</string>
     <string name="option_invite">Invite</string>
 
+    <!-- Room Screen -->
+    <string name="could_not_redact">Could not redact"</string>
+    <string name="unable_to_send_message">Unable to send message</string>
+
+    <!-- Login Screen -->
+    <string name="login_error_must_start_http">URL must start with http[s]://</string>
+    <string name="login_error_network_error">Unable to login: Network error</string>
+    <string name="login_error_unable_login">Unable to login</string>
+
+    <!-- members list Screen -->
+    <string name="members_list">Members List</string>
+
     <!-- Settings screen -->
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
@@ -108,4 +127,5 @@
     <string name="settings_config_access_token">Access token: %s</string>
     <string name="settings_command_commands">The following commands are available in the room chat:\r\n\r\n /nick &#60;display_name&#62;&#58; change your display name\r\n /me &#60;action&#62;&#58; send the action you are doing. /me will be replaced by your display name\r\n /join &#60;room_alias&#62;&#58; join a room\r\n /kick &#60;user_id&#62; [&#60;reason>]&#58; kick the user\r\n /ban &#60;user_id&#62; [&#60;reason&#62;]&#58; ban the user\r\n /unban &#60;user_id&#62;&#58; unban the user\r\n /op &#60;user_id&#62; &#60;power_level&#62;&#58; set user power level\r\n /deop &#60;user_id&#62;&#58; reset user power level to the room default value</string>
     <string name="settings_failed_to_upload_avatar">Failed to upload avatar</string>
+
 </resources>

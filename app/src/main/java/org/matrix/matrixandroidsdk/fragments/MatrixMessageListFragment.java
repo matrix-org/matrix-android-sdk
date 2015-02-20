@@ -283,12 +283,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (event.isUnsent) {
                     if (null != event.unsentException) {
                         if ((event.unsentException instanceof RetrofitError) && ((RetrofitError)event.unsentException).isNetworkError())  {
-                            Toast.makeText(getActivity(), "Unable to send message (Network error)", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(getActivity(), "Unable to send message. " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                         }
                     } else if (null != event.unsentMatrixError) {
-                        Toast.makeText(getActivity(), "Unable to send message. " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
                     }
                 }
 
@@ -370,7 +370,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), "Network error", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
                             MatrixMessageListFragment.this.dismissLoadingProgress();
                             mIsCatchingUp = false;
                         }
@@ -381,7 +381,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 public void onMatrixError(MatrixError e) {
                     dismissLoadingProgress();
 
-                    Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
+                    Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.error);
                     // The access token was not recognized: log out
                     if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
                         CommonActivityUtils.logout(MatrixMessageListFragment.this.getActivity());
@@ -392,7 +392,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), "Matrix error : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.error, Toast.LENGTH_SHORT).show();
                             MatrixMessageListFragment.this.dismissLoadingProgress();
                             mIsCatchingUp = false;
                         }
@@ -403,7 +403,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 public void onUnexpectedError(Exception e) {
                     dismissLoadingProgress();
 
-                    Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+                    Log.e(LOG_TAG, getActivity().getString(R.string.unexpected_error) + " : " + e.getMessage());
                     MatrixMessageListFragment.this.dismissLoadingProgress();
                     mIsCatchingUp = false;
                 }
@@ -418,7 +418,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private void redactEvent(String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId,
-                new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), "Couldn't redact")));
+                new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
     }
 
     @Override

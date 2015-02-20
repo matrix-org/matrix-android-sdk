@@ -45,7 +45,7 @@ public class LoginActivity extends MXCActionBarActivity {
 
     private void onLoginClick(String hsUrl, String username, String password) {
         if (!hsUrl.startsWith("http")) {
-            Toast.makeText(this, "URL must start with http[s]://", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.login_error_must_start_http), Toast.LENGTH_SHORT).show();
             return;
         }
         LoginRestClient client = new LoginRestClient(Uri.parse(hsUrl));
@@ -61,19 +61,18 @@ public class LoginActivity extends MXCActionBarActivity {
 
             @Override
             public void onNetworkError(Exception e) {
-                String msg = "Unable to login: Network error";
-                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), getString(R.string.login_error_network_error), Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                String msg = "Unable to login: " + e.getMessage();
+                String msg = getString(R.string.login_error_unable_login) + " : " + e.getMessage();
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                String msg = "Unable to login: " + e.error + "("+e.errcode+")";
+                String msg = getString(R.string.login_error_unable_login) + " : " + e.error + "("+e.errcode+")";
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
             }
         });

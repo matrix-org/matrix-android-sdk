@@ -173,7 +173,7 @@ public class MatrixMessagesFragment extends Fragment {
                 MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), "Network error", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
                         MatrixMessagesFragment.this.dismissLoadingProgress();
                     }
                 });
@@ -192,7 +192,7 @@ public class MatrixMessagesFragment extends Fragment {
                 MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), "Matrix error : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.error, Toast.LENGTH_SHORT).show();
                         MatrixMessagesFragment.this.dismissLoadingProgress();
                     }
                 });
@@ -200,7 +200,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "Unexpected error: " + e.getMessage());
+                Log.e(LOG_TAG, getActivity().getString(R.string.unexpected_error) + " : " + e.getMessage());
                 MatrixMessagesFragment.this.dismissLoadingProgress();
             }
         });

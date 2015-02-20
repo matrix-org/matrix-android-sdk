@@ -108,7 +108,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog d = super.onCreateDialog(savedInstanceState);
-        d.setTitle("Member List");
+        d.setTitle(getString(R.string.members_list));
         return d;
     }
 
