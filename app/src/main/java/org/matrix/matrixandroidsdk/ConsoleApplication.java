@@ -27,7 +27,7 @@ import java.util.TimerTask;
 public class ConsoleApplication extends Application {
     private Timer mActivityTransitionTimer;
     private TimerTask mActivityTransitionTimerTask;
-    public boolean wasInBackground;
+    public boolean isInBackground;
     private final long MAX_ACTIVITY_TRANSITION_TIME_MS = 2000;
 
     @Override
@@ -35,14 +35,14 @@ public class ConsoleApplication extends Application {
         super.onCreate();
         mActivityTransitionTimer = null;
         mActivityTransitionTimerTask = null;
-        wasInBackground = false;
+        isInBackground = false;
     }
 
     public void startActivityTransitionTimer() {
         this.mActivityTransitionTimer = new Timer();
         this.mActivityTransitionTimerTask = new TimerTask() {
             public void run() {
-                ConsoleApplication.this.wasInBackground = true;
+                ConsoleApplication.this.isInBackground = true;
             }
         };
 
@@ -58,7 +58,7 @@ public class ConsoleApplication extends Application {
             this.mActivityTransitionTimer.cancel();
         }
 
-        this.wasInBackground = false;
+        this.isInBackground = false;
     }
 
     static private Activity mCurrentActivity = null;

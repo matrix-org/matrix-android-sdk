@@ -41,7 +41,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
         ConsoleApplication.setCurrentActivity(this);
 
         // refresh the push rules when debackgrounding the application
-        if (((ConsoleApplication)getApplication()).wasInBackground) {
+        if (((ConsoleApplication)getApplication()).isInBackground) {
             Matrix matrixInstance =  Matrix.getInstance(getApplicationContext());
 
             // sanity check
