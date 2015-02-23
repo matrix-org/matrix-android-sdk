@@ -2,9 +2,7 @@ package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
+
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,31 +20,22 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import retrofit.RetrofitError;
@@ -63,6 +52,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          */
         public void onInitialMessagesLoaded();
     }
+
+    private static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETALS";
 
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
@@ -479,6 +470,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private static final int OPTION_CANCEL = 0;
     private static final int OPTION_RESEND = 1;
     private static final int OPTION_REDACT = 2;
+    private static final int OPTION_MESSAGE_DETAILS = 3;
 
     private String[] buildOptionLabels(List<Integer> options) {
         String[] labels = new String[options.size()];
@@ -493,6 +485,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     break;
                 case OPTION_REDACT:
                     label = getString(R.string.redact);
+                    break;
+                case OPTION_MESSAGE_DETAILS:
+                    label = getString(R.string.message_details);
                     break;
             }
             labels[i] = label;
@@ -509,6 +504,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } else if (messageRow.getSentState() == MessageRow.SentState.SENT) {
             options.add(OPTION_REDACT);
         }
+
+        // display the JSON
+        options.add(OPTION_MESSAGE_DETAILS);
 
         // do not launch an other alert if the user did not manage this one.
         if ((options.size() != 0) && (null == mRedactResendAlert)) {
@@ -536,6 +534,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                         @Override
                                         public void run() {
                                             redactEvent(messageRow.getEvent().eventId);
+                                        }
+                                    });
+                                    mRedactResendAlert = null;
+                                    break;
+                                case OPTION_MESSAGE_DETAILS:
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            FragmentManager fm =  getActivity().getSupportFragmentManager();
+
+                                            MessageDetailsFragment fragment = (MessageDetailsFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_DETAILS);
+                                            if (fragment != null) {
+                                                fragment.dismissAllowingStateLoss();
+                                            }
+                                            fragment = MessageDetailsFragment.newInstance(messageRow.getEvent().toString());
+                                            fragment.show(fm, TAG_FRAGMENT_MESSAGE_DETAILS);
                                         }
                                     });
                                     mRedactResendAlert = null;

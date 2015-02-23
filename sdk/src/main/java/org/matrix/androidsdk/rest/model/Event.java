@@ -17,7 +17,10 @@ package org.matrix.androidsdk.rest.model;
 
 import android.widget.Toast;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import java.util.Map;
 
 /**
  * Generic event class with all possible fields for events.
@@ -63,4 +66,40 @@ public class Event {
     // message is currently sent to the server
     public boolean isSending = false;
 
+    @Override
+    public java.lang.String toString() {
+
+        // build the string by hand
+        String text = "{\n" ;
+
+        text += "  \"age\" : " + age + ",\n";
+
+        text += "  \"content\" {\n";
+
+        if (null != content) {
+            if (content.isJsonArray()) {
+                for (JsonElement e : content.getAsJsonArray()) {
+                    text += "   " + e.toString() + "\n,";
+                }
+            } else if (content.isJsonObject()) {
+                for (Map.Entry<String, JsonElement> e : content.getAsJsonObject().entrySet()) {
+                    text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
+                }
+            } else {
+                text += content.toString();
+            }
+        }
+
+        text += "  },\n";
+
+        text += "  \"eventId\": \"" + eventId + "\",\n";
+        text += "  \"originServerTs\": " + originServerTs +",\n";
+        text += "  \"roomId\": \"" + roomId + "\",\n";
+        text += "  \"type\": \"" + type + "\",\n";
+        text += "  \"userId\": \"" + userId + "\"\n";
+
+        text += "}";
+
+        return text;
+    }
 }
