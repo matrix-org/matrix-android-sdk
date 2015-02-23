@@ -2,6 +2,7 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -478,7 +479,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int maxImageWidth = parent.getWidth() / 2;
         int maxImageHeight = parent.getHeight() / 2;
+
+        // reset the bitmap to ensure that it is not reused from older cells
+        imageView.setImageBitmap(null);
         AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);
