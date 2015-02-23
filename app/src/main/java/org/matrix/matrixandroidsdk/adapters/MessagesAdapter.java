@@ -482,7 +482,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-        AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+
+        // ensure that the parent view is fully created
+        if((maxImageWidth != 0) && (maxImageHeight != 0)) {
+            AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+        }
 
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale
         // locally if needed.

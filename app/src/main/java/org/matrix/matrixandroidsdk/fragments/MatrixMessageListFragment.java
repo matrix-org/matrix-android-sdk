@@ -3,6 +3,7 @@ package org.matrix.matrixandroidsdk.fragments;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -235,22 +236,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
                 if (getActivity() instanceof RoomActivity) {
-                    RoomActivity roomActivity = (RoomActivity)getActivity();
+                    ((RoomActivity)getActivity()).uploadImageContent(imageMessage.url, imageMessage.info.mimetype, imageMessage);
 
-                    String filename;
-                    // try to parse it
-                    try {
-                        Uri uri = Uri.parse(imageMessage.url);
-                        filename = uri.getPath();
-                        FileInputStream  fis = new FileInputStream (new File(filename));
-
-                        if (null != fis) {
-                            roomActivity.uploadImageContent(fis, imageMessage.info.mimetype, imageMessage, null);
-                            return;
-                        }
-                    } catch (Exception e) {
-
-                    }
                 } else {
                     // don't know how to resend the event
                     return;

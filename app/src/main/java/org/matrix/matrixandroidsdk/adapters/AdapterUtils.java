@@ -2,12 +2,16 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.app.Application;
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.MediaStore;
 import android.support.v4.util.LruCache;
 import android.text.Html;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -25,6 +29,7 @@ import org.matrix.matrixandroidsdk.R;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.FileOutputStream;
@@ -252,13 +257,21 @@ public class AdapterUtils {
      * Save a bitmap to the local cache
      * it could be used for unsent media to allow them to be resent.
      * @param bitmap the bitmap to save
+     * @param defaultFileName the filename is provided, if null, a filename will be generated
      * @return the media cache URL
      */
-    public static String saveBitmap(Bitmap bitmap, Context context) {
+    public static String saveBitmap(Bitmap bitmap, Context context, String defaultFileName) {
         String filename = "file" + System.currentTimeMillis();
         String cacheURL = null;
 
         try {
+            if (null != defaultFileName) {
+                File file = new File(defaultFileName);
+                file.delete();
+
+                filename = Uri.fromFile(file).getLastPathSegment();
+            }
+
             FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
 
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
@@ -268,7 +281,6 @@ public class AdapterUtils {
 
             cacheURL = Uri.fromFile(context.getFileStreamPath(filename)).toString();
         } catch (Exception e) {
-
         }
 
         return cacheURL;
@@ -278,10 +290,11 @@ public class AdapterUtils {
      * Save a media to the local cache
      * it could be used for unsent media to allow them to be resent.
      * @param stream the file stream to save
+     * @param defaultFileName the filename is provided, if null, a filename will be generated
      * @return the media cache URL
      */
-    public static String saveMedia(InputStream stream, Context context) {
-        String filename = "file" + System.currentTimeMillis();
+    public static String saveMedia(InputStream stream, Context context, String defaultFileName) {
+        String filename = (defaultFileName == null) ? ("file" + System.currentTimeMillis()) : defaultFileName;
         String cacheURL = null;
 
         try {
@@ -352,6 +365,60 @@ public class AdapterUtils {
         }
     }
 
+    /**
+     * Gets the {@link ExifInterface} value for the orientation for this local bitmap Uri.
+     * @param context Application context for the content resolver.
+     * @param uri The URI to find the orientation for.  Must be local.
+     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static int getOrientationForBitmap(Context context, Uri uri) {
+        int orientation = ExifInterface.ORIENTATION_UNDEFINED;
+
+        if (uri == null) {
+            return orientation;
+        }
+
+        if (uri.getScheme().equals("content")) {
+            String [] proj={MediaStore.Images.Media.DATA};
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query( uri, proj, null, null, null);
+                if (cursor != null && cursor.getCount() > 0) {
+                    cursor.moveToFirst();
+                    int idxData = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                    String path = cursor.getString(idxData);
+                    if (TextUtils.isEmpty(path)) {
+                        Log.w(LOG_TAG, "Cannot find path in media db for uri "+uri);
+                        return orientation;
+                    }
+                    ExifInterface exif = new ExifInterface(path);
+                    return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+                }
+            }
+            catch (Exception e) {
+                // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
+                // eg IOException from trying to parse the returned path as a file when it is an http uri.
+                Log.e(LOG_TAG, "Cannot get orientation for bitmap: "+e);
+            }
+            finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+        else if (uri.getScheme().equals("file")) {
+            try {
+                ExifInterface exif = new ExifInterface(uri.getPath());
+                return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because "+e);
+            }
+        }
+
+        return orientation;
+    }
+
     static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
 
         private static final int MEMORY_CACHE_MB = 16;
@@ -417,7 +484,22 @@ public class AdapterUtils {
                         if (null != fis) {
                             BitmapFactory.Options options = new BitmapFactory.Options();
                             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                            bitmap = BitmapFactory.decodeStream(fis, null, options);
+
+                            try {
+                                bitmap = BitmapFactory.decodeStream(fis, null, options);
+                            } catch (OutOfMemoryError error) {
+                                System.gc();
+                                Log.e(LOG_TAG, "bitmapForURL() : Out of memory 1 " + error);
+                            }
+
+                            //  try again
+                            if (null == bitmap) {
+                                try {
+                                    bitmap = BitmapFactory.decodeStream(fis, null, options);
+                                } catch (OutOfMemoryError error) {
+                                    Log.e(LOG_TAG, "bitmapForURL() Out of memory 2" + error);
+                                }
+                            }
 
                             if (null != bitmap) {
                                 synchronized (sMemoryCache) {
@@ -451,32 +533,50 @@ public class AdapterUtils {
 
                 URL url = new URL(mUrl);
                 Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
-                InputStream stream = url.openConnection().getInputStream();
-                Bitmap bitmap;
+
+                InputStream stream = null;
+                Bitmap bitmap = null;
 
                 ImageView imageView = mImageViewReference.get();
+
+                try {
+                    stream = url.openConnection().getInputStream();
+                } catch (FileNotFoundException e) {
+                    Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " does not exist");
+
+                    if(null != imageView.getContext().getApplicationContext()) {
+                        bitmap = BitmapFactory.decodeResource(imageView.getContext().getApplicationContext().getResources(), R.drawable.ic_menu_gallery);
+                    }
+                }
 
                 if ((null != imageView) && (null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
                     String filename  = "file" + url.hashCode();
                     Context context = imageView.getContext().getApplicationContext();
                     FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
 
-                    try{
-                        byte[] buf = new byte[1024*32];
-                        int len;
-                        while((len = stream.read(buf)) != -1) {
-                            fos.write(buf, 0, len);
+                    // a bitmap has been provided
+                    if (null != bitmap) {
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                    } else {
+                        try {
+                            byte[] buf = new byte[1024 * 32];
+                            int len;
+                            while ((len = stream.read(buf)) != -1) {
+                                fos.write(buf, 0, len);
+                            }
+                        } catch (Exception e) {
                         }
-                    } catch (Exception e) {
+
+                        close(stream);
                     }
 
                     fos.flush();
                     fos.close();
-                    close(stream);
+
 
                     // get the bitmap from the filesytem
                     bitmap = BitmapWorkerTask.bitmapForURL(key, context);
-                } else {
+                } else if (null != bitmap) {
                     BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
                     bitmapOptions.inDither = true;
                     bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;

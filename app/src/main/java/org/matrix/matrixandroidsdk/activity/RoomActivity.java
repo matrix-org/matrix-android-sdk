@@ -6,8 +6,14 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
+import android.media.RemoteControlClient;
 import android.net.Uri;
+import android.os.MemoryFile;
+import android.provider.MediaStore;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -44,6 +50,8 @@ import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -489,15 +497,25 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
      * upload an image content.
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
-     * @param mediaStream the image stream
+     * @param imageUrl the image Uri
      * @param mimeType the image mine type
      * @param retriedMessage the imagemessage to resend
-     * @param anImageUri the selected image URI
      */
-    public void uploadImageContent(InputStream mediaStream, final String mimeType, final ImageMessage retriedMessage, final Uri anImageUri) {
+    public void uploadImageContent(final String imageUrl, final String mimeType, final ImageMessage retriedMessage) {
         final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-        mSession.getContentManager().uploadContent(mediaStream, mimeType, new ContentManager.UploadCallback() {
+        FileInputStream imageStream = null;
+
+        try {
+            Uri uri = Uri.parse(imageUrl);
+            String filename = uri.getPath();
+            imageStream = new FileInputStream (new File(filename));
+
+        } catch (Exception e) {
+
+        }
+
+        mSession.getContentManager().uploadContent(imageStream, mimeType, new ContentManager.UploadCallback() {
             @Override
             public void onUploadComplete(ContentResponse uploadResponse) {
                 // Build the image message
@@ -508,6 +526,40 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     // it is a file URL one but it must not be sent
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
+
+                    // try to extract the image size
+                    try {
+                        Uri uri = Uri.parse(imageUrl);
+                        String filename = uri.getPath();
+
+                        File file = new File(filename);
+
+                        try {
+                            ExifInterface exifMedia = new ExifInterface(filename);
+                            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+                            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+
+                            if ((null != width) && (null != height)) {
+                                ImageInfo imageInfo = new ImageInfo();
+
+                                imageInfo.w = Integer.parseInt(width);
+                                imageInfo.h = Integer.parseInt(height);
+                                imageInfo.mimetype = mimeType;
+                                imageInfo.size = file.length();
+
+                                message.info = imageInfo;
+                            }
+                        } catch (Exception e) {
+                        }
+
+                        // TODO the file should not be deleted
+                        // it should be used to avoid downloading high res pict
+                        file.delete();
+
+                    } catch (Exception e) {
+
+                    }
+
                     Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                 } else {
                     Log.d(LOG_TAG, "Failed to upload");
@@ -519,41 +571,34 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     } else {
 
                         try {
-                            InputStream stream = RoomActivity.this.getContentResolver().openInputStream(anImageUri);
-                            message.url = AdapterUtils.saveMedia(stream, RoomActivity.this);
+                            message.url = imageUrl;
 
-                            // build our own thumbnail
-                            if (null != message.url) {
-                                Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(message.url, RoomActivity.this);
+                            Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(message.url, RoomActivity.this);
 
-                                double thumbnailWidth = fullSizeBitmap.getWidth();
-                                double thumbnailHeight = fullSizeBitmap.getHeight();
+                            double thumbnailWidth = fullSizeBitmap.getWidth();
+                            double thumbnailHeight = fullSizeBitmap.getHeight();
 
-                                // the thumbnails are reduced to a 256 * 256 pixels
-                                if (thumbnailWidth > thumbnailHeight) {
-                                    thumbnailWidth = 256.0;
-                                    thumbnailHeight = thumbnailWidth * fullSizeBitmap.getHeight() / fullSizeBitmap.getWidth();
-                                } else {
-                                    thumbnailHeight = 256.0;
-                                    thumbnailWidth = thumbnailHeight * fullSizeBitmap.getWidth() / fullSizeBitmap.getHeight();
-                                }
-
-                                Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                                message.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, RoomActivity.this);
+                            // the thumbnails are reduced to a 256 * 256 pixels
+                            if (thumbnailWidth > thumbnailHeight) {
+                                thumbnailWidth = 256.0;
+                                thumbnailHeight = thumbnailWidth * fullSizeBitmap.getHeight() / fullSizeBitmap.getWidth();
                             } else {
-                                message.thumbnailUrl = null;
+                                thumbnailHeight = 256.0;
+                                thumbnailWidth = thumbnailHeight * fullSizeBitmap.getWidth() / fullSizeBitmap.getHeight();
                             }
+
+                            Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                            message.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, RoomActivity.this, null);
+
+                            // save memory consumption
+                            fullSizeBitmap.recycle();
+                            fullSizeBitmap = null;
+                            System.gc();
 
                         } catch (Exception e) {
                             // really fail to upload the image...
                         }
                     }
-                }
-
-                if (null != anImageUri) {
-                    message.body = anImageUri.getLastPathSegment();
-                } else if (null != retriedMessage) {
-                    message.body = retriedMessage.body;
                 }
 
                 message.info = new ImageInfo();
@@ -584,16 +629,105 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_IMAGE) {
                 final Uri imageUri = data.getData();
-                final ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
+                ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
                 if (resource == null) {
                     Toast.makeText(RoomActivity.this,
                             getString(R.string.message_failed_to_upload),
                             Toast.LENGTH_LONG).show();
                     return;
                 }
-                Log.d(LOG_TAG, "Selected image to upload: " + imageUri);
 
-                uploadImageContent(resource.contentStream, resource.mimeType, null, imageUri) ;
+                // extract the rotation angle
+                // to manage exif rotation
+                int rotationAngle = -1;
+
+                int orientation = AdapterUtils.getOrientationForBitmap(this, imageUri);
+
+                if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
+                    orientation = 90;
+                } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
+                    orientation = 180 ;
+                } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
+                    orientation = 270;
+                }
+
+                // save the file in the filesystem
+                String imageUrl =  AdapterUtils.saveMedia(resource.contentStream, RoomActivity.this, null);
+                String mimeType = resource.mimeType;
+
+                try {
+                    resource.contentStream.close();
+                } catch(Exception e) {
+                }
+
+                // check if the image orientation has been found
+                // seems that galery images orientation is the thumbnail one
+                if (-1 == rotationAngle) {
+
+                    try {
+                        String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
+                        Cursor cur = managedQuery(imageUri, orientationColumn, null, null, null);
+                        if (cur != null && cur.moveToFirst()) {
+                            orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
+                        }
+                    } catch (Exception e) {
+                    }
+                }
+
+                //orientation = 0;
+
+                // the image has a rotation to apply or the mimetype is unknown
+                if ((orientation > 0) || (null == mimeType) || (mimeType.equals("image/*"))) {
+                    try {
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+                        resource = ResourceUtils.openResource(this, imageUri);
+
+                        Bitmap bitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+
+                        if (null != bitmap) {
+                            Uri uri = Uri.parse(imageUrl);
+
+                            // there is a rotation to apply
+                            if (orientation > 0) {
+                                android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
+                                bitmapMatrix.postRotate(orientation);
+                                
+								// the rotation could fail because there is no more available memory
+                                try {
+                                    Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
+                                    AdapterUtils.saveBitmap(transformedBitmap, RoomActivity.this, uri.getPath());
+                                    transformedBitmap.recycle();
+                                    transformedBitmap = null;
+                                } catch (OutOfMemoryError ex) {
+                                }
+                            } else {
+                                AdapterUtils.saveBitmap(bitmap, RoomActivity.this, uri.getPath());
+                            }
+
+                            // reduce the memory consumption
+                            bitmap.recycle();
+                            bitmap = null;
+
+                            System.gc();
+
+                            // the images are save in jpeg format
+                            mimeType = "image/jpeg";
+                        } else {
+                            imageUrl = null;
+                        }
+
+                        resource.contentStream.close();
+
+                    } catch (Exception e) {
+                    }
+                }
+
+                // is the image content valid ?
+                if (null != imageUrl) {
+                    uploadImageContent(imageUrl, mimeType, null);
+                }
             }
         }
     }
