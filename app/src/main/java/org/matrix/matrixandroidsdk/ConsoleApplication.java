@@ -18,6 +18,8 @@ package org.matrix.matrixandroidsdk;
 import android.app.Activity;
 import android.app.Application;
 
+import org.matrix.matrixandroidsdk.services.EventStreamService;
+
 import java.util.Timer;
 import java.util.TimerTask;
 

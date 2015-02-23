@@ -21,6 +21,7 @@ import android.support.v7.app.ActionBarActivity;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**
  * extends ActionBarActivity to manage the rageshake
@@ -52,6 +53,8 @@ public class MXCActionBarActivity extends ActionBarActivity {
                     session.getDataHandler().refreshPushRules();
                 }
             }
+
+            EventStreamService.cancelNotificationsForRoomId(null);
         }
 
         ((ConsoleApplication)getApplication()).stopActivityTransitionTimer();

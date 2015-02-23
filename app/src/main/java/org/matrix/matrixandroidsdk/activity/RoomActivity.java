@@ -304,6 +304,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         // The events listeners are not triggered until the room initial sync is done.
         // So, the room name might be invalid until this first sync.
         mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
+
+        EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
     }
 
     @Override
