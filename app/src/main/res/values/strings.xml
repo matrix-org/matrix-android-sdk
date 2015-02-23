@@ -107,6 +107,10 @@
     <string name="option_attach_video">Attach video</string>
     <string name="option_invite">Invite</string>
 
+    <!-- Home Screen -->
+    <string name="users"> users</string>
+    <string name="user"> user</string>
+
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact"</string>
     <string name="unable_to_send_message">Unable to send message</string>

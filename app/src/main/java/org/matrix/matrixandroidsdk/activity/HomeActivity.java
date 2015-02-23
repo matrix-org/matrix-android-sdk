@@ -73,10 +73,18 @@ public class HomeActivity extends MXCActionBarActivity {
                     for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
                         addSummary(summary);
                     }
+
+                    // highlighted public rooms
+                    mAdapter.highlightRoom("Matrix HQ");
+                    mAdapter.highlightRoom("#matrix:matrix.org");
+                    mAdapter.highlightRoom("#matrix-dev:matrix.org");
+                    mAdapter.highlightRoom("#matrix-fr:matrix.org");
+
                     mAdapter.setPublicRoomsList(mPublicRooms);
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
                     mMyRoomList.expandGroup(recentsGroupIndex);
+                    mMyRoomList.expandGroup(publicRoomsGroupIndex);
 
                     // load the public load in background
                     refreshPublicRoomsList();
@@ -247,22 +255,6 @@ public class HomeActivity extends MXCActionBarActivity {
                 return true;
             }
         });
-
-        mMyRoomList.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
-            @Override
-            public void onGroupCollapse(int groupPosition) {
-                if (groupPosition == publicRoomsGroupIndex) {
-                    if (!mMyRoomList.isGroupExpanded(recentsGroupIndex)) {
-                        mMyRoomList.expandGroup(recentsGroupIndex);
-                    }
-                } else {
-                    if (!mMyRoomList.isGroupExpanded(publicRoomsGroupIndex)) {
-                        mMyRoomList.expandGroup(publicRoomsGroupIndex);
-                    }
-                }
-            }
-        });
-
 
         mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
             @Override

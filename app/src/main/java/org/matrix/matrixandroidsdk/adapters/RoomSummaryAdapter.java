@@ -48,6 +48,8 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mEvenColourResId;
     private int mUnreadColor;
     private int mHighlightColor;
+    private int mPublicHighlightColor;
+
 
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
@@ -80,6 +82,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
         mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
+        mPublicHighlightColor = context.getResources().getColor(R.color.room_summary_public_highlight_background);
     }
 
     /**
@@ -274,22 +277,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
             @Override
             public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
-                String lhs = getRoomName(publicRoom);
-                String rhs = getRoomName(publicRoom2);
-                if (lhs == null) {
-                    return -1;
-                }
-                else if (rhs == null) {
-                    return 1;
-                }
-                if (lhs.startsWith("#")) {
-                    lhs = lhs.substring(1);
-                }
-                if (rhs.startsWith("#")) {
-                    rhs = rhs.substring(1);
-                }
-                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
-
+                return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
             }
         });
     }
@@ -298,7 +286,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         if (room == null) {
             return null;
         }
-        if (!TextUtils.isEmpty(room.name)) {
+        if (!TextUtils.isEmpty(room.name) && !(room instanceof PublicRoom)) {
             return room.name;
         }
         else if (!TextUtils.isEmpty(room.roomAliasName)) {
@@ -381,7 +369,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         } else {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
 
-            RoomState room = publicRoomsList.get(childPosition);
+            PublicRoom room = publicRoomsList.get(childPosition);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
             textView.setTypeface(null, Typeface.BOLD);
@@ -391,9 +379,19 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setText(room.topic);
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.GONE);
+            textView.setVisibility(View.VISIBLE);
 
-            convertView.setBackgroundColor(0);
+            if (room.numJoinedMembers > 1) {
+                textView.setText(room.numJoinedMembers + " " + mContext.getString(R.string.users));
+            } else {
+                textView.setText(room.numJoinedMembers + " " + mContext.getString(R.string.user));
+            }
+
+            if (mHighLightedRooms.indexOf(getRoomName(room)) >= 0) {
+                convertView.setBackgroundColor(mPublicHighlightColor);
+            } else {
+                convertView.setBackgroundColor(0);
+            }
         }
 
         return convertView;
