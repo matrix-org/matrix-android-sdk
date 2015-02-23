@@ -71,6 +71,13 @@
                         android:layout_gravity="right"
                         android:id="@+id/messagesAdapter_image"
                         android:adjustViewBounds="true" />
+
+                    <ProgressBar
+                        android:id="@+id/loading_image_content_progress"
+                        android:layout_height="40dp"
+                        android:layout_width="match_parent"
+                        android:visibility="gone"
+                        android:indeterminate="true" />
                 </FrameLayout>
 
 

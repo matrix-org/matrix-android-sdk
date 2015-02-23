@@ -13,6 +13,7 @@ import android.support.v4.util.LruCache;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 
 import com.google.gson.JsonNull;
@@ -347,7 +348,7 @@ public class AdapterUtils {
         }
     }
 
-    public static void loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
+    public static Bitmap loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
         imageView.setTag(downloadableUrl);
@@ -363,6 +364,8 @@ public class AdapterUtils {
             BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
             task.execute(width, height);
         }
+
+        return bitmap;
     }
 
     /**
@@ -602,6 +605,15 @@ public class AdapterUtils {
                 final ImageView imageView = mImageViewReference.get();
                 if (imageView != null && mUrl.equals(imageView.getTag())) {
                     imageView.setImageBitmap(bitmap);
+                    Object parent = imageView.getParent();
+
+                    if (parent instanceof View) {
+                        View progress = ((View)(imageView.getParent())).findViewById(R.id.loading_image_content_progress);
+
+                        if (null != progress) {
+                            progress.setVisibility(View.GONE);
+                        }
+                    }
                 }
             }
         }

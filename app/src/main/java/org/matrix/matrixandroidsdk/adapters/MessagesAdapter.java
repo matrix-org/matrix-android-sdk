@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.gson.JsonNull;
@@ -483,9 +484,17 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
 
+        Bitmap bitmap = null;
+
         // ensure that the parent view is fully created
         if((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+            bitmap = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+        }
+
+        // display a spinner until the image is downloade
+        View progress = convertView.findViewById(R.id.loading_image_content_progress);
+        if (null != progress) {
+            progress.setVisibility((null != bitmap) ? View.GONE : View.VISIBLE);
         }
 
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale

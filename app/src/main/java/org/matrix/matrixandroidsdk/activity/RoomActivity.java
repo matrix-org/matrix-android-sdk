@@ -674,8 +674,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     }
                 }
 
-                //orientation = 0;
-
                 // the image has a rotation to apply or the mimetype is unknown
                 if ((orientation > 0) || (null == mimeType) || (mimeType.equals("image/*"))) {
                     try {
