@@ -364,6 +364,15 @@ public class AdapterUtils {
         return loadBitmap(imageView, url, width, height, true);
     }
 
+    public static int progressValueForDownloadId(String downloadId) {
+        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+
+        if (null != currentTask) {
+            return currentTask.getProgress();
+        }
+        return 0;
+    }
+
     /**
      * Load a bitmap from an url.
      * If an imageview is provided, fill it with the downloaded image.
@@ -477,6 +486,11 @@ public class AdapterUtils {
 
         private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
+        private int mProgress = 0;
+
+        public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
+            return mPendingDownloadByUrl.get(url);
+        }
 
         public void addImageView(ImageView imageView) {
             mImageViewReferences.add(new WeakReference<ImageView>(imageView));
@@ -489,8 +503,8 @@ public class AdapterUtils {
             mPendingDownloadByUrl.put(url, this);
         }
 
-        public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
-            return mPendingDownloadByUrl.get(url);
+        public int getProgress() {
+            return mProgress;
         }
 
         public static Bitmap bitmapForURL(String url, Context context) {
@@ -533,7 +547,7 @@ public class AdapterUtils {
                         if (filename.startsWith(File.separator)) {
                             fis = new FileInputStream (new File(filename));
                         } else {
-                            fis = context.openFileInput(filename);
+                            fis = context.getApplicationContext().openFileInput(filename);
                         }
 
                         if (null != fis) {
@@ -595,7 +609,7 @@ public class AdapterUtils {
                 Context applicationContext = null;
 
                 if ((null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
-                    applicationContext =  imageView.getContext().getApplicationContext();
+                    applicationContext = imageView.getContext().getApplicationContext();
                 }
 
                 long filelen = -1;
@@ -644,7 +658,7 @@ public class AdapterUtils {
 
                                 Log.d(LOG_TAG, "download " + progress + " (" + mUrl + ")");
 
-                                publishProgress(progress);
+                                publishProgress(mProgress = progress);
                             }
 
                         } catch (Exception e) {

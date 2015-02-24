@@ -117,6 +117,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+    }
+
+    @Override
     public int getViewTypeCount() {
         return NUM_ROW_TYPES;
     }
@@ -498,7 +503,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != pieFractionView) {
             if (null != downloadId) {
                 pieFractionView.setVisibility(View.VISIBLE);
-                pieFractionView.setFraction(0);
+                pieFractionView.setFraction(AdapterUtils.progressValueForDownloadId(downloadId));
             } else {
                 pieFractionView.setVisibility(View.GONE);
             }
