@@ -33,6 +33,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
+import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -484,17 +485,23 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
 
-        Bitmap bitmap = null;
+        String downloadId = null;
 
         // ensure that the parent view is fully created
         if((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            bitmap = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
         }
 
-        // display a spinner until the image is downloade
-        View progress = convertView.findViewById(R.id.loading_image_content_progress);
-        if (null != progress) {
-            progress.setVisibility((null != bitmap) ? View.GONE : View.VISIBLE);
+        // display a pie char
+        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_progress);
+
+        if (null != pieFractionView) {
+            if (null != downloadId) {
+                pieFractionView.setVisibility(View.VISIBLE);
+                pieFractionView.setFraction(0);
+            } else {
+                pieFractionView.setVisibility(View.GONE);
+            }
         }
 
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale

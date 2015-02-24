@@ -57,6 +57,7 @@ public class PieFractionView extends View {
 
     public void setFraction(int fraction) {
         this.fraction = fraction;
+        this.invalidate();
     }
 
     @Override

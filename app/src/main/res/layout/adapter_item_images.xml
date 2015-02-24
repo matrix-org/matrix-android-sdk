@@ -72,14 +72,13 @@
                         android:id="@+id/messagesAdapter_image"
                         android:adjustViewBounds="true" />
 
-                    <ProgressBar
-                        android:id="@+id/loading_image_content_progress"
-                        android:layout_height="120dp"
-                        android:layout_width="match_parent"
-                        android:visibility="gone"
-                        android:indeterminate="true" />
+                    <org.matrix.matrixandroidsdk.view.PieFractionView
+                        android:id="@+id/download_content_progress"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_centerHorizontal="true"
+                        android:layout_centerVertical="true"/>
                 </FrameLayout>
-
 
                 <TextView
                     android:layout_width="wrap_content"

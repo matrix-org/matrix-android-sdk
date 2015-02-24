@@ -2,6 +2,7 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -9,6 +10,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.MediaStore;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.LruCache;
 import android.text.Html;
 import android.text.TextUtils;
@@ -26,6 +28,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -38,13 +41,20 @@ import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 /**
  * Contains useful functions for adapters.
  */
 public class AdapterUtils {
     private static final String LOG_TAG = "AdapterUtils";
+
+    public static String BROADCAST_DOWNLOAD_PROGRESS = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.BROADCAST_DOWNLOAD_PROGRESS";
+    public static String DOWNLOAD_PROGRESS_VALUE = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_VALUE";
+    public static String DOWNLOAD_PROGRESS_IDENTIFIER = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_IDENTIFIER";
 
     public static class EventDisplay {
         private Event mEvent;
@@ -325,17 +335,17 @@ public class AdapterUtils {
 
     // return a bitmap from the cache
     // null if it does not exist
-    public static Bitmap bitmapForUrl(String url, Context context) {
-        return  BitmapWorkerTask.bitmapForURL(url,context);
+    public static Bitmap bitmapForUrl(String url, Context context)  {
+        return BitmapWorkerTask.bitmapForURL(url,context);
     }
 
 
     // wrapper to loadBitmap
-    public static Bitmap loadBitmap(ImageView imageView, String url) {
-        return loadBitmap(imageView, url, -1, -1);
+    public static String loadBitmap(ImageView imageView, String url) {
+        return loadBitmap(imageView, url, -1, -1, true);
     }
-    public static Bitmap loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
-        return loadBitmap(imageView, url, width, height);
+    public static String loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
+        return loadBitmap(imageView, url, width, height, true);
     }
 
     /**
@@ -346,9 +356,10 @@ public class AdapterUtils {
      * @param url the image url
      * @param width the expected image width
      * @param height the expected image height
-     * @return the downloaded image if it is cached
+     * @param download download the image if it is not cached
+     * @return a download identifier if the image is not cached
      */
-    public static Bitmap loadBitmap(ImageView imageView, String url, int width, int height) {
+    public static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl;
 
@@ -358,26 +369,28 @@ public class AdapterUtils {
             downloadableUrl = contentManager.getDownloadableUrl(url);
         }
 
+        imageView.setTag(downloadableUrl);
+
         // check if the bitmap is already cached
         Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
 
         if (null != bitmap) {
             // display it
             imageView.setImageBitmap(bitmap);
-        } else {
+            downloadableUrl = null;
+        } else if (download) {
+            BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadableUrl);
 
-            if ((null != imageView.getTag()) && imageView.getTag().equals(downloadableUrl)) {
-                return null;
+            if (null != currentTask) {
+                currentTask.addImageView(imageView);
+            } else {
+                // download it in background
+                BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
+                task.execute();
             }
-
-            imageView.setTag(downloadableUrl);
-
-            // download it in background
-            BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
-            task.execute();
         }
 
-        return bitmap;
+        return downloadableUrl;
     }
 
     /**
@@ -434,9 +447,10 @@ public class AdapterUtils {
         return orientation;
     }
 
-    static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
+    static class BitmapWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
         private static final int MEMORY_CACHE_MB = 16;
+        private static HashMap<String, BitmapWorkerTask> mPendingDownloadByUrl = new HashMap<String, BitmapWorkerTask>();
 
         private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
             @Override
@@ -445,12 +459,22 @@ public class AdapterUtils {
             }
         };
 
-        private final WeakReference<ImageView> mImageViewReference;
+        private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
 
+        public void addImageView(ImageView imageView) {
+            mImageViewReferences.add(new WeakReference<ImageView>(imageView));
+        }
+
         public BitmapWorkerTask(ImageView imageView, String url) {
-            mImageViewReference = new WeakReference<ImageView>(imageView);
+            mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+            addImageView(imageView);
             mUrl = url;
+            mPendingDownloadByUrl.put(url, this);
+        }
+
+        public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
+            return mPendingDownloadByUrl.get(url);
         }
 
         public static Bitmap bitmapForURL(String url, Context context) {
@@ -543,11 +567,6 @@ public class AdapterUtils {
             try {
                 // check the in-memory cache
                 String key = mUrl;
-                Bitmap bm = BitmapWorkerTask.bitmapForURL(key, mImageViewReference.get().getContext().getApplicationContext());
-
-                if (bm != null) {
-                    return bm;
-                }
 
                 URL url = new URL(mUrl);
                 Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
@@ -555,33 +574,63 @@ public class AdapterUtils {
                 InputStream stream = null;
                 Bitmap bitmap = null;
 
-                ImageView imageView = mImageViewReference.get();
+                // retrieve the Application context
+                ImageView imageView = mImageViewReferences.get(0).get();
+                Context applicationContext = null;
+
+                if ((null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
+                    applicationContext =  imageView.getContext().getApplicationContext();
+                }
+
+                long filelen = -1;
 
                 try {
-                    stream = url.openConnection().getInputStream();
+                    URLConnection connection = url.openConnection();
+                    filelen = connection.getContentLength();
+                    stream = connection.getInputStream();
                 } catch (FileNotFoundException e) {
                     Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " does not exist");
 
-                    if(null != imageView.getContext().getApplicationContext()) {
-                        bitmap = BitmapFactory.decodeResource(imageView.getContext().getApplicationContext().getResources(), R.drawable.ic_menu_gallery);
+                    if(null != applicationContext) {
+                        bitmap = BitmapFactory.decodeResource(applicationContext.getResources(), R.drawable.ic_menu_gallery);
                     }
                 }
 
-                if ((null != imageView) && (null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
+                if  (null != applicationContext) {
                     String filename  = "file" + url.hashCode();
-                    Context context = imageView.getContext().getApplicationContext();
-                    FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+                    FileOutputStream fos = applicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
 
                     // a bitmap has been provided
                     if (null != bitmap) {
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                     } else {
                         try {
+                            int totalDownloaded = 0;
+
                             byte[] buf = new byte[1024 * 32];
                             int len;
                             while ((len = stream.read(buf)) != -1) {
                                 fos.write(buf, 0, len);
+
+                                totalDownloaded += len;
+
+                                int progress = 0;
+
+                                if (filelen > 0) {
+                                    if (totalDownloaded >= filelen) {
+                                        progress = 99;
+                                    } else {
+                                        progress = (int)(totalDownloaded * 100 / filelen);
+                                    }
+                                } else {
+                                    progress = -1;
+                                }
+
+                                Log.e(LOG_TAG, "download " + progress + " (" + mUrl + ")");
+
+                                publishProgress(progress);
                             }
+
                         } catch (Exception e) {
                         }
 
@@ -591,9 +640,10 @@ public class AdapterUtils {
                     fos.flush();
                     fos.close();
 
+                    Log.e(LOG_TAG, "download is done (" + mUrl + ")");
 
                     // get the bitmap from the filesytem
-                    bitmap = BitmapWorkerTask.bitmapForURL(key, context);
+                    bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext);
                 } else if (null != bitmap) {
                     BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
                     bitmapOptions.inDither = true;
@@ -613,24 +663,58 @@ public class AdapterUtils {
             }
         }
 
-        // Once complete, see if ImageView is still around and set bitmap.
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if (mImageViewReference != null && bitmap != null) {
-                final ImageView imageView = mImageViewReference.get();
-                if (imageView != null && mUrl.equals(imageView.getTag())) {
-                    imageView.setImageBitmap(bitmap);
+        private void sendProgress(int progress) {
+            for(WeakReference<ImageView> weakRef : mImageViewReferences) {
+                final ImageView imageView = weakRef.get();
+
+                // check if the imageview still expect to have this content
+                if ((null != imageView) && mUrl.equals(imageView.getTag())) {
                     Object parent = imageView.getParent();
 
                     if (parent instanceof View) {
-                        View progress = ((View)(imageView.getParent())).findViewById(R.id.loading_image_content_progress);
+                        PieFractionView pieFractionView = (PieFractionView) ((View) (imageView.getParent())).findViewById(R.id.download_content_progress);
 
-                        if (null != progress) {
-                            progress.setVisibility(View.GONE);
+                        if (null != pieFractionView) {
+                            pieFractionView.setFraction(progress);
+
+                            if (progress >= 100) {
+                                pieFractionView.setVisibility(View.GONE);
+                            }
                         }
                     }
                 }
             }
+
+            /*Intent intent = new Intent();
+            intent.setAction(BROADCAST_DOWNLOAD_PROGRESS);
+            intent.putExtra(DOWNLOAD_PROGRESS_VALUE, progress);
+            intent.putExtra(DOWNLOAD_PROGRESS_IDENTIFIER, mUrl);
+
+            LocalBroadcastManager.getInstance( mImageViewReferences.get(0).get().getContext()).sendBroadcast(intent);*/
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            sendProgress(progress[0]);
+        }
+
+        // Once complete, see if ImageView is still around and set bitmap.
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            // update the imageView image
+            if (bitmap != null) {
+                for(WeakReference<ImageView> weakRef : mImageViewReferences) {
+                    final ImageView imageView = weakRef.get();
+
+                    if (imageView != null && mUrl.equals(imageView.getTag())) {
+                        imageView.setImageBitmap(bitmap);
+                        sendProgress(100);
+                    }
+                }
+            }
+
+            mPendingDownloadByUrl.remove(mUrl);
         }
 
         /**
