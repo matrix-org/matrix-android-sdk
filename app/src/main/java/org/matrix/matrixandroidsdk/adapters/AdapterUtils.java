@@ -329,11 +329,34 @@ public class AdapterUtils {
         return  BitmapWorkerTask.bitmapForURL(url,context);
     }
 
-    // Bitmap loading and storage
-    public static void loadBitmap(ImageView imageView, String url) {
+
+    // wrapper to loadBitmap
+    public static Bitmap loadBitmap(ImageView imageView, String url) {
+        return loadBitmap(imageView, url, -1, -1);
+    }
+    public static Bitmap loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
+        return loadBitmap(imageView, url, width, height);
+    }
+
+    /**
+     * Load a bitmap from an url.
+     * If an imageview is provided, fill it with the downloaded image.
+     * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     * @param imageView the imaggeView Tto fill when the image is downloaded
+     * @param url the image url
+     * @param width the expected image width
+     * @param height the expected image height
+     * @return the downloaded image if it is cached
+     */
+    public static Bitmap loadBitmap(ImageView imageView, String url, int width, int height) {
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
-        String downloadableUrl = contentManager.getDownloadableUrl(url);
-        imageView.setTag(downloadableUrl);
+        String downloadableUrl;
+
+        if ((width > 0) && (height > 0)) {
+            downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+        } else {
+            downloadableUrl = contentManager.getDownloadableUrl(url);
+        }
 
         // check if the bitmap is already cached
         Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
@@ -342,27 +365,16 @@ public class AdapterUtils {
             // display it
             imageView.setImageBitmap(bitmap);
         } else {
+
+            if ((null != imageView.getTag()) && imageView.getTag().equals(downloadableUrl)) {
+                return null;
+            }
+
+            imageView.setTag(downloadableUrl);
+
             // download it in background
             BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
             task.execute();
-        }
-    }
-
-    public static Bitmap loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
-        ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
-        String downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
-        imageView.setTag(downloadableUrl);
-
-        // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
-
-        if (null != bitmap) {
-            // display it
-            imageView.setImageBitmap(bitmap);
-        } else {
-            // download it in background
-            BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
-            task.execute(width, height);
         }
 
         return bitmap;
@@ -512,6 +524,9 @@ public class AdapterUtils {
 
                             fis.close();
                         }
+
+                    } catch (FileNotFoundException e) {
+                        Log.e(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "bitmapForURL() "+e);
 
