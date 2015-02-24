@@ -19,6 +19,7 @@ import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -51,6 +52,9 @@ public class CommonActivityUtils {
 
         // Publish to the server that we're now offline
         MyPresenceManager.getInstance(context).advertiseOffline();
+
+        // clear the medias cache
+        AdapterUtils.clearMediasCache(context);
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSessionAndCredentials();

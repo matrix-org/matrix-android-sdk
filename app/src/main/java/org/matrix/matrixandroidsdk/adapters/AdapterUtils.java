@@ -1,5 +1,6 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -249,6 +250,22 @@ public class AdapterUtils {
         }
     }
 
+    /**
+     * Clear the medias caches.
+     * @param context The application context to use.
+     */
+    public static void clearMediasCache(Activity context) {
+        String[] filesList = context.fileList();
+
+        for(String file : filesList) {
+            try {
+                context.deleteFile(file);
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
     public static String getIdenticonURL(String userId) {
         // sanity check
         if (null != userId) {
@@ -338,7 +355,6 @@ public class AdapterUtils {
     public static Bitmap bitmapForUrl(String url, Context context)  {
         return BitmapWorkerTask.bitmapForURL(url,context);
     }
-
 
     // wrapper to loadBitmap
     public static String loadBitmap(ImageView imageView, String url) {
@@ -626,7 +642,7 @@ public class AdapterUtils {
                                     progress = -1;
                                 }
 
-                                Log.e(LOG_TAG, "download " + progress + " (" + mUrl + ")");
+                                Log.d(LOG_TAG, "download " + progress + " (" + mUrl + ")");
 
                                 publishProgress(progress);
                             }
@@ -640,7 +656,7 @@ public class AdapterUtils {
                     fos.flush();
                     fos.close();
 
-                    Log.e(LOG_TAG, "download is done (" + mUrl + ")");
+                    Log.d(LOG_TAG, "download is done (" + mUrl + ")");
 
                     // get the bitmap from the filesytem
                     bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext);
