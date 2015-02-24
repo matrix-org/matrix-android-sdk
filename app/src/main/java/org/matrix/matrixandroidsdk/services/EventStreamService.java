@@ -225,8 +225,8 @@ public class EventStreamService extends Service {
 
     private void startWithNotification() {
         // remove the listening for events notification
-        //Notification notification = buildNotification();
-        //startForeground(NOTIFICATION_ID, notification);
+        Notification notification = buildNotification();
+        startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
     }
 
@@ -289,7 +289,7 @@ public class EventStreamService extends Service {
 
     private Notification buildNotification() {
         Notification notification = new Notification(
-                R.drawable.ic_menu_start_conversation,
+                R.drawable.ic_menu_small_matrix,
                 "Matrix",
                 System.currentTimeMillis()
         );
