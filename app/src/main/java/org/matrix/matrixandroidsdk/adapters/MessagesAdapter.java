@@ -8,11 +8,13 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -70,6 +72,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
+    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
+    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
+
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     private Context mContext;
@@ -88,6 +93,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int notSentColor;
     private int sendingColor;
     private int highlightColor;
+
+    private int mMaxImageWidth;
+    private int mMaxImageHeight;
 
     private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
 
@@ -112,6 +120,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         notSentColor = context.getResources().getColor(R.color.message_not_sent);
         sendingColor = context.getResources().getColor(R.color.message_sending);
         highlightColor = context.getResources().getColor(R.color.message_highlighted);
+
+        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
+        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
@@ -487,8 +500,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
-        int maxImageWidth = parent.getWidth() / 2;
-        int maxImageHeight = parent.getHeight() / 2;
+        int maxImageWidth = mMaxImageWidth;
+        int maxImageHeight = mMaxImageHeight;
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
