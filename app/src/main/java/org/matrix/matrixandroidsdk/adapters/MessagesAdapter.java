@@ -360,7 +360,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            if (TextUtils.isEmpty(url)) {
+            if (TextUtils.isEmpty(url) &&  (null != sender)) {
                 url = AdapterUtils.getIdenticonURL(sender.getUserId());
             }
 
