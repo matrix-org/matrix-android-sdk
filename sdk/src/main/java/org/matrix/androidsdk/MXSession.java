@@ -32,6 +32,7 @@ import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
@@ -67,6 +68,7 @@ public class MXSession {
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
     private BingRulesRestClient mBingRulesRestClient;
+    private PushersRestClient mPushersRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -87,6 +89,7 @@ public class MXSession {
         mPresenceRestClient = new PresenceRestClient(credentials);
         mRoomsRestClient = new RoomsRestClient(credentials);
         mBingRulesRestClient = new BingRulesRestClient(credentials);
+        mPushersRestClient = new PushersRestClient(credentials);
 
         mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
@@ -178,6 +181,10 @@ public class MXSession {
      */
     public BingRulesRestClient getBingRulesApiClient() {
         return mBingRulesRestClient;
+    }
+
+    public PushersRestClient getPushersRestClient() {
+        return mPushersRestClient;
     }
 
     /**
