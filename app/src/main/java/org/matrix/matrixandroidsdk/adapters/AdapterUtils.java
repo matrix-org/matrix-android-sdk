@@ -390,13 +390,19 @@ public class AdapterUtils {
             return null;
         }
 
-        ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl;
 
-        if ((width > 0) && (height > 0)) {
-            downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+        // if the url is not a local file
+        if (!url.startsWith("file:")) {
+            ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
+
+            if ((width > 0) && (height > 0)) {
+                downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+            } else {
+                downloadableUrl = contentManager.getDownloadableUrl(url);
+            }
         } else {
-            downloadableUrl = contentManager.getDownloadableUrl(url);
+            downloadableUrl = url;
         }
 
         imageView.setTag(downloadableUrl);
