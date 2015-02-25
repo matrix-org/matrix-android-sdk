@@ -201,11 +201,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Message message = new Message();
         message.msgtype = msgType;
         message.body = body;
-        send(message);
+        send(message, false);
     }
 
     public void sendImage(ImageMessage imageMessage) {
-        send(imageMessage);
+        send(imageMessage, false);
     }
 
     public void sendEmote(String emote) {
@@ -236,15 +236,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         }
 
-        send(message);
+        send(message, true);
     }
 
-    private void send(Message message) {
+    private void send(final Message message, final boolean isRetry) {
         Event dummyEvent = new Event();
         dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
         dummyEvent.content = JsonUtils.toJson(message);
         dummyEvent.originServerTs = System.currentTimeMillis();
         dummyEvent.userId = mSession.getCredentials().userId;
+        dummyEvent.roomId = mRoom.getRoomId();
+        dummyEvent.createDummyEventId();
 
         final MessageRow tmpRow = new MessageRow(dummyEvent, mRoom.getLiveState());
         tmpRow.setSentState(MessageRow.SentState.SENDING);
@@ -255,9 +257,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
             @Override
             public void onSuccess(Event event) {
-                mAdapter.remove(tmpRow);
-                mAdapter.add(event, mRoom.getLiveState());
-
                 if (event.isUnsent) {
                     if (null != event.unsentException) {
                         if ((event.unsentException instanceof RetrofitError) && ((RetrofitError)event.unsentException).isNetworkError())  {
@@ -267,6 +266,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
                     } else if (null != event.unsentMatrixError) {
                         Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                    }
+                    mAdapter.remove(tmpRow);
+                    mAdapter.add(event, mRoom.getLiveState());
+                } else  {
+                    if (isRetry) {
+                        mAdapter.remove(tmpRow);
+                        mAdapter.add(event, mRoom.getLiveState());
+                    } else {
+                        tmpRow.setSentState(MessageRow.SentState.WAITING_ECHO);
+                        tmpRow.getEvent().eventId = event.eventId;
+                        mAdapter.waitForEcho(tmpRow);
                     }
                 }
 

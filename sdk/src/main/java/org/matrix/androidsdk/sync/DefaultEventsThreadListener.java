@@ -48,6 +48,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
     @Override
     public void onEventsReceived(List<Event> events) {
+    // 2
         mData.handleLiveEvents(events);
     }
 }

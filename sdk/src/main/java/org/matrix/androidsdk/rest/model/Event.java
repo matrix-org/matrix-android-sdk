@@ -66,6 +66,19 @@ public class Event {
     // message is currently sent to the server
     public boolean isSending = false;
 
+    /**
+     * Some events are not sent by the server.
+     * They are temporary stored until to get the server response.
+     */
+    public void createDummyEventId() {
+        eventId = roomId + "-" + originServerTs;
+        age = Long.MAX_VALUE;
+    }
+
+    public boolean isDummyEvent() {
+        return (roomId + "-" + originServerTs).equals(eventId);
+    }
+
     @Override
     public java.lang.String toString() {
 

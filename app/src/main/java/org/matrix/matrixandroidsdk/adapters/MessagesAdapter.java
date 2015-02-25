@@ -85,6 +85,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // when the current user sends one but it will also come down the event stream
     private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
 
+    // when a message is sent, the content is displayed until to get the echo from the server
+    private HashMap<String, MessageRow> mWaitingEchoRowMap = new HashMap<String, MessageRow>();
+
     private int mOddColourResId;
     private int mEvenColourResId;
 
@@ -159,6 +162,19 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         add(new MessageRow(event, roomState));
     }
 
+    public void waitForEcho(MessageRow row) {
+        String eventId = row.getEvent().eventId;
+
+        // the echo has already been received
+        if (mEventRowMap.containsKey(eventId)) {
+            mWaitingEchoRowMap.remove(eventId);
+            this.remove(row);
+        } else {
+            mEventRowMap.put(eventId, row);
+            mWaitingEchoRowMap.put(eventId, row);
+        }
+    }
+
     @Override
     public void add(MessageRow row) {
         if (shouldSave(row)) {
@@ -166,6 +182,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
+
+            if (row.getSentState() == MessageRow.SentState.WAITING_ECHO) {
+                mWaitingEchoRowMap.put(row.getEvent().eventId, row);
+            }
+
             this.notifyDataSetChanged();
         }
     }
@@ -178,7 +199,35 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     private boolean shouldSave(MessageRow row) {
-        return (isDisplayableEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
+        boolean shouldSave = isDisplayableEvent(row.getEvent(), row.getRoomState());
+
+        if (shouldSave) {
+            String eventId = row.getEvent().eventId;
+
+            shouldSave = !mEventRowMap.containsKey(eventId);
+
+            // a message has already been store with the same eventID
+            if (!shouldSave) {
+                MessageRow currentRow = mEventRowMap.get(eventId);
+
+                // Long.MAX_VALUE means that it is a temporary event
+                shouldSave = (currentRow.getEvent().age == Long.MAX_VALUE);
+
+                if (!shouldSave) {
+                    shouldSave = mWaitingEchoRowMap.containsKey(eventId);
+
+                    // remove the waiting echo message
+                    if (shouldSave) {
+                        super.remove(mWaitingEchoRowMap.get(eventId));
+                        mWaitingEchoRowMap.remove(eventId);
+                    }
+                } else {
+                    super.remove(currentRow);
+                }
+            }
+        }
+
+        return shouldSave;
     }
 
     private int getItemViewType(Event event) {
@@ -522,7 +571,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 progressLayout.setVisibility(View.VISIBLE);
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) progressLayout.getLayoutParams();
 
-                int frameHeight = maxImageHeight;
+                int frameHeight = -1;
 
                 // if the image size is known
                 // compute the expected thumbnail height
@@ -530,6 +579,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if ((imageInfo.w > 0) && (imageInfo.h > 0)) {
                         frameHeight = Math.min(maxImageWidth * imageInfo.h / imageInfo.w , maxImageHeight);
                     }
+                }
+
+                // if no defined height
+                // use the pie chart one.
+                if (frameHeight < 0) {
+                    frameHeight = pieFractionView.getHeight();
                 }
 
                 // apply it the layout

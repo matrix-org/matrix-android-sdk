@@ -293,7 +293,7 @@ public class Room {
                     dummyEvent.isUnsent = true;
                     dummyEvent.roomId = mRoomId;
                     // create a dummy identifier
-                    dummyEvent.eventId = mRoomId + "-" + dummyEvent.originServerTs;
+                    dummyEvent.createDummyEventId();
                     mDataHandler.storeLiveRoomEvent(dummyEvent);
 
                     return dummyEvent;
@@ -620,7 +620,14 @@ public class Room {
                                             oldEvent.isSending = false;
                                             mDataHandler.deleteRoomEvent(oldEvent);
                                             mDataHandler.onDeletedEvent(oldEvent);
-                                            mDataHandler.onLiveEvent(sentEvent, getLiveState());
+
+                                            // update with updated fields
+                                            oldEvent.eventId = sentEvent.eventId;
+                                            oldEvent.isUnsent = sentEvent.isUnsent;
+                                            oldEvent.unsentException = sentEvent.unsentException;
+                                            oldEvent.unsentMatrixError = sentEvent.unsentMatrixError;
+
+                                            mDataHandler.onLiveEvent(oldEvent, getLiveState());
 
                                             // send the next one
                                             Room.this.resendEventsList(evensList, index + 1);
@@ -656,7 +663,14 @@ public class Room {
                         oldEvent.isSending = false;
                         mDataHandler.deleteRoomEvent(oldEvent);
                         mDataHandler.onDeletedEvent(oldEvent);
-                        mDataHandler.onLiveEvent(sentEvent, getLiveState());
+
+                        // update with updated fields
+                        oldEvent.eventId = sentEvent.eventId;
+                        oldEvent.isUnsent = sentEvent.isUnsent;
+                        oldEvent.unsentException = sentEvent.unsentException;
+                        oldEvent.unsentMatrixError = sentEvent.unsentMatrixError;
+
+                        mDataHandler.onLiveEvent(oldEvent, getLiveState());
 
                         // send the next one
                         Room.this.resendEventsList(evensList, index + 1);
