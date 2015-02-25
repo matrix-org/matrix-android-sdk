@@ -72,12 +72,39 @@
                         android:id="@+id/messagesAdapter_image"
                         android:adjustViewBounds="true" />
 
-                    <org.matrix.matrixandroidsdk.view.PieFractionView
-                        android:id="@+id/download_content_progress"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_centerHorizontal="true"
-                        android:layout_centerVertical="true"/>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/download_content_layout"
+                        android:background="#44DDDDDD"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <org.matrix.matrixandroidsdk.view.PieFractionView
+                                android:id="@+id/download_content_piechart"
+                                android:paddingLeft="5dp"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:textSize="9sp"
+                            android:gravity="center_vertical"
+                            android:paddingLeft="5dp"
+                            android:paddingRight="5dp"
+                            android:layout_weight="1"
+                            android:text="@string/downloading_dot"
+                            android:id="@+id/download_content_text"/>
+
+                    </LinearLayout>
+
                 </FrameLayout>
 
                 <TextView

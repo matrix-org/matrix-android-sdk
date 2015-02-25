@@ -18,6 +18,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
@@ -385,6 +386,10 @@ public class AdapterUtils {
      * @return a download identifier if the image is not cached
      */
     public static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download) {
+        if (null == url) {
+            return null;
+        }
+
         ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
         String downloadableUrl;
 
@@ -489,7 +494,11 @@ public class AdapterUtils {
         private int mProgress = 0;
 
         public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
-            return mPendingDownloadByUrl.get(url);
+            if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
+                return mPendingDownloadByUrl.get(url);
+            } else {
+                return null;
+            }
         }
 
         public void addImageView(ImageView imageView) {
@@ -673,8 +682,10 @@ public class AdapterUtils {
                     Log.d(LOG_TAG, "download is done (" + mUrl + ")");
 
                     // get the bitmap from the filesytem
-                    bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext);
-                } else if (null != bitmap) {
+                    if (null == bitmap) {
+                        bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext);
+                    }
+                } else if (null != stream) {
                     BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
                     bitmapOptions.inDither = true;
                     bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -702,13 +713,16 @@ public class AdapterUtils {
                     Object parent = imageView.getParent();
 
                     if (parent instanceof View) {
-                        PieFractionView pieFractionView = (PieFractionView) ((View) (imageView.getParent())).findViewById(R.id.download_content_progress);
+                        View parentView = (View) (imageView.getParent());
+
+                        PieFractionView pieFractionView = (PieFractionView) parentView.findViewById(R.id.download_content_piechart);
 
                         if (null != pieFractionView) {
                             pieFractionView.setFraction(progress);
 
                             if (progress >= 100) {
-                                pieFractionView.setVisibility(View.GONE);
+                                LinearLayout progressLayout = (LinearLayout) parentView.findViewById(R.id.download_content_layout);
+                                progressLayout.setVisibility(View.GONE);
                             }
                         }
                     }

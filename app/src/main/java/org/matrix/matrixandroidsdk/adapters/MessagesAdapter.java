@@ -1,5 +1,6 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -15,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -35,6 +37,7 @@ import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
+import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -493,19 +496,37 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         String downloadId = null;
 
         // ensure that the parent view is fully created
-        if((maxImageWidth != 0) && (maxImageHeight != 0)) {
+        if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
             downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
         }
 
         // display a pie char
-        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_progress);
+        LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
 
-        if (null != pieFractionView) {
+        if (null != progressLayout) {
             if (null != downloadId) {
-                pieFractionView.setVisibility(View.VISIBLE);
+                progressLayout.setVisibility(View.VISIBLE);
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) progressLayout.getLayoutParams();
+
+                int frameHeight = maxImageHeight;
+
+                // if the image size is known
+                // compute the expected thumbnail height
+                if ((null != imageInfo) && (null != imageInfo.w) && (null != imageInfo.h)) {
+                    if ((imageInfo.w > 0) && (imageInfo.h > 0)) {
+                        frameHeight = Math.min(maxImageWidth * imageInfo.h / imageInfo.w , maxImageHeight);
+                    }
+                }
+
+                // apply it the layout
+                // it avoid row jumping when the image is downloaded
+                lp.height = frameHeight;
+
                 pieFractionView.setFraction(AdapterUtils.progressValueForDownloadId(downloadId));
+
             } else {
-                pieFractionView.setVisibility(View.GONE);
+                progressLayout.setVisibility(View.GONE);
             }
         }
 
