@@ -47,6 +47,7 @@
     <string name="password">Password</string>
     <string name="matrix_login">Matrix Login</string>
     <string name="login">Login</string>
+    <string name="create_account">Create account</string>
     <string name="hs_url">Home Server URL</string>
 
     <string name="create_room_set_alias">Set room alias</string>

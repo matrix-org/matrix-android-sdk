@@ -36,6 +36,10 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".activity.AccountCreationActivity"
+            android:label="@string/create_account" >
+        </activity>
+        <activity
             android:name=".activity.SplashActivity"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>

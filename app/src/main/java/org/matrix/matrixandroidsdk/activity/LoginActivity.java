@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -16,11 +17,12 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
-
 /**
  * Displays the login screen.
  */
 public class LoginActivity extends MXCActionBarActivity {
+
+    static final int ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE = 314;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +41,19 @@ public class LoginActivity extends MXCActionBarActivity {
                 String password = ((EditText)findViewById(R.id.editText_password)).getText().toString();
                 String hs = ((EditText)findViewById(R.id.editText_hs)).getText().toString();
                 onLoginClick(hs, username, password);
+            }
+        });
+
+        findViewById(R.id.button_create_account).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String hs = ((EditText)findViewById(R.id.editText_hs)).getText().toString();
+
+                if (hs.startsWith("http")) {
+                    Intent intent = new Intent(LoginActivity.this, AccountCreationActivity.class);
+                    intent.putExtra(AccountCreationActivity.EXTRA_HOME_SERVER_ID, hs);
+                    startActivityForResult(intent, ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE);
+                }
             }
         });
     }
@@ -82,8 +97,29 @@ public class LoginActivity extends MXCActionBarActivity {
         return Matrix.getInstance(this).getDefaultSession() != null;
     }
 
-
     private void goToSplash() {
         startActivity(new Intent(this, SplashActivity.class));
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)  {
+        if (ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE == requestCode) {
+            if(resultCode == RESULT_OK){
+                String homeServer = data.getStringExtra("homeServer");
+                String userId = data.getStringExtra("userId");
+                String accessToken = data.getStringExtra("accessToken");
+
+                // build a credential with the provided items
+                Credentials credentials = new Credentials();
+                credentials.userId = userId;
+                credentials.homeServer = homeServer;
+                credentials.accessToken = accessToken;
+
+                // let's go...
+                MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
+                Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
+                goToSplash();
+                LoginActivity.this.finish();
+            }
+        }
     }
 }
