@@ -45,7 +45,7 @@ public class AccountCreationActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 // avoid infinite onPageFinished call
-                if (url.startsWith("https:")) {
+                if (url.startsWith("http")) {
                     // Generic method to make a bridge between JS and the UIWebView
                     final String MXCJavascriptSendObjectMessage = "javascript:window.matrixRegistration.sendObjectMessage = function(parameters) { var iframe = document.createElement('iframe');  iframe.setAttribute('src', 'js:' + JSON.stringify(parameters));  document.documentElement.appendChild(iframe); iframe.parentNode.removeChild(iframe); iframe = null; };";
 
