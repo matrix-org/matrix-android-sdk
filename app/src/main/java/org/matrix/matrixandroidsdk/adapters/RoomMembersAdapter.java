@@ -110,7 +110,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
         mRoomState = roomState;
-        setNotifyOnChange(true);
+
+        // left the caller manages the refresh
+        setNotifyOnChange(false);
 
         mMembershipStrings.put(RoomMember.MEMBERSHIP_INVITE, context.getString(R.string.membership_invite));
         mMembershipStrings.put(RoomMember.MEMBERSHIP_JOIN, context.getString(R.string.membership_join));
@@ -142,13 +144,25 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         notifyDataSetChanged();
     }
 
-    public void saveUser(User user) {
+    // return true if the user has been added
+    public boolean saveUser(User user) {
         if (user != null) {
-            mUserMap.put(user.userId, user);
+            if(!mUserMap.containsKey(user.userId)) {
+                mUserMap.put(user.userId, user);
+                return true;
+            }
         }
-        notifyDataSetChanged();
+
+        return false;
     }
 
+    public void deleteUser(User user) {
+        if (user != null) {
+            if(mUserMap.containsKey(user.userId)) {
+                mUserMap.remove(user.userId);
+            }
+        }
+    }
 
     public void updateMember(String userId, RoomMember member) {
         for (int i = 0; i < getCount(); i++) {
@@ -171,7 +185,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
 
         RoomMember member = getItem(position);
-
         User user = mUserMap.get(member.getUserId());
 
         // Member name and last seen time

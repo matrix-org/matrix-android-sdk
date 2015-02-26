@@ -56,4 +56,8 @@ public class RoomMember {
         copy.userId = userId;
         return copy;
     }
+
+    public boolean hasLeft() {
+        return RoomMember.MEMBERSHIP_BAN.equals(membership) || RoomMember.MEMBERSHIP_LEAVE.equals(membership);
+    }
 }
