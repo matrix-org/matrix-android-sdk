@@ -49,8 +49,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
         @Override
         public int compare(RoomMember member1, RoomMember member2) {
-            String lhs = mRoomState.getDisplayName(member1.getUserId());
-            String rhs = mRoomState.getDisplayName(member2.getUserId());
+            String lhs = mRoomState.getMemberName(member1.getUserId());
+            String rhs = mRoomState.getMemberName(member2.getUserId());
             if (lhs == null) {
                 return -1;
             }
