@@ -150,7 +150,8 @@ public class RoomState {
         else if (alias != null) {
             displayName = alias;
         }
-        else if (VISIBILITY_PRIVATE.equals(visibility)) {
+        // compute a name
+        else if (mMembers.size() > 0) {
             Iterator it = mMembers.entrySet().iterator();
             Map.Entry<String, RoomMember> otherUserPair = null;
 
@@ -172,18 +173,20 @@ public class RoomState {
                         }
 
                         if (otherUserPair.getValue().getName() != null) {
-                            displayName += getMemberName(otherUserPair.getValue().getName()); // The member name
+                            displayName += getMemberName(otherUserPair.getValue().getUserId()); // The member name
                         } else {
-                            displayName += otherUserPair.getKey(); // The user id
+                            displayName += getMemberName(otherUserPair.getKey()); // The user id
                         }
                         count++;
                     }
                 }
-
                 displayName = "(" + count + ") " + displayName;
             } else {
+                // by default, it is oneself name
+                displayName = getMemberName(selfUserId);
+
                 // A One2One private room can default to being called like the other guy
-                if ((mMembers.size() == 2) && (selfUserId != null)) {
+                if (selfUserId != null) {
                     while (it.hasNext()) {
                         Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
                         if (!selfUserId.equals(pair.getKey())) {
@@ -192,16 +195,12 @@ public class RoomState {
                         }
                     }
                 }
-                // A private room with just one user (probably you) can be shown as the name of the user
-                else if (mMembers.size() == 1) {
-                    otherUserPair = (Map.Entry<String, RoomMember>) it.next();
-                }
 
                 if (otherUserPair != null) {
                     if (otherUserPair.getValue().getName() != null) {
-                        displayName = getMemberName(otherUserPair.getValue().getName()); // The member name
+                        displayName = getMemberName(otherUserPair.getValue().getUserId()); // The member name
                     } else {
-                        displayName = otherUserPair.getKey(); // The user id
+                        displayName = getMemberName(otherUserPair.getKey()); // The user id
                     }
                 }
             }
@@ -268,22 +267,24 @@ public class RoomState {
      * @param userId
      * @return unique display name
      */
-    public String getMemberName(String userId)
-    {
+    public String getMemberName(String userId) {
+        // sanity check
+        if (null == userId) {
+            return null;
+        }
+
         String displayName = null;
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
 
-        // Do not consider null displayname
-        if ((null != member) &&  !TextUtils.isEmpty(member.displayname))
-        {
+        // Do not consider null display name
+        if ((null != member) &&  !TextUtils.isEmpty(member.displayname)) {
             displayName = member.displayname;
 
             // Disambiguate users who have the same displayname in the room
             for(RoomMember aMember : mMembers.values()) {
-                if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname))
-                {
+                if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname)) {
                     displayName += "(" + userId + ")";
                     break;
                 }
@@ -292,8 +293,7 @@ public class RoomState {
 
         // The user may not have joined the room yet. So try to resolve display name from presence data
         // Note: This data may not be available
-        if ((null == displayName) && (null != mDataHandler))
-        {
+        if ((null == displayName) && (null != mDataHandler)) {
             User user = mDataHandler.getUser(userId);
 
             if (null != user) {
