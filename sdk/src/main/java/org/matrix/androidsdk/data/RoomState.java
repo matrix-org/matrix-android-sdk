@@ -19,10 +19,13 @@ import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -47,6 +50,7 @@ public class RoomState {
     public String visibility;
     public String creator;
     public String joinRule;
+    public MXDataHandler mDataHandler = null;
     public List<String> aliases;
 
     private String token;
@@ -102,6 +106,7 @@ public class RoomState {
         copy.visibility = visibility;
         copy.creator = creator;
         copy.joinRule = joinRule;
+        copy.mDataHandler = mDataHandler;
         copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
 
         Iterator it = mMembers.entrySet().iterator();
@@ -167,7 +172,7 @@ public class RoomState {
                         }
 
                         if (otherUserPair.getValue().getName() != null) {
-                            displayName += otherUserPair.getValue().getName(); // The member name
+                            displayName += getMemberName(otherUserPair.getValue().getName()); // The member name
                         } else {
                             displayName += otherUserPair.getKey(); // The user id
                         }
@@ -194,7 +199,7 @@ public class RoomState {
 
                 if (otherUserPair != null) {
                     if (otherUserPair.getValue().getName() != null) {
-                        displayName = otherUserPair.getValue().getName(); // The member name
+                        displayName = getMemberName(otherUserPair.getValue().getName()); // The member name
                     } else {
                         displayName = otherUserPair.getKey(); // The user id
                     }
@@ -256,5 +261,51 @@ public class RoomState {
         else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
             powerLevels = JsonUtils.toPowerLevels(contentToConsider);
         }
+    }
+
+    /**
+     * Return an unique display name of the member userId.
+     * @param userId
+     * @return unique display name
+     */
+    public String getMemberName(String userId)
+    {
+        String displayName = null;
+
+        // Get the user display name from the member list of the room
+        RoomMember member = getMember(userId);
+
+        // Do not consider null displayname
+        if ((null != member) &&  !TextUtils.isEmpty(member.displayname))
+        {
+            displayName = member.displayname;
+
+            // Disambiguate users who have the same displayname in the room
+            for(RoomMember aMember : mMembers.values()) {
+                if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname))
+                {
+                    displayName += "(" + userId + ")";
+                    break;
+                }
+            }
+        }
+
+        // The user may not have joined the room yet. So try to resolve display name from presence data
+        // Note: This data may not be available
+        if ((null == displayName) && (null != mDataHandler))
+        {
+            User user = mDataHandler.getUser(userId);
+
+            if (null != user) {
+                displayName = user.displayname;
+            }
+        }
+
+        if (null == displayName) {
+            // By default, use the user ID
+            displayName = userId;
+        }
+
+        return displayName;
     }
 }

@@ -30,7 +30,7 @@ public class Matrix {
     }
 
     public synchronized static Matrix getInstance(Context appContext) {
-        if (instance == null) {
+        if ((instance == null) && (null != appContext)) {
             instance = new Matrix(appContext);
         }
         return instance;

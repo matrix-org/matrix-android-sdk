@@ -179,7 +179,15 @@ public class HomeActivity extends MXCActionBarActivity {
             String selfUserId = mSession.getCredentials().userId;
             boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
             if (isInvited) {
-                summary.setName(getString(R.string.summary_invitation));
+                Room room = mSession.getDataHandler().getStore().getRoom(summary.getRoomId());
+
+                // display the room name instead of "Room invitation"
+                // at least, you know who invited you
+                if (null != room) {
+                    summary.setName(room.getName(mSession.getCredentials().userId));
+                } else {
+                    summary.setName(getString(R.string.summary_invitation));
+                }
             }
 
             // only add summaries to rooms we have not left.

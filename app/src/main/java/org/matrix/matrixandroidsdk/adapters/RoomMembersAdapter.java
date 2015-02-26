@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
@@ -38,6 +39,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private PowerLevels mPowerLevels;
     private int maxPowerLevel;
 
+    private RoomState mRoomState;
+
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
 
     private Map<String, User> mUserMap = new HashMap<String, User>();
@@ -46,8 +49,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
         @Override
         public int compare(RoomMember member1, RoomMember member2) {
-            String lhs = getMemberName(member1);
-            String rhs = getMemberName(member2);
+            String lhs = mRoomState.getDisplayName(member1.getUserId());
+            String rhs = mRoomState.getDisplayName(member2.getUserId());
             if (lhs == null) {
                 return -1;
             }
@@ -101,11 +104,12 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId) {
+    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
+        mRoomState = roomState;
         setNotifyOnChange(true);
 
         mMembershipStrings.put(RoomMember.MEMBERSHIP_INVITE, context.getString(R.string.membership_invite));
@@ -145,19 +149,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         notifyDataSetChanged();
     }
 
-    public String getMemberName(RoomMember member) {
-        return getMemberName(member, true);
-    }
-
-    public String getMemberName(RoomMember member, boolean withUserId) {
-        if (member == null) {
-            return null;
-        }
-        if (!TextUtils.isEmpty(member.displayname)) {
-            return withUserId ? member.displayname + "(" + member.getUserId() +")" : member.displayname;
-        }
-        return member.getUserId();
-    }
 
     public void updateMember(String userId, RoomMember member) {
         for (int i = 0; i < getCount(); i++) {

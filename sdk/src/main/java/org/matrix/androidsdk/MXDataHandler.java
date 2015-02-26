@@ -21,6 +21,7 @@ import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -166,6 +167,11 @@ public class MXDataHandler implements IMXEventListener {
         member.membership = RoomMember.MEMBERSHIP_INVITE;
         room.setMember(mCredentials.userId, member);
 
+        // and the inviter
+        member = new RoomMember();
+        member.membership = RoomMember.MEMBERSHIP_JOIN;
+        room.setMember(inviterUserId, member);
+
         // Build a fake invite event
         Event inviteEvent = new Event();
         inviteEvent.roomId = roomId;
@@ -176,6 +182,12 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.content = JsonUtils.toJson(member);
 
         mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
+
+        // Set the inviter ID
+        RoomSummary roomSummary = mStore.getSummary(roomId);
+        if (null != roomSummary) {
+            roomSummary.setInviterUserId(inviterUserId);
+        }
     }
 
     public IMXStore getStore() {
@@ -298,6 +310,15 @@ public class MXDataHandler implements IMXEventListener {
 
             mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
         }
+    }
+
+    /**
+     * Return an user from his id.
+     * @param userId the user id;.
+     * @return the user.
+     */
+    public User getUser(String userId) {
+        return mStore.getUser(userId);
     }
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners

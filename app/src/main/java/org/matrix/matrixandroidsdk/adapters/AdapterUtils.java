@@ -81,8 +81,7 @@ public class AdapterUtils {
         }
 
         private String getUserDisplayName(String userId) {
-            RoomMember roomMember = mRoomState.getMember(userId);
-            return (roomMember != null) ? roomMember.getName() : userId;
+            return mRoomState.getMemberName(userId);
         }
 
         /**

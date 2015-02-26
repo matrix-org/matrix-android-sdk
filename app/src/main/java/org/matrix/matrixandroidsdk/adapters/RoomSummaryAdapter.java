@@ -13,6 +13,7 @@ import android.widget.CheckedTextView;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
@@ -312,15 +313,24 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
 
+            RoomState latestRoomState = summary.getLatestRoomState();
+            if (null == latestRoomState) {
+                Room room = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession().getDataHandler().getStore().getRoom(summary.getRoomId());
+
+                if (null != room.getLiveState()) {
+                    latestRoomState = room.getLiveState().deepCopy();
+                }
+            }
+
             // the public rooms are displayed with bold fonts
-            if ((null != summary.getLatestRoomState()) && (null != summary.getLatestRoomState().visibility) && summary.getLatestRoomState().visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+            if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
                 textView.setTypeface(null, Typeface.BOLD);
             } else {
                 textView.setTypeface(null, Typeface.NORMAL);
             }
 
             // display the unread messages count
-            String roomNameMessage = (summary.getLatestRoomState() != null) ? summary.getLatestRoomState().getDisplayName(mMyUserId) : summary.getRoomName();
+            String roomNameMessage = (latestRoomState != null) ? latestRoomState.getDisplayName(mMyUserId) : summary.getRoomName();
 
             if (null != roomNameMessage) {
                 if ((null != unreadCount) && (unreadCount > 0)) {
@@ -331,7 +341,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
-                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), summary.getLatestRoomState());
+                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                 display.setPrependMessagesWithAuthor(true);
                 message = display.getTextualDisplay();
 
@@ -340,7 +350,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             // check if this is an invite
             if (summary.isInvited()) {
-                message = mContext.getString(R.string.summary_user_invitation, summary.getInviterUserId());
+                String memberName = summary.getInviterUserId();
+
+                if (null != latestRoomState) {
+                    memberName = latestRoomState.getMemberName(memberName);
+                }
+
+                message = mContext.getString(R.string.summary_user_invitation, memberName);
             }
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
