@@ -126,7 +126,7 @@ public class ContentManager {
      * @param callback the async callback returning a mxc: URI to access the uploaded file
      */
     public void uploadContent(InputStream contentStream, String mimeType, UploadCallback callback) {
-        new ContentUploadTask(contentStream, mimeType, callback).execute();
+        new ContentUploadTask(contentStream, mimeType, callback).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**

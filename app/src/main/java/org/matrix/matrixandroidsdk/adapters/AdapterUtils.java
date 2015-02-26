@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.LruCache;
@@ -421,7 +422,7 @@ public class AdapterUtils {
             } else {
                 // download it in background
                 BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
-                task.execute();
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
             }
         }
 
