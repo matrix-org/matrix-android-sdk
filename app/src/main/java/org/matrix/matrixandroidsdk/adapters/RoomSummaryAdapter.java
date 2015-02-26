@@ -13,10 +13,12 @@ import android.widget.CheckedTextView;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
@@ -48,6 +50,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mEvenColourResId;
     private int mUnreadColor;
     private int mHighlightColor;
+    private int mPublicHighlightColor;
 
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
@@ -58,6 +61,8 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private String mSearchedPattern = "";
 
     private DateFormat mDateFormat;
+
+    private String mMyUserId = null;
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
     private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
@@ -80,6 +85,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
         mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
+        mPublicHighlightColor = context.getResources().getColor(R.color.room_summary_public_highlight_background);
+
+
+        mMyUserId = Matrix.getInstance(context.getApplicationContext()).getDefaultSession().getCredentials().userId;
     }
 
     /**
@@ -246,7 +255,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
 
-
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
@@ -274,40 +282,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
             @Override
             public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
-                String lhs = getRoomName(publicRoom);
-                String rhs = getRoomName(publicRoom2);
-                if (lhs == null) {
-                    return -1;
-                }
-                else if (rhs == null) {
-                    return 1;
-                }
-                if (lhs.startsWith("#")) {
-                    lhs = lhs.substring(1);
-                }
-                if (rhs.startsWith("#")) {
-                    rhs = rhs.substring(1);
-                }
-                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
-
+                return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
             }
         });
-    }
-
-    public String getRoomName(RoomState room) {
-        if (room == null) {
-            return null;
-        }
-        if (!TextUtils.isEmpty(room.name)) {
-            return room.name;
-        }
-        else if (!TextUtils.isEmpty(room.roomAliasName)) {
-            return room.roomAliasName;
-        }
-        else if (room.aliases != null && room.aliases.size() > 0) {
-            return room.aliases.get(0);
-        }
-        return room.roomId;
     }
 
     @Override
@@ -317,7 +294,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
 
         if (groupPosition == HomeActivity.recentsGroupIndex) {
-
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
 
             RoomSummary summary = summariesList.get(childPosition);
@@ -337,15 +313,24 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
 
+            RoomState latestRoomState = summary.getLatestRoomState();
+            if (null == latestRoomState) {
+                Room room = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession().getDataHandler().getStore().getRoom(summary.getRoomId());
+
+                if (null != room.getLiveState()) {
+                    latestRoomState = room.getLiveState().deepCopy();
+                }
+            }
+
             // the public rooms are displayed with bold fonts
-            if ((null != summary.getLatestRoomState()) && (null != summary.getLatestRoomState().visibility) && summary.getLatestRoomState().visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+            if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
                 textView.setTypeface(null, Typeface.BOLD);
             } else {
                 textView.setTypeface(null, Typeface.NORMAL);
             }
 
             // display the unread messages count
-            String roomNameMessage = summary.getRoomName();
+            String roomNameMessage = (latestRoomState != null) ? latestRoomState.getDisplayName(mMyUserId) : summary.getRoomName();
 
             if (null != roomNameMessage) {
                 if ((null != unreadCount) && (unreadCount > 0)) {
@@ -356,7 +341,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
-                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), summary.getLatestRoomState());
+                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                 display.setPrependMessagesWithAuthor(true);
                 message = display.getTextualDisplay();
 
@@ -365,7 +350,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             // check if this is an invite
             if (summary.isInvited()) {
-                message = mContext.getString(R.string.summary_user_invitation, summary.getInviterUserId());
+                String memberName = summary.getInviterUserId();
+
+                if (null != latestRoomState) {
+                    memberName = latestRoomState.getMemberName(memberName);
+                }
+
+                message = mContext.getString(R.string.summary_user_invitation, memberName);
             }
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
@@ -380,20 +371,32 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         } else {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
-
-            RoomState room = publicRoomsList.get(childPosition);
+            PublicRoom publicRoom = publicRoomsList.get(childPosition);
+            String displayName = publicRoom.getDisplayName(mMyUserId);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
             textView.setTypeface(null, Typeface.BOLD);
-            textView.setText(getRoomName(room));
+            textView.setText(displayName);
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
-            textView.setText(room.topic);
+            textView.setText(publicRoom.topic);
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.GONE);
+            textView.setVisibility(View.VISIBLE);
 
-            convertView.setBackgroundColor(0);
+            if (publicRoom.numJoinedMembers > 1) {
+                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.users));
+            } else {
+                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
+            }
+
+            String alias = publicRoom.getFirstAlias();
+
+            if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
+                convertView.setBackgroundColor(mPublicHighlightColor);
+            } else {
+                convertView.setBackgroundColor(0);
+            }
         }
 
         return convertView;

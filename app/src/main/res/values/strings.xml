@@ -18,6 +18,7 @@
     <string name="leave">Leave</string>
     <string name="resend">Resend</string>
     <string name="redact">Redact</string>
+    <string name="message_details">Message details</string>
     <string name="view">View</string>
     <string name="set_power_level">Power level</string>
     <string name="chat">Chat</string>
@@ -46,6 +47,7 @@
     <string name="password">Password</string>
     <string name="matrix_login">Matrix Login</string>
     <string name="login">Login</string>
+    <string name="create_account">Create account</string>
     <string name="hs_url">Home Server URL</string>
 
     <string name="create_room_set_alias">Set room alias</string>
@@ -106,9 +108,14 @@
     <string name="option_attach_video">Attach video</string>
     <string name="option_invite">Invite</string>
 
+    <!-- Home Screen -->
+    <string name="users"> users</string>
+    <string name="user"> user</string>
+
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact"</string>
     <string name="unable_to_send_message">Unable to send message</string>
+    <string name="downloading_dot">Downloading ...</string>
 
     <!-- Login Screen -->
     <string name="login_error_must_start_http">URL must start with http[s]://</string>

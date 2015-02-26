@@ -24,6 +24,7 @@ public class MessageRow {
 
     public enum SentState {
         SENT, // Normal case: true for received messages and messages successfully sent to the server
+        WAITING_ECHO, // awaiting echo for the sent messages
         SENDING, // Awaiting response from server after having sent the message
         NOT_SENT // The message is in a temporary state : the message failed to be sent but the list is not refreshed
     }

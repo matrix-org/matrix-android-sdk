@@ -59,6 +59,37 @@ public class EventStreamService extends Service {
     private MXSession mSession;
     private StreamAction mState = StreamAction.UNKNOWN;
 
+    private String mNotificationRoomId = null;
+
+    private static EventStreamService mActiveEventStreamService = null;
+
+
+    /**
+     * Cancel the push notifications for a dedicated roomId.
+     * If the roomId is null, cancel all the push notification.
+     * @param roomId
+     */
+    public static void cancelNotificationsForRoomId(String roomId) {
+        if (null != mActiveEventStreamService) {
+            mActiveEventStreamService.cancelNotifications(roomId);
+        }
+    }
+
+    private void cancelNotifications(String roomId) {
+        boolean cancelNotifications = true;
+
+        // clear only if the notification has been pushed for a dedicated RoomId
+        if (null != roomId) {
+            cancelNotifications = (null != mNotificationRoomId) && (mNotificationRoomId.equals(roomId));
+        }
+
+        // cancel the notifications
+        if (cancelNotifications) {
+            NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.cancelAll();
+        }
+    }
+
     private MXEventListener mListener = new MXEventListener() {
 
         @Override
@@ -90,6 +121,8 @@ public class EventStreamService extends Service {
             if (null == member) {
                 return;
             }
+
+            mNotificationRoomId = roomId;
 
             final String body = event.content.getAsJsonPrimitive("body").getAsString();
 
@@ -156,6 +189,8 @@ public class EventStreamService extends Service {
             }
         }
 
+        mActiveEventStreamService = this;
+
         mSession.getDataHandler().addListener(mListener);
         mSession.startEventStream();
         startWithNotification();
@@ -169,6 +204,8 @@ public class EventStreamService extends Service {
         }
         mSession = null;
         mState = StreamAction.STOP;
+
+        mActiveEventStreamService = null;
     }
 
     private void pause() {
@@ -188,8 +225,8 @@ public class EventStreamService extends Service {
 
     private void startWithNotification() {
         // remove the listening for events notification
-        //Notification notification = buildNotification();
-        //startForeground(NOTIFICATION_ID, notification);
+        Notification notification = buildNotification();
+        startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
     }
 
@@ -252,7 +289,7 @@ public class EventStreamService extends Service {
 
     private Notification buildNotification() {
         Notification notification = new Notification(
-                R.drawable.ic_menu_start_conversation,
+                R.drawable.ic_menu_small_matrix,
                 "Matrix",
                 System.currentTimeMillis()
         );

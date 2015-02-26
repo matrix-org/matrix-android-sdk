@@ -1,19 +1,25 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.gson.JsonNull;
@@ -31,7 +37,9 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
+import org.matrix.matrixandroidsdk.view.PieFractionView;
 
+import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,6 +72,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
+    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
+    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
+
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     private Context mContext;
@@ -74,6 +85,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // when the current user sends one but it will also come down the event stream
     private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
 
+    // when a message is sent, the content is displayed until to get the echo from the server
+    private HashMap<String, MessageRow> mWaitingEchoRowMap = new HashMap<String, MessageRow>();
+
     private int mOddColourResId;
     private int mEvenColourResId;
 
@@ -82,6 +96,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int notSentColor;
     private int sendingColor;
     private int highlightColor;
+
+    private int mMaxImageWidth;
+    private int mMaxImageHeight;
 
     private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
 
@@ -106,11 +123,21 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         notSentColor = context.getResources().getColor(R.color.message_not_sent);
         sendingColor = context.getResources().getColor(R.color.message_sending);
         highlightColor = context.getResources().getColor(R.color.message_highlighted);
+
+        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
+        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
     }
 
     @Override
@@ -135,6 +162,19 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         add(new MessageRow(event, roomState));
     }
 
+    public void waitForEcho(MessageRow row) {
+        String eventId = row.getEvent().eventId;
+
+        // the echo has already been received
+        if (mEventRowMap.containsKey(eventId)) {
+            mWaitingEchoRowMap.remove(eventId);
+            this.remove(row);
+        } else {
+            mEventRowMap.put(eventId, row);
+            mWaitingEchoRowMap.put(eventId, row);
+        }
+    }
+
     @Override
     public void add(MessageRow row) {
         if (shouldSave(row)) {
@@ -142,6 +182,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
+
+            if (row.getSentState() == MessageRow.SentState.WAITING_ECHO) {
+                mWaitingEchoRowMap.put(row.getEvent().eventId, row);
+            }
+
             this.notifyDataSetChanged();
         }
     }
@@ -154,7 +199,35 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     private boolean shouldSave(MessageRow row) {
-        return (isDisplayableEvent(row.getEvent(), row.getRoomState()) && !mEventRowMap.containsKey(row.getEvent().eventId));
+        boolean shouldSave = isDisplayableEvent(row.getEvent(), row.getRoomState());
+
+        if (shouldSave) {
+            String eventId = row.getEvent().eventId;
+
+            shouldSave = !mEventRowMap.containsKey(eventId);
+
+            // a message has already been store with the same eventID
+            if (!shouldSave) {
+                MessageRow currentRow = mEventRowMap.get(eventId);
+
+                // Long.MAX_VALUE means that it is a temporary event
+                shouldSave = (currentRow.getEvent().age == Long.MAX_VALUE);
+
+                if (!shouldSave) {
+                    shouldSave = mWaitingEchoRowMap.containsKey(eventId);
+
+                    // remove the waiting echo message
+                    if (shouldSave) {
+                        super.remove(mWaitingEchoRowMap.get(eventId));
+                        mWaitingEchoRowMap.remove(eventId);
+                    }
+                } else {
+                    super.remove(currentRow);
+                }
+            }
+        }
+
+        return shouldSave;
     }
 
     private int getItemViewType(Event event) {
@@ -349,7 +422,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            if (TextUtils.isEmpty(url)) {
+            if (TextUtils.isEmpty(url) &&  (null != sender)) {
                 url = AdapterUtils.getIdenticonURL(sender.getUserId());
             }
 
@@ -476,9 +549,55 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
-        int maxImageWidth = parent.getWidth() / 2;
-        int maxImageHeight = parent.getHeight() / 2;
-        AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+        int maxImageWidth = mMaxImageWidth;
+        int maxImageHeight = mMaxImageHeight;
+
+        // reset the bitmap to ensure that it is not reused from older cells
+        imageView.setImageBitmap(null);
+
+        String downloadId = null;
+
+        // ensure that the parent view is fully created
+        if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
+            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+        }
+
+        // display a pie char
+        LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+
+        if (null != progressLayout) {
+            if (null != downloadId) {
+                progressLayout.setVisibility(View.VISIBLE);
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) progressLayout.getLayoutParams();
+
+                int frameHeight = -1;
+
+                // if the image size is known
+                // compute the expected thumbnail height
+                if ((null != imageInfo) && (null != imageInfo.w) && (null != imageInfo.h)) {
+                    if ((imageInfo.w > 0) && (imageInfo.h > 0)) {
+                        frameHeight = Math.min(maxImageWidth * imageInfo.h / imageInfo.w , maxImageHeight);
+                    }
+                }
+
+                // if no defined height
+                // use the pie chart one.
+                if (frameHeight < 0) {
+                    frameHeight = pieFractionView.getHeight();
+                }
+
+                // apply it the layout
+                // it avoid row jumping when the image is downloaded
+                lp.height = frameHeight;
+
+                pieFractionView.setFraction(AdapterUtils.progressValueForDownloadId(downloadId));
+
+            } else {
+                progressLayout.setVisibility(View.GONE);
+            }
+        }
+
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);

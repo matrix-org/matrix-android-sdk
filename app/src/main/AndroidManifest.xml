@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.matrix.matrixandroidsdk"
-    android:versionName="0.2.1">
+    android:versionName="0.2.2-dev">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Google Cloud Messaging -->
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <permission
+        android:name="${applicationId}.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+    <uses-permission
+        android:name="${applicationId}.permission.C2D_MESSAGE" />
 
     <application
         android:allowBackup="true"
@@ -25,6 +34,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".activity.AccountCreationActivity"
+            android:label="@string/create_account" >
         </activity>
         <activity
             android:name=".activity.SplashActivity"
@@ -86,7 +99,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activity.RoomActivity"/>
         </activity>
-
         <activity
             android:name=".activity.LockScreenActivity"
             android:theme="@android:style/Theme.Holo.Light.Dialog"
@@ -96,6 +108,16 @@
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTop"/>
 
+        <receiver
+            android:name=".GcmBroadcastReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND" >
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <category android:name="org.matrix.matrixandroidsdk.gcm" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".services.GcmIntentService" />
         <service android:name=".services.EventStreamService" />
 
     </application>

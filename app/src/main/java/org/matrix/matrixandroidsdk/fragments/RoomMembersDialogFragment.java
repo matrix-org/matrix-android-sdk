@@ -84,6 +84,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                     public void run() {
                         mAdapter.saveUser(user);
                         mAdapter.sortMembers();
+                        mAdapter.notifyDataSetChanged();
                     }
                 });
             }
@@ -94,7 +95,24 @@ public class RoomMembersDialogFragment extends DialogFragment {
                     @Override
                     public void run() {
                         if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                            mAdapter.updateMember(event.stateKey, JsonUtils.toRoomMember(event.content));
+                            RoomMember member = JsonUtils.toRoomMember(event.content);
+                            User user = mSession.getDataHandler().getStore().getUser(member.getUserId());
+
+                            // TODO add a flag to hide/show the left users.
+                            if (member.hasLeft()) {
+                                mAdapter.deleteUser(user);
+                                mAdapter.remove(member);
+                                mAdapter.notifyDataSetChanged();
+                            } else {
+                                // the user can be a new one
+                                boolean mustResort = mAdapter.saveUser(user);
+                                mAdapter.updateMember(event.stateKey, JsonUtils.toRoomMember(event.content));
+
+                                if (mustResort) {
+                                    mAdapter.sortMembers();
+                                    mAdapter.notifyDataSetChanged();
+                                }
+                            }
                         }
                         else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
                             mAdapter.setPowerLevels(JsonUtils.toPowerLevels(event.content));
@@ -118,18 +136,23 @@ public class RoomMembersDialogFragment extends DialogFragment {
         super.onCreateView(inflater, container, savedInstanceState);
         View v = inflater.inflate(R.layout.fragment_dialog_member_list, container, false);
         mListView = ((ListView)v.findViewById(R.id.listView_members));
-        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members);
 
         final Room room = mSession.getDataHandler().getRoom(mRoomId);
-        if (room != null) {
-            Collection<RoomMember> members = room.getMembers();
-            if (members != null) {
-                for (RoomMember m : members) {
+
+        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState());
+
+        Collection<RoomMember> members = room.getMembers();
+        if (members != null) {
+            for (RoomMember m : members) {
+
+                // TODO add a setting flag to enable their display
+                // by default the
+                if (!m.hasLeft()) {
                     mAdapter.add(m);
                     mAdapter.saveUser(mSession.getDataHandler().getStore().getUser(m.getUserId()));
                 }
-                mAdapter.sortMembers();
             }
+            mAdapter.sortMembers();
         }
 
         mAdapter.setPowerLevels(room.getLiveState().getPowerLevels());

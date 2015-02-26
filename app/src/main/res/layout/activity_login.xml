@@ -39,4 +39,10 @@
         android:text="@string/login"
         android:id="@+id/button_login"
         android:layout_gravity="center_horizontal"/>
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/create_account"
+        android:id="@+id/button_create_account"
+        android:layout_gravity="center_horizontal"/>
 </LinearLayout>

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2014 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
@@ -57,10 +73,18 @@ public class HomeActivity extends MXCActionBarActivity {
                     for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
                         addSummary(summary);
                     }
+
+                    // highlighted public rooms
+                    mAdapter.highlightRoom("Matrix HQ");
+                    mAdapter.highlightRoom("#matrix:matrix.org");
+                    mAdapter.highlightRoom("#matrix-dev:matrix.org");
+                    mAdapter.highlightRoom("#matrix-fr:matrix.org");
+
                     mAdapter.setPublicRoomsList(mPublicRooms);
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
                     mMyRoomList.expandGroup(recentsGroupIndex);
+                    mMyRoomList.expandGroup(publicRoomsGroupIndex);
 
                     // load the public load in background
                     refreshPublicRoomsList();
@@ -155,7 +179,15 @@ public class HomeActivity extends MXCActionBarActivity {
             String selfUserId = mSession.getCredentials().userId;
             boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
             if (isInvited) {
-                summary.setName(getString(R.string.summary_invitation));
+                Room room = mSession.getDataHandler().getStore().getRoom(summary.getRoomId());
+
+                // display the room name instead of "Room invitation"
+                // at least, you know who invited you
+                if (null != room) {
+                    summary.setName(room.getName(mSession.getCredentials().userId));
+                } else {
+                    summary.setName(getString(R.string.summary_invitation));
+                }
             }
 
             // only add summaries to rooms we have not left.
@@ -231,22 +263,6 @@ public class HomeActivity extends MXCActionBarActivity {
                 return true;
             }
         });
-
-        mMyRoomList.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
-            @Override
-            public void onGroupCollapse(int groupPosition) {
-                if (groupPosition == publicRoomsGroupIndex) {
-                    if (!mMyRoomList.isGroupExpanded(recentsGroupIndex)) {
-                        mMyRoomList.expandGroup(recentsGroupIndex);
-                    }
-                } else {
-                    if (!mMyRoomList.isGroupExpanded(publicRoomsGroupIndex)) {
-                        mMyRoomList.expandGroup(publicRoomsGroupIndex);
-                    }
-                }
-            }
-        });
-
 
         mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
             @Override
