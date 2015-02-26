@@ -10,6 +10,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -210,6 +211,9 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     private void requestInitialHistory() {
+        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
+        roomSummary.setInviterUserId(null);
+
         displayLoadingProgress();
 
         // TODO add auto join when the network comes back
