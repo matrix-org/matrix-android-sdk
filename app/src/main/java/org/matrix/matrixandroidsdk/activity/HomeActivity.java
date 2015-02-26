@@ -61,6 +61,9 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private List<PublicRoom> mPublicRooms = null;
 
+    private boolean mIsPaused = false;
+    private boolean mSortSummaryAtResume = false;
+
     private MXEventListener mListener = new MXEventListener() {
         private boolean mInitialSyncComplete = false;
 
@@ -143,8 +146,12 @@ public class HomeActivity extends MXCActionBarActivity {
                             }
                         }
 
-                        mAdapter.sortSummaries();
-                        mAdapter.notifyDataSetChanged();
+                        if (!mIsPaused) {
+                            mAdapter.sortSummaries();
+                            mAdapter.notifyDataSetChanged();
+                        } else {
+                            mSortSummaryAtResume = false;
+                        }
                     }
                 }
             });
@@ -258,8 +265,6 @@ public class HomeActivity extends MXCActionBarActivity {
                 }
 
                 CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
-                mAdapter.notifyDataSetChanged();
-
                 return true;
             }
         });
@@ -331,12 +336,19 @@ public class HomeActivity extends MXCActionBarActivity {
     protected void onPause() {
         super.onPause();
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        mIsPaused = true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         MyPresenceManager.getInstance(this).advertiseOnline();
+        mIsPaused = false;
+
+        if (mSortSummaryAtResume) {
+            mAdapter.sortSummaries();
+        }            
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
