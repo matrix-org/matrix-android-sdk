@@ -116,6 +116,18 @@ public class RoomState {
     }
 
     /**
+     * Returns the first room alias.
+     * @return the first room alias
+     */
+    public String getFirstAlias() {
+        if ((aliases != null) && (aliases.size() != 0)) {
+            return aliases.get(0);
+        }
+
+        return null;
+    }
+
+    /**
      * Build and return the room's display name.
      * @param selfUserId this user's user id (to exclude from members)
      * @return the display name
@@ -133,30 +145,59 @@ public class RoomState {
         else if (alias != null) {
             displayName = alias;
         }
-
         else if (VISIBILITY_PRIVATE.equals(visibility)) {
             Iterator it = mMembers.entrySet().iterator();
             Map.Entry<String, RoomMember> otherUserPair = null;
-            // A One2One private room can default to being called like the other guy
-            if ((mMembers.size() == 2) && (selfUserId != null)) {
+
+            if ((mMembers.size() >= 3) && (selfUserId != null)) {
+                // this is a group chat and should have the names of participants
+                // according to "(<num> <name1>, <name2>, <name3> ..."
+                int count = 0;
+
+                displayName = "";
+
                 while (it.hasNext()) {
                     Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+
                     if (!selfUserId.equals(pair.getKey())) {
                         otherUserPair = pair;
-                        break;
+
+                        if (count > 0) {
+                            displayName += ", ";
+                        }
+
+                        if (otherUserPair.getValue().getName() != null) {
+                            displayName += otherUserPair.getValue().getName(); // The member name
+                        } else {
+                            displayName += otherUserPair.getKey(); // The user id
+                        }
+                        count++;
                     }
                 }
-            }
-            // A private room with just one user (probably you) can be shown as the name of the user
-            else if (mMembers.size() == 1) {
-                otherUserPair = (Map.Entry<String, RoomMember>) it.next();
-            }
 
-            if (otherUserPair != null) {
-                if (otherUserPair.getValue().getName() != null) {
-                    displayName = otherUserPair.getValue().getName(); // The member name
-                } else {
-                    displayName = otherUserPair.getKey(); // The user id
+                displayName = "(" + count + ") " + displayName;
+            } else {
+                // A One2One private room can default to being called like the other guy
+                if ((mMembers.size() == 2) && (selfUserId != null)) {
+                    while (it.hasNext()) {
+                        Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+                        if (!selfUserId.equals(pair.getKey())) {
+                            otherUserPair = pair;
+                            break;
+                        }
+                    }
+                }
+                // A private room with just one user (probably you) can be shown as the name of the user
+                else if (mMembers.size() == 1) {
+                    otherUserPair = (Map.Entry<String, RoomMember>) it.next();
+                }
+
+                if (otherUserPair != null) {
+                    if (otherUserPair.getValue().getName() != null) {
+                        displayName = otherUserPair.getValue().getName(); // The member name
+                    } else {
+                        displayName = otherUserPair.getKey(); // The user id
+                    }
                 }
             }
         }

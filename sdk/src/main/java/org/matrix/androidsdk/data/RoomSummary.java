@@ -1,7 +1,10 @@
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.util.Collection;
