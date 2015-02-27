@@ -210,7 +210,10 @@ public class ContentManager {
                     bytesAvailable = contentStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
 
-                    mProgress = (totalWritten * 100 / totalSize);
+                    // assume that the data upload is 90 % of the time
+                    // closing the stream requires also some 100ms
+                    mProgress = (totalWritten * 90 / totalSize) ;
+
                     Log.d(LOG_TAG, "Upload " + " : " + mProgress);
                     publishProgress(mProgress);
 
@@ -219,11 +222,16 @@ public class ContentManager {
 
                 // close streams
                 contentStream.close();
+                publishProgress(mProgress = 92);
                 dos.flush();
+                publishProgress(mProgress = 94);
                 dos.close();
+                publishProgress(mProgress = 96);
 
                 // Read the SERVER RESPONSE
                 int status = conn.getResponseCode();
+
+                publishProgress(mProgress = 98);
 
                 Log.d(LOG_TAG, "Upload is done with response code" + status);
 
@@ -241,7 +249,6 @@ public class ContentManager {
                     Log.e(LOG_TAG, "Error: Upload returned " + status + " status code");
                     return null;
                 }
-
             }
             catch (Exception e) {
                 Log.e(LOG_TAG, "Error: " + e.getMessage());
