@@ -38,6 +38,13 @@ android {
         }
     }
 
+    productFlavors {
+        alpha {
+            applicationId "org.matrix.androidsdk.alpha"
+            versionName "0.2.2-alpha"
+        }
+    }
+
     lintOptions {
         disable 'InvalidPackage'
     }
