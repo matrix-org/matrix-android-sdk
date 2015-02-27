@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
@@ -21,11 +22,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.JsonNull;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -39,6 +43,7 @@ import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
+import java.io.File;
 import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -104,6 +109,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private DateFormat mDateFormat;
 
+    private MXSession mSession;
+
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
                            int noticeResLayoutId, int emoteRestLayoutId) {
         super(context, 0);
@@ -128,6 +135,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Display display = wm.getDefaultDisplay();
         mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
         mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
+
+        mSession = Matrix.getInstance(mContext).getDefaultSession();
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
@@ -298,7 +307,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        MyUser myUser = Matrix.getInstance(mContext).getDefaultSession().getMyUser();
+        MyUser myUser = mSession.getMyUser();
         Boolean isMyEvent = myUser.userId.equals(msg.userId);
 
         // isMergedView -> the message is going to be merged with the previous one
@@ -363,7 +372,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (row.getSentState() == MessageRow.SentState.NOT_SENT) {
             tsTextView.setTextColor(notSentColor);
         } else {
-
             tsTextView.setTextColor(Color.parseColor("#FFAAAAAA"));
         }
 
@@ -606,9 +614,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int backgroundColor;
 
         switch (row.getSentState()) {
-            case SENDING:
-                backgroundColor = sendingColor;
-                break;
             case NOT_SENT:
                 backgroundColor = notSentColor;
                 break;
@@ -626,7 +631,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         Intent viewImageIntent = new Intent();
                         viewImageIntent.setAction(Intent.ACTION_VIEW);
                         String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
-                        ContentManager contentManager = Matrix.getInstance(getContext()).getDefaultSession().getContentManager();
+                        ContentManager contentManager = mSession.getContentManager();
                         String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
                         viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
                         mContext.startActivity(viewImageIntent);
@@ -634,6 +639,38 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
         }
+
+        // manage the upload progress
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+
+        int progress = -1;
+
+        if (mSession.getMyUser().userId.equals(msg.userId)) {
+            progress = mSession.getContentManager().getUploadProgress(imageMessage.url);
+
+            if (progress >= 0) {
+                final String url = imageMessage.url;
+
+                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadProgress(String anUploadId, int percentageProgress) {
+                        if (url.equals(anUploadId)) {
+                            uploadFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                        if (url.equals(anUploadId)) {
+                            uploadFractionView.setVisibility(View.GONE);
+                        }
+                    }
+                });
+            }
+        }
+
+        uploadFractionView.setFraction(progress);
+        uploadFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
         this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
 

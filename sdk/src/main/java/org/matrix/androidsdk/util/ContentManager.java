@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Class for accessing content from the current session.
@@ -46,24 +48,24 @@ public class ContentManager {
     private String mHsUri;
     private String mAccessToken;
 
+    private static HashMap<String, ContentUploadTask> mPendingUploadByUploadId = new HashMap<String, ContentUploadTask>();
+
     /**
      * Interface to implement to get the mxc URI of uploaded content.
      */
     public static interface UploadCallback {
-
-        /**
-         * Called when the upload is complete or has failed.
-         * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
-         */
-        public void onUploadComplete(ContentResponse uploadResponse);
-
-
         /**
          * Warn of the progress upload
          * @param uploadId the upload Identifier
          * @param percentageProgress the progress value
          */
         public void onUploadProgress(String uploadId, int percentageProgress);
+
+        /**
+         * Called when the upload is complete or has failed.
+         * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
+         */
+        public void onUploadComplete(String uploadId, ContentResponse uploadResponse);
     }
 
     /**
@@ -132,32 +134,61 @@ public class ContentManager {
      * Upload a file.
      * @param contentStream a stream with the content to upload
      * @param callback the async callback returning a mxc: URI to access the uploaded file
-     * @return an upload id
      */
-    public String uploadContent(InputStream contentStream, String mimeType, UploadCallback callback) {
-        String uploadId = System.currentTimeMillis() + "";
-
+    public void uploadContent(InputStream contentStream, String mimeType, String uploadId, UploadCallback callback) {
         new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
 
-        return uploadId;
+    /**
+     * Returns the upload progress (percentage) for a dedicated uploadId
+     * @param uploadId The uploadId.
+     * @return the upload percentage. -1 means there is no pending upload.
+     */
+    public int getUploadProgress(String uploadId) {
+        if ((null != uploadId) && mPendingUploadByUploadId.containsKey(uploadId)) {
+            return mPendingUploadByUploadId.get(uploadId).getProgress();
+        }
+        return -1;
+    }
+
+    /**
+     * Add an upload listener for an uploadId.
+     * @param uploadId The uploadId.
+     * @param callback the async callback returning a mxc: URI to access the uploaded file
+     */
+    public void addUploadListener(String uploadId, UploadCallback callback) {
+        if ((null != uploadId) && mPendingUploadByUploadId.containsKey(uploadId)) {
+            mPendingUploadByUploadId.get(uploadId).addCallback(callback);
+        }
     }
 
     /**
      * Private AsyncTask used to upload files.
      */
     private class ContentUploadTask extends AsyncTask<Void, Integer, String> {
-
-        private UploadCallback callback;
         private String mimeType;
         private InputStream contentStream;
         private String mUploadId;
         private int mProgress = 0;
+        private ArrayList<UploadCallback> callbacks = new ArrayList<UploadCallback>();
 
         public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId) {
-            this.callback = callback;
+            callbacks.add(callback);
             this.mimeType = mimeType;
             this.contentStream = contentStream;
             this.mUploadId = uploadId;
+
+            if (null != uploadId) {
+                mPendingUploadByUploadId.put(uploadId, this);
+            }
+        }
+
+        public void addCallback(UploadCallback callback) {
+            callbacks.add(callback);
+        }
+
+        public int getProgress() {
+            return mProgress;
         }
 
         @Override
@@ -166,13 +197,10 @@ public class ContentManager {
             DataOutputStream dos;
 
             int bytesRead, bytesAvailable, bufferSize, totalWritten, totalSize;
-
             byte[] buffer;
-
             int maxBufferSize = 1024 * 32;
 
             String responseFromServer = null;
-
             String urlString = mHsUri + URI_PREFIX_CONTENT_API + "/upload?access_token=" + mAccessToken;
 
             try
@@ -260,12 +288,29 @@ public class ContentManager {
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
             Log.d(LOG_TAG, "UI Upload " + mHsUri + " : " + mProgress);
-            callback.onUploadProgress(mUploadId, progress[0]);
+
+            for (UploadCallback callback:callbacks) {
+                try {
+                    callback.onUploadProgress(mUploadId, progress[0]);
+                } catch (Exception e) {
+                }
+            }
         }
 
         @Override
         protected void onPostExecute(String s) {
-            callback.onUploadComplete((s == null) ? null : JsonUtils.toContentResponse(s));
+            if (null != mUploadId) {
+                mPendingUploadByUploadId.remove(mUploadId);
+            }
+
+            ContentResponse uploadResponse = (s == null) ? null : JsonUtils.toContentResponse(s);
+
+            for (UploadCallback callback:callbacks) {
+                try {
+                    callback.onUploadComplete(mUploadId, uploadResponse);
+                } catch (Exception e) {
+                }
+            }
         }
     }
 }

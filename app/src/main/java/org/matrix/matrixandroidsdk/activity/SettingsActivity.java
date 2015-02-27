@@ -259,14 +259,14 @@ public class SettingsActivity extends MXCActionBarActivity {
 
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
+            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, null, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadProgress(String anUploadId, int percentageProgress) {
                     progressDialog.setMessage(getString(R.string.message_uploading) + " (" + percentageProgress + "%)");
                 }
 
                 @Override
-                public void onUploadComplete(ContentResponse uploadResponse) {
+                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                     if (uploadResponse == null) {
                         Toast.makeText(SettingsActivity.this,
                                 getString(R.string.settings_failed_to_upload_avatar),

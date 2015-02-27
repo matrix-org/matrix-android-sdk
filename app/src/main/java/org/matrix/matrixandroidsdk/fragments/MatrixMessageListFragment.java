@@ -1,17 +1,24 @@
 package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 
+import android.graphics.Bitmap;
+import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -22,19 +29,25 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,6 +73,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
+
+    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
+    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
     // listener to warn activity that the initial sync is done
     private MatrixMessageListFragmentListener mMatrixMessageListFragmentListener = null;
@@ -90,6 +106,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
 
+    private int mMaxImageWidth;
+    private int mMaxImageHeight;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,6 +121,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Bundle args = getArguments();
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
+
+        WindowManager wm = (WindowManager) getActivity().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
+        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
     }
 
     @Override
@@ -197,6 +221,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_TEXT, body);
     }
 
+    // create a dummy message row for the message
+    // It is added to the Adapter
+    // return the created Message
+    private MessageRow addDummyMessageRow(Message message) {
+        Event dummyEvent = new Event();
+        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
+        dummyEvent.content = JsonUtils.toJson(message);
+        dummyEvent.originServerTs = System.currentTimeMillis();
+        dummyEvent.userId = mSession.getCredentials().userId;
+        dummyEvent.roomId = mRoom.getRoomId();
+        dummyEvent.createDummyEventId();
+
+        MessageRow messageRow = new MessageRow(dummyEvent, mRoom.getLiveState());
+        messageRow.setSentState(MessageRow.SentState.SENDING);
+        mAdapter.add(messageRow);
+        // NotifyOnChange has been disabled to avoid useless refreshes
+        mAdapter.notifyDataSetChanged();
+
+        return messageRow;
+    }
+
     private void sendMessage(String msgType, String body) {
         Message message = new Message();
         message.msgtype = msgType;
@@ -204,12 +249,152 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message, false);
     }
 
-    public void sendImage(ImageMessage imageMessage) {
-        send(imageMessage, false);
-    }
-
     public void sendEmote(String emote) {
         sendMessage(Message.MSGTYPE_EMOTE, emote);
+    }
+
+
+    /**
+     * upload an image content.
+     * It might be triggered from a media selection : imageUri is used to compute thumbnails.
+     * Or, it could have been called to resend an image.
+     * @param imageUrl the image Uri
+     * @param mimeType the image mine type
+     * @param retriedMessage the imagemessage to resend
+     */
+    public void uploadImageContent(final String imageUrl, final String mimeType, final ImageMessage retriedMessage) {
+        // create a tmp row
+        final ImageMessage tmpImageMessage = new ImageMessage();
+
+        // try to resend an image
+        if (null != retriedMessage) {
+            tmpImageMessage.url = retriedMessage.url;
+            tmpImageMessage.thumbnailUrl = retriedMessage.thumbnailUrl;
+        } else {
+            try {
+                tmpImageMessage.url = imageUrl;
+
+                Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(tmpImageMessage.url, getActivity());
+
+                double fullSizeWidth = fullSizeBitmap.getWidth();
+                double fullSizeHeight = fullSizeBitmap.getHeight();
+
+                double thumbnailWidth = mMaxImageWidth;
+                double thumbnailHeight = mMaxImageHeight;
+
+                if (fullSizeWidth > fullSizeHeight) {
+                    thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
+                } else {
+                    thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
+                }
+
+                Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                tmpImageMessage.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, getActivity(), null);
+
+                // save memory consumption
+                fullSizeBitmap.recycle();
+                System.gc();
+
+            } catch (Exception e) {
+                // really fail to upload the image...
+            }
+        }
+
+        tmpImageMessage.info = new ImageInfo();
+        tmpImageMessage.info.mimetype = mimeType;
+        tmpImageMessage.body = "Image";
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
+
+        FileInputStream imageStream = null;
+
+        try {
+            Uri uri = Uri.parse(imageUrl);
+            String filename = uri.getPath();
+            imageStream = new FileInputStream (new File(filename));
+
+        } catch (Exception e) {
+        }
+
+        mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+            }
+
+            @Override
+            public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                ImageMessage message = tmpImageMessage;
+
+                if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                    // Build the image message
+                    message = new ImageMessage();
+
+                    // a thumbnail url could have been set if the upload has failed
+                    // it is a file URL one but it must not be sent
+                    message.thumbnailUrl = null;
+                    message.url = uploadResponse.contentUri;
+
+                    // try to extract the image size
+                    try {
+                        Uri uri = Uri.parse(imageUrl);
+                        String filename = uri.getPath();
+
+                        File file = new File(filename);
+
+                        try {
+                            ExifInterface exifMedia = new ExifInterface(filename);
+                            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+                            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+
+                            if ((null != width) && (null != height)) {
+                                ImageInfo imageInfo = new ImageInfo();
+
+                                imageInfo.w = Integer.parseInt(width);
+                                imageInfo.h = Integer.parseInt(height);
+                                imageInfo.mimetype = mimeType;
+                                imageInfo.size = file.length();
+
+                                message.info = imageInfo;
+                            }
+                        } catch (Exception e) {
+                        }
+
+                        // TODO the file should not be deleted
+                        // it should be used to avoid downloading high res pict
+                        file.delete();
+
+                    } catch (Exception e) {
+                    }
+
+                    message.info = new ImageInfo();
+                    message.info.mimetype = mimeType;
+                    // message to display in the summary recents
+                    message.body = "Image";
+
+                    // update the event content with the new message info
+                    tmpRow.getEvent().content = JsonUtils.toJson(message);
+
+                    Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+
+                } else {
+                    Log.d(LOG_TAG, "Failed to upload");
+                }
+
+                // warn the user that the media upload fails
+                if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                    Toast.makeText(getActivity(),
+                            getString(R.string.message_failed_to_upload),
+                            Toast.LENGTH_LONG).show();
+                }
+
+                // sanity check
+                if (message.url != null) {
+                    send(message, tmpRow, false);
+                }
+            }
+        });
     }
 
     private void resend(Event event) {
@@ -226,13 +411,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
-                if (getActivity() instanceof RoomActivity) {
-                    ((RoomActivity)getActivity()).uploadImageContent(imageMessage.url, imageMessage.info.mimetype, imageMessage);
-
-                } else {
-                    // don't know how to resend the event
-                    return;
-                }
+                uploadImageContent(imageMessage.url, imageMessage.info.mimetype, imageMessage);
+                return;
             }
         }
 
@@ -240,20 +420,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private void send(final Message message, final boolean isRetry) {
-        Event dummyEvent = new Event();
-        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
-        dummyEvent.content = JsonUtils.toJson(message);
-        dummyEvent.originServerTs = System.currentTimeMillis();
-        dummyEvent.userId = mSession.getCredentials().userId;
-        dummyEvent.roomId = mRoom.getRoomId();
-        dummyEvent.createDummyEventId();
+        send(message, addDummyMessageRow(message), isRetry);
+    }
 
-        final MessageRow tmpRow = new MessageRow(dummyEvent, mRoom.getLiveState());
-        tmpRow.setSentState(MessageRow.SentState.SENDING);
-        mAdapter.add(tmpRow);
-        // NotifyOnChange has been disabled to avoid useless refreshes
-        mAdapter.notifyDataSetChanged();
-
+    private void send(final Message message, final MessageRow tmpRow,  final boolean isRetry) {
         mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
             @Override
             public void onSuccess(Event event) {

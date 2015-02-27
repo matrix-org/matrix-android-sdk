@@ -600,14 +600,14 @@ public class Room {
                         hasPreviousTask = true;
 
                         if (null != fis) {
-                            mContentManager.uploadContent(fis, imageMessage.info.mimetype, new ContentManager.UploadCallback() {
+                            mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, new ContentManager.UploadCallback() {
 
                                 @Override
                                 public void onUploadProgress(String anUploadId, int percentageProgress) {
                                 }
 
                                 @Override
-                                public void onUploadComplete(ContentResponse uploadResponse) {
+                                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                                     ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);
 
                                     if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {

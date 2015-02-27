@@ -56,6 +56,12 @@
                     android:text="1970/01/01 00:00:00"
                     android:id="@+id/messagesAdapter_timestamp_left"/>
 
+                <org.matrix.matrixandroidsdk.view.PieFractionView
+                    android:id="@+id/upload_content_piechart"
+                    android:paddingLeft="5dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"/>
+
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
