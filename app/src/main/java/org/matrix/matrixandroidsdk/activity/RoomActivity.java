@@ -517,7 +517,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
         }
 
-        mSession.getContentManager().uploadContent(imageStream, mimeType, new ContentManager.UploadCallback() {
+        final String uploadId = mSession.getContentManager().uploadContent(imageStream, mimeType, new ContentManager.UploadCallback() {
+
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+                progressDialog.setMessage(getString(R.string.message_uploading) + " (" + percentageProgress + "%)");
+            }
+
             @Override
             public void onUploadComplete(ContentResponse uploadResponse) {
                 // Build the image message

@@ -601,6 +601,11 @@ public class Room {
 
                         if (null != fis) {
                             mContentManager.uploadContent(fis, imageMessage.info.mimetype, new ContentManager.UploadCallback() {
+
+                                @Override
+                                public void onUploadProgress(String anUploadId, int percentageProgress) {
+                                }
+
                                 @Override
                                 public void onUploadComplete(ContentResponse uploadResponse) {
                                     ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);

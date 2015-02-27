@@ -56,6 +56,14 @@ public class ContentManager {
          * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
          */
         public void onUploadComplete(ContentResponse uploadResponse);
+
+
+        /**
+         * Warn of the progress upload
+         * @param uploadId the upload Identifier
+         * @param percentageProgress the progress value
+         */
+        public void onUploadProgress(String uploadId, int percentageProgress);
     }
 
     /**
@@ -124,24 +132,32 @@ public class ContentManager {
      * Upload a file.
      * @param contentStream a stream with the content to upload
      * @param callback the async callback returning a mxc: URI to access the uploaded file
+     * @return an upload id
      */
-    public void uploadContent(InputStream contentStream, String mimeType, UploadCallback callback) {
-        new ContentUploadTask(contentStream, mimeType, callback).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    public String uploadContent(InputStream contentStream, String mimeType, UploadCallback callback) {
+        String uploadId = System.currentTimeMillis() + "";
+
+        new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        return uploadId;
     }
 
     /**
      * Private AsyncTask used to upload files.
      */
-    private class ContentUploadTask extends AsyncTask<Void, Void, String> {
+    private class ContentUploadTask extends AsyncTask<Void, Integer, String> {
 
         private UploadCallback callback;
         private String mimeType;
         private InputStream contentStream;
+        private String mUploadId;
+        private int mProgress = 0;
 
-        public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback) {
+        public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId) {
             this.callback = callback;
             this.mimeType = mimeType;
             this.contentStream = contentStream;
+            this.mUploadId = uploadId;
         }
 
         @Override
@@ -149,11 +165,11 @@ public class ContentManager {
             HttpURLConnection conn;
             DataOutputStream dos;
 
-            int bytesRead, bytesAvailable, bufferSize;
+            int bytesRead, bytesAvailable, bufferSize, totalWritten, totalSize;
 
             byte[] buffer;
 
-            int maxBufferSize = 1*1024*1024;
+            int maxBufferSize = 1024 * 32;
 
             String responseFromServer = null;
 
@@ -177,17 +193,27 @@ public class ContentManager {
                 dos = new DataOutputStream(conn.getOutputStream() );
 
                 // create a buffer of maximum size
-                bytesAvailable = contentStream.available();
+
+                totalSize = bytesAvailable = contentStream.available();
+                totalWritten = 0;
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
                 buffer = new byte[bufferSize];
+
+                Log.d(LOG_TAG, "Start Upload (" + totalSize + " bytes)");
 
                 // read file and write it into form...
                 bytesRead = contentStream.read(buffer, 0, bufferSize);
 
                 while (bytesRead > 0) {
                     dos.write(buffer, 0, bufferSize);
+                    totalWritten += bufferSize;
                     bytesAvailable = contentStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
+
+                    mProgress = (totalWritten * 100 / totalSize);
+                    Log.d(LOG_TAG, "Upload " + " : " + mProgress);
+                    publishProgress(mProgress);
+
                     bytesRead = contentStream.read(buffer, 0, bufferSize);
                 }
 
@@ -198,6 +224,9 @@ public class ContentManager {
 
                 // Read the SERVER RESPONSE
                 int status = conn.getResponseCode();
+
+                Log.d(LOG_TAG, "Upload is done with response code" + status);
+
                 if (status == 200) {
                     InputStream is = conn.getInputStream();
                     int ch;
@@ -219,6 +248,12 @@ public class ContentManager {
             }
 
             return responseFromServer;
+        }
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            Log.d(LOG_TAG, "UI Upload " + mHsUri + " : " + mProgress);
+            callback.onUploadProgress(mUploadId, progress[0]);
         }
 
         @Override
