@@ -60,7 +60,14 @@ public interface IMXEventListener {
      *
      * @param event the event
      */
-    public void onDeletedEvent(Event event);
+    public void onDeleteEvent(Event event);
+
+    /**
+     * An event has been automatically resent.
+     *
+     * @param event the event
+     */
+    public void onResendEvent(Event event);
 
     /**
      * The bing rules have been updated

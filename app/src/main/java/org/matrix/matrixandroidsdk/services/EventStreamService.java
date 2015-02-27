@@ -137,6 +137,10 @@ public class EventStreamService extends Service {
             Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
             nm.notify(MSG_NOTIFICATION_ID, n);
         }
+
+        @Override
+        public void onResendEvent(Event event) {
+        }
     };
 
     @Override

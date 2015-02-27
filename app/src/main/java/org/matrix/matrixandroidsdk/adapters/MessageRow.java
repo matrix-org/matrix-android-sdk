@@ -54,5 +54,6 @@ public class MessageRow {
 
     public void setSentState(SentState sentState) {
         this.mSentState = sentState;
+        mEvent.isUnsent = (sentState == SentState.NOT_SENT);
     }
 }

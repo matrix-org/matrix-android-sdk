@@ -610,8 +610,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onDeletedEvent(Event event) {
+    public void onDeleteEvent(Event event) {
         mAdapter.removeEventById(event.eventId);
+    }
+
+    @Override
+    public void onResendEvent(Event event) {
+        mAdapter.updateMessageRowSentState(event.eventId, MessageRow.SentState.SENDING);
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override

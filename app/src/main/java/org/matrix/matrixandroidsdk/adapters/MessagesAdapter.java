@@ -207,6 +207,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    public void updateMessageRowSentState(String eventId, MessageRow.SentState state) {
+        MessageRow row = mEventRowMap.get(eventId);
+        if (row != null) {
+            row.setSentState(state);
+        }
+    }
+
     private boolean shouldSave(MessageRow row) {
         boolean shouldSave = isDisplayableEvent(row.getEvent(), row.getRoomState());
 

@@ -221,10 +221,18 @@ public class Room {
             }
 
             @Override
-            public void onDeletedEvent(Event event) {
+            public void onDeleteEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onDeletedEvent(event);
+                    eventListener.onDeleteEvent(event);
+                }
+            }
+
+            @Override
+            public void onResendEvent(Event event) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(event.roomId)) {
+                    eventListener.onResendEvent(event);
                 }
             }
 
@@ -583,6 +591,8 @@ public class Room {
         if ((evensList.size() > 0) && (index < evensList.size())) {
             final Event oldEvent = evensList.get(index);
 
+            mDataHandler.onResendEvent(oldEvent);
+
             boolean hasPreviousTask = false;
             final Message message = JsonUtils.toMessage(oldEvent.content);
 
@@ -626,7 +636,7 @@ public class Room {
                                         public void onSuccess(Event sentEvent) {
                                             oldEvent.isSending = false;
                                             mDataHandler.deleteRoomEvent(oldEvent);
-                                            mDataHandler.onDeletedEvent(oldEvent);
+                                            mDataHandler.onDeleteEvent(oldEvent);
 
                                             // update with updated fields
                                             oldEvent.eventId = sentEvent.eventId;
@@ -669,7 +679,7 @@ public class Room {
                     public void onSuccess(Event sentEvent) {
                         oldEvent.isSending = false;
                         mDataHandler.deleteRoomEvent(oldEvent);
-                        mDataHandler.onDeletedEvent(oldEvent);
+                        mDataHandler.onDeleteEvent(oldEvent);
 
                         // update with updated fields
                         oldEvent.eventId = sentEvent.eventId;
