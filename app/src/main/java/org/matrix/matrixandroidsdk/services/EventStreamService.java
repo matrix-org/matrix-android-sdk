@@ -209,7 +209,9 @@ public class EventStreamService extends Service {
 
         mSession.getDataHandler().addListener(mListener);
         mSession.startEventStream();
-        startWithNotification();
+        if (shouldRunInForeground()) {
+            startWithNotification();
+        }
     }
 
     private void stop() {
@@ -236,11 +238,13 @@ public class EventStreamService extends Service {
         if (mSession != null) {
             mSession.resumeEventStream();
         }
-        startWithNotification();
+        if (shouldRunInForeground()) {
+            startWithNotification();
+        }
     }
 
     private void startWithNotification() {
-        // remove the listening for events notification
+        // TODO: remove the listening for events notification
         Notification notification = buildNotification();
         startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
@@ -266,5 +270,9 @@ public class EventStreamService extends Service {
                 pi);
         notification.flags |= Notification.FLAG_NO_CLEAR;
         return notification;
+    }
+
+    private boolean shouldRunInForeground() {
+        return true;
     }
 }

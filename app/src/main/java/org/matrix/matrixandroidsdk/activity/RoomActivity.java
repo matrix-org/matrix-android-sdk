@@ -358,6 +358,7 @@ public class RoomActivity extends MXCActionBarActivity {
             finish();
             return;
         }
+        CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
 
