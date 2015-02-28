@@ -138,6 +138,10 @@ public class CommonActivityUtils {
     }
 
     public static void goToRoomPage(final String roomId, final Activity fromActivity) {
+        goToRoomPage(roomId, fromActivity, null);
+    }
+
+    public static void goToRoomPage(final String roomId, final Activity fromActivity, final String initialMessage) {
         fromActivity.runOnUiThread(new Runnable() {
            @Override
                public void run() {
@@ -163,6 +167,9 @@ public class CommonActivityUtils {
                        // so just need to open the room activity
                        Intent intent = new Intent(fromActivity, RoomActivity.class);
                        intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                       if(initialMessage != null) {
+                           intent.putExtra(RoomActivity.EXTRA_INITIAL_MESSAGE, initialMessage);
+                       }
                        fromActivity.startActivity(intent);
                    }
                }
