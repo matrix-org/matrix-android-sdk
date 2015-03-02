@@ -377,6 +377,10 @@ public class HomeActivity extends MXCActionBarActivity {
             toggleSearchButton();
             return true;
         }
+        else if (id == R.id.action_create_private_room) {
+            createRoom(false);
+            return true;
+        }
         else if (id == R.id.action_create_public_room) {
             createRoom(true);
             return true;
