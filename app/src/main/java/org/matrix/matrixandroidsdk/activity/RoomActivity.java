@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -56,7 +57,10 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -75,6 +79,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
     public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
+    private static final String CAMERA_VALUE_TITLE = "attachment"; // Samsung devices need a filepath to write to or else won't return a Uri (!!!)
+
     // defines the command line operations
     // the user can write theses messages to perform some room events
     private static final String CMD_CHANGE_DISPLAY_NAME = "/nick";
@@ -87,6 +93,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
     private static final int REQUEST_IMAGE = 0;
+    private static final int TAKE_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
@@ -94,6 +101,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
     private int mMaxImageWidth;
     private int mMaxImageHeight;
+
+    private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
     // typing event management
     private Timer mTypingTimer = null;
@@ -166,11 +175,12 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_IMAGE = 1;
-            private static final int OPTION_INVITE = 2;
+            private static final int OPTION_TAKE_IMAGE = 2;
+            private static final int OPTION_INVITE = 3;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_INVITE, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -184,6 +194,46 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                                         Intent fileIntent = new Intent(Intent.ACTION_PICK);
                                         fileIntent.setType("image/*");
                                         startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                        break;
+                                    case OPTION_TAKE_IMAGE:
+                                        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                                        // the following is a fix for buggy 2.x devices
+                                        Date date = new Date();
+                                        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+                                        ContentValues values = new ContentValues();
+                                        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
+                                        // The Galaxy S not only requires the name of the file to output the image to, but will also not
+                                        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
+                                        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
+                                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                                        Uri dummyUri = null;
+                                        try {
+                                            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                                        }
+                                        catch (UnsupportedOperationException uoe) {
+                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
+                                            try {
+                                                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
+                                            }
+                                            catch (Exception e) {
+                                                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
+                                            }
+                                        }
+                                        catch (Exception e) {
+                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
+                                        }
+                                        if (dummyUri != null) {
+                                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
+                                        }
+                                        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
+                                        // this will point to the data we're looking for.
+                                        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
+                                        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
+                                        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
+                                        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
+
+                                        startActivityForResult(captureIntent, TAKE_IMAGE);
                                         break;
                                     case OPTION_INVITE: {
                                             final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
@@ -232,6 +282,9 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                             break;
                         case OPTION_ATTACH_IMAGE:
                             label = getString(R.string.option_attach_image);
+                            break;
+                        case OPTION_TAKE_IMAGE:
+                            label = getString(R.string.option_take_image);
                             break;
                         case OPTION_INVITE:
                             label = getString(R.string.option_invite);
@@ -514,8 +567,19 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_IMAGE) {
-                final Uri imageUri = data.getData();
+            if ((requestCode == REQUEST_IMAGE) || (requestCode == TAKE_IMAGE)) {
+                Uri dataUri;
+
+                if (null != data) {
+                    dataUri =  data.getData();
+                } else {
+                    dataUri =  mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri);
+                }
+
+                mLatestTakePictureCameraUri = null;
+
+                final Uri imageUri = dataUri;
+
                 ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
                 if (resource == null) {
                     Toast.makeText(RoomActivity.this,
