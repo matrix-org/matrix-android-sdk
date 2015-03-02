@@ -67,7 +67,7 @@ public class SettingsActivity extends MXCActionBarActivity {
             mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size);
+            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size, 0);
         }
     }
 

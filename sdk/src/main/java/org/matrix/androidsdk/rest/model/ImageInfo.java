@@ -20,4 +20,5 @@ public class ImageInfo {
     public Integer w;
     public Integer h;
     public Long size;
+    public Integer rotation;
 }

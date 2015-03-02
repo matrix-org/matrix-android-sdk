@@ -55,8 +55,8 @@ import java.util.HashMap;
 public class AdapterUtils {
     private static final String LOG_TAG = "AdapterUtils";
 
-    public static String BROADCAST_DOWNLOAD_PROGRESS = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.BROADCAST_DOWNLOAD_PROGRESS";
-    public static String DOWNLOAD_PROGRESS_VALUE = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_VALUE";
+    public static String BROADCAST_DOWNLOAD_PROGRESS  = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.BROADCAST_DOWNLOAD_PROGRESS";
+    public static String DOWNLOAD_PROGRESS_VALUE      = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_VALUE";
     public static String DOWNLOAD_PROGRESS_IDENTIFIER = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_IDENTIFIER";
 
     public static class EventDisplay {
@@ -353,16 +353,16 @@ public class AdapterUtils {
 
     // return a bitmap from the cache
     // null if it does not exist
-    public static Bitmap bitmapForUrl(String url, Context context)  {
-        return BitmapWorkerTask.bitmapForURL(url,context);
+    public static Bitmap bitmapForUrl(String url, Context context, int rotationAngle)  {
+        return BitmapWorkerTask.bitmapForURL(url,context, rotationAngle);
     }
 
     // wrapper to loadBitmap
-    public static String loadBitmap(ImageView imageView, String url) {
-        return loadBitmap(imageView, url, -1, -1, true);
+    public static String loadBitmap(ImageView imageView, String url, int rotationAngle) {
+        return loadBitmap(imageView, url, -1, -1, true, rotationAngle);
     }
-    public static String loadThumbnailBitmap(ImageView imageView, String url, int width, int height) {
-        return loadBitmap(imageView, url, width, height, true);
+    public static String loadThumbnailBitmap(ImageView imageView, String url, int width, int height, int rotationAngle) {
+        return loadBitmap(imageView, url, width, height, true, rotationAngle);
     }
 
     public static int progressValueForDownloadId(String downloadId) {
@@ -383,9 +383,10 @@ public class AdapterUtils {
      * @param width the expected image width
      * @param height the expected image height
      * @param download download the image if it is not cached
+     * @param rotationAngle the rotation angle (degrees)
      * @return a download identifier if the image is not cached
      */
-    public static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download) {
+    public static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download, int rotationAngle) {
         if (null == url) {
             return null;
         }
@@ -408,7 +409,7 @@ public class AdapterUtils {
         imageView.setTag(downloadableUrl);
 
         // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext());
+        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(downloadableUrl, imageView.getContext().getApplicationContext(), rotationAngle);
 
         if (null != bitmap) {
             // display it
@@ -421,66 +422,12 @@ public class AdapterUtils {
                 currentTask.addImageView(imageView);
             } else {
                 // download it in background
-                BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl);
+                BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl, rotationAngle);
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
             }
         }
 
         return downloadableUrl;
-    }
-
-    /**
-     * Gets the {@link ExifInterface} value for the orientation for this local bitmap Uri.
-     * @param context Application context for the content resolver.
-     * @param uri The URI to find the orientation for.  Must be local.
-     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
-     */
-    public static int getOrientationForBitmap(Context context, Uri uri) {
-        int orientation = ExifInterface.ORIENTATION_UNDEFINED;
-
-        if (uri == null) {
-            return orientation;
-        }
-
-        if (uri.getScheme().equals("content")) {
-            String [] proj={MediaStore.Images.Media.DATA};
-            Cursor cursor = null;
-            try {
-                cursor = context.getContentResolver().query( uri, proj, null, null, null);
-                if (cursor != null && cursor.getCount() > 0) {
-                    cursor.moveToFirst();
-                    int idxData = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                    String path = cursor.getString(idxData);
-                    if (TextUtils.isEmpty(path)) {
-                        Log.w(LOG_TAG, "Cannot find path in media db for uri "+uri);
-                        return orientation;
-                    }
-                    ExifInterface exif = new ExifInterface(path);
-                    return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
-                }
-            }
-            catch (Exception e) {
-                // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
-                // eg IOException from trying to parse the returned path as a file when it is an http uri.
-                Log.e(LOG_TAG, "Cannot get orientation for bitmap: "+e);
-            }
-            finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
-            }
-        }
-        else if (uri.getScheme().equals("file")) {
-            try {
-                ExifInterface exif = new ExifInterface(uri.getPath());
-                return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
-            }
-            catch (Exception e) {
-                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because "+e);
-            }
-        }
-
-        return orientation;
     }
 
     static class BitmapWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
@@ -497,6 +444,7 @@ public class AdapterUtils {
 
         private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
+        private int mRotation = 0;
         private int mProgress = 0;
 
         public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
@@ -511,10 +459,11 @@ public class AdapterUtils {
             mImageViewReferences.add(new WeakReference<ImageView>(imageView));
         }
 
-        public BitmapWorkerTask(ImageView imageView, String url) {
+        public BitmapWorkerTask(ImageView imageView, String url, int rotation) {
             mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
             addImageView(imageView);
             mUrl = url;
+            mRotation = rotation;
             mPendingDownloadByUrl.put(url, this);
         }
 
@@ -522,7 +471,7 @@ public class AdapterUtils {
             return mProgress;
         }
 
-        public static Bitmap bitmapForURL(String url, Context context) {
+        public static Bitmap bitmapForURL(String url, Context context, int rotation) {
             Bitmap bitmap = null;
 
             // sanity check
@@ -553,7 +502,7 @@ public class AdapterUtils {
 
                     // not a valid file name
                     if (null == filename) {
-                        filename = "file" + url.hashCode();;
+                        filename = "file" + url.hashCode();
                     }
 
                     try {
@@ -587,6 +536,19 @@ public class AdapterUtils {
 
                             if (null != bitmap) {
                                 synchronized (sMemoryCache) {
+
+                                    if (0 != rotation) {
+                                        try {
+                                            android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
+                                            bitmapMatrix.postRotate(rotation);
+
+                                            Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
+                                            bitmap.recycle();
+                                            bitmap =  transformedBitmap;
+                                        } catch (OutOfMemoryError ex) {
+                                        }
+                                    }
+
                                     sMemoryCache.put(url, bitmap);
                                 }
                             }
@@ -689,7 +651,7 @@ public class AdapterUtils {
 
                     // get the bitmap from the filesytem
                     if (null == bitmap) {
-                        bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext);
+                        bitmap = BitmapWorkerTask.bitmapForURL(key, applicationContext, mRotation);
                     }
                 } else if (null != stream) {
                     BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();

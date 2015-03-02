@@ -566,6 +566,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int maxImageWidth = mMaxImageWidth;
         int maxImageHeight = mMaxImageHeight;
+        int rotationAngle = 0;
+
+        if ((null != imageInfo) && (imageInfo.rotation != null)) {
+            rotationAngle = imageInfo.rotation;
+        }
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
@@ -574,7 +579,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // ensure that the parent view is fully created
         if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight);
+            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
         }
 
         // display a pie char
@@ -591,8 +596,18 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // if the image size is known
                 // compute the expected thumbnail height
                 if ((null != imageInfo) && (null != imageInfo.w) && (null != imageInfo.h)) {
-                    if ((imageInfo.w > 0) && (imageInfo.h > 0)) {
-                        frameHeight = Math.min(maxImageWidth * imageInfo.h / imageInfo.w , maxImageHeight);
+                    int imageW = imageInfo.w;
+                    int imageH = imageInfo.h;
+
+                    // swap width and height if the image is side oriented
+                    if ((rotationAngle == 90) || (rotationAngle == 270)) {
+                        int tmp = imageW;
+                        imageW = imageH;
+                        imageH = tmp;
+                    }
+
+                    if ((imageW > 0) && (imageH > 0)) {
+                        frameHeight = Math.min(maxImageWidth * imageH / imageW, maxImageHeight);
                     }
                 }
 
@@ -707,7 +722,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        AdapterUtils.loadThumbnailBitmap(avatarView, url, size, size);
+        AdapterUtils.loadThumbnailBitmap(avatarView, url, size, size, 0);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {

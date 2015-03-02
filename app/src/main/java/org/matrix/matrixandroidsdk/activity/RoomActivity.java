@@ -3,6 +3,7 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -19,9 +20,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -53,6 +56,7 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -67,6 +71,9 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
+
+    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
+    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
     // defines the command line operations
     // the user can write theses messages to perform some room events
@@ -84,6 +91,9 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    private int mMaxImageWidth;
+    private int mMaxImageHeight;
 
     // typing event management
     private Timer mTypingTimer = null;
@@ -134,6 +144,10 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             notificationsManager.cancelAll();
         }
 
+        WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
+        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
 
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
@@ -510,19 +524,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     return;
                 }
 
-                // extract the rotation angle
-                // to manage exif rotation
-                int rotationAngle = -1;
-
-                int orientation = AdapterUtils.getOrientationForBitmap(this, imageUri);
-
-                if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
-                    orientation = 90;
-                } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
-                    orientation = 180 ;
-                } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
-                    orientation = 270;
-                }
+                int rotationAngle = Room.getRotationAngleForBitmap(this, imageUri);
 
                 // save the file in the filesystem
                 String imageUrl =  AdapterUtils.saveMedia(resource.contentStream, RoomActivity.this, null);
@@ -533,69 +535,100 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 } catch(Exception e) {
                 }
 
-                // check if the image orientation has been found
-                // seems that galery images orientation is the thumbnail one
-                if (-1 == rotationAngle) {
+                // try to retrieve the gallery thumbnail
+                // if the image comes from the gallery..
+                Bitmap thumbnailBitmap = null;
 
-                    try {
-                        String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
-                        Cursor cur = managedQuery(imageUri, orientationColumn, null, null, null);
-                        if (cur != null && cur.moveToFirst()) {
-                            orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
-                        }
-                    } catch (Exception e) {
-                    }
+                try {
+                    ContentResolver resolver = getContentResolver();
+                    List uriPath = imageUri.getPathSegments();
+                    long imageId = Long.parseLong((String)(uriPath.get(uriPath.size() - 1)));
+
+                    thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                } catch (Exception e) {
+
                 }
 
-                // the image has a rotation to apply or the mimetype is unknown
-                if ((orientation > 0) || (null == mimeType) || (mimeType.equals("image/*"))) {
-                    try {
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                // no thumbnail has been found or the mimetype is unknown
+                if ((null == thumbnailBitmap) || (null == mimeType) || (mimeType.equals("image/*"))) {
 
-                        resource = ResourceUtils.openResource(this, imageUri);
+                    // need to decompress the high res image
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                    resource = ResourceUtils.openResource(this, imageUri);
 
-                        Bitmap bitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+                    // get the full size bitmap
+                    Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
 
-                        if (null != bitmap) {
-                            Uri uri = Uri.parse(imageUrl);
+                    // create a thumbnail bitmap if there is none
+                    if (null == thumbnailBitmap) {
+                        if (fullSizeBitmap != null) {
+                            double fullSizeWidth = fullSizeBitmap.getWidth();
+                            double fullSizeHeight = fullSizeBitmap.getHeight();
 
-                            // there is a rotation to apply
-                            if (orientation > 0) {
-                                android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
-                                bitmapMatrix.postRotate(orientation);
-                                
-								// the rotation could fail because there is no more available memory
-                                try {
-                                    Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
-                                    AdapterUtils.saveBitmap(transformedBitmap, RoomActivity.this, uri.getPath());
-                                    transformedBitmap.recycle();
-                                } catch (OutOfMemoryError ex) {
-                                }
+                            double thumbnailWidth = mMaxImageWidth;
+                            double thumbnailHeight = mMaxImageHeight;
+
+                            if (fullSizeWidth > fullSizeHeight) {
+                                thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
                             } else {
-                                AdapterUtils.saveBitmap(bitmap, RoomActivity.this, uri.getPath());
+                                thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
                             }
 
-                            // reduce the memory consumption
-                            bitmap.recycle();
+                            try {
+                                thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                            } catch (OutOfMemoryError ex) {
+                            }
+                        }
+                    }
 
-                            System.gc();
+                    // unknown mimetype
+                    if ((null == mimeType) || (mimeType.equals("image/*"))) {
+                        try {
+                            if (null != fullSizeBitmap) {
+                                Uri uri = Uri.parse(imageUrl);
+                                try {
+                                    AdapterUtils.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                } catch (OutOfMemoryError ex) {
+                                }
 
-                            // the images are save in jpeg format
-                            mimeType = "image/jpeg";
-                        } else {
+                                // the images are save in jpeg format
+                                mimeType = "image/jpeg";
+                            } else {
+                                imageUrl = null;
+                            }
+
+                            resource.contentStream.close();
+
+                        } catch (Exception e) {
                             imageUrl = null;
                         }
+                    }
 
-                        resource.contentStream.close();
+                    // reduce the memory consumption
+                    fullSizeBitmap.recycle();
+                    System.gc();
+                }
 
-                    } catch (Exception e) {
+                // must apply a rotation
+                if ((rotationAngle > 0) && (null != thumbnailBitmap)) {
+                    try {
+                        android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
+                        bitmapMatrix.postRotate(rotationAngle);
+
+                        Bitmap transformedBitmap = Bitmap.createBitmap(thumbnailBitmap, 0, 0, thumbnailBitmap.getWidth(), thumbnailBitmap.getHeight(), bitmapMatrix, false);
+                        thumbnailBitmap.recycle();
+                        thumbnailBitmap =  transformedBitmap;
+                    } catch (OutOfMemoryError ex) {
+                        thumbnailBitmap = null;
                     }
                 }
 
+                String thumbnailURL = AdapterUtils.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+
                 // is the image content valid ?
-                if (null != imageUrl) {
-                    mMatrixMessageListFragment.uploadImageContent(imageUrl, mimeType, null);
+                if ((null != imageUrl) && (null != thumbnailURL)) {
+                    mMatrixMessageListFragment.uploadImageContent(thumbnailURL, imageUrl, mimeType);
                 }
             }
         }

@@ -373,7 +373,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
         if (mMember.avatarUrl != null) {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mThumbnailImageView, mMember.avatarUrl, size, size);
+            AdapterUtils.loadThumbnailBitmap(mThumbnailImageView, mMember.avatarUrl, size, size, 0);
         }
     }
 

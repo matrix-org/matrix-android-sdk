@@ -74,9 +74,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
-    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
-    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
-
     // listener to warn activity that the initial sync is done
     private MatrixMessageListFragmentListener mMatrixMessageListFragmentListener = null;
 
@@ -106,9 +103,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
 
-    private int mMaxImageWidth;
-    private int mMaxImageHeight;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -121,11 +115,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Bundle args = getArguments();
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
-
-        WindowManager wm = (WindowManager) getActivity().getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
-        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
     }
 
     @Override
@@ -258,50 +247,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * upload an image content.
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
+     * @param thumbnailUrl the thumbnail Url
      * @param imageUrl the image Uri
      * @param mimeType the image mine type
-     * @param retriedMessage the imagemessage to resend
      */
-    public void uploadImageContent(final String imageUrl, final String mimeType, final ImageMessage retriedMessage) {
+    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mimeType) {
         // create a tmp row
         final ImageMessage tmpImageMessage = new ImageMessage();
 
-        // try to resend an image
-        if (null != retriedMessage) {
-            tmpImageMessage.url = retriedMessage.url;
-            tmpImageMessage.thumbnailUrl = retriedMessage.thumbnailUrl;
-        } else {
-            try {
-                tmpImageMessage.url = imageUrl;
-
-                Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(tmpImageMessage.url, getActivity());
-
-                double fullSizeWidth = fullSizeBitmap.getWidth();
-                double fullSizeHeight = fullSizeBitmap.getHeight();
-
-                double thumbnailWidth = mMaxImageWidth;
-                double thumbnailHeight = mMaxImageHeight;
-
-                if (fullSizeWidth > fullSizeHeight) {
-                    thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
-                } else {
-                    thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
-                }
-
-                Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                tmpImageMessage.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, getActivity(), null);
-
-                // save memory consumption
-                fullSizeBitmap.recycle();
-                System.gc();
-
-            } catch (Exception e) {
-                // really fail to upload the image...
-            }
-        }
-
-        tmpImageMessage.info = new ImageInfo();
-        tmpImageMessage.info.mimetype = mimeType;
+        tmpImageMessage.url = imageUrl;
+        tmpImageMessage.thumbnailUrl = thumbnailUrl;
         tmpImageMessage.body = "Image";
 
         // remove any displayed MessageRow with this URL
@@ -312,6 +267,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         try {
             Uri uri = Uri.parse(imageUrl);
+            Room.fillImageInfo(getActivity(), tmpImageMessage, uri, mimeType);
+
             String filename = uri.getPath();
             imageStream = new FileInputStream (new File(filename));
 
@@ -335,6 +292,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // it is a file URL one but it must not be sent
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
+                    message.info = tmpImageMessage.info;
+                    message.body = "Image";
 
                     // try to extract the image size
                     try {
@@ -343,24 +302,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         File file = new File(filename);
 
-                        try {
-                            ExifInterface exifMedia = new ExifInterface(filename);
-                            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
-                            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
-
-                            if ((null != width) && (null != height)) {
-                                ImageInfo imageInfo = new ImageInfo();
-
-                                imageInfo.w = Integer.parseInt(width);
-                                imageInfo.h = Integer.parseInt(height);
-                                imageInfo.mimetype = mimeType;
-                                imageInfo.size = file.length();
-
-                                message.info = imageInfo;
-                            }
-                        } catch (Exception e) {
-                        }
-
                         // TODO the file should not be deleted
                         // it should be used to avoid downloading high res pict
                         file.delete();
@@ -368,10 +309,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     } catch (Exception e) {
                     }
 
-                    message.info = new ImageInfo();
-                    message.info.mimetype = mimeType;
-                    // message to display in the summary recents
-                    message.body = "Image";
+
 
                     // update the event content with the new message info
                     tmpRow.getEvent().content = JsonUtils.toJson(message);
@@ -411,7 +349,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
-                uploadImageContent(imageMessage.url, imageMessage.info.mimetype, imageMessage);
+                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.info.mimetype);
                 return;
             }
         }
