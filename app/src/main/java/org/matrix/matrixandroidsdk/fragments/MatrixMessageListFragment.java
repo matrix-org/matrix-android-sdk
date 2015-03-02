@@ -373,9 +373,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                         }
                     } else if (null != event.unsentMatrixError) {
-                        if (!MatrixError.LIMIT_EXCEEDED.equals(event.unsentMatrixError.errcode)) {
-                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
-                        }
+                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
                     }
                     mAdapter.remove(tmpRow);
                     mAdapter.add(event, mRoom.getLiveState());
