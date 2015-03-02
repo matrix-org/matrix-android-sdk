@@ -373,7 +373,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                         }
                     } else if (null != event.unsentMatrixError) {
-                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                        if (!MatrixError.LIMIT_EXCEEDED.equals(event.unsentMatrixError.errcode)) {
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                        }
                     }
                     mAdapter.remove(tmpRow);
                     mAdapter.add(event, mRoom.getLiveState());
@@ -520,8 +522,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
+                @Override
+                public void run() {
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
@@ -548,14 +550,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onDeleteEvent(Event event) {
-        mAdapter.removeEventById(event.eventId);
+    public void onDeleteEvent(final Event event) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.removeEventById(event.eventId);
+                mAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
-    @Override
-    public void onResendEvent(Event event) {
-        mAdapter.updateMessageRowSentState(event.eventId, MessageRow.SentState.SENDING);
-        mAdapter.notifyDataSetChanged();
+        @Override
+    public void onResendEvent(final Event event) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.updateMessageRowSentState(event.eventId, MessageRow.SentState.SENDING);
+                mAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override

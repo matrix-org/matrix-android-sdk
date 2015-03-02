@@ -20,6 +20,8 @@ import android.widget.Toast;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -77,6 +79,33 @@ public class Event {
 
     public boolean isDummyEvent() {
         return (roomId + "-" + originServerTs).equals(eventId);
+    }
+
+    /**
+     * Make a deep copy of this room state object.
+     * @return the copy
+     */
+    public Event deepCopy() {
+        Event copy = new Event();
+        copy.type = type;
+        copy.content = content;
+
+        copy.eventId = eventId;
+        copy.roomId = roomId;
+        copy.userId = userId;
+        copy.originServerTs = originServerTs;
+        copy.age = age;
+
+        copy.stateKey = stateKey;
+        copy.prevContent = prevContent;
+
+        copy.redacts = redacts;
+
+        copy.isUnsent = isUnsent;
+
+        copy.unsentException = unsentException;
+        copy.unsentMatrixError = unsentMatrixError;
+        return copy;
     }
 
     @Override

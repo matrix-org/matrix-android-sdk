@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -60,6 +61,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -67,6 +70,8 @@ import java.util.Map;
 public class Room {
 
     private static final String LOG_TAG = "Room";
+
+    private static final int MAX_RATE_LIMIT_MS = 20000;
 
     /**
      * The direction from which an incoming event is considered.
@@ -105,6 +110,10 @@ public class Room {
     private boolean canStillPaginate = true;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
+
+
+    private boolean isResendingEvents = false;
+    private boolean checkUnsentMessages = false;
 
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -324,9 +333,19 @@ public class Room {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Event event = storeUnsentMessage();
+                    final Event event = storeUnsentMessage();
                     event.unsentMatrixError = e;
                     callback.onSuccess(event);
+
+                    // limit exceeds, the server provided a timeout
+                    if (MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                            resendUnsentEvents(MAX_RATE_LIMIT_MS);
+                            }
+                        }, e.retry_after_ms);
+                    }
                 }
 
                 @Override
@@ -562,33 +581,6 @@ public class Room {
     }
 
     /**
-     * Resend the unsend messages
-     */
-    public void resendUnsentEvents() {
-        Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
-
-        // something to resend
-        if (events.size() > 0) {
-            ArrayList<Event> eventsList = new ArrayList<Event>(events);
-            ArrayList<Event> unsentEvents = new ArrayList<Event>();
-
-            // check if some events are already sending
-            // to avoid send them twice
-            // some network issues could happen
-            // eg connected send some unsent messages but do not send all of them
-            // deconnected -> connected : some messages could be sent twice
-            for(Event event : eventsList){
-                if (!event.isSending) {
-                    event.isSending = true;
-                    unsentEvents.add(event);
-                }
-            }
-
-            resendEventsList(unsentEvents, 0);
-        }
-    }
-
-    /**
      * Gets the bitmap rotation angle from the {@link android.media.ExifInterface}.
      * @param context Application context for the content resolver.
      * @param uri The URI to find the orientation for.  Must be local.
@@ -699,17 +691,71 @@ public class Room {
     }
 
     /**
+     * Resend the unsent messages.
+     */
+    public void resendUnsentEvents() {
+        resendUnsentEvents(-1);
+    }
+
+    /**
+     * Resend the unsent messages during a time  interval.
+     * @param timeInterval define the time interval in ms to resend the messages to avoid application lock.
+     */
+    public void resendUnsentEvents(int timeInterval) {
+        boolean isResending;
+
+        synchronized (this) {
+            isResending =  isResendingEvents;
+
+            // at the end of the current resending loop
+            // check again unsent messages
+            if (isResending) {
+                checkUnsentMessages = isResending;
+            }
+        }
+
+        // wait that the current task is done
+        if (isResending) {
+            return;
+        }
+
+        Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
+
+        // something to resend
+        if (events.size() > 0) {
+            ArrayList<Event> eventsList = new ArrayList<Event>(events);
+            ArrayList<Event> unsentEvents = new ArrayList<Event>();
+
+            // check if some events are already sending
+            // to avoid send them twice
+            // some network issues could happen
+            // eg connected send some unsent messages but do not send all of them
+            // deconnected -> connected : some messages could be sent twice
+            for(Event event : eventsList){
+                if (!event.isSending) {
+                    event.isSending = true;
+                    unsentEvents.add(event);
+                }
+            }
+
+            resendEventsList(unsentEvents, 0,(timeInterval > 0) ? (System.currentTimeMillis() + timeInterval) : Long.MAX_VALUE);
+        }
+    }
+
+    /**
      * Resend events list.
      * Wait that the event is resent before sending the next one
      * to keep the genuine order
      */
-    private void resendEventsList(final ArrayList<Event> evensList, final int index) {
-        if ((evensList.size() > 0) && (index < evensList.size())) {
+    private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
+
+        if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
             final Event oldEvent = evensList.get(index);
 
             mDataHandler.onResendEvent(oldEvent);
 
             boolean hasPreviousTask = false;
+            oldEvent.age = 0;
             final Message message = JsonUtils.toMessage(oldEvent.content);
 
             if (message instanceof ImageMessage) {
@@ -750,38 +796,11 @@ public class Room {
                                     uploadedMessage.info = imageMessage.info;
                                     uploadedMessage.body = imageMessage.body;
 
-                                    sendMessage(uploadedMessage, new ApiCallback<Event>() {
-                                        @Override
-                                        public void onSuccess(Event sentEvent) {
-                                            oldEvent.isSending = false;
-                                            mDataHandler.deleteRoomEvent(oldEvent);
-                                            mDataHandler.onDeleteEvent(oldEvent);
+                                    // update the content
+                                    oldEvent.content = JsonUtils.toJson(uploadedMessage);
 
-                                            // update with updated fields
-                                            oldEvent.eventId = sentEvent.eventId;
-                                            oldEvent.isUnsent = sentEvent.isUnsent;
-                                            oldEvent.unsentException = sentEvent.unsentException;
-                                            oldEvent.unsentMatrixError = sentEvent.unsentMatrixError;
-
-                                            mDataHandler.onLiveEvent(oldEvent, getLiveState());
-
-                                            // send the next one
-                                            Room.this.resendEventsList(evensList, index + 1);
-                                        }
-
-                                        // theses 3 methods will never be called
-                                        @Override
-                                        public void onNetworkError(Exception e) {
-                                        }
-
-                                        @Override
-                                        public void onMatrixError(MatrixError e) {
-                                        }
-
-                                        @Override
-                                        public void onUnexpectedError(Exception e) {
-                                        }
-                                    });
+                                    // send the body
+                                    Room.this.resendEventsList(evensList, index, maxTime);
                                 }
                             });
                         }
@@ -796,9 +815,10 @@ public class Room {
                 sendMessage(message, new ApiCallback<Event>() {
                     @Override
                     public void onSuccess(Event sentEvent) {
-                        oldEvent.isSending = false;
-                        mDataHandler.deleteRoomEvent(oldEvent);
-                        mDataHandler.onDeleteEvent(oldEvent);
+                        Event dummyEvent = oldEvent.deepCopy();
+                        dummyEvent.isSending = false;
+                        mDataHandler.deleteRoomEvent(dummyEvent);
+                        mDataHandler.onDeleteEvent(dummyEvent);
 
                         // update with updated fields
                         oldEvent.eventId = sentEvent.eventId;
@@ -809,7 +829,7 @@ public class Room {
                         mDataHandler.onLiveEvent(oldEvent, getLiveState());
 
                         // send the next one
-                        Room.this.resendEventsList(evensList, index + 1);
+                        Room.this.resendEventsList(evensList, index + 1, maxTime);
                     }
 
                     // theses 3 methods will never be called
@@ -825,6 +845,20 @@ public class Room {
                     public void onUnexpectedError(Exception e) {
                     }
                 });
+            }
+        } else {
+            boolean mustCheckUnsent = false;
+
+            synchronized(this) {
+                isResendingEvents = false;
+                mustCheckUnsent = checkUnsentMessages;
+                checkUnsentMessages = false;
+            }
+
+            // the timeout should be done on each request but assume
+            // that the requests are sent in pools so the timeout is valid for it.
+            if ((mustCheckUnsent) && (System.currentTimeMillis() < maxTime)) {
+                resendUnsentEvents(MAX_RATE_LIMIT_MS);
             }
         }
     }

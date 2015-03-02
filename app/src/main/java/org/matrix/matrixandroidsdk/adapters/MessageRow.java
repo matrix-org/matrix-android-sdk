@@ -49,6 +49,10 @@ public class MessageRow {
             return SentState.NOT_SENT;
         }
 
+        if (SentState.SENDING == mSentState) {
+            mSentState = SentState.SENDING;
+        }
+
         return mSentState;
     }
 

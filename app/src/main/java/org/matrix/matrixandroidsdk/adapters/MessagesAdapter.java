@@ -202,6 +202,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public void removeEventById(String eventId) {
         MessageRow row = mEventRowMap.get(eventId);
+
         if (row != null) {
             remove(row);
         }
