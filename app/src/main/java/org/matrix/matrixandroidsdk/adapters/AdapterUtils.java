@@ -48,6 +48,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Contains useful functions for adapters.
@@ -357,10 +358,11 @@ public class AdapterUtils {
         return BitmapWorkerTask.bitmapForURL(url,context, rotationAngle);
     }
 
-    // wrapper to loadBitmap
+    // loadBitmap wrappers
     public static String loadBitmap(ImageView imageView, String url, int rotationAngle) {
         return loadBitmap(imageView, url, -1, -1, true, rotationAngle);
     }
+
     public static String loadThumbnailBitmap(ImageView imageView, String url, int width, int height, int rotationAngle) {
         return loadBitmap(imageView, url, width, height, true, rotationAngle);
     }
@@ -372,6 +374,64 @@ public class AdapterUtils {
             return currentTask.getProgress();
         }
         return 0;
+    }
+
+    private static String downloadableUrl(Context context, String url, int width, int height) {
+        // if the url is not a local file
+        if (!url.startsWith("file:")) {
+            ContentManager contentManager = Matrix.getInstance(context).getDefaultSession().getContentManager();
+
+            if ((width > 0) && (height > 0)) {
+                return contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+            } else {
+                return contentManager.getDownloadableUrl(url);
+            }
+        } else {
+            return url;
+        }
+    }
+
+    /**
+     * Replace a media cache by a file content.
+     * @param context the context
+     * @param mediaUrl the mediaUrl
+     * @param fileUrl the file which replaces the cached media.
+     */
+    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl) {
+        saveFileMediaForUrl(context, mediaUrl, fileUrl, -1, -1);
+    }
+
+    /**
+     * Replace a media cache by a file content.
+     * MediaUrl is the same model as the one used in loadBitmap.
+     * @param context the context
+     * @param mediaUrl the mediaUrl
+     * @param fileUrl the file which replaces the cached media.
+     * @param width the expected image width
+     * @param height the expected image height
+     */
+    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height) {
+        String downloadableUrl = downloadableUrl(context, mediaUrl, width, height);
+        String filename = "file" + downloadableUrl.hashCode();
+
+        try {
+            // delete the current content
+            File destFile = new File(context.getFilesDir(), filename);
+
+            if (destFile.exists()) {
+                try {
+                    destFile.delete();
+                } catch (Exception e) {
+                }
+            }
+
+            Uri uri = Uri.parse(fileUrl);
+            File srcFile = new File(uri.getPath());
+            srcFile.renameTo(destFile);
+
+        } catch (Exception e) {
+
+        }
     }
 
     /**
@@ -391,21 +451,7 @@ public class AdapterUtils {
             return null;
         }
 
-        String downloadableUrl;
-
-        // if the url is not a local file
-        if (!url.startsWith("file:")) {
-            ContentManager contentManager = Matrix.getInstance(imageView.getContext()).getDefaultSession().getContentManager();
-
-            if ((width > 0) && (height > 0)) {
-                downloadableUrl = contentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
-            } else {
-                downloadableUrl = contentManager.getDownloadableUrl(url);
-            }
-        } else {
-            downloadableUrl = url;
-        }
-
+        String downloadableUrl = downloadableUrl(imageView.getContext(), url, width, height);
         imageView.setTag(downloadableUrl);
 
         // check if the bitmap is already cached

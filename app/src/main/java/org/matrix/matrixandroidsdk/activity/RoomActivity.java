@@ -76,9 +76,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
 
-    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
-    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
-
     private static final String CAMERA_VALUE_TITLE = "attachment"; // Samsung devices need a filepath to write to or else won't return a Uri (!!!)
 
     // defines the command line operations
@@ -98,9 +95,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
-
-    private int mMaxImageWidth;
-    private int mMaxImageHeight;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
@@ -152,11 +146,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
         }
-
-        WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
-        mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
 
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
@@ -588,8 +577,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     return;
                 }
 
-                int rotationAngle = Room.getRotationAngleForBitmap(this, imageUri);
-
                 // save the file in the filesystem
                 String imageUrl =  AdapterUtils.saveMedia(resource.contentStream, RoomActivity.this, null);
                 String mimeType = resource.mimeType;
@@ -630,8 +617,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                             double fullSizeWidth = fullSizeBitmap.getWidth();
                             double fullSizeHeight = fullSizeBitmap.getHeight();
 
-                            double thumbnailWidth = mMaxImageWidth;
-                            double thumbnailHeight = mMaxImageHeight;
+                            double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
+                            double thumbnailHeight =  mMatrixMessageListFragment.getMaxThumbnailHeight();
 
                             if (fullSizeWidth > fullSizeHeight) {
                                 thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
@@ -674,21 +661,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     System.gc();
                 }
 
-                // must apply a rotation
-                if ((rotationAngle > 0) && (null != thumbnailBitmap)) {
-                    try {
-                        android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
-                        bitmapMatrix.postRotate(rotationAngle);
-
-                        Bitmap transformedBitmap = Bitmap.createBitmap(thumbnailBitmap, 0, 0, thumbnailBitmap.getWidth(), thumbnailBitmap.getHeight(), bitmapMatrix, false);
-                        thumbnailBitmap.recycle();
-                        thumbnailBitmap =  transformedBitmap;
-                    } catch (OutOfMemoryError ex) {
-                        thumbnailBitmap = null;
-                    }
-                }
-
                 String thumbnailURL = AdapterUtils.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+                thumbnailBitmap.recycle();
 
                 // is the image content valid ?
                 if ((null != imageUrl) && (null != thumbnailURL)) {

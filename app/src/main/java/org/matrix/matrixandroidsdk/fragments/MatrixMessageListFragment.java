@@ -259,10 +259,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         tmpImageMessage.thumbnailUrl = thumbnailUrl;
         tmpImageMessage.body = "Image";
 
-        // remove any displayed MessageRow with this URL
-        // to avoid duplicate
-        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
-
         FileInputStream imageStream = null;
 
         try {
@@ -274,6 +270,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         } catch (Exception e) {
         }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
 
         mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
@@ -288,28 +288,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // Build the image message
                     message = new ImageMessage();
 
-                    // a thumbnail url could have been set if the upload has failed
-                    // it is a file URL one but it must not be sent
+                    // replace the thumbnail and the media contents by the computed ones
+                    AdapterUtils.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
+                    AdapterUtils.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
+
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
                     message.info = tmpImageMessage.info;
                     message.body = "Image";
-
-                    // try to extract the image size
-                    try {
-                        Uri uri = Uri.parse(imageUrl);
-                        String filename = uri.getPath();
-
-                        File file = new File(filename);
-
-                        // TODO the file should not be deleted
-                        // it should be used to avoid downloading high res pict
-                        file.delete();
-
-                    } catch (Exception e) {
-                    }
-
-
 
                     // update the event content with the new message info
                     tmpRow.getEvent().content = JsonUtils.toJson(message);
@@ -764,5 +750,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             mRedactResendAlert.show();
         }
+    }
+
+    // thumbnails management
+    public int getMaxThumbnailWith() {
+        return mAdapter.getMaxThumbnailWith();
+    }
+
+    public int getMaxThumbnailHeight() {
+        return mAdapter.getMaxThumbnailHeight();
     }
 }

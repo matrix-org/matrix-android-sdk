@@ -553,14 +553,16 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         String thumbUrl = null;
         ImageInfo imageInfo = null;
+
         if (imageMessage != null) {
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.thumbnailUrl != null) {
                 thumbUrl = imageMessage.thumbnailUrl;
             } else if (imageMessage.url != null) {
                 thumbUrl = imageMessage.url;
-                imageInfo = imageMessage.info;
             }
+
+            imageInfo = imageMessage.info;
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
@@ -815,5 +817,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public void setMessagesAdapterClickListener(MessagesAdapterClickListener messagesAdapterClickListener) {
         mMessagesAdapterClickListener = messagesAdapterClickListener;
+    }
+
+    // thumbnails management
+    public int getMaxThumbnailWith() {
+        return mMaxImageWidth;
+    }
+
+    public int getMaxThumbnailHeight() {
+        return mMaxImageHeight;
     }
 }
