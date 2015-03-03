@@ -222,7 +222,7 @@ public class AdapterUtils {
 
         private String getDisplayNameChangeNotice(Event msg) {
             return mContext.getString(R.string.notice_display_name_changed,
-                    getUserDisplayName(msg.userId),
+                    msg.userId,
                     msg.content.getAsJsonPrimitive("displayname").getAsString()
             );
         }
