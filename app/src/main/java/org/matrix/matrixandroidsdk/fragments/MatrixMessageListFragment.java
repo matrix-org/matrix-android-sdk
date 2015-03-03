@@ -586,9 +586,64 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 mIsInitialSyncing = false;
+
+                // fill the page
+                mMessageListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        fillHistoryPage();
+                    }
+                });
             }
         });
     }
+
+    /**
+     * Paginate the room until to fill the current page or there is no more item to display.
+     */
+    private void fillHistoryPage() {
+        if (mMessageListView.getFirstVisiblePosition() == 0) {
+            mIsCatchingUp = true;
+            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
+                @Override
+                public void onSuccess(final Integer count) {
+                    // Scroll the list down to where it was before adding rows to the top
+                    mUiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // refresh the list only at the end of the sync
+                            // else the one by one message refresh gives a weird UX
+                            // The application is almost frozen during the
+                            mAdapter.notifyDataSetChanged();
+                            mIsCatchingUp = false;
+
+                            if (count != 0) {
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        fillHistoryPage();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                }
+            });
+        }
+    }
+
 
     /**
      * Set the listener which will be informed of matrix messages. This setter is provided so either
