@@ -457,7 +457,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 }
 
-                // TODO manage auto restart
+                // the request will be auto restarted when a valid network will be found
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "Network error: " + e.getMessage());
@@ -605,7 +605,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (mMessageListView.getFirstVisiblePosition() == 0) {
             displayLoadingProgress();
             mIsCatchingUp = true;
-            
+
             mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
                 @Override
                 public void onSuccess(final Integer count) {
