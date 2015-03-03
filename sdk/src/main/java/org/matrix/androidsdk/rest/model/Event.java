@@ -140,6 +140,14 @@ public class Event {
         text += "  \"type\": \"" + type + "\",\n";
         text += "  \"userId\": \"" + userId + "\"\n";
 
+        if (null != unsentException) {
+            text += "\n\n failure reason: " + unsentException.getMessage() + "\n";
+        }
+
+        if (null != unsentMatrixError) {
+            text += "\n\n failure reason: " + unsentMatrixError.error+ "\n";
+        }
+
         text += "}";
 
         return text;
