@@ -352,6 +352,36 @@ public class AdapterUtils {
         return cacheURL;
     }
 
+    /**
+     * Return the cache file name for a media
+     * @param context the context
+     * @param url the media url
+     * @return the cahe file name (private directory)
+     */
+    public static String mediaCacheFilename(Context context, String url) {
+        String filename = BitmapWorkerTask.buildFileName(downloadableUrl(context, url, -1, -1));
+
+        try {
+            // already a local file
+            if (filename.startsWith("file:")) {
+                Uri uri = Uri.parse(filename);
+                filename = uri.getLastPathSegment();
+            }
+
+            File file = new File(context.getApplicationContext().getFilesDir(), filename);
+
+
+            if (!file.exists()) {
+                filename = null;
+            }
+
+        } catch (Exception e) {
+            filename = null;
+        }
+
+        return filename;
+    }
+
     // return a bitmap from the cache
     // null if it does not exist
     public static Bitmap bitmapForUrl(String url, Context context, int rotationAngle)  {
@@ -412,7 +442,7 @@ public class AdapterUtils {
      */
     public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height) {
         String downloadableUrl = downloadableUrl(context, mediaUrl, width, height);
-        String filename = "file" + downloadableUrl.hashCode();
+        String filename = BitmapWorkerTask.buildFileName(downloadableUrl);
 
         try {
             // delete the current content
@@ -446,7 +476,7 @@ public class AdapterUtils {
      * @param rotationAngle the rotation angle (degrees)
      * @return a download identifier if the image is not cached
      */
-    public static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download, int rotationAngle) {
+    private static String loadBitmap(ImageView imageView, String url, int width, int height, boolean download, int rotationAngle) {
         if (null == url) {
             return null;
         }
@@ -517,6 +547,10 @@ public class AdapterUtils {
             return mProgress;
         }
 
+        public static String buildFileName(String Url) {
+            return "file" + Url.hashCode();
+        }
+
         public static Bitmap bitmapForURL(String url, Context context, int rotation) {
             Bitmap bitmap = null;
 
@@ -548,7 +582,7 @@ public class AdapterUtils {
 
                     // not a valid file name
                     if (null == filename) {
-                        filename = "file" + url.hashCode();
+                        filename = buildFileName(url);
                     }
 
                     try {
@@ -650,7 +684,7 @@ public class AdapterUtils {
                 }
 
                 if  (null != applicationContext) {
-                    String filename  = "file" + url.hashCode();
+                    String filename = BitmapWorkerTask.buildFileName(mUrl);
                     FileOutputStream fos = applicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
 
                     // a bitmap has been provided

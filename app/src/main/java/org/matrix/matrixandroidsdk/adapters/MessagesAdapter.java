@@ -40,6 +40,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
+import org.matrix.matrixandroidsdk.util.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
@@ -652,15 +653,36 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (!imageMessage.isLocalContent()) {
-                        Intent viewImageIntent = new Intent();
-                        viewImageIntent.setAction(Intent.ACTION_VIEW);
-                        String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
+
+                    Intent viewImageIntent = new Intent();
+                    viewImageIntent.setAction(Intent.ACTION_VIEW);
+
+                    String filename = AdapterUtils.mediaCacheFilename(mContext, imageMessage.url);
+
+                    Uri uri;
+
+                    // is the file already downloaded ?
+                    if (filename != null) {
+                        uri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/"  + filename);
+                    } else {
                         ContentManager contentManager = mSession.getContentManager();
                         String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
-                        viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
-                        mContext.startActivity(viewImageIntent);
+                        uri = Uri.parse(downloadableUrl);
+
+                        // TODO start the media download while a third party application is loading it..
+                        /*
+                        int rotationAngle = 0;
+
+                        if ((null != imageMessage.info) && (null != imageMessage.info.rotation)) {
+                            rotationAngle = imageMessage.info.rotation;
+                        }
+
+                        AdapterUtils.loadBitmap(null, imageMessage.url, rotationAngle);*/
                     }
+
+                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
+                    viewImageIntent.setDataAndType(uri, type);
+                    mContext.startActivity(viewImageIntent);
                 }
             });
         }

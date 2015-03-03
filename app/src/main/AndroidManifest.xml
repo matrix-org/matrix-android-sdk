@@ -120,6 +120,11 @@
         <service android:name="org.matrix.matrixandroidsdk.services.GcmIntentService" />
         <service android:name="org.matrix.matrixandroidsdk.services.EventStreamService" />
 
+        <provider
+            android:authorities="org.matrix.matrixandroidsdk.ConsoleApplication.provider"
+            android:name="org.matrix.matrixandroidsdk.util.ConsoleContentProvider"
+            android:exported="true" />
+
     </application>
 
 </manifest>
