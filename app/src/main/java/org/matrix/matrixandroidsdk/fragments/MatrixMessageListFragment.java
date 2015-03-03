@@ -603,10 +603,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     private void fillHistoryPage() {
         if (mMessageListView.getFirstVisiblePosition() == 0) {
+            displayLoadingProgress();
             mIsCatchingUp = true;
+            
             mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
                 @Override
                 public void onSuccess(final Integer count) {
+                    dismissLoadingProgress();
                     // Scroll the list down to where it was before adding rows to the top
                     mUiHandler.post(new Runnable() {
                         @Override
@@ -631,14 +634,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    dismissLoadingProgress();
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    dismissLoadingProgress();
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    dismissLoadingProgress();
                 }
             });
         }
