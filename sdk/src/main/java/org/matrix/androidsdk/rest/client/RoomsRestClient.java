@@ -48,7 +48,7 @@ import retrofit.client.Response;
 public class RoomsRestClient extends RestClient<RoomsApi> {
 
     private static final String LOG_TAG = "RoomsRestClient";
-    protected static final int MESSAGES_PAGINATION_LIMIT = 15;
+    protected static final int MESSAGES_PAGINATION_LIMIT = 20;
 
     /**
      * {@inheritDoc}
