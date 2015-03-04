@@ -10,7 +10,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_margin="50dp"
-        android:src="@drawable/logo_large"/>
+        android:src="@drawable/logo_large"
+        android:contentDescription="@string/logo"/>
 
     <EditText
         android:layout_width="match_parent"

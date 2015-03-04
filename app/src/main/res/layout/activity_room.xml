@@ -23,7 +23,8 @@
         android:background="@drawable/ic_menu_btn_add"
         android:id="@+id/button_more"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"/>
+        android:layout_alignParentLeft="true"
+        android:contentDescription="@string/more"/>
 
     <ImageButton
         android:layout_width="wrap_content"
@@ -31,7 +32,8 @@
         android:background="@android:drawable/ic_menu_send"
         android:id="@+id/button_send"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"/>
+        android:layout_alignParentRight="true"
+        android:contentDescription="@string/send"/>
 
     <EditText
         android:layout_width="fill_parent"
@@ -50,6 +52,7 @@
         android:id="@+id/anchor_fragment_messages"
         android:layout_centerHorizontal="true"
         android:layout_alignParentTop="true"
-        android:orientation="vertical"/>
+        android:orientation="vertical"
+        android:accessibilityLiveRegion="polite"/>
 
 </RelativeLayout>
