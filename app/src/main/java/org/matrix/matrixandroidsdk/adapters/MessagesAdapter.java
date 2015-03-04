@@ -583,13 +583,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
 
         // display a pie char
-        final LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
-        final PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
 
-        if (null != progressLayout) {
+        if (null != downloadProgressLayout) {
             if (null != downloadId) {
-                progressLayout.setVisibility(View.VISIBLE);
-                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) progressLayout.getLayoutParams();
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
 
                 int frameHeight = -1;
 
@@ -614,7 +614,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // if no defined height
                 // use the pie chart one.
                 if (frameHeight < 0) {
-                    frameHeight = pieFractionView.getHeight();
+                    frameHeight = downloadPieFractionView.getHeight();
                 }
 
                 // apply it the layout
@@ -627,22 +627,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                         if (aDownloadId.equals(fDownloadId)) {
-                            pieFractionView.setFraction(percentageProgress);
+                            downloadPieFractionView.setFraction(percentageProgress);
                         }
                     }
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
                         if (aDownloadId.equals(fDownloadId)) {
-                            progressLayout.setVisibility(View.GONE);
+                            downloadProgressLayout.setVisibility(View.GONE);
                         }
                     }
                 });
 
-                pieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
-                progressLayout.setVisibility(View.GONE);
+                downloadProgressLayout.setVisibility(View.GONE);
             }
         }
 
@@ -700,6 +700,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
         final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
 
         int progress = -1;
@@ -721,7 +722,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     @Override
                     public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                         if (url.equals(anUploadId)) {
-                            uploadFractionView.setVisibility(View.GONE);
+                            uploadProgressLayout.setVisibility(View.GONE);
                         }
                     }
                 });
@@ -729,7 +730,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         uploadFractionView.setFraction(progress);
-        uploadFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
         this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
 

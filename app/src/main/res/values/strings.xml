@@ -117,6 +117,7 @@
     <string name="could_not_redact">Could not redact"</string>
     <string name="unable_to_send_message">Unable to send message</string>
     <string name="downloading_dot">Downloading ...</string>
+    <string name="uploading_dot">Uploading ...</string>
 
     <!-- Login Screen -->
     <string name="login_error_must_start_http">URL must start with http[s]://</string>
@@ -129,10 +130,18 @@
     <!-- Settings screen -->
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
+    <string name="settings_title_rooms">Rooms</string>
     <string name="settings_title_commands">Commands</string>
     <string name="settings_config_console_version">matrixConsole version: %s</string>
     <string name="settings_config_sdk_version">SDK version: %s</string>
     <string name="settings_config_build_number">Build: %s</string>
+
+    <string name="settings_display_all_events">Display all events</string>
+    <string name="settings_hide_redactions">Hide redactions</string>
+    <string name="settings_hide_unsupported_events">Hide unsupported events</string>
+    <string name="settings_sort_by_last_seen">Sort members by last seen time</string>
+    <string name="settings_display_left_members">Display left members</string>
+    <string name="settings_clear_cache">Clear cache</string>
 
     <string name="settings_config_home_server">Home server: %s</string>
     <string name="settings_config_identity_server">Identity server: %s</string>
