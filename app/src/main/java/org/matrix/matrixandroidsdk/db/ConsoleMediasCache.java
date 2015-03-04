@@ -29,6 +29,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -47,6 +48,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ConsoleMediasCache {
+
+    /**
+     * Interface to implement to get the mxc URI of downloaded content.
+     */
+    public static interface DownloadCallback {
+        /**
+         * Warn of the progress download
+         * @param downloadId the download Identifier
+         * @param percentageProgress the progress value
+         */
+        public void onDownloadProgress(String downloadId, int percentageProgress);
+
+        /**
+         * Called when the upload is complete or has failed.
+         * @param downloadId the download Identifier
+         */
+        public void onDownloadComplete(String downloadId);
+    }
 
     private static final String LOG_TAG = "ConsoleMediasCache";
 
@@ -313,6 +332,11 @@ public class ConsoleMediasCache {
             return null;
         }
 
+        // request invalid bitmap size
+        if ((0 == width) || (0 == height)) {
+            return null;
+        }
+
         String downloadableUrl = downloadableUrl(context, url, width, height);
 
         if (null != imageView) {
@@ -360,9 +384,21 @@ public class ConsoleMediasCache {
         if (null != currentTask) {
             return currentTask.getProgress();
         }
-        return 0;
+        return -1;
     }
 
+    /**
+     * Add a download listener for an downloadId.
+     * @param downloadId The uploadId.
+     * @param callback the async callback
+     */
+    public static void addDownloadListener(String downloadId, DownloadCallback callback) {
+        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+
+        if (null != currentTask) {
+            currentTask.addCallback(callback);
+        }
+    }
 
     static class BitmapWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
@@ -376,6 +412,7 @@ public class ConsoleMediasCache {
             }
         };
 
+        private ArrayList<DownloadCallback> mCallbacks = new ArrayList<DownloadCallback>();
         private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
         private Context mApplicationContext;
@@ -531,6 +568,13 @@ public class ConsoleMediasCache {
             mImageViewReferences.add(new WeakReference<ImageView>(imageView));
         }
 
+        /**
+         * Add a download callback.
+         * @param callback the download callback to add
+         */
+        public void addCallback(DownloadCallback callback) {
+            mCallbacks.add(callback);
+        }
 
         /**
          * Returns the download progress.
@@ -631,37 +675,30 @@ public class ConsoleMediasCache {
             }
         }
 
+        /**
+         * Dispatch progress update to the callbacks.
+         * @param progress the new progress value
+         */
         private void sendProgress(int progress) {
-            for(WeakReference<ImageView> weakRef : mImageViewReferences) {
-                final ImageView imageView = weakRef.get();
-
-                // check if the imageview still expect to have this content
-                if ((null != imageView) && mUrl.equals(imageView.getTag())) {
-                    Object parent = imageView.getParent();
-
-                    if (parent instanceof View) {
-                        View parentView = (View) (imageView.getParent());
-
-                        PieFractionView pieFractionView = (PieFractionView) parentView.findViewById(R.id.download_content_piechart);
-
-                        if (null != pieFractionView) {
-                            pieFractionView.setFraction(progress);
-
-                            if (progress >= 100) {
-                                LinearLayout progressLayout = (LinearLayout) parentView.findViewById(R.id.download_content_layout);
-                                progressLayout.setVisibility(View.GONE);
-                            }
-                        }
-                    }
+            for(DownloadCallback callback : mCallbacks) {
+                try {
+                    callback.onDownloadProgress(mUrl, progress);
+                } catch (Exception e) {
                 }
             }
+        }
 
-            /*Intent intent = new Intent();
-            intent.setAction(BROADCAST_DOWNLOAD_PROGRESS);
-            intent.putExtra(DOWNLOAD_PROGRESS_VALUE, progress);
-            intent.putExtra(DOWNLOAD_PROGRESS_IDENTIFIER, mUrl);
+        /**
+         * Dispatch end of download
+         */
+        private void sendDownloadComplete() {
+            for(DownloadCallback callback : mCallbacks) {
+                try {
+                    callback.onDownloadComplete(mUrl);
+                } catch (Exception e) {
 
-            LocalBroadcastManager.getInstance( mImageViewReferences.get(0).get().getContext()).sendBroadcast(intent);*/
+                }
+            }
         }
 
         @Override
@@ -673,6 +710,8 @@ public class ConsoleMediasCache {
         // Once complete, see if ImageView is still around and set bitmap.
         @Override
         protected void onPostExecute(Bitmap bitmap) {
+            sendDownloadComplete();
+
             // update the imageView image
             if (bitmap != null) {
                 for(WeakReference<ImageView> weakRef : mImageViewReferences) {
@@ -680,7 +719,6 @@ public class ConsoleMediasCache {
 
                     if (imageView != null && mUrl.equals(imageView.getTag())) {
                         imageView.setImageBitmap(bitmap);
-                        sendProgress(100);
                     }
                 }
             }

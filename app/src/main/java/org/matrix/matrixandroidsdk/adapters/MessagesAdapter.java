@@ -580,16 +580,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
 
-        String downloadId = null;
-
-        // ensure that the parent view is fully created
-        if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
-        }
+        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
 
         // display a pie char
-        LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
-        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        final LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        final PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
 
         if (null != progressLayout) {
             if (null != downloadId) {
@@ -625,6 +620,24 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // apply it the layout
                 // it avoid row jumping when the image is downloaded
                 lp.height = frameHeight;
+
+                final String fDownloadId = downloadId;
+
+                ConsoleMediasCache.addDownloadListener(downloadId, new ConsoleMediasCache.DownloadCallback() {
+                    @Override
+                    public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                        if (aDownloadId.equals(fDownloadId)) {
+                            pieFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onDownloadComplete(String aDownloadId) {
+                        if (aDownloadId.equals(fDownloadId)) {
+                            progressLayout.setVisibility(View.GONE);
+                        }
+                    }
+                });
 
                 pieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
