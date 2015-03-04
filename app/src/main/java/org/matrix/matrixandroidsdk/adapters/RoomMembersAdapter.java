@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -205,7 +206,15 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
-        textView.setText(mMembershipStrings.get(member.membership));
+
+        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
+            textView.setText(User.PRESENCE_OFFLINE);
+            textView.setTextColor(mContext.getResources().getColor(R.color.presence_offline));
+        } else {
+            textView.setText(mMembershipStrings.get(member.membership));
+            textView.setTextColor(Color.BLACK);
+        }
+
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
         textView.setText(member.getUserId());
 
@@ -231,6 +240,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_online));
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
+            } else if (User.PRESENCE_OFFLINE.equals(user.presence)) {
+                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_offline));
             }
         }
 
