@@ -176,6 +176,10 @@ public class EventsThread extends Thread {
                 mCurrentToken = eventsResponse.end;
             }
             catch (Exception e) {
+                if (!(e instanceof RetrofitError)) {
+                    Log.i(LOG_TAG, "Waiting a bit before retrying");
+                }
+
                 if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
                     mEventsFailureCallback.failure((RetrofitError) e);
                 }

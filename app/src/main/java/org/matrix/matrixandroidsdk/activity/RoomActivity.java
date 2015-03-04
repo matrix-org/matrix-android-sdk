@@ -49,6 +49,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -578,7 +579,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 }
 
                 // save the file in the filesystem
-                String imageUrl =  AdapterUtils.saveMedia(resource.contentStream, RoomActivity.this, null);
+                String imageUrl =  ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null);
                 String mimeType = resource.mimeType;
 
                 try {
@@ -639,7 +640,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                             if (null != fullSizeBitmap) {
                                 Uri uri = Uri.parse(imageUrl);
                                 try {
-                                    AdapterUtils.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                    ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
                                 } catch (OutOfMemoryError ex) {
                                 }
 
@@ -661,7 +662,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     System.gc();
                 }
 
-                String thumbnailURL = AdapterUtils.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+                String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
                 thumbnailBitmap.recycle();
 
                 // is the image content valid ?

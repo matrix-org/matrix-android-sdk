@@ -40,6 +40,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.util.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
@@ -583,7 +584,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // ensure that the parent view is fully created
         if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
+            downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
         }
 
         // display a pie char
@@ -625,7 +626,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // it avoid row jumping when the image is downloaded
                 lp.height = frameHeight;
 
-                pieFractionView.setFraction(AdapterUtils.progressValueForDownloadId(downloadId));
+                pieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
                 progressLayout.setVisibility(View.GONE);
@@ -657,7 +658,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     Intent viewImageIntent = new Intent();
                     viewImageIntent.setAction(Intent.ACTION_VIEW);
 
-                    String filename = AdapterUtils.mediaCacheFilename(mContext, imageMessage.url);
+                    String filename = ConsoleMediasCache.mediaCacheFilename(mContext, imageMessage.url);
 
                     Uri uri;
 
@@ -747,7 +748,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        AdapterUtils.loadThumbnailBitmap(avatarView, url, size, size, 0);
+        ConsoleMediasCache.loadBitmap(avatarView, url, size, size, 0);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {

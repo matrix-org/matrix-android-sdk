@@ -45,6 +45,7 @@ import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -289,8 +290,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     message = new ImageMessage();
 
                     // replace the thumbnail and the media contents by the computed ones
-                    AdapterUtils.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
-                    AdapterUtils.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
 
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;

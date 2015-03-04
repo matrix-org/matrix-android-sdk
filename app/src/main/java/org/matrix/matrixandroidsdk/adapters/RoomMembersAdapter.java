@@ -17,6 +17,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
@@ -219,7 +220,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(imageView, url, size, size, 0);
+            ConsoleMediasCache.loadBitmap(imageView, url, size, size, 0);
         }
 
         // The presence ring
