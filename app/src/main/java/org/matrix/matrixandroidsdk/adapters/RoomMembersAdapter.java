@@ -35,9 +35,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
-
     private PowerLevels mPowerLevels;
     private int maxPowerLevel;
 
@@ -46,6 +43,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
 
     private Map<String, User> mUserMap = new HashMap<String, User>();
+
+    private boolean mSortbyLastActive = true;
+    private boolean mDisplayRoomInfo = true;
 
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
@@ -123,13 +123,20 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     }
 
-    public void sortMembers() {
-        sort(lastActiveComparator);
+    public void sortbyLastActivePresence(boolean useLastActive) {
+        mSortbyLastActive = useLastActive;
     }
 
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
+    public void displayRoomInfo(boolean withRoomInfo) {
+        mDisplayRoomInfo = withRoomInfo;
+    }
+
+    public void sortMembers() {
+        if (mSortbyLastActive) {
+            sort(lastActiveComparator);
+        } else {
+            sort(alphaComparator);
+        }
     }
 
     public void setPowerLevels(PowerLevels powerLevels) {
@@ -210,9 +217,11 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
             textView.setText(User.PRESENCE_OFFLINE);
             textView.setTextColor(mContext.getResources().getColor(R.color.presence_offline));
+            textView.setVisibility(View.VISIBLE);
         } else {
             textView.setText(mMembershipStrings.get(member.membership));
             textView.setTextColor(Color.BLACK);
+            textView.setVisibility(mDisplayRoomInfo ? View.VISIBLE : View.GONE);
         }
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
@@ -256,12 +265,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
         }
 
-        if (mOddColourResId != 0 && mEvenColourResId != 0) {
-            convertView.setBackgroundColor(position % 2 == 0 ? mEvenColourResId : mOddColourResId);
-        }
+        pieFractionView.setVisibility(mDisplayRoomInfo ? View.VISIBLE : View.GONE);
 
         return convertView;
-
     }
 
     private String buildLastActiveDisplay(long lastActiveAgo) {
