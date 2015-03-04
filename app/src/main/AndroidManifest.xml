@@ -122,7 +122,7 @@
 
         <provider
             android:authorities="org.matrix.matrixandroidsdk.ConsoleApplication.provider"
-            android:name="org.matrix.matrixandroidsdk.util.ConsoleContentProvider"
+            android:name="org.matrix.matrixandroidsdk.db.ConsoleContentProvider"
             android:exported="true" />
 
     </application>

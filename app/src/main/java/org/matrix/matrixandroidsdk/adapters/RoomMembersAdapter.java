@@ -220,7 +220,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            ConsoleMediasCache.loadBitmap(imageView, url, size, size, 0);
+            ConsoleMediasCache.loadAvatarThumbnail(imageView, url, size);
         }
 
         // The presence ring

@@ -245,6 +245,17 @@ public class ConsoleMediasCache {
 
         }
     }
+    /**
+     * Load an avatar thumbnail.
+     * The imageView image is updated when the bitmap is loaded or downloaded.
+     * @param imageView Ihe imageView to update with the image.
+     * @param url the image url
+     * @param side the avatar thumbnail side
+     * @return a download identifier if the image is not cached.
+     */
+    public static String loadAvatarThumbnail(ImageView imageView, String url, int side) {
+        return loadBitmap(imageView, url, side, side, 0);
+    }
 
     /**
      * Load a bitmap from the url.
@@ -259,10 +270,22 @@ public class ConsoleMediasCache {
     }
 
     /**
+     * Load a bitmap from the url.
+     * The imageView image is updated when the bitmap is loaded or downloaded.
+     * @param context The context
+     * @param url the image url
+     * @param rotationAngle the rotation angle (degrees)
+     * @return a download identifier if the image is not cached.
+     */
+    public static String loadBitmap(Context context, String url, int rotationAngle) {
+        return loadBitmap(context, null, url, -1, -1, rotationAngle);
+    }
+
+    /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
-     * @param imageView the imaggeView Tto fill when the image is downloaded
+     * @param imageView the imageView to fill when the image is downloaded
      * @param url the image url
      * @param width the expected image width
      * @param height the expected image height
@@ -270,28 +293,55 @@ public class ConsoleMediasCache {
      * @return a download identifier if the image is not cached
      */
     public static String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle) {
+        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle);
+    }
+
+    /**
+     * Load a bitmap from an url.
+     * The imageView image is updated when the bitmap is loaded or downloaded.
+     * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     * @param context the context
+     * @param imageView the imageView to fill when the image is downloaded
+     * @param url the image url
+     * @param width the expected image width
+     * @param height the expected image height
+     * @param rotationAngle the rotation angle (degrees)
+     * @return a download identifier if the image is not cached
+     */
+    public static String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle) {
         if (null == url) {
             return null;
         }
 
-        String downloadableUrl = downloadableUrl(imageView.getContext(), url, width, height);
-        imageView.setTag(downloadableUrl);
+        String downloadableUrl = downloadableUrl(context, url, width, height);
+
+        if (null != imageView) {
+            imageView.setTag(downloadableUrl);
+        }
 
         // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(imageView.getContext().getApplicationContext(),downloadableUrl, rotationAngle);
+        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle);
 
         if (null != bitmap) {
-            // display it
-            imageView.setImageBitmap(bitmap);
+            if (null != imageView) {
+                // display it
+                imageView.setImageBitmap(bitmap);
+            }
             downloadableUrl = null;
         } else {
             BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadableUrl);
 
             if (null != currentTask) {
-                currentTask.addImageView(imageView);
+                if (null != imageView) {
+                    currentTask.addImageView(imageView);
+                }
             } else {
                 // download it in background
-                BitmapWorkerTask task = new BitmapWorkerTask(imageView, downloadableUrl, rotationAngle);
+                BitmapWorkerTask task = new BitmapWorkerTask(context, downloadableUrl, rotationAngle);
+
+                if (null != imageView) {
+                    task.addImageView(imageView);
+                }
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
             }
         }
@@ -328,9 +378,15 @@ public class ConsoleMediasCache {
 
         private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
+        private Context mApplicationContext;
         private int mRotation = 0;
         private int mProgress = 0;
 
+        /**
+         * Check if there is a pending download for the url.
+         * @param url The url to check the existence
+         * @return the dedicated BitmapWorkerTask if it exists.
+         */
         public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
             if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
                 return mPendingDownloadByUrl.get(url);
@@ -339,27 +395,23 @@ public class ConsoleMediasCache {
             }
         }
 
-        public void addImageView(ImageView imageView) {
-            mImageViewReferences.add(new WeakReference<ImageView>(imageView));
-        }
-
-        public BitmapWorkerTask(ImageView imageView, String url, int rotation) {
-            mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
-            addImageView(imageView);
-            mUrl = url;
-            mRotation = rotation;
-            mPendingDownloadByUrl.put(url, this);
-        }
-
-        public int getProgress() {
-            return mProgress;
-        }
-
+        /**
+         * Build a filename from an url
+         * @param Url the media url
+         * @return the cache filename
+         */
         public static String buildFileName(String Url) {
             return "file" + Url.hashCode();
         }
 
-        public static Bitmap bitmapForURL(Context context, String url, int rotation) {
+        /**
+         * Search a cached bitmap from an url.
+         * @param appContext the context
+         * @param url the media url
+         * @param rotation the bitmap rotation
+         * @return the cached bitmap or null it does not exist
+         */
+        public static Bitmap bitmapForURL(Context appContext, String url, int rotation) {
             Bitmap bitmap = null;
 
             // sanity check
@@ -369,7 +421,7 @@ public class ConsoleMediasCache {
                 }
 
                 // check if the image has not been saved in file system
-                if ((null == bitmap) && (null != context)) {
+                if ((null == bitmap) && (null != appContext)) {
                     String filename = null;
 
                     // the url is a file one
@@ -399,7 +451,7 @@ public class ConsoleMediasCache {
                         if (filename.startsWith(File.separator)) {
                             fis = new FileInputStream (new File(filename));
                         } else {
-                            fis = context.getApplicationContext().openFileInput(filename);
+                            fis = appContext.getApplicationContext().openFileInput(filename);
                         }
 
                         if (null != fis) {
@@ -456,6 +508,38 @@ public class ConsoleMediasCache {
             return bitmap;
         }
 
+        /**
+         * BitmapWorkerTask creator
+         * @param appContext the context
+         * @param url the media url
+         * @param rotation the rotation
+         */
+        public BitmapWorkerTask(Context appContext,  String url, int rotation) {
+            mApplicationContext = appContext;
+            mUrl = url;
+            mRotation = rotation;
+            mPendingDownloadByUrl.put(url, this);
+
+            mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        }
+
+        /**
+         * Add an imageView to the list to refresh when the bitmap is downloaded.
+         * @param imageView an image view instance to refresh.
+         */
+        public void addImageView(ImageView imageView) {
+            mImageViewReferences.add(new WeakReference<ImageView>(imageView));
+        }
+
+
+        /**
+         * Returns the download progress.
+         * @return the download progress
+         */
+        public int getProgress() {
+            return mProgress;
+        }
+
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(Integer... params) {
@@ -469,14 +553,6 @@ public class ConsoleMediasCache {
                 InputStream stream = null;
                 Bitmap bitmap = null;
 
-                // retrieve the Application context
-                ImageView imageView = mImageViewReferences.get(0).get();
-                Context applicationContext = null;
-
-                if ((null != imageView.getContext()) && (null != imageView.getContext().getApplicationContext())) {
-                    applicationContext = imageView.getContext().getApplicationContext();
-                }
-
                 long filelen = -1;
 
                 try {
@@ -485,67 +561,62 @@ public class ConsoleMediasCache {
                     stream = connection.getInputStream();
                 } catch (FileNotFoundException e) {
                     Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " does not exist");
-
-                    if(null != applicationContext) {
-                        bitmap = BitmapFactory.decodeResource(applicationContext.getResources(), R.drawable.ic_menu_gallery);
-                    }
+                    bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), R.drawable.ic_menu_gallery);
                 }
 
-                if  (null != applicationContext) {
-                    String filename = BitmapWorkerTask.buildFileName(mUrl);
-                    FileOutputStream fos = applicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
+                String filename = BitmapWorkerTask.buildFileName(mUrl);
+                FileOutputStream fos = mApplicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
 
-                    // a bitmap has been provided
-                    if (null != bitmap) {
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                    } else {
-                        try {
-                            int totalDownloaded = 0;
+                // a bitmap has been provided
+                if (null != bitmap) {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                } else {
+                    try {
+                        int totalDownloaded = 0;
 
-                            byte[] buf = new byte[1024 * 32];
-                            int len;
-                            while ((len = stream.read(buf)) != -1) {
-                                fos.write(buf, 0, len);
+                        byte[] buf = new byte[1024 * 32];
+                        int len;
+                        while ((len = stream.read(buf)) != -1) {
+                            fos.write(buf, 0, len);
 
-                                totalDownloaded += len;
+                            totalDownloaded += len;
 
-                                int progress = 0;
+                            int progress = 0;
 
-                                if (filelen > 0) {
-                                    if (totalDownloaded >= filelen) {
-                                        progress = 99;
-                                    } else {
-                                        progress = (int)(totalDownloaded * 100 / filelen);
-                                    }
+                            if (filelen > 0) {
+                                if (totalDownloaded >= filelen) {
+                                    progress = 99;
                                 } else {
-                                    progress = -1;
+                                    progress = (int)(totalDownloaded * 100 / filelen);
                                 }
-
-                                Log.d(LOG_TAG, "download " + progress + " (" + mUrl + ")");
-
-                                publishProgress(mProgress = progress);
+                            } else {
+                                progress = -1;
                             }
 
-                        } catch (Exception e) {
+                            Log.d(LOG_TAG, "download " + progress + " (" + mUrl + ")");
+
+                            publishProgress(mProgress = progress);
                         }
 
-                        close(stream);
+                    }
+                    catch (OutOfMemoryError outOfMemoryError) {
+                        outOfMemoryError = outOfMemoryError;
+                    }
+                    catch (Exception e) {
+                        e = e;
                     }
 
-                    fos.flush();
-                    fos.close();
+                    close(stream);
+                }
 
-                    Log.d(LOG_TAG, "download is done (" + mUrl + ")");
+                fos.flush();
+                fos.close();
 
-                    // get the bitmap from the filesytem
-                    if (null == bitmap) {
-                        bitmap = BitmapWorkerTask.bitmapForURL(applicationContext, key, mRotation);
-                    }
-                } else if (null != stream) {
-                    BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-                    bitmapOptions.inDither = true;
-                    bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                    bitmap = BitmapFactory.decodeStream(stream, null, bitmapOptions);
+                Log.d(LOG_TAG, "download is done (" + mUrl + ")");
+
+                // get the bitmap from the filesytem
+                if (null == bitmap) {
+                    bitmap = BitmapWorkerTask.bitmapForURL(mApplicationContext, key, mRotation);
                 }
 
                 synchronized (sMemoryCache) {
@@ -615,43 +686,6 @@ public class ConsoleMediasCache {
             }
 
             mPendingDownloadByUrl.remove(mUrl);
-        }
-
-        /**
-         * Get the width/height of the image at the end of this InputStream without dumping it all
-         * in memory or disk. Note that this action processes the stream entirely, so a new stream
-         * will be required (or this stream has to be rewindable) if the image is to be loaded from
-         * it.
-         * @param stream The input stream representing an image.
-         * @return The bitmap info
-         * @throws java.io.IOException If there isn't a decodable width and height for this image.
-         */
-        private BitmapFactory.Options decodeBitmapDimensions(InputStream stream) throws IOException {
-            BitmapFactory.Options o = new BitmapFactory.Options();
-            o.inJustDecodeBounds = true;
-            BitmapFactory.decodeStream(stream, null, o);
-            if (o.outHeight == -1 || o.outWidth == -1) {
-                // this doesn't look like an image...
-                throw new IOException("Cannot resize input stream, failed to get w/h.");
-            }
-            return o;
-        }
-
-        /**
-         * Get the inSampleSize required to decode this image to the 'right' size.
-         * @param w The width of the image in px
-         * @param h The height of the image in px
-         * @param maxSizePx The max dimension allowed in px
-         * @return The sample size to use.
-         */
-        private int getSampleSize(int w, int h, int maxSizePx) {
-            int highestDimensionSize = (h > w) ? h : w;
-            double ratio = (highestDimensionSize > maxSizePx) ? (highestDimensionSize / maxSizePx) : 1.0;
-            int sampleSize = Integer.highestOneBit((int)Math.floor(ratio));
-            if (sampleSize == 0) {
-                sampleSize = 1;
-            }
-            return sampleSize;
         }
 
         private void cacheBitmap(String key, Bitmap bitmap) {

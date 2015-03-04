@@ -41,7 +41,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
-import org.matrix.matrixandroidsdk.util.ConsoleContentProvider;
+import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
@@ -440,8 +440,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            if (TextUtils.isEmpty(url) &&  (null != sender)) {
-                url = AdapterUtils.getIdenticonURL(sender.getUserId());
+            if (TextUtils.isEmpty(url) && (null != msg.userId)) {
+                url = AdapterUtils.getIdenticonURL(msg.userId);
             }
 
             if (!TextUtils.isEmpty(url)) {
@@ -670,15 +670,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
                         uri = Uri.parse(downloadableUrl);
 
-                        // TODO start the media download while a third party application is loading it..
-                        /*
+                        // load the media in background
+                        // assume that the user will require to display it again.
                         int rotationAngle = 0;
-
                         if ((null != imageMessage.info) && (null != imageMessage.info.rotation)) {
                             rotationAngle = imageMessage.info.rotation;
                         }
-
-                        AdapterUtils.loadBitmap(null, imageMessage.url, rotationAngle);*/
+                        ConsoleMediasCache.loadBitmap(mContext, imageMessage.url, rotationAngle);
                     }
 
                     String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
@@ -748,7 +746,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        ConsoleMediasCache.loadBitmap(avatarView, url, size, size, 0);
+        ConsoleMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {

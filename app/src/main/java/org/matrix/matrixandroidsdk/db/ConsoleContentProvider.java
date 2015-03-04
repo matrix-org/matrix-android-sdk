@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.util;
+package org.matrix.matrixandroidsdk.db;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
