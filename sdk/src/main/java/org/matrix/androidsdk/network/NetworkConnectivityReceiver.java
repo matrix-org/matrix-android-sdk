@@ -91,14 +91,21 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      */
     public synchronized void onNetworkUpdate() {
         for (IMXNetworkEventListener listener : mNetworkEventListeners) {
-            listener.onNetworkConnectionUpdate(mIsConnected);
+            try {
+                listener.onNetworkConnectionUpdate(mIsConnected);
+            } catch (Exception e) {
+            }
         }
 
         // onConnected listeners are called once
         // and only when there is an available network connection
         if (mIsConnected) {
             for (IMXNetworkEventListener listener : mOnNetworkConnectedEventListeners) {
-                listener.onNetworkConnectionUpdate(mIsConnected);
+                try {
+                    listener.onNetworkConnectionUpdate(mIsConnected);
+                } catch(Exception e) {
+
+                }
                 mOnNetworkConnectedEventListeners.remove(listener);
             }
         }

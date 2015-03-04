@@ -43,6 +43,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
@@ -67,7 +68,7 @@ public class SettingsActivity extends MXCActionBarActivity {
             mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size, 0);
+            ConsoleMediasCache.loadAvatarThumbnail(mAvatarImageView, mMyUser.avatarUrl, size);
         }
     }
 

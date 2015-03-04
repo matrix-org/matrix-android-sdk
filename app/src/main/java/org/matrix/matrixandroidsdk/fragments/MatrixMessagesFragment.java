@@ -171,7 +171,7 @@ public class MatrixMessagesFragment extends Fragment {
                 requestInitialHistory();
             }
 
-            // TODO manage auto restart
+            // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "Network error: " + e.getMessage());
@@ -221,8 +221,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         displayLoadingProgress();
 
-        // TODO add auto join when the network comes back
-
+        // the initial sync will be retrieved when a network connection will be found
         requestHistory(new SimpleApiCallback<Integer>() {
             @Override
             public void onSuccess(Integer info) {

@@ -40,6 +40,8 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
+import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
@@ -438,8 +440,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            if (TextUtils.isEmpty(url) &&  (null != sender)) {
-                url = AdapterUtils.getIdenticonURL(sender.getUserId());
+            if (TextUtils.isEmpty(url) && (null != msg.userId)) {
+                url = AdapterUtils.getIdenticonURL(msg.userId);
             }
 
             if (!TextUtils.isEmpty(url)) {
@@ -553,14 +555,16 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         String thumbUrl = null;
         ImageInfo imageInfo = null;
+
         if (imageMessage != null) {
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.thumbnailUrl != null) {
                 thumbUrl = imageMessage.thumbnailUrl;
             } else if (imageMessage.url != null) {
                 thumbUrl = imageMessage.url;
-                imageInfo = imageMessage.info;
             }
+
+            imageInfo = imageMessage.info;
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
@@ -576,21 +580,16 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
 
-        String downloadId = null;
-
-        // ensure that the parent view is fully created
-        if ((maxImageWidth != 0) && (maxImageHeight != 0)) {
-            downloadId = AdapterUtils.loadThumbnailBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
-        }
+        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
 
         // display a pie char
-        LinearLayout progressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
-        PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
 
-        if (null != progressLayout) {
+        if (null != downloadProgressLayout) {
             if (null != downloadId) {
-                progressLayout.setVisibility(View.VISIBLE);
-                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) progressLayout.getLayoutParams();
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
 
                 int frameHeight = -1;
 
@@ -615,17 +614,35 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // if no defined height
                 // use the pie chart one.
                 if (frameHeight < 0) {
-                    frameHeight = pieFractionView.getHeight();
+                    frameHeight = downloadPieFractionView.getHeight();
                 }
 
                 // apply it the layout
                 // it avoid row jumping when the image is downloaded
                 lp.height = frameHeight;
 
-                pieFractionView.setFraction(AdapterUtils.progressValueForDownloadId(downloadId));
+                final String fDownloadId = downloadId;
+
+                ConsoleMediasCache.addDownloadListener(downloadId, new ConsoleMediasCache.DownloadCallback() {
+                    @Override
+                    public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                        if (aDownloadId.equals(fDownloadId)) {
+                            downloadPieFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onDownloadComplete(String aDownloadId) {
+                        if (aDownloadId.equals(fDownloadId)) {
+                            downloadProgressLayout.setVisibility(View.GONE);
+                        }
+                    }
+                });
+
+                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
-                progressLayout.setVisibility(View.GONE);
+                downloadProgressLayout.setVisibility(View.GONE);
             }
         }
 
@@ -650,20 +667,40 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (!imageMessage.isLocalContent()) {
-                        Intent viewImageIntent = new Intent();
-                        viewImageIntent.setAction(Intent.ACTION_VIEW);
-                        String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
+
+                    Intent viewImageIntent = new Intent();
+                    viewImageIntent.setAction(Intent.ACTION_VIEW);
+
+                    String filename = ConsoleMediasCache.mediaCacheFilename(mContext, imageMessage.url);
+
+                    Uri uri;
+
+                    // is the file already downloaded ?
+                    if (filename != null) {
+                        uri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/"  + filename);
+                    } else {
                         ContentManager contentManager = mSession.getContentManager();
                         String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
-                        viewImageIntent.setDataAndType(Uri.parse(downloadableUrl), type);
-                        mContext.startActivity(viewImageIntent);
+                        uri = Uri.parse(downloadableUrl);
+
+                        // load the media in background
+                        // assume that the user will require to display it again.
+                        int rotationAngle = 0;
+                        if ((null != imageMessage.info) && (null != imageMessage.info.rotation)) {
+                            rotationAngle = imageMessage.info.rotation;
+                        }
+                        ConsoleMediasCache.loadBitmap(mContext, imageMessage.url, rotationAngle);
                     }
+
+                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
+                    viewImageIntent.setDataAndType(uri, type);
+                    mContext.startActivity(viewImageIntent);
                 }
             });
         }
 
         // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
         final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
 
         int progress = -1;
@@ -685,7 +722,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     @Override
                     public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                         if (url.equals(anUploadId)) {
-                            uploadFractionView.setVisibility(View.GONE);
+                            uploadProgressLayout.setVisibility(View.GONE);
                         }
                     }
                 });
@@ -693,7 +730,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         uploadFractionView.setFraction(progress);
-        uploadFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
         this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
 
@@ -723,7 +760,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        AdapterUtils.loadThumbnailBitmap(avatarView, url, size, size, 0);
+        ConsoleMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {
@@ -815,5 +852,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public void setMessagesAdapterClickListener(MessagesAdapterClickListener messagesAdapterClickListener) {
         mMessagesAdapterClickListener = messagesAdapterClickListener;
+    }
+
+    // thumbnails management
+    public int getMaxThumbnailWith() {
+        return mMaxImageWidth;
+    }
+
+    public int getMaxThumbnailHeight() {
+        return mMaxImageHeight;
     }
 }

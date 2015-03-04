@@ -45,6 +45,7 @@ import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -259,10 +260,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         tmpImageMessage.thumbnailUrl = thumbnailUrl;
         tmpImageMessage.body = "Image";
 
-        // remove any displayed MessageRow with this URL
-        // to avoid duplicate
-        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
-
         FileInputStream imageStream = null;
 
         try {
@@ -274,6 +271,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         } catch (Exception e) {
         }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
 
         mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
@@ -288,28 +289,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // Build the image message
                     message = new ImageMessage();
 
-                    // a thumbnail url could have been set if the upload has failed
-                    // it is a file URL one but it must not be sent
+                    // replace the thumbnail and the media contents by the computed ones
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
+
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
                     message.info = tmpImageMessage.info;
                     message.body = "Image";
-
-                    // try to extract the image size
-                    try {
-                        Uri uri = Uri.parse(imageUrl);
-                        String filename = uri.getPath();
-
-                        File file = new File(filename);
-
-                        // TODO the file should not be deleted
-                        // it should be used to avoid downloading high res pict
-                        file.delete();
-
-                    } catch (Exception e) {
-                    }
-
-
 
                     // update the event content with the new message info
                     tmpRow.getEvent().content = JsonUtils.toJson(message);
@@ -457,7 +444,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 }
 
-                // TODO manage auto restart
+                // the request will be auto restarted when a valid network will be found
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "Network error: " + e.getMessage());
@@ -586,9 +573,70 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 mIsInitialSyncing = false;
+
+                // fill the page
+                mMessageListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        fillHistoryPage();
+                    }
+                });
             }
         });
     }
+
+    /**
+     * Paginate the room until to fill the current page or there is no more item to display.
+     */
+    private void fillHistoryPage() {
+        if (mMessageListView.getFirstVisiblePosition() == 0) {
+            displayLoadingProgress();
+            mIsCatchingUp = true;
+
+            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
+                @Override
+                public void onSuccess(final Integer count) {
+                    dismissLoadingProgress();
+                    // Scroll the list down to where it was before adding rows to the top
+                    mUiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // refresh the list only at the end of the sync
+                            // else the one by one message refresh gives a weird UX
+                            // The application is almost frozen during the
+                            mAdapter.notifyDataSetChanged();
+                            mIsCatchingUp = false;
+
+                            if (count != 0) {
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        fillHistoryPage();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    dismissLoadingProgress();
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    dismissLoadingProgress();
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    dismissLoadingProgress();
+                }
+            });
+        }
+    }
+
 
     /**
      * Set the listener which will be informed of matrix messages. This setter is provided so either
@@ -703,5 +751,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             mRedactResendAlert.show();
         }
+    }
+
+    // thumbnails management
+    public int getMaxThumbnailWith() {
+        return mAdapter.getMaxThumbnailWith();
+    }
+
+    public int getMaxThumbnailHeight() {
+        return mAdapter.getMaxThumbnailHeight();
     }
 }
