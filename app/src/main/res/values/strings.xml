@@ -16,6 +16,7 @@
     <string name="save">Save</string>
     <string name="stay">Stay</string>
     <string name="leave">Leave</string>
+    <string name="send">Send</string>
     <string name="resend">Resend</string>
     <string name="redact">Redact</string>
     <string name="message_details">Message details</string>
@@ -23,6 +24,7 @@
     <string name="set_power_level">Power level</string>
     <string name="chat">Chat</string>
     <string name="clear_cache">Clear Cache</string>
+    <string name="more">More</string>
 
     <!-- actions -->
     <string name="action_settings">Settings</string>
@@ -159,5 +161,7 @@
     <string name="settings_key_sort_by_last_seen">settings_key_sort_by_last_seen</string>
     <string name="settings_key_display_left_members">settings_key_display_left_members</string>
     <string name="settings_key_display_public_rooms_recents">settings_key_display_public_rooms_recents</string>
+
+    <string name="logo">Logo</string>
 
 </resources>
