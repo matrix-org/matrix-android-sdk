@@ -337,8 +337,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
     @Override
     public void onDestroy() {
+        // add sanity check
+        // the activity creation could have been cancelled because the roomId was missing
+        if ((null != mRoom) && (null != mEventListener)) {
+            mRoom.removeEventListener(mEventListener);
+        }
+
         super.onDestroy();
-        mRoom.removeEventListener(mEventListener);
     }
 
     @Override

@@ -44,8 +44,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     private Map<String, User> mUserMap = new HashMap<String, User>();
 
-    private boolean mSortbyLastActive = true;
-    private boolean mDisplayRoomInfo = true;
+    private boolean mSortByLastActive = true;
+    private boolean mDisplayMembership = true;
 
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
@@ -123,16 +123,16 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     }
 
-    public void sortbyLastActivePresence(boolean useLastActive) {
-        mSortbyLastActive = useLastActive;
+    public void sortByLastActivePresence(boolean useLastActive) {
+        mSortByLastActive = useLastActive;
     }
 
-    public void displayRoomInfo(boolean withRoomInfo) {
-        mDisplayRoomInfo = withRoomInfo;
+    public void displayMembership(boolean withMembership) {
+        mDisplayMembership = withMembership;
     }
 
     public void sortMembers() {
-        if (mSortbyLastActive) {
+        if (mSortByLastActive) {
             sort(lastActiveComparator);
         } else {
             sort(alphaComparator);
@@ -221,7 +221,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         } else {
             textView.setText(mMembershipStrings.get(member.membership));
             textView.setTextColor(Color.BLACK);
-            textView.setVisibility(mDisplayRoomInfo ? View.VISIBLE : View.GONE);
+            textView.setVisibility((mDisplayMembership || RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) ? View.VISIBLE : View.GONE);
         }
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
@@ -264,8 +264,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
             pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
         }
-
-        pieFractionView.setVisibility(mDisplayRoomInfo ? View.VISIBLE : View.GONE);
 
         return convertView;
     }

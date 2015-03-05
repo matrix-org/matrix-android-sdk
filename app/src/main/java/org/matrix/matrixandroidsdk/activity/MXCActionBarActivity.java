@@ -17,6 +17,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.support.v7.app.ActionBarActivity;
+import android.view.MenuItem;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
@@ -58,5 +59,14 @@ public class MXCActionBarActivity extends ActionBarActivity {
         }
 
         ((ConsoleApplication)getApplication()).stopActivityTransitionTimer();
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            // pop the activity to avoid creating a new instance of the parent activity
+            this.onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

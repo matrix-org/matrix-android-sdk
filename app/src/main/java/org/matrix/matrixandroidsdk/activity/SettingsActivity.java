@@ -19,15 +19,18 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -46,6 +49,8 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
+
+import java.util.Formatter;
 
 public class SettingsActivity extends MXCActionBarActivity {
 
@@ -142,6 +147,46 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
         userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
+
+        // room settings
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        listenBoxUpdate(preferences, R.id.checkbox_displayAllEvents, getString(R.string.settings_key_display_all_events), false);
+        listenBoxUpdate(preferences, R.id.checkbox_hideUnsupportedEvenst, getString(R.string.settings_key_hide_unsupported_events), true);
+        listenBoxUpdate(preferences, R.id.checkbox_sortByLastSeen, getString(R.string.settings_key_sort_by_last_seen), true);
+        listenBoxUpdate(preferences, R.id.checkbox_displayLeftMembers, getString(R.string.settings_key_display_left_members), false);
+        listenBoxUpdate(preferences, R.id.checkbox_displayPublicRooms, getString(R.string.settings_key_display_public_rooms_recents), true);
+
+        final Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
+
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+
+        clearCacheButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ConsoleMediasCache.clearCache(SettingsActivity.this);
+
+                String cacheSize = android.text.format.Formatter.formatFileSize(SettingsActivity.this, ConsoleMediasCache.cacheSize(SettingsActivity.this));
+                clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+            }
+        });
+
+    }
+
+    private void listenBoxUpdate(final SharedPreferences preferences, int boxId, final String preferenceKey, boolean defaultValue) {
+        final CheckBox checkBox = (CheckBox) findViewById(boxId);
+        checkBox.setChecked(preferences.getBoolean(preferenceKey, defaultValue));
+        checkBox.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        SharedPreferences.Editor editor = preferences.edit();
+                        editor.putBoolean(preferenceKey, checkBox.isChecked());
+                        editor.commit();
+                    }
+                }
+        );
     }
 
     @Override
@@ -180,6 +225,11 @@ public class SettingsActivity extends MXCActionBarActivity {
                 }
             });
         }
+
+        // refresh the cache size
+        Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
     }
 
     @Override

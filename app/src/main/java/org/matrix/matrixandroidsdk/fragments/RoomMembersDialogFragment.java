@@ -6,8 +6,10 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.app.DialogFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -98,8 +100,10 @@ public class RoomMembersDialogFragment extends DialogFragment {
                             RoomMember member = JsonUtils.toRoomMember(event.content);
                             User user = mSession.getDataHandler().getStore().getUser(member.getUserId());
 
-                            // TODO add a flag to hide/show the left users.
-                            if (member.hasLeft()) {
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                            boolean displayLeftMembers = preferences.getBoolean(getString(R.string.settings_key_display_left_members), false);
+
+                            if (member.hasLeft() && !displayLeftMembers) {
                                 mAdapter.deleteUser(user);
                                 mAdapter.remove(member);
                                 mAdapter.notifyDataSetChanged();
@@ -141,13 +145,18 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState());
 
+        // apply the sort settings
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        mAdapter.sortByLastActivePresence(preferences.getBoolean(getString(R.string.settings_key_sort_by_last_seen), true));
+        mAdapter.displayMembership(preferences.getBoolean(getString(R.string.settings_key_display_left_members), false));
+
+        boolean displayLeftMembers = preferences.getBoolean(getString(R.string.settings_key_display_left_members), false);
+
         Collection<RoomMember> members = room.getMembers();
         if (members != null) {
             for (RoomMember m : members) {
-
-                // TODO add a setting flag to enable their display
                 // by default the
-                if (!m.hasLeft()) {
+                if ((!m.hasLeft()) || displayLeftMembers) {
                     mAdapter.add(m);
                     mAdapter.saveUser(mSession.getDataHandler().getStore().getUser(m.getUserId()));
                 }

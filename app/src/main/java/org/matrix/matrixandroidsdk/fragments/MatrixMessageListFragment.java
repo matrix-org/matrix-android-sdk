@@ -5,12 +5,14 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -97,6 +99,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
+    private boolean mDisplayAllEvents = true;
 
     private AlertDialog mRedactResendAlert = null;
 
@@ -149,6 +152,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 MatrixMessageListFragment.this.onItemClick(position);
             }
         });
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        mDisplayAllEvents = preferences.getBoolean(getString(R.string.settings_key_display_all_events), false);
 
         return v;
     }
@@ -354,7 +360,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void onSuccess(Event event) {
                 if (event.isUnsent) {
                     if (null != event.unsentException) {
-                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError)event.unsentException).isNetworkError())  {
+                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                         } else {
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -364,7 +370,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
                     mAdapter.remove(tmpRow);
                     mAdapter.add(event, mRoom.getLiveState());
-                } else  {
+                } else {
                     if (isRetry) {
                         mAdapter.remove(tmpRow);
                         mAdapter.add(event, mRoom.getLiveState());
@@ -504,21 +510,31 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
     }
 
+    private boolean canAddEvent(Event event) {
+        String type = event.type;
+
+        return mDisplayAllEvents ||
+                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
+                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
+                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
+                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type);
+    }
+
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
-                @Override
-                public void run() {
+            @Override
+            public void run() {
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
-                }
-                else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                }
-                else  {
-                    mAdapter.add(event, roomState);
-                    mAdapter.notifyDataSetChanged();
+                } else {
+                    if (canAddEvent(event)) {
+                        mAdapter.add(event, roomState);
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
             }
         });
@@ -529,7 +545,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAdapter.addToFront(event, roomState);
+                if (canAddEvent(event)) {
+                    mAdapter.addToFront(event, roomState);
+                }
             }
         });
     }
