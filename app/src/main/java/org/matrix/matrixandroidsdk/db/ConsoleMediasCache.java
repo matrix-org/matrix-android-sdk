@@ -69,9 +69,25 @@ public class ConsoleMediasCache {
 
     private static final String LOG_TAG = "ConsoleMediasCache";
 
-    public static String BROADCAST_DOWNLOAD_PROGRESS  = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.BROADCAST_DOWNLOAD_PROGRESS";
-    public static String DOWNLOAD_PROGRESS_VALUE      = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_VALUE";
-    public static String DOWNLOAD_PROGRESS_IDENTIFIER = "org.matrix.matrixandroidsdk.adapters.AdapterUtils.DOWNLOAD_PROGRESS_IDENTIFIER";
+    /**
+     * Compute the filesystem cache size
+     * @param context
+     * @return the medias cache size in bytes
+     */
+    public static long cacheSize(Activity context) {
+        long size = 0;
+        String[] filesList = context.fileList();
+
+        for(String filename : filesList) {
+            try {
+                File file = new File(context.getFilesDir(), filename);
+                size += file.length();
+            } catch (Exception e) {
+
+            }
+        }
+        return size;
+    }
 
     /**
      * Clear the medias caches.
@@ -87,6 +103,8 @@ public class ConsoleMediasCache {
 
             }
         }
+
+        BitmapWorkerTask.clearBitmapsCache();
     }
 
     /**
@@ -418,6 +436,10 @@ public class ConsoleMediasCache {
         private Context mApplicationContext;
         private int mRotation = 0;
         private int mProgress = 0;
+
+        public static void clearBitmapsCache() {
+            sMemoryCache.evictAll();
+        }
 
         /**
          * Check if there is a pending download for the url.

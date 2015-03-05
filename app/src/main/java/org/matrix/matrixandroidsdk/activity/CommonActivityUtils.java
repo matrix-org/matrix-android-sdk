@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.preference.PreferenceManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -56,6 +57,9 @@ public class CommonActivityUtils {
 
         // clear the medias cache
         ConsoleMediasCache.clearCache(context);
+
+        // clear the preferences
+        PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit();
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSessionAndCredentials();
