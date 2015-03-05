@@ -64,7 +64,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             // pop the activity to avoid creating a new instance of the parent activity
-            this. finish();
+            this.onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);

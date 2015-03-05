@@ -20,6 +20,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -57,12 +58,16 @@ public class HomeActivity extends MXCActionBarActivity {
 
     public static final int recentsGroupIndex = 0;
     public static final int publicRoomsGroupIndex = 1;
+
     static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
+    public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
     private boolean mSortSummaryAtResume = false;
+
+    private String mAutomaticallyOpenedRoomId = null;
 
     private MXEventListener mListener = new MXEventListener() {
         private boolean mInitialSyncComplete = false;
@@ -247,6 +252,11 @@ public class HomeActivity extends MXCActionBarActivity {
             }
         }
 
+        Intent intent = getIntent();
+        if (intent.hasExtra(EXTRA_JUMP_TO_ROOM_ID)) {
+            mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
+        }
+
         mMyRoomList.setAdapter(mAdapter);
 
         mSession.getDataHandler().addListener(mListener);
@@ -349,6 +359,25 @@ public class HomeActivity extends MXCActionBarActivity {
             mAdapter.sortSummaries();
         }            
         mAdapter.notifyDataSetChanged();
+
+        if (null != mAutomaticallyOpenedRoomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    CommonActivityUtils.goToRoomPage(HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this);
+                    HomeActivity.this.mAutomaticallyOpenedRoomId = null;
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        if (intent.hasExtra(EXTRA_JUMP_TO_ROOM_ID)) {
+            mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
+        }
     }
 
     @Override

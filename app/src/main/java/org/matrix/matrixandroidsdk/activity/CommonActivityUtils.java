@@ -150,19 +150,9 @@ public class CommonActivityUtils {
                    if (!(fromActivity instanceof HomeActivity)) {
                        // pop to the home activity
                        Intent intent = new Intent(fromActivity, HomeActivity.class);
-                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                       intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
                        fromActivity.startActivity(intent);
-
-                       fromActivity.runOnUiThread(new Runnable() {
-                          @Override
-                          public void run() {
-                              // and open the room
-                              Activity homeActivity = ConsoleApplication.getCurrentActivity();
-                              Intent intent = new Intent(homeActivity, RoomActivity.class);
-                              intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                              homeActivity.startActivity(intent);
-                          }
-                      });
                    } else {
                        // already to the home activity
                        // so just need to open the room activity
