@@ -159,6 +159,22 @@
                 android:layout_height="wrap_content"/>
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_weight="1"
+                android:text = "@string/settings_display_public_rooms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <CheckBox
+                android:id="@+id/checkbox_displayPublicRooms"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
         <Button
             android:id="@+id/button_clear_cache"
             android:layout_width="match_parent"

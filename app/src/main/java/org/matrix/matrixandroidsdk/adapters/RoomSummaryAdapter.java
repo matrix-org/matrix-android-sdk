@@ -2,7 +2,9 @@ package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -55,6 +57,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private List<RoomSummary>mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
 
+    public int mRecentsGroupIndex = -1;
+    public int mPublicsGroupIndex = -1;
+
+    private  boolean mDisplayAllGroups = true;
+
     private List<RoomSummary>mFilteredRecentsSummariesList;
     private List<PublicRoom>mFilteredPublicRoomsList;
 
@@ -86,7 +93,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
         mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
         mPublicHighlightColor = context.getResources().getColor(R.color.room_summary_public_highlight_background);
-
 
         mMyUserId = Matrix.getInstance(context.getApplicationContext()).getDefaultSession().getCredentials().userId;
     }
@@ -156,6 +162,39 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
 
         super.notifyDataSetChanged();
+    }
+
+    /**
+     * Check if the group index is the recents one.
+     * @param groupIndex the group index.
+     * @return true if the recents group oone
+     */
+    public boolean isRecentsGroupIndex(int groupIndex) {
+        return groupIndex == mRecentsGroupIndex;
+    }
+
+    /**
+     * Check if the group index is the public ones.
+     * @param groupIndex the group index.
+     * @return true if the group is the publics one.
+     */
+    public boolean isPublicsGroupIndex(int groupIndex) {
+        return groupIndex == mPublicsGroupIndex;
+    }
+
+    /**
+     * Force to display all the groups
+     * @param displayAllGroups status
+     */
+    public void setDisplayAllGroups(boolean displayAllGroups) {
+        // the user can force to clear the public rooms with the recents ones
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
+        displayAllGroups |= preferences.getBoolean(mContext.getString(R.string.settings_key_display_public_rooms_recents), true);
+
+        if (mDisplayAllGroups != displayAllGroups) {
+            mDisplayAllGroups = displayAllGroups;
+            notifyDataSetChanged();
+        }
     }
 
     /**
@@ -289,11 +328,34 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public View getChildView(int groupPosition, final int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
+
+        // display a spinner while loading the public rooms
+        //
+
+        // detect if the view is progressbar_waiting_room_members one
+        View spinner = null;
+        if (null != convertView) {
+            spinner = convertView.findViewById(R.id.progressbar_waiting_room_members);
+        }
+
+        // assume that some public rooms are defined
+        if ((groupPosition == mPublicsGroupIndex) && (0 == mPublicRoomsList.size())) {
+            if (null == spinner) {
+                convertView = mLayoutInflater.inflate(R.layout.adapter_item_waiting_room_members, parent, false);
+            }
+            return convertView;
+        }
+
+        // must not reuse the view if it is not the right type
+        if (null != spinner) {
+            convertView = null;
+        }
+
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
-        if (groupPosition == HomeActivity.recentsGroupIndex) {
+        if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
 
             RoomSummary summary = summariesList.get(childPosition);
@@ -410,7 +472,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         TextView heading = (TextView) convertView.findViewById(R.id.heading);
 
-        if (groupPosition == HomeActivity.recentsGroupIndex) {
+        if (groupPosition == mRecentsGroupIndex) {
 
             int unreadCount = 0;
 
@@ -444,10 +506,15 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public int getChildrenCount(int groupPosition) {
-        if (groupPosition == HomeActivity.recentsGroupIndex) {
+        if (groupPosition == mRecentsGroupIndex) {
             return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
         } else {
-            return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
+            // display a spinner until the public rooms are loaded
+            if (mPublicRoomsList.size() == 0) {
+                return 1;
+            } else {
+                return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
+            }
         }
     }
 
@@ -458,7 +525,23 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public int getGroupCount() {
-        return 2;
+        int count = 0;
+
+        mRecentsGroupIndex = -1;
+        mPublicsGroupIndex = -1;
+
+        if ((mRecentsSummariesList.size() > 0) || mDisplayAllGroups) {
+            mRecentsGroupIndex = count;
+            count++;
+        }
+
+        // display the public rooms in the recents only if there is no dedicated room
+        if ((mRecentsSummariesList.size() == 0) || mDisplayAllGroups) {
+            mPublicsGroupIndex = count;
+            count++;
+        }
+
+        return count;
     }
 
     @Override

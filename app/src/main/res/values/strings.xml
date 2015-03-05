@@ -143,6 +143,7 @@
     <string name="settings_sort_by_last_seen">Sort members by last seen time</string>
     <string name="settings_display_left_members">Display left members</string>
     <string name="settings_clear_cache">Clear cache</string>
+    <string name="settings_display_public_rooms">Display public rooms with recents</string>
 
     <string name="settings_config_home_server">Home server: %s</string>
     <string name="settings_config_identity_server">Identity server: %s</string>
@@ -157,5 +158,6 @@
     <string name="settings_key_hide_unsupported_events">settings_key_hide_unsupported_events</string>
     <string name="settings_key_sort_by_last_seen">settings_key_sort_by_last_seen</string>
     <string name="settings_key_display_left_members">settings_key_display_left_members</string>
+    <string name="settings_key_display_public_rooms_recents">settings_key_display_public_rooms_recents</string>
 
 </resources>

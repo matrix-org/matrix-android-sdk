@@ -56,10 +56,7 @@ import java.util.List;
 public class HomeActivity extends MXCActionBarActivity {
     private ExpandableListView mMyRoomList = null;
 
-    public static final int recentsGroupIndex = 0;
-    public static final int publicRoomsGroupIndex = 1;
-
-    static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
+    private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
@@ -91,8 +88,14 @@ public class HomeActivity extends MXCActionBarActivity {
                     mAdapter.setPublicRoomsList(mPublicRooms);
                     mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
-                    mMyRoomList.expandGroup(recentsGroupIndex);
-                    mMyRoomList.expandGroup(publicRoomsGroupIndex);
+
+                    if (mAdapter.mRecentsGroupIndex >= 0) {
+                        mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+                    }
+
+                    if (mAdapter.mPublicsGroupIndex >= 0) {
+                        mMyRoomList.expandGroup(mAdapter.mPublicsGroupIndex);
+                    }
 
                     // load the public load in background
                     refreshPublicRoomsList();
@@ -265,16 +268,18 @@ public class HomeActivity extends MXCActionBarActivity {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v,
                                         int groupPosition, int childPosition, long id) {
-                String roomId;
+                String roomId = null;
 
-                if (groupPosition == recentsGroupIndex) {
+                if (mAdapter.isRecentsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
                     mAdapter.resetUnreadCount(roomId);
-                } else {
+                } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
                 }
 
-                CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                if (null != roomId) {
+                    CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                }
                 return true;
             }
         });
@@ -282,9 +287,16 @@ public class HomeActivity extends MXCActionBarActivity {
         mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
             @Override
             public void onGroupExpand(int groupPosition) {
-                if (groupPosition == publicRoomsGroupIndex) {
+                if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     refreshPublicRoomsList();
                 }
+            }
+        });
+
+        mMyRoomList.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+            @Override
+            public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
+                return mAdapter.getGroupCount() < 2;
             }
         });
 
@@ -315,14 +327,52 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onSaveInstanceState(savedInstanceState);
     }
 
+    private void expandAllGroups() {
+        if (mAdapter.mRecentsGroupIndex >= 0) {
+            mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+        }
+
+        if (mAdapter.mPublicsGroupIndex >= 0) {
+            mMyRoomList.expandGroup(mAdapter.mPublicsGroupIndex);
+        }
+    }
+
+    private void collapseAllGroups() {
+        if (mAdapter.mRecentsGroupIndex >= 0) {
+            mMyRoomList.collapseGroup(mAdapter.mRecentsGroupIndex);
+        }
+
+        if (mAdapter.mPublicsGroupIndex >= 0) {
+            mMyRoomList.collapseGroup(mAdapter.mPublicsGroupIndex);
+        }
+    }
 
     private void toggleSearchButton() {
         if (mSearchRoomEditText.getVisibility() == View.GONE) {
             mSearchRoomEditText.setVisibility(View.VISIBLE);
-            mMyRoomList.expandGroup(recentsGroupIndex);
-            mMyRoomList.expandGroup(publicRoomsGroupIndex);
+
+            // need to collapse/expand the groups to avoid invalid refreshes
+            collapseAllGroups();
+            mAdapter.setDisplayAllGroups(true);
+            expandAllGroups();
+
         } else {
+
+            // need to collapse/expand the groups to avoid invalid refreshes
+            collapseAllGroups();
+            mAdapter.setDisplayAllGroups(false);
+            expandAllGroups();
+
             mSearchRoomEditText.setVisibility(View.GONE);
+
+            if (mAdapter.mRecentsGroupIndex >= 0) {
+                mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+            }
+
+            if (mAdapter.mPublicsGroupIndex >= 0) {
+                mMyRoomList.expandGroup(mAdapter.mPublicsGroupIndex);
+            }
+
             // force to hide the keyboard
             mSearchRoomEditText.postDelayed(new Runnable() {
                 public void run() {
@@ -357,7 +407,14 @@ public class HomeActivity extends MXCActionBarActivity {
 
         if (mSortSummaryAtResume) {
             mAdapter.sortSummaries();
-        }            
+        }
+
+        // expand/collapse to force th group refresh
+        collapseAllGroups();
+        // all the groups must be displayed during a search
+        mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
+        expandAllGroups();
+
         mAdapter.notifyDataSetChanged();
 
         if (null != mAutomaticallyOpenedRoomId) {
@@ -416,10 +473,6 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    private void goToPublicRoomPage() {
-        startActivity(new Intent(this, PublicRoomsActivity.class));
     }
 
     private void createRoom(final boolean isPublic) {
