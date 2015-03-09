@@ -20,6 +20,7 @@ public class AccountCreationActivity extends Activity {
     public static String EXTRA_HOME_SERVER_ID = "org.matrix.matrixandroidsdk.activity.EXTRA_HOME_SERVER_ID";
 
     WebView mWebView = null;
+    
 
     @Override
     protected void onCreate(Bundle savedInstanceState)  {
