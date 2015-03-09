@@ -20,6 +20,8 @@ import org.matrix.androidsdk.data.RoomState;
 /**
  * Class representing the objects returned by /publicRooms call.
  */
-public class PublicRoom extends RoomState {
+public class PublicRoom extends RoomState implements java.io.Serializable {
     public int numJoinedMembers;
+
+
 }
