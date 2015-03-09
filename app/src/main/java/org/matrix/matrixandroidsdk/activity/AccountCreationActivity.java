@@ -20,7 +20,6 @@ public class AccountCreationActivity extends Activity {
     public static String EXTRA_HOME_SERVER_ID = "org.matrix.matrixandroidsdk.activity.EXTRA_HOME_SERVER_ID";
 
     WebView mWebView = null;
-    
 
     @Override
     protected void onCreate(Bundle savedInstanceState)  {
@@ -33,14 +32,18 @@ public class AccountCreationActivity extends Activity {
 
         Intent intent = getIntent();
 
-        // if the home server path is provided
-        // use it
+        String homeServer = "https://matrix.org/";
+
         if (intent.hasExtra(EXTRA_HOME_SERVER_ID)) {
-            mWebView.loadUrl(intent.getStringExtra(EXTRA_HOME_SERVER_ID) + "/_matrix/static/client/register/");
-        } else {
-            // use a default one
-            mWebView.loadUrl("https://matrix.org/_matrix/static/client/register/");
+            homeServer = intent.getStringExtra(EXTRA_HOME_SERVER_ID);
         }
+
+        // check the trailing slash
+        if (!homeServer.endsWith("/")) {
+            homeServer += "/";
+        }
+
+        mWebView.loadUrl(homeServer + "_matrix/static/client/register/");
 
         mWebView.setWebViewClient(new WebViewClient(){
             @Override
