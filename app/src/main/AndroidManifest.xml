@@ -108,6 +108,10 @@
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTop"/>
 
+        <activity
+            android:name="org.matrix.matrixandroidsdk.activity.ImageWebViewActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+
         <receiver
             android:name="org.matrix.matrixandroidsdk.GcmBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >

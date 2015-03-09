@@ -330,6 +330,9 @@ public class HomeActivity extends MXCActionBarActivity {
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+
         // save the unread messages counters
         // to avoid resetting counters after a screen rotation
         if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
@@ -345,9 +348,6 @@ public class HomeActivity extends MXCActionBarActivity {
 
             savedInstanceState.putSerializable(PUBLIC_ROOMS_LIST, hash);
         }
-
-        // Always call the superclass so it can save the view hierarchy state
-        super.onSaveInstanceState(savedInstanceState);
     }
 
     private void expandAllGroups() {

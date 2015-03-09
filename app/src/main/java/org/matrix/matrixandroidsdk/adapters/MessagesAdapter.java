@@ -39,6 +39,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
@@ -569,13 +570,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
-        int maxImageWidth = mMaxImageWidth;
-        int maxImageHeight = mMaxImageHeight;
-        int rotationAngle = 0;
-
-        if ((null != imageInfo) && (imageInfo.rotation != null)) {
-            rotationAngle = imageInfo.rotation;
-        }
+        final int maxImageWidth = mMaxImageWidth;
+        final int maxImageHeight = mMaxImageHeight;
+        final int rotationAngle = ((null != imageInfo) && (imageInfo.rotation != null)) ? imageInfo.rotation : 0;
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
@@ -668,33 +665,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onClick(View v) {
 
-                    Intent viewImageIntent = new Intent();
-                    viewImageIntent.setAction(Intent.ACTION_VIEW);
-
-                    String filename = ConsoleMediasCache.mediaCacheFilename(mContext, imageMessage.url);
-
-                    Uri uri;
-
-                    // is the file already downloaded ?
-                    if (filename != null) {
-                        uri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/"  + filename);
-                    } else {
-                        ContentManager contentManager = mSession.getContentManager();
-                        String downloadableUrl = contentManager.getDownloadableUrl(imageMessage.url);
-                        uri = Uri.parse(downloadableUrl);
-
-                        // load the media in background
-                        // assume that the user will require to display it again.
-                        int rotationAngle = 0;
-                        if ((null != imageMessage.info) && (null != imageMessage.info.rotation)) {
-                            rotationAngle = imageMessage.info.rotation;
-                        }
-                        ConsoleMediasCache.loadBitmap(mContext, imageMessage.url, rotationAngle);
+                    if (null != imageMessage.url) {
+                        Intent viewImageIntent = new Intent(mContext, ImageWebViewActivity.class);
+                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_HIGHRES_IMAGE_URI, imageMessage.url);
+                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_WIDTH, maxImageWidth);
+                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_HEIGHT, maxImageHeight);
+                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_IMAGE_ROTATION, rotationAngle);
+                        mContext.startActivity(viewImageIntent);
                     }
-
-                    String type = ((imageMessage.info != null) && (imageMessage.info.mimetype != null)) ? imageMessage.info.mimetype : "image/*";
-                    viewImageIntent.setDataAndType(uri, type);
-                    mContext.startActivity(viewImageIntent);
                 }
             });
         }

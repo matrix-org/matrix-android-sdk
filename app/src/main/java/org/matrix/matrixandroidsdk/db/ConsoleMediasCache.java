@@ -137,7 +137,16 @@ public class ConsoleMediasCache {
      * @return the cache file name (private directory)
      */
     public static String mediaCacheFilename(Context context, String url) {
-        String filename = BitmapWorkerTask.buildFileName(downloadableUrl(context, url, -1, -1));
+        return mediaCacheFilename(context, url, -1, -1);
+    }
+
+    public static String mediaCacheFilename(Context context, String url, int width, int height) {
+        // sanity check
+        if (null == url) {
+            return null;
+        }
+
+        String filename = BitmapWorkerTask.buildFileName(downloadableUrl(context, url, width, height));
 
         try {
             // already a local file
