@@ -46,6 +46,7 @@ import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -57,6 +58,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private ExpandableListView mMyRoomList = null;
 
     private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
+    private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
@@ -245,13 +247,24 @@ public class HomeActivity extends MXCActionBarActivity {
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
 
-        if ((null != savedInstanceState) && savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
-            // the unread messages map is saved in the bundle
-            // It is used to  restore a valid map after a screen rotation for example
-            Serializable map = savedInstanceState.getSerializable(UNREAD_MESSAGE_MAP);
+        if (null != savedInstanceState) {
+            if (savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
+                // the unread messages map is saved in the bundle
+                // It is used to  restore a valid map after a screen rotation for example
+                Serializable map = savedInstanceState.getSerializable(UNREAD_MESSAGE_MAP);
 
-            if (null != map) {
-                mAdapter.setUnreadCountMap((HashMap<String, Integer>) map);
+                if (null != map) {
+                    mAdapter.setUnreadCountMap((HashMap<String, Integer>) map);
+                }
+            }
+
+            if (savedInstanceState.containsKey(PUBLIC_ROOMS_LIST)) {
+                Serializable map = savedInstanceState.getSerializable(PUBLIC_ROOMS_LIST);
+
+                if (null != map) {
+                    HashMap<String, PublicRoom> hash = (HashMap<String, PublicRoom>) map;
+                    mPublicRooms = new ArrayList<PublicRoom>(hash.values());
+                }
             }
         }
 
@@ -321,6 +334,16 @@ public class HomeActivity extends MXCActionBarActivity {
         // to avoid resetting counters after a screen rotation
         if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
             savedInstanceState.putSerializable(UNREAD_MESSAGE_MAP, mAdapter.getUnreadCountMap());
+        }
+
+        if (null != mPublicRooms) {
+            HashMap<String, PublicRoom> hash = new HashMap<String, PublicRoom>();
+
+            for(PublicRoom publicRoom : mPublicRooms) {
+                hash.put(publicRoom.roomId, publicRoom);
+            }
+
+            savedInstanceState.putSerializable(PUBLIC_ROOMS_LIST, hash);
         }
 
         // Always call the superclass so it can save the view hierarchy state
