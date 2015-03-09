@@ -21,6 +21,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
@@ -57,6 +58,9 @@ public class CommonActivityUtils {
 
         // clear the medias cache
         ConsoleMediasCache.clearCache(context);
+
+        // clear the latest messages cache
+        ConsoleLatestChatMessageCache.clearCache(context);
 
         // clear the preferences
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit();

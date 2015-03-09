@@ -49,6 +49,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
@@ -158,6 +159,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 EditText editText = (EditText)findViewById(R.id.editText_messageBox);
                 String body = editText.getText().toString();
                 sendMessage(body);
+                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
                 editText.setText("");
             }
         });
@@ -290,6 +292,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
         editText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
+                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), editText.getText().toString());
                 handleTypingNotification(editText.getText().length() != 0);
             }
 
@@ -368,6 +371,14 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
+
+        EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+        String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
+
+        if (!cachedText.equals(editText.getText())) {
+            editText.setText("");
+            editText.append(cachedText);
+        }
     }
 
     @Override
