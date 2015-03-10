@@ -41,6 +41,7 @@ android {
     productFlavors {
         alpha {
             applicationId "org.matrix.androidsdk.alpha"
+            versionCode 2
             versionName "0.2.3-alpha"
         }
     }
