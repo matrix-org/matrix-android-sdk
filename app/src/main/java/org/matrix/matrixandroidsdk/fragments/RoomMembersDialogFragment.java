@@ -20,6 +20,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -154,19 +155,25 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         Collection<RoomMember> members = room.getMembers();
         if (members != null) {
+            IMXStore store = mSession.getDataHandler().getStore();
+
             for (RoomMember m : members) {
                 // by default the
                 if ((!m.hasLeft()) || displayLeftMembers) {
                     mAdapter.add(m);
-                    mAdapter.saveUser(mSession.getDataHandler().getStore().getUser(m.getUserId()));
+                    mAdapter.saveUser(store.getUser(m.getUserId()));
                 }
             }
             mAdapter.sortMembers();
         }
 
         mAdapter.setPowerLevels(room.getLiveState().getPowerLevels());
-
         mListView.setAdapter(mAdapter);
+
+        // display the number of members in this room
+        // don't update it dynamically
+        // assume that the number of members will not be updated
+        this.getDialog().setTitle(getString(R.string.members_list) + " (" + mAdapter.getCount() + ")");
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
