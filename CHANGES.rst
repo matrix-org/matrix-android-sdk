@@ -1,4 +1,4 @@
-Changes in Matrix Android SDK in 0.2.2 (2015-02-27)
+Changes in Matrix Android SDK in 0.2.3 (2015-03-10)
 ===============================================
 
 -----
@@ -9,27 +9,35 @@ Changes in Matrix Android SDK in 0.2.2 (2015-02-27)
  Matrix Console
 -----------------
 Improvements:
- * Exif management : the uploaded image is rotated according to the exif metadata (if the device has enough free memory).
- * Add a piechart while downloading an image 
- * Add JSON representation of a message (tap on its row, “Message details”
- * The public rooms list is now sorted according to the number of members.
+ * Avoid refreshing the home page when it is not displayed.
+ * Display a piechart while uploading a media.
+ * Refresh the display when some messages are automatically resent (after retrieving a data network connection for example).
+ * Update the user rename message to be compliant with the web client.
+ * Use the local media files instead of downloading them when they are acknowledged (messages sending).
+ * Create a medias management class.
+ * Display the offline status in the members list.
+ * Avoid creating new homeActivity instance when joining a room from member details sheet.
+ * The public rooms list are now saved in the bundle state : it should avoid having a spinner when rotated the device.
+ * The animated GIFs are now supported.
 
 Features:
- * Add configuration and skeleton classes for receiving GCM messages
- * Add REST client for pushers API with add method for HTTP pushers.
- * Add the account creation.
+ * Add the rate limits error management. The server could request to delay the messages sending because they were too many messages sent in a short time (to avoid spam).
+ * Can take a photo to send it.
+ * A chat room page is automatically paginated to fill. It used to get only the ten latest messages : it displayed half filled page on tablet.
+ * Add the sending failure reason in the message details (long tap on a message, “Message details”).
+ * The user is not anymore notified it the push rules are not fulfilled.
+ * Add some room settings (Display all events, hide unsupported events, sort members by last seen time, display left members, display public rooms in the home page).
+ * Add various accessibility tweaks.
 
 Bug fixes:
- * Reset the image thumbnail when a row is reused.
- * SYAND-30 Notification should be away when entering a room.
- * Some images thumbnails were downloaded several times.
- * Restore the foreground service
- * The medias cache was not cleared after logging out.
- * The client crashed when joining #anime:matrix.org.
- * SYAND-29 Messages in delivery status are not seen
- * Some user display names were their matrix IDs.
- * The room name/ topic were invalid when inviting to a room.
-
+ * The media downloads/uploads were sometimes stuck.
+ * The private room creation was broken.
+ * SYAND-33 : number of unread messages disappears when entering another room.
+ * The RoomActivity creation used to crash when it was cancelled because the Room id param was not provided.
+ * The client used to crash when the home server was invalid but started with http.
+ * The account creation used to fail if the home server had a trailing slash.
+ * SYAND-44 In progress text entry could be saved across crashes.
+ * SYAND-38 Inline image viewer in Android app.
 
 
 
