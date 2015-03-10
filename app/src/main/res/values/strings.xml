@@ -9,6 +9,7 @@
     <string name="title_activity_room_info">Room info</string>
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_member_details">Member Details</string>
+    <string name="title_activity_invite_user">Invite Users</string>
 
     <!-- button names -->
     <string name="ok">OK</string>
@@ -110,7 +111,8 @@
     <string name="option_attach_image">Attach image</string>
     <string name="option_take_image">Take image</string>
     <string name="option_attach_video">Attach video</string>
-    <string name="option_invite">Invite</string>
+    <string name="option_invite_by_name">Invite a member by his matrix ID</string>
+    <string name="option_invite_by_list">Select users to invite</string>
 
     <!-- Home Screen -->
     <string name="users"> users</string>
@@ -131,6 +133,11 @@
 
     <!-- members list Screen -->
     <string name="members_list">Members List</string>
+
+    <!-- invitation members list Screen -->
+    <string name="members_one_to_one">One to one room members</string>
+    <string name="members_small_room_members">Small room members</string>
+    <string name="members_large_room_members">Large room members</string>
 
     <!-- Settings screen -->
     <string name="settings_title_profile">Profile</string>

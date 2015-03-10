@@ -52,6 +52,7 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
@@ -75,6 +76,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
+    private static final String TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
 
@@ -168,11 +170,12 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_IMAGE = 1;
             private static final int OPTION_TAKE_IMAGE = 2;
-            private static final int OPTION_INVITE = 3;
+            private static final int OPTION_INVITE_BY_NAME = 3;
+            private static final int OPTION_INVITE_BY_LIST = 4;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE_BY_NAME, OPTION_INVITE_BY_LIST, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -227,34 +230,46 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
                                         startActivityForResult(captureIntent, TAKE_IMAGE);
                                         break;
-                                    case OPTION_INVITE: {
-                                            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                                            if (session != null) {
-                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
-                                                    @Override
-                                                    public void onSubmit(final String text) {
-                                                        if (TextUtils.isEmpty(text)) {
-                                                            return;
-                                                        }
-                                                        if (!text.startsWith("@") || !text.contains(":")) {
-                                                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
-                                                            return;
-                                                        }
-                                                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
-                                                            @Override
-                                                            public void onSuccess(Void info) {
-                                                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                                            }
-                                                        });
-                                                    }
 
+                                    case OPTION_INVITE_BY_NAME:
+                                        AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
+                                            @Override
+                                            public void onSubmit(final String text) {
+                                                if (TextUtils.isEmpty(text)) {
+                                                    return;
+                                                }
+                                                if (!text.startsWith("@") || !text.contains(":")) {
+                                                    Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
+                                                    return;
+                                                }
+                                                mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
                                                     @Override
-                                                    public void onCancelled() {
-
+                                                    public void onSuccess(Void info) {
+                                                        Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
                                                     }
                                                 });
-                                                alert.show();
                                             }
+
+                                            @Override
+                                            public void onCancelled() {
+
+                                            }
+                                        });
+
+                                        alert.show();
+                                        break;
+
+                                    case OPTION_INVITE_BY_LIST:
+                                        final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                                        if (session != null) {
+                                            FragmentManager fm = getSupportFragmentManager();
+
+                                            MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                                            if (fragment != null) {
+                                                fragment.dismissAllowingStateLoss();
+                                            }
+                                            fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
+                                            fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
                                         }
 
                                         break;
@@ -278,8 +293,11 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                         case OPTION_TAKE_IMAGE:
                             label = getString(R.string.option_take_image);
                             break;
-                        case OPTION_INVITE:
-                            label = getString(R.string.option_invite);
+                        case OPTION_INVITE_BY_NAME:
+                            label = getString(R.string.option_invite_by_name);
+                            break;
+                        case OPTION_INVITE_BY_LIST:
+                            label = getString(R.string.option_invite_by_list);
                             break;
                     }
                     labels[i] = label;

@@ -483,6 +483,56 @@ public class Room {
     }
 
     /**
+     * Invite some users to this room.
+     * @param userIds the user ids
+     * @param callback the callback for when done
+     */
+    public void invite(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        invite(userIds, 0, callback);
+    }
+
+    /**
+     * Invite an indexed user to this room.
+     * @param userIds the user ids list
+     * @param index the user id index
+     * @param callback the callback for when done
+     */
+    private void invite(final ArrayList<String> userIds, final int index, final ApiCallback<Void> callback) {
+        // add sanity checks
+        if ((null == userIds) || (index >= userIds.size())) {
+            return;
+        }
+        mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userIds.get(index), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                // invite the last user
+                if ((index+1) == userIds.size()) {
+                    callback.onSuccess(info);
+                } else {
+                    invite(userIds, index + 1, callback);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+
+
+    /**
      * Leave the room.
      * @param callback the callback for when done
      */
