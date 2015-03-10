@@ -4,6 +4,7 @@ import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -710,7 +711,17 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         uploadFractionView.setFraction(progress);
         uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
-        this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
+        // display a type watermark
+        ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+
+        if ((null != imageMessage.info) && "image/gif".equals(imageMessage.info.mimetype)) {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
+        } else {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_image));
+        }
+
+        View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
+        this.manageSubView(position, convertView, imageLayout, ROW_TYPE_IMAGE);
 
         setBackgroundColour(convertView, position);
         return convertView;
