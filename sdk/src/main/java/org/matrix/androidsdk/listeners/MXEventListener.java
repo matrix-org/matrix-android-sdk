@@ -47,7 +47,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onDeletedEvent(Event event) {
+    public void onDeleteEvent(Event event) {
+    }
+
+    @Override
+    public void onResendEvent(Event event) {
     }
 
     @Override

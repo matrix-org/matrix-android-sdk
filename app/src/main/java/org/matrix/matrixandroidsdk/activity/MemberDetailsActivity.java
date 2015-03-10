@@ -40,6 +40,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -373,7 +374,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
         if (mMember.avatarUrl != null) {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mThumbnailImageView, mMember.avatarUrl, size, size);
+            ConsoleMediasCache.loadAvatarThumbnail(mThumbnailImageView, mMember.avatarUrl, size);
         }
     }
 

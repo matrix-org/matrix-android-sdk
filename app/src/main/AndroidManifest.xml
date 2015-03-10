@@ -108,6 +108,10 @@
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTop"/>
 
+        <activity
+            android:name="org.matrix.matrixandroidsdk.activity.ImageWebViewActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+
         <receiver
             android:name="org.matrix.matrixandroidsdk.GcmBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >
@@ -119,6 +123,11 @@
 
         <service android:name="org.matrix.matrixandroidsdk.services.GcmIntentService" />
         <service android:name="org.matrix.matrixandroidsdk.services.EventStreamService" />
+
+        <provider
+            android:authorities="org.matrix.matrixandroidsdk.ConsoleApplication.provider"
+            android:name="org.matrix.matrixandroidsdk.db.ConsoleContentProvider"
+            android:exported="true" />
 
     </application>
 

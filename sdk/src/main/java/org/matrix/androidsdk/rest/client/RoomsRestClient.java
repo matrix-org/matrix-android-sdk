@@ -48,7 +48,7 @@ import retrofit.client.Response;
 public class RoomsRestClient extends RestClient<RoomsApi> {
 
     private static final String LOG_TAG = "RoomsRestClient";
-    protected static final int MESSAGES_PAGINATION_LIMIT = 15;
+    protected static final int MESSAGES_PAGINATION_LIMIT = 20;
 
     /**
      * {@inheritDoc}
@@ -85,7 +85,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend sendEvent " + roomId);
 
-                        sendEvent(roomId, eventType, content, callback);
+                        try {
+                            sendEvent(roomId, eventType, content, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend sendEvent : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -108,7 +112,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend getLatestRoomMessages " + roomId);
-                        getLatestRoomMessages(roomId, callback);
+                        try {
+                            getLatestRoomMessages(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend getLatestRoomMessages : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -131,8 +139,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
-                        Log.e(LOG_TAG, "resend getEarlierMessages " + roomId);
-                        getEarlierMessages(roomId, fromToken, callback);
+                        Log.e(LOG_TAG, "resend getLatestRoomMessages " + roomId);
+                        try {
+                            getEarlierMessages(roomId, fromToken, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend getLatestRoomMessages : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -155,7 +167,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend getRoomMembers " + roomId);
-                        getRoomMembers(roomId, callback);
+
+                        try {
+                            getRoomMembers(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend getRoomMembers : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -187,7 +204,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend getRoomState " + roomId);
-                        getRoomState(roomId, callback);
+
+                        try {
+                            getRoomState(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend getRoomState : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -213,7 +235,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend inviteToRoom " + roomId);
-                        inviteToRoom(roomId, userId, callback);
+                        try {
+                            inviteToRoom(roomId, userId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend inviteToRoom : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -236,7 +262,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend joinRoom " + roomId);
-                        joinRoom(roomId, callback);
+
+                        try {
+                            joinRoom(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend joinRoom : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -259,7 +290,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend joinRoomByAlias " + roomId_Alias);
-                        joinRoomByAlias(roomId_Alias, callback);
+
+                        try {
+                            joinRoomByAlias(roomId_Alias, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -282,7 +318,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend leaveRoom " + roomId);
-                        leaveRoom(roomId, callback);
+
+                        try {
+                            leaveRoom(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend leaveRoom : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -310,7 +351,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend kickFromRoom " + roomId);
-                        kickFromRoom(roomId, userId, callback);
+
+                        try {
+                            kickFromRoom(roomId, userId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend kickFromRoom : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -334,7 +380,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend banFromRoom " + roomId);
-                        banFromRoom(roomId, user, callback);
+
+                        try {
+                            banFromRoom(roomId, user, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend banFromRoom : failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -367,7 +418,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend createRoom " + name);
-                        createRoom(name, topic, visibility, alias, callback);
+
+                        try {
+                            createRoom(name, topic, visibility, alias, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend createRoom failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -390,7 +446,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend initialSync " + roomId);
-                        initialSync(roomId, callback);
+
+                        try {
+                            initialSync(roomId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend initialSync failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -417,7 +478,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend updateName " + roomId);
-                        updateName(roomId, name, callback);
+
+                        try {
+                            updateName(roomId, name, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend updateName failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -444,7 +510,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend updateTopic " + roomId);
-                        updateTopic(roomId, topic, callback);
+
+                        try {
+                            updateTopic(roomId, topic, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend updateTopic failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -468,7 +539,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend redact " + roomId);
-                        redact(roomId, eventId, callback);
+
+                        try {
+                            redact(roomId, eventId, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend redact failed " + e.getMessage());
+                        }
                     }
                 };
 
@@ -492,7 +568,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
                         Log.e(LOG_TAG, "resend updatePowerLevels " + roomId);
-                        updatePowerLevels(roomId, powerLevels, callback);
+
+                        try {
+                            updatePowerLevels(roomId, powerLevels, callback);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "resend updatePowerLevels failed " + e.getMessage());
+                        }
                     }
                 };
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingBottom="5dp">
@@ -9,7 +9,6 @@
         android:id="@+id/layout_avatar"
         android:layout_width="@dimen/member_list_avatar_size"
         android:layout_height="@dimen/member_list_avatar_size"
-        android:layout_alignParentLeft="true"
         android:padding="4dp">
 
         <include layout="@layout/round_avatar"
@@ -27,7 +26,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/layout_avatar"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
@@ -58,12 +58,18 @@
 
     </LinearLayout>
 
-    <org.matrix.matrixandroidsdk.view.PieFractionView
-        android:id="@+id/powerDisc"
-        android:layout_width="15dp"
-        android:layout_height="15dp"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:layout_marginRight="5dp"/>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:orientation="vertical">
 
-</RelativeLayout>
+        <org.matrix.matrixandroidsdk.view.PieFractionView
+            android:id="@+id/powerDisc"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:layout_marginRight="5dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -20,6 +20,8 @@ import android.widget.Toast;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -79,6 +81,33 @@ public class Event {
         return (roomId + "-" + originServerTs).equals(eventId);
     }
 
+    /**
+     * Make a deep copy of this room state object.
+     * @return the copy
+     */
+    public Event deepCopy() {
+        Event copy = new Event();
+        copy.type = type;
+        copy.content = content;
+
+        copy.eventId = eventId;
+        copy.roomId = roomId;
+        copy.userId = userId;
+        copy.originServerTs = originServerTs;
+        copy.age = age;
+
+        copy.stateKey = stateKey;
+        copy.prevContent = prevContent;
+
+        copy.redacts = redacts;
+
+        copy.isUnsent = isUnsent;
+
+        copy.unsentException = unsentException;
+        copy.unsentMatrixError = unsentMatrixError;
+        return copy;
+    }
+
     @Override
     public java.lang.String toString() {
 
@@ -110,6 +139,14 @@ public class Event {
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
         text += "  \"userId\": \"" + userId + "\"\n";
+
+        if (null != unsentException) {
+            text += "\n\n failure reason: " + unsentException.getMessage() + "\n";
+        }
+
+        if (null != unsentMatrixError) {
+            text += "\n\n failure reason: " + unsentMatrixError.error+ "\n";
+        }
 
         text += "}";
 

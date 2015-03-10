@@ -1,6 +1,7 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
@@ -33,9 +35,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
-
     private PowerLevels mPowerLevels;
     private int maxPowerLevel;
 
@@ -44,6 +43,9 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
 
     private Map<String, User> mUserMap = new HashMap<String, User>();
+
+    private boolean mSortByLastActive = true;
+    private boolean mDisplayMembership = true;
 
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
@@ -121,13 +123,20 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     }
 
-    public void sortMembers() {
-        sort(lastActiveComparator);
+    public void sortByLastActivePresence(boolean useLastActive) {
+        mSortByLastActive = useLastActive;
     }
 
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
+    public void displayMembership(boolean withMembership) {
+        mDisplayMembership = withMembership;
+    }
+
+    public void sortMembers() {
+        if (mSortByLastActive) {
+            sort(lastActiveComparator);
+        } else {
+            sort(alphaComparator);
+        }
     }
 
     public void setPowerLevels(PowerLevels powerLevels) {
@@ -204,7 +213,17 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
-        textView.setText(mMembershipStrings.get(member.membership));
+
+        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
+            textView.setText(User.PRESENCE_OFFLINE);
+            textView.setTextColor(mContext.getResources().getColor(R.color.presence_offline));
+            textView.setVisibility(View.VISIBLE);
+        } else {
+            textView.setText(mMembershipStrings.get(member.membership));
+            textView.setTextColor(Color.BLACK);
+            textView.setVisibility((mDisplayMembership || RoomMember.MEMBERSHIP_INVITE.equals(member.membership)) ? View.VISIBLE : View.GONE);
+        }
+
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_userId);
         textView.setText(member.getUserId());
 
@@ -219,7 +238,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(imageView, url, size, size);
+            ConsoleMediasCache.loadAvatarThumbnail(imageView, url, size);
         }
 
         // The presence ring
@@ -230,6 +249,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_online));
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
                 presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
+            } else if (User.PRESENCE_OFFLINE.equals(user.presence)) {
+                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_offline));
             }
         }
 
@@ -244,12 +265,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
         }
 
-        if (mOddColourResId != 0 && mEvenColourResId != 0) {
-            convertView.setBackgroundColor(position % 2 == 0 ? mEvenColourResId : mOddColourResId);
-        }
-
         return convertView;
-
     }
 
     private String buildLastActiveDisplay(long lastActiveAgo) {

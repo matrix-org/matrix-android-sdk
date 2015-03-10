@@ -3,6 +3,8 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -19,9 +21,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -45,6 +49,8 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -53,6 +59,10 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -68,6 +78,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
 
+    private static final String CAMERA_VALUE_TITLE = "attachment"; // Samsung devices need a filepath to write to or else won't return a Uri (!!!)
+
     // defines the command line operations
     // the user can write theses messages to perform some room events
     private static final String CMD_CHANGE_DISPLAY_NAME = "/nick";
@@ -80,10 +92,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
     private static final int REQUEST_IMAGE = 0;
+    private static final int TAKE_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
     // typing event management
     private Timer mTypingTimer = null;
@@ -134,7 +149,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             notificationsManager.cancelAll();
         }
 
-
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
 
@@ -145,6 +159,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 EditText editText = (EditText)findViewById(R.id.editText_messageBox);
                 String body = editText.getText().toString();
                 sendMessage(body);
+                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
                 editText.setText("");
             }
         });
@@ -152,11 +167,12 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_IMAGE = 1;
-            private static final int OPTION_INVITE = 2;
+            private static final int OPTION_TAKE_IMAGE = 2;
+            private static final int OPTION_INVITE = 3;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_INVITE, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -170,6 +186,46 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                                         Intent fileIntent = new Intent(Intent.ACTION_PICK);
                                         fileIntent.setType("image/*");
                                         startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                        break;
+                                    case OPTION_TAKE_IMAGE:
+                                        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                                        // the following is a fix for buggy 2.x devices
+                                        Date date = new Date();
+                                        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+                                        ContentValues values = new ContentValues();
+                                        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
+                                        // The Galaxy S not only requires the name of the file to output the image to, but will also not
+                                        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
+                                        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
+                                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                                        Uri dummyUri = null;
+                                        try {
+                                            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                                        }
+                                        catch (UnsupportedOperationException uoe) {
+                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
+                                            try {
+                                                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
+                                            }
+                                            catch (Exception e) {
+                                                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
+                                            }
+                                        }
+                                        catch (Exception e) {
+                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
+                                        }
+                                        if (dummyUri != null) {
+                                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
+                                        }
+                                        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
+                                        // this will point to the data we're looking for.
+                                        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
+                                        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
+                                        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
+                                        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
+
+                                        startActivityForResult(captureIntent, TAKE_IMAGE);
                                         break;
                                     case OPTION_INVITE: {
                                             final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
@@ -219,6 +275,9 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                         case OPTION_ATTACH_IMAGE:
                             label = getString(R.string.option_attach_image);
                             break;
+                        case OPTION_TAKE_IMAGE:
+                            label = getString(R.string.option_take_image);
+                            break;
                         case OPTION_INVITE:
                             label = getString(R.string.option_invite);
                             break;
@@ -233,6 +292,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
         editText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
+                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), editText.getText().toString());
                 handleTypingNotification(editText.getText().length() != 0);
             }
 
@@ -280,8 +340,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
     @Override
     public void onDestroy() {
+        // add sanity check
+        // the activity creation could have been cancelled because the roomId was missing
+        if ((null != mRoom) && (null != mEventListener)) {
+            mRoom.removeEventListener(mEventListener);
+        }
+
         super.onDestroy();
-        mRoom.removeEventListener(mEventListener);
     }
 
     @Override
@@ -306,6 +371,14 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
+
+        EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+        String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
+
+        if (!cachedText.equals(editText.getText())) {
+            editText.setText("");
+            editText.append(cachedText);
+        }
     }
 
     @Override
@@ -495,142 +568,24 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
     }
 
-    /**
-     * upload an image content.
-     * It might be triggered from a media selection : imageUri is used to compute thumbnails.
-     * Or, it could have been called to resend an image.
-     * @param imageUrl the image Uri
-     * @param mimeType the image mine type
-     * @param retriedMessage the imagemessage to resend
-     */
-    public void uploadImageContent(final String imageUrl, final String mimeType, final ImageMessage retriedMessage) {
-        final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
-
-        FileInputStream imageStream = null;
-
-        try {
-            Uri uri = Uri.parse(imageUrl);
-            String filename = uri.getPath();
-            imageStream = new FileInputStream (new File(filename));
-
-        } catch (Exception e) {
-
-        }
-
-        mSession.getContentManager().uploadContent(imageStream, mimeType, new ContentManager.UploadCallback() {
-            @Override
-            public void onUploadComplete(ContentResponse uploadResponse) {
-                // Build the image message
-                ImageMessage message = new ImageMessage();
-
-                if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                    // a thumbnail url could have been set if the upload has failed
-                    // it is a file URL one but it must not be sent
-                    message.thumbnailUrl = null;
-                    message.url = uploadResponse.contentUri;
-
-                    // try to extract the image size
-                    try {
-                        Uri uri = Uri.parse(imageUrl);
-                        String filename = uri.getPath();
-
-                        File file = new File(filename);
-
-                        try {
-                            ExifInterface exifMedia = new ExifInterface(filename);
-                            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
-                            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
-
-                            if ((null != width) && (null != height)) {
-                                ImageInfo imageInfo = new ImageInfo();
-
-                                imageInfo.w = Integer.parseInt(width);
-                                imageInfo.h = Integer.parseInt(height);
-                                imageInfo.mimetype = mimeType;
-                                imageInfo.size = file.length();
-
-                                message.info = imageInfo;
-                            }
-                        } catch (Exception e) {
-                        }
-
-                        // TODO the file should not be deleted
-                        // it should be used to avoid downloading high res pict
-                        file.delete();
-
-                    } catch (Exception e) {
-
-                    }
-
-                    Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                } else {
-                    Log.d(LOG_TAG, "Failed to upload");
-
-                    // try to resend an image
-                    if (null != retriedMessage) {
-                        message.url = retriedMessage.url;
-                        message.thumbnailUrl = retriedMessage.thumbnailUrl;
-                    } else {
-
-                        try {
-                            message.url = imageUrl;
-
-                            Bitmap fullSizeBitmap = AdapterUtils.bitmapForUrl(message.url, RoomActivity.this);
-
-                            double thumbnailWidth = fullSizeBitmap.getWidth();
-                            double thumbnailHeight = fullSizeBitmap.getHeight();
-
-                            // the thumbnails are reduced to a 256 * 256 pixels
-                            if (thumbnailWidth > thumbnailHeight) {
-                                thumbnailWidth = 256.0;
-                                thumbnailHeight = thumbnailWidth * fullSizeBitmap.getHeight() / fullSizeBitmap.getWidth();
-                            } else {
-                                thumbnailHeight = 256.0;
-                                thumbnailWidth = thumbnailHeight * fullSizeBitmap.getWidth() / fullSizeBitmap.getHeight();
-                            }
-
-                            Bitmap thumbnail = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                            message.thumbnailUrl = AdapterUtils.saveBitmap(thumbnail, RoomActivity.this, null);
-
-                            // save memory consumption
-                            fullSizeBitmap.recycle();
-                            fullSizeBitmap = null;
-                            System.gc();
-
-                        } catch (Exception e) {
-                            // really fail to upload the image...
-                        }
-                    }
-                }
-
-                message.info = new ImageInfo();
-                message.info.mimetype = mimeType;
-                // message to display in the summary recents
-                message.body = "Image";
-
-                // warn the user that the media upload fails
-                if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                    Toast.makeText(RoomActivity.this,
-                            getString(R.string.message_failed_to_upload),
-                            Toast.LENGTH_LONG).show();
-                }
-
-                // sanity check
-                if (message.url != null) {
-                    mMatrixMessageListFragment.sendImage(message);
-                }
-                progressDialog.dismiss();
-            }
-        });
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_IMAGE) {
-                final Uri imageUri = data.getData();
+            if ((requestCode == REQUEST_IMAGE) || (requestCode == TAKE_IMAGE)) {
+                Uri dataUri;
+
+                if (null != data) {
+                    dataUri =  data.getData();
+                } else {
+                    dataUri =  mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri);
+                }
+
+                mLatestTakePictureCameraUri = null;
+
+                final Uri imageUri = dataUri;
+
                 ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
                 if (resource == null) {
                     Toast.makeText(RoomActivity.this,
@@ -639,22 +594,8 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                     return;
                 }
 
-                // extract the rotation angle
-                // to manage exif rotation
-                int rotationAngle = -1;
-
-                int orientation = AdapterUtils.getOrientationForBitmap(this, imageUri);
-
-                if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
-                    orientation = 90;
-                } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
-                    orientation = 180 ;
-                } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
-                    orientation = 270;
-                }
-
                 // save the file in the filesystem
-                String imageUrl =  AdapterUtils.saveMedia(resource.contentStream, RoomActivity.this, null);
+                String imageUrl =  ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null);
                 String mimeType = resource.mimeType;
 
                 try {
@@ -662,71 +603,87 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 } catch(Exception e) {
                 }
 
-                // check if the image orientation has been found
-                // seems that galery images orientation is the thumbnail one
-                if (-1 == rotationAngle) {
+                // try to retrieve the gallery thumbnail
+                // if the image comes from the gallery..
+                Bitmap thumbnailBitmap = null;
 
-                    try {
-                        String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
-                        Cursor cur = managedQuery(imageUri, orientationColumn, null, null, null);
-                        if (cur != null && cur.moveToFirst()) {
-                            orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
-                        }
-                    } catch (Exception e) {
-                    }
+                try {
+                    ContentResolver resolver = getContentResolver();
+                    List uriPath = imageUri.getPathSegments();
+                    long imageId = Long.parseLong((String)(uriPath.get(uriPath.size() - 1)));
+
+                    thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                } catch (Exception e) {
+
                 }
 
-                // the image has a rotation to apply or the mimetype is unknown
-                if ((orientation > 0) || (null == mimeType) || (mimeType.equals("image/*"))) {
-                    try {
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                // no thumbnail has been found or the mimetype is unknown
+                if ((null == thumbnailBitmap) || (null == mimeType) || (mimeType.equals("image/*"))) {
 
-                        resource = ResourceUtils.openResource(this, imageUri);
+                    // need to decompress the high res image
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                    resource = ResourceUtils.openResource(this, imageUri);
 
-                        Bitmap bitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+                    // get the full size bitmap
+                    Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
 
-                        if (null != bitmap) {
-                            Uri uri = Uri.parse(imageUrl);
+                    // create a thumbnail bitmap if there is none
+                    if (null == thumbnailBitmap) {
+                        if (fullSizeBitmap != null) {
+                            double fullSizeWidth = fullSizeBitmap.getWidth();
+                            double fullSizeHeight = fullSizeBitmap.getHeight();
 
-                            // there is a rotation to apply
-                            if (orientation > 0) {
-                                android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
-                                bitmapMatrix.postRotate(orientation);
-                                
-								// the rotation could fail because there is no more available memory
-                                try {
-                                    Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
-                                    AdapterUtils.saveBitmap(transformedBitmap, RoomActivity.this, uri.getPath());
-                                    transformedBitmap.recycle();
-                                    transformedBitmap = null;
-                                } catch (OutOfMemoryError ex) {
-                                }
+                            double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
+                            double thumbnailHeight =  mMatrixMessageListFragment.getMaxThumbnailHeight();
+
+                            if (fullSizeWidth > fullSizeHeight) {
+                                thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
                             } else {
-                                AdapterUtils.saveBitmap(bitmap, RoomActivity.this, uri.getPath());
+                                thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
                             }
 
-                            // reduce the memory consumption
-                            bitmap.recycle();
-                            bitmap = null;
+                            try {
+                                thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                            } catch (OutOfMemoryError ex) {
+                            }
+                        }
+                    }
 
-                            System.gc();
+                    // unknown mimetype
+                    if ((null == mimeType) || (mimeType.equals("image/*"))) {
+                        try {
+                            if (null != fullSizeBitmap) {
+                                Uri uri = Uri.parse(imageUrl);
+                                try {
+                                    ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                } catch (OutOfMemoryError ex) {
+                                }
 
-                            // the images are save in jpeg format
-                            mimeType = "image/jpeg";
-                        } else {
+                                // the images are save in jpeg format
+                                mimeType = "image/jpeg";
+                            } else {
+                                imageUrl = null;
+                            }
+
+                            resource.contentStream.close();
+
+                        } catch (Exception e) {
                             imageUrl = null;
                         }
-
-                        resource.contentStream.close();
-
-                    } catch (Exception e) {
                     }
+
+                    // reduce the memory consumption
+                    fullSizeBitmap.recycle();
+                    System.gc();
                 }
 
+                String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+                thumbnailBitmap.recycle();
+
                 // is the image content valid ?
-                if (null != imageUrl) {
-                    uploadImageContent(imageUrl, mimeType, null);
+                if ((null != imageUrl) && (null != thumbnailURL)) {
+                    mMatrixMessageListFragment.uploadImageContent(thumbnailURL, imageUrl, mimeType);
                 }
             }
         }

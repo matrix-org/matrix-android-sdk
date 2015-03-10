@@ -103,6 +103,8 @@ public class RoomMemberCountCondition extends Condition {
             }
         }
 
-        Log.e(LOG_TAG, "Error parsing rule: " + is);
+        if (parseError) {
+            Log.e(LOG_TAG, "Error parsing rule: " + is);
+        }
     }
 }

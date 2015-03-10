@@ -119,9 +119,13 @@ public class BingRulesManager {
                     return mDefaultBingRule;
                 }
             }
+
+            // no rules are fulfilled
+            return null;
+        } else {
+            // The default is to bing
+            return mDefaultBingRule;
         }
-        // The default is to bing
-        return mDefaultBingRule;
     }
 
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {

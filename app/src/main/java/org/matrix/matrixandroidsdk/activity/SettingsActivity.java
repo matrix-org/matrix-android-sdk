@@ -19,15 +19,18 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -43,8 +46,11 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
+
+import java.util.Formatter;
 
 public class SettingsActivity extends MXCActionBarActivity {
 
@@ -67,7 +73,7 @@ public class SettingsActivity extends MXCActionBarActivity {
             mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            AdapterUtils.loadThumbnailBitmap(mAvatarImageView, mMyUser.avatarUrl, size, size);
+            ConsoleMediasCache.loadAvatarThumbnail(mAvatarImageView, mMyUser.avatarUrl, size);
         }
     }
 
@@ -141,6 +147,46 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
         userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
+
+        // room settings
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        listenBoxUpdate(preferences, R.id.checkbox_displayAllEvents, getString(R.string.settings_key_display_all_events), false);
+        listenBoxUpdate(preferences, R.id.checkbox_hideUnsupportedEvenst, getString(R.string.settings_key_hide_unsupported_events), true);
+        listenBoxUpdate(preferences, R.id.checkbox_sortByLastSeen, getString(R.string.settings_key_sort_by_last_seen), true);
+        listenBoxUpdate(preferences, R.id.checkbox_displayLeftMembers, getString(R.string.settings_key_display_left_members), false);
+        listenBoxUpdate(preferences, R.id.checkbox_displayPublicRooms, getString(R.string.settings_key_display_public_rooms_recents), true);
+
+        final Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
+
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+
+        clearCacheButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ConsoleMediasCache.clearCache(SettingsActivity.this);
+
+                String cacheSize = android.text.format.Formatter.formatFileSize(SettingsActivity.this, ConsoleMediasCache.cacheSize(SettingsActivity.this));
+                clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+            }
+        });
+
+    }
+
+    private void listenBoxUpdate(final SharedPreferences preferences, int boxId, final String preferenceKey, boolean defaultValue) {
+        final CheckBox checkBox = (CheckBox) findViewById(boxId);
+        checkBox.setChecked(preferences.getBoolean(preferenceKey, defaultValue));
+        checkBox.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        SharedPreferences.Editor editor = preferences.edit();
+                        editor.putBoolean(preferenceKey, checkBox.isChecked());
+                        editor.commit();
+                    }
+                }
+        );
     }
 
     @Override
@@ -179,6 +225,11 @@ public class SettingsActivity extends MXCActionBarActivity {
                 }
             });
         }
+
+        // refresh the cache size
+        Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
     }
 
     @Override
@@ -259,9 +310,14 @@ public class SettingsActivity extends MXCActionBarActivity {
 
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, new ContentManager.UploadCallback() {
+            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, null, new ContentManager.UploadCallback() {
                 @Override
-                public void onUploadComplete(ContentResponse uploadResponse) {
+                public void onUploadProgress(String anUploadId, int percentageProgress) {
+                    progressDialog.setMessage(getString(R.string.message_uploading) + " (" + percentageProgress + "%)");
+                }
+
+                @Override
+                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                     if (uploadResponse == null) {
                         Toast.makeText(SettingsActivity.this,
                                 getString(R.string.settings_failed_to_upload_avatar),

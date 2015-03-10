@@ -352,9 +352,16 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onDeletedEvent(Event event) {
+    public void onDeleteEvent(Event event) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onDeletedEvent(event);
+            listener.onDeleteEvent(event);
+        }
+    }
+
+    @Override
+    public void onResendEvent(Event event) {
+        for (IMXEventListener listener : mEventListeners) {
+            listener.onResendEvent(event);
         }
     }
 

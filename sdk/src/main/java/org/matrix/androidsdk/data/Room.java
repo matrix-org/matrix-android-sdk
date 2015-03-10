@@ -15,10 +15,15 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.media.ExifInterface;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -56,11 +61,17 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Class representing a room and the interactions we have with it.
  */
 public class Room {
+
+    private static final String LOG_TAG = "Room";
+
+    private static final int MAX_RATE_LIMIT_MS = 20000;
 
     /**
      * The direction from which an incoming event is considered.
@@ -99,6 +110,10 @@ public class Room {
     private boolean canStillPaginate = true;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
+
+
+    private boolean isResendingEvents = false;
+    private boolean checkUnsentMessages = false;
 
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -221,10 +236,18 @@ public class Room {
             }
 
             @Override
-            public void onDeletedEvent(Event event) {
+            public void onDeleteEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onDeletedEvent(event);
+                    eventListener.onDeleteEvent(event);
+                }
+            }
+
+            @Override
+            public void onResendEvent(Event event) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(event.roomId)) {
+                    eventListener.onResendEvent(event);
                 }
             }
 
@@ -310,9 +333,19 @@ public class Room {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Event event = storeUnsentMessage();
+                    final Event event = storeUnsentMessage();
                     event.unsentMatrixError = e;
                     callback.onSuccess(event);
+
+                    // limit exceeds, the server provided a timeout
+                    if (MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                            resendUnsentEvents(MAX_RATE_LIMIT_MS);
+                            }
+                        }, e.retry_after_ms);
+                    }
                 }
 
                 @Override
@@ -548,9 +581,144 @@ public class Room {
     }
 
     /**
-     * Resend the unsend messages
+     * Gets the bitmap rotation angle from the {@link android.media.ExifInterface}.
+     * @param context Application context for the content resolver.
+     * @param uri The URI to find the orientation for.  Must be local.
+     * @return The orientation value, which may be {@link android.media.ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static int getRotationAngleForBitmap(Context context, Uri uri) {
+        int orientation = getOrientationForBitmap(context, uri);
+
+        int rotationAngle = 0;
+
+        if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
+            rotationAngle = 90;
+        } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
+            rotationAngle = 180 ;
+        } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
+            rotationAngle = 270;
+        }
+
+        return rotationAngle;
+    }
+
+    /**
+     * Gets the {@link ExifInterface} value for the orientation for this local bitmap Uri.
+     * @param context Application context for the content resolver.
+     * @param uri The URI to find the orientation for.  Must be local.
+     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static int getOrientationForBitmap(Context context, Uri uri) {
+        int orientation = ExifInterface.ORIENTATION_UNDEFINED;
+
+        if (uri == null) {
+            return orientation;
+        }
+
+        if (uri.getScheme().equals("content")) {
+            String [] proj= {MediaStore.Images.Media.DATA};
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query( uri, proj, null, null, null);
+                if (cursor != null && cursor.getCount() > 0) {
+                    cursor.moveToFirst();
+                    int idxData = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                    String path = cursor.getString(idxData);
+                    if (TextUtils.isEmpty(path)) {
+                        Log.w(LOG_TAG, "Cannot find path in media db for uri " + uri);
+                        return orientation;
+                    }
+                    ExifInterface exif = new ExifInterface(path);
+                    orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+                }
+            }
+            catch (Exception e) {
+                // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
+                // eg IOException from trying to parse the returned path as a file when it is an http uri.
+                Log.e(LOG_TAG, "Cannot get orientation for bitmap: "+e);
+            }
+            finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+        else if (uri.getScheme().equals("file")) {
+            try {
+                ExifInterface exif = new ExifInterface(uri.getPath());
+                orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because "+e);
+            }
+        }
+
+        return orientation;
+    }
+
+    /**
+     * Fills the imageMessage imageInfo.
+     * @param context Application context for the content resolver.
+     * @param imageMessage The imageMessage to fill.
+     * @param imageUri The fullsize image uri.
+     * @param mimeType The image mimeType
+     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static void fillImageInfo(Context context, ImageMessage imageMessage, Uri imageUri, String mimeType) {
+        try {
+            ImageInfo imageInfo = new ImageInfo();
+
+            String filename = imageUri.getPath();
+            File file = new File(filename);
+
+            ExifInterface exifMedia = new ExifInterface(filename);
+            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+
+            if ((null != width) && (null != height)) {
+                imageInfo.w = Integer.parseInt(width);
+                imageInfo.h = Integer.parseInt(height);
+            }
+
+            imageInfo.mimetype = mimeType;
+            imageInfo.size = file.length();
+            imageInfo.rotation = getRotationAngleForBitmap(context, imageUri);
+
+            imageMessage.info = imageInfo;
+
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * Resend the unsent messages.
      */
     public void resendUnsentEvents() {
+        resendUnsentEvents(-1);
+    }
+
+    /**
+     * Resend the unsent messages during a time  interval.
+     * @param timeInterval define the time interval in ms to resend the messages to avoid application lock.
+     */
+    public void resendUnsentEvents(int timeInterval) {
+        boolean isResending;
+
+        synchronized (this) {
+            isResending =  isResendingEvents;
+
+            // at the end of the current resending loop
+            // check again unsent messages
+            if (isResending) {
+                checkUnsentMessages = isResending;
+            }
+        }
+
+        // wait that the current task is done
+        if (isResending) {
+            return;
+        }
+
         Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
 
         // something to resend
@@ -570,7 +738,7 @@ public class Room {
                 }
             }
 
-            resendEventsList(unsentEvents, 0);
+            resendEventsList(unsentEvents, 0,(timeInterval > 0) ? (System.currentTimeMillis() + timeInterval) : Long.MAX_VALUE);
         }
     }
 
@@ -579,11 +747,15 @@ public class Room {
      * Wait that the event is resent before sending the next one
      * to keep the genuine order
      */
-    private void resendEventsList(final ArrayList<Event> evensList, final int index) {
-        if ((evensList.size() > 0) && (index < evensList.size())) {
+    private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
+
+        if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
             final Event oldEvent = evensList.get(index);
 
+            mDataHandler.onResendEvent(oldEvent);
+
             boolean hasPreviousTask = false;
+            oldEvent.age = 0;
             final Message message = JsonUtils.toMessage(oldEvent.content);
 
             if (message instanceof ImageMessage) {
@@ -600,9 +772,14 @@ public class Room {
                         hasPreviousTask = true;
 
                         if (null != fis) {
-                            mContentManager.uploadContent(fis, imageMessage.info.mimetype, new ContentManager.UploadCallback() {
+                            mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, new ContentManager.UploadCallback() {
+
                                 @Override
-                                public void onUploadComplete(ContentResponse uploadResponse) {
+                                public void onUploadProgress(String anUploadId, int percentageProgress) {
+                                }
+
+                                @Override
+                                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                                     ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);
 
                                     if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
@@ -616,38 +793,14 @@ public class Room {
                                         uploadedMessage.url = imageMessage.url;
                                     }
 
-                                    sendMessage(uploadedMessage, new ApiCallback<Event>() {
-                                        @Override
-                                        public void onSuccess(Event sentEvent) {
-                                            oldEvent.isSending = false;
-                                            mDataHandler.deleteRoomEvent(oldEvent);
-                                            mDataHandler.onDeletedEvent(oldEvent);
+                                    uploadedMessage.info = imageMessage.info;
+                                    uploadedMessage.body = imageMessage.body;
 
-                                            // update with updated fields
-                                            oldEvent.eventId = sentEvent.eventId;
-                                            oldEvent.isUnsent = sentEvent.isUnsent;
-                                            oldEvent.unsentException = sentEvent.unsentException;
-                                            oldEvent.unsentMatrixError = sentEvent.unsentMatrixError;
+                                    // update the content
+                                    oldEvent.content = JsonUtils.toJson(uploadedMessage);
 
-                                            mDataHandler.onLiveEvent(oldEvent, getLiveState());
-
-                                            // send the next one
-                                            Room.this.resendEventsList(evensList, index + 1);
-                                        }
-
-                                        // theses 3 methods will never be called
-                                        @Override
-                                        public void onNetworkError(Exception e) {
-                                        }
-
-                                        @Override
-                                        public void onMatrixError(MatrixError e) {
-                                        }
-
-                                        @Override
-                                        public void onUnexpectedError(Exception e) {
-                                        }
-                                    });
+                                    // send the body
+                                    Room.this.resendEventsList(evensList, index, maxTime);
                                 }
                             });
                         }
@@ -662,9 +815,10 @@ public class Room {
                 sendMessage(message, new ApiCallback<Event>() {
                     @Override
                     public void onSuccess(Event sentEvent) {
-                        oldEvent.isSending = false;
-                        mDataHandler.deleteRoomEvent(oldEvent);
-                        mDataHandler.onDeletedEvent(oldEvent);
+                        Event dummyEvent = oldEvent.deepCopy();
+                        dummyEvent.isSending = false;
+                        mDataHandler.deleteRoomEvent(dummyEvent);
+                        mDataHandler.onDeleteEvent(dummyEvent);
 
                         // update with updated fields
                         oldEvent.eventId = sentEvent.eventId;
@@ -675,7 +829,7 @@ public class Room {
                         mDataHandler.onLiveEvent(oldEvent, getLiveState());
 
                         // send the next one
-                        Room.this.resendEventsList(evensList, index + 1);
+                        Room.this.resendEventsList(evensList, index + 1, maxTime);
                     }
 
                     // theses 3 methods will never be called
@@ -691,6 +845,20 @@ public class Room {
                     public void onUnexpectedError(Exception e) {
                     }
                 });
+            }
+        } else {
+            boolean mustCheckUnsent = false;
+
+            synchronized(this) {
+                isResendingEvents = false;
+                mustCheckUnsent = checkUnsentMessages;
+                checkUnsentMessages = false;
+            }
+
+            // the timeout should be done on each request but assume
+            // that the requests are sent in pools so the timeout is valid for it.
+            if ((mustCheckUnsent) && (System.currentTimeMillis() < maxTime)) {
+                resendUnsentEvents(MAX_RATE_LIMIT_MS);
             }
         }
     }

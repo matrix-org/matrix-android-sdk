@@ -56,6 +56,26 @@
                     android:text="1970/01/01 00:00:00"
                     android:id="@+id/messagesAdapter_timestamp_left"/>
 
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/upload_content_layout"
+                    android:orientation="vertical">
+
+                    <org.matrix.matrixandroidsdk.view.PieFractionView
+                        android:id="@+id/upload_content_piechart"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:textSize="9sp"
+                        android:gravity="center_vertical"
+                        android:text="@string/uploading_dot"/>
+
+                </LinearLayout>
+
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

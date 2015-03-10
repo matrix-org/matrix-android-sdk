@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.EditText;
@@ -47,13 +48,24 @@ public class LoginActivity extends MXCActionBarActivity {
         findViewById(R.id.button_create_account).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String hs = ((EditText)findViewById(R.id.editText_hs)).getText().toString();
+                String hs = ((EditText) findViewById(R.id.editText_hs)).getText().toString();
 
-                if (hs.startsWith("http")) {
-                    Intent intent = new Intent(LoginActivity.this, AccountCreationActivity.class);
-                    intent.putExtra(AccountCreationActivity.EXTRA_HOME_SERVER_ID, hs);
-                    startActivityForResult(intent, ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE);
+                boolean validHomeServer = false;
+
+                try {
+                    Uri hsUri = Uri.parse(hs);
+                    validHomeServer = "http".equals(hsUri.getScheme()) || "https".equals(hsUri.getScheme());
+                } catch (Exception e) {
                 }
+
+                if (!validHomeServer) {
+                    Toast.makeText(LoginActivity.this, getString(R.string.login_error_invalid_home_server), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Intent intent = new Intent(LoginActivity.this, AccountCreationActivity.class);
+                intent.putExtra(AccountCreationActivity.EXTRA_HOME_SERVER_ID, hs);
+                startActivityForResult(intent, ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE);
             }
         });
     }
@@ -63,7 +75,24 @@ public class LoginActivity extends MXCActionBarActivity {
             Toast.makeText(this, getString(R.string.login_error_must_start_http), Toast.LENGTH_SHORT).show();
             return;
         }
-        LoginRestClient client = new LoginRestClient(Uri.parse(hsUrl));
+
+        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
+            Toast.makeText(this, getString(R.string.login_error_invalid_credentials), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        LoginRestClient client = null;
+
+        try {
+            client = new LoginRestClient(Uri.parse(hsUrl));
+        } catch (Exception e) {
+        }
+
+        if (null == client) {
+            Toast.makeText(this, getString(R.string.login_error_invalid_home_server), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         // TODO: This client should check that it can use u/p login on this home server!!!
         client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>() {
             @Override

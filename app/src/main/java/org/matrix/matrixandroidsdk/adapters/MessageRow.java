@@ -19,8 +19,8 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 
 public class MessageRow {
-    private Event event;
-    private RoomState roomState;
+    private Event mEvent;
+    private RoomState mRoomState;
 
     public enum SentState {
         SENT, // Normal case: true for received messages and messages successfully sent to the server
@@ -29,30 +29,35 @@ public class MessageRow {
         NOT_SENT // The message is in a temporary state : the message failed to be sent but the list is not refreshed
     }
 
-    private SentState sentState = SentState.SENT;
+    private SentState mSentState = SentState.SENT;
 
     public MessageRow(Event event, RoomState roomState) {
-        this.event = event;
-        this.roomState = roomState;
+        this.mEvent = event;
+        this.mRoomState = roomState;
     }
 
     public Event getEvent() {
-        return event;
+        return mEvent;
     }
 
     public RoomState getRoomState() {
-        return roomState;
+        return mRoomState;
     }
 
     public SentState getSentState() {
-        if (event.isUnsent) {
+        if (mEvent.isUnsent) {
             return SentState.NOT_SENT;
         }
 
-        return sentState;
+        if (SentState.SENDING == mSentState) {
+            mSentState = SentState.SENDING;
+        }
+
+        return mSentState;
     }
 
     public void setSentState(SentState sentState) {
-        this.sentState = sentState;
+        this.mSentState = sentState;
+        mEvent.isUnsent = (sentState == SentState.NOT_SENT);
     }
 }

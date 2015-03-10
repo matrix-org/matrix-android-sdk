@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.preference.PreferenceManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -20,6 +21,8 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -54,7 +57,13 @@ public class CommonActivityUtils {
         MyPresenceManager.getInstance(context).advertiseOffline();
 
         // clear the medias cache
-        AdapterUtils.clearMediasCache(context);
+        ConsoleMediasCache.clearCache(context);
+
+        // clear the latest messages cache
+        ConsoleLatestChatMessageCache.clearCache(context);
+
+        // clear the preferences
+        PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit();
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSessionAndCredentials();
@@ -145,19 +154,9 @@ public class CommonActivityUtils {
                    if (!(fromActivity instanceof HomeActivity)) {
                        // pop to the home activity
                        Intent intent = new Intent(fromActivity, HomeActivity.class);
-                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                       intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
                        fromActivity.startActivity(intent);
-
-                       fromActivity.runOnUiThread(new Runnable() {
-                          @Override
-                          public void run() {
-                              // and open the room
-                              Activity homeActivity = ConsoleApplication.getCurrentActivity();
-                              Intent intent = new Intent(homeActivity, RoomActivity.class);
-                              intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                              homeActivity.startActivity(intent);
-                          }
-                      });
                    } else {
                        // already to the home activity
                        // so just need to open the room activity

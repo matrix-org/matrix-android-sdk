@@ -56,8 +56,11 @@ public class PieFractionView extends View {
     }
 
     public void setFraction(int fraction) {
-        this.fraction = fraction;
-        this.invalidate();
+        // bounds check + avoid useless refresh
+        if ((fraction >= 0) && (fraction <= 100) && (this.fraction != fraction)) {
+            this.fraction = fraction;
+            this.invalidate();
+        }
     }
 
     @Override

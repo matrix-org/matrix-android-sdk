@@ -48,7 +48,8 @@ public class MatrixMessagesFragment extends Fragment {
     public static interface MatrixMessagesListener {
         public void onLiveEvent(Event event, RoomState roomState);
         public void onBackEvent(Event event, RoomState roomState);
-        public void onDeletedEvent(Event event);
+        public void onDeleteEvent(Event event);
+        public void onResendEvent(Event event);
 
         /**
          * Called when the first batch of messages is loaded.
@@ -108,10 +109,14 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             @Override
-            public void onDeletedEvent(Event event)  {
-                mMatrixMessagesListener.onDeletedEvent(event);
+            public void onDeleteEvent(Event event)  {
+                mMatrixMessagesListener.onDeleteEvent(event);
             }
 
+            @Override
+            public void onResendEvent(Event event)  {
+                mMatrixMessagesListener.onResendEvent(event);
+            }
         };
 
         mRoom.addEventListener(mEventListener);
@@ -166,7 +171,7 @@ public class MatrixMessagesFragment extends Fragment {
                 requestInitialHistory();
             }
 
-            // TODO manage auto restart
+            // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "Network error: " + e.getMessage());
@@ -216,8 +221,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         displayLoadingProgress();
 
-        // TODO add auto join when the network comes back
-
+        // the initial sync will be retrieved when a network connection will be found
         requestHistory(new SimpleApiCallback<Integer>() {
             @Override
             public void onSuccess(Integer info) {

@@ -1,17 +1,26 @@
 package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -22,19 +31,26 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,6 +99,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     private MXSession mSession;
     private Room mRoom;
+    private boolean mDisplayAllEvents = true;
 
     private AlertDialog mRedactResendAlert = null;
 
@@ -135,6 +152,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 MatrixMessageListFragment.this.onItemClick(position);
             }
         });
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        mDisplayAllEvents = preferences.getBoolean(getString(R.string.settings_key_display_all_events), false);
 
         return v;
     }
@@ -197,6 +217,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_TEXT, body);
     }
 
+    // create a dummy message row for the message
+    // It is added to the Adapter
+    // return the created Message
+    private MessageRow addDummyMessageRow(Message message) {
+        Event dummyEvent = new Event();
+        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
+        dummyEvent.content = JsonUtils.toJson(message);
+        dummyEvent.originServerTs = System.currentTimeMillis();
+        dummyEvent.userId = mSession.getCredentials().userId;
+        dummyEvent.roomId = mRoom.getRoomId();
+        dummyEvent.createDummyEventId();
+
+        MessageRow messageRow = new MessageRow(dummyEvent, mRoom.getLiveState());
+        messageRow.setSentState(MessageRow.SentState.SENDING);
+        mAdapter.add(messageRow);
+        // NotifyOnChange has been disabled to avoid useless refreshes
+        mAdapter.notifyDataSetChanged();
+
+        return messageRow;
+    }
+
     private void sendMessage(String msgType, String body) {
         Message message = new Message();
         message.msgtype = msgType;
@@ -204,12 +245,87 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message, false);
     }
 
-    public void sendImage(ImageMessage imageMessage) {
-        send(imageMessage, false);
-    }
-
     public void sendEmote(String emote) {
         sendMessage(Message.MSGTYPE_EMOTE, emote);
+    }
+
+
+    /**
+     * upload an image content.
+     * It might be triggered from a media selection : imageUri is used to compute thumbnails.
+     * Or, it could have been called to resend an image.
+     * @param thumbnailUrl the thumbnail Url
+     * @param imageUrl the image Uri
+     * @param mimeType the image mine type
+     */
+    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mimeType) {
+        // create a tmp row
+        final ImageMessage tmpImageMessage = new ImageMessage();
+
+        tmpImageMessage.url = imageUrl;
+        tmpImageMessage.thumbnailUrl = thumbnailUrl;
+        tmpImageMessage.body = "Image";
+
+        FileInputStream imageStream = null;
+
+        try {
+            Uri uri = Uri.parse(imageUrl);
+            Room.fillImageInfo(getActivity(), tmpImageMessage, uri, mimeType);
+
+            String filename = uri.getPath();
+            imageStream = new FileInputStream (new File(filename));
+
+        } catch (Exception e) {
+        }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
+
+        mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+            }
+
+            @Override
+            public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                ImageMessage message = tmpImageMessage;
+
+                if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                    // Build the image message
+                    message = new ImageMessage();
+
+                    // replace the thumbnail and the media contents by the computed ones
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
+
+                    message.thumbnailUrl = null;
+                    message.url = uploadResponse.contentUri;
+                    message.info = tmpImageMessage.info;
+                    message.body = "Image";
+
+                    // update the event content with the new message info
+                    tmpRow.getEvent().content = JsonUtils.toJson(message);
+
+                    Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+
+                } else {
+                    Log.d(LOG_TAG, "Failed to upload");
+                }
+
+                // warn the user that the media upload fails
+                if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                    Toast.makeText(getActivity(),
+                            getString(R.string.message_failed_to_upload),
+                            Toast.LENGTH_LONG).show();
+                }
+
+                // sanity check
+                if (message.url != null) {
+                    send(message, tmpRow, false);
+                }
+            }
+        });
     }
 
     private void resend(Event event) {
@@ -226,13 +342,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
-                if (getActivity() instanceof RoomActivity) {
-                    ((RoomActivity)getActivity()).uploadImageContent(imageMessage.url, imageMessage.info.mimetype, imageMessage);
-
-                } else {
-                    // don't know how to resend the event
-                    return;
-                }
+                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.info.mimetype);
+                return;
             }
         }
 
@@ -240,26 +351,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private void send(final Message message, final boolean isRetry) {
-        Event dummyEvent = new Event();
-        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
-        dummyEvent.content = JsonUtils.toJson(message);
-        dummyEvent.originServerTs = System.currentTimeMillis();
-        dummyEvent.userId = mSession.getCredentials().userId;
-        dummyEvent.roomId = mRoom.getRoomId();
-        dummyEvent.createDummyEventId();
+        send(message, addDummyMessageRow(message), isRetry);
+    }
 
-        final MessageRow tmpRow = new MessageRow(dummyEvent, mRoom.getLiveState());
-        tmpRow.setSentState(MessageRow.SentState.SENDING);
-        mAdapter.add(tmpRow);
-        // NotifyOnChange has been disabled to avoid useless refreshes
-        mAdapter.notifyDataSetChanged();
-
+    private void send(final Message message, final MessageRow tmpRow,  final boolean isRetry) {
         mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
             @Override
             public void onSuccess(Event event) {
                 if (event.isUnsent) {
                     if (null != event.unsentException) {
-                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError)event.unsentException).isNetworkError())  {
+                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                         } else {
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -269,7 +370,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
                     mAdapter.remove(tmpRow);
                     mAdapter.add(event, mRoom.getLiveState());
-                } else  {
+                } else {
                     if (isRetry) {
                         mAdapter.remove(tmpRow);
                         mAdapter.add(event, mRoom.getLiveState());
@@ -349,7 +450,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 }
 
-                // TODO manage auto restart
+                // the request will be auto restarted when a valid network will be found
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "Network error: " + e.getMessage());
@@ -409,6 +510,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
     }
 
+    private boolean canAddEvent(Event event) {
+        String type = event.type;
+
+        return mDisplayAllEvents ||
+                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
+                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
+                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
+                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type);
+    }
+
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
@@ -417,13 +528,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
-                }
-                else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                }
-                else  {
-                    mAdapter.add(event, roomState);
-                    mAdapter.notifyDataSetChanged();
+                } else {
+                    if (canAddEvent(event)) {
+                        mAdapter.add(event, roomState);
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
             }
         });
@@ -434,14 +545,33 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                mAdapter.addToFront(event, roomState);
+                if (canAddEvent(event)) {
+                    mAdapter.addToFront(event, roomState);
+                }
             }
         });
     }
 
     @Override
-    public void onDeletedEvent(Event event) {
-        mAdapter.removeEventById(event.eventId);
+    public void onDeleteEvent(final Event event) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.removeEventById(event.eventId);
+                mAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+        @Override
+    public void onResendEvent(final Event event) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.updateMessageRowSentState(event.eventId, MessageRow.SentState.SENDING);
+                mAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
@@ -461,9 +591,70 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 mIsInitialSyncing = false;
+
+                // fill the page
+                mMessageListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        fillHistoryPage();
+                    }
+                });
             }
         });
     }
+
+    /**
+     * Paginate the room until to fill the current page or there is no more item to display.
+     */
+    private void fillHistoryPage() {
+        if (mMessageListView.getFirstVisiblePosition() == 0) {
+            displayLoadingProgress();
+            mIsCatchingUp = true;
+
+            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>() {
+                @Override
+                public void onSuccess(final Integer count) {
+                    dismissLoadingProgress();
+                    // Scroll the list down to where it was before adding rows to the top
+                    mUiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // refresh the list only at the end of the sync
+                            // else the one by one message refresh gives a weird UX
+                            // The application is almost frozen during the
+                            mAdapter.notifyDataSetChanged();
+                            mIsCatchingUp = false;
+
+                            if (count != 0) {
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        fillHistoryPage();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    dismissLoadingProgress();
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    dismissLoadingProgress();
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    dismissLoadingProgress();
+                }
+            });
+        }
+    }
+
 
     /**
      * Set the listener which will be informed of matrix messages. This setter is provided so either
@@ -578,5 +769,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             mRedactResendAlert.show();
         }
+    }
+
+    // thumbnails management
+    public int getMaxThumbnailWith() {
+        return mAdapter.getMaxThumbnailWith();
+    }
+
+    public int getMaxThumbnailHeight() {
+        return mAdapter.getMaxThumbnailHeight();
     }
 }

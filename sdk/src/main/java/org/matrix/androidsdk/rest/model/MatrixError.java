@@ -32,4 +32,5 @@ public class MatrixError {
 
     public String errcode;
     public String error;
+    public Integer retry_after_ms;
 }
