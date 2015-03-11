@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -378,9 +379,7 @@ public class HomeActivity extends MXCActionBarActivity {
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(true);
             expandAllGroups();
-
         } else {
-
             // need to collapse/expand the groups to avoid invalid refreshes
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(false);
@@ -496,6 +495,15 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_SEARCH)) {
+            toggleSearchButton();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     private void createRoom(final boolean isPublic) {
