@@ -569,6 +569,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageInfo = imageMessage.info;
         }
 
+        // display a type watermark
+        final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+
+        if ((null != imageMessage.info) && "image/gif".equals(imageMessage.info.mimetype)) {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
+        } else {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_image));
+        }
+
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
         final int maxImageWidth = mMaxImageWidth;
@@ -577,7 +586,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-
         final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
 
         // display a pie char
@@ -586,6 +594,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         if (null != downloadProgressLayout) {
             if (null != downloadId) {
+                imageTypeView.setVisibility(View.GONE);
                 downloadProgressLayout.setVisibility(View.VISIBLE);
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
 
@@ -631,6 +640,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
+                        imageTypeView.setVisibility(View.VISIBLE);
                         if (aDownloadId.equals(fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
                         }
@@ -640,6 +650,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
+                imageTypeView.setVisibility(View.VISIBLE);
                 downloadProgressLayout.setVisibility(View.GONE);
             }
         }
@@ -710,15 +721,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         uploadFractionView.setFraction(progress);
         uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
-
-        // display a type watermark
-        ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
-
-        if ((null != imageMessage.info) && "image/gif".equals(imageMessage.info.mimetype)) {
-            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
-        } else {
-            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_image));
-        }
 
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
         this.manageSubView(position, convertView, imageLayout, ROW_TYPE_IMAGE);
