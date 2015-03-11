@@ -17,6 +17,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.support.v7.app.ActionBarActivity;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 
 import org.matrix.androidsdk.MXSession;
@@ -28,6 +29,17 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
  * extends ActionBarActivity to manage the rageshake
  */
 public class MXCActionBarActivity extends ActionBarActivity {
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_MENU) && (null == getActionBar())) {
+            // This is to fix a bug in the v7 support lib. If there is no options menu and you hit MENU, it will crash with a
+            // NPE @ android.support.v7.app.ActionBarImplICS.getThemedContext(ActionBarImplICS.java:274)
+            // This can safely be removed if we add in menu options on this screen
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 
     @Override
     protected void onPause() {
