@@ -15,8 +15,11 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v4.app.DialogFragment;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -56,6 +59,11 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     private ListView mListView;
     private ContactsListAdapter mAdapter;
     private MXSession mSession;
+
+    private ArrayList<Contact> mLocalContacts;
+    private ArrayList<Contact> mFilteredContacts;
+    private boolean mDisplayOnlyMatrixUsers = false;
+    private String mSearchPattern = "";
 
     public static ContactsListDialogFragment newInstance() {
         ContactsListDialogFragment f = new ContactsListDialogFragment();
@@ -210,19 +218,52 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         mListView = ((ListView)v.findViewById(R.id.listView_contacts));
 
         // get the local contacts
-        ArrayList<Contact> contacts = new ArrayList<Contact>(getLocalContacts(getActivity(), getActivity().getContentResolver()));
+        mLocalContacts = new ArrayList<Contact>(getLocalContacts(getActivity(), getActivity().getContentResolver()));
 
         mAdapter = new ContactsListAdapter(getActivity(), R.layout.adapter_item_contact);
 
         // sort them
-        Collections.sort(contacts, alphaComparator);
-
-        // display them
-        for(Contact contact : contacts) {
-            mAdapter.add(contact);
-        }
+        Collections.sort(mLocalContacts, alphaComparator);
 
         mListView.setAdapter(mAdapter);
+
+        refreshAdapter();
+
+        // a button could be added to filter the contacts to display only the matrix users
+        // but the lookup method is too slow (1 address / request).
+        // it could be enabled when a batch request will be implemented
+        /*
+        final Button button = (Button)v.findViewById(R.id.button_matrix_users);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                mDisplayOnlyMatrixUsers = !mDisplayOnlyMatrixUsers;
+
+                if (mDisplayOnlyMatrixUsers) {
+                    button.setBackgroundResource(R.drawable.matrix_user);
+                } else {
+                    button.setBackgroundResource(R.drawable.ic_menu_allfriends);
+                }
+
+                refreshAdapter();
+            }
+        });*/
+
+        final EditText editText = (EditText)v.findViewById(R.id.editText_contactBox);
+
+        editText.addTextChangedListener(new TextWatcher() {
+            public void afterTextChanged(android.text.Editable s) {
+                ContactsListDialogFragment.this.mSearchPattern = s.toString();
+                refreshAdapter();
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+        });
 
         // tap on one of them
         // if he is a matrix, offer to start a chat
@@ -316,6 +357,54 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         });
     }
 
+    private void refreshAdapter() {
+
+        // matrix users selection
+        ArrayList<Contact> filteredContacts = mLocalContacts;
+
+        if (mDisplayOnlyMatrixUsers || (mSearchPattern.length() != 0)) {
+            filteredContacts = new ArrayList<Contact>();
+
+            String pattern = mSearchPattern.toLowerCase();
+
+            if (mDisplayOnlyMatrixUsers && (mSearchPattern.length() != 0)) {
+                for (Contact contact : mLocalContacts) {
+                    if (contact.hasMatridIds(getActivity()) && (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0)) {
+                        filteredContacts.add(contact);
+                    }
+                }
+            } else if (mSearchPattern.length() != 0) {
+                for (Contact contact : mLocalContacts) {
+                    if (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0) {
+                        // trigger the matrixID retrieval.
+                        contact.hasMatridIds(getActivity());
+
+                        filteredContacts.add(contact);
+                    }
+                }
+            } else if (mDisplayOnlyMatrixUsers) {
+                for (Contact contact : mLocalContacts) {
+                    if (contact.hasMatridIds(getActivity())) {
+                        filteredContacts.add(contact);
+                    }
+                }
+            }
+        }
+
+        // clear the list
+        mAdapter.clear();
+
+        // to replace with the new filtered list
+        mFilteredContacts = filteredContacts;
+
+        // display them
+        for(Contact contact : mFilteredContacts) {
+            mAdapter.add(contact);
+        }
+
+        mAdapter.notifyDataSetChanged();
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -337,8 +426,7 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
             public void run() {
                 // refresh only if there are some updates
                 if (has3PIDs) {
-                    // other contacts could be retrieved
-                    mAdapter.notifyDataSetChanged();
+                    refreshAdapter();
                 }
             }
         });
