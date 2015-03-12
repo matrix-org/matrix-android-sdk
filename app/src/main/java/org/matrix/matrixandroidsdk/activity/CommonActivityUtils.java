@@ -16,11 +16,14 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
+import org.matrix.matrixandroidsdk.contacts.ContactsManager;
+import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
 import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -67,6 +70,10 @@ public class CommonActivityUtils {
 
         // clear credentials
         Matrix.getInstance(context).clearDefaultSessionAndCredentials();
+
+        // reset the contacts
+        PIDsRetriever.reset();
+        ContactsManager.reset();
 
         // go to login page
         context.startActivity(new Intent(context, LoginActivity.class));

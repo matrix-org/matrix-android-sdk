@@ -55,6 +55,14 @@ public class PIDsRetriever {
     }
 
     /**
+     * reset
+     */
+    public static void reset() {
+        mMatrixIdsByElement = new HashMap<String, String>();
+        mListener = null;
+    }
+
+    /**
      * Retrieve the matrix IDs from the contact fields (only emails are supported by now).
      * Update the contact fields with the found Matrix Ids.
      * The update could require some remote requests : they are done only localUpdateOnly is false.

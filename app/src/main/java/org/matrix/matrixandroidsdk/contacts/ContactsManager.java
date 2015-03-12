@@ -22,6 +22,7 @@ import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -29,14 +30,57 @@ import java.util.HashMap;
  * Manage the local contacts
  */
 public class ContactsManager {
+
+    public static interface ContactsManagerListener {
+        /**
+         * Called when the contacts list have been
+         */
+        public void onRefresh();
+    }
+
     private static Collection<Contact> mContactsList = null;
+    private static ArrayList<ContactsManagerListener> mListeners = null;
 
     /**
      * Refresh the local contacts list snapshot.
+     * @param context the context.
      * @return a local contacts list
      */
-    public static Collection<Contact> getLocalContactsSnapshot() {
+    public static Collection<Contact> getLocalContactsSnapshot(Context context) {
+        if (null == mContactsList) {
+            refreshLocalContactsSnapshot(context);
+        }
         return mContactsList;
+    }
+
+    /**
+     * reset
+     */
+    public static void reset() {
+        mListeners = null;
+        mContactsList = null;
+    }
+
+    /**
+     * Add a listener.
+     * @param listener the listener to add.
+     */
+    public static void addListener(ContactsManagerListener listener) {
+        if (null == mListeners) {
+            mListeners = new ArrayList<ContactsManagerListener>();
+        }
+
+        mListeners.add(listener);
+    }
+
+    /**
+     * Remove a listener.
+     * @param listener the listener to remove.
+     */
+    public static void removeListener(ContactsManagerListener listener) {
+        if (null != mListeners) {
+            mListeners.remove(listener);
+        }
     }
 
     /**
@@ -139,6 +183,16 @@ public class ContactsManager {
         }
 
         mContactsList = dict.values();
+
+        if (null != mListeners) {
+            for(ContactsManagerListener listener : mListeners) {
+                try {
+                    listener.onRefresh();
+
+                } catch (Exception e) {
+                }
+            }
+        }
     }
 }
 
