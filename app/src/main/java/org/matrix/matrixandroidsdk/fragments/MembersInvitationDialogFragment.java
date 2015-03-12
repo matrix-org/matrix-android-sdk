@@ -218,17 +218,9 @@ public class MembersInvitationDialogFragment extends DialogFragment {
         Collections.sort(members_MaxTenMembers, alphaComparator);
         Collections.sort(members_BigRooms, alphaComparator);
 
-        for(RoomMember member : members_OneToOne) {
-            mAdapter.add(member);
-        }
-
-        for(RoomMember member : members_MaxTenMembers) {
-            mAdapter.add(member);
-        }
-
-        for(RoomMember member : members_BigRooms) {
-            mAdapter.add(member);
-        }
+        mAdapter.addAll(members_OneToOne);
+        mAdapter.addAll(members_MaxTenMembers);
+        mAdapter.addAll(members_BigRooms);
 
         ArrayList<Integer> bounds = new ArrayList<Integer>();
         ArrayList<String> sectionTitles = new ArrayList<String>();

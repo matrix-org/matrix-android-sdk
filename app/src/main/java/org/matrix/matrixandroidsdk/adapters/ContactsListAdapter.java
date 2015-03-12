@@ -52,7 +52,7 @@ public class ContactsListAdapter extends ArrayAdapter<Contact> {
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
 
-        // left the caller manages the refresh
+        // let the caller manages the refresh
         setNotifyOnChange(false);
     }
 

@@ -40,6 +40,7 @@ import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.adapters.ContactsListAdapter;
 import org.matrix.matrixandroidsdk.adapters.MembersInvitationAdapter;
 import org.matrix.matrixandroidsdk.contacts.Contact;
+import org.matrix.matrixandroidsdk.contacts.ContactsManager;
 import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
@@ -88,7 +89,13 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-        builder.setTitle(getString(R.string.contacts));
+        Collection<Contact> contacts = ContactsManager.getLocalContactsSnapshot();
+
+        if (contacts.size() != 0) {
+            builder.setTitle(getString(R.string.contacts) + " (" + contacts.size() + ")");
+        } else {
+            builder.setTitle(getString(R.string.contacts));
+        }
 
         View view = getActivity().getLayoutInflater().inflate(R.layout.fragment_contacts_list, null);
         builder.setView(view);
@@ -109,108 +116,6 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     };
 
     /**
-     * List the local contacts.
-     * @param context the context.
-     * @param cr the content resolver.
-     * @return a list of contacts.
-     */
-    Collection<Contact> getLocalContacts(Context context, ContentResolver cr)
-    {
-        HashMap<String, Contact> dict = new HashMap<String, Contact>();
-
-        // get the names
-        Cursor namesCur = cr.query(ContactsContract.Data.CONTENT_URI,
-                new String[]{ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
-                        ContactsContract.CommonDataKinds.StructuredName.CONTACT_ID,
-                        ContactsContract.Contacts.PHOTO_THUMBNAIL_URI
-                },
-                ContactsContract.Data.MIMETYPE + " = ?",
-                new String[] { ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE }, null);
-
-
-        if (namesCur != null) {
-            while (namesCur.moveToNext()) {
-                String displayName = namesCur.getString(namesCur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY));
-                String contactId = namesCur.getString(namesCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.CONTACT_ID));
-                String thumbnailUri = namesCur.getString(namesCur.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.PHOTO_THUMBNAIL_URI));
-
-                Contact contact = dict.get(contactId);
-
-                if (null == contact) {
-                    contact = new Contact();
-                    dict.put(contactId, contact);
-                }
-
-                if (null != displayName) {
-                    contact.mDisplayName = displayName;
-                }
-
-                if (null != thumbnailUri) {
-                    contact.mThumbnailUri = thumbnailUri;
-                }
-
-                if (null != contactId) {
-                    contact.mContactId = contactId;
-                }
-            }
-            namesCur.close();
-        }
-
-        // get the phonenumbers
-        Cursor phonesCur = cr.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                new String[]{ContactsContract.CommonDataKinds.Phone.DATA, // actual number
-                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID
-                },
-                null,null, null);
-
-        if (null != phonesCur) {
-            while (phonesCur.moveToNext()) {
-                String phone = phonesCur.getString(phonesCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DATA));
-
-                if (!TextUtils.isEmpty(phone)) {
-                    String contactId = phonesCur.getString(phonesCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID));
-
-                    Contact contact = dict.get(contactId);
-                    if (null == contact) {
-                        contact = new Contact();
-                        dict.put(contactId, contact);
-                    }
-
-                    contact.mPhoneNumbers.add(phone);
-                }
-            }
-            phonesCur.close();
-        }
-
-        // get the emails
-        Cursor emailsCur = cr.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,
-                new String[]{ContactsContract.CommonDataKinds.Email.DATA, // actual email
-                        ContactsContract.CommonDataKinds.Email.CONTACT_ID},
-                null, null, null);
-
-
-        if (emailsCur != null) {
-            while (emailsCur.moveToNext()) {
-                String email = emailsCur.getString(emailsCur.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA));
-                if (!TextUtils.isEmpty(email)) {
-                    String contactId = emailsCur.getString(emailsCur.getColumnIndex(ContactsContract.CommonDataKinds.Email.CONTACT_ID));
-
-                    Contact contact = dict.get(contactId);
-                    if (null == contact) {
-                        contact = new Contact();
-                        dict.put(contactId, contact);
-                    }
-
-                    contact.mEmails.add(email);
-                }
-            }
-            emailsCur.close();
-        }
-
-        return dict.values();
-    }
-
-    /**
      * Init the dialog view.
      * @param v the dialog view.
      */
@@ -218,7 +123,7 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         mListView = ((ListView)v.findViewById(R.id.listView_contacts));
 
         // get the local contacts
-        mLocalContacts = new ArrayList<Contact>(getLocalContacts(getActivity(), getActivity().getContentResolver()));
+        mLocalContacts = new ArrayList<Contact>(ContactsManager.getLocalContactsSnapshot());
 
         mAdapter = new ContactsListAdapter(getActivity(), R.layout.adapter_item_contact);
 
@@ -398,8 +303,15 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         mFilteredContacts = filteredContacts;
 
         // display them
-        for(Contact contact : mFilteredContacts) {
-            mAdapter.add(contact);
+        mAdapter.addAll(mFilteredContacts);
+
+        // refresh the title
+        if (null != getDialog()) {
+            if (mFilteredContacts.size() != 0) {
+                getDialog().setTitle(getString(R.string.contacts) + " (" + mFilteredContacts.size() + ")");
+            } else {
+                getDialog().setTitle(getString(R.string.contacts));
+            }
         }
 
         mAdapter.notifyDataSetChanged();
