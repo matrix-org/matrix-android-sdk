@@ -40,7 +40,7 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * @param hsUri the home server URI
      */
     public RegistrationRestClient(Uri hsUri) {
-        super(hsUri, RegistrationApi.class);
+        super(hsUri, RegistrationApi.class, RestClient.URI_API_PREFIX);
         mHsUri = hsUri;
     }
 

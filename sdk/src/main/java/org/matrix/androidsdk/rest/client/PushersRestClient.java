@@ -19,7 +19,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String DATA_KEY_HTTP_URL = "url";
 
     public PushersRestClient(Credentials credentials) {
-        super(credentials, PushersApi.class);
+        super(credentials, PushersApi.class, RestClient.URI_API_PREFIX);
     }
 
     /** Add a new HTTP pusher.

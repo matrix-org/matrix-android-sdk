@@ -25,6 +25,7 @@ import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.api.ProfileApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -43,7 +44,8 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
-    private static final String URI_PREFIX = "/_matrix/client/api/v1";
+    public static final String URI_API_PREFIX = "/_matrix/client/api/v1";
+    public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private static final int CONNECTION_TIMEOUT_MS = 60000;
@@ -61,7 +63,7 @@ public class RestClient<T> {
      * Public constructor.
      * @param hsUri The http[s] URI to the home server.
      */
-    public RestClient(Uri hsUri, Class<T> type) {
+    public RestClient(Uri hsUri, Class<T> type, String uriPrefix) {
         // sanity check
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
@@ -77,7 +79,7 @@ public class RestClient<T> {
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(hsUri.toString() + URI_PREFIX)
+                .setEndpoint(hsUri.toString() + uriPrefix)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
@@ -100,8 +102,8 @@ public class RestClient<T> {
      * Constructor providing the full user credentials. To use to avoid having to log the user in.
      * @param credentials the user credentials
      */
-    public RestClient(Credentials credentials, Class<T> type) {
-        this(Uri.parse(credentials.homeServer), type);
+    public RestClient(Credentials credentials, Class<T> type, String uriPrefix) {
+        this(Uri.parse(credentials.homeServer), type, uriPrefix);
         mCredentials = credentials;
     }
 

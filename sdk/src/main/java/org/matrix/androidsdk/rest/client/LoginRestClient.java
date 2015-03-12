@@ -40,7 +40,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param hsUri the home server URI
      */
     public LoginRestClient(Uri hsUri) {
-        super(hsUri, LoginApi.class);
+        super(hsUri, LoginApi.class, RestClient.URI_API_PREFIX);
         mHsUri = hsUri;
     }
 

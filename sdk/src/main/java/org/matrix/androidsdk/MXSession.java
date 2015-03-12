@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -45,6 +46,7 @@ import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -69,6 +71,7 @@ public class MXSession {
     private RoomsRestClient mRoomsRestClient;
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
+    private ThirdPidRestClient mThirdPidRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -90,6 +93,7 @@ public class MXSession {
         mRoomsRestClient = new RoomsRestClient(credentials);
         mBingRulesRestClient = new BingRulesRestClient(credentials);
         mPushersRestClient = new PushersRestClient(credentials);
+        mThirdPidRestClient = new ThirdPidRestClient(credentials);
 
         mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
@@ -122,6 +126,7 @@ public class MXSession {
         mPresenceRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         mRoomsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         mBingRulesRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mThirdPidRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
 
         // add a default listener
         // to resend the unsent messages
@@ -356,5 +361,25 @@ public class MXSession {
         for(Room room : rooms) {
             room.resendUnsentEvents();
         }
+    }
+
+    /**
+     * Retrieve user matrix id from a 3rd party id.
+     * @param address the user id.
+     * @param media the media.
+     * @param callback the 3rd party callback
+     */
+    public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
+        mThirdPidRestClient.lookup3Pid(address, media, callback);
+    }
+
+    /**
+     * Retrieve user matrix id from a 3rd party id.
+     * @param addresses 3rd party ids
+     * @param mediums the medias.
+     * @param callback the 3rd parties callback
+     */
+    public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
+        mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
 }
