@@ -54,7 +54,7 @@ import java.util.List;
 /**
  * A dialog fragment showing the contacts list
  */
-public class ContactsListDialogFragment extends DialogFragment implements PIDsRetriever.PIDsRetrieverListener  {
+public class ContactsListDialogFragment extends DialogFragment implements PIDsRetriever.PIDsRetrieverListener, ContactsManager.ContactsManagerListener  {
     private static final String LOG_TAG = "ContactsListDialogFragment";
 
     private ListView mListView;
@@ -89,7 +89,7 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-        Collection<Contact> contacts = ContactsManager.getLocalContactsSnapshot();
+        Collection<Contact> contacts = ContactsManager.getLocalContactsSnapshot(getActivity());
 
         if (contacts.size() != 0) {
             builder.setTitle(getString(R.string.contacts) + " (" + contacts.size() + ")");
@@ -123,7 +123,7 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         mListView = ((ListView)v.findViewById(R.id.listView_contacts));
 
         // get the local contacts
-        mLocalContacts = new ArrayList<Contact>(ContactsManager.getLocalContactsSnapshot());
+        mLocalContacts = new ArrayList<Contact>(ContactsManager.getLocalContactsSnapshot(getActivity()));
 
         mAdapter = new ContactsListAdapter(getActivity(), R.layout.adapter_item_contact);
 
@@ -321,12 +321,14 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     public void onStart() {
         super.onStart();
         PIDsRetriever.setPIDsRetrieverListener(this);
+        ContactsManager.addListener(this);
     }
 
     @Override
     public void onStop() {
         super.onStop();
         PIDsRetriever.setPIDsRetrieverListener(null);
+        ContactsManager.removeListener(this);
     }
 
     /**
@@ -343,4 +345,18 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
             }
         });
     }
+
+    /**
+     * Called when the contacts list have been
+     */
+    public void onRefresh() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mLocalContacts = new ArrayList<Contact>(ContactsManager.getLocalContactsSnapshot(getActivity()));
+                refreshAdapter();
+            }
+        });
+    }
 }
+
