@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="org.matrix.matrixandroidsdk.HomeActivity" >
 
+    <item android:id="@+id/action_display_contacts"
+        android:title="@string/action_search_contact"
+        android:icon="@drawable/ic_menu_allfriends"
+        app:showAsAction="ifRoom" />
+
     <item android:id="@+id/action_create_room"
           android:title="@string/action_create_room"
           android:icon="@drawable/ic_menu_btn_add"

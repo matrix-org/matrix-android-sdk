@@ -18,6 +18,7 @@ package org.matrix.matrixandroidsdk;
 import android.app.Activity;
 import android.app.Application;
 
+import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 import java.util.Timer;
@@ -45,6 +46,7 @@ public class ConsoleApplication extends Application {
         this.mActivityTransitionTimerTask = new TimerTask() {
             public void run() {
                 ConsoleApplication.this.isInBackground = true;
+                PIDsRetriever.onAppBackgrounded();
             }
         };
 

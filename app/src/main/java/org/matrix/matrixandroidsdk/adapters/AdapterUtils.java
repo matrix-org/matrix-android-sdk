@@ -1,6 +1,11 @@
 package org.matrix.matrixandroidsdk.adapters;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.text.Html;
 import android.util.Log;
 
@@ -13,6 +18,8 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.R;
+
+import java.util.List;
 
 /**
  * Contains useful functions for adapters.
@@ -225,5 +232,63 @@ public class AdapterUtils {
         }
 
         return null;
+    }
+
+    /** Checks if the device can send SMS messages.
+     *
+     * @param context Context for obtaining the package manager.
+     * @return true if you can send SMS, false otherwise.
+     */
+    public static boolean canSendSms(Context context) {
+        Uri smsUri = Uri.parse("smsto:12345");
+        Intent smsIntent = new Intent(Intent.ACTION_SENDTO, smsUri);
+        PackageManager smspackageManager = context.getPackageManager();
+        List<ResolveInfo> smsresolveInfos = smspackageManager.queryIntentActivities(smsIntent, 0);
+        if(smsresolveInfos.size() > 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    /** Launch a SMS intent if the device is capable.
+     *
+     * @param activity The parent activity (for context)
+     * @param number The number to sms (not the full URI)
+     * @param text The sms body
+     */
+    public static void launchSmsIntent(final Activity activity, String number, String text) {
+        Log.i(LOG_TAG,"Launch SMS intent to "+number);
+        // create sms intent
+        Uri smsUri = Uri.parse("smsto:" + number);
+        Intent smsIntent = new Intent(Intent.ACTION_SENDTO, smsUri);
+        smsIntent.putExtra("sms_body", text);
+        // make sure there is an activity which can handle the intent.
+        PackageManager smspackageManager = activity.getPackageManager();
+        List<ResolveInfo> smsresolveInfos = smspackageManager.queryIntentActivities(smsIntent, 0);
+        if(smsresolveInfos.size() > 0) {
+            activity.startActivity(smsIntent);
+        }
+    }
+
+    /** Launch an email intent if the device is capable.
+     *
+     * @param activity The parent activity (for context)
+     * @param addr The address to email (not the full URI)
+     * @param text The email body
+     */
+    public static void launchEmailIntent(final Activity activity, String addr, String text) {
+        Log.i(LOG_TAG,"Launch email intent from "+activity.getLocalClassName());
+        // create email intent
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[] {addr});
+        emailIntent.setType("text/plain");
+        // make sure there is an activity which can handle the intent.
+        PackageManager emailpackageManager = activity.getPackageManager();
+        List<ResolveInfo> emailresolveInfos = emailpackageManager.queryIntentActivities(emailIntent, 0);
+        if(emailresolveInfos.size() > 0) {
+            activity.startActivity(emailIntent);
+        }
     }
 }

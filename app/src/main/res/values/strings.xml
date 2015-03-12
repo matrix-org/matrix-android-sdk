@@ -26,6 +26,7 @@
     <string name="chat">Chat</string>
     <string name="clear_cache">Clear Cache</string>
     <string name="more">More</string>
+    <string name="chat_with">Chat with </string>
 
     <!-- actions -->
     <string name="action_settings">Settings</string>
@@ -39,6 +40,7 @@
     <string name="action_create_room">Create...</string>
     <string name="action_room_info">Room info</string>
     <string name="action_search_room">Search room</string>
+    <string name="action_search_contact">Search contact</string>
     <string name="action_mark_all_as_read">Mark all as read</string>
     <string name="action_quick_reply">Quick reply</string>
     <string name="action_open">Open</string>
@@ -138,6 +140,11 @@
     <string name="members_one_to_one">One to one room members</string>
     <string name="members_small_room_members">Small room members</string>
     <string name="members_large_room_members">Large room members</string>
+
+    <!-- contacts list screen -->
+    <string name="contacts">Contacts</string>
+    <string name="invite_this_user_to_use_matrix">Invite this user user to use matrix with</string>
+    <string name="invitation_message">I\'d like to chat with you with matrix. Please, visit the website http://matrix.org to have more information.</string>
 
     <!-- Settings screen -->
     <string name="settings_title_profile">Profile</string>

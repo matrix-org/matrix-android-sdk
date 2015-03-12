@@ -19,8 +19,8 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -44,12 +44,14 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
+import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 
 /**
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
@@ -60,6 +62,10 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
+
+    private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
+
+
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
@@ -480,8 +486,18 @@ public class HomeActivity extends MXCActionBarActivity {
         if (id == R.id.action_mark_all_as_read) {
             markAllMessagesAsRead();
             return true;
-        }
-        else if (id == R.id.search_room) {
+        } else if (id == R.id.action_display_contacts) {
+            FragmentManager fm = getSupportFragmentManager();
+
+            ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+            fragment = ContactsListDialogFragment.newInstance();
+            fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
+
+            return true;
+        } else if (id == R.id.search_room) {
             toggleSearchButton();
             return true;
         }
