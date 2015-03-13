@@ -250,49 +250,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Join a room.
-     * @param roomId the room id
-     * @param callback the async callback
-     */
-    public void joinRoom(final String roomId, final ApiCallback<Void> callback) {
-        mApi.join(roomId, new JsonObject(), new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onNetworkFailed() {
-                final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
-                    @Override
-                    public void onNetworkConnectionUpdate(boolean isConnected) {
-                        Log.e(LOG_TAG, "resend joinRoom " + roomId);
-
-                        try {
-                            joinRoom(roomId, callback);
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "resend joinRoom : failed " + e.getMessage());
-                        }
-                    }
-                };
-
-                // add to the network listener until it gets a data connection
-                mNetworkConnectivityReceiver.addOnConnectedEventListener(listener);
-            }
-        }));
-    }
-
-    /**
      * Join a room by its roomAlias or its roomId
-     * @param roomId_Alias the room id or the room alias
+     * @param roomIdOrAlias the room id or the room alias
      * @param callback the async callback
      */
-    public void joinRoomByAliasOrId(final String roomId_Alias, final ApiCallback<RoomResponse> callback) {
-        mApi.joinRoomByAliasOrId(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+    public void joinRoom(final String roomIdOrAlias, final ApiCallback<RoomResponse> callback) {
+        String urlEncodedAlias = roomIdOrAlias;
+        try {
+            urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
+        }
+        catch (Exception e) {
+        }
+
+        mApi.joinRoomByAliasOrId(urlEncodedAlias, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onNetworkFailed() {
                 final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
                     @Override
                     public void onNetworkConnectionUpdate(boolean isConnected) {
-                        Log.e(LOG_TAG, "resend joinRoomByAlias " + roomId_Alias);
+                        Log.e(LOG_TAG, "resend joinRoomByAlias " + roomIdOrAlias);
 
                         try {
-                            joinRoomByAliasOrId(roomId_Alias, callback);
+                            joinRoom(roomIdOrAlias, callback);
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getMessage());
                         }

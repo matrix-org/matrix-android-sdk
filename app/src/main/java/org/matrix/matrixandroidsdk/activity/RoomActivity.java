@@ -500,7 +500,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoomByRoomAliasOrId(roomAlias,new SimpleApiCallback<String>() {
+                    session.joinRoom(roomAlias,new SimpleApiCallback<String>() {
 
                         @Override
                         public void onSuccess(String roomId) {

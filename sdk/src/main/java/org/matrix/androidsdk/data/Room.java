@@ -441,11 +441,26 @@ public class Room {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<Void>(callback) {
+        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
-            public void onSuccess(final Void aVoid) {
+            public void onSuccess(final RoomResponse aReponse) {
                 // Once we've joined, we run an initial sync on the room to have all of its information
                 initialSync(callback);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
             }
         });
     }

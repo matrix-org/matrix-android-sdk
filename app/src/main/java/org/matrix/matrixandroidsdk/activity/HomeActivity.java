@@ -538,7 +538,7 @@ public class HomeActivity extends MXCActionBarActivity {
             public void onSubmit(String text) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
 
-                session.joinRoomByRoomAliasOrId(text, new ApiCallback<String>() {
+                session.joinRoom(text, new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String roomId) {
                         if (null != roomId) {

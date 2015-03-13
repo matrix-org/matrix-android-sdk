@@ -332,18 +332,10 @@ public class MXSession {
      * @param roomIdOrAlias the room alias
      * @param callback the async callback once the room is joined. The RoomId is provided.
      */
-    public void joinRoomByRoomAliasOrId(String roomIdOrAlias, final ApiCallback<String> callback) {
+    public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
         // sanity check
         if ((null != mDataHandler) && (null != roomIdOrAlias)) {
-
-            String urlEncodedAlias = roomIdOrAlias;
-            try {
-                urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
-            }
-            catch (Exception e) {
-            }
-
-            mDataRetriever.getRoomsRestClient().joinRoomByAliasOrId(urlEncodedAlias, new SimpleApiCallback<RoomResponse>(callback) {
+            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(final RoomResponse roomResponse) {
                     callback.onSuccess(roomResponse.roomId);
