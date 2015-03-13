@@ -15,10 +15,14 @@
         <menu>
             <item
                 android:id="@+id/action_create_public_room"
-                android:title="@string/public_room" />
+                android:title="@string/create_public_room" />
             <item
                 android:id="@+id/action_create_private_room"
-                android:title="@string/private_room" />
+                android:title="@string/create_private_room" />
+
+            <item
+                android:id="@+id/action_join_room_by_name"
+                android:title="@string/join_room" />
         </menu>
     </item>
 

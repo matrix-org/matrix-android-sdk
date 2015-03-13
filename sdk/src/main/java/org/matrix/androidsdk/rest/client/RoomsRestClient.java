@@ -282,8 +282,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId_Alias the room id or the room alias
      * @param callback the async callback
      */
-    public void joinRoomByAlias(final String roomId_Alias, final ApiCallback<RoomResponse> callback) {
-        mApi.joinRoomByAlias(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+    public void joinRoomByAliasOrId(final String roomId_Alias, final ApiCallback<RoomResponse> callback) {
+        mApi.joinRoomByAliasOrId(roomId_Alias, new RestAdapterCallback<RoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onNetworkFailed() {
                 final IMXNetworkEventListener listener = new IMXNetworkEventListener() {
@@ -292,7 +292,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                         Log.e(LOG_TAG, "resend joinRoomByAlias " + roomId_Alias);
 
                         try {
-                            joinRoomByAlias(roomId_Alias, callback);
+                            joinRoomByAliasOrId(roomId_Alias, callback);
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getMessage());
                         }

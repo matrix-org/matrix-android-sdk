@@ -46,8 +46,9 @@
     <string name="action_open">Open</string>
 
     <string name="my_rooms">My rooms</string>
-    <string name="private_room">Private Room</string>
-    <string name="public_room">Public Room</string>
+    <string name="create_private_room">Create private room</string>
+    <string name="create_public_room">create public room</string>
+    <string name="join_room">Join room</string>
     <string name="create">Create:</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
@@ -60,6 +61,8 @@
     <string name="create_room_alias_hint">room-alias</string>
     <string name="create_room_set_name">Set room name</string>
     <string name="create_room_name_hint">My room</string>
+    <string name="join_room_title">Join Room</string>
+    <string name="join_room_hint">(e.g. #foo:example.org)</string>
 
     <string name="membership_invite">Invited</string>
     <string name="membership_join">Joined</string>

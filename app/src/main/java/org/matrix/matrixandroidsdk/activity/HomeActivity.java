@@ -28,14 +28,17 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -512,6 +515,10 @@ public class HomeActivity extends MXCActionBarActivity {
             createRoom(true);
             return true;
         }
+        else if (id == R.id.action_join_room_by_name) {
+            joinRoomByName();
+            return true;
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -523,6 +530,50 @@ public class HomeActivity extends MXCActionBarActivity {
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private void joinRoomByName() {
+        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, getString(R.string.join_room_title),  getString(R.string.join_room_hint), null, new CommonActivityUtils.OnSubmitListener() {
+            @Override
+            public void onSubmit(String text) {
+                MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+
+                session.joinRoomByRoomAliasOrId(text, new ApiCallback<String>() {
+                    @Override
+                    public void onSuccess(String roomId) {
+                        if (null != roomId) {
+                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                getString(R.string.network_error),
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.error,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.getLocalizedMessage(),
+                                Toast.LENGTH_LONG).show();
+
+                    }
+                });
+            }
+
+            @Override
+            public void onCancelled() {}
+        });
+        alert.show();
     }
 
     private void createRoom(final boolean isPublic) {

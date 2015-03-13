@@ -329,21 +329,21 @@ public class MXSession {
 
     /**
      * Join a room by its roomAlias
-     * @param alias the room alias
+     * @param roomIdOrAlias the room alias
      * @param callback the async callback once the room is joined. The RoomId is provided.
      */
-    public void joinRoomByRoomAlias(String alias, final ApiCallback<String> callback) {
+    public void joinRoomByRoomAliasOrId(String roomIdOrAlias, final ApiCallback<String> callback) {
         // sanity check
-        if ((null != mDataHandler) && (null != alias)) {
+        if ((null != mDataHandler) && (null != roomIdOrAlias)) {
 
-            String urlEncodedAlias = alias;
+            String urlEncodedAlias = roomIdOrAlias;
             try {
                 urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
             }
             catch (Exception e) {
             }
 
-            mDataRetriever.getRoomsRestClient().joinRoomByAlias(urlEncodedAlias, new SimpleApiCallback<RoomResponse>(callback) {
+            mDataRetriever.getRoomsRestClient().joinRoomByAliasOrId(urlEncodedAlias, new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(final RoomResponse roomResponse) {
                     callback.onSuccess(roomResponse.roomId);
