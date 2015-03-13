@@ -33,6 +33,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.LockScreenActivity;
 import org.matrix.matrixandroidsdk.activity.PublicRoomsActivity;
 import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.util.ArrayList;
@@ -105,13 +106,24 @@ public class EventStreamService extends Service {
             String senderID = event.userId;
             // FIXME: Support event contents with no body
             if (!event.content.has("body")) {
-                return;
+                // only the membership events are supported
+                if (!Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                    return;
+                }
+            }
+
+            String body;
+
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                body = AdapterUtils.EventDisplay.getMembershipNotice(getApplicationContext(), event, roomState);
+            } else {
+                body = event.content.getAsJsonPrimitive("body").getAsString();
             }
 
             Room room = mSession.getDataHandler().getRoom(roomId);
 
             // invalid room ?
-            if(null == room) {
+            if (null == room) {
                 return;
             }
 
@@ -123,8 +135,6 @@ public class EventStreamService extends Service {
             }
 
             mNotificationRoomId = roomId;
-
-            final String body = event.content.getAsJsonPrimitive("body").getAsString();
 
             Notification n = buildMessageNotification(member.getName(), body, event.roomId);
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);

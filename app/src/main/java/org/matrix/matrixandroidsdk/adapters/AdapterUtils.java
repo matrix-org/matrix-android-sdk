@@ -49,8 +49,12 @@ public class AdapterUtils {
             mPrependAuthor = prepend;
         }
 
-        private String getUserDisplayName(String userId) {
-            return mRoomState.getMemberName(userId);
+        private static String getUserDisplayName(String userId, RoomState roomState) {
+            if (null != roomState) {
+                return roomState.getMemberName(userId);
+            } else {
+                return userId;
+            }
         }
 
         /**
@@ -60,7 +64,7 @@ public class AdapterUtils {
         public CharSequence getTextualDisplay() {
             CharSequence text = null;
             try {
-                String userDisplayName = getUserDisplayName(mEvent.userId);
+                String userDisplayName = getUserDisplayName(mEvent.userId, mRoomState);
                 if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
 
                     String msgtype = (null != mEvent.content.get("msgtype")) ? mEvent.content.get("msgtype").getAsString() : "";
@@ -102,12 +106,12 @@ public class AdapterUtils {
                     if (prevState == null) {
                         // if there is no previous state, it has to be an invite or a join as they are the first
                         // m.room.member events for a user.
-                        text = getMembershipNotice(mEvent);
+                        text = getMembershipNotice(mContext, mEvent, mRoomState);
                     }
                     else {
                         // check if the membership changed
                         if (hasStringValueChanged(mEvent, "membership")) {
-                            text = getMembershipNotice(mEvent);
+                            text = getMembershipNotice(mContext, mEvent, mRoomState);
                         }
                         // check if avatar url changed
                         else if (hasStringValueChanged(mEvent, "avatar_url")) {
@@ -120,7 +124,7 @@ public class AdapterUtils {
                         else {
                             // assume it is a membership notice
                             // some other members could also play with the application
-                            text = getMembershipNotice(mEvent);
+                            text = getMembershipNotice(mContext, mEvent, mRoomState);
                         }
                     }
                 }
@@ -132,7 +136,7 @@ public class AdapterUtils {
             return text;
         }
 
-        private String getMembershipNotice(Event msg) {
+        public static String getMembershipNotice(Context context, Event msg, RoomState roomState) {
             String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
             String userDisplayName = null;
 
@@ -152,29 +156,29 @@ public class AdapterUtils {
             // cannot retrieve the display name from the event
             if (null == userDisplayName) {
                 // retrieve it by the room members list
-                userDisplayName = getUserDisplayName(msg.userId);
+                userDisplayName = getUserDisplayName(msg.userId, roomState);
             }
 
             if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-                return mContext.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey));
+                return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
             }
             else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_join, userDisplayName);
+                return context.getString(R.string.notice_room_join, userDisplayName);
             }
             else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
                 // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
                 if (msg.userId.equals(msg.stateKey)) {
-                    return mContext.getString(R.string.notice_room_leave, userDisplayName);
+                    return context.getString(R.string.notice_room_leave, userDisplayName);
                 } else if (null != prevMembership) {
                     if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
-                        return mContext.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey));
+                        return context.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
                     } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                        return mContext.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey));
+                        return context.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
                     }
                 }
             }
             else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                return mContext.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey));
+                return context.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
             }
             else {
                 // eh?
@@ -185,7 +189,7 @@ public class AdapterUtils {
 
         private String getAvatarChangeNotice(Event msg) {
             // TODO: Pictures!
-            return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.userId));
+            return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.userId, mRoomState));
         }
 
         private String getDisplayNameChangeNotice(Event msg) {
