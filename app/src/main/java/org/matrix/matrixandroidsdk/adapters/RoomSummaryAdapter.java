@@ -228,6 +228,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public void addRoomSummary(RoomSummary roomSummary) {
+        // check if the summary is not added twice.
+        for(RoomSummary rSum : mRecentsSummariesList) {
+            if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
+                return;
+            }
+        }
+
         mRecentsSummariesList.add(roomSummary);
     }
 

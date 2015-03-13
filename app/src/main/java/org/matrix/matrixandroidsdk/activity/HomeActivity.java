@@ -133,7 +133,10 @@ public class HomeActivity extends MXCActionBarActivity {
                                     addNewRoom(event.roomId);
                                 } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                                     RoomMember member = JsonUtils.toRoomMember(event.content);
-                                    if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership) && event.stateKey.equals(selfUserId)) {
+
+                                    // add the room summary if the user has
+                                    if ((RoomMember.MEMBERSHIP_INVITE.equals(member.membership) || RoomMember.MEMBERSHIP_JOIN.equals(member.membership))
+                                            && event.stateKey.equals(selfUserId)) {
                                         // we were invited to a new room.
                                         addNewRoom(event.roomId);
                                     }
