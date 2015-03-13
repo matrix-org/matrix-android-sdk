@@ -43,32 +43,46 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Room getRoom(String roomId) {
-        return mRooms.get(roomId);
+        if (null != roomId) {
+            return mRooms.get(roomId);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public User getUser(String userId) {
-        return mUsers.get(userId);
+        if (null != userId) {
+            return mUsers.get(userId);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public void storeUser(User user) {
-        mUsers.put(user.userId, user);
+        if ((null != user) && (null != user.userId)) {
+            mUsers.put(user.userId, user);
+        }
     }
 
     @Override
     public void storeRoom(Room room) {
-        mRooms.put(room.getRoomId(), room);
+        if ((null != room) && (null != room.getRoomId())) {
+            mRooms.put(room.getRoomId(), room);
+        }
     }
 
     @Override
     public Event getOldestEvent(String roomId) {
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        if (null != roomId) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-        if (events != null) {
-            Iterator<Event> it = events.values().iterator();
-            if (it.hasNext()) {
-                return it.next();
+            if (events != null) {
+                Iterator<Event> it = events.values().iterator();
+                if (it.hasNext()) {
+                    return it.next();
+                }
             }
         }
         return null;
@@ -80,18 +94,20 @@ public class MXMemoryStore implements IMXStore {
      * @return the event
      */
     public Event getLatestEvent(String roomId) {
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        if (null != roomId) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-        if (events != null) {
-            Iterator<Event> it = events.values().iterator();
-            if (it.hasNext()) {
-                Event lastEvent = null;
+            if (events != null) {
+                Iterator<Event> it = events.values().iterator();
+                if (it.hasNext()) {
+                    Event lastEvent = null;
 
-                while(it.hasNext()) {
-                    lastEvent = it.next();
+                    while (it.hasNext()) {
+                        lastEvent = it.next();
+                    }
+
+                    return lastEvent;
                 }
-
-                return lastEvent;
             }
         }
         return null;
@@ -99,98 +115,107 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeLiveRoomEvent(Event event) {
-        LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-        if (events != null) {
-            // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
-            // wait for the first pagination request to set things right
-            events.put(event.eventId, event);
+        if ((null != event) && (null != event.roomId)) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+            if (events != null) {
+                // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
+                // wait for the first pagination request to set things right
+                events.put(event.eventId, event);
+            }
         }
     }
 
     @Override
     public void deleteEvent(Event event) {
-        LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-        if ((events != null) && (event.eventId != null)) {
-            events.remove(event.eventId);
+        if ((null != event) && (null != event.roomId)) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+            if ((events != null) && (event.eventId != null)) {
+                events.remove(event.eventId);
+            }
         }
     }
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
-
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-        if (events == null) {
-            events = new LinkedHashMap<String, Event>();
-            mRoomEvents.put(roomId, events);
-        }
-
-        if (direction == Room.EventDirection.FORWARDS) {
-            mRoomTokens.put(roomId, eventsResponse.start);
-
-            for (Event event : eventsResponse.chunk) {
-                events.put(event.eventId, event);
+        if (null != roomId) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+            if (events == null) {
+                events = new LinkedHashMap<String, Event>();
+                mRoomEvents.put(roomId, events);
             }
 
-        } else { // BACKWARD
-            Collection<Event>eventsList = events.values();
-
-            // no stored events
-            if (events.size() == 0) {
-                // insert the catchup events in reverse order
-                for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                    Event backEvent = eventsResponse.chunk.get(index);
-                    events.put(backEvent.eventId, backEvent);
-                }
-
-                // define a token
+            if (direction == Room.EventDirection.FORWARDS) {
                 mRoomTokens.put(roomId, eventsResponse.start);
-            } else {
-                LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
 
-                // insert the catchup events in reverse order
-                for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                    Event backEvent = eventsResponse.chunk.get(index);
-                    events2.put(backEvent.eventId, backEvent);
+                for (Event event : eventsResponse.chunk) {
+                    events.put(event.eventId, event);
                 }
 
-                // add the previous added Events
-                for (Event event : eventsList) {
-                    events2.put(event.eventId, event);
-                }
+            } else { // BACKWARD
+                Collection<Event> eventsList = events.values();
 
-                // store the new list
-                mRoomEvents.put(roomId, events2);
+                // no stored events
+                if (events.size() == 0) {
+                    // insert the catchup events in reverse order
+                    for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                        Event backEvent = eventsResponse.chunk.get(index);
+                        events.put(backEvent.eventId, backEvent);
+                    }
+
+                    // define a token
+                    mRoomTokens.put(roomId, eventsResponse.start);
+                } else {
+                    LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
+
+                    // insert the catchup events in reverse order
+                    for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                        Event backEvent = eventsResponse.chunk.get(index);
+                        events2.put(backEvent.eventId, backEvent);
+                    }
+
+                    // add the previous added Events
+                    for (Event event : eventsList) {
+                        events2.put(event.eventId, event);
+                    }
+
+                    // store the new list
+                    mRoomEvents.put(roomId, events2);
+                }
             }
         }
     }
 
     @Override
     public void updateEventContent(String roomId, String eventId, JsonObject newContent) {
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-        if (events != null) {
-            Event event = events.get(eventId);
-            if (event != null) {
-                event.content = newContent;
+        if (null != roomId) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+            if (events != null) {
+                Event event = events.get(eventId);
+                if (event != null) {
+                    event.content = newContent;
+                }
             }
         }
     }
 
     @Override
     public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
-        Room room = mRooms.get(roomId);
-        if ((room != null) && (event != null)) { // Should always be true
-            RoomSummary summary = mRoomSummaries.get(roomId);
-            if (summary == null) {
-                summary = new RoomSummary();
-            }
-            summary.setLatestEvent(event);
-            summary.setLatestRoomState(roomState);
-            summary.setMembers(room.getMembers());
-            summary.setName(room.getName(selfUserId));
-            summary.setRoomId(room.getRoomId());
-            summary.setTopic(room.getTopic());
+        if (null !=roomId) {
+            Room room = mRooms.get(roomId);
+            if ((room != null) && (event != null)) { // Should always be true
+                RoomSummary summary = mRoomSummaries.get(roomId);
+                if (summary == null) {
+                    summary = new RoomSummary();
+                }
+                summary.setLatestEvent(event);
+                summary.setLatestRoomState(roomState);
+                summary.setMembers(room.getMembers());
+                summary.setName(room.getName(selfUserId));
+                summary.setRoomId(room.getRoomId());
+                summary.setTopic(room.getTopic());
 
-            mRoomSummaries.put(roomId, summary);
+                mRoomSummaries.put(roomId, summary);
+            }
         }
     }
 
@@ -198,7 +223,7 @@ public class MXMemoryStore implements IMXStore {
     public TokensChunkResponse<Event> getRoomEvents(String roomId, String token) {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
-        if (token == null) {
+        if ((null != roomId) && (token == null)) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events == null) {
                 return null;
@@ -231,6 +256,10 @@ public class MXMemoryStore implements IMXStore {
      * @return list of unsent events
      */
     public Collection<Event> getLatestUnsentEvents(String roomId) {
+        if (null == roomId) {
+            return null;
+        }
+
         ArrayList<Event> unsentRoomEvents = new ArrayList<Event>();
         LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
