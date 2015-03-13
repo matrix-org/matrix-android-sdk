@@ -147,8 +147,12 @@
     <string name="invitation_message">I\'d like to chat with you with matrix. Please, visit the website http://matrix.org to have more information.</string>
 
     <!-- Settings screen -->
+
+    <string name="settings_webclient_push">To configure push, go find a webclient and hit settings.</string>
+
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
+    <string name="settings_title_notifications">Notifications</string>
     <string name="settings_title_rooms">Rooms</string>
     <string name="settings_title_commands">Commands</string>
     <string name="settings_config_console_version">matrixConsole version: %s</string>

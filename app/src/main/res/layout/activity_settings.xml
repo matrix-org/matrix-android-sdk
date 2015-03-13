@@ -93,6 +93,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             style="@style/title"
+            android:text="@string/settings_title_notifications"/>
+
+        <TextView
+            android:text = "@string/settings_webclient_push"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+
+        <TextView
+            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/title"
             android:text="@string/settings_title_rooms"/>
 
         <LinearLayout
