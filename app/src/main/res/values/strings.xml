@@ -151,7 +151,7 @@
 
     <!-- Settings screen -->
 
-    <string name="settings_webclient_push">To configure push, go find a webclient and hit settings.</string>
+    <string name="settings_webclient_push">To configure global notification settings (like rules), go find a webclient and hit Settings > Notifications.</string>
 
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
