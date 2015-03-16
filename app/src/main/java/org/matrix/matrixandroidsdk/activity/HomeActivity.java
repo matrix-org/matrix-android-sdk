@@ -48,6 +48,8 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
@@ -67,7 +69,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
-
+    private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
 
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
@@ -507,12 +509,8 @@ public class HomeActivity extends MXCActionBarActivity {
             toggleSearchButton();
             return true;
         }
-        else if (id == R.id.action_create_private_room) {
-            createRoom(false);
-            return true;
-        }
-        else if (id == R.id.action_create_public_room) {
-            createRoom(true);
+        else if (id == R.id.action_create_room) {
+            createRoom();
             return true;
         }
         else if (id == R.id.action_join_room_by_name) {
@@ -576,34 +574,15 @@ public class HomeActivity extends MXCActionBarActivity {
         alert.show();
     }
 
-    private void createRoom(final boolean isPublic) {
-        final String roomVisibility = isPublic ? RoomState.VISIBILITY_PUBLIC : RoomState.VISIBILITY_PRIVATE;
-        // For public rooms, we ask for the alias; for private, the room name
-        String alertTitle = getString(isPublic ? R.string.create_room_set_alias : R.string.create_room_set_name);
-        String textFieldHint = getString(isPublic ? R.string.create_room_alias_hint : R.string.create_room_name_hint);
+    private void createRoom() {
+        FragmentManager fm = getSupportFragmentManager();
 
-        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, null, new CommonActivityUtils.OnSubmitListener() {
-            @Override
-            public void onSubmit(String text) {
-                if (text.length() == 0) {
-                    return;
-                }
-                MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                String alias = isPublic ? text : null;
-                String name = isPublic ? null : text;
-                session.createRoom(name, null, roomVisibility, alias, new SimpleApiCallback<String>() {
-
-                    @Override
-                    public void onSuccess(String info) {
-                        CommonActivityUtils.goToRoomPage(info, HomeActivity.this);
-                    }
-                });
-            }
-
-            @Override
-            public void onCancelled() {}
-        });
-        alert.show();
+        RoomCreationDialogFragment fragment = (RoomCreationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CREATE_ROOM_DIALOG);
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
+        }
+        fragment = RoomCreationDialogFragment.newInstance();
+        fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 
     private void markAllMessagesAsRead(){

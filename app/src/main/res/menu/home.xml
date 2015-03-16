@@ -8,18 +8,14 @@
         android:icon="@drawable/ic_menu_allfriends"
         app:showAsAction="ifRoom" />
 
-    <item android:id="@+id/action_create_room"
+    <item android:id="@+id/action_room_actions"
           android:title="@string/action_create_room"
           android:icon="@drawable/ic_menu_btn_add"
           app:showAsAction="ifRoom">
         <menu>
             <item
-                android:id="@+id/action_create_public_room"
-                android:title="@string/create_public_room" />
-            <item
-                android:id="@+id/action_create_private_room"
-                android:title="@string/create_private_room" />
-
+                android:id="@+id/action_create_room"
+                android:title="@string/create_room" />
             <item
                 android:id="@+id/action_join_room_by_name"
                 android:title="@string/join_room" />

@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
@@ -383,12 +384,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the async callback
      */
     public void createRoom(final String name, final String topic, final String visibility, final String alias, final ApiCallback<CreateRoomResponse> callback) {
-
         RoomState roomState = new RoomState();
-        roomState.name = name;
-        roomState.topic = topic;
+        // avoid empty strings
+        // The server does not always reponse when a string is empty
+        // replace them by null
+        roomState.name = TextUtils.isEmpty(name) ? null : name;
+        roomState.topic = TextUtils.isEmpty(topic) ? null : topic;
         roomState.visibility = visibility;
-        roomState.roomAliasName = alias;
+        roomState.roomAliasName = TextUtils.isEmpty(alias) ? null : alias;
 
         mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override

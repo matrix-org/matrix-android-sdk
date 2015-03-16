@@ -46,8 +46,7 @@
     <string name="action_open">Open</string>
 
     <string name="my_rooms">My rooms</string>
-    <string name="create_private_room">Create private room</string>
-    <string name="create_public_room">create public room</string>
+    <string name="create_room">Create room</string>
     <string name="join_room">Join room</string>
     <string name="create">Create:</string>
     <string name="username">Username</string>
@@ -143,6 +142,17 @@
     <string name="members_one_to_one">One to one room members</string>
     <string name="members_small_room_members">Small room members</string>
     <string name="members_large_room_members">Large room members</string>
+
+    <!-- room creation dialog Screen -->
+    <string name="room_creation_room_name">Name</string>
+    <string name="room_creation_room_name_hint">(e.g lunchGroup)</string>
+    <string name="room_creation_room_alias">Alias</string>
+    <string name="room_creation_room_alias_hint">(e.g. #foo:matrix.org)"</string>
+    <string name="room_creation_participants">With</string>
+    <string name="room_creation_participants_hint">(e.g. @me:hs;...)</string>
+    <string name="room_creation_create_room">Create room</string>
+    <string name="room_creation_public">Public</string>
+    <string name="room_creation_private">Private</string>
 
     <!-- contacts list screen -->
     <string name="contacts">Contacts</string>
