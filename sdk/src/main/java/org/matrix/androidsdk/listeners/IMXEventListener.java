@@ -79,4 +79,11 @@ public interface IMXEventListener {
      * The initial sync is complete and the store can be queried for current state.
      */
     public void onInitialSyncComplete();
+
+    /**
+     * The room initial sync is completed.
+     * It is triggered after retrieving the room info and performing a first requestHistory
+     * @param roomId the roomID
+     */
+    public void onRoomInitialSyncComplete(String roomId);
 }

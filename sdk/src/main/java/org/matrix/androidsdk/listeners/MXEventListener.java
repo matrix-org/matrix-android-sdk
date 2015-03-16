@@ -56,11 +56,13 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onBingRulesUpdate() {
-
     }
 
     @Override
     public void onInitialSyncComplete() {
+    }
 
+    @Override
+    public void onRoomInitialSyncComplete(String roomId) {
     }
 }

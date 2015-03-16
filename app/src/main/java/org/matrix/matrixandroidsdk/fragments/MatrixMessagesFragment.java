@@ -181,10 +181,17 @@ public class MatrixMessagesFragment extends Fragment {
     private void joinRoom() {
         displayLoadingProgress();
 
+        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
+
+        if (null != roomSummary) {
+            roomSummary.setInviterUserId(null);
+        }
+
         mRoom.join(new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                requestInitialHistory();
+                // the SDK performs the initial sync when it gets the join event echo
+                //requestInitialHistory();
             }
 
             // the request will be automatically restarted when a valid network will be found
@@ -232,9 +239,6 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     private void requestInitialHistory() {
-        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
-        roomSummary.setInviterUserId(null);
-
         displayLoadingProgress();
 
         // the initial sync will be retrieved when a network connection will be found

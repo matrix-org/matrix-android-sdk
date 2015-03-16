@@ -71,7 +71,7 @@ import java.util.TimerTask;
 /**
  * Displays a single room with messages.
  */
-public class RoomActivity extends MXCActionBarActivity implements MatrixMessageListFragment.MatrixMessageListFragmentListener {
+public class RoomActivity extends MXCActionBarActivity {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
@@ -126,6 +126,20 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                         RoomState roomState = JsonUtils.toRoomState(event.content);
                         setTopic(roomState.topic);
                     }
+                }
+            });
+        }
+
+        @Override
+        public void onRoomInitialSyncComplete(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // set general room information
+                    setTitle(mRoom.getName(mSession.getCredentials().userId));
+                    setTopic(mRoom.getTopic());
+
+                    mMatrixMessageListFragment.onInitialMessagesLoaded();
                 }
             });
         }
@@ -345,11 +359,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         setTitle(mRoom.getName(mSession.getCredentials().userId));
         setTopic(mRoom.getTopic());
 
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
-
         // listen for room name or topic changes
         mRoom.addEventListener(mEventListener);
 
@@ -373,7 +382,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(null);
         // warn other member that the typing is ended
         cancelTypingNotification();
     }
@@ -383,11 +391,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         super.onResume();
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
         MyPresenceManager.getInstance(this).advertiseOnline();
-
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
@@ -706,13 +709,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 }
             }
         }
-    }
-
-    @Override
-    public void onInitialMessagesLoaded() {
-        // set general room information
-        setTitle(mRoom.getName(mSession.getCredentials().userId));
-        setTopic(mRoom.getTopic());
     }
 
     /**
