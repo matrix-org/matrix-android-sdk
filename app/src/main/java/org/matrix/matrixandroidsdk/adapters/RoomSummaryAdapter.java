@@ -17,7 +17,6 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.preference.PreferenceManager;
@@ -25,10 +24,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseExpandableListAdapter;
-import android.widget.CheckedTextView;
-import android.widget.ExpandableListView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.data.Room;
@@ -38,25 +34,17 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.HomeActivity;
-import org.matrix.matrixandroidsdk.activity.RoomActivity;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-
-import javax.net.ssl.SSLContext;
 
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
@@ -64,8 +52,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
     private int mUnreadColor;
     private int mHighlightColor;
     private int mPublicHighlightColor;
@@ -264,6 +250,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     public void removeRoomSummary(RoomSummary roomSummary) {
         mRecentsSummariesList.remove(roomSummary);
+
+        if (null != roomSummary.getRoomId()) {
+            mUnreadCountMap.remove(roomSummary.getRoomId());
+        }
     }
 
     public RoomSummary getSummaryByRoomId(String roomId) {
@@ -315,11 +305,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         for(String roomId : roomIds) {
             resetUnreadCount(roomId);
         }
-    }
-
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
     }
 
     public void sortSummaries() {
@@ -449,10 +434,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
-
-            if (mOddColourResId != 0 && mEvenColourResId != 0) {
-                convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
-            }
 
         } else {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
