@@ -245,7 +245,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 mAdapter.setPublicRoomsList(publicRooms);

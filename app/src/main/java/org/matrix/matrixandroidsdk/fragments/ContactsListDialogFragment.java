@@ -185,18 +185,7 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
                                     activity.runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
-                                            CommonActivityUtils.goToOneToOneRoom(matrixID, activity, new SimpleApiCallback<Void>() {
-                                                @Override
-                                                public void onMatrixError(MatrixError e) {
-                                                }
-
-                                                @Override
-                                                public void onNetworkError(Exception e) {
-                                                }
-
-                                                @Override
-                                                public void onUnexpectedError(Exception e) {
-                                                }
+                                            CommonActivityUtils.goToOneToOneRoom(matrixID, activity, new SimpleApiCallback<Void>(getActivity()) {
                                             });
                                         }
                                     });

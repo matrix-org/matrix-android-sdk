@@ -96,7 +96,7 @@ public class MembersInvitationDialogFragment extends DialogFragment {
                         }
 
                         Room room = mSession.getDataHandler().getRoom(mRoomId);
-                        room.invite(userIDs, new SimpleApiCallback<Void>() {
+                        room.invite(userIDs, new SimpleApiCallback<Void>(getActivity()) {
                             @Override
                             public void onSuccess(Void info) {
                             }

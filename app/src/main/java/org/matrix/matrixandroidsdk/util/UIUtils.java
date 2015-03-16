@@ -35,7 +35,7 @@ public class UIUtils {
     }
 
     public static ApiCallback<Void> buildOnChangeCallback(final Activity activity) {
-        return new SimpleApiCallback<Void>() {
+        return new SimpleApiCallback<Void>(activity) {
             @Override
             public void onSuccess(Void info) {
                 activity.runOnUiThread(new Runnable() {

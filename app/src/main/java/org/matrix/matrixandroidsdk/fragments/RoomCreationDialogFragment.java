@@ -159,7 +159,7 @@ public class RoomCreationDialogFragment extends DialogFragment {
                             }
                         }
 
-                        session.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>() {
+                        session.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>(getActivity()) {
                             @Override
                             public void onSuccess(String roomId) {
                                 CommonActivityUtils.goToRoomPage(roomId, activity);
@@ -167,7 +167,7 @@ public class RoomCreationDialogFragment extends DialogFragment {
                                 Room room = mSession.getDataHandler().getRoom(roomId);
 
                                 if (null != room) {
-                                    room.invite(userIDsList, new SimpleApiCallback<Void>() {
+                                    room.invite(userIDsList, new SimpleApiCallback<Void>(getActivity()) {
                                         @Override
                                         public void onSuccess(Void info) {
                                         }

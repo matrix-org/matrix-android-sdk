@@ -52,7 +52,7 @@ public class PublicRoomsActivity extends MXCActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {

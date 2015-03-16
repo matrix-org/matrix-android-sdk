@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk;
 
+import android.content.Context;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
@@ -77,7 +78,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         mBingRulesManager = bingRulesManager;
-        mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
+        mBingRulesManager.loadRules(new SimpleApiCallback<Void>((Context)null) {
             @Override
             public void onSuccess(Void info) {
                 MXDataHandler.this.onBingRulesUpdate();
@@ -91,7 +92,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void refreshPushRules() {
         if (null != mBingRulesManager) {
-            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
+            mBingRulesManager.loadRules(new SimpleApiCallback<Void>((Context)null) {
                 @Override
                 public void onSuccess(Void info) {
                     MXDataHandler.this.onBingRulesUpdate();
@@ -242,10 +243,10 @@ public class MXDataHandler implements IMXEventListener {
                 roomSummary.setInviterUserId(null);
 
                 final Room room = getStore().getRoom(event.roomId);
-                room.initialSync(new SimpleApiCallback<Void>() {
+                room.initialSync(new SimpleApiCallback<Void>((Context)null) {
                     @Override
                     public void onSuccess(Void info) {
-                        room.requestHistory(new SimpleApiCallback<Integer>() {
+                        room.requestHistory(new SimpleApiCallback<Integer>((Context)null) {
                             @Override
                             public void onSuccess(Integer info) {
                                 onRoomInitialSyncComplete(event.roomId);

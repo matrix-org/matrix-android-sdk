@@ -257,7 +257,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                     Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
                                                     return;
                                                 }
-                                                mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
+                                                mRoom.invite(text.trim(), new SimpleApiCallback<Void>(RoomActivity.this) {
                                                     @Override
                                                     public void onSuccess(Void info) {
                                                         Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
@@ -424,7 +424,7 @@ public class RoomActivity extends MXCActionBarActivity {
         if (id == R.id.action_leave) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                mRoom.leave(new SimpleApiCallback<Void>() {
+                mRoom.leave(new SimpleApiCallback<Void>(this) {
 
                     @Override
                     public void onSuccess(Void info) {
@@ -471,7 +471,7 @@ public class RoomActivity extends MXCActionBarActivity {
         if ((null != body) && (body.startsWith("/"))) {
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
-            final ApiCallback callback = new SimpleApiCallback<Void>() {
+            final ApiCallback callback = new SimpleApiCallback<Void>(this) {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -504,7 +504,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoom(roomAlias,new SimpleApiCallback<String>() {
+                    session.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
 
                         @Override
                         public void onSuccess(String roomId) {
@@ -784,7 +784,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
         final boolean typingStatus = isTyping;
 
-        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>() {
+        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>(RoomActivity.this) {
             @Override
             public void onSuccess(Void info) {
                 // Reset last typing date
@@ -821,7 +821,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
             mLastTypingDate = 0;
 
-            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>() {
+            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>(RoomActivity.this) {
             });
         }
     }

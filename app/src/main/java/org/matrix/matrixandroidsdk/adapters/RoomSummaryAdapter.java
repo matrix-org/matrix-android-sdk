@@ -453,7 +453,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     Room room = session.getDataHandler().getRoom(fRoomid);
 
                     if (null != room) {
-                        room.leave(new SimpleApiCallback<Void>() {
+                        room.leave(new SimpleApiCallback<Void>(mContext) {
 
                             @Override
                             public void onSuccess(Void info) {

@@ -233,14 +233,13 @@ public class CommonActivityUtils {
                 callback.onSuccess(null);
             }
         } else {
-
-            session.createRoom(null, null, RoomState.VISIBILITY_PRIVATE, null, new SimpleApiCallback<String>() {
+            session.createRoom(null, null, RoomState.VISIBILITY_PRIVATE, null, new SimpleApiCallback<String>(fromActivity) {
 
                 @Override
                 public void onSuccess(String roomId) {
                     final Room room = session.getDataHandler().getRoom(roomId);
 
-                    room.invite(otherUserId, new SimpleApiCallback<Void>() {
+                    room.invite(otherUserId, new SimpleApiCallback<Void>(this) {
                         @Override
                         public void onSuccess(Void info) {
                             CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity);

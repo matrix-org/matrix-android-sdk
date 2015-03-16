@@ -208,13 +208,13 @@ public class SettingsActivity extends MXCActionBarActivity {
         // refresh the myUser profile
         if ((null != session) && (null !=  session.getProfileApiClient())) {
 
-            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>() {
+            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
                 @Override
                 public void onSuccess(String displayname) {
                     mMyUser.displayname = displayname;
                     mDisplayNameEditText.setText(mMyUser.displayname);
 
-                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>() {
+                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
                         @Override
                         public void onSuccess(String avatarUrl) {
                             mMyUser.avatarUrl = avatarUrl;

@@ -15,6 +15,10 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
+import android.content.Context;
+import android.widget.Toast;
+
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -25,15 +29,19 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     private static final String LOG_TAG = "SimpleApiCallback";
 
+    private Context mContext = null;
+
     /**
      * Failure callback to pass on failures to.
      */
     private ApiFailureCallback failureCallback;
 
     /**
-     * Default constructor.
+     * Constructor
+     * @param context The context.
      */
-    public SimpleApiCallback() {
+    public SimpleApiCallback(Context context) {
+        mContext = context;
     }
 
     /**
@@ -49,28 +57,46 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
     public void onSuccess(T info) {
         // If the delegate has an onSuccess implementation, use it
         if (failureCallback instanceof ApiCallback) {
-            ((ApiCallback) failureCallback).onSuccess(info);
+            try {
+                ((ApiCallback) failureCallback).onSuccess(info);
+            }  catch (Exception exception) {
+            }
         }
     }
 
     @Override
     public void onNetworkError(Exception e) {
         if (failureCallback != null) {
-            failureCallback.onNetworkError(e);
+            try {
+                failureCallback.onNetworkError(e);
+            }catch (Exception exception) {
+            }
+        } else if (null != mContext) {
+            Toast.makeText(mContext, "Network Error", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onMatrixError(MatrixError e) {
         if (failureCallback != null) {
-            failureCallback.onMatrixError(e);
+            try {
+                failureCallback.onMatrixError(e);
+            } catch (Exception exception) {
+            }
+        } else if (null != mContext) {
+            Toast.makeText(mContext, "Matrix Error : " + e.error, Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onUnexpectedError(Exception e) {
         if (failureCallback != null) {
-            failureCallback.onUnexpectedError(e);
+            try {
+                failureCallback.onUnexpectedError(e);
+            } catch (Exception exception) {
+            }
+        } else if (null != mContext) {
+            Toast.makeText(mContext, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 }

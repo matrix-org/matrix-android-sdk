@@ -110,7 +110,7 @@ public class LoginActivity extends MXCActionBarActivity {
         }
 
         // TODO: This client should check that it can use u/p login on this home server!!!
-        client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>() {
+        client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(this) {
             @Override
             public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);

@@ -187,7 +187,7 @@ public class MatrixMessagesFragment extends Fragment {
             roomSummary.setInviterUserId(null);
         }
 
-        mRoom.join(new SimpleApiCallback<Void>() {
+        mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
                 // the SDK performs the initial sync when it gets the join event echo
@@ -242,7 +242,7 @@ public class MatrixMessagesFragment extends Fragment {
         displayLoadingProgress();
 
         // the initial sync will be retrieved when a network connection will be found
-        requestHistory(new SimpleApiCallback<Integer>() {
+        requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(Integer info) {
                 MatrixMessagesFragment.this.dismissLoadingProgress();
