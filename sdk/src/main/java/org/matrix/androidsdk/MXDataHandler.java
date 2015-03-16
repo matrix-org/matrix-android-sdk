@@ -388,49 +388,70 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onPresenceUpdate(Event event, User user) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onPresenceUpdate(event, user);
+            try {
+                listener.onPresenceUpdate(event, user);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onLiveEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onLiveEvent(event, roomState);
+            try {
+                listener.onLiveEvent(event, roomState);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onBackEvent(Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onBackEvent(event, roomState);
+            try {
+                listener.onBackEvent(event, roomState);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onBingEvent(event, roomState, bingRule);
+            try {
+                listener.onBingEvent(event, roomState, bingRule);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onDeleteEvent(Event event) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onDeleteEvent(event);
+            try {
+                listener.onDeleteEvent(event);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onResendEvent(Event event) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onResendEvent(event);
+            try {
+                listener.onResendEvent(event);
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     public void onBingRulesUpdate() {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onBingRulesUpdate();
+            try {
+                listener.onBingRulesUpdate();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -439,13 +460,19 @@ public class MXDataHandler implements IMXEventListener {
         mInitialSyncComplete = true;
 
         for (IMXEventListener listener : mEventListeners) {
-            listener.onInitialSyncComplete();
+            try {
+                listener.onInitialSyncComplete();
+            } catch (Exception e) {
+            }
         }
     }
 
     public void onRoomInitialSyncComplete(String roomId) {
         for (IMXEventListener listener : mEventListeners) {
-            listener.onRoomInitialSyncComplete(roomId);
+            try {
+                listener.onRoomInitialSyncComplete(roomId);
+            } catch (Exception e) {
+            }
         }
     }
 }
