@@ -32,6 +32,13 @@
             android:textColor="#FF888888"
             android:id="@+id/roomSummaryAdapter_ts"/>
 
+        <Button
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/ic_menu_delete"
+            android:id="@+id/roomSummaryAdapter_delete_button"
+            />
+
     </LinearLayout>
 
     <TextView
@@ -43,5 +50,4 @@
         android:ellipsize="end"
         android:textColor="#FF888888"
         android:id="@+id/roomSummaryAdapter_message"/>
-
 </LinearLayout>

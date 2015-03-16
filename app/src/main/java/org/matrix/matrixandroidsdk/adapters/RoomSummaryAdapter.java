@@ -25,11 +25,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
+import android.widget.Button;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -363,6 +366,12 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
+        Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
+        deleteButton.setVisibility((groupPosition == mRecentsGroupIndex) ? View.VISIBLE : View.GONE);
+        // required to have the onChildClick event
+        // does not work when settings in the adapter xml file.
+        deleteButton.setFocusable(false);
+
         if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
 
@@ -434,6 +443,25 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
+
+            // the user taps on
+            final String fRoomid = summary.getRoomId();
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
+                    Room room = session.getDataHandler().getRoom(fRoomid);
+
+                    if (null != room) {
+                        room.leave(new SimpleApiCallback<Void>() {
+
+                            @Override
+                            public void onSuccess(Void info) {
+                            }
+                        });
+                    }
+                }
+            });
 
         } else {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
