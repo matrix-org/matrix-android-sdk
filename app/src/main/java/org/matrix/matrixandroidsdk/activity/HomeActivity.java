@@ -27,6 +27,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.TextView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -293,6 +294,15 @@ public class HomeActivity extends MXCActionBarActivity {
                 if (null != roomId) {
                     CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 }
+                if (Intent.ACTION_SEND.equals(getIntent().getAction()) && getIntent().getType() != null) {
+                    if ("text/plain".equals(getIntent().getType())) {
+                        CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this, getIntent().getStringExtra(Intent.EXTRA_TEXT));
+                    }
+                }else {
+                    CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                }
+                mAdapter.notifyDataSetChanged();
+
                 return true;
             }
         });

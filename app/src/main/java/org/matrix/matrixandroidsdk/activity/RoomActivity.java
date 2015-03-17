@@ -71,7 +71,8 @@ import java.util.TimerTask;
  */
 public class RoomActivity extends MXCActionBarActivity implements MatrixMessageListFragment.MatrixMessageListFragmentListener {
 
-    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
+    public static final String EXTRA_ROOM_ID         = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
+    public static final String EXTRA_INITIAL_MESSAGE = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_INITIAL_MESSAGE";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
@@ -290,6 +291,11 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         });
 
         final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
+
+        if (intent.hasExtra(EXTRA_INITIAL_MESSAGE)) {
+            editText.setText(intent.getStringExtra(EXTRA_INITIAL_MESSAGE));
+        }
+
         editText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
                 ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), editText.getText().toString());
