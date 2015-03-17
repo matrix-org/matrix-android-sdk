@@ -17,12 +17,22 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import java.io.File;
+import java.io.OutputStream;
+import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -40,12 +50,15 @@ public class ImageWebViewActivity extends Activity {
     public static final String KEY_HIGHRES_IMAGE_URI = "org.matrix.matrixandroidsdk.activity.ImageWebViewActivity.KEY_HIGHRES_IMAGE_URI";
     public static final String KEY_THUMBNAIL_WIDTH = "org.matrix.matrixandroidsdk.activity.ImageWebViewActivity.KEY_THUMBNAIL_WIDTH";
     public static final String KEY_THUMBNAIL_HEIGHT = "org.matrix.matrixandroidsdk.activity.ImageWebViewActivity.KEY_THUMBNAIL_HEIGHT";
+    public static final String KEY_HIGHRES_MIME_TYPE = "org.matrix.matrixandroidsdk.activity.ImageWebViewActivity.KEY_HIGHRES_MIME_TYPE";
     public static final String KEY_IMAGE_ROTATION = "org.matrix.matrixandroidsdk.activity.ImageWebViewActivity.KEY_IMAGE_ROTATION";
     private WebView mWebView;
 
     private int mRotationAngle = 0;
     private String mThumbnailUri = null;
     private String mHighResUri = null;
+    private String mHighResMimeType = null;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -63,6 +76,7 @@ public class ImageWebViewActivity extends Activity {
 
         mHighResUri = intent.getStringExtra(KEY_HIGHRES_IMAGE_URI);
         mRotationAngle = intent.getIntExtra(KEY_IMAGE_ROTATION, 0);
+        mHighResMimeType = intent.getStringExtra(KEY_HIGHRES_MIME_TYPE);
 
         if (mHighResUri == null) {
             Log.e(LOG_TAG, "No Image URI");
@@ -92,17 +106,17 @@ public class ImageWebViewActivity extends Activity {
 
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 
-        String path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri);
+        String path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
 
         // is the high picture already downloaded ?
         if (null != path) {
-            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();;
+            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
             pieFractionView.setVisibility(View.GONE);
         } else {
             mThumbnailUri = null;
 
             // try to retrieve the thumbnail
-            path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri, thumbnailWidth, thumbnailHeight);
+            path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
             if (null == path) {
                 Log.e(LOG_TAG, "No Image thumbnail");
                 finish();
@@ -112,7 +126,7 @@ public class ImageWebViewActivity extends Activity {
             final String loadingUri = mHighResUri;
             mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
 
-            final String downloadId = ConsoleMediasCache.loadBitmap(this, loadingUri, mRotationAngle);
+            final String downloadId = ConsoleMediasCache.loadBitmap(this, loadingUri, mRotationAngle, mHighResMimeType);
 
             if (null != downloadId) {
                 pieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
@@ -130,15 +144,23 @@ public class ImageWebViewActivity extends Activity {
                         if (aDownloadId.equals(downloadId)) {
                             pieFractionView.setVisibility(View.GONE);
 
-                            String path = ConsoleMediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri);
+                            String path = ConsoleMediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
 
                             if (null != path) {
-                                mHighResUri = "file://" + (new File(ImageWebViewActivity.this.getFilesDir(), path)).getPath();
+                                File file =  new File(ImageWebViewActivity.this.getFilesDir(), path);
+                                Uri uri = Uri.fromFile(file);
+                                mHighResUri = uri.toString();
 
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        loadImage(Uri.parse(mHighResUri), viewportContent, fcss);
+                                        Uri mediaUri = Uri.parse(mHighResUri);
+
+                                        // save in the gallery
+                                        CommonActivityUtils.saveImageIntoGallery(ImageWebViewActivity.this, mediaUri);
+
+                                        // refresh the UI
+                                        loadImage(mediaUri, viewportContent, fcss);
                                     }
                                 });
                             }

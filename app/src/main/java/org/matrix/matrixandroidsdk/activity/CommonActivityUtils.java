@@ -18,10 +18,14 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -46,9 +50,14 @@ import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.lang.reflect.Member;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 
 /**
  * Contains useful functions which are called in multiple activities.
@@ -59,12 +68,10 @@ public class CommonActivityUtils {
         if (id == R.id.action_logout) {
             logout(activity);
             return true;
-        }
-        else if (id == R.id.action_disconnect) {
+        } else if (id == R.id.action_disconnect) {
             disconnect(activity);
             return true;
-        }
-        else if (id == R.id.action_settings) {
+        } else if (id == R.id.action_settings) {
             activity.startActivity(new Intent(activity, SettingsActivity.class));
             return true;
         }
@@ -128,6 +135,7 @@ public class CommonActivityUtils {
 
     public interface OnSubmitListener {
         public void onSubmit(String text);
+
         public void onCancelled();
     }
 
@@ -151,10 +159,10 @@ public class CommonActivityUtils {
         });
 
         alert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    dialog.cancel();
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        dialog.cancel();
+                    }
                 }
-            }
         );
 
         alert.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -167,30 +175,30 @@ public class CommonActivityUtils {
         AlertDialog dialog = alert.create();
         // add the dialog to be rendered in the screenshot
         RageShake.getInstance().registerDialog(dialog);
-        
+
         return dialog;
     }
 
     public static void goToRoomPage(final String roomId, final Activity fromActivity) {
         fromActivity.runOnUiThread(new Runnable() {
-           @Override
-               public void run() {
-                   // if the activity is not the home activity
-                   if (!(fromActivity instanceof HomeActivity)) {
-                       // pop to the home activity
-                       Intent intent = new Intent(fromActivity, HomeActivity.class);
-                       intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                       intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
-                       fromActivity.startActivity(intent);
-                   } else {
-                       // already to the home activity
-                       // so just need to open the room activity
-                       Intent intent = new Intent(fromActivity, RoomActivity.class);
-                       intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                       fromActivity.startActivity(intent);
-                   }
-               }
-           }
+                                       @Override
+                                       public void run() {
+                                           // if the activity is not the home activity
+                                           if (!(fromActivity instanceof HomeActivity)) {
+                                               // pop to the home activity
+                                               Intent intent = new Intent(fromActivity, HomeActivity.class);
+                                               intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                               intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
+                                               fromActivity.startActivity(intent);
+                                           } else {
+                                               // already to the home activity
+                                               // so just need to open the room activity
+                                               Intent intent = new Intent(fromActivity, RoomActivity.class);
+                                               intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                               fromActivity.startActivity(intent);
+                                           }
+                                       }
+                                   }
         );
     }
 
@@ -213,11 +221,11 @@ public class CommonActivityUtils {
         String roomId = null;
         Collection<Room> rooms = session.getDataHandler().getStore().getRooms();
 
-        for(Room room : rooms) {
-            Collection<RoomMember>members = room.getMembers();
+        for (Room room : rooms) {
+            Collection<RoomMember> members = room.getMembers();
 
             if (members.size() == 2) {
-                for(RoomMember member : members) {
+                for (RoomMember member : members) {
                     if (member.getUserId().equals(otherUserId)) {
                         roomId = room.getRoomId();
                         break;
@@ -252,7 +260,7 @@ public class CommonActivityUtils {
                         @Override
                         public void onMatrixError(MatrixError e) {
                             if (null != callback) {
-                                callback.onMatrixError( e);
+                                callback.onMatrixError(e);
                             }
                         }
 
@@ -276,7 +284,7 @@ public class CommonActivityUtils {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     if (null != callback) {
-                        callback.onMatrixError( e);
+                        callback.onMatrixError(e);
                     }
                 }
 
@@ -300,7 +308,8 @@ public class CommonActivityUtils {
     /**
      * Check if the userId format is valid with the matrix standard.
      * It should start with a @ and ends with the home server suffix.
-     * @param userId the userID to check
+     *
+     * @param userId           the userID to check
      * @param homeServerSuffix the home server suffix
      * @return the checked user ID
      */
@@ -313,7 +322,7 @@ public class CommonActivityUtils {
             }
 
             if (res.indexOf(":") < 0) {
-                res +=  homeServerSuffix;
+                res += homeServerSuffix;
             }
         }
 
@@ -322,7 +331,8 @@ public class CommonActivityUtils {
 
     /**
      * Parse an userIDS text into a list.
-     * @param userIDsText the userIDs text.
+     *
+     * @param userIDsText      the userIDs text.
      * @param homeServerSuffix the home server suffix
      * @return the userIDs list.
      */
@@ -354,5 +364,66 @@ public class CommonActivityUtils {
         }
 
         return userIDsList;
+    }
+
+    /**
+     * Save an image URI into the gallery
+     * @param activity the caller activity
+     * @param imageUri the image Uri to save.
+     */
+    public static void saveImageIntoGallery(Activity activity, Uri imageUri) {
+        // sanity check
+        if (null == imageUri) {
+            return;
+        }
+
+        // Build target file object
+        String dstDirPath = Environment.DIRECTORY_PICTURES;
+
+        // extract the file extension from the uri
+        String imageUriStr = imageUri.toString();
+        int dotPos = imageUriStr.lastIndexOf(".");
+
+        String fileExt = "";
+        if (dotPos > 0) {
+            fileExt = imageUriStr.substring(dotPos);
+        }
+
+        // defines another name for the external media
+        String dstFileName = "MatrixConsole_" +  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
+
+        File dstDir = Environment.getExternalStoragePublicDirectory(dstDirPath);
+        if (dstDir != null) {
+            dstDir.mkdirs();
+        }
+        File dstFile = new File(dstDir, dstFileName);
+
+        // Copy source file to destination
+        InputStream inputStream = null;
+        FileOutputStream outputStream = null;
+        try {
+
+            dstFile.createNewFile();
+
+            inputStream = activity.getContentResolver().openInputStream(imageUri);
+            outputStream = new FileOutputStream(dstFile);
+
+            byte[] buffer = new byte[1024 * 10];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, len);
+            }
+
+            // This broadcasts that there's been a change in the media directory
+            activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(dstFile)));
+        } catch (Exception e) {
+        } finally {
+            // Close resources
+            try {
+                if (inputStream != null) inputStream.close();
+                if (outputStream != null) outputStream.close();
+            } catch (Exception e) {
+            }
+        }
     }
 }

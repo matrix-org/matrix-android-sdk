@@ -588,7 +588,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // display a type watermark
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
 
-        if ((null != imageMessage.info) && "image/gif".equals(imageMessage.info.mimetype)) {
+        if ("image/gif".equals(imageMessage.getMimeType())) {
             imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
         } else {
             imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_image));
@@ -602,7 +602,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
+        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, "image/jpeg");
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
@@ -675,6 +675,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);
         imageView.setMaxHeight(maxImageHeight);
+        imageView.setBackgroundColor(Color.TRANSPARENT);
 
         int backgroundColor;
 
@@ -699,6 +700,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_WIDTH, maxImageWidth);
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_HEIGHT, maxImageHeight);
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_IMAGE_ROTATION, rotationAngle);
+                        if (null != imageMessage.getMimeType()) {
+                            viewImageIntent.putExtra(ImageWebViewActivity.KEY_HIGHRES_MIME_TYPE, imageMessage.getMimeType());
+                        }
                         mContext.startActivity(viewImageIntent);
                     }
                 }

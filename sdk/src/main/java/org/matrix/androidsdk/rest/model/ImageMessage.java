@@ -28,4 +28,12 @@ public class ImageMessage extends Message {
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
     }
+
+    public String getMimeType() {
+        if (null != info) {
+            return info.mimetype;
+        } else {
+            return null;
+        }
+    }
 }

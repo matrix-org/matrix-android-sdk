@@ -293,8 +293,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     message = new ImageMessage();
 
                     // replace the thumbnail and the media contents by the computed ones
-                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight());
-                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl);
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                    ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
 
                     message.thumbnailUrl = null;
                     message.url = uploadResponse.contentUri;
@@ -339,7 +339,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
-                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.info.mimetype);
+                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.getMimeType());
                 return;
             }
         }

@@ -623,7 +623,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     }
 
                     // save the file in the filesystem
-                    String imageUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null);
+                    String imageUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
                     String mimeType = resource.mimeType;
 
                     try {
