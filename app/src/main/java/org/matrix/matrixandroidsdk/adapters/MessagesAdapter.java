@@ -58,6 +58,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
+import org.matrix.matrixandroidsdk.contacts.Contact;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
@@ -587,11 +588,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // display a type watermark
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+        imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
-        if ("image/gif".equals(imageMessage.getMimeType())) {
+        final boolean displayTypeIcon = "image/gif".equals(imageMessage.getMimeType());
+
+        if (displayTypeIcon) {
             imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
+            imageTypeView.setVisibility(View.VISIBLE);
         } else {
-            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_image));
+            imageTypeView.setVisibility(View.GONE);
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
@@ -656,7 +661,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
-                        imageTypeView.setVisibility(View.VISIBLE);
+
+                        if (displayTypeIcon) {
+                            imageTypeView.setVisibility(View.VISIBLE);
+                        }
+
                         if (aDownloadId.equals(fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
                         }
@@ -666,7 +675,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
-                imageTypeView.setVisibility(View.VISIBLE);
                 downloadProgressLayout.setVisibility(View.GONE);
             }
         }
