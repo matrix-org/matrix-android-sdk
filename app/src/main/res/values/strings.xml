@@ -115,8 +115,8 @@
     <string name="option_attach_image">Attach image</string>
     <string name="option_take_image">Take image</string>
     <string name="option_attach_video">Attach video</string>
-    <string name="option_invite_by_name">Invite a member by his matrix ID</string>
-    <string name="option_invite_by_list">Select users to invite</string>
+    <string name="option_invite_by_name">Invite users from identifier</string>
+    <string name="option_invite_by_list">Invite known users</string>
 
     <!-- Home Screen -->
     <string name="users"> users</string>

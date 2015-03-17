@@ -37,6 +37,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.HomeActivity;
+import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 
 import java.util.ArrayList;
 
@@ -66,22 +67,6 @@ public class RoomCreationDialogFragment extends DialogFragment {
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }
-    }
-
-    private String checkUserId(String userId, String homeServerSuffix) {
-        String res = userId;
-
-        if (res.length() > 0) {
-            if (!res.startsWith("@")) {
-                res = "@" + res;
-            }
-
-            if (res.indexOf(":") < 0) {
-                res +=  homeServerSuffix;
-            }
-        }
-
-        return res;
     }
 
     @Override
@@ -130,34 +115,10 @@ public class RoomCreationDialogFragment extends DialogFragment {
                             }
                         }
 
-                        // get the members list
-                        final ArrayList<String> userIDsList = new ArrayList<String>();
                         EditText participantsEdittext = (EditText)view.findViewById(R.id.editText_participants);
-                        String participants = participantsEdittext.getText().toString();
 
-                        if (!TextUtils.isEmpty(participants)) {
-                            participants = participants.trim();
-
-                            if (!TextUtils.isEmpty(participants)) {
-                                // they are separated by a ;
-                                String[] splitItems = participants.split(";");
-
-                                for(int i = 0; i < splitItems.length; i++) {
-                                    String item = splitItems[i];
-
-                                    // avoid null name
-                                    if (item.length() > 0) {
-                                        // add missing @ or home suffix
-                                        String checkedItem = checkUserId(item, homeServerSuffix);
-
-                                        // not yet added ? -> add it
-                                        if (userIDsList.indexOf(checkedItem) < 0) {
-                                            userIDsList.add(checkedItem);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // get the members list
+                        final ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(participantsEdittext.getText().toString(), homeServerSuffix);
 
                         session.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>(getActivity()) {
                             @Override

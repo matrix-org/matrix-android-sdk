@@ -21,6 +21,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -46,6 +47,7 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.lang.reflect.Member;
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -293,5 +295,64 @@ public class CommonActivityUtils {
                 }
             });
         }
+    }
+
+    /**
+     * Check if the userId format is valid with the matrix standard.
+     * It should start with a @ and ends with the home server suffix.
+     * @param userId the userID to check
+     * @param homeServerSuffix the home server suffix
+     * @return the checked user ID
+     */
+    public static String checkUserId(String userId, String homeServerSuffix) {
+        String res = userId;
+
+        if (res.length() > 0) {
+            if (!res.startsWith("@")) {
+                res = "@" + res;
+            }
+
+            if (res.indexOf(":") < 0) {
+                res +=  homeServerSuffix;
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Parse an userIDS text into a list.
+     * @param userIDsText the userIDs text.
+     * @param homeServerSuffix the home server suffix
+     * @return the userIDs list.
+     */
+    public static ArrayList<String> parseUserIDsList(String userIDsText, String homeServerSuffix) {
+        ArrayList<String> userIDsList = new ArrayList<String>();
+
+        if (!TextUtils.isEmpty(userIDsText)) {
+            userIDsText = userIDsText.trim();
+
+            if (!TextUtils.isEmpty(userIDsText)) {
+                // they are separated by a ;
+                String[] splitItems = userIDsText.split(";");
+
+                for (int i = 0; i < splitItems.length; i++) {
+                    String item = splitItems[i];
+
+                    // avoid null name
+                    if (item.length() > 0) {
+                        // add missing @ or home suffix
+                        String checkedItem = CommonActivityUtils.checkUserId(item, homeServerSuffix);
+
+                        // not yet added ? -> add it
+                        if (userIDsList.indexOf(checkedItem) < 0) {
+                            userIDsList.add(checkedItem);
+                        }
+                    }
+                }
+            }
+        }
+
+        return userIDsList;
     }
 }

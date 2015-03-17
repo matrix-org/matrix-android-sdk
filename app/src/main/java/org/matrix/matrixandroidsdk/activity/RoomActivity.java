@@ -62,6 +62,7 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -247,22 +248,27 @@ public class RoomActivity extends MXCActionBarActivity {
                                         break;
 
                                     case OPTION_INVITE_BY_NAME:
-                                        AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
+                                        AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
                                             @Override
                                             public void onSubmit(final String text) {
                                                 if (TextUtils.isEmpty(text)) {
                                                     return;
                                                 }
-                                                if (!text.startsWith("@") || !text.contains(":")) {
-                                                    Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
-                                                    return;
+
+                                                // get the user suffix
+                                                String userID = mSession.getCredentials().userId;
+                                                String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
+
+                                                ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
+
+                                                if (userIDsList.size() > 0) {
+                                                    mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
+                                                        @Override
+                                                        public void onSuccess(Void info) {
+                                                            Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                                                        }
+                                                    });
                                                 }
-                                                mRoom.invite(text.trim(), new SimpleApiCallback<Void>(RoomActivity.this) {
-                                                    @Override
-                                                    public void onSuccess(Void info) {
-                                                        Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                                    }
-                                                });
                                             }
 
                                             @Override
