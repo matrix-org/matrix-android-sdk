@@ -35,6 +35,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -71,6 +72,54 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
     private Handler uiThreadHandler;
 
+    private IMXEventListener mEventsListenener = new MXEventListener() {
+        @Override
+        public void onPresenceUpdate(Event event, final User user) {
+            // Someone's presence has changed, reprocess the whole list
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.saveUser(user);
+                    mAdapter.sortMembers();
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
+        @Override
+        public void onLiveEvent(final Event event, RoomState roomState) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                        RoomMember member = JsonUtils.toRoomMember(event.content);
+                        User user = mSession.getDataHandler().getStore().getUser(member.getUserId());
+
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                        boolean displayLeftMembers = preferences.getBoolean(getString(R.string.settings_key_display_left_members), false);
+
+                        if (member.hasLeft() && !displayLeftMembers) {
+                            mAdapter.deleteUser(user);
+                            mAdapter.remove(member);
+                            mAdapter.notifyDataSetChanged();
+                        } else {
+                            // the user can be a new one
+                            boolean mustResort = mAdapter.saveUser(user);
+                            mAdapter.updateMember(event.stateKey, JsonUtils.toRoomMember(event.content));
+
+                            if (mustResort) {
+                                mAdapter.sortMembers();
+                                mAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+                        mAdapter.setPowerLevels(JsonUtils.toPowerLevels(event.content));
+                    }
+                }
+            });
+        }
+    };
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,55 +131,19 @@ public class RoomMembersDialogFragment extends DialogFragment {
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }
+    }
 
-        mSession.getDataHandler().getRoom(mRoomId).addEventListener(new MXEventListener() {
-            @Override
-            public void onPresenceUpdate(Event event, final User user) {
-                // Someone's presence has changed, reprocess the whole list
-                uiThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mAdapter.saveUser(user);
-                        mAdapter.sortMembers();
-                        mAdapter.notifyDataSetChanged();
-                    }
-                });
-            }
+    @Override
+    public void onPause() {
+        super.onPause();
+        mSession.getDataHandler().getRoom(mRoomId).removeEventListener(mEventsListenener);
 
-            @Override
-            public void onLiveEvent(final Event event, RoomState roomState) {
-                uiThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                            RoomMember member = JsonUtils.toRoomMember(event.content);
-                            User user = mSession.getDataHandler().getStore().getUser(member.getUserId());
+    }
 
-                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                            boolean displayLeftMembers = preferences.getBoolean(getString(R.string.settings_key_display_left_members), false);
-
-                            if (member.hasLeft() && !displayLeftMembers) {
-                                mAdapter.deleteUser(user);
-                                mAdapter.remove(member);
-                                mAdapter.notifyDataSetChanged();
-                            } else {
-                                // the user can be a new one
-                                boolean mustResort = mAdapter.saveUser(user);
-                                mAdapter.updateMember(event.stateKey, JsonUtils.toRoomMember(event.content));
-
-                                if (mustResort) {
-                                    mAdapter.sortMembers();
-                                    mAdapter.notifyDataSetChanged();
-                                }
-                            }
-                        }
-                        else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
-                            mAdapter.setPowerLevels(JsonUtils.toPowerLevels(event.content));
-                        }
-                    }
-                });
-            }
-        });
+    @Override
+    public void onResume() {
+        super.onResume();
+        mSession.getDataHandler().getRoom(mRoomId).addEventListener(mEventsListenener);
     }
 
     @Override
