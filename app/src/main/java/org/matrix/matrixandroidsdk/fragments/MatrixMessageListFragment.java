@@ -279,6 +279,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // remove any displayed MessageRow with this URL
         // to avoid duplicate
         final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
+        tmpRow.getEvent().mSentState = Event.SentState.SENDING;
 
         mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
@@ -308,6 +309,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
 
                 } else {
+                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
                     Log.d(LOG_TAG, "Failed to upload");
                 }
 
@@ -353,49 +355,54 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private void send(final Message message, final MessageRow tmpRow,  final boolean isRetry) {
-        mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
-            @Override
-            public void onSuccess(Event event) {
-                tmpRow.getEvent().mSentState = Event.SentState.WAITING_ECHO;
-                tmpRow.getEvent().eventId = event.eventId;
-                mAdapter.waitForEcho(tmpRow);
-                mAdapter.notifyDataSetChanged();
-            }
-
-            private void commonFailure(Event event) {
-                tmpRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
-
-                if (null != event.unsentException) {
-                    if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                    }
-                } else if (null != event.unsentMatrixError) {
-                    Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+        if (!tmpRow.getEvent().isUndeliverable()) {
+            tmpRow.getEvent().mSentState = Event.SentState.SENDING;
+            mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
+                @Override
+                public void onSuccess(Event event) {
+                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_ECHO;
+                    tmpRow.getEvent().eventId = event.eventId;
+                    mAdapter.waitForEcho(tmpRow);
+                    mAdapter.notifyDataSetChanged();
                 }
 
-                mAdapter.notifyDataSetChanged();
-            }
+                private void commonFailure(Event event) {
+                    // display the error message only if the message cannot be resent
+                    if ((null != event.unsentException) && (event.isUndeliverable())) {
+                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    } else if (null != event.unsentMatrixError) {
+                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                tmpRow.getEvent().unsentException = e;
-                commonFailure(tmpRow.getEvent());
-            }
+                    mAdapter.notifyDataSetChanged();
+                }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                tmpRow.getEvent().unsentMatrixError = e;
-                commonFailure(tmpRow.getEvent());
-            }
+                @Override
+                public void onNetworkError(Exception e) {
+                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
+                    tmpRow.getEvent().unsentException = e;
+                    commonFailure(tmpRow.getEvent());
+                }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                tmpRow.getEvent().unsentException = e;
-                commonFailure(tmpRow.getEvent());
-            }
-        });
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    tmpRow.getEvent().mSentState = ((null == e) || MatrixError.LIMIT_EXCEEDED.equals(e.errcode)) ? Event.SentState.WAITING_RETRY : Event.SentState.UNDELIVERABLE;
+                    tmpRow.getEvent().unsentMatrixError = e;
+                    commonFailure(tmpRow.getEvent());
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    tmpRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                    tmpRow.getEvent().unsentException = e;
+                    commonFailure(tmpRow.getEvent());
+                }
+            });
+        }
     }
 
     private void displayLoadingProgress() {
@@ -577,6 +584,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
+                mAdapter.notifyDataSetChanged();
             }
         });
     }

@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.app.Activity;
 import android.widget.Toast;
 
 import com.google.gson.JsonElement;
@@ -23,6 +24,8 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
+
+import retrofit.RetrofitError;
 
 /**
  * Generic event class with all possible fields for events.
