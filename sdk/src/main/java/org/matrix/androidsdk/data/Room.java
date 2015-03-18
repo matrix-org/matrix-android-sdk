@@ -25,6 +25,7 @@ import android.media.Image;
 import android.net.Uri;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.provider.Telephony;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -245,10 +246,18 @@ public class Room {
             }
 
             @Override
-            public void onResendEvent(Event event) {
+            public void onResendingEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onResendEvent(event);
+                    eventListener.onResendingEvent(event);
+                }
+            }
+
+            @Override
+            public void onResentEvent(Event event) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(event.roomId)) {
+                    eventListener.onResentEvent(event);
                 }
             }
 
@@ -310,33 +319,14 @@ public class Room {
                     callback.onSuccess(info);
                 }
 
-                private Event storeUnsentMessage() {
-                    Event dummyEvent = new Event();
-                    dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
-                    dummyEvent.content = JsonUtils.toJson(message);
-                    dummyEvent.originServerTs = System.currentTimeMillis();
-                    dummyEvent.userId = mMyUserId;
-                    dummyEvent.isUnsent = true;
-                    dummyEvent.roomId = mRoomId;
-                    // create a dummy identifier
-                    dummyEvent.createDummyEventId();
-                    mDataHandler.storeLiveRoomEvent(dummyEvent);
-
-                    return dummyEvent;
-                }
-
                 @Override
                 public void onNetworkError(Exception e) {
-                    Event event = storeUnsentMessage();
-                    event.unsentException = e;
-                    callback.onSuccess(event);
+                    callback.onNetworkError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    final Event event = storeUnsentMessage();
-                    event.unsentMatrixError = e;
-                    callback.onSuccess(event);
+                    callback.onMatrixError(e);
 
                     // limit exceeds, the server provided a timeout
                     if (MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
@@ -351,9 +341,7 @@ public class Room {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Event event = storeUnsentMessage();
-                    event.unsentException = e;
-                    callback.onSuccess(event);
+                    callback.onUnexpectedError(e);
                 }
             };
 
@@ -798,8 +786,8 @@ public class Room {
             // eg connected send some unsent messages but do not send all of them
             // deconnected -> connected : some messages could be sent twice
             for(Event event : eventsList){
-                if (!event.isSending) {
-                    event.isSending = true;
+                if (event.mSentState == Event.SentState.WAITING_RETRY) {
+                    event.mSentState  = Event.SentState.SENDING;
                     unsentEvents.add(event);
                 }
             }
@@ -817,11 +805,9 @@ public class Room {
 
         if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
             final Event oldEvent = evensList.get(index);
-
-            mDataHandler.onResendEvent(oldEvent);
+            mDataHandler.onResendingEvent(oldEvent);
 
             boolean hasPreviousTask = false;
-            oldEvent.age = 0;
             final Message message = JsonUtils.toMessage(oldEvent.content);
 
             if (message instanceof ImageMessage) {
@@ -879,18 +865,36 @@ public class Room {
             // no pending request
             if (!hasPreviousTask) {
                 sendMessage(message, new ApiCallback<Event>() {
-                    @Override
-                    public void onSuccess(Event sentEvent) {
+
+                    private Event storeUnsentMessage() {
+                        Event dummyEvent = new Event();
+                        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
+                        dummyEvent.content = JsonUtils.toJson(message);
+                        dummyEvent.originServerTs = System.currentTimeMillis();
+                        dummyEvent.userId = mMyUserId;
+                        dummyEvent.mSentState = Event.SentState.WAITING_RETRY;
+                        dummyEvent.roomId = mRoomId;
+                        // create a dummy identifier
+                        dummyEvent.createDummyEventId();
+                        mDataHandler.storeLiveRoomEvent(dummyEvent);
+
+                        return dummyEvent;
+                    }
+
+                    private void common(Event sentEvent, Exception exception, MatrixError matrixError) {
+                        // warn that the event has been resent
+                        mDataHandler.onResentEvent(oldEvent);
+
+                        // delete the old event
                         Event dummyEvent = oldEvent.deepCopy();
-                        dummyEvent.isSending = false;
                         mDataHandler.deleteRoomEvent(dummyEvent);
                         mDataHandler.onDeleteEvent(dummyEvent);
 
                         // update with updated fields
                         oldEvent.eventId = sentEvent.eventId;
-                        oldEvent.isUnsent = sentEvent.isUnsent;
-                        oldEvent.unsentException = sentEvent.unsentException;
-                        oldEvent.unsentMatrixError = sentEvent.unsentMatrixError;
+                        oldEvent.mSentState = sentEvent.mSentState;
+                        oldEvent.unsentException = exception;
+                        oldEvent.unsentMatrixError = matrixError;
 
                         mDataHandler.onLiveEvent(oldEvent, getLiveState());
 
@@ -898,17 +902,25 @@ public class Room {
                         Room.this.resendEventsList(evensList, index + 1, maxTime);
                     }
 
-                    // theses 3 methods will never be called
+                    @Override
+                    public void onSuccess(Event sentEvent) {
+                        sentEvent.mSentState = Event.SentState.WAITING_ECHO;
+                        common(sentEvent, null, null);
+                    }
+
                     @Override
                     public void onNetworkError(Exception e) {
+                        common(storeUnsentMessage(), e, null);
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
+                        common(storeUnsentMessage(), null, e);
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
+                        common(storeUnsentMessage(), e, null);
                     }
                 });
             }

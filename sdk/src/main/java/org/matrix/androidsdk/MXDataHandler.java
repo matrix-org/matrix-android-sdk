@@ -436,10 +436,20 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onResendEvent(Event event) {
+    public void onResentEvent(Event event) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onResendEvent(event);
+                listener.onResentEvent(event);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    @Override
+         public void onResendingEvent(Event event) {
+        for (IMXEventListener listener : mEventListeners) {
+            try {
+                listener.onResendingEvent(event);
             } catch (Exception e) {
             }
         }

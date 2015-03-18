@@ -51,7 +51,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onResendEvent(Event event) {
+    public void onResendingEvent(Event event) {
+    }
+
+    @Override
+    public void onResentEvent(Event event) {
     }
 
     @Override

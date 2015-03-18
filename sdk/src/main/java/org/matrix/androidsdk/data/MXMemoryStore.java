@@ -286,7 +286,7 @@ public class MXMemoryStore implements IMXStore {
             for(int index = events.size()-1; index >= 0; index--) {
                 Event event = eventsList.get(index);
 
-                if (event.isUnsent) {
+                if (event.mSentState == Event.SentState.WAITING_RETRY) {
                     unsentRoomEvents.add(event);
                 } else {
                     //break;

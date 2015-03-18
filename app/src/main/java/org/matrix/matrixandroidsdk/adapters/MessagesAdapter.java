@@ -213,7 +213,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
 
-            if (row.getSentState() == MessageRow.SentState.WAITING_ECHO) {
+            if (row.getEvent().isWaitingForEcho()) {
                 mWaitingEchoRowMap.put(row.getEvent().eventId, row);
             }
 
@@ -226,13 +226,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         if (row != null) {
             remove(row);
-        }
-    }
-
-    public void updateMessageRowSentState(String eventId, MessageRow.SentState state) {
-        MessageRow row = mEventRowMap.get(eventId);
-        if (row != null) {
-            row.setSentState(state);
         }
     }
 
@@ -398,7 +391,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         tsTextView.setVisibility(View.VISIBLE);
         tsTextView.setText(getTimestamp(msg.originServerTs));
 
-        if (row.getSentState() == MessageRow.SentState.NOT_SENT) {
+        if (row.getEvent().isUndeliverable()) {
             tsTextView.setTextColor(notSentColor);
         } else {
             tsTextView.setTextColor(Color.parseColor("#FFAAAAAA"));
@@ -529,16 +522,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         bodyTextView.setText(body);
 
         int textColor;
-        switch (row.getSentState()) {
-            case SENDING:
-                textColor = sendingColor;
-                break;
-            case NOT_SENT:
-                textColor = notSentColor;
-                break;
-            default:
-                textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
+
+        if (row.getEvent().isSending()) {
+            textColor = sendingColor;
+        } else if (row.getEvent().isUndeliverable()) {
+            textColor = notSentColor;
+        } else {
+            textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
         }
+
         bodyTextView.setTextColor(textColor);
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
@@ -685,18 +677,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageView.setMaxHeight(maxImageHeight);
         imageView.setBackgroundColor(Color.TRANSPARENT);
 
-        int backgroundColor;
-
-        switch (row.getSentState()) {
-            case NOT_SENT:
-                backgroundColor = notSentColor;
-                break;
-            default:
-                backgroundColor = Color.TRANSPARENT;
-        }
-
-        (convertView.findViewById(R.id.messagesAdapter_body_layout)).setBackgroundColor(backgroundColor);
-
         if ((imageMessage != null) && (imageMessage.url != null)) {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -721,6 +701,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
         final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
 
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
         int progress = -1;
 
         if (mSession.getMyUser().userId.equals(msg.userId)) {
@@ -741,16 +724,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.setVisibility(View.GONE);
+                            uploadSpinner.setVisibility(View.VISIBLE);
                         }
                     }
                 });
             }
         }
 
+        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+
         uploadFractionView.setFraction(progress);
         uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
+        imageLayout.setAlpha(row.getEvent().isSent() ? 1.0f : 0.5f);
+
         this.manageSubView(position, convertView, imageLayout, ROW_TYPE_IMAGE);
 
         setBackgroundColour(convertView, position);
@@ -800,16 +789,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         emoteTextView.setText(emote);
 
         int textColor;
-        switch (row.getSentState()) {
-            case SENDING:
-                textColor = sendingColor;
-                break;
-            case NOT_SENT:
-                textColor = notSentColor;
-                break;
-            default:
-                textColor = emoteColor;
+
+        if (row.getEvent().isSending()) {
+            textColor = sendingColor;
+        } else if (row.getEvent().isUndeliverable()) {
+            textColor = notSentColor;
+        } else {
+            textColor = emoteColor;
         }
+
         emoteTextView.setTextColor(textColor);
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
