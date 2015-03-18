@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.io.File;
@@ -485,7 +486,11 @@ public class ConsoleMediasCache {
          */
         public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
             if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
-                return mPendingDownloadByUrl.get(url);
+                BitmapWorkerTask task;
+                synchronized(mPendingDownloadByUrl) {
+                    task = mPendingDownloadByUrl.get(url);
+                }
+                return task;
             } else {
                 return null;
             }
@@ -526,6 +531,12 @@ public class ConsoleMediasCache {
 
             // sanity check
             if (null != url) {
+
+                // the image is downloading in background
+                if (null != bitmapWorkerTaskForUrl(url)) {
+                    return null;
+                }
+
                 synchronized (sMemoryCache) {
                     bitmap = sMemoryCache.get(url);
                 }
@@ -629,7 +640,9 @@ public class ConsoleMediasCache {
             mApplicationContext = appContext;
             mUrl = url;
             mRotation = rotation;
-            mPendingDownloadByUrl.put(url, this);
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.put(url, this);
+            }
             mMimeType = mimeType;
             mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
         }
@@ -718,7 +731,6 @@ public class ConsoleMediasCache {
 
                     }
                     catch (OutOfMemoryError outOfMemoryError) {
-                        outOfMemoryError = outOfMemoryError;
                     }
                     catch (Exception e) {
                         e = e;
@@ -731,6 +743,10 @@ public class ConsoleMediasCache {
                 fos.close();
 
                 Log.d(LOG_TAG, "download is done (" + mUrl + ")");
+
+                synchronized(mPendingDownloadByUrl) {
+                    mPendingDownloadByUrl.remove(mUrl);
+                }
 
                 // get the bitmap from the filesytem
                 if (null == bitmap) {
@@ -796,8 +812,6 @@ public class ConsoleMediasCache {
                     }
                 }
             }
-
-            mPendingDownloadByUrl.remove(mUrl);
         }
 
         private void cacheBitmap(String key, Bitmap bitmap) {
