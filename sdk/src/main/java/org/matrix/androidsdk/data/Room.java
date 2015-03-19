@@ -253,7 +253,14 @@ public class Room {
                     eventListener.onResentEvent(event);
                 }
             }
-
+            
+            @Override
+            public void onRoomInitialSyncComplete(String roomId) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(roomId)) {
+                    eventListener.onRoomInitialSyncComplete(roomId);
+                }
+            }
         };
         mEventListeners.put(eventListener, globalListener);
         mDataHandler.addListener(globalListener);
@@ -296,6 +303,9 @@ public class Room {
             processStateEvent(event, EventDirection.FORWARDS);
         }
         isReady = true;
+
+        // check if they are some pending events
+        resendUnsentEvents();
     }
 
     /**
@@ -306,6 +316,13 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void sendEvent(final Event event, final ApiCallback<Void> callback) {
+        // wait that the room is synced before sending messages
+        if (!isReady || selfJoined()) {
+            event.mSentState = Event.SentState.WAITING_RETRY;
+            callback.onNetworkError(null);
+            return;
+        }
+
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
                 @Override
                 public void onSuccess(Event serverResponseEvent) {
@@ -633,12 +650,25 @@ public class Room {
     }
 
     /**
+     * @return true if the user joined the room
+     */
+    public boolean selfJoined() {
+        RoomMember roomMember = getMember(mMyUserId);
+
+        // send the event only if the user has joined the room.
+        return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
+    }
+
+    /**
      * Send a typing notification
      * @param isTyping typing status
      * @param timeout the typing timeout
      */
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
+        // send the event only if the user has joined the room.
+        if (selfJoined()) {
+            mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
+        }
     }
 
     /**
