@@ -179,7 +179,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessageRow row = new MessageRow(event, roomState);
         if (shouldSave(row)) {
             // ensure that notifyDataSetChanged is not called
-            // it seems that setNotifyOnChange is resetted to to  default value
+            // it seems that setNotifyOnChange is reinitialized to true;
             setNotifyOnChange(false);
             insert(row, 0);
             if (row.getEvent().eventId != null) {
@@ -207,6 +207,10 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public void add(MessageRow row) {
+        // ensure that notifyDataSetChanged is not called
+        // it seems that setNotifyOnChange is reinitialized to true;
+        setNotifyOnChange(false);
+
         if (shouldSave(row)) {
             super.add(row);
             if (row.getEvent().eventId != null) {
@@ -222,6 +226,10 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     public void removeEventById(String eventId) {
+        // ensure that notifyDataSetChanged is not called
+        // it seems that setNotifyOnChange is reinitialized to true;
+        setNotifyOnChange(false);
+
         MessageRow row = mEventRowMap.get(eventId);
 
         if (row != null) {

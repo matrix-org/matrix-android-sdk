@@ -223,8 +223,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
-        // NotifyOnChange has been disabled to avoid useless refreshes
-        mAdapter.notifyDataSetChanged();
 
         return messageRow;
     }
@@ -356,7 +354,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 @Override
                 public void onSuccess(Void info) {
                     mAdapter.waitForEcho(messageRow);
-                    mAdapter.notifyDataSetChanged();
                 }
 
                 private void commonFailure(Event event) {
@@ -527,7 +524,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 } else {
                     if (canAddEvent(event)) {
                         mAdapter.add(event, roomState);
-                        mAdapter.notifyDataSetChanged();
                     }
                 }
             }
@@ -559,12 +555,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onResendingEvent(final Event event) {
-        mUiHandler.post(new Runnable() {
+        // not anymore required
+        // because the message keeps the same UI until the server echo is receieved.
+        /*mUiHandler.post(new Runnable() {
             @Override
             public void run() {
                 mAdapter.notifyDataSetChanged();
             }
-        });
+        });*/
     }
 
     @Override
