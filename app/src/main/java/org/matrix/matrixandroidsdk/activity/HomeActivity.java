@@ -76,7 +76,6 @@ public class HomeActivity extends MXCActionBarActivity {
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
-    private boolean mSortSummaryAtResume = false;
 
     private String mAutomaticallyOpenedRoomId = null;
 
@@ -185,8 +184,6 @@ public class HomeActivity extends MXCActionBarActivity {
                         if (!mIsPaused) {
                             mAdapter.sortSummaries();
                             mAdapter.notifyDataSetChanged();
-                        } else {
-                            mSortSummaryAtResume = false;
                         }
                     }
                 }
@@ -452,10 +449,10 @@ public class HomeActivity extends MXCActionBarActivity {
         MyPresenceManager.getInstance(this).advertiseOnline();
         mIsPaused = false;
 
-        if (mSortSummaryAtResume) {
-            mAdapter.sortSummaries();
-        }
-
+        // some unsent messages could have been added
+        // it does not trigger any live event.
+        // So, it is safer to sort the messages when debackgrounding
+        mAdapter.sortSummaries();
         // expand/collapse to force th group refresh
         collapseAllGroups();
         // all the groups must be displayed during a search
