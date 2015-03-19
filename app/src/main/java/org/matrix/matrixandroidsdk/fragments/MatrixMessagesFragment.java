@@ -295,8 +295,8 @@ public class MatrixMessagesFragment extends Fragment {
         return mRoom.requestHistory(callback);
     }
 
-    public void send(Message message, ApiCallback<Event> callback) {
-        mRoom.sendMessage(message, callback);
+    public void sendEvent(Event event, ApiCallback<Void> callback) {
+        mRoom.sendEvent(event, callback);
     }
 
     public void redact(String eventId, ApiCallback<Event> callback) {

@@ -217,18 +217,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // create a dummy message row for the message
     // It is added to the Adapter
     // return the created Message
-    private MessageRow addDummyMessageRow(Message message) {
-        Event dummyEvent = new Event();
-        dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
-        dummyEvent.content = JsonUtils.toJson(message);
-        dummyEvent.originServerTs = System.currentTimeMillis();
-        dummyEvent.userId = mSession.getCredentials().userId;
-        dummyEvent.roomId = mRoom.getRoomId();
-        dummyEvent.mSentState = Event.SentState.SENDING;
-        dummyEvent.createDummyEventId();
-        mSession.getDataHandler().storeLiveRoomEvent(dummyEvent);
+    private MessageRow addMessageRow(Message message) {
+        Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
+        mSession.getDataHandler().storeLiveRoomEvent(event);
 
-        MessageRow messageRow = new MessageRow(dummyEvent, mRoom.getLiveState());
+        MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
         // NotifyOnChange has been disabled to avoid useless refreshes
         mAdapter.notifyDataSetChanged();
@@ -240,7 +233,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Message message = new Message();
         message.msgtype = msgType;
         message.body = body;
-        send(message, false);
+        send(message);
     }
 
     public void sendEmote(String emote) {
@@ -278,8 +271,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // remove any displayed MessageRow with this URL
         // to avoid duplicate
-        final MessageRow tmpRow = addDummyMessageRow(tmpImageMessage);
-        tmpRow.getEvent().mSentState = Event.SentState.SENDING;
+        final MessageRow imageRow = addMessageRow(tmpImageMessage);
+        imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
         mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
@@ -304,12 +297,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     message.body = "Image";
 
                     // update the event content with the new message info
-                    tmpRow.getEvent().content = JsonUtils.toJson(message);
+                    imageRow.getEvent().content = JsonUtils.toJson(message);
 
                     Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
 
                 } else {
-                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
+                    imageRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
                     Log.d(LOG_TAG, "Failed to upload");
                 }
 
@@ -322,7 +315,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 // sanity check
                 if (message.url != null) {
-                    send(message, tmpRow, false);
+                    send(imageRow);
                 }
             }
         });
@@ -347,22 +340,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         }
 
-        send(message, true);
+        send(message);
     }
 
-    private void send(final Message message, final boolean isRetry) {
-        send(message, addDummyMessageRow(message), isRetry);
+    private void send(final Message message) {
+        send(addMessageRow(message));
     }
 
-    private void send(final Message message, final MessageRow tmpRow,  final boolean isRetry) {
-        if (!tmpRow.getEvent().isUndeliverable()) {
-            tmpRow.getEvent().mSentState = Event.SentState.SENDING;
-            mMatrixMessagesFragment.send(message, new ApiCallback<Event>() {
+    private void send(final MessageRow messageRow)  {
+        final Event event = messageRow.getEvent();
+
+        if (!event.isUndeliverable()) {
+
+            mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
-                public void onSuccess(Event event) {
-                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_ECHO;
-                    tmpRow.getEvent().eventId = event.eventId;
-                    mAdapter.waitForEcho(tmpRow);
+                public void onSuccess(Void info) {
+                    mAdapter.waitForEcho(messageRow);
                     mAdapter.notifyDataSetChanged();
                 }
 
@@ -383,23 +376,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    tmpRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
-                    tmpRow.getEvent().unsentException = e;
-                    commonFailure(tmpRow.getEvent());
+                    commonFailure(event);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    tmpRow.getEvent().mSentState = ((null == e) || MatrixError.LIMIT_EXCEEDED.equals(e.errcode)) ? Event.SentState.WAITING_RETRY : Event.SentState.UNDELIVERABLE;
-                    tmpRow.getEvent().unsentMatrixError = e;
-                    commonFailure(tmpRow.getEvent());
+
+                    commonFailure(event);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    tmpRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
-                    tmpRow.getEvent().unsentException = e;
-                    commonFailure(tmpRow.getEvent());
+                    commonFailure(event);
                 }
             });
         }

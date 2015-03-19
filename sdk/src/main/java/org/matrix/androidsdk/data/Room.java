@@ -299,17 +299,21 @@ public class Room {
     }
 
     /**
-     * Send a message to the room.
-     * The error callbacks will never been called
+     * Send an event content to the room.
+     * The event is updated with the data provided by the server
      * The provided event contains the error description.
-     * @param message the message
+     * @param event the message
      * @param callback the callback with the created event
      */
-    public void sendMessage(final Message message, final ApiCallback<Event> callback) {
+    public void sendEvent(final Event event, final ApiCallback<Void> callback) {
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
                 @Override
-                public void onSuccess(Event event) {
-                    callback.onSuccess(event);
+                public void onSuccess(Event serverResponseEvent) {
+                    // update the event with the server response
+                    event.mSentState = Event.SentState.WAITING_ECHO;
+                    event.eventId = serverResponseEvent.eventId;
+
+                    callback.onSuccess(null);
                 }
 
                 private void triggerUndeliverablesTimeout() {
@@ -323,33 +327,49 @@ public class Room {
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    event.mSentState = Event.SentState.WAITING_RETRY;
+                    event.unsentException = e;
+
                     triggerUndeliverablesTimeout();
                     callback.onNetworkError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
+                    event.mSentState = ((null == e) || MatrixError.LIMIT_EXCEEDED.equals(e.errcode)) ? Event.SentState.WAITING_RETRY : Event.SentState.UNDELIVERABLE;
+                    event.unsentMatrixError = e;
 
+                    // no matrix error ?
+                    if (null == e) {
+                        event.mSentState = Event.SentState.WAITING_RETRY;
+                        triggerUndeliverablesTimeout();
                     // limit exceeds, the server provided a timeout
-                    if ((null != e) &&  MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
+                    } else if ( MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
                         new Timer().schedule(new TimerTask() {
                             @Override
                             public void run() {
                             resendUnsentEvents(MAX_RATE_LIMIT_MS);
                             }
                         }, e.retry_after_ms);
+                        event.mSentState = Event.SentState.WAITING_RETRY;
                     } else {
-                        triggerUndeliverablesTimeout();
+                        event.mSentState = Event.SentState.UNDELIVERABLE;
                     }
+
+                    callback.onMatrixError(e);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentException = e;
+
                     callback.onUnexpectedError(e);
-                    triggerUndeliverablesTimeout();
                 }
             };
+
+        event.mSentState = Event.SentState.SENDING;
+        Message message = JsonUtils.toMessage(event.content);
 
         // check if the media upload has failed
         // do not send the message if the upload fails
@@ -885,8 +905,10 @@ public class Room {
 
                 // no pending request
                 if (!hasPreviousTask) {
-                    sendMessage(message, new ApiCallback<Event>() {
+                    final Event oldEventCopy = oldEvent.deepCopy();
 
+                    mDataHandler.onResendingEvent(oldEventCopy);
+                    sendEvent(oldEvent, new ApiCallback<Void>() {
                         private Event storeUnsentMessage() {
                             Event dummyEvent = new Event();
                             dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
@@ -903,15 +925,11 @@ public class Room {
                         }
 
                         private void common(Event sentEvent, Exception exception, MatrixError matrixError) {
-                            // warn that the event has been resent
-                            mDataHandler.onResentEvent(oldEvent);
+                            // replace the resent event
+                            mDataHandler.deleteRoomEvent(oldEventCopy);
+                            mDataHandler.onDeleteEvent(oldEventCopy);
 
-                            // delete the old event
-                            Event dummyEvent = oldEvent.deepCopy();
-                            mDataHandler.deleteRoomEvent(dummyEvent);
-                            mDataHandler.onDeleteEvent(dummyEvent);
-
-                            // update with updated fields
+                            // with a new one
                             oldEvent.eventId = sentEvent.eventId;
                             oldEvent.mSentState = sentEvent.mSentState;
                             oldEvent.unsentException = exception;
@@ -924,9 +942,8 @@ public class Room {
                         }
 
                         @Override
-                        public void onSuccess(Event sentEvent) {
-                            sentEvent.mSentState = Event.SentState.WAITING_ECHO;
-                            common(sentEvent, null, null);
+                        public void onSuccess(Void info) {
+                            common(oldEvent, null, null);
                         }
 
                         @Override

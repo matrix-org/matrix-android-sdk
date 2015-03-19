@@ -21,6 +21,8 @@ import android.widget.Toast;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.util.JsonUtils;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -78,6 +80,43 @@ public class Event {
 
     // sent state
     public SentState mSentState = SentState.SENT;
+
+    /**
+     * Default constructor
+     */
+    public Event() {
+        type = null;
+        content = null;
+
+        userId = roomId = eventId = null;
+        originServerTs = age = 0;
+
+        stateKey = null;
+        prevContent = null;
+
+        redacts = null;
+
+        unsentMatrixError = null;
+        unsentException = null;
+
+        mSentState = SentState.SENT;
+    }
+
+    /**
+     * Create an event from a message.
+     * @param message the event content
+     * @param anUserId the event user Id
+     * @param aRoomId the vent room Id
+     */
+    public Event(Message message, String anUserId, String aRoomId) {
+        type = Event.EVENT_TYPE_MESSAGE;
+        content = JsonUtils.toJson(message);
+        originServerTs = System.currentTimeMillis();
+        userId = anUserId;
+        roomId = aRoomId;
+        mSentState = Event.SentState.SENDING;
+        createDummyEventId();
+    }
 
     /**
      * Some events are not sent by the server.
