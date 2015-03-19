@@ -71,6 +71,14 @@ public class MXDataHandler implements IMXEventListener {
         mCredentials = credentials;
     }
 
+    /**
+     * @return true if the initial sync is completed.
+     */
+    public boolean isInitialSyncComplete() {
+        return mInitialSyncComplete;
+    }
+
+
     public void setDataRetriever(DataRetriever dataRetriever) {
         mDataRetriever = dataRetriever;
         mDataRetriever.setStore(mStore);

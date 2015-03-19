@@ -775,6 +775,7 @@ public class Room {
         // deconnected -> connected : some messages could be sent twice
         for (Event event : eventsList) {
             if (event.mSentState == Event.SentState.WAITING_RETRY) {
+                event.mSentState = Event.SentState.SENDING;
                 unsentEvents.add(event);
             }
         }
@@ -812,30 +813,40 @@ public class Room {
      */
     private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
         if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
-            final Event oldEvent = evensList.get(index);
+            final Event unsentEvent = evensList.get(index);
 
             // is the event too old to be resent ?
-            if ((System.currentTimeMillis() - oldEvent.originServerTs) > MAX_MESSAGE_TIME_LIFE_MS) {
+            if ((System.currentTimeMillis() - unsentEvent.originServerTs) > MAX_MESSAGE_TIME_LIFE_MS) {
 
-                oldEvent.mSentState = Event.SentState.UNDELIVERABLE;
+                unsentEvent.mSentState = Event.SentState.UNDELIVERABLE;
 
                 // warn that the event has been resent
-                mDataHandler.onResentEvent(oldEvent);
+                mDataHandler.onResentEvent(unsentEvent);
 
                 // send the next one
                 Room.this.resendEventsList(evensList, index + 1, maxTime);
 
             } else {
-                oldEvent.mSentState = Event.SentState.SENDING;
-                mDataHandler.onResendingEvent(oldEvent);
+                unsentEvent.mSentState = Event.SentState.SENDING;
+                mDataHandler.onResendingEvent(unsentEvent);
 
                 boolean hasPreviousTask = false;
-                final Message message = JsonUtils.toMessage(oldEvent.content);
+                final Message message = JsonUtils.toMessage(unsentEvent.content);
 
                 if (message instanceof ImageMessage) {
                     final ImageMessage imageMessage = (ImageMessage) message;
 
                     if (imageMessage.isLocalContent()) {
+                        // delete the previous image message
+                        mDataHandler.deleteRoomEvent(unsentEvent);
+                        mDataHandler.onDeleteEvent(unsentEvent);
+
+                        final Event newEvent = new Event(message, mMyUserId, mRoomId);
+                        evensList.set(index, newEvent);
+
+                        mDataHandler.storeLiveRoomEvent(unsentEvent);
+                        mDataHandler.onLiveEvent(newEvent, getLiveState());
+
                         String filename;
                         // try to parse it
                         try {
@@ -854,7 +865,7 @@ public class Room {
 
                                     @Override
                                     public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
-                                        ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(oldEvent.content);
+                                        ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(newEvent.content);
 
                                         if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
                                             // a thumbnail url could have been set if the upload has failed
@@ -871,7 +882,7 @@ public class Room {
                                         uploadedMessage.body = imageMessage.body;
 
                                         // update the content
-                                        oldEvent.content = JsonUtils.toJson(uploadedMessage);
+                                        newEvent.content = JsonUtils.toJson(uploadedMessage);
 
                                         // send the body
                                         Room.this.resendEventsList(evensList, index, maxTime);
@@ -886,18 +897,13 @@ public class Room {
 
                 // no pending request
                 if (!hasPreviousTask) {
-                    final Event oldEventCopy = oldEvent.deepCopy();
+                    final Event unsentEventCopy = unsentEvent.deepCopy();
 
-                    mDataHandler.onResendingEvent(oldEventCopy);
-                    sendEvent(oldEvent, new ApiCallback<Void>() {
+                    mDataHandler.onResendingEvent(unsentEvent);
+
+                    sendEvent(unsentEvent, new ApiCallback<Void>() {
                         private Event storeUnsentMessage() {
-                            Event dummyEvent = new Event();
-                            dummyEvent.type = Event.EVENT_TYPE_MESSAGE;
-                            dummyEvent.content = JsonUtils.toJson(message);
-                            dummyEvent.originServerTs = System.currentTimeMillis();
-                            dummyEvent.userId = mMyUserId;
-                            dummyEvent.mSentState = Event.SentState.WAITING_RETRY;
-                            dummyEvent.roomId = mRoomId;
+                            Event dummyEvent = new Event(message, mMyUserId, mRoomId);
                             // create a dummy identifier
                             dummyEvent.createDummyEventId();
                             mDataHandler.storeLiveRoomEvent(dummyEvent);
@@ -907,16 +913,16 @@ public class Room {
 
                         private void common(Event sentEvent, Exception exception, MatrixError matrixError) {
                             // replace the resent event
-                            mDataHandler.deleteRoomEvent(oldEventCopy);
-                            mDataHandler.onDeleteEvent(oldEventCopy);
+                            mDataHandler.deleteRoomEvent(unsentEventCopy);
+                            mDataHandler.onDeleteEvent(unsentEventCopy);
 
                             // with a new one
-                            oldEvent.eventId = sentEvent.eventId;
-                            oldEvent.mSentState = sentEvent.mSentState;
-                            oldEvent.unsentException = exception;
-                            oldEvent.unsentMatrixError = matrixError;
+                            unsentEvent.eventId = sentEvent.eventId;
+                            unsentEvent.mSentState = sentEvent.mSentState;
+                            unsentEvent.unsentException = exception;
+                            unsentEvent.unsentMatrixError = matrixError;
 
-                            mDataHandler.onLiveEvent(oldEvent, getLiveState());
+                            mDataHandler.onLiveEvent(unsentEvent, getLiveState());
 
                             // send the next one
                             Room.this.resendEventsList(evensList, index + 1, maxTime);
@@ -924,7 +930,7 @@ public class Room {
 
                         @Override
                         public void onSuccess(Void info) {
-                            common(oldEvent, null, null);
+                            common(unsentEvent, null, null);
                         }
 
                         @Override

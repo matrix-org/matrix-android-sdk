@@ -348,10 +348,11 @@ public class MXSession {
      * Resend the unsent message
      */
     private void resendUnsentMessages() {
-        Collection<Room> rooms = mDataHandler.getStore().getRooms();
-
-        for(Room room : rooms) {
-            room.resendUnsentEvents();
+        if (mDataHandler.isInitialSyncComplete()) {
+            Collection<Room> rooms = mDataHandler.getStore().getRooms();
+            for (Room room : rooms) {
+                room.resendUnsentEvents();
+            }
         }
     }
 
