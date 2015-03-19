@@ -867,14 +867,11 @@ public class Room {
                                     public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
                                         ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(newEvent.content);
 
+                                        uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;
+
                                         if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                                            // a thumbnail url could have been set if the upload has failed
-                                            // it is a file URL one but it must not be sent
-                                            uploadedMessage.thumbnailUrl = null;
                                             uploadedMessage.url = uploadResponse.contentUri;
                                         } else {
-                                            // keep the URLs
-                                            uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;
                                             uploadedMessage.url = imageMessage.url;
                                         }
 
