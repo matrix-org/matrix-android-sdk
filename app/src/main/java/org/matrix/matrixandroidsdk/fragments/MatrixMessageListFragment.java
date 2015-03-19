@@ -311,11 +311,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     Toast.makeText(getActivity(),
                             getString(R.string.message_failed_to_upload),
                             Toast.LENGTH_LONG).show();
-                }
-
-                // sanity check
-                if (message.url != null) {
-                    send(imageRow);
+                } else {
+                    // send the message
+                    if (message.url != null)  {
+                        send(imageRow);
+                    }
                 }
             }
         });

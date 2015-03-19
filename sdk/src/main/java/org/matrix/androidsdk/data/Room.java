@@ -336,15 +336,10 @@ public class Room {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    event.mSentState = ((null == e) || MatrixError.LIMIT_EXCEEDED.equals(e.errcode)) ? Event.SentState.WAITING_RETRY : Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
 
-                    // no matrix error ?
-                    if (null == e) {
-                        event.mSentState = Event.SentState.WAITING_RETRY;
-                        triggerUndeliverablesTimeout();
                     // limit exceeds, the server provided a timeout
-                    } else if ( MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
+                    if ( (e != null) &&  MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
                         new Timer().schedule(new TimerTask() {
                             @Override
                             public void run() {
@@ -369,21 +364,7 @@ public class Room {
             };
 
         event.mSentState = Event.SentState.SENDING;
-        Message message = JsonUtils.toMessage(event.content);
-
-        // check if the media upload has failed
-        // do not send the message if the upload fails
-        // but save it in the message MXStore
-        if (message instanceof ImageMessage) {
-            ImageMessage imageMessage = (ImageMessage)message;
-
-            // file url -> the upload has failed
-            if (imageMessage.isLocalContent()) {
-                localCB.onMatrixError(null);
-                return;
-            }
-        }
-        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, message, localCB);
+        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, JsonUtils.toMessage(event.content), localCB);
     }
 
     /**
