@@ -960,6 +960,17 @@ public class Room {
             // that the requests are sent in pools so the timeout is valid for it.
             if ((mustCheckUnsent) && (System.currentTimeMillis() < maxTime)) {
                 resendUnsentEvents(MAX_RATE_LIMIT_MS);
+            } else {
+                Event lastEvent = null;
+
+                for(int subindex = index; subindex < evensList.size(); subindex++) {
+                    lastEvent = evensList.get(subindex);
+                    lastEvent.mSentState = Event.SentState.UNDELIVERABLE;
+                }
+
+                if (null != lastEvent) {
+                    mDataHandler.onLiveEvent(lastEvent, getLiveState());
+                }
             }
         }
     }
