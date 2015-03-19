@@ -568,6 +568,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         ImageInfo imageInfo = null;
 
         if (imageMessage != null) {
+
+           imageMessage.checkMediaUrls();
+
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.thumbnailUrl != null) {
                 thumbUrl = imageMessage.thumbnailUrl;
