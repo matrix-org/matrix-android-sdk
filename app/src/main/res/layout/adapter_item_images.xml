@@ -80,11 +80,6 @@
 
                     </LinearLayout>
 
-                    <ProgressBar
-                        android:id="@+id/upload_event_spinner"
-                        android:layout_width="40dp"
-                        android:layout_height="40sp"/>
-
                     <ImageView
                         android:id="@+id/upload_event_failed"
                         android:background ="#ffff0000"
@@ -109,11 +104,33 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content">
 
-                        <ImageView
-                            android:layout_height="wrap_content"
+                        <RelativeLayout
                             android:layout_width="wrap_content"
-                            android:id="@+id/messagesAdapter_image"
-                            android:adjustViewBounds="true" />
+                            android:layout_height="wrap_content">
+
+                            <ImageView
+                                android:layout_height="wrap_content"
+                                android:layout_width="wrap_content"
+                                android:id="@+id/messagesAdapter_image"
+                                android:adjustViewBounds="true" />
+
+                            <FrameLayout
+                                android:layout_alignLeft = "@+id/messagesAdapter_image"
+                                android:layout_alignRight="@+id/messagesAdapter_image"
+                                android:layout_alignBottom="@+id/messagesAdapter_image"
+                                android:layout_alignTop="@+id/messagesAdapter_image"
+
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content">
+
+                                <ProgressBar
+                                    android:id="@+id/upload_event_spinner"
+                                    android:layout_gravity="center"
+                                    android:layout_width="@dimen/chat_avatar_size"
+                                    android:layout_height="@dimen/chat_avatar_size"
+                                    android:visibility="visible"/>
+                            </FrameLayout>
+                        </RelativeLayout>
 
                         <ImageView
                             android:layout_width="@dimen/chat_avatar_keyboard_size"
