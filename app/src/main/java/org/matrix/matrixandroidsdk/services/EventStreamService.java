@@ -150,9 +150,11 @@ public class EventStreamService extends Service {
                 return;
             }
 
+            String roomName = room.getName(mSession.getMyUser().userId);
+
             mNotificationRoomId = roomId;
 
-            Notification n = buildMessageNotification(member.getName(), body, event.roomId);
+            Notification n = buildMessageNotification(member.getName(), body, event.roomId, roomName);
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
@@ -264,14 +266,20 @@ public class EventStreamService extends Service {
         mState = StreamAction.START;
     }
 
-    private Notification buildMessageNotification(String from, String body, String roomId) {
+    private Notification buildMessageNotification(String from, String body, String roomId, String roomName) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setWhen(System.currentTimeMillis());
         builder.setContentTitle(from);
+        String name = null;
+        if("" == roomName || null == roomName) {
+            name = "";
+        } else {
+            name = " (" + roomName + "): ";
+        }
         builder.setContentText(body);
         builder.setAutoCancel(true);
         builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
-        builder.setTicker(from + ":" + body);
+        builder.setTicker(from + name + body);
 
         {
             // Build the pending intent for when the notification is clicked
