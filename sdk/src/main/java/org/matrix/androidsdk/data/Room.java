@@ -317,7 +317,7 @@ public class Room {
      */
     public void sendEvent(final Event event, final ApiCallback<Void> callback) {
         // wait that the room is synced before sending messages
-        if (!isReady || selfJoined()) {
+        if (!isReady || !selfJoined()) {
             event.mSentState = Event.SentState.WAITING_RETRY;
             callback.onNetworkError(null);
             return;
