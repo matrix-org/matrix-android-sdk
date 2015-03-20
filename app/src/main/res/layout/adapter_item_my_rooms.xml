@@ -37,6 +37,7 @@
             android:layout_height="30dp"
             android:background="@drawable/ic_menu_delete"
             android:id="@+id/roomSummaryAdapter_delete_button"
+            android:contentDescription="@string/delete"
             />
 
     </LinearLayout>
