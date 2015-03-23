@@ -175,8 +175,8 @@ public class Room {
      */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
-        mLiveState.mDataHandler = mDataHandler;
-        mBackState.mDataHandler = mDataHandler;
+        mLiveState.setDataHandler(mDataHandler);
+        mBackState.setDataHandler(mDataHandler);
     }
 
     /**
