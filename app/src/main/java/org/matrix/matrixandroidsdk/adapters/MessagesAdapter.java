@@ -732,10 +732,19 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
                         if (url.equals(anUploadId)) {
-                            uploadProgressLayout.setVisibility(View.GONE);
-                            uploadSpinner.setVisibility(View.VISIBLE);
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
                         }
                     }
                 });
