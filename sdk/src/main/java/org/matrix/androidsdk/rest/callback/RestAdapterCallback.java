@@ -17,7 +17,10 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.util.Log;
 
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -32,22 +35,33 @@ public class RestAdapterCallback<T> implements Callback<T> {
      * This callback should manage the request auto resent.
      */
     public interface RequestRetryCallBack {
-        public void onNetworkFailed();
+        public void onRetry();
     }
 
     private ApiCallback mApiCallback;
     private RequestRetryCallBack mRequestRetryCallBack;
+    private UnsentEventsManager mUnsentEventsManager;
 
 
-    public RestAdapterCallback(ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
+    public RestAdapterCallback(ApiCallback apiCallback) {
+        this.mApiCallback = apiCallback;
+        this.mRequestRetryCallBack = null;
+        this.mUnsentEventsManager = null;
+    }
+
+    public RestAdapterCallback(UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
         this.mApiCallback = apiCallback;
         this.mRequestRetryCallBack = requestRetryCallBack;
+        this.mUnsentEventsManager = unsentEventsManager;
     }
 
     @Override
     public void success(T t, Response response) {
         // add try catch to prevent application crashes while managing destroyed object
         try {
+            if (null != mUnsentEventsManager) {
+                mUnsentEventsManager.onEventSent(mApiCallback);
+            }
             mApiCallback.onSuccess(t);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
@@ -60,43 +74,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
      */
     @Override
     public void failure(RetrofitError error) {
-        Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-
-        if (error.isNetworkError()) {
-
-            try {
-                mApiCallback.onNetworkError(error);
-
-                if (null != mRequestRetryCallBack) {
-                    mRequestRetryCallBack.onNetworkFailed();
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-            }
-        }
-        else {
-            // Try to convert this into a Matrix error
-            MatrixError mxError;
-            try {
-                mxError = (MatrixError) error.getBodyAs(MatrixError.class);
-            }
-            catch (Exception e) {
-                mxError = null;
-            }
-            if (mxError != null) {
-                try {
-                    mApiCallback.onMatrixError(mxError);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                }
-            }
-            else {
-                try {
-                    mApiCallback.onUnexpectedError(error);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                }
-            }
+        if (null != mUnsentEventsManager) {
+            mUnsentEventsManager.onEventSendingFailed(error, mApiCallback, mRequestRetryCallBack);
         }
     }
 }

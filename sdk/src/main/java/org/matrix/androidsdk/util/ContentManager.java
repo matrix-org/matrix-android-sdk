@@ -18,6 +18,8 @@ package org.matrix.androidsdk.util;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 
@@ -27,9 +29,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import javax.net.ssl.SSLException;
 
 /**
  * Class for accessing content from the current session.
@@ -49,6 +58,7 @@ public class ContentManager {
     private String mAccessToken;
 
     private static HashMap<String, ContentUploadTask> mPendingUploadByUploadId = new HashMap<String, ContentUploadTask>();
+    private static ArrayList<ContentUploadTask> mSuspendedTasks = new ArrayList<ContentUploadTask>();
 
     /**
      * Interface to implement to get the mxc URI of uploaded content.
@@ -73,9 +83,52 @@ public class ContentManager {
      * @param hsUri the home server URL
      * @param accessToken the user's access token
      */
-    public ContentManager(String hsUri, String accessToken) {
+    public ContentManager(String hsUri, String accessToken, NetworkConnectivityReceiver networkConnectivityReceiver) {
         mHsUri = hsUri;
         mAccessToken = accessToken;
+
+        // add a default listener
+        // to resend the networkConnectivityReceiver messages
+        networkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
+            @Override
+            public void onNetworkConnectionUpdate(boolean isConnected) {
+                if (isConnected) {
+                    uploadSuspendedMedias();
+                }
+            }
+        });
+    }
+
+    /**
+     * Clear the content content
+     */
+    public void clear() {
+        Collection<ContentUploadTask> tasks = mPendingUploadByUploadId.values();
+
+        // cancels the running task
+        for(ContentUploadTask task : tasks) {
+            try {
+                task.cancel(true);
+            } catch (Exception e) {
+            }
+        }
+
+        mPendingUploadByUploadId.clear();
+        mSuspendedTasks.clear();
+    }
+
+    /**
+     * Restart the failed upload
+     */
+    private void uploadSuspendedMedias() {
+        synchronized (mSuspendedTasks) {
+            // return any suspended task
+            for(ContentUploadTask task : mSuspendedTasks) {
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                mPendingUploadByUploadId.put(task.mUploadId, task);
+            }
+            mSuspendedTasks.clear();
+        }
     }
 
     /**
@@ -166,17 +219,63 @@ public class ContentManager {
      * Private AsyncTask used to upload files.
      */
     private class ContentUploadTask extends AsyncTask<Void, Integer, String> {
-        private String mimeType;
-        private InputStream contentStream;
-        private String mUploadId;
+        // progress callbacks
+        private ArrayList<UploadCallback> mCallbacks = new ArrayList<UploadCallback>();
+
+        // the progress rate
         private int mProgress = 0;
-        private ArrayList<UploadCallback> callbacks = new ArrayList<UploadCallback>();
+
+        // the media mimeType
+        private String mimeType;
+
+        // the media to upload
+        private InputStream contentStream;
+
+        // its unique identifier
+        private String mUploadId;
+
+        //
+        private Exception mFailureException;
+
+        // and upload cannot live > 3 mins after it fails
+        private Timer mLifeTimeTimer;
 
         public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId) {
-            callbacks.add(callback);
+
+            try {
+                contentStream.reset();
+            } catch (Exception e) {
+
+            }
+
+            if (mCallbacks.indexOf(callback) < 0) {
+                mCallbacks.add(callback);
+            }
             this.mimeType = mimeType;
             this.contentStream = contentStream;
             this.mUploadId = uploadId;
+            this.mFailureException = null;
+            this.mLifeTimeTimer = null;
+
+            if (null != uploadId) {
+                mPendingUploadByUploadId.put(uploadId, this);
+            }
+        }
+
+        public ContentUploadTask(InputStream contentStream, String mimeType, ArrayList<UploadCallback> someCallbacks, String uploadId) {
+
+            try {
+                contentStream.reset();
+            } catch (Exception e) {
+
+            }
+
+            this.mCallbacks = someCallbacks;
+            this.mimeType = mimeType;
+            this.contentStream = contentStream;
+            this.mUploadId = uploadId;
+            this.mFailureException = null;
+            this.mLifeTimeTimer = null;
 
             if (null != uploadId) {
                 mPendingUploadByUploadId.put(uploadId, this);
@@ -184,7 +283,7 @@ public class ContentManager {
         }
 
         public void addCallback(UploadCallback callback) {
-            callbacks.add(callback);
+            mCallbacks.add(callback);
         }
 
         public int getProgress() {
@@ -247,9 +346,6 @@ public class ContentManager {
 
                     bytesRead = contentStream.read(buffer, 0, bufferSize);
                 }
-
-                // close streams
-                contentStream.close();
                 publishProgress(mProgress = 92);
                 dos.flush();
                 publishProgress(mProgress = 94);
@@ -279,6 +375,7 @@ public class ContentManager {
                 }
             }
             catch (Exception e) {
+                mFailureException = e;
                 Log.e(LOG_TAG, "Error: " + e.getMessage());
             }
 
@@ -289,7 +386,7 @@ public class ContentManager {
             super.onProgressUpdate(progress);
             Log.d(LOG_TAG, "UI Upload " + mHsUri + " : " + mProgress);
 
-            for (UploadCallback callback:callbacks) {
+            for (UploadCallback callback : mCallbacks) {
                 try {
                     callback.onUploadProgress(mUploadId, progress[0]);
                 } catch (Exception e) {
@@ -297,18 +394,61 @@ public class ContentManager {
             }
         }
 
-        @Override
-        protected void onPostExecute(String s) {
+        /**
+         * Dispatch the result to the callbacks
+         * @param s
+         */
+        private void dispatchResult(final String s) {
             if (null != mUploadId) {
                 mPendingUploadByUploadId.remove(mUploadId);
             }
 
+
+            // close the source stream
+            try {
+                contentStream.close();
+            } catch (Exception e) {
+            }
+
             ContentResponse uploadResponse = (s == null) ? null : JsonUtils.toContentResponse(s);
 
-            for (UploadCallback callback:callbacks) {
+            for (UploadCallback callback : mCallbacks) {
                 try {
                     callback.onUploadComplete(mUploadId, uploadResponse);
                 } catch (Exception e) {
+                }
+            }
+        }
+
+        @Override
+        protected void onPostExecute(final String s) {
+            // do not call the callback if cancelled.
+            if (!isCancelled()) {
+                // connection error
+                if ((null != mFailureException) && ((mFailureException instanceof UnknownHostException) || (mFailureException instanceof SSLException))) {
+                    synchronized (mSuspendedTasks) {
+                        mSuspendedTasks.add(new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId));
+                    }
+
+                    mLifeTimeTimer = new Timer();
+                    mLifeTimeTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            mLifeTimeTimer.cancel();
+                            mLifeTimeTimer = null;
+
+                            dispatchResult(s);
+                        }
+                    }, UnsentEventsManager.MAX_MESSAGE_LIFETIME_MS);
+
+
+                } else {
+                    dispatchResult(s);
+                }
+            } else {
+                if (null != mLifeTimeTimer) {
+                    mLifeTimeTimer.cancel();
+                    mLifeTimeTimer = null;
                 }
             }
         }

@@ -60,6 +60,13 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     }
 
     /**
+     * Clear the events listener data.
+     */
+    public void clear() {
+        mNetworkEventListeners.clear();
+    }
+
+    /**
      * Add a network event listener.
      * @param networkEventListener the event listener to add
      */
@@ -110,8 +117,8 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                 } catch(Exception e) {
 
                 }
-                mOnNetworkConnectedEventListeners.remove(listener);
             }
+            mOnNetworkConnectedEventListeners.clear();
         }
     }
 

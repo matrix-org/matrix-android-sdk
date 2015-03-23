@@ -65,6 +65,6 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.data = new HashMap<String, String>();
         pusher.data.put(DATA_KEY_HTTP_URL, url.toString());
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(callback, null));
+        mApi.set(pusher, new RestAdapterCallback<Void>(mUnsentEventsManager, callback, null));
     }
 }

@@ -305,7 +305,7 @@ public class Room {
         isReady = true;
 
         // check if they are some pending events
-        resendUnsentEvents();
+        //resendUnsentEvents();
     }
 
     /**
@@ -333,41 +333,17 @@ public class Room {
                     callback.onSuccess(null);
                 }
 
-                private void triggerUndeliverablesTimeout() {
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            checkUndeliverableEvents();
-                        }
-                    }, MAX_MESSAGE_TIME_LIFE_MS);
-                }
-
                 @Override
                 public void onNetworkError(Exception e) {
-                    event.mSentState = Event.SentState.WAITING_RETRY;
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
-
-                    triggerUndeliverablesTimeout();
                     callback.onNetworkError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
-
-                    // limit exceeds, the server provided a timeout
-                    if ( (e != null) &&  MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
-                        new Timer().schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                            resendUnsentEvents(MAX_RATE_LIMIT_MS);
-                            }
-                        }, e.retry_after_ms);
-                        event.mSentState = Event.SentState.WAITING_RETRY;
-                    } else {
-                        event.mSentState = Event.SentState.UNDELIVERABLE;
-                    }
-
                     callback.onMatrixError(e);
                 }
 
@@ -375,7 +351,6 @@ public class Room {
                 public void onUnexpectedError(Exception e) {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
-
                     callback.onUnexpectedError(e);
                 }
             };
