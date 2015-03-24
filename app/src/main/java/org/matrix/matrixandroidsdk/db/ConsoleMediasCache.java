@@ -25,29 +25,27 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
 import android.util.Log;
-import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.RejectedExecutionException;
 
 public class ConsoleMediasCache {
 
@@ -364,6 +362,9 @@ public class ConsoleMediasCache {
         return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle, mimeType);
     }
 
+    // some tasks have been stacked because there are too many running ones.
+    static ArrayList<BitmapWorkerTask> mSuspendedTasks = new ArrayList<BitmapWorkerTask>();
+
     /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
@@ -421,7 +422,23 @@ public class ConsoleMediasCache {
                 if (null != imageView) {
                     task.addImageView(imageView);
                 }
-                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+
+                // avoid crash if there are too many running task
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                } catch (RejectedExecutionException e) {
+                    // too many tasks have been launched
+                    synchronized (mSuspendedTasks) {
+                        task.cancel(true);
+                        // create a new task from the existing one
+                        task = new BitmapWorkerTask(task);
+                        mSuspendedTasks.add(task);
+                        Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                    }
+
+                } catch (Exception e) {
+                
+                }
             }
         }
 
@@ -477,6 +494,10 @@ public class ConsoleMediasCache {
 
         public static void clearBitmapsCache() {
             sMemoryCache.evictAll();
+        }
+
+        public String getUrl() {
+            return mUrl;
         }
 
         /**
@@ -618,7 +639,7 @@ public class ConsoleMediasCache {
                         }
 
                     } catch (FileNotFoundException e) {
-                        Log.e(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
+                        Log.d(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "bitmapForURL() "+e);
 
@@ -645,6 +666,21 @@ public class ConsoleMediasCache {
             }
             mMimeType = mimeType;
             mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        }
+
+        /**
+         * BitmapWorkerTask creator
+         * @param task another bitmap task
+         */
+        public BitmapWorkerTask(BitmapWorkerTask task) {
+            mApplicationContext = task.mApplicationContext;
+            mUrl = task.mUrl;
+            mRotation = task.mRotation;
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.put(mUrl, this);
+            }
+            mMimeType = task.mMimeType;
+            mImageViewReferences = task.mImageViewReferences;
         }
 
         /**
@@ -809,6 +845,36 @@ public class ConsoleMediasCache {
 
                     if (imageView != null && mUrl.equals(imageView.getTag())) {
                         imageView.setImageBitmap(bitmap);
+                    }
+                }
+            }
+
+            synchronized (mSuspendedTasks) {
+                // some task have been suspended because there were too many running ones ?
+                if (mSuspendedTasks.size() > 0) {
+
+                    if (mSuspendedTasks.size() > 0) {
+                        BitmapWorkerTask task = mSuspendedTasks.get(0);
+
+                        Log.d(LOG_TAG, "Restart the task " + task.mUrl);
+
+                        // avoid crash if there are too many running task
+                        try {
+                            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                            mSuspendedTasks.remove(task);
+                        }
+                        catch (RejectedExecutionException e) {
+                            task.cancel(true);
+
+                            mSuspendedTasks.remove(task);
+                            // create a new task from the existing one
+                            task = new BitmapWorkerTask(task);
+                            mSuspendedTasks.add(task);
+                            Log.d(LOG_TAG, "Suspend again the task " + task.mUrl + " - " + task.getStatus());
+
+                        } catch (Exception e) {
+                            Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
+                        }
                     }
                 }
             }

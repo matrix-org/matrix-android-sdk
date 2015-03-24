@@ -174,7 +174,12 @@ public class ContentManager {
      * @param callback the async callback returning a mxc: URI to access the uploaded file
      */
     public void uploadContent(InputStream contentStream, String mimeType, String uploadId, UploadCallback callback) {
-        new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        try {
+            new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            // cannot start the task
+            callback.onUploadComplete(uploadId, null);
+        }
     }
 
     /**
@@ -463,9 +468,14 @@ public class ContentManager {
                     mUnsentEventsManager.onEventSendingFailed(null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
                         @Override
                         public void onRetry() {
-                            ContentUploadTask task = new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId, mApiCallback);
-                            mPendingUploadByUploadId.put(mUploadId, task);
-                            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            try {
+                                ContentUploadTask task = new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId, mApiCallback);
+                                mPendingUploadByUploadId.put(mUploadId, task);
+                                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            } catch (Exception e) {
+                                // cannot start the task
+                                dispatchResult(s);
+                            }
                         }
                     });
                 } else {
