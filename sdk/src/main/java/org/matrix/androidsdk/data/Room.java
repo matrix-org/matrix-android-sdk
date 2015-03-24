@@ -50,6 +50,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Member;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -129,6 +130,19 @@ public class Room {
 
     public Collection<RoomMember> getMembers() {
         return mLiveState.getMembers();
+    }
+
+    public Collection<RoomMember> getActiveMembers() {
+        Collection<RoomMember> members = mLiveState.getMembers();
+        ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
+
+        for(RoomMember member : members) {
+            if (!member.hasLeft()) {
+                activeMembers.add(member);
+            }
+        }
+
+        return activeMembers;
     }
 
     public void setMember(String userId, RoomMember member) {

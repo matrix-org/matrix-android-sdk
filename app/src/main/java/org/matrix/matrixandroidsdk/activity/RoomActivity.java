@@ -50,6 +50,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -66,6 +67,7 @@ import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -415,6 +417,18 @@ public class RoomActivity extends MXCActionBarActivity {
         }
     }
 
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        Collection<RoomMember> members = mRoom.getActiveMembers();
+        menu.findItem(R.id.action_leave).setVisible(members.size() > 1);
+        menu.findItem(R.id.action_delete).setVisible(members.size() <= 1);
+
+        return true;
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -433,7 +447,7 @@ public class RoomActivity extends MXCActionBarActivity {
             return true;
         }
 
-        if (id == R.id.action_leave) {
+        if ((id == R.id.action_leave) || (id == R.id.action_delete)) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
                 mRoom.leave(new SimpleApiCallback<Void>(this) {
