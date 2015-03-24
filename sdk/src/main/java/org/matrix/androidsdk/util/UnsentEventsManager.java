@@ -34,7 +34,9 @@ import retrofit.RetrofitError;
 
 /**
  * unsent matrix events manager
- * They must be resent in the right order (i.e sent one event before sending another one).
+ * This manager schedules the unsent events sending.
+ * 1 - it keeps the unsent events order (i.e. wait that the first event is resent before sending the second one)
+ * 2 - Apply the retry rules (event time life, 3 tries...)
  */
 public class UnsentEventsManager {
 
@@ -51,7 +53,7 @@ public class UnsentEventsManager {
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     // faster way to check if the event is already sent
-    private HashMap<ApiCallback, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<ApiCallback, UnsentEventSnapshot>();
+    private HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<Object, UnsentEventSnapshot>();
     // get the sending order
     private ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<UnsentEventSnapshot>();
 
@@ -185,9 +187,19 @@ public class UnsentEventsManager {
      * @param callback the callback.
      */
     public static void triggerErrorCallback(RetrofitError error, ApiCallback callback) {
-        Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
 
-        if (error.isNetworkError()) {
+        if (null != error) {
+            Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
+        }
+
+        if (null == error) {
+            try {
+                callback.onUnexpectedError(error);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+            }
+        }
+        else if (error.isNetworkError()) {
             try {
                 callback.onNetworkError(error);
             } catch (Exception e) {
@@ -229,17 +241,19 @@ public class UnsentEventsManager {
     public void onEventSendingFailed(final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
         boolean isManaged = false;
 
-        if ((null != retrofitError) && (null != requestRetryCallBack) && (null != apiCallback)) {
+        if ((null != requestRetryCallBack) && (null != apiCallback)) {
             synchronized (mUnsentEventsMap) {
                 UnsentEventSnapshot snapshot;
 
                 // Try to convert this into a Matrix error
-                MatrixError mxError;
-                try {
-                    mxError = (MatrixError) retrofitError.getBodyAs(MatrixError.class);
-                }
-                catch (Exception e) {
-                    mxError = null;
+                MatrixError mxError = null;
+
+                if (null != retrofitError) {
+                    try {
+                        mxError = (MatrixError) retrofitError.getBodyAs(MatrixError.class);
+                    } catch (Exception e) {
+                        mxError = null;
+                    }
                 }
 
                 int matrixRetryTimeout = -1;
@@ -303,7 +317,7 @@ public class UnsentEventsManager {
                 // retry to send the message ?
                 if (isManaged) {
                     //
-                    if (!retrofitError.isNetworkError()) {
+                    if ((null != retrofitError) && !retrofitError.isNetworkError()) {
                         snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : AUTO_RESENT_MS_DELAYS.get(snapshot.mRetryCount - 1));
                     }
                 }

@@ -121,8 +121,9 @@ public class MXSession {
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mNetworkConnectivityReceiver) ;
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager) ;
+
 
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
