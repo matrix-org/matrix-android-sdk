@@ -180,6 +180,16 @@ public class CommonActivityUtils {
     }
 
     public static void goToRoomPage(final String roomId, final Activity fromActivity) {
+
+        MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
+        Room room = session.getDataHandler().getRoom(roomId);
+
+        // do not open a leaving room.
+        // it does not make.
+        if ((null != room) && (room.isLeaving())) {
+            return;
+        }
+
         fromActivity.runOnUiThread(new Runnable() {
                                        @Override
                                        public void run() {

@@ -451,12 +451,8 @@ public class RoomActivity extends MXCActionBarActivity {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
                 mRoom.leave(new SimpleApiCallback<Void>(this) {
-
-                    @Override
-                    public void onSuccess(Void info) {
-                        RoomActivity.this.finish();
-                    }
                 });
+                RoomActivity.this.finish();
             }
         }
         else if (id == R.id.action_members) {

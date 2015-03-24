@@ -366,7 +366,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
-        Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
+        final Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
         deleteButton.setVisibility((groupPosition == mRecentsGroupIndex) ? View.VISIBLE : View.GONE);
         // required to have the onChildClick event
         // does not work when settings in the adapter xml file.
@@ -453,15 +453,30 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     Room room = session.getDataHandler().getRoom(fRoomid);
 
                     if (null != room) {
-                        room.leave(new SimpleApiCallback<Void>(mContext) {
-
+                        room.leave(new SimpleApiCallback<Void>(mContext, deleteButton) {
                             @Override
                             public void onSuccess(Void info) {
+
                             }
                         });
                     }
                 }
             });
+
+            MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
+            Room room = session.getDataHandler().getRoom(fRoomid);
+
+            final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
+
+            if (room.isLeaving()) {
+                convertView.setAlpha(0.3f);
+                deleteButton.setVisibility(View.GONE);
+                deleteProgress.setVisibility(View.VISIBLE);
+            } else {
+                convertView.setAlpha(1.0f);
+                deleteButton.setVisibility(View.VISIBLE);
+                deleteProgress.setVisibility(View.GONE);
+            }
 
         } else {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;

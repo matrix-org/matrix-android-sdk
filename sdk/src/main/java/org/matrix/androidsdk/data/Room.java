@@ -107,9 +107,10 @@ public class Room {
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
 
-
     private boolean isResendingEvents = false;
     private boolean checkUnsentMessages = false;
+
+    private boolean mIsLeaving = false;
 
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -126,6 +127,10 @@ public class Room {
 
     public RoomState getLiveState() {
         return mLiveState;
+    }
+
+    public boolean isLeaving() {
+        return mIsLeaving;
     }
 
     public Collection<RoomMember> getMembers() {
@@ -273,6 +278,14 @@ public class Room {
                 // Filter out events for other rooms
                 if (mRoomId.equals(roomId)) {
                     eventListener.onRoomInitialSyncComplete(roomId);
+                }
+            }
+
+            @Override
+            public void onRoomInternalUpdate(String roomId) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(roomId)) {
+                    eventListener.onRoomInternalUpdate(roomId);
                 }
             }
         };
@@ -553,8 +566,38 @@ public class Room {
      * Leave the room.
      * @param callback the callback for when done
      */
-    public void leave(ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, callback);
+    public void leave(final ApiCallback<Void> callback) {
+        this.mIsLeaving = true;
+        mDataHandler.onRoomInternalUpdate(mRoomId);
+
+        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Room.this.mIsLeaving = false;
+                callback.onSuccess(info);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Room.this.mIsLeaving = false;
+                callback.onNetworkError(e);
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Room.this.mIsLeaving = false;
+                callback.onMatrixError(e);
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Room.this.mIsLeaving = false;
+                callback.onUnexpectedError(e);
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+        });
     }
 
     /**

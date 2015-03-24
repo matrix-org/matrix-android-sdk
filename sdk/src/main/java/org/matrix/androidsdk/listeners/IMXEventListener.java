@@ -93,4 +93,11 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     public void onRoomInitialSyncComplete(String roomId);
+
+    /**
+     * The room data has been internally updated.
+     * It could be triggered when a request failed.
+     * @param roomId the roomID
+     */
+    public void onRoomInternalUpdate(String roomId);
 }

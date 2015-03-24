@@ -39,6 +39,13 @@
             android:id="@+id/roomSummaryAdapter_delete_button"
             />
 
+        <ProgressBar
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:id="@+id/roomSummaryAdapter_delete_progress"
+            android:indeterminate="true"
+            />
+
     </LinearLayout>
 
     <TextView

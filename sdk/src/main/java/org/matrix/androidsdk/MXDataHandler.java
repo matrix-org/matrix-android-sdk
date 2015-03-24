@@ -86,7 +86,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         mBingRulesManager = bingRulesManager;
-        mBingRulesManager.loadRules(new SimpleApiCallback<Void>((Context)null) {
+        mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 MXDataHandler.this.onBingRulesUpdate();
@@ -100,7 +100,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void refreshPushRules() {
         if (null != mBingRulesManager) {
-            mBingRulesManager.loadRules(new SimpleApiCallback<Void>((Context)null) {
+            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     MXDataHandler.this.onBingRulesUpdate();
@@ -251,10 +251,10 @@ public class MXDataHandler implements IMXEventListener {
                 roomSummary.setInviterUserId(null);
 
                 final Room room = getStore().getRoom(event.roomId);
-                room.initialSync(new SimpleApiCallback<Void>((Context)null) {
+                room.initialSync(new SimpleApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
-                        room.requestHistory(new SimpleApiCallback<Integer>((Context)null) {
+                        room.requestHistory(new SimpleApiCallback<Integer>() {
                             @Override
                             public void onSuccess(Integer info) {
                                 onRoomInitialSyncComplete(event.roomId);
@@ -489,6 +489,15 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : mEventListeners) {
             try {
                 listener.onRoomInitialSyncComplete(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onRoomInternalUpdate(String roomId) {
+        for (IMXEventListener listener : mEventListeners) {
+            try {
+                listener.onRoomInternalUpdate(roomId);
             } catch (Exception e) {
             }
         }
