@@ -20,24 +20,38 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.SectionIndexer;
 import android.widget.TextView;
 
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.contacts.Contact;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Set;
+
 /**
  * An adapter which can display m.room.member content.
  */
-public class ContactsListAdapter extends ArrayAdapter<Contact> {
+public class ContactsListAdapter extends ArrayAdapter<Contact> implements SectionIndexer {
 
     private Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
+
+    // SectionIndexer
+    private HashMap<String, Integer> mMapIndex;
+    private String[] mSections;
 
     /**
      * Construct an adapter which will display a list of room members.
@@ -102,4 +116,39 @@ public class ContactsListAdapter extends ArrayAdapter<Contact> {
 
         return convertView;
     }
+
+    public int getPositionForSection(int section) {
+        return mMapIndex.get(mSections[section]);
+    }
+
+    public int getSectionForPosition(int position) {
+        return 0;
+    }
+
+    public Object[] getSections() {
+        return mSections;
+    }
+
+    @Override
+    public void addAll(java.util.Collection<? extends Contact> collection) {
+        super.addAll(collection);
+
+        // compute the sections from the contacts list
+        // assume that the contacts are displayed by display names
+        mMapIndex = new LinkedHashMap<String, Integer>();
+
+        int index = 0;
+
+        // list the contacts by display name
+        for (Contact contact : collection){
+            if (!TextUtils.isEmpty(contact.mDisplayName)) {
+                mMapIndex.put(contact.mDisplayName.substring(0, 1).toUpperCase(), index);
+                index++;
+            }
+        }
+
+        mSections = new String[mMapIndex.size()];
+        mMapIndex.keySet().toArray(mSections);
+    }
+
 }

@@ -125,6 +125,8 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         // sort them
         Collections.sort(mLocalContacts, alphaComparator);
 
+        mListView.setFastScrollAlwaysVisible(true);
+        mListView.setFastScrollEnabled(true);
         mListView.setAdapter(mAdapter);
 
         refreshAdapter();
