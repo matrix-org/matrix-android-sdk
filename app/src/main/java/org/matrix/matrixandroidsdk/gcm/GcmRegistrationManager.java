@@ -61,7 +61,7 @@ public final class GcmRegistrationManager {
                 if (registrationId != null) {
                     registerPusher(registrationId);
                 } else {
-                    // TODO: Handle error
+                    // TODO: Handle error by calling a method on the listener
                 }
                 return null;
             }
@@ -79,6 +79,8 @@ public final class GcmRegistrationManager {
         String registrationId = getStoredRegistrationId();
         if (registrationId == null) {
             try {
+                // TODO: Check if (an up to date version of) Google Play Services is available
+                // and callback if not.
                 GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(mContext);
                 registrationId = gcm.register(SENDER_ID);
             } catch (IOException e) {
