@@ -273,6 +273,7 @@ public class EventStreamService extends Service {
     }
 
     private boolean shouldRunInForeground() {
+        // TODO: Make configurable in settings, false by default if GCM registration succeeded.
         return true;
     }
 }
