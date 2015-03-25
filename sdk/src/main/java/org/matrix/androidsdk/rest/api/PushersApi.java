@@ -12,5 +12,5 @@ import retrofit.http.POST;
 public interface PushersApi {
 
     @POST("/pushers/set")
-    public void set(@Body Pusher pusher, Callback<Void> callback);
+    public Void set(@Body Pusher pusher);
 }

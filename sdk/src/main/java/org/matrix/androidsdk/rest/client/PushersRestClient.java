@@ -30,14 +30,12 @@ public class PushersRestClient extends RestClient<PushersApi> {
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
-     * @param callback the callback called when the request completed
      */
     public void addHttpPusher(
             String pushkey, String appId,
             String profileTag, String lang,
             String appDisplayName, String deviceDisplayName,
-            URL url,
-            ApiCallback<Void> callback) {
+            String url) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -47,8 +45,8 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.appDisplayName= appDisplayName;
         pusher.deviceDisplayName = deviceDisplayName;
         pusher.data = new HashMap<String, String>();
-        pusher.data.put(DATA_KEY_HTTP_URL, url.toString());
+        pusher.data.put(DATA_KEY_HTTP_URL, url);
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(callback, null));
+        mApi.set(pusher);
     }
 }
