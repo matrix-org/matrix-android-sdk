@@ -76,6 +76,38 @@ public class RestAdapterCallback<T> implements Callback<T> {
     public void failure(RetrofitError error) {
         if (null != mUnsentEventsManager) {
             mUnsentEventsManager.onEventSendingFailed(error, mApiCallback, mRequestRetryCallBack);
+        } else {
+            if (error.isNetworkError()) {
+                try {
+                    mApiCallback.onNetworkError(error);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+                }
+            }
+            else {
+                // Try to convert this into a Matrix error
+                MatrixError mxError;
+                try {
+                    mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+                }
+                catch (Exception e) {
+                    mxError = null;
+                }
+                if (mxError != null) {
+                    try {
+                        mApiCallback.onMatrixError(mxError);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                    }
+                }
+                else {
+                    try {
+                        mApiCallback.onUnexpectedError(error);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                    }
+                }
+            }
         }
     }
 }

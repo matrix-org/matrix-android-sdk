@@ -262,63 +262,66 @@ public class UnsentEventsManager {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
                 }
 
-                // is it the first time that the event has been sent ?
-                if (mUnsentEventsMap.containsKey(apiCallback)) {
-                    snapshot = mUnsentEventsMap.get(apiCallback);
+                // some matrix errors are not trapped.
+                if ((null == mxError) || !mxError.isSupportedErrorCode() || MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode)) {
+                    // is it the first time that the event has been sent ?
+                    if (mUnsentEventsMap.containsKey(apiCallback)) {
+                        snapshot = mUnsentEventsMap.get(apiCallback);
 
-                    snapshot.stopTimer();
+                        snapshot.stopTimer();
 
-                    // assume that LIMIT_EXCEEDED error is not a default retry
-                    if (matrixRetryTimeout < 0) {
-                        snapshot.mRetryCount++;
-                    }
+                        // assume that LIMIT_EXCEEDED error is not a default retry
+                        if (matrixRetryTimeout < 0) {
+                            snapshot.mRetryCount++;
+                        }
 
-                    // any event has a time life to avoid very old messages
-                    if (((System.currentTimeMillis() - snapshot.mAge) > MAX_MESSAGE_LIFETIME_MS) || (snapshot.mRetryCount > MAX_RETRIES))  {
-                        snapshot.stopTimers();
-                        mUnsentEventsMap.remove(apiCallback);
-                        mUnsentEvents.remove(snapshot);
+                        // any event has a time life to avoid very old messages
+                        if (((System.currentTimeMillis() - snapshot.mAge) > MAX_MESSAGE_LIFETIME_MS) || (snapshot.mRetryCount > MAX_RETRIES)) {
+                            snapshot.stopTimers();
+                            mUnsentEventsMap.remove(apiCallback);
+                            mUnsentEvents.remove(snapshot);
 
-                        isManaged = false;
+                            isManaged = false;
+                        } else {
+                            isManaged = true;
+                        }
                     } else {
+                        snapshot = new UnsentEventSnapshot();
+
+                        snapshot.mAge = System.currentTimeMillis();
+                        snapshot.mApiCallback = apiCallback;
+                        snapshot.mRetrofitError = retrofitError;
+                        snapshot.mRequestRetryCallBack = requestRetryCallBack;
+                        snapshot.mRetryCount = 1;
+                        mUnsentEventsMap.put(apiCallback, snapshot);
+                        mUnsentEvents.add(snapshot);
+
+                        // the event has a life time
+                        final UnsentEventSnapshot fSnapshot = snapshot;
+                        fSnapshot.mLifeTimeTimer = new Timer();
+                        fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                try {
+                                    fSnapshot.stopTimers();
+                                    mUnsentEventsMap.remove(apiCallback);
+                                    mUnsentEvents.remove(fSnapshot);
+
+                                    triggerErrorCallback(retrofitError, apiCallback);
+                                } catch (Exception e) {
+                                }
+                            }
+                        }, MAX_MESSAGE_LIFETIME_MS);
+
                         isManaged = true;
                     }
-                } else {
-                    snapshot = new UnsentEventSnapshot();
 
-                    snapshot.mAge = System.currentTimeMillis();
-                    snapshot.mApiCallback = apiCallback;
-                    snapshot.mRetrofitError = retrofitError;
-                    snapshot.mRequestRetryCallBack = requestRetryCallBack;
-                    snapshot.mRetryCount = 1;
-                    mUnsentEventsMap.put(apiCallback, snapshot);
-                    mUnsentEvents.add(snapshot);
-
-                    // the event has a life time
-                    final UnsentEventSnapshot fSnapshot = snapshot;
-                    fSnapshot.mLifeTimeTimer = new Timer();
-                    fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            try {
-                                fSnapshot.stopTimers();
-                                mUnsentEventsMap.remove(apiCallback);
-                                mUnsentEvents.remove(fSnapshot);
-
-                                triggerErrorCallback(retrofitError, apiCallback);
-                            } catch (Exception e) {
-                            }
+                    // retry to send the message ?
+                    if (isManaged) {
+                        //
+                        if ((null != retrofitError) && !retrofitError.isNetworkError()) {
+                            snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : AUTO_RESENT_MS_DELAYS.get(snapshot.mRetryCount - 1));
                         }
-                    }, MAX_MESSAGE_LIFETIME_MS);
-
-                    isManaged = true;
-                }
-
-                // retry to send the message ?
-                if (isManaged) {
-                    //
-                    if ((null != retrofitError) && !retrofitError.isNetworkError()) {
-                        snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : AUTO_RESENT_MS_DELAYS.get(snapshot.mRetryCount - 1));
                     }
                 }
             }

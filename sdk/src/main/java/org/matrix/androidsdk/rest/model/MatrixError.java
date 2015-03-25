@@ -33,4 +33,20 @@ public class MatrixError {
     public String errcode;
     public String error;
     public Integer retry_after_ms;
+
+
+    /**
+     * @return true if the error code is a supported one
+     */
+    public boolean isSupportedErrorCode () {
+       return   MatrixError.FORBIDDEN.equals(errcode) ||
+                MatrixError.UNKNOWN_TOKEN.equals(errcode) ||
+                MatrixError.BAD_JSON.equals(errcode) ||
+                MatrixError.NOT_JSON.equals(errcode) ||
+                MatrixError.NOT_FOUND.equals(errcode) ||
+                MatrixError.LIMIT_EXCEEDED.equals(errcode) ||
+                MatrixError.USER_IN_USE.equals(errcode) ||
+                MatrixError.ROOM_IN_USE.equals(errcode) ||
+                MatrixError.BAD_PAGINATION.equals(errcode);
+    }
 }
