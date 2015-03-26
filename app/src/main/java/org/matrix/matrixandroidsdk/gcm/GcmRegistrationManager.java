@@ -20,7 +20,8 @@ import java.io.IOException;
 public final class GcmRegistrationManager {
     private static String LOG_TAG = "GcmRegistrationManager";
 
-    private static String SENDER_ID = "173057950585";
+    // TODO: Make this configurable at build time
+    private static String SENDER_ID = "0";
 
     private static String PUSHER_APP_ID = "org.matrix.console.android";
     // TODO: Get from Package manager, localized
@@ -30,7 +31,7 @@ public final class GcmRegistrationManager {
     // TODO: Get this from the system locale
     private static String PUSHER_LANG = "en";
     // TODO: Make this configurable in settings
-    private static String PUSHER_URL = "http://roubaix.ndreke.de:5001/_matrix/push/v1/notify";
+    private static String PUSHER_URL = "http://matrix.org/_matrix/push/v1/notify";
     // TODO: Generate a random profile tag, make editable in settings.
     private static String PUSHER_PROFILE_TAG = "mobile";
 
