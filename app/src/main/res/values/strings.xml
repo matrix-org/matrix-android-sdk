@@ -27,6 +27,7 @@
     <string name="clear_cache">Clear Cache</string>
     <string name="more">More</string>
     <string name="chat_with">Chat with </string>
+    <string name="delete">Delete</string>
 
     <!-- actions -->
     <string name="action_settings">Settings</string>
