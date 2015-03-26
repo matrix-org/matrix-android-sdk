@@ -18,6 +18,7 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -374,6 +375,112 @@ public class CommonActivityUtils {
         }
 
         return userIDsList;
+    }
+
+    /**
+     * @param context the context
+     * @param filename the filename
+     * @return true if a file named "filename" is stored in the downloads directory
+     */
+    public static Boolean doesFileExistInDownloads(Context context, String filename) {
+        File dstDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        if (dstDir != null) {
+            dstDir.mkdirs();
+        }
+
+        File dstFile = new File(dstDir, filename);
+        return dstFile.exists();
+    }
+
+    /**
+     * Save a media in the downloads directory and offer to open it with a third party application.
+     * @param activity the activity
+     * @param savedMediaPath the media path
+     * @param mimeType the media mime type.
+     */
+    public static void openMedia(Activity activity, String savedMediaPath, String mimeType) {
+        try {
+            File file = new File(savedMediaPath);
+            Intent intent = new Intent();
+            intent.setAction(android.content.Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(file), mimeType);
+            activity.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+             Toast.makeText(activity, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * Save a media URI into the download directory
+     * @param context the context
+     * @param path the media path
+     * @param filename the filename (optional)
+     * @return the downloads file path
+     */
+    public static String saveMediaIntoDownloads(Context context, String path, String filename) {
+        // sanity check
+        if (null == path) {
+            return null;
+        }
+
+        // Build target file object
+        String dstDirPath = Environment.DIRECTORY_DOWNLOADS;
+
+        // defines another name for the external media
+        String dstFileName = null;
+
+        // build a filename is not provided
+        if (null == filename) {
+            // extract the file extension from the uri
+            int dotPos = path.lastIndexOf(".");
+
+            String fileExt = "";
+            if (dotPos > 0) {
+                fileExt = path.substring(dotPos);
+            }
+
+            dstFileName = "MatrixConsole_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
+        } else {
+            dstFileName = filename;
+        }
+
+        File dstDir = Environment.getExternalStoragePublicDirectory(dstDirPath);
+        if (dstDir != null) {
+            dstDir.mkdirs();
+        }
+
+        File dstFile = new File(dstDir, dstFileName);
+
+        // Copy source file to destination
+        InputStream inputStream = null;
+        FileOutputStream outputStream = null;
+        try {
+            // create only the
+            if (!dstFile.exists()) {
+                dstFile.createNewFile();
+
+                inputStream = context.openFileInput(path);
+                outputStream = new FileOutputStream(dstFile);
+
+                byte[] buffer = new byte[1024 * 10];
+                int len;
+                while ((len = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, len);
+                }
+            }
+        } catch (Exception e) {
+        } finally {
+            // Close resources
+            try {
+                if (inputStream != null) inputStream.close();
+                if (outputStream != null) outputStream.close();
+            } catch (Exception e) {
+            }
+        }
+
+        return dstFile.getAbsolutePath();
     }
 
     /**

@@ -127,10 +127,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = new MessagesAdapter(getActivity(),
-                    R.layout.adapter_item_messages,
-                    R.layout.adapter_item_images,
+                    R.layout.adapter_item_message_text,
+                    R.layout.adapter_item_message_image,
                     R.layout.adapter_item_message_notice,
-                    R.layout.adapter_item_message_emote
+                    R.layout.adapter_item_message_emote,
+                    R.layout.adapter_item_message_file
             );
         }
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
@@ -758,7 +759,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
 
-            mRedactResendAlert.show();
+            try {
+                mRedactResendAlert.show();
+            } catch (Exception e) {
+            }
         }
     }
 

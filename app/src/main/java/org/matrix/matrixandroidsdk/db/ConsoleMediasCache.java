@@ -23,6 +23,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.MediaStore;
 import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -104,7 +105,7 @@ public class ConsoleMediasCache {
             }
         }
 
-        BitmapWorkerTask.clearBitmapsCache();
+        MediaWorkerTask.clearBitmapsCache();
     }
 
     /**
@@ -147,7 +148,7 @@ public class ConsoleMediasCache {
             return null;
         }
 
-        String filename = BitmapWorkerTask.buildFileName(downloadableUrl(context, url, width, height), mimeType);
+        String filename = MediaWorkerTask.buildFileName(downloadableUrl(context, url, width, height), mimeType);
 
         try {
             // already a local file
@@ -261,7 +262,7 @@ public class ConsoleMediasCache {
      * @return the bitmap or null if it does not exist
      */
     public static Bitmap bitmapForUrl(Context context, String url, int rotationAngle, String mimeType)  {
-        return BitmapWorkerTask.bitmapForURL(context, url, rotationAngle, mimeType);
+        return MediaWorkerTask.bitmapForURL(context, url, rotationAngle, mimeType);
     }
 
     /**
@@ -287,7 +288,7 @@ public class ConsoleMediasCache {
      */
     public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height, String mimeType) {
         String downloadableUrl = downloadableUrl(context, mediaUrl, width, height);
-        String filename = BitmapWorkerTask.buildFileName(downloadableUrl, mimeType);
+        String filename = MediaWorkerTask.buildFileName(downloadableUrl, mimeType);
 
         try {
             // delete the current content
@@ -363,7 +364,66 @@ public class ConsoleMediasCache {
     }
 
     // some tasks have been stacked because there are too many running ones.
-    static ArrayList<BitmapWorkerTask> mSuspendedTasks = new ArrayList<BitmapWorkerTask>();
+    static ArrayList<MediaWorkerTask> mSuspendedTasks = new ArrayList<MediaWorkerTask>();
+
+    /***
+     * Retuns the download ID from the media URL.
+     * @param context the application context
+     * @param url the media url
+     * @param mimeType the mime type
+     * @return the download ID
+     */
+    public static String downloadIdFromUrl(Context context, String url, String mimeType) {
+        return downloadableUrl(context, url, -1, -1);
+    }
+
+    /**
+     *
+     * @param context the application context
+     * @param url the media url
+     * @param mimeType the media mimetype
+     * @return
+     */
+    public static String downloadMedia(Context context, String url, String mimeType) {
+        // sanity checks
+        if ((null == mimeType) || (null == url) || (null == context)) {
+            return null;
+        }
+
+        // is the media already downloaded ?
+        if (null != mediaCacheFilename(context, url, mimeType)) {
+            return null;
+        }
+
+        String downloadableUrl = downloadableUrl(context, url, -1, -1);
+
+        // is the media downloading  ?
+        if (null != MediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
+            return downloadableUrl;
+        }
+
+        // download it in background
+        MediaWorkerTask task = new MediaWorkerTask(context, downloadableUrl, mimeType);
+
+        // avoid crash if there are too many running task
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+        } catch (RejectedExecutionException e) {
+            // too many tasks have been launched
+            synchronized (mSuspendedTasks) {
+                task.cancel(true);
+                // create a new task from the existing one
+                task = new MediaWorkerTask(task);
+                mSuspendedTasks.add(task);
+                Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+            }
+
+        } catch (Exception e) {
+
+        }
+
+        return downloadableUrl;
+    }
 
     /**
      * Load a bitmap from an url.
@@ -400,7 +460,7 @@ public class ConsoleMediasCache {
         }
 
         // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle, mimeType);
+        Bitmap bitmap = MediaWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
@@ -409,7 +469,7 @@ public class ConsoleMediasCache {
             }
             downloadableUrl = null;
         } else {
-            BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadableUrl);
+            MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl);
 
             if (null != currentTask) {
                 if (null != imageView) {
@@ -417,7 +477,7 @@ public class ConsoleMediasCache {
                 }
             } else {
                 // download it in background
-                BitmapWorkerTask task = new BitmapWorkerTask(context, downloadableUrl, rotationAngle, mimeType);
+                MediaWorkerTask task = new MediaWorkerTask(context, downloadableUrl, rotationAngle, mimeType);
 
                 if (null != imageView) {
                     task.addImageView(imageView);
@@ -431,7 +491,7 @@ public class ConsoleMediasCache {
                     synchronized (mSuspendedTasks) {
                         task.cancel(true);
                         // create a new task from the existing one
-                        task = new BitmapWorkerTask(task);
+                        task = new MediaWorkerTask(task);
                         mSuspendedTasks.add(task);
                         Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
                     }
@@ -451,7 +511,7 @@ public class ConsoleMediasCache {
      * @return the download progress
      */
     public static int progressValueForDownloadId(String downloadId) {
-        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+        MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             return currentTask.getProgress();
@@ -465,17 +525,17 @@ public class ConsoleMediasCache {
      * @param callback the async callback
      */
     public static void addDownloadListener(String downloadId, DownloadCallback callback) {
-        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+        MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             currentTask.addCallback(callback);
         }
     }
 
-    static class BitmapWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
+    static class MediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
         private static final int MEMORY_CACHE_MB = 16;
-        private static HashMap<String, BitmapWorkerTask> mPendingDownloadByUrl = new HashMap<String, BitmapWorkerTask>();
+        private static HashMap<String, MediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MediaWorkerTask>();
 
         private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
             @Override
@@ -505,9 +565,9 @@ public class ConsoleMediasCache {
          * @param url The url to check the existence
          * @return the dedicated BitmapWorkerTask if it exists.
          */
-        public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
+        public static MediaWorkerTask mediaWorkerTaskForUrl(String url) {
             if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
-                BitmapWorkerTask task;
+                MediaWorkerTask task;
                 synchronized(mPendingDownloadByUrl) {
                     task = mPendingDownloadByUrl.get(url);
                 }
@@ -554,13 +614,14 @@ public class ConsoleMediasCache {
             if (null != url) {
 
                 // the image is downloading in background
-                if (null != bitmapWorkerTaskForUrl(url)) {
+                if (null != mediaWorkerTaskForUrl(url)) {
                     return null;
                 }
 
                 synchronized (sMemoryCache) {
                     bitmap = sMemoryCache.get(url);
                 }
+
 
                 // check if the image has not been saved in file system
                 if ((null == bitmap) && (null != appContext)) {
@@ -650,6 +711,27 @@ public class ConsoleMediasCache {
             return bitmap;
         }
 
+        private void commonInit(Context appContext,  String url, String mimeType) {
+            mApplicationContext = appContext;
+            mUrl = url;
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.put(url, this);
+            }
+            mMimeType = mimeType;
+            mRotation = 0;
+        }
+
+        /**
+         * BitmapWorkerTask creator
+         * @param appContext the context
+         * @param url the media url
+         * @param mimeType the mime type.
+         */
+        public MediaWorkerTask(Context appContext,  String url, String mimeType) {
+            commonInit(appContext, url, mimeType);
+            mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        }
+
         /**
          * BitmapWorkerTask creator
          * @param appContext the context
@@ -657,22 +739,17 @@ public class ConsoleMediasCache {
          * @param rotation the rotation
          * @param mimeType the mime type.
          */
-        public BitmapWorkerTask(Context appContext,  String url, int rotation, String mimeType) {
-            mApplicationContext = appContext;
-            mUrl = url;
-            mRotation = rotation;
-            synchronized(mPendingDownloadByUrl) {
-                mPendingDownloadByUrl.put(url, this);
-            }
-            mMimeType = mimeType;
+        public MediaWorkerTask(Context appContext,  String url, int rotation, String mimeType) {
+            commonInit(appContext, url, mimeType);
             mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+            mRotation = rotation;
         }
 
         /**
          * BitmapWorkerTask creator
          * @param task another bitmap task
          */
-        public BitmapWorkerTask(BitmapWorkerTask task) {
+        public MediaWorkerTask(MediaWorkerTask task) {
             mApplicationContext = task.mApplicationContext;
             mUrl = task.mUrl;
             mRotation = task.mRotation;
@@ -707,6 +784,10 @@ public class ConsoleMediasCache {
             return mProgress;
         }
 
+        private Boolean isBitmapDownload() {
+            return (null == mMimeType) || mMimeType.startsWith("image/");
+        }
+
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(Integer... params) {
@@ -727,11 +808,13 @@ public class ConsoleMediasCache {
                     filelen = connection.getContentLength();
                     stream = connection.getInputStream();
                 } catch (FileNotFoundException e) {
-                    Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " does not exist");
-                    bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), R.drawable.ic_menu_gallery);
+                    Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
+                    if (isBitmapDownload()) {
+                        bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), R.drawable.ic_menu_gallery);
+                    }
                 }
 
-                String filename = BitmapWorkerTask.buildFileName(mUrl, mMimeType);
+                String filename = MediaWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
                 FileOutputStream fos = mApplicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
 
                 // a bitmap has been provided
@@ -765,11 +848,11 @@ public class ConsoleMediasCache {
                             publishProgress(mProgress = progress);
                         }
 
+                        mProgress = 100;
                     }
                     catch (OutOfMemoryError outOfMemoryError) {
                     }
                     catch (Exception e) {
-                        e = e;
                     }
 
                     close(stream);
@@ -778,19 +861,38 @@ public class ConsoleMediasCache {
                 fos.flush();
                 fos.close();
 
+                // the file has been successfully downloaded
+                if (mProgress == 100) {
+                    try {
+                        File originalFile = mApplicationContext.getFileStreamPath(filename);
+                        String newFileName = MediaWorkerTask.buildFileName(mUrl, mMimeType);
+                        File newFile = new File(originalFile.getParent(), newFileName);
+                        if (newFile.exists()) {
+                            // Or you could throw here.
+                            mApplicationContext.deleteFile(newFileName);
+                        }
+                        originalFile.renameTo(newFile);
+                    } catch (Exception e) {
+                        e = e;
+                    }
+                }
+
                 Log.d(LOG_TAG, "download is done (" + mUrl + ")");
 
                 synchronized(mPendingDownloadByUrl) {
                     mPendingDownloadByUrl.remove(mUrl);
                 }
 
-                // get the bitmap from the filesytem
-                if (null == bitmap) {
-                    bitmap = BitmapWorkerTask.bitmapForURL(mApplicationContext, key, mRotation, mMimeType);
-                }
+                // load the bitmap from the cache
+                if (isBitmapDownload()) {
+                    // get the bitmap from the filesytem
+                    if (null == bitmap) {
+                        bitmap = MediaWorkerTask.bitmapForURL(mApplicationContext, key, mRotation, mMimeType);
+                    }
 
-                synchronized (sMemoryCache) {
-                    cacheBitmap(key, bitmap);
+                    synchronized (sMemoryCache) {
+                        cacheBitmap(key, bitmap);
+                    }
                 }
 
                 return bitmap;
@@ -854,7 +956,7 @@ public class ConsoleMediasCache {
                 if (mSuspendedTasks.size() > 0) {
 
                     if (mSuspendedTasks.size() > 0) {
-                        BitmapWorkerTask task = mSuspendedTasks.get(0);
+                        MediaWorkerTask task = mSuspendedTasks.get(0);
 
                         Log.d(LOG_TAG, "Restart the task " + task.mUrl);
 
@@ -868,7 +970,7 @@ public class ConsoleMediasCache {
 
                             mSuspendedTasks.remove(task);
                             // create a new task from the existing one
-                            task = new BitmapWorkerTask(task);
+                            task = new MediaWorkerTask(task);
                             mSuspendedTasks.add(task);
                             Log.d(LOG_TAG, "Suspend again the task " + task.mUrl + " - " + task.getStatus());
 

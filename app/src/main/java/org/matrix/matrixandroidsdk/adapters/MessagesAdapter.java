@@ -17,13 +17,16 @@
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -48,14 +51,17 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 import org.matrix.matrixandroidsdk.contacts.Contact;
@@ -89,12 +95,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // text, images, notices(topics, room names, membership changes,
     // displayname changes, avatar url changes), and emotes!
-    private static final int NUM_ROW_TYPES = 4;
+    private static final int NUM_ROW_TYPES = 5;
 
     private static final int ROW_TYPE_TEXT = 0;
     private static final int ROW_TYPE_IMAGE = 1;
     private static final int ROW_TYPE_NOTICE = 2;
     private static final int ROW_TYPE_EMOTE = 3;
+    private static final int ROW_TYPE_FILE = 4;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -133,13 +140,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private MXSession mSession;
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
-                           int noticeResLayoutId, int emoteRestLayoutId) {
+                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId) {
         super(context, 0);
         mContext = context;
         mRowTypeToLayoutId.put(ROW_TYPE_TEXT, textResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_IMAGE, imageResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_NOTICE, noticeResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_FILE, fileResLayoutId);
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         // the refresh will be triggered only when it is required
@@ -203,6 +211,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mEventRowMap.put(eventId, row);
             mWaitingEchoRowMap.put(eventId, row);
         }
+    }
+
+    @Override
+    public void remove(MessageRow row) {
+        super.remove(row);
     }
 
     @Override
@@ -282,6 +295,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
                 return ROW_TYPE_EMOTE;
             }
+            else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+                return ROW_TYPE_FILE;
+            }
             else {
                 // Default is to display the body as text
                 return ROW_TYPE_TEXT;
@@ -316,6 +332,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     return getNoticeView(position, convertView, parent);
                 case ROW_TYPE_EMOTE:
                     return getEmoteView(position, convertView, parent);
+                case ROW_TYPE_FILE:
+                    return getFileView(position, convertView, parent);
                 default:
                     throw new RuntimeException("Unknown item view type for position " + position);
             }
@@ -822,6 +840,150 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
+        return convertView;
+    }
+
+    private View getFileView(int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
+        }
+
+        MessageRow row = getItem(position);
+        Event msg = row.getEvent();
+
+        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
+
+        final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+        fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        fileTextView.setText(fileMessage.body);
+
+        final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
+
+        // if the content downloading ?
+        final String downloadId = ConsoleMediasCache.downloadIdFromUrl(mContext.getApplicationContext(), fileMessage.url, fileMessage.getMimeType());
+
+        // display a pie char
+        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+
+        final ConsoleMediasCache.DownloadCallback downloadCallback = new ConsoleMediasCache.DownloadCallback() {
+            @Override
+            public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                if (aDownloadId.equals(downloadId)) {
+                    downloadPieFractionView.setFraction(percentageProgress);
+                }
+            }
+
+            @Override
+            public void onDownloadComplete(String aDownloadId) {
+                if (aDownloadId.equals(downloadId)) {
+                    fileTextView.setVisibility(View.VISIBLE);
+                    downloadProgressLayout.setVisibility(View.GONE);
+
+                    // save into the downloads
+                    String mediaPath = ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+
+                    if (null != mediaPath) {
+                        CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                    }
+                }
+            }
+        };
+
+        fileTextView.setVisibility(View.VISIBLE);
+
+        if (null != downloadProgressLayout) {
+            if ((null != downloadId) && (ConsoleMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
+                downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+                fileTextView.setVisibility(View.GONE);
+                ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
+                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+
+            } else {
+                downloadProgressLayout.setVisibility(View.GONE);
+            }
+        }
+
+        if ((fileMessage != null) && (fileMessage.url != null)) {
+            fileTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (null != fileMessage.url) {
+
+                        fileTextView.setVisibility(View.GONE);
+                        String mediaPath =  ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+
+                        // is the file already saved
+                        if (null != mediaPath) {
+                           // String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                           // CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
+
+                        } else {
+                            // display the pie chart
+                            downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
+                            downloadProgressLayout.setVisibility(View.VISIBLE);
+                            ConsoleMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                            ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
+                        }
+                    }
+                }
+            });
+        }
+
+        // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
+        int progress = -1;
+
+        if (mSession.getMyUser().userId.equals(msg.userId)) {
+            progress = mSession.getContentManager().getUploadProgress(fileMessage.url);
+
+            if (progress >= 0) {
+                final String url = fileMessage.url;
+
+                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadProgress(String anUploadId, int percentageProgress) {
+                        if (url.equals(anUploadId)) {
+                            uploadFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                        if (url.equals(anUploadId)) {
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+
+        uploadFractionView.setFraction(progress);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+
+        View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
+        this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
+
+        setBackgroundColour(convertView, position);
         return convertView;
     }
 
