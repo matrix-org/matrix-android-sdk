@@ -1,31 +1,43 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.activity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
-import android.app.ProgressDialog;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.ExifInterface;
-import android.media.RemoteControlClient;
 import android.net.Uri;
-import android.os.MemoryFile;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -36,30 +48,27 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.ImageInfo;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -69,12 +78,13 @@ import java.util.TimerTask;
 /**
  * Displays a single room with messages.
  */
-public class RoomActivity extends MXCActionBarActivity implements MatrixMessageListFragment.MatrixMessageListFragmentListener {
+public class RoomActivity extends MXCActionBarActivity {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
+    private static final String TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG";
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
 
@@ -91,7 +101,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String CMD_SET_USER_POWER_LEVEL = "/op";
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
-    private static final int REQUEST_IMAGE = 0;
+    private static final int REQUEST_FILES = 0;
     private static final int TAKE_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
@@ -126,6 +136,20 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 }
             });
         }
+
+        @Override
+        public void onRoomInitialSyncComplete(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // set general room information
+                    setTitle(mRoom.getName(mSession.getCredentials().userId));
+                    setTopic(mRoom.getTopic());
+
+                    mMatrixMessageListFragment.onInitialMessagesLoaded();
+                }
+            });
+        }
     };
 
     @Override
@@ -143,7 +167,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
 
         // the user has tapped on the "View" notification button
-        if ((null != intent.getAction()) && (intent.getAction().startsWith(EventStreamService.TAP_TO_VIEW_ACTION))) {
+        if ((null != intent.getAction()) && (intent.getAction().startsWith(NotificationUtils.TAP_TO_VIEW_ACTION))) {
             // remove any pending notifications
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
@@ -166,13 +190,14 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
         findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
-            private static final int OPTION_ATTACH_IMAGE = 1;
+            private static final int OPTION_ATTACH_FILES = 1;
             private static final int OPTION_TAKE_IMAGE = 2;
-            private static final int OPTION_INVITE = 3;
+            private static final int OPTION_INVITE_BY_NAME = 3;
+            private static final int OPTION_INVITE_BY_LIST = 4;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_FILES, OPTION_TAKE_IMAGE, OPTION_INVITE_BY_NAME, OPTION_INVITE_BY_LIST, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -182,10 +207,13 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                                     case OPTION_CANCEL:
                                         dialog.cancel();
                                         break;
-                                    case OPTION_ATTACH_IMAGE:
-                                        Intent fileIntent = new Intent(Intent.ACTION_PICK);
-                                        fileIntent.setType("image/*");
-                                        startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                    case OPTION_ATTACH_FILES:
+                                        Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                                            fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                                        }
+                                        fileIntent.setType("*/*");
+                                        startActivityForResult(fileIntent, REQUEST_FILES);
                                         break;
                                     case OPTION_TAKE_IMAGE:
                                         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -227,34 +255,51 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
                                         startActivityForResult(captureIntent, TAKE_IMAGE);
                                         break;
-                                    case OPTION_INVITE: {
-                                            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                                            if (session != null) {
-                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
-                                                    @Override
-                                                    public void onSubmit(final String text) {
-                                                        if (TextUtils.isEmpty(text)) {
-                                                            return;
-                                                        }
-                                                        if (!text.startsWith("@") || !text.contains(":")) {
-                                                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
-                                                            return;
-                                                        }
-                                                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
-                                                            @Override
-                                                            public void onSuccess(Void info) {
-                                                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                                            }
-                                                        });
-                                                    }
 
-                                                    @Override
-                                                    public void onCancelled() {
+                                    case OPTION_INVITE_BY_NAME:
+                                        AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
+                                            @Override
+                                            public void onSubmit(final String text) {
+                                                if (TextUtils.isEmpty(text)) {
+                                                    return;
+                                                }
 
-                                                    }
-                                                });
-                                                alert.show();
+                                                // get the user suffix
+                                                String userID = mSession.getCredentials().userId;
+                                                String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
+
+                                                ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
+
+                                                if (userIDsList.size() > 0) {
+                                                    mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
+                                                        @Override
+                                                        public void onSuccess(Void info) {
+                                                            Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                                                        }
+                                                    });
+                                                }
                                             }
+
+                                            @Override
+                                            public void onCancelled() {
+
+                                            }
+                                        });
+
+                                        alert.show();
+                                        break;
+
+                                    case OPTION_INVITE_BY_LIST:
+                                        final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                                        if (session != null) {
+                                            FragmentManager fm = getSupportFragmentManager();
+
+                                            MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                                            if (fragment != null) {
+                                                fragment.dismissAllowingStateLoss();
+                                            }
+                                            fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
+                                            fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
                                         }
 
                                         break;
@@ -272,14 +317,17 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                         case OPTION_CANCEL:
                             label = getString(R.string.cancel);
                             break;
-                        case OPTION_ATTACH_IMAGE:
-                            label = getString(R.string.option_attach_image);
+                        case OPTION_ATTACH_FILES:
+                            label = getString(R.string.option_attach_files);
                             break;
                         case OPTION_TAKE_IMAGE:
                             label = getString(R.string.option_take_image);
                             break;
-                        case OPTION_INVITE:
-                            label = getString(R.string.option_invite);
+                        case OPTION_INVITE_BY_NAME:
+                            label = getString(R.string.option_invite_by_name);
+                            break;
+                        case OPTION_INVITE_BY_LIST:
+                            label = getString(R.string.option_invite_by_list);
                             break;
                     }
                     labels[i] = label;
@@ -310,6 +358,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             finish();
             return;
         }
+        CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
 
@@ -325,11 +374,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         // set general room information
         setTitle(mRoom.getName(mSession.getCredentials().userId));
         setTopic(mRoom.getTopic());
-
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
 
         // listen for room name or topic changes
         mRoom.addEventListener(mEventListener);
@@ -354,7 +398,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(null);
         // warn other member that the typing is ended
         cancelTypingNotification();
     }
@@ -365,11 +408,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
         MyPresenceManager.getInstance(this).advertiseOnline();
 
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
-
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
         EditText editText = (EditText)findViewById(R.id.editText_messageBox);
@@ -379,6 +417,18 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             editText.setText("");
             editText.append(cachedText);
         }
+    }
+
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        Collection<RoomMember> members = mRoom.getActiveMembers();
+        menu.findItem(R.id.action_leave).setVisible(members.size() > 1);
+        menu.findItem(R.id.action_delete).setVisible(members.size() <= 1);
+
+        return true;
     }
 
     @Override
@@ -399,16 +449,12 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             return true;
         }
 
-        if (id == R.id.action_leave) {
+        if ((id == R.id.action_leave) || (id == R.id.action_delete)) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
-                mRoom.leave(new SimpleApiCallback<Void>() {
-
-                    @Override
-                    public void onSuccess(Void info) {
-                        RoomActivity.this.finish();
-                    }
+                mRoom.leave(new SimpleApiCallback<Void>(this) {
                 });
+                RoomActivity.this.finish();
             }
         }
         else if (id == R.id.action_members) {
@@ -449,7 +495,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         if ((null != body) && (body.startsWith("/"))) {
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
-            final ApiCallback callback = new SimpleApiCallback<Void>() {
+            final ApiCallback callback = new SimpleApiCallback<Void>(this) {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -482,7 +528,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoomByRoomAlias(roomAlias,new SimpleApiCallback<String>() {
+                    session.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
 
                         @Override
                         public void onSuccess(String roomId) {
@@ -559,7 +605,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         return isIRCCmd;
     }
 
-
     private void sendMessage(String body) {
         if (!TextUtils.isEmpty(body)) {
             if (!manageIRCCommand(body)) {
@@ -568,132 +613,185 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
     }
 
+    /**
+     * Send a list of images from their URIs
+     * @param mediaUris the media URIs
+     */
+    private void sendMedias(ArrayList<Uri> mediaUris) {
+
+        for(Uri anUri : mediaUris) {
+            final Uri mediaUri = anUri;
+
+            RoomActivity.this.runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+                    if (resource == null) {
+                        Toast.makeText(RoomActivity.this,
+                                getString(R.string.message_failed_to_upload),
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    // save the file in the filesystem
+                    String mediaUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                    String mimeType = resource.mimeType;
+                    Boolean isManaged = false;
+
+                    if ((null != resource.mimeType) && resource.mimeType.startsWith("image/")) {
+                        // manage except if there is an error
+                        isManaged = true;
+
+                        // try to retrieve the gallery thumbnail
+                        // if the image comes from the gallery..
+                        Bitmap thumbnailBitmap = null;
+
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            long imageId = Long.parseLong((String) (uriPath.get(uriPath.size() - 1)));
+
+                            thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                        } catch (Exception e) {
+
+                        }
+
+                        // no thumbnail has been found or the mimetype is unknown
+                        if (null == thumbnailBitmap) {
+                            // need to decompress the high res image
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                            resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
+                            // get the full size bitmap
+                            Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+
+                            // create a thumbnail bitmap if there is none
+                            if (null == thumbnailBitmap) {
+                                if (fullSizeBitmap != null) {
+                                    double fullSizeWidth = fullSizeBitmap.getWidth();
+                                    double fullSizeHeight = fullSizeBitmap.getHeight();
+
+                                    double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
+                                    double thumbnailHeight = mMatrixMessageListFragment.getMaxThumbnailHeight();
+
+                                    if (fullSizeWidth > fullSizeHeight) {
+                                        thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
+                                    } else {
+                                        thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
+                                    }
+
+                                    try {
+                                        thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                                    } catch (OutOfMemoryError ex) {
+                                    }
+                                }
+                            }
+
+                            // unknown mimetype
+                            if ((null == mimeType) || (mimeType.startsWith("image/"))) {
+                                try {
+                                    if (null != fullSizeBitmap) {
+                                        Uri uri = Uri.parse(mediaUrl);
+                                        try {
+                                            ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                        } catch (OutOfMemoryError ex) {
+                                        }
+
+                                        // the images are save in jpeg format
+                                        mimeType = "image/jpeg";
+                                    } else {
+                                        isManaged = false;
+                                    }
+
+                                    resource.contentStream.close();
+
+                                } catch (Exception e) {
+                                    isManaged = false;
+                                }
+                            }
+
+                            // reduce the memory consumption
+                            if (null  != fullSizeBitmap) {
+                                fullSizeBitmap.recycle();
+                                System.gc();
+                            }
+                        }
+
+                        String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+
+                        if (null != thumbnailBitmap) {
+                            thumbnailBitmap.recycle();
+                        }
+
+                        // is the image content valid ?
+                        if (isManaged  && (null != thumbnailURL)) {
+                            mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+                        }
+                    }
+
+                    // default behaviour
+                    if ((!isManaged) && (null != mediaUrl)) {
+                        String filename = "A file";
+
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            filename = (String)uriPath.get(uriPath.size() - 1);
+                        } catch (Exception e) {
+
+                        }
+
+                        mMatrixMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
+                    }
+                }
+            });
+        }
+    }
+
+    @SuppressLint("NewApi")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if ((requestCode == REQUEST_IMAGE) || (requestCode == TAKE_IMAGE)) {
-                Uri dataUri;
+            if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
+                ArrayList<Uri> uris = new ArrayList<Uri>();
 
                 if (null != data) {
-                    dataUri =  data.getData();
+                    ClipData clipData = null;
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                        clipData = data.getClipData();
+                    }
+
+                    // multiple data
+                    if (null != clipData) {
+                        int count = clipData.getItemCount();
+
+                        for (int i = 0; i < count; i++) {
+                            ClipData.Item item = clipData.getItemAt(i);
+                            Uri uri = item.getUri();
+
+                            if (null != uri) {
+                                uris.add(uri);
+                            }
+                        }
+
+                    } else if (null != data.getData()) {
+                        uris.add(data.getData());
+                    }
                 } else {
-                    dataUri =  mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri);
+                    uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
+                    mLatestTakePictureCameraUri = null;
                 }
 
-                mLatestTakePictureCameraUri = null;
-
-                final Uri imageUri = dataUri;
-
-                ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
-                if (resource == null) {
-                    Toast.makeText(RoomActivity.this,
-                            getString(R.string.message_failed_to_upload),
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                // save the file in the filesystem
-                String imageUrl =  ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null);
-                String mimeType = resource.mimeType;
-
-                try {
-                    resource.contentStream.close();
-                } catch(Exception e) {
-                }
-
-                // try to retrieve the gallery thumbnail
-                // if the image comes from the gallery..
-                Bitmap thumbnailBitmap = null;
-
-                try {
-                    ContentResolver resolver = getContentResolver();
-                    List uriPath = imageUri.getPathSegments();
-                    long imageId = Long.parseLong((String)(uriPath.get(uriPath.size() - 1)));
-
-                    thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
-                } catch (Exception e) {
-
-                }
-
-                // no thumbnail has been found or the mimetype is unknown
-                if ((null == thumbnailBitmap) || (null == mimeType) || (mimeType.equals("image/*"))) {
-
-                    // need to decompress the high res image
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                    resource = ResourceUtils.openResource(this, imageUri);
-
-                    // get the full size bitmap
-                    Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
-
-                    // create a thumbnail bitmap if there is none
-                    if (null == thumbnailBitmap) {
-                        if (fullSizeBitmap != null) {
-                            double fullSizeWidth = fullSizeBitmap.getWidth();
-                            double fullSizeHeight = fullSizeBitmap.getHeight();
-
-                            double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
-                            double thumbnailHeight =  mMatrixMessageListFragment.getMaxThumbnailHeight();
-
-                            if (fullSizeWidth > fullSizeHeight) {
-                                thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
-                            } else {
-                                thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
-                            }
-
-                            try {
-                                thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                            } catch (OutOfMemoryError ex) {
-                            }
-                        }
-                    }
-
-                    // unknown mimetype
-                    if ((null == mimeType) || (mimeType.equals("image/*"))) {
-                        try {
-                            if (null != fullSizeBitmap) {
-                                Uri uri = Uri.parse(imageUrl);
-                                try {
-                                    ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
-                                } catch (OutOfMemoryError ex) {
-                                }
-
-                                // the images are save in jpeg format
-                                mimeType = "image/jpeg";
-                            } else {
-                                imageUrl = null;
-                            }
-
-                            resource.contentStream.close();
-
-                        } catch (Exception e) {
-                            imageUrl = null;
-                        }
-                    }
-
-                    // reduce the memory consumption
-                    fullSizeBitmap.recycle();
-                    System.gc();
-                }
-
-                String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
-                thumbnailBitmap.recycle();
-
-                // is the image content valid ?
-                if ((null != imageUrl) && (null != thumbnailURL)) {
-                    mMatrixMessageListFragment.uploadImageContent(thumbnailURL, imageUrl, mimeType);
+                if (0 != uris.size()) {
+                    sendMedias(uris);
                 }
             }
         }
-    }
-
-    @Override
-    public void onInitialMessagesLoaded() {
-        // set general room information
-        setTitle(mRoom.getName(mSession.getCredentials().userId));
-        setTopic(mRoom.getTopic());
     }
 
     /**
@@ -769,7 +867,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
         final boolean typingStatus = isTyping;
 
-        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>() {
+        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>(RoomActivity.this) {
             @Override
             public void onSuccess(Void info) {
                 // Reset last typing date
@@ -806,7 +904,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
             mLastTypingDate = 0;
 
-            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>() {
+            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>(RoomActivity.this) {
             });
         }
     }

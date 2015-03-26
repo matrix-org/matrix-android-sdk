@@ -103,10 +103,14 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
                 message.msgtype = Message.MSGTYPE_TEXT;
                 message.body = body;
 
+                MXSession session =  Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                Event event = new Event(message, session.getCredentials().userId, roomId);
+                session.getDataHandler().storeLiveRoomEvent(event);
+
                 if (null != room) {
-                    room.sendMessage(message, new ApiCallback<Event>() {
+                    room.sendEvent(event, new ApiCallback<Void>() {
                         @Override
-                        public void onSuccess(Event event) {
+                        public void onSuccess(Void info) {
                         }
 
                         @Override

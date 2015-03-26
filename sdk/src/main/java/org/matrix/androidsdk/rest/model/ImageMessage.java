@@ -15,6 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.net.Uri;
+
+import java.io.File;
+
 public class ImageMessage extends Message {
     public ImageInfo info;
     public ImageInfo thumbnailInfo;
@@ -27,5 +31,44 @@ public class ImageMessage extends Message {
 
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
+    }
+
+    public String getMimeType() {
+        if (null != info) {
+            return info.mimetype;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Checks if the media Urls are still valid.
+     * The media Urls could define a file path.
+     * They could have been deleted after a media cache cleaning.
+     */
+    public void checkMediaUrls() {
+        if ((thumbnailUrl != null) && thumbnailUrl.startsWith("file://")) {
+            try {
+                File file = new File(Uri.parse(thumbnailUrl).getPath());
+
+                if (!file.exists()) {
+                    thumbnailUrl = null;
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        if ((url != null) && url.startsWith("file://")) {
+            try {
+                File file = new File(Uri.parse(url).getPath());
+
+                if (!file.exists()) {
+                    url = null;
+                }
+            } catch (Exception e) {
+
+            }
+        }
     }
 }

@@ -6,5 +6,6 @@
     <dimen name="chat_avatar_size">40dp</dimen>
     <dimen name="chat_avatar_keyboard_size">15dp</dimen>
     <dimen name="member_list_avatar_size">60dp</dimen>
+    <dimen name="invitation_member_list_avatar_size">50dp</dimen>
     <dimen name="profile_avatar_size">100dp</dimen>
 </resources>

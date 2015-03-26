@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -72,6 +73,11 @@ public class JsonUtils {
             return toImageMessage(jsonObject);
         }
 
+        // Try to return the right subclass
+        if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+            return toFileMessage(jsonObject);
+        }
+
         // Fall back to the generic Message type
         return message;
     }
@@ -82,6 +88,10 @@ public class JsonUtils {
 
     public static ImageMessage toImageMessage(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, ImageMessage.class);
+    }
+
+    public static FileMessage toFileMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, FileMessage.class);
     }
 
     public static ContentResponse toContentResponse(String jsonString) {

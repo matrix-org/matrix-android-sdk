@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -44,7 +45,9 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -69,6 +72,7 @@ public class MXSession {
     private RoomsRestClient mRoomsRestClient;
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
+    private ThirdPidRestClient mThirdPidRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -76,6 +80,7 @@ public class MXSession {
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private UnsentEventsManager mUnsentEventsManager;
 
     /**
      * Create a basic session for direct API calls.
@@ -90,8 +95,7 @@ public class MXSession {
         mRoomsRestClient = new RoomsRestClient(credentials);
         mBingRulesRestClient = new BingRulesRestClient(credentials);
         mPushersRestClient = new PushersRestClient(credentials);
-
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
+        mThirdPidRestClient = new ThirdPidRestClient(credentials);
     }
 
     /**
@@ -117,22 +121,16 @@ public class MXSession {
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
-        mEventsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mProfileRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mPresenceRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mRoomsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mBingRulesRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager) ;
 
-        // add a default listener
-        // to resend the unsent messages
-        mNetworkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
-            @Override
-            public void onNetworkConnectionUpdate(boolean isConnected) {
-                if (isConnected) {
-                    MXSession.this.resendUnsentMessages();
-                }
-            }
-        });
+
+        mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
     }
 
     /**
@@ -209,6 +207,22 @@ public class MXSession {
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
         this.mRoomsRestClient = roomsRestClient;
+    }
+
+    /**
+     * Clear the session data
+     */
+    public void clear() {
+        // network event will not be listened anymore
+        mNetworkConnectivityReceiver.clear();
+        mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+
+        // auto resent messages will not be resent
+        mUnsentEventsManager.clear();
+
+        // stop any pending request
+        // clear data
+        mContentManager.clear();
     }
 
     /**
@@ -324,21 +338,13 @@ public class MXSession {
 
     /**
      * Join a room by its roomAlias
-     * @param alias the room alias
+     * @param roomIdOrAlias the room alias
      * @param callback the async callback once the room is joined. The RoomId is provided.
      */
-    public void joinRoomByRoomAlias(String alias, final ApiCallback<String> callback) {
+    public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
         // sanity check
-        if ((null != mDataHandler) && (null != alias)) {
-
-            String urlEncodedAlias = alias;
-            try {
-                urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
-            }
-            catch (Exception e) {
-            }
-
-            mDataRetriever.getRoomsRestClient().joinRoomByAlias(urlEncodedAlias, new SimpleApiCallback<RoomResponse>(callback) {
+        if ((null != mDataHandler) && (null != roomIdOrAlias)) {
+            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(final RoomResponse roomResponse) {
                     callback.onSuccess(roomResponse.roomId);
@@ -348,13 +354,22 @@ public class MXSession {
     }
 
     /**
-     * Resend the unsent message
+     * Retrieve user matrix id from a 3rd party id.
+     * @param address the user id.
+     * @param media the media.
+     * @param callback the 3rd party callback
      */
-    private void resendUnsentMessages() {
-        Collection<Room> rooms = mDataHandler.getStore().getRooms();
+    public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
+        mThirdPidRestClient.lookup3Pid(address, media, callback);
+    }
 
-        for(Room room : rooms) {
-            room.resendUnsentEvents();
-        }
+    /**
+     * Retrieve user matrix id from a 3rd party id.
+     * @param addresses 3rd party ids
+     * @param mediums the medias.
+     * @param callback the 3rd parties callback
+     */
+    public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
+        mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
 }

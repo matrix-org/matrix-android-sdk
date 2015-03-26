@@ -19,22 +19,26 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.TextWatcher;
-import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -43,12 +47,16 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
+import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 
 /**
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
@@ -59,12 +67,15 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
+
+    private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
+    private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
+
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
-    private boolean mSortSummaryAtResume = false;
 
     private String mAutomaticallyOpenedRoomId = null;
 
@@ -106,6 +117,28 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         @Override
+        public void onRoomInitialSyncComplete(final String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
+        @Override
+        public void onRoomInternalUpdate(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
+        @Override
         public void onLiveEvent(final Event event, final RoomState roomState) {
             runOnUiThread(new Runnable() {
                 @Override
@@ -126,7 +159,10 @@ public class HomeActivity extends MXCActionBarActivity {
                                     addNewRoom(event.roomId);
                                 } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                                     RoomMember member = JsonUtils.toRoomMember(event.content);
-                                    if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership) && event.stateKey.equals(selfUserId)) {
+
+                                    // add the room summary if the user has
+                                    if ((RoomMember.MEMBERSHIP_INVITE.equals(member.membership) || RoomMember.MEMBERSHIP_JOIN.equals(member.membership))
+                                            && event.stateKey.equals(selfUserId)) {
                                         // we were invited to a new room.
                                         addNewRoom(event.roomId);
                                     }
@@ -159,8 +195,6 @@ public class HomeActivity extends MXCActionBarActivity {
                         if (!mIsPaused) {
                             mAdapter.sortSummaries();
                             mAdapter.notifyDataSetChanged();
-                        } else {
-                            mSortSummaryAtResume = false;
                         }
                     }
                 }
@@ -219,7 +253,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 mAdapter.setPublicRoomsList(publicRooms);
@@ -378,9 +412,7 @@ public class HomeActivity extends MXCActionBarActivity {
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(true);
             expandAllGroups();
-
         } else {
-
             // need to collapse/expand the groups to avoid invalid refreshes
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(false);
@@ -428,10 +460,10 @@ public class HomeActivity extends MXCActionBarActivity {
         MyPresenceManager.getInstance(this).advertiseOnline();
         mIsPaused = false;
 
-        if (mSortSummaryAtResume) {
-            mAdapter.sortSummaries();
-        }
-
+        // some unsent messages could have been added
+        // it does not trigger any live event.
+        // So, it is safer to sort the messages when debackgrounding
+        mAdapter.sortSummaries();
         // expand/collapse to force th group refresh
         collapseAllGroups();
         // all the groups must be displayed during a search
@@ -481,43 +513,76 @@ public class HomeActivity extends MXCActionBarActivity {
         if (id == R.id.action_mark_all_as_read) {
             markAllMessagesAsRead();
             return true;
-        }
-        else if (id == R.id.search_room) {
+        } else if (id == R.id.action_display_contacts) {
+            FragmentManager fm = getSupportFragmentManager();
+
+            ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+            fragment = ContactsListDialogFragment.newInstance();
+            fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
+
+            return true;
+        } else if (id == R.id.search_room) {
             toggleSearchButton();
             return true;
         }
-        else if (id == R.id.action_create_private_room) {
-            createRoom(false);
+        else if (id == R.id.action_create_room) {
+            createRoom();
             return true;
         }
-        else if (id == R.id.action_create_public_room) {
-            createRoom(true);
+        else if (id == R.id.action_join_room_by_name) {
+            joinRoomByName();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    private void createRoom(final boolean isPublic) {
-        final String roomVisibility = isPublic ? RoomState.VISIBILITY_PUBLIC : RoomState.VISIBILITY_PRIVATE;
-        // For public rooms, we ask for the alias; for private, the room name
-        String alertTitle = getString(isPublic ? R.string.create_room_set_alias : R.string.create_room_set_name);
-        String textFieldHint = getString(isPublic ? R.string.create_room_alias_hint : R.string.create_room_name_hint);
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_SEARCH)) {
+            toggleSearchButton();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 
-        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, null, new CommonActivityUtils.OnSubmitListener() {
+    private void joinRoomByName() {
+        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, getString(R.string.join_room_title),  getString(R.string.join_room_hint), null, new CommonActivityUtils.OnSubmitListener() {
             @Override
             public void onSubmit(String text) {
-                if (text.length() == 0) {
-                    return;
-                }
                 MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                String alias = isPublic ? text : null;
-                String name = isPublic ? null : text;
-                session.createRoom(name, null, roomVisibility, alias, new SimpleApiCallback<String>() {
+
+                session.joinRoom(text, new ApiCallback<String>() {
+                    @Override
+                    public void onSuccess(String roomId) {
+                        if (null != roomId) {
+                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                        }
+                    }
 
                     @Override
-                    public void onSuccess(String info) {
-                        CommonActivityUtils.goToRoomPage(info, HomeActivity.this);
+                    public void onNetworkError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                getString(R.string.network_error),
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.error,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.getLocalizedMessage(),
+                                Toast.LENGTH_LONG).show();
+
                     }
                 });
             }
@@ -526,6 +591,17 @@ public class HomeActivity extends MXCActionBarActivity {
             public void onCancelled() {}
         });
         alert.show();
+    }
+
+    private void createRoom() {
+        FragmentManager fm = getSupportFragmentManager();
+
+        RoomCreationDialogFragment fragment = (RoomCreationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CREATE_ROOM_DIALOG);
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
+        }
+        fragment = RoomCreationDialogFragment.newInstance();
+        fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 
     private void markAllMessagesAsRead(){

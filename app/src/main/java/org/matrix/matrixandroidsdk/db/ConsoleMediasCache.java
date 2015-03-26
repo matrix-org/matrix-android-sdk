@@ -23,29 +23,30 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.MediaStore;
 import android.support.v4.util.LruCache;
 import android.util.Log;
-import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.RejectedExecutionException;
 
 public class ConsoleMediasCache {
 
@@ -104,7 +105,7 @@ public class ConsoleMediasCache {
             }
         }
 
-        BitmapWorkerTask.clearBitmapsCache();
+        MediaWorkerTask.clearBitmapsCache();
     }
 
     /**
@@ -117,7 +118,7 @@ public class ConsoleMediasCache {
      */
     private static String downloadableUrl(Context context, String url, int width, int height) {
         // check if the Url is a matrix one
-        if (url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
+        if ((null != url) && url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
             ContentManager contentManager = Matrix.getInstance(context).getDefaultSession().getContentManager();
 
             if ((width > 0) && (height > 0)) {
@@ -134,19 +135,20 @@ public class ConsoleMediasCache {
      * Return the cache file name for a media
      * @param context the context
      * @param url the media url
+     * @param mimeType the mime type
      * @return the cache file name (private directory)
      */
-    public static String mediaCacheFilename(Context context, String url) {
-        return mediaCacheFilename(context, url, -1, -1);
+    public static String mediaCacheFilename(Context context, String url, String mimeType) {
+        return mediaCacheFilename(context, url, -1, -1, mimeType);
     }
 
-    public static String mediaCacheFilename(Context context, String url, int width, int height) {
+    public static String mediaCacheFilename(Context context, String url, int width, int height, String mimeType) {
         // sanity check
         if (null == url) {
             return null;
         }
 
-        String filename = BitmapWorkerTask.buildFileName(downloadableUrl(context, url, width, height));
+        String filename = MediaWorkerTask.buildFileName(downloadableUrl(context, url, width, height), mimeType);
 
         try {
             // already a local file
@@ -156,7 +158,6 @@ public class ConsoleMediasCache {
             }
 
             File file = new File(context.getApplicationContext().getFilesDir(), filename);
-
 
             if (!file.exists()) {
                 filename = null;
@@ -177,7 +178,7 @@ public class ConsoleMediasCache {
      * @return the media cache URL
      */
     public static String saveBitmap(Bitmap bitmap, Context context, String defaultFileName) {
-        String filename = "file" + System.currentTimeMillis();
+        String filename = "file" + System.currentTimeMillis() + ".jpg";
         String cacheURL = null;
 
         try {
@@ -207,10 +208,24 @@ public class ConsoleMediasCache {
      * it could be used for unsent media to allow them to be resent.
      * @param stream the file stream to save
      * @param defaultFileName the filename is provided, if null, a filename will be generated
+     * @param mimeType the mime type.
      * @return the media cache URL
      */
-    public static String saveMedia(InputStream stream, Context context, String defaultFileName) {
-        String filename = (defaultFileName == null) ? ("file" + System.currentTimeMillis()) : defaultFileName;
+    public static String saveMedia(InputStream stream, Context context, String defaultFileName, String mimeType) {
+        String filename = defaultFileName;
+
+        if (null == filename) {
+            filename = "file" + System.currentTimeMillis();
+
+            if (null != mimeType) {
+                String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+
+                if (null != extension) {
+                    filename += "." + extension;
+                }
+            }
+        }
+
         String cacheURL = null;
 
         try {
@@ -243,20 +258,22 @@ public class ConsoleMediasCache {
      * @param context the context
      * @param url the bitmap url
      * @param rotationAngle the rotation angle (degrees)
+     * @param mimeType the mimeType.
      * @return the bitmap or null if it does not exist
      */
-    public static Bitmap bitmapForUrl(Context context, String url, int rotationAngle)  {
-        return BitmapWorkerTask.bitmapForURL(context, url, rotationAngle);
+    public static Bitmap bitmapForUrl(Context context, String url, int rotationAngle, String mimeType)  {
+        return MediaWorkerTask.bitmapForURL(context, url, rotationAngle, mimeType);
     }
 
     /**
      * Replace a media cache by a file content.
      * @param context the context
      * @param mediaUrl the mediaUrl
+     * @param mimeType the mimeType.
      * @param fileUrl the file which replaces the cached media.
      */
-    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl) {
-        saveFileMediaForUrl(context, mediaUrl, fileUrl, -1, -1);
+    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, String mimeType) {
+        saveFileMediaForUrl(context, mediaUrl, fileUrl, -1, -1, mimeType);
     }
 
     /**
@@ -267,10 +284,11 @@ public class ConsoleMediasCache {
      * @param fileUrl the file which replaces the cached media.
      * @param width the expected image width
      * @param height the expected image height
+     * @param mimeType the mimeType.
      */
-    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height) {
+    public static void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height, String mimeType) {
         String downloadableUrl = downloadableUrl(context, mediaUrl, width, height);
-        String filename = BitmapWorkerTask.buildFileName(downloadableUrl);
+        String filename = MediaWorkerTask.buildFileName(downloadableUrl, mimeType);
 
         try {
             // delete the current content
@@ -300,7 +318,7 @@ public class ConsoleMediasCache {
      * @return a download identifier if the image is not cached.
      */
     public static String loadAvatarThumbnail(ImageView imageView, String url, int side) {
-        return loadBitmap(imageView, url, side, side, 0);
+        return loadBitmap(imageView, url, side, side, 0, null);
     }
 
     /**
@@ -309,10 +327,11 @@ public class ConsoleMediasCache {
      * @param imageView Ihe imageView to update with the image.
      * @param url the image url
      * @param rotationAngle the rotation angle (degrees)
+     * @param mimeType the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public static String loadBitmap(ImageView imageView, String url, int rotationAngle) {
-        return loadBitmap(imageView, url, -1, -1, rotationAngle);
+    public static String loadBitmap(ImageView imageView, String url, int rotationAngle, String mimeType) {
+        return loadBitmap(imageView, url, -1, -1, rotationAngle, mimeType);
     }
 
     /**
@@ -321,10 +340,11 @@ public class ConsoleMediasCache {
      * @param context The context
      * @param url the image url
      * @param rotationAngle the rotation angle (degrees)
+     * @param mimeType the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public static String loadBitmap(Context context, String url, int rotationAngle) {
-        return loadBitmap(context, null, url, -1, -1, rotationAngle);
+    public static String loadBitmap(Context context, String url, int rotationAngle, String mimeType) {
+        return loadBitmap(context, null, url, -1, -1, rotationAngle, mimeType);
     }
 
     /**
@@ -336,10 +356,73 @@ public class ConsoleMediasCache {
      * @param width the expected image width
      * @param height the expected image height
      * @param rotationAngle the rotation angle (degrees)
+     * @param mimeType the mimeType.
      * @return a download identifier if the image is not cached
      */
-    public static String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle) {
-        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle);
+    public static String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle, String mimeType) {
+        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle, mimeType);
+    }
+
+    // some tasks have been stacked because there are too many running ones.
+    static ArrayList<MediaWorkerTask> mSuspendedTasks = new ArrayList<MediaWorkerTask>();
+
+    /***
+     * Retuns the download ID from the media URL.
+     * @param context the application context
+     * @param url the media url
+     * @param mimeType the mime type
+     * @return the download ID
+     */
+    public static String downloadIdFromUrl(Context context, String url, String mimeType) {
+        return downloadableUrl(context, url, -1, -1);
+    }
+
+    /**
+     *
+     * @param context the application context
+     * @param url the media url
+     * @param mimeType the media mimetype
+     * @return
+     */
+    public static String downloadMedia(Context context, String url, String mimeType) {
+        // sanity checks
+        if ((null == mimeType) || (null == url) || (null == context)) {
+            return null;
+        }
+
+        // is the media already downloaded ?
+        if (null != mediaCacheFilename(context, url, mimeType)) {
+            return null;
+        }
+
+        String downloadableUrl = downloadableUrl(context, url, -1, -1);
+
+        // is the media downloading  ?
+        if (null != MediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
+            return downloadableUrl;
+        }
+
+        // download it in background
+        MediaWorkerTask task = new MediaWorkerTask(context, downloadableUrl, mimeType);
+
+        // avoid crash if there are too many running task
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+        } catch (RejectedExecutionException e) {
+            // too many tasks have been launched
+            synchronized (mSuspendedTasks) {
+                task.cancel(true);
+                // create a new task from the existing one
+                task = new MediaWorkerTask(task);
+                mSuspendedTasks.add(task);
+                Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+            }
+
+        } catch (Exception e) {
+
+        }
+
+        return downloadableUrl;
     }
 
     /**
@@ -352,9 +435,10 @@ public class ConsoleMediasCache {
      * @param width the expected image width
      * @param height the expected image height
      * @param rotationAngle the rotation angle (degrees)
+     * @param mimeType the mimeType.
      * @return a download identifier if the image is not cached
      */
-    public static String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle) {
+    public static String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle, String mimeType) {
         if (null == url) {
             return null;
         }
@@ -370,8 +454,13 @@ public class ConsoleMediasCache {
             imageView.setTag(downloadableUrl);
         }
 
+        // if the mime type is not provided, assume it is a jpeg file
+        if (null == mimeType) {
+            mimeType = "image/jpeg";
+        }
+
         // check if the bitmap is already cached
-        Bitmap bitmap = BitmapWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle);
+        Bitmap bitmap = MediaWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
@@ -380,7 +469,7 @@ public class ConsoleMediasCache {
             }
             downloadableUrl = null;
         } else {
-            BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadableUrl);
+            MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl);
 
             if (null != currentTask) {
                 if (null != imageView) {
@@ -388,12 +477,28 @@ public class ConsoleMediasCache {
                 }
             } else {
                 // download it in background
-                BitmapWorkerTask task = new BitmapWorkerTask(context, downloadableUrl, rotationAngle);
+                MediaWorkerTask task = new MediaWorkerTask(context, downloadableUrl, rotationAngle, mimeType);
 
                 if (null != imageView) {
                     task.addImageView(imageView);
                 }
-                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+
+                // avoid crash if there are too many running task
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                } catch (RejectedExecutionException e) {
+                    // too many tasks have been launched
+                    synchronized (mSuspendedTasks) {
+                        task.cancel(true);
+                        // create a new task from the existing one
+                        task = new MediaWorkerTask(task);
+                        mSuspendedTasks.add(task);
+                        Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                    }
+
+                } catch (Exception e) {
+                
+                }
             }
         }
 
@@ -406,7 +511,7 @@ public class ConsoleMediasCache {
      * @return the download progress
      */
     public static int progressValueForDownloadId(String downloadId) {
-        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+        MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             return currentTask.getProgress();
@@ -420,17 +525,17 @@ public class ConsoleMediasCache {
      * @param callback the async callback
      */
     public static void addDownloadListener(String downloadId, DownloadCallback callback) {
-        BitmapWorkerTask currentTask = BitmapWorkerTask.bitmapWorkerTaskForUrl(downloadId);
+        MediaWorkerTask currentTask = MediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             currentTask.addCallback(callback);
         }
     }
 
-    static class BitmapWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
+    static class MediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
         private static final int MEMORY_CACHE_MB = 16;
-        private static HashMap<String, BitmapWorkerTask> mPendingDownloadByUrl = new HashMap<String, BitmapWorkerTask>();
+        private static HashMap<String, MediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MediaWorkerTask>();
 
         private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
             @Override
@@ -442,6 +547,7 @@ public class ConsoleMediasCache {
         private ArrayList<DownloadCallback> mCallbacks = new ArrayList<DownloadCallback>();
         private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
         private String mUrl;
+        private String mMimeType;
         private Context mApplicationContext;
         private int mRotation = 0;
         private int mProgress = 0;
@@ -450,14 +556,22 @@ public class ConsoleMediasCache {
             sMemoryCache.evictAll();
         }
 
+        public String getUrl() {
+            return mUrl;
+        }
+
         /**
          * Check if there is a pending download for the url.
          * @param url The url to check the existence
          * @return the dedicated BitmapWorkerTask if it exists.
          */
-        public static BitmapWorkerTask bitmapWorkerTaskForUrl(String url) {
+        public static MediaWorkerTask mediaWorkerTaskForUrl(String url) {
             if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
-                return mPendingDownloadByUrl.get(url);
+                MediaWorkerTask task;
+                synchronized(mPendingDownloadByUrl) {
+                    task = mPendingDownloadByUrl.get(url);
+                }
+                return task;
             } else {
                 return null;
             }
@@ -466,10 +580,28 @@ public class ConsoleMediasCache {
         /**
          * Build a filename from an url
          * @param Url the media url
+         * @param mimeType the mime type;
          * @return the cache filename
          */
-        public static String buildFileName(String Url) {
-            return "file" + Url.hashCode();
+        public static String buildFileName(String Url, String mimeType) {
+            String name = "file_" + Math.abs(Url.hashCode());
+
+            if (null == mimeType) {
+                mimeType = "image/jpeg";
+            }
+
+            String fileExtension =  MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+
+            // some devices don't support .jpeg files
+            if ("jpeg".equals(fileExtension)) {
+                fileExtension = "jpg";
+            }
+
+            if (null != fileExtension) {
+                name += "." + fileExtension;
+            }
+
+            return name;
         }
 
         /**
@@ -477,16 +609,24 @@ public class ConsoleMediasCache {
          * @param appContext the context
          * @param url the media url
          * @param rotation the bitmap rotation
+         * @param mimeType the mime type
          * @return the cached bitmap or null it does not exist
          */
-        public static Bitmap bitmapForURL(Context appContext, String url, int rotation) {
+        public static Bitmap bitmapForURL(Context appContext, String url, int rotation, String mimeType) {
             Bitmap bitmap = null;
 
             // sanity check
             if (null != url) {
+
+                // the image is downloading in background
+                if (null != mediaWorkerTaskForUrl(url)) {
+                    return null;
+                }
+
                 synchronized (sMemoryCache) {
                     bitmap = sMemoryCache.get(url);
                 }
+
 
                 // check if the image has not been saved in file system
                 if ((null == bitmap) && (null != appContext)) {
@@ -510,7 +650,7 @@ public class ConsoleMediasCache {
 
                     // not a valid file name
                     if (null == filename) {
-                        filename = buildFileName(url);
+                        filename = buildFileName(url, mimeType);
                     }
 
                     try {
@@ -565,7 +705,7 @@ public class ConsoleMediasCache {
                         }
 
                     } catch (FileNotFoundException e) {
-                        Log.e(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
+                        Log.d(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "bitmapForURL() "+e);
 
@@ -576,19 +716,53 @@ public class ConsoleMediasCache {
             return bitmap;
         }
 
+        private void commonInit(Context appContext,  String url, String mimeType) {
+            mApplicationContext = appContext;
+            mUrl = url;
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.put(url, this);
+            }
+            mMimeType = mimeType;
+            mRotation = 0;
+        }
+
+        /**
+         * BitmapWorkerTask creator
+         * @param appContext the context
+         * @param url the media url
+         * @param mimeType the mime type.
+         */
+        public MediaWorkerTask(Context appContext,  String url, String mimeType) {
+            commonInit(appContext, url, mimeType);
+            mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        }
+
         /**
          * BitmapWorkerTask creator
          * @param appContext the context
          * @param url the media url
          * @param rotation the rotation
+         * @param mimeType the mime type.
          */
-        public BitmapWorkerTask(Context appContext,  String url, int rotation) {
-            mApplicationContext = appContext;
-            mUrl = url;
-            mRotation = rotation;
-            mPendingDownloadByUrl.put(url, this);
-
+        public MediaWorkerTask(Context appContext,  String url, int rotation, String mimeType) {
+            commonInit(appContext, url, mimeType);
             mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+            mRotation = rotation;
+        }
+
+        /**
+         * BitmapWorkerTask creator
+         * @param task another bitmap task
+         */
+        public MediaWorkerTask(MediaWorkerTask task) {
+            mApplicationContext = task.mApplicationContext;
+            mUrl = task.mUrl;
+            mRotation = task.mRotation;
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.put(mUrl, this);
+            }
+            mMimeType = task.mMimeType;
+            mImageViewReferences = task.mImageViewReferences;
         }
 
         /**
@@ -615,6 +789,10 @@ public class ConsoleMediasCache {
             return mProgress;
         }
 
+        private Boolean isBitmapDownload() {
+            return (null == mMimeType) || mMimeType.startsWith("image/");
+        }
+
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(Integer... params) {
@@ -635,11 +813,13 @@ public class ConsoleMediasCache {
                     filelen = connection.getContentLength();
                     stream = connection.getInputStream();
                 } catch (FileNotFoundException e) {
-                    Log.d(LOG_TAG, "BitmapWorkerTask " + mUrl + " does not exist");
-                    bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), R.drawable.ic_menu_gallery);
+                    Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
+                    if (isBitmapDownload()) {
+                        bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), R.drawable.ic_menu_gallery);
+                    }
                 }
 
-                String filename = BitmapWorkerTask.buildFileName(mUrl);
+                String filename = MediaWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
                 FileOutputStream fos = mApplicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
 
                 // a bitmap has been provided
@@ -673,12 +853,11 @@ public class ConsoleMediasCache {
                             publishProgress(mProgress = progress);
                         }
 
+                        mProgress = 100;
                     }
                     catch (OutOfMemoryError outOfMemoryError) {
-                        outOfMemoryError = outOfMemoryError;
                     }
                     catch (Exception e) {
-                        e = e;
                     }
 
                     close(stream);
@@ -687,15 +866,38 @@ public class ConsoleMediasCache {
                 fos.flush();
                 fos.close();
 
-                Log.d(LOG_TAG, "download is done (" + mUrl + ")");
-
-                // get the bitmap from the filesytem
-                if (null == bitmap) {
-                    bitmap = BitmapWorkerTask.bitmapForURL(mApplicationContext, key, mRotation);
+                // the file has been successfully downloaded
+                if (mProgress == 100) {
+                    try {
+                        File originalFile = mApplicationContext.getFileStreamPath(filename);
+                        String newFileName = MediaWorkerTask.buildFileName(mUrl, mMimeType);
+                        File newFile = new File(originalFile.getParent(), newFileName);
+                        if (newFile.exists()) {
+                            // Or you could throw here.
+                            mApplicationContext.deleteFile(newFileName);
+                        }
+                        originalFile.renameTo(newFile);
+                    } catch (Exception e) {
+                        e = e;
+                    }
                 }
 
-                synchronized (sMemoryCache) {
-                    cacheBitmap(key, bitmap);
+                Log.d(LOG_TAG, "download is done (" + mUrl + ")");
+
+                synchronized(mPendingDownloadByUrl) {
+                    mPendingDownloadByUrl.remove(mUrl);
+                }
+
+                // load the bitmap from the cache
+                if (isBitmapDownload()) {
+                    // get the bitmap from the filesytem
+                    if (null == bitmap) {
+                        bitmap = MediaWorkerTask.bitmapForURL(mApplicationContext, key, mRotation, mMimeType);
+                    }
+
+                    synchronized (sMemoryCache) {
+                        cacheBitmap(key, bitmap);
+                    }
                 }
 
                 return bitmap;
@@ -754,7 +956,35 @@ public class ConsoleMediasCache {
                 }
             }
 
-            mPendingDownloadByUrl.remove(mUrl);
+            synchronized (mSuspendedTasks) {
+                // some task have been suspended because there were too many running ones ?
+                if (mSuspendedTasks.size() > 0) {
+
+                    if (mSuspendedTasks.size() > 0) {
+                        MediaWorkerTask task = mSuspendedTasks.get(0);
+
+                        Log.d(LOG_TAG, "Restart the task " + task.mUrl);
+
+                        // avoid crash if there are too many running task
+                        try {
+                            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                            mSuspendedTasks.remove(task);
+                        }
+                        catch (RejectedExecutionException e) {
+                            task.cancel(true);
+
+                            mSuspendedTasks.remove(task);
+                            // create a new task from the existing one
+                            task = new MediaWorkerTask(task);
+                            mSuspendedTasks.add(task);
+                            Log.d(LOG_TAG, "Suspend again the task " + task.mUrl + " - " + task.getStatus());
+
+                        } catch (Exception e) {
+                            Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
+                        }
+                    }
+                }
+            }
         }
 
         private void cacheBitmap(String key, Bitmap bitmap) {

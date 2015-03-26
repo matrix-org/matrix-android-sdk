@@ -22,15 +22,6 @@ public class MessageRow {
     private Event mEvent;
     private RoomState mRoomState;
 
-    public enum SentState {
-        SENT, // Normal case: true for received messages and messages successfully sent to the server
-        WAITING_ECHO, // awaiting echo for the sent messages
-        SENDING, // Awaiting response from server after having sent the message
-        NOT_SENT // The message is in a temporary state : the message failed to be sent but the list is not refreshed
-    }
-
-    private SentState mSentState = SentState.SENT;
-
     public MessageRow(Event event, RoomState roomState) {
         this.mEvent = event;
         this.mRoomState = roomState;
@@ -42,22 +33,5 @@ public class MessageRow {
 
     public RoomState getRoomState() {
         return mRoomState;
-    }
-
-    public SentState getSentState() {
-        if (mEvent.isUnsent) {
-            return SentState.NOT_SENT;
-        }
-
-        if (SentState.SENDING == mSentState) {
-            mSentState = SentState.SENDING;
-        }
-
-        return mSentState;
-    }
-
-    public void setSentState(SentState sentState) {
-        this.mSentState = sentState;
-        mEvent.isUnsent = (sentState == SentState.NOT_SENT);
     }
 }

@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.net.Uri;
+import android.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -40,7 +41,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param hsUri the home server URI
      */
     public LoginRestClient(Uri hsUri) {
-        super(hsUri, LoginApi.class);
+        super(hsUri, LoginApi.class, RestClient.URI_API_PREFIX);
         mHsUri = hsUri;
     }
 
@@ -50,12 +51,21 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param password the password
      * @param callback the callback success and failure callback
      */
-    public void loginWithPassword(String user, String password, final ApiCallback<Credentials> callback) {
+    public void loginWithPassword(final String user, final String password, final ApiCallback<Credentials> callback) {
         PasswordLoginParams params = new PasswordLoginParams();
         params.user = user;
         params.password = password;
 
-        mApi.login(params, new RestAdapterCallback<JsonObject>(callback, null) {
+        mApi.login(params, new RestAdapterCallback<JsonObject>(mUnsentEventsManager, callback,
+
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        loginWithPassword(user, password, callback);
+                    }
+                }
+
+                ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);

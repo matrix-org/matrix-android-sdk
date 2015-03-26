@@ -1,7 +1,22 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.preference.PreferenceManager;
@@ -9,38 +24,30 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseExpandableListAdapter;
-import android.widget.CheckedTextView;
-import android.widget.ExpandableListView;
+import android.widget.Button;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.HomeActivity;
-import org.matrix.matrixandroidsdk.activity.RoomActivity;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-
-import javax.net.ssl.SSLContext;
 
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
@@ -48,8 +55,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
     private int mUnreadColor;
     private int mHighlightColor;
     private int mPublicHighlightColor;
@@ -228,6 +233,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public void addRoomSummary(RoomSummary roomSummary) {
+        // check if the summary is not added twice.
+        for(RoomSummary rSum : mRecentsSummariesList) {
+            if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
+                return;
+            }
+        }
+
         mRecentsSummariesList.add(roomSummary);
     }
 
@@ -241,6 +253,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     public void removeRoomSummary(RoomSummary roomSummary) {
         mRecentsSummariesList.remove(roomSummary);
+
+        if (null != roomSummary.getRoomId()) {
+            mUnreadCountMap.remove(roomSummary.getRoomId());
+        }
     }
 
     public RoomSummary getSummaryByRoomId(String roomId) {
@@ -292,11 +308,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         for(String roomId : roomIds) {
             resetUnreadCount(roomId);
         }
-    }
-
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
     }
 
     public void sortSummaries() {
@@ -354,6 +365,16 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
+
+        final Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
+        deleteButton.setVisibility((groupPosition == mRecentsGroupIndex) ? View.VISIBLE : View.GONE);
+
+        final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
+        deleteProgress.setVisibility(View.GONE);
+        
+        // required to have the onChildClick event
+        // does not work when settings in the adapter xml file.
+        deleteButton.setFocusable(false);
 
         if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
@@ -427,8 +448,36 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
 
-            if (mOddColourResId != 0 && mEvenColourResId != 0) {
-                convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
+            // the user taps on
+            final String fRoomid = summary.getRoomId();
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
+                    Room room = session.getDataHandler().getRoom(fRoomid);
+
+                    if (null != room) {
+                        room.leave(new SimpleApiCallback<Void>(mContext, deleteButton) {
+                            @Override
+                            public void onSuccess(Void info) {
+
+                            }
+                        });
+                    }
+                }
+            });
+
+            MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
+            Room room = session.getDataHandler().getRoom(fRoomid);
+
+            if (room.isLeaving()) {
+                convertView.setAlpha(0.3f);
+                deleteButton.setVisibility(View.GONE);
+                deleteProgress.setVisibility(View.VISIBLE);
+            } else {
+                convertView.setAlpha(1.0f);
+                deleteButton.setVisibility(View.VISIBLE);
+                deleteProgress.setVisibility(View.GONE);
             }
 
         } else {

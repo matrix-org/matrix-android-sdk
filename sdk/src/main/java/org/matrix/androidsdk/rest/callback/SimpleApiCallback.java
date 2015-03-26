@@ -15,6 +15,13 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
+import android.app.Activity;
+import android.content.Context;
+import android.media.MediaActionSound;
+import android.view.View;
+import android.widget.Toast;
+
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -25,15 +32,37 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     private static final String LOG_TAG = "SimpleApiCallback";
 
+    private Activity mActivity;
+
+    private Context mContext = null;
+    private View mPostView = null;
+
     /**
      * Failure callback to pass on failures to.
      */
-    private ApiFailureCallback failureCallback;
+    private ApiFailureCallback failureCallback = null;
 
     /**
-     * Default constructor.
+     * Constructor
      */
     public SimpleApiCallback() {
+    }
+
+    /**
+     * Constructor
+     * @param activity The context.
+     */
+    public SimpleApiCallback(Activity activity) {
+        mActivity = activity;
+    }
+
+    /**
+     * Constructor
+     * @param context The context.
+     */
+    public SimpleApiCallback(Context context, View postOnView) {
+        mContext = context;
+        mPostView = postOnView;
     }
 
     /**
@@ -49,28 +78,64 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
     public void onSuccess(T info) {
         // If the delegate has an onSuccess implementation, use it
         if (failureCallback instanceof ApiCallback) {
-            ((ApiCallback) failureCallback).onSuccess(info);
+            try {
+                ((ApiCallback) failureCallback).onSuccess(info);
+            }  catch (Exception exception) {
+            }
+        }
+    }
+
+    private void displayToast(final String message) {
+        if (null != mActivity) {
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mActivity, message, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else if ((null != mContext) && (null != mPostView)) {
+            mPostView.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     }
 
     @Override
     public void onNetworkError(Exception e) {
         if (failureCallback != null) {
-            failureCallback.onNetworkError(e);
+            try {
+                failureCallback.onNetworkError(e);
+            }catch (Exception exception) {
+            }
+        } else {
+            displayToast("Network Error");
         }
     }
 
     @Override
-    public void onMatrixError(MatrixError e) {
+    public void onMatrixError(final MatrixError e) {
         if (failureCallback != null) {
-            failureCallback.onMatrixError(e);
+            try {
+                failureCallback.onMatrixError(e);
+            } catch (Exception exception) {
+            }
+        } else {
+            displayToast("Matrix Error : " + e.error);
         }
     }
 
     @Override
-    public void onUnexpectedError(Exception e) {
+    public void onUnexpectedError(final Exception e) {
         if (failureCallback != null) {
-            failureCallback.onUnexpectedError(e);
+            try {
+                failureCallback.onUnexpectedError(e);
+            } catch (Exception exception) {
+            }
+        } else {
+            displayToast(e.getLocalizedMessage());
         }
     }
 }

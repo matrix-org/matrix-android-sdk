@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.activity;
 
 import android.content.Intent;
@@ -94,7 +110,7 @@ public class LoginActivity extends MXCActionBarActivity {
         }
 
         // TODO: This client should check that it can use u/p login on this home server!!!
-        client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>() {
+        client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(this) {
             @Override
             public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);

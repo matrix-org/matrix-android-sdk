@@ -56,25 +56,38 @@
                     android:text="1970/01/01 00:00:00"
                     android:id="@+id/messagesAdapter_timestamp_left"/>
 
-                <LinearLayout
+                <FrameLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/upload_content_layout"
-                    android:orientation="vertical">
-
-                    <org.matrix.matrixandroidsdk.view.PieFractionView
-                        android:id="@+id/upload_content_piechart"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"/>
-
-                    <TextView
+                    android:layout_height="wrap_content">
+                    
+                    <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:textSize="9sp"
-                        android:gravity="center_vertical"
-                        android:text="@string/uploading_dot"/>
+                        android:layout_height="wrap_content"
+                        android:id="@+id/upload_content_layout"
+                        android:orientation="vertical">
 
-                </LinearLayout>
+                        <org.matrix.matrixandroidsdk.view.PieFractionView
+                            android:id="@+id/upload_content_piechart"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:textSize="9sp"
+                            android:gravity="center_vertical"
+                            android:text="@string/uploading_dot"/>
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/upload_event_failed"
+                        android:background ="#ffff0000"
+                        android:src="@drawable/ic_menu_end_conversation"
+                        android:layout_width="40dp"
+                        android:layout_height="40sp"/>
+
+                </FrameLayout>
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -84,13 +97,48 @@
                     android:paddingRight="4dp"
                     android:id="@+id/messagesAdapter_body_layout">
 
-                    <ImageView
-                        android:layout_height="wrap_content"
-                        android:layout_width="wrap_content"
+                    <FrameLayout
                         android:layout_weight="1"
                         android:layout_gravity="right"
-                        android:id="@+id/messagesAdapter_image"
-                        android:adjustViewBounds="true" />
+                        android:id="@+id/messagesAdapter_image_layout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                        <RelativeLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content">
+
+                            <ImageView
+                                android:layout_height="wrap_content"
+                                android:layout_width="wrap_content"
+                                android:id="@+id/messagesAdapter_image"
+                                android:adjustViewBounds="true" />
+
+                            <FrameLayout
+                                android:layout_alignLeft = "@+id/messagesAdapter_image"
+                                android:layout_alignRight="@+id/messagesAdapter_image"
+                                android:layout_alignBottom="@+id/messagesAdapter_image"
+                                android:layout_alignTop="@+id/messagesAdapter_image"
+
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content">
+
+                                <ProgressBar
+                                    android:id="@+id/upload_event_spinner"
+                                    android:layout_gravity="center"
+                                    android:layout_width="@dimen/chat_avatar_size"
+                                    android:layout_height="@dimen/chat_avatar_size"
+                                    android:visibility="visible"/>
+                            </FrameLayout>
+                        </RelativeLayout>
+
+                        <ImageView
+                            android:layout_width="@dimen/chat_avatar_keyboard_size"
+                            android:layout_height="@dimen/chat_avatar_keyboard_size"
+                            android:visibility="visible"
+                            android:id="@+id/messagesAdapter_image_type"
+                            android:src="@drawable/icon_keyboard"/>
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"

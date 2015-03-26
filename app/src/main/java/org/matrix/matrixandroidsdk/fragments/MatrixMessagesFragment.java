@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.fragments;
 
 import android.content.Context;
@@ -49,7 +65,8 @@ public class MatrixMessagesFragment extends Fragment {
         public void onLiveEvent(Event event, RoomState roomState);
         public void onBackEvent(Event event, RoomState roomState);
         public void onDeleteEvent(Event event);
-        public void onResendEvent(Event event);
+        public void onResendingEvent(Event event);
+        public void onResentEvent(Event event);
 
         /**
          * Called when the first batch of messages is loaded.
@@ -114,8 +131,13 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             @Override
-            public void onResendEvent(Event event)  {
-                mMatrixMessagesListener.onResendEvent(event);
+                public void onResendingEvent(Event event)  {
+                mMatrixMessagesListener.onResendingEvent(event);
+            }
+
+            @Override
+            public void onResentEvent(Event event)  {
+                mMatrixMessagesListener.onResentEvent(event);
             }
         };
 
@@ -165,10 +187,17 @@ public class MatrixMessagesFragment extends Fragment {
     private void joinRoom() {
         displayLoadingProgress();
 
-        mRoom.join(new SimpleApiCallback<Void>() {
+        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
+
+        if (null != roomSummary) {
+            roomSummary.setInviterUserId(null);
+        }
+
+        mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
-                requestInitialHistory();
+                // the SDK performs the initial sync when it gets the join event echo
+                //requestInitialHistory();
             }
 
             // the request will be automatically restarted when a valid network will be found
@@ -216,13 +245,10 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     private void requestInitialHistory() {
-        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
-        roomSummary.setInviterUserId(null);
-
         displayLoadingProgress();
 
         // the initial sync will be retrieved when a network connection will be found
-        requestHistory(new SimpleApiCallback<Integer>() {
+        requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(Integer info) {
                 MatrixMessagesFragment.this.dismissLoadingProgress();
@@ -269,8 +295,8 @@ public class MatrixMessagesFragment extends Fragment {
         return mRoom.requestHistory(callback);
     }
 
-    public void send(Message message, ApiCallback<Event> callback) {
-        mRoom.sendMessage(message, callback);
+    public void sendEvent(Event event, ApiCallback<Void> callback) {
+        mRoom.sendEvent(event, callback);
     }
 
     public void redact(String eventId, ApiCallback<Event> callback) {

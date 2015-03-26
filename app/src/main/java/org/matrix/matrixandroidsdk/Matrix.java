@@ -6,6 +6,7 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -59,6 +60,7 @@ public class Matrix {
      * Clears the default session and the login credentials.
      */
     public synchronized void clearDefaultSessionAndCredentials() {
+        mDefaultSession.clear();
         mDefaultSession = null;
         mLoginStorage.setDefaultCredentials(null);
     }

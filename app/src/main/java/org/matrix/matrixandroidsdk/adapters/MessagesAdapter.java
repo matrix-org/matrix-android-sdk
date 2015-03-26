@@ -1,12 +1,32 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -31,16 +51,20 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
+import org.matrix.matrixandroidsdk.contacts.Contact;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
@@ -71,12 +95,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // text, images, notices(topics, room names, membership changes,
     // displayname changes, avatar url changes), and emotes!
-    private static final int NUM_ROW_TYPES = 4;
+    private static final int NUM_ROW_TYPES = 5;
 
     private static final int ROW_TYPE_TEXT = 0;
     private static final int ROW_TYPE_IMAGE = 1;
     private static final int ROW_TYPE_NOTICE = 2;
     private static final int ROW_TYPE_EMOTE = 3;
+    private static final int ROW_TYPE_FILE = 4;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -115,13 +140,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private MXSession mSession;
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
-                           int noticeResLayoutId, int emoteRestLayoutId) {
+                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId) {
         super(context, 0);
         mContext = context;
         mRowTypeToLayoutId.put(ROW_TYPE_TEXT, textResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_IMAGE, imageResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_NOTICE, noticeResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_FILE, fileResLayoutId);
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         // the refresh will be triggered only when it is required
@@ -161,7 +187,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessageRow row = new MessageRow(event, roomState);
         if (shouldSave(row)) {
             // ensure that notifyDataSetChanged is not called
-            // it seems that setNotifyOnChange is resetted to to  default value
+            // it seems that setNotifyOnChange is reinitialized to true;
             setNotifyOnChange(false);
             insert(row, 0);
             if (row.getEvent().eventId != null) {
@@ -188,14 +214,23 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     @Override
+    public void remove(MessageRow row) {
+        super.remove(row);
+    }
+
+    @Override
     public void add(MessageRow row) {
+        // ensure that notifyDataSetChanged is not called
+        // it seems that setNotifyOnChange is reinitialized to true;
+        setNotifyOnChange(false);
+
         if (shouldSave(row)) {
             super.add(row);
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
 
-            if (row.getSentState() == MessageRow.SentState.WAITING_ECHO) {
+            if (row.getEvent().isWaitingForEcho()) {
                 mWaitingEchoRowMap.put(row.getEvent().eventId, row);
             }
 
@@ -204,17 +239,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     public void removeEventById(String eventId) {
+        // ensure that notifyDataSetChanged is not called
+        // it seems that setNotifyOnChange is reinitialized to true;
+        setNotifyOnChange(false);
+
         MessageRow row = mEventRowMap.get(eventId);
 
         if (row != null) {
             remove(row);
-        }
-    }
-
-    public void updateMessageRowSentState(String eventId, MessageRow.SentState state) {
-        MessageRow row = mEventRowMap.get(eventId);
-        if (row != null) {
-            row.setSentState(state);
         }
     }
 
@@ -263,6 +295,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
                 return ROW_TYPE_EMOTE;
             }
+            else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+                return ROW_TYPE_FILE;
+            }
             else {
                 // Default is to display the body as text
                 return ROW_TYPE_TEXT;
@@ -297,6 +332,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     return getNoticeView(position, convertView, parent);
                 case ROW_TYPE_EMOTE:
                     return getEmoteView(position, convertView, parent);
+                case ROW_TYPE_FILE:
+                    return getFileView(position, convertView, parent);
                 default:
                     throw new RuntimeException("Unknown item view type for position " + position);
             }
@@ -380,7 +417,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         tsTextView.setVisibility(View.VISIBLE);
         tsTextView.setText(getTimestamp(msg.originServerTs));
 
-        if (row.getSentState() == MessageRow.SentState.NOT_SENT) {
+        if (row.getEvent().isUndeliverable()) {
             tsTextView.setTextColor(notSentColor);
         } else {
             tsTextView.setTextColor(Color.parseColor("#FFAAAAAA"));
@@ -511,16 +548,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         bodyTextView.setText(body);
 
         int textColor;
-        switch (row.getSentState()) {
-            case SENDING:
-                textColor = sendingColor;
-                break;
-            case NOT_SENT:
-                textColor = notSentColor;
-                break;
-            default:
-                textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
+
+        if (row.getEvent().isSending()) {
+            textColor = sendingColor;
+        } else if (row.getEvent().isUndeliverable()) {
+            textColor = notSentColor;
+        } else {
+            textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
         }
+
         bodyTextView.setTextColor(textColor);
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
@@ -558,6 +594,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         ImageInfo imageInfo = null;
 
         if (imageMessage != null) {
+
+           imageMessage.checkMediaUrls();
+
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.thumbnailUrl != null) {
                 thumbUrl = imageMessage.thumbnailUrl;
@@ -568,6 +607,19 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageInfo = imageMessage.info;
         }
 
+        // display a type watermark
+        final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+        imageTypeView.setBackgroundColor(Color.TRANSPARENT);
+
+        final boolean displayTypeIcon = "image/gif".equals(imageMessage.getMimeType());
+
+        if (displayTypeIcon) {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
+            imageTypeView.setVisibility(View.VISIBLE);
+        } else {
+            imageTypeView.setVisibility(View.GONE);
+        }
+
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
 
         final int maxImageWidth = mMaxImageWidth;
@@ -576,8 +628,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-
-        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle);
+        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, "image/jpeg");
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
@@ -585,6 +636,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         if (null != downloadProgressLayout) {
             if (null != downloadId) {
+                imageTypeView.setVisibility(View.GONE);
                 downloadProgressLayout.setVisibility(View.VISIBLE);
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
 
@@ -630,6 +682,11 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
+
+                        if (displayTypeIcon) {
+                            imageTypeView.setVisibility(View.VISIBLE);
+                        }
+
                         if (aDownloadId.equals(fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
                         }
@@ -647,18 +704,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);
         imageView.setMaxHeight(maxImageHeight);
-
-        int backgroundColor;
-
-        switch (row.getSentState()) {
-            case NOT_SENT:
-                backgroundColor = notSentColor;
-                break;
-            default:
-                backgroundColor = Color.TRANSPARENT;
-        }
-
-        (convertView.findViewById(R.id.messagesAdapter_body_layout)).setBackgroundColor(backgroundColor);
+        imageView.setBackgroundColor(Color.TRANSPARENT);
 
         if ((imageMessage != null) && (imageMessage.url != null)) {
             imageView.setOnClickListener(new View.OnClickListener() {
@@ -671,6 +717,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_WIDTH, maxImageWidth);
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_HEIGHT, maxImageHeight);
                         viewImageIntent.putExtra(ImageWebViewActivity.KEY_IMAGE_ROTATION, rotationAngle);
+                        if (null != imageMessage.getMimeType()) {
+                            viewImageIntent.putExtra(ImageWebViewActivity.KEY_HIGHRES_MIME_TYPE, imageMessage.getMimeType());
+                        }
                         mContext.startActivity(viewImageIntent);
                     }
                 }
@@ -680,6 +729,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // manage the upload progress
         final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
         final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
         int progress = -1;
 
@@ -698,19 +750,35 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
                         if (url.equals(anUploadId)) {
-                            uploadProgressLayout.setVisibility(View.GONE);
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
                         }
                     }
                 });
             }
         }
 
+        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+
         uploadFractionView.setFraction(progress);
         uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
 
-        this.manageSubView(position, convertView, imageView, ROW_TYPE_IMAGE);
+        View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
+        imageLayout.setAlpha(row.getEvent().isSent() ? 1.0f : 0.5f);
+
+        this.manageSubView(position, convertView, imageLayout, ROW_TYPE_IMAGE);
 
         setBackgroundColour(convertView, position);
         return convertView;
@@ -759,20 +827,166 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         emoteTextView.setText(emote);
 
         int textColor;
-        switch (row.getSentState()) {
-            case SENDING:
-                textColor = sendingColor;
-                break;
-            case NOT_SENT:
-                textColor = notSentColor;
-                break;
-            default:
-                textColor = emoteColor;
+
+        if (row.getEvent().isSending()) {
+            textColor = sendingColor;
+        } else if (row.getEvent().isUndeliverable()) {
+            textColor = notSentColor;
+        } else {
+            textColor = emoteColor;
         }
+
         emoteTextView.setTextColor(textColor);
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
+        return convertView;
+    }
+
+    private View getFileView(int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
+        }
+
+        MessageRow row = getItem(position);
+        Event msg = row.getEvent();
+
+        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
+
+        final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+        fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        fileTextView.setText("\n" +fileMessage.body + "\n");
+
+        final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
+
+        // if the content downloading ?
+        final String downloadId = ConsoleMediasCache.downloadIdFromUrl(mContext.getApplicationContext(), fileMessage.url, fileMessage.getMimeType());
+
+        // display a pie char
+        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        final View fileTypeView = convertView.findViewById(R.id.messagesAdapter_file_type);
+
+        final ConsoleMediasCache.DownloadCallback downloadCallback = new ConsoleMediasCache.DownloadCallback() {
+            @Override
+            public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                if (aDownloadId.equals(downloadId)) {
+                    downloadPieFractionView.setFraction(percentageProgress);
+                }
+            }
+
+            @Override
+            public void onDownloadComplete(String aDownloadId) {
+                if (aDownloadId.equals(downloadId)) {
+                    fileTextView.setVisibility(View.VISIBLE);
+                    fileTypeView.setVisibility(View.VISIBLE);
+                    downloadProgressLayout.setVisibility(View.GONE);
+
+                    // save into the downloads
+                    String mediaPath = ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+
+                    if (null != mediaPath) {
+                        CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                    }
+                }
+            }
+        };
+
+        fileTypeView.setVisibility(View.VISIBLE);
+        fileTextView.setVisibility(View.VISIBLE);
+
+        if (null != downloadProgressLayout) {
+            if ((null != downloadId) && (ConsoleMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
+                fileTypeView.setVisibility(View.GONE);
+                downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+                fileTextView.setVisibility(View.GONE);
+                ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
+                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+
+            } else {
+                downloadProgressLayout.setVisibility(View.GONE);
+            }
+        }
+
+        if ((fileMessage != null) && (fileMessage.url != null)) {
+            fileTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (null != fileMessage.url) {
+                        String mediaPath =  ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                        
+                        // is the file already saved
+                        if (null != mediaPath) {
+                           String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                           CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
+                        } else {
+                            fileTypeView.setVisibility(View.GONE);
+                            fileTextView.setVisibility(View.GONE);
+                            // display the pie chart
+                            downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
+                            downloadProgressLayout.setVisibility(View.VISIBLE);
+                            ConsoleMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                            ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
+                        }
+                    }
+                }
+            });
+        }
+
+        // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
+        int progress = -1;
+
+        if (mSession.getMyUser().userId.equals(msg.userId)) {
+            progress = mSession.getContentManager().getUploadProgress(fileMessage.url);
+
+            if (progress >= 0) {
+                final String url = fileMessage.url;
+
+                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadProgress(String anUploadId, int percentageProgress) {
+                        if (url.equals(anUploadId)) {
+                            uploadFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                        if (url.equals(anUploadId)) {
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+
+        uploadFractionView.setFraction(progress);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+
+        View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
+        this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
+
+        setBackgroundColour(convertView, position);
         return convertView;
     }
 

@@ -102,7 +102,7 @@ public class BingRulesManager {
         if (mRules != null) {
             // Go down the rule list until we find a match
             for (BingRule bingRule : mRules) {
-                if (eventMatchesConditions(event, bingRule.conditions)) {
+                if (bingRule.isEnabled && eventMatchesConditions(event, bingRule.conditions)) {
                     for (JsonElement action : bingRule.actions) {
                         if (action.isJsonPrimitive()) {
                             String actionString = action.getAsString();

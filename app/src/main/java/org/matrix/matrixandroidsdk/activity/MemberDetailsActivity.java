@@ -151,7 +151,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                     String text = (String)((Button)v).getText();
 
                     final View refreshingView = findViewById(R.id.profile_mask);
-                    final ApiCallback callback = new SimpleApiCallback<Void>() {
+                    final ApiCallback callback = new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                         @Override
                         public void onMatrixError(MatrixError e) {
                             if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -189,7 +189,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>() {
+                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                                     @Override
                                     public void onMatrixError(MatrixError e) {
                                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {
