@@ -118,7 +118,7 @@ public class ConsoleMediasCache {
      */
     private static String downloadableUrl(Context context, String url, int width, int height) {
         // check if the Url is a matrix one
-        if (url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
+        if ((null != url) && url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
             ContentManager contentManager = Matrix.getInstance(context).getDefaultSession().getContentManager();
 
             if ((width > 0) && (height > 0)) {

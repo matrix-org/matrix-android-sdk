@@ -35,6 +35,8 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileInfo;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -777,6 +779,29 @@ public class Room {
         }
 
         return orientation;
+    }
+
+    /**
+     * Fills the fileMessage fileInfo.
+     * @param context Application context for the content resolver.
+     * @param fileMessage The fileMessage to fill.
+     * @param fileUri The file uri.
+     * @param mimeType The mimeType
+     */
+    public static void fillFileInfo(Context context, FileMessage fileMessage, Uri fileUri, String mimeType) {
+        try {
+            FileInfo fileInfo = new FileInfo();
+
+            String filename = fileUri.getPath();
+            File file = new File(filename);
+
+            fileInfo.mimetype = mimeType;
+            fileInfo.size = file.length();
+
+            fileMessage.info = fileInfo;
+
+        } catch (Exception e) {
+        }
     }
 
     /**

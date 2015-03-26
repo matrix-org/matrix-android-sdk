@@ -73,6 +73,11 @@ public class JsonUtils {
             return toImageMessage(jsonObject);
         }
 
+        // Try to return the right subclass
+        if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+            return toFileMessage(jsonObject);
+        }
+
         // Fall back to the generic Message type
         return message;
     }

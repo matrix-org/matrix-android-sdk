@@ -43,6 +43,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
@@ -239,6 +240,83 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
+    /**
+     * Upload a media content
+     * @param mediaUrl the media Uurl
+     * @param mimeType the media mime type
+     * @param messageBody the message body
+     */
+    public void uploadMediaContent(final String mediaUrl, final String mimeType, final String messageBody) {
+        // create a tmp row
+        final FileMessage tmpFileMessage = new FileMessage();
+
+        tmpFileMessage.url = mediaUrl;
+        tmpFileMessage.body = messageBody;
+
+        FileInputStream fileStream = null;
+
+        try {
+            Uri uri = Uri.parse(mediaUrl);
+            Room.fillFileInfo(getActivity(), tmpFileMessage, uri, mimeType);
+
+            String filename = uri.getPath();
+            fileStream = new FileInputStream (new File(filename));
+
+        } catch (Exception e) {
+        }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow messageRow = addMessageRow(tmpFileMessage);
+        messageRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        mSession.getContentManager().uploadContent(fileStream, mimeType, mediaUrl, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+            }
+
+            @Override
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        FileMessage message = tmpFileMessage;
+
+                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                            // Build the image message
+                            message = new FileMessage();
+
+                            // replace the thumbnail and the media contents by the computed ones
+                            ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
+                            message.url = uploadResponse.contentUri;
+                            message.info = tmpFileMessage.info;
+                            message.body = tmpFileMessage.body;
+
+                            // update the event content with the new message info
+                            messageRow.getEvent().content = JsonUtils.toJson(message);
+
+                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+                        }
+
+                        // warn the user that the media upload fails
+                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+
+                            Toast.makeText(getActivity(),
+                                    getString(R.string.message_failed_to_upload),
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            // send the message
+                            if (message.url != null)  {
+                                send(messageRow);
+                            }
+                        }
+                    }
+                });
+
+            }
+        });
+    }
 
     /**
      * upload an image content.

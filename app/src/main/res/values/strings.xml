@@ -114,7 +114,7 @@
     <string name="message_uploading">Uploading&#8230;</string>
     <string name="message_failed_to_upload">Failed to upload image</string>
 
-    <string name="option_attach_image">Attach images</string>
+    <string name="option_attach_files">Attach files</string>
     <string name="option_take_image">Take image</string>
     <string name="option_attach_video">Attach video</string>
     <string name="option_invite_by_name">Invite users from identifier</string>
