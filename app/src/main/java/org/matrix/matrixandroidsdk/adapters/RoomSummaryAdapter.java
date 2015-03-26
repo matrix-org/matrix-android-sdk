@@ -368,6 +368,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         final Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
         deleteButton.setVisibility((groupPosition == mRecentsGroupIndex) ? View.VISIBLE : View.GONE);
+
+        final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
+        deleteProgress.setVisibility(View.GONE);
+        
         // required to have the onChildClick event
         // does not work when settings in the adapter xml file.
         deleteButton.setFocusable(false);
@@ -465,8 +469,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
             Room room = session.getDataHandler().getRoom(fRoomid);
-
-            final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
 
             if (room.isLeaving()) {
                 convertView.setAlpha(0.3f);
