@@ -419,39 +419,38 @@ public class CommonActivityUtils {
         }
     }
 
-
     /**
-     * Save a media URI into the download directory
+     * Copy a file into a dstPath directory.
+     * The output filename can be provided.
+     * The output file is not overriden if it is already exist.
      * @param context the context
-     * @param path the media path
-     * @param filename the filename (optional)
-     * @return the downloads file path
+     * @param sourceFilePath the file source path
+     * @param dstDirPath the dst path
+     * @param outputFilename optional the output filename
+     * @return the downloads file path if the file exists or has been properly saved
      */
-    public static String saveMediaIntoDownloads(Context context, String path, String filename) {
+    public static String saveFileInto(Context context, String sourceFilePath, String dstDirPath, String outputFilename) {
         // sanity check
-        if (null == path) {
+        if ((null == sourceFilePath) || (null == dstDirPath)) {
             return null;
         }
 
-        // Build target file object
-        String dstDirPath = Environment.DIRECTORY_DOWNLOADS;
-
         // defines another name for the external media
-        String dstFileName = null;
+        String dstFileName;
 
         // build a filename is not provided
-        if (null == filename) {
+        if (null == outputFilename) {
             // extract the file extension from the uri
-            int dotPos = path.lastIndexOf(".");
+            int dotPos = sourceFilePath.lastIndexOf(".");
 
             String fileExt = "";
             if (dotPos > 0) {
-                fileExt = path.substring(dotPos);
+                fileExt = sourceFilePath.substring(dotPos);
             }
 
             dstFileName = "MatrixConsole_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
         } else {
-            dstFileName = filename;
+            dstFileName = outputFilename;
         }
 
         File dstDir = Environment.getExternalStoragePublicDirectory(dstDirPath);
@@ -469,7 +468,7 @@ public class CommonActivityUtils {
             if (!dstFile.exists()) {
                 dstFile.createNewFile();
 
-                inputStream = context.openFileInput(path);
+                inputStream = context.openFileInput(sourceFilePath);
                 outputStream = new FileOutputStream(dstFile);
 
                 byte[] buffer = new byte[1024 * 10];
@@ -479,6 +478,7 @@ public class CommonActivityUtils {
                 }
             }
         } catch (Exception e) {
+            dstFile = null;
         } finally {
             // Close resources
             try {
@@ -488,67 +488,37 @@ public class CommonActivityUtils {
             }
         }
 
-        return dstFile.getAbsolutePath();
+        if (null != dstFile) {
+            return dstFile.getAbsolutePath();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Save a media URI into the download directory
+     * @param context the context
+     * @param path the media path
+     * @param filename the filename (optional)
+     * @return the downloads file path
+     */
+    public static String saveMediaIntoDownloads(Context context, String path, String filename) {
+        return saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
     }
 
     /**
      * Save an image URI into the gallery
-     * @param activity the caller activity
-     * @param imageUri the image Uri to save.
+     * @param context the context.
+     * @param imageUri the image path to save.
      */
-    public static void saveImageIntoGallery(Activity activity, Uri imageUri) {
-        // sanity check
-        if (null == imageUri) {
-            return;
-        }
+    public static String saveImageIntoGallery(Context context, String imageFilePath) {
+        String filePath = saveFileInto(context, imageFilePath, Environment.DIRECTORY_PICTURES, null);
 
-        // Build target file object
-        String dstDirPath = Environment.DIRECTORY_PICTURES;
-
-        // extract the file extension from the uri
-        String imageUriStr = imageUri.toString();
-        int dotPos = imageUriStr.lastIndexOf(".");
-
-        String fileExt = "";
-        if (dotPos > 0) {
-            fileExt = imageUriStr.substring(dotPos);
-        }
-
-        // defines another name for the external media
-        String dstFileName = "MatrixConsole_" +  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
-
-        File dstDir = Environment.getExternalStoragePublicDirectory(dstDirPath);
-        if (dstDir != null) {
-            dstDir.mkdirs();
-        }
-        File dstFile = new File(dstDir, dstFileName);
-
-        // Copy source file to destination
-        InputStream inputStream = null;
-        FileOutputStream outputStream = null;
-        try {
-
-            dstFile.createNewFile();
-
-            inputStream = activity.getContentResolver().openInputStream(imageUri);
-            outputStream = new FileOutputStream(dstFile);
-
-            byte[] buffer = new byte[1024 * 10];
-            int len;
-            while ((len = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, len);
-            }
-
+        if (null != filePath) {
             // This broadcasts that there's been a change in the media directory
-            activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(dstFile)));
-        } catch (Exception e) {
-        } finally {
-            // Close resources
-            try {
-                if (inputStream != null) inputStream.close();
-                if (outputStream != null) outputStream.close();
-            } catch (Exception e) {
-            }
+            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(filePath))));
         }
+
+        return filePath;
     }
 }

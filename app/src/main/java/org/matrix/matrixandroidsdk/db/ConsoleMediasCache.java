@@ -592,6 +592,11 @@ public class ConsoleMediasCache {
 
             String fileExtension =  MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
 
+            // some devices don't support .jpeg files
+            if ("jpeg".equals(fileExtension)) {
+                fileExtension = "jpg";
+            }
+
             if (null != fileExtension) {
                 name += "." + fileExtension;
             }
