@@ -100,6 +100,7 @@
                     <FrameLayout
                         android:layout_weight="1"
                         android:layout_gravity="right"
+                        android:background="#44DDDDDD"
                         android:id="@+id/messagesAdapter_file_layout"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content">

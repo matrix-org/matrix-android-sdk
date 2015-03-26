@@ -855,7 +855,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        fileTextView.setText(fileMessage.body);
+        fileTextView.setText("\n" +fileMessage.body + "\n");
 
         final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
 
@@ -910,16 +910,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onClick(View v) {
                     if (null != fileMessage.url) {
-
-                        fileTextView.setVisibility(View.GONE);
                         String mediaPath =  ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-
+                        
                         // is the file already saved
                         if (null != mediaPath) {
-                           // String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
-                           // CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
-
+                           String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                           CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
                         } else {
+                            
+                            fileTextView.setVisibility(View.GONE);
                             // display the pie chart
                             downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
                             downloadProgressLayout.setVisibility(View.VISIBLE);

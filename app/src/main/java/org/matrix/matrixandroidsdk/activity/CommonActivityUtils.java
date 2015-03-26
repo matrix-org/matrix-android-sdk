@@ -399,18 +399,26 @@ public class CommonActivityUtils {
      * @param savedMediaPath the media path
      * @param mimeType the media mime type.
      */
-    public static void openMedia(Activity activity, String savedMediaPath, String mimeType) {
-        try {
-            File file = new File(savedMediaPath);
-            Intent intent = new Intent();
-            intent.setAction(android.content.Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(file), mimeType);
-            activity.startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-             Toast.makeText(activity, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
+    public static void openMedia(final Activity activity, final String savedMediaPath, final String mimeType) {
+        if ((null != activity) && (null != savedMediaPath)) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        File file = new File(savedMediaPath);
+                        Intent intent = new Intent();
+                        intent.setAction(android.content.Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.fromFile(file), mimeType);
+                        activity.startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(activity, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                    } catch (Exception e) {
+                    }
+                }
+            });
         }
     }
+
 
     /**
      * Save a media URI into the download directory
