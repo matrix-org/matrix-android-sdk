@@ -509,7 +509,7 @@ public class CommonActivityUtils {
     /**
      * Save an image URI into the gallery
      * @param context the context.
-     * @param imageUri the image path to save.
+     * @param imageFilePath the image path to save.
      */
     public static String saveImageIntoGallery(Context context, String imageFilePath) {
         String filePath = saveFileInto(context, imageFilePath, Environment.DIRECTORY_PICTURES, null);

@@ -865,6 +865,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
         final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        final View fileTypeView = convertView.findViewById(R.id.messagesAdapter_file_type);
 
         final ConsoleMediasCache.DownloadCallback downloadCallback = new ConsoleMediasCache.DownloadCallback() {
             @Override
@@ -878,6 +879,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             public void onDownloadComplete(String aDownloadId) {
                 if (aDownloadId.equals(downloadId)) {
                     fileTextView.setVisibility(View.VISIBLE);
+                    fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
 
                     // save into the downloads
@@ -890,10 +892,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         };
 
+        fileTypeView.setVisibility(View.VISIBLE);
         fileTextView.setVisibility(View.VISIBLE);
 
         if (null != downloadProgressLayout) {
             if ((null != downloadId) && (ConsoleMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
+                fileTypeView.setVisibility(View.GONE);
                 downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
                 downloadProgressLayout.setVisibility(View.VISIBLE);
                 fileTextView.setVisibility(View.GONE);
@@ -917,7 +921,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                            String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
                            CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
                         } else {
-                            
+                            fileTypeView.setVisibility(View.GONE);
                             fileTextView.setVisibility(View.GONE);
                             // display the pie chart
                             downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
