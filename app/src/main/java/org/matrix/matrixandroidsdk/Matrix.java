@@ -28,6 +28,7 @@ public class Matrix {
     protected Matrix(Context appContext) {
         mAppContext = appContext.getApplicationContext();
         mLoginStorage = new LoginStorage(mAppContext);
+        mGcmRegistrationManager = new GcmRegistrationManager(mAppContext);
         RageShake.getInstance().start(mAppContext);
     }
 
@@ -126,9 +127,6 @@ public class Matrix {
     }
 
     public GcmRegistrationManager getSharedGcmRegistrationManager() {
-        if (mGcmRegistrationManager == null) {
-            mGcmRegistrationManager = new GcmRegistrationManager(mAppContext);
-        }
         return mGcmRegistrationManager;
     }
 }
