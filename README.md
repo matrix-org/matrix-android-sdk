@@ -17,6 +17,25 @@ Basic usage is:
  3. Start listening to the event stream
  3. Make matrix API calls
 
+Bugs / Feature Requests
+-----------------------
+Think you've found a bug? Want a new feature on the client? Please open an issue
+on JIRA:
+
+- Create an account and login to https://matrix.org/jira
+- Navigate to the ``SYAND`` project.
+- Click **Create Issue** - Please be as descriptive as possible, with reproduction
+  steps if possible.
+
+All issues in JIRA are **public**.
+
+Contributing
+------------
+Want to fix a bug or add a new feature? Check JIRA first to see if someone else is
+handling this issue. If no one is actively working on the issue, then please fork
+the ``develop`` branch when writing your fix, and open a pull request when you're
+ready. Do not base your pull requests off ``master``.
+
 Logging in
 ----------
 To log in, use an instance of the login API client.
