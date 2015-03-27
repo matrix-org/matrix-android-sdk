@@ -474,8 +474,8 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     private void setTopic(String topic) {
-        if (null !=  this.getActionBar()) {
-            this.getActionBar().setSubtitle(topic);
+        if (null !=  this.getSupportActionBar()) {
+            this.getSupportActionBar().setSubtitle(topic);
         }
     }
 

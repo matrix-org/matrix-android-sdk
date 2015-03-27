@@ -32,7 +32,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if ((keyCode == KeyEvent.KEYCODE_MENU) && (null == getActionBar())) {
+        if ((keyCode == KeyEvent.KEYCODE_MENU) && (null == getSupportActionBar())) {
             // This is to fix a bug in the v7 support lib. If there is no options menu and you hit MENU, it will crash with a
             // NPE @ android.support.v7.app.ActionBarImplICS.getThemedContext(ActionBarImplICS.java:274)
             // This can safely be removed if we add in menu options on this screen
