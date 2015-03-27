@@ -63,6 +63,7 @@ import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 import java.text.SimpleDateFormat;
@@ -166,7 +167,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         // the user has tapped on the "View" notification button
-        if ((null != intent.getAction()) && (intent.getAction().startsWith(EventStreamService.TAP_TO_VIEW_ACTION))) {
+        if ((null != intent.getAction()) && (intent.getAction().startsWith(NotificationUtils.TAP_TO_VIEW_ACTION))) {
             // remove any pending notifications
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
@@ -357,6 +358,7 @@ public class RoomActivity extends MXCActionBarActivity {
             finish();
             return;
         }
+        CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
 

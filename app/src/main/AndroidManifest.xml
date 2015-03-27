@@ -116,7 +116,7 @@
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
         <receiver
-            android:name="org.matrix.matrixandroidsdk.GcmBroadcastReceiver"
+            android:name=".gcm.GcmBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >
             <intent-filter>
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
@@ -124,7 +124,7 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="org.matrix.matrixandroidsdk.services.GcmIntentService" />
+        <service android:name=".gcm.GcmIntentService" />
         <service android:name="org.matrix.matrixandroidsdk.services.EventStreamService" />
 
         <provider
