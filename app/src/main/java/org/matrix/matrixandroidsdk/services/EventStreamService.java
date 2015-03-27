@@ -255,68 +255,26 @@ public class EventStreamService extends Service {
         mState = StreamAction.START;
     }
 
-<<<<<<< HEAD
-    private Notification buildMessageNotification(String from, String body, String roomId, String roomName) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-        builder.setWhen(System.currentTimeMillis());
-        builder.setContentTitle(from);
-        String name = null;
-        if("" == roomName || null == roomName) {
-            name = "";
-        } else {
-            name = " (" + roomName + "): ";
-        }
-        builder.setContentText(body);
-        builder.setAutoCancel(true);
-        builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
-        builder.setTicker(from + name + body);
+    private Notification buildNotification() {
+        Notification notification = new Notification(
+                R.drawable.ic_menu_small_matrix,
+                "Matrix",
+                System.currentTimeMillis()
+        );
 
-        {
-            // Build the pending intent for when the notification is clicked
-            Intent roomIntent = new Intent(this, RoomActivity.class);
-            roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-            // Recreate the back stack
-            TaskStackBuilder stackBuilder = TaskStackBuilder.create(this)
-                    .addParentStack(RoomActivity.class)
-                    .addNextIntent(roomIntent);
+        // go to the home screen if this is clicked.
+        Intent i = new Intent(this, HomeActivity.class);
 
-            builder.setContentIntent(stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|
+                Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-        // display the message with more than 1 lines when the device supports it
-        NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
-        textStyle.bigText(from + ":" + body);
-        builder.setStyle(textStyle);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, i, 0);
 
-        // do not offer to quick respond if the user did not dismiss the previous one
-        if (!LockScreenActivity.isDisplayingALockScreenActivity()) {
-            // offer to type a quick answer (i.e. without launching the application)
-            Intent quickReplyIntent = new Intent(this, LockScreenActivity.class);
-            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ROOM_ID, roomId);
-            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
-            quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESSAGE_BODY, body);
-            // the action must be unique else the parameters are ignored
-            quickReplyIntent.setAction(QUICK_LAUNCH_ACTION + ((int) (System.currentTimeMillis())));
-            PendingIntent pIntent = PendingIntent.getActivity(this, 0, quickReplyIntent, 0);
-            builder.addAction(R.drawable.ic_menu_edit, getString(R.string.action_quick_reply), pIntent);
-
-            // Build the pending intent for when the notification is clicked
-            Intent roomIntentTap = new Intent(this, RoomActivity.class);
-            roomIntentTap.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-            // the action must be unique else the parameters are ignored
-            roomIntentTap.setAction(TAP_TO_VIEW_ACTION + ((int) (System.currentTimeMillis())));
-            // Recreate the back stack
-            TaskStackBuilder stackBuildertap = TaskStackBuilder.create(this)
-                    .addParentStack(RoomActivity.class)
-                    .addNextIntent(roomIntentTap);
-            builder.addAction(R.drawable.ic_menu_start_conversation, getString(R.string.action_open), stackBuildertap.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
-
-        Notification n = builder.build();
-        n.flags |= Notification.FLAG_SHOW_LIGHTS;
-        n.defaults |= Notification.DEFAULT_LIGHTS;
-
-        return n;
+        notification.setLatestEventInfo(this, getString(R.string.app_name),
+                "Listening for events",
+                pi);
+        notification.flags |= Notification.FLAG_NO_CLEAR;
+        return notification;
     }
 
     private boolean shouldRunInForeground() {
