@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
@@ -125,6 +126,8 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         // sort them
         Collections.sort(mLocalContacts, alphaComparator);
 
+        mListView.setFastScrollAlwaysVisible(true);
+        mListView.setFastScrollEnabled(true);
         mListView.setAdapter(mAdapter);
 
         refreshAdapter();
@@ -254,20 +257,18 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         if (mDisplayOnlyMatrixUsers || (mSearchPattern.length() != 0)) {
             filteredContacts = new ArrayList<Contact>();
 
-            String pattern = mSearchPattern.toLowerCase();
-
-            if (mDisplayOnlyMatrixUsers && (mSearchPattern.length() != 0)) {
+            if (mDisplayOnlyMatrixUsers && !TextUtils.isEmpty(mSearchPattern)) {
                 for (Contact contact : mLocalContacts) {
-                    if (contact.hasMatridIds(getActivity()) && (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0)) {
+                    if (contact.hasMatridIds(getActivity()) && contact.matchWithPattern(mSearchPattern)) {
                         filteredContacts.add(contact);
                     }
                 }
-            } else if (mSearchPattern.length() != 0) {
+            } else if (!TextUtils.isEmpty(mSearchPattern)) {
                 for (Contact contact : mLocalContacts) {
-                    if (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0) {
+
+                    if (contact.matchWithPattern(mSearchPattern)) {
                         // trigger the matrixID retrieval.
                         contact.hasMatridIds(getActivity());
-
                         filteredContacts.add(contact);
                     }
                 }

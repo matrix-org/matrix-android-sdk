@@ -15,6 +15,9 @@
  */
 package org.matrix.matrixandroidsdk.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,6 +29,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.hardware.Sensor;
@@ -110,8 +114,25 @@ public class RageShake implements SensorEventListener {
                 message += "homeServer :" + session.getCredentials().homeServer + "\n";
 
                 message += "\n";
-                message += "matrixConsole version: " + "\n";
-                message += "SDK version:  " + "\n";
+
+                String versionName = "";
+
+                try {
+                    PackageInfo pInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                    versionName = pInfo.versionName;
+                } catch (Exception e) {
+
+                }                message += "matrixConsole version: " + versionName + "\n";
+                message += "SDK version:  " + versionName + "\n";
+
+                message += "\n\n\n";
+
+                String log = LogUtilities.getLogCat();
+
+                if (null != log) {
+                    message += log;
+                }
+
                 intent.putExtra(Intent.EXTRA_TEXT, message);
 
                 // attachments

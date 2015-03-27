@@ -128,6 +128,17 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         @Override
+        public void onRoomInternalUpdate(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
+        @Override
         public void onLiveEvent(final Event event, final RoomState roomState) {
             runOnUiThread(new Runnable() {
                 @Override

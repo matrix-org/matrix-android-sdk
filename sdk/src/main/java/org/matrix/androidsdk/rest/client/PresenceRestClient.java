@@ -45,9 +45,9 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
         userPresence.presence = presence;
         userPresence.statusMsg = statusMsg;
 
-        mApi.presenceStatus(mCredentials.userId, userPresence, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.presenceStatus(mCredentials.userId, userPresence, new RestAdapterCallback<Void>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
-            public void onNetworkFailed() {
+            public void onRetry() {
                 setPresence(presence, statusMsg, callback);
             }
         }));
@@ -59,9 +59,9 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
      * @param callback on success callback containing a User object with populated presence and statusMsg fields
      */
     public void getPresence(final String userId, final ApiCallback<User> callback) {
-        mApi.presenceStatus(userId, new RestAdapterCallback<User>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.presenceStatus(userId, new RestAdapterCallback<User>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
-            public void onNetworkFailed() {
+            public void onRetry() {
                 getPresence(userId, callback);
             }
         }));

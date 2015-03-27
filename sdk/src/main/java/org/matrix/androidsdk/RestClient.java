@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.lang.reflect.Modifier;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,7 @@ public class RestClient<T> {
 
     protected Gson gson;
 
-    protected NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    protected UnsentEventsManager mUnsentEventsManager;
 
     /**
      * Public constructor.
@@ -108,11 +109,11 @@ public class RestClient<T> {
     }
 
     /**
-     * Update the nerwork listener
-     * @param networkConnectivityReceiver the new network listener
+     * Set the unsentEvents manager.
+     * @param unsentEventsManager The unsentEvents manager.
      */
-    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
-        mNetworkConnectivityReceiver = networkConnectivityReceiver;
+    public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
+        mUnsentEventsManager = unsentEventsManager;
     }
 
     /**

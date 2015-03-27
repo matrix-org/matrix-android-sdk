@@ -15,7 +15,10 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
+import android.app.Activity;
 import android.content.Context;
+import android.media.MediaActionSound;
+import android.view.View;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.R;
@@ -29,19 +32,37 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     private static final String LOG_TAG = "SimpleApiCallback";
 
+    private Activity mActivity;
+
     private Context mContext = null;
+    private View mPostView = null;
 
     /**
      * Failure callback to pass on failures to.
      */
-    private ApiFailureCallback failureCallback;
+    private ApiFailureCallback failureCallback = null;
+
+    /**
+     * Constructor
+     */
+    public SimpleApiCallback() {
+    }
+
+    /**
+     * Constructor
+     * @param activity The context.
+     */
+    public SimpleApiCallback(Activity activity) {
+        mActivity = activity;
+    }
 
     /**
      * Constructor
      * @param context The context.
      */
-    public SimpleApiCallback(Context context) {
+    public SimpleApiCallback(Context context, View postOnView) {
         mContext = context;
+        mPostView = postOnView;
     }
 
     /**
@@ -64,6 +85,24 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
         }
     }
 
+    private void displayToast(final String message) {
+        if (null != mActivity) {
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mActivity, message, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else if ((null != mContext) && (null != mPostView)) {
+            mPostView.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
     @Override
     public void onNetworkError(Exception e) {
         if (failureCallback != null) {
@@ -71,32 +110,32 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
                 failureCallback.onNetworkError(e);
             }catch (Exception exception) {
             }
-        } else if (null != mContext) {
-            Toast.makeText(mContext, "Network Error", Toast.LENGTH_SHORT).show();
+        } else {
+            displayToast("Network Error");
         }
     }
 
     @Override
-    public void onMatrixError(MatrixError e) {
+    public void onMatrixError(final MatrixError e) {
         if (failureCallback != null) {
             try {
                 failureCallback.onMatrixError(e);
             } catch (Exception exception) {
             }
-        } else if (null != mContext) {
-            Toast.makeText(mContext, "Matrix Error : " + e.error, Toast.LENGTH_SHORT).show();
+        } else {
+            displayToast("Matrix Error : " + e.error);
         }
     }
 
     @Override
-    public void onUnexpectedError(Exception e) {
+    public void onUnexpectedError(final Exception e) {
         if (failureCallback != null) {
             try {
                 failureCallback.onUnexpectedError(e);
             } catch (Exception exception) {
             }
-        } else if (null != mContext) {
-            Toast.makeText(mContext, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+        } else {
+            displayToast(e.getLocalizedMessage());
         }
     }
 }

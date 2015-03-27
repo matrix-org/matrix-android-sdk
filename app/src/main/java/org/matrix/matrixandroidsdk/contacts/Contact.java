@@ -18,6 +18,7 @@ package org.matrix.matrixandroidsdk.contacts;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +30,8 @@ public class Contact {
 
     public String mContactId;
     public String mDisplayName;
+    private String mUpperCaseDisplayName = "";
+    private String mLowerCaseDisplayName = "";
     public String mThumbnailUri;
     public Bitmap mThumbnail = null;
 
@@ -63,6 +66,43 @@ public class Contact {
         return (0 != mEmails.size());
     }
 
+    // assume that the search is performed on all the existing contacts
+    // so apply upper / lower case only once
+    static String mCurrentPattern = "";
+    static String mUpperCasePattern = "";
+    static String mLowerCasePattern = "";
+
+    /**
+     * test if some fields match with the pattern
+     * @param pattern
+     * @return
+     */
+    public boolean matchWithPattern(String pattern) {
+        // no pattern -> true
+        if (TextUtils.isEmpty(pattern)) {
+            mCurrentPattern = "";
+            mUpperCasePattern = "";
+            mLowerCasePattern = "";
+        }
+
+        // no display name
+        if (TextUtils.isEmpty(mDisplayName)) {
+            return false;
+        }
+
+        if (TextUtils.isEmpty(mUpperCaseDisplayName)) {
+            mUpperCaseDisplayName = mDisplayName.toLowerCase();
+            mLowerCaseDisplayName = mDisplayName.toUpperCase();
+        }
+
+        if (!pattern.equals(mCurrentPattern)) {
+            mCurrentPattern = pattern;
+            mUpperCasePattern = pattern.toUpperCase();
+            mLowerCasePattern = pattern.toLowerCase();
+        }
+
+        return (mUpperCaseDisplayName.indexOf(mUpperCasePattern) >= 0) || (mLowerCaseDisplayName.indexOf(mUpperCasePattern) >= 0);
+    }
 
     /**
      * Returns the first retrieved matrix ID.

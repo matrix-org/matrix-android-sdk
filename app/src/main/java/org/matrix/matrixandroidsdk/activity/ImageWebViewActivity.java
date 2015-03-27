@@ -147,7 +147,7 @@ public class ImageWebViewActivity extends Activity {
                             String path = ConsoleMediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
 
                             if (null != path) {
-                                File file =  new File(ImageWebViewActivity.this.getFilesDir(), path);
+                                final File file =  new File(ImageWebViewActivity.this.getFilesDir(), path);
                                 Uri uri = Uri.fromFile(file);
                                 mHighResUri = uri.toString();
 
@@ -157,7 +157,7 @@ public class ImageWebViewActivity extends Activity {
                                         Uri mediaUri = Uri.parse(mHighResUri);
 
                                         // save in the gallery
-                                        CommonActivityUtils.saveImageIntoGallery(ImageWebViewActivity.this, mediaUri);
+                                        CommonActivityUtils.saveImageIntoGallery(ImageWebViewActivity.this, file.getName());
 
                                         // refresh the UI
                                         loadImage(mediaUri, viewportContent, fcss);

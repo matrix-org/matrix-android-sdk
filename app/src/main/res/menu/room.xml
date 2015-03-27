@@ -16,6 +16,14 @@
         android:title="@string/action_leave"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_delete"
+        android:title="@string/action_delete"
+        app:showAsAction="never" />
+    <item android:id="@+id/action_send_bug_report"
+        android:title="@string/send_bug_report"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_settings"
         android:title="@string/action_settings"
         app:showAsAction="never" />

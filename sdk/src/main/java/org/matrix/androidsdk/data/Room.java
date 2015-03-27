@@ -35,6 +35,8 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileInfo;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -49,14 +51,11 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -106,9 +105,10 @@ public class Room {
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean isReady = false;
 
-
     private boolean isResendingEvents = false;
     private boolean checkUnsentMessages = false;
+
+    private boolean mIsLeaving = false;
 
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -127,8 +127,25 @@ public class Room {
         return mLiveState;
     }
 
+    public boolean isLeaving() {
+        return mIsLeaving;
+    }
+
     public Collection<RoomMember> getMembers() {
         return mLiveState.getMembers();
+    }
+
+    public Collection<RoomMember> getActiveMembers() {
+        Collection<RoomMember> members = mLiveState.getMembers();
+        ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
+
+        for(RoomMember member : members) {
+            if (!member.hasLeft()) {
+                activeMembers.add(member);
+            }
+        }
+
+        return activeMembers;
     }
 
     public void setMember(String userId, RoomMember member) {
@@ -175,8 +192,8 @@ public class Room {
      */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
-        mLiveState.mDataHandler = mDataHandler;
-        mBackState.mDataHandler = mDataHandler;
+        mLiveState.setDataHandler(mDataHandler);
+        mBackState.setDataHandler(mDataHandler);
     }
 
     /**
@@ -190,7 +207,11 @@ public class Room {
             public void onPresenceUpdate(Event event, User user) {
                 // Only pass event through if the user is a member of the room
                 if (getMember(user.userId) != null) {
-                    eventListener.onPresenceUpdate(event, user);
+                    try {
+                        eventListener.onPresenceUpdate(event, user);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -209,7 +230,7 @@ public class Room {
                             try {
                                 mTypingUsers =  (new Gson()).fromJson(event.content.get("user_ids"), new TypeToken<List<String>>(){}.getType());
                             } catch (Exception e) {
-
+                                Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
                             }
 
                             // avoid null list
@@ -218,7 +239,12 @@ public class Room {
                             }
                         }
                     }
-                    eventListener.onLiveEvent(event, roomState);
+
+                    try {
+                        eventListener.onLiveEvent(event, roomState);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -226,7 +252,11 @@ public class Room {
             public void onBackEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onBackEvent(event, roomState);
+                    try {
+                        eventListener.onBackEvent(event, roomState);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -234,7 +264,11 @@ public class Room {
             public void onDeleteEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onDeleteEvent(event);
+                    try {
+                        eventListener.onDeleteEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDeleteEvent exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -242,7 +276,11 @@ public class Room {
             public void onResendingEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onResendingEvent(event);
+                    try {
+                        eventListener.onResendingEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onResendingEvent exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -250,7 +288,12 @@ public class Room {
             public void onResentEvent(Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
-                    eventListener.onResentEvent(event);
+                    try {
+                        eventListener.onResentEvent(event);
+                    }
+                    catch (Exception e) {
+                        Log.e(LOG_TAG, "onResentEvent exception " + e.getMessage());
+                    }
                 }
             }
             
@@ -258,7 +301,23 @@ public class Room {
             public void onRoomInitialSyncComplete(String roomId) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(roomId)) {
-                    eventListener.onRoomInitialSyncComplete(roomId);
+                    try {
+                        eventListener.onRoomInitialSyncComplete(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomInternalUpdate(String roomId) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(roomId)) {
+                    try {
+                        eventListener.onRoomInternalUpdate(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
+                    }
                 }
             }
         };
@@ -305,7 +364,7 @@ public class Room {
         isReady = true;
 
         // check if they are some pending events
-        resendUnsentEvents();
+        //resendUnsentEvents();
     }
 
     /**
@@ -319,7 +378,11 @@ public class Room {
         // wait that the room is synced before sending messages
         if (!isReady || !selfJoined()) {
             event.mSentState = Event.SentState.WAITING_RETRY;
-            callback.onNetworkError(null);
+            try {
+                callback.onNetworkError(null);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "sendEvent exception " + e.getMessage());
+            }
             return;
         }
 
@@ -330,45 +393,35 @@ public class Room {
                     event.mSentState = Event.SentState.WAITING_ECHO;
                     event.eventId = serverResponseEvent.eventId;
 
-                    callback.onSuccess(null);
-                }
-
-                private void triggerUndeliverablesTimeout() {
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            checkUndeliverableEvents();
-                        }
-                    }, MAX_MESSAGE_TIME_LIFE_MS);
+                    try {
+                        callback.onSuccess(null);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "sendEvent exception " + e.getMessage());
+                    }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    event.mSentState = Event.SentState.WAITING_RETRY;
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
 
-                    triggerUndeliverablesTimeout();
-                    callback.onNetworkError(e);
+                    try {
+                        callback.onNetworkError(e);
+                    } catch (Exception anException) {
+                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
 
-                    // limit exceeds, the server provided a timeout
-                    if ( (e != null) &&  MatrixError.LIMIT_EXCEEDED.equals(e.errcode) && (null != e.retry_after_ms)) {
-                        new Timer().schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                            resendUnsentEvents(MAX_RATE_LIMIT_MS);
-                            }
-                        }, e.retry_after_ms);
-                        event.mSentState = Event.SentState.WAITING_RETRY;
-                    } else {
-                        event.mSentState = Event.SentState.UNDELIVERABLE;
+                    try {
+                        callback.onMatrixError(e);
+                    } catch (Exception anException) {
+                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
                     }
-
-                    callback.onMatrixError(e);
                 }
 
                 @Override
@@ -376,7 +429,11 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
 
-                    callback.onUnexpectedError(e);
+                    try {
+                        callback.onUnexpectedError(e);
+                    } catch (Exception anException) {
+                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                    }
                 }
             };
 
@@ -410,7 +467,11 @@ public class Room {
                     canStillPaginate = false;
                 }
                 if (callback != null) {
-                    callback.onSuccess(response.chunk.size());
+                    try {
+                        callback.onSuccess(response.chunk.size());
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
+                    }
                 }
                 isPaginating = false;
             }
@@ -422,6 +483,7 @@ public class Room {
                     canStillPaginate = false;
                 }
                 isPaginating = false;
+
                 super.onMatrixError(e);
             }
 
@@ -457,8 +519,12 @@ public class Room {
         mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
-                // Once we've joined, we run an initial sync on the room to have all of its information
-                initialSync(callback);
+                try {
+                    // Once we've joined, we run an initial sync on the room to have all of its information
+                    initialSync(callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "join exception " + e.getMessage());
+                }
             }
 
             @Override
@@ -488,7 +554,11 @@ public class Room {
             public void onSuccess(RoomResponse roomInfo) {
                 mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
                 if (callback != null) {
-                    callback.onSuccess(null);
+                    try {
+                        callback.onSuccess(null);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                    }
                 }
             }
         });
@@ -535,7 +605,11 @@ public class Room {
             public void onSuccess(Void info) {
                 // invite the last user
                 if ((index+1) == userIds.size()) {
-                    callback.onSuccess(info);
+                    try {
+                        callback.onSuccess(info);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "invite exception " + e.getMessage());
+                    }
                 } else {
                     invite(userIds, index + 1, callback);
                 }
@@ -543,17 +617,29 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
+                try {
+                    callback.onNetworkError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
+                try {
+                    callback.onMatrixError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
+                try {
+                    callback.onUnexpectedError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
+                }
             }
         });
     }
@@ -564,8 +650,60 @@ public class Room {
      * Leave the room.
      * @param callback the callback for when done
      */
-    public void leave(ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, callback);
+    public void leave(final ApiCallback<Void> callback) {
+        this.mIsLeaving = true;
+        mDataHandler.onRoomInternalUpdate(mRoomId);
+
+        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Room.this.mIsLeaving = false;
+                try {
+                    callback.onSuccess(info);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "leave exception " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Room.this.mIsLeaving = false;
+
+                try {
+                    callback.onNetworkError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                }
+
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Room.this.mIsLeaving = false;
+
+                try {
+                    callback.onMatrixError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                }
+
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Room.this.mIsLeaving = false;
+
+                try {
+                    callback.onUnexpectedError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                }
+
+                mDataHandler.onRoomInternalUpdate(mRoomId);
+            }
+        });
     }
 
     /**
@@ -745,6 +883,29 @@ public class Room {
         }
 
         return orientation;
+    }
+
+    /**
+     * Fills the fileMessage fileInfo.
+     * @param context Application context for the content resolver.
+     * @param fileMessage The fileMessage to fill.
+     * @param fileUri The file uri.
+     * @param mimeType The mimeType
+     */
+    public static void fillFileInfo(Context context, FileMessage fileMessage, Uri fileUri, String mimeType) {
+        try {
+            FileInfo fileInfo = new FileInfo();
+
+            String filename = fileUri.getPath();
+            File file = new File(filename);
+
+            fileInfo.mimetype = mimeType;
+            fileInfo.size = file.length();
+
+            fileMessage.info = fileInfo;
+
+        } catch (Exception e) {
+        }
     }
 
     /**

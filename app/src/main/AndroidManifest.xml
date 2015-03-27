@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
 
     <!-- Google Cloud Messaging -->
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
@@ -115,7 +116,7 @@
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
         <receiver
-            android:name="org.matrix.matrixandroidsdk.GcmBroadcastReceiver"
+            android:name=".gcm.GcmBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >
             <intent-filter>
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
@@ -123,7 +124,7 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="org.matrix.matrixandroidsdk.services.GcmIntentService" />
+        <service android:name=".gcm.GcmIntentService" />
         <service android:name="org.matrix.matrixandroidsdk.services.EventStreamService" />
 
         <provider

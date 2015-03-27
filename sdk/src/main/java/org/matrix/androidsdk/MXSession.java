@@ -45,6 +45,7 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +80,7 @@ public class MXSession {
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private UnsentEventsManager mUnsentEventsManager;
 
     /**
      * Create a basic session for direct API calls.
@@ -94,8 +96,6 @@ public class MXSession {
         mBingRulesRestClient = new BingRulesRestClient(credentials);
         mPushersRestClient = new PushersRestClient(credentials);
         mThirdPidRestClient = new ThirdPidRestClient(credentials);
-
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken);
     }
 
     /**
@@ -121,23 +121,16 @@ public class MXSession {
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
-        mEventsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mProfileRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mPresenceRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mRoomsRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mBingRulesRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mThirdPidRestClient.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager) ;
 
-        // add a default listener
-        // to resend the unsent messages
-        mNetworkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
-            @Override
-            public void onNetworkConnectionUpdate(boolean isConnected) {
-                if (isConnected) {
-                    MXSession.this.resendUnsentMessages();
-                }
-            }
-        });
+
+        mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
     }
 
     /**
@@ -214,6 +207,22 @@ public class MXSession {
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
         this.mRoomsRestClient = roomsRestClient;
+    }
+
+    /**
+     * Clear the session data
+     */
+    public void clear() {
+        // network event will not be listened anymore
+        mNetworkConnectivityReceiver.clear();
+        mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+
+        // auto resent messages will not be resent
+        mUnsentEventsManager.clear();
+
+        // stop any pending request
+        // clear data
+        mContentManager.clear();
     }
 
     /**
@@ -341,18 +350,6 @@ public class MXSession {
                     callback.onSuccess(roomResponse.roomId);
                 }
             });
-        }
-    }
-
-    /**
-     * Resend the unsent message
-     */
-    private void resendUnsentMessages() {
-        if (mDataHandler.isInitialSyncComplete()) {
-            Collection<Room> rooms = mDataHandler.getStore().getRooms();
-            for (Room room : rooms) {
-                room.resendUnsentEvents();
-            }
         }
     }
 

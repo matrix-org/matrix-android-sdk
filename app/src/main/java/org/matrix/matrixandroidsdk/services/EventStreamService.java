@@ -16,22 +16,14 @@
 
 package org.matrix.matrixandroidsdk.services;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -40,19 +32,13 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.matrixandroidsdk.ConsoleApplication;
-import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
-import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.LockScreenActivity;
-import org.matrix.matrixandroidsdk.activity.PublicRoomsActivity;
-import org.matrix.matrixandroidsdk.activity.RoomActivity;
+import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
-import org.matrix.matrixandroidsdk.util.EventUtils;
+import org.matrix.matrixandroidsdk.util.NotificationUtils;
 
-import java.util.ArrayList;
 
 /**
  * A foreground service in charge of controlling whether the event stream is running or not.
@@ -66,8 +52,6 @@ public class EventStreamService extends Service {
         RESUME
     }
     public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
-    public static final String QUICK_LAUNCH_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.QUICK_LAUNCH_ACTION";
-    public static final String TAP_TO_VIEW_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.TAP_TO_VIEW_ACTION";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
@@ -111,6 +95,7 @@ public class EventStreamService extends Service {
 
         @Override
         public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
+            Log.i(LOG_TAG, "onMessageEvent >>>> " + event);
 
             final String roomId = event.roomId;
 
@@ -150,19 +135,19 @@ public class EventStreamService extends Service {
                 return;
             }
 
-            String roomName = room.getName(mSession.getMyUser().userId);
+            String roomName = null;
+            if(mSession.getMyUser() != null) {
+                roomName = room.getName(mSession.getMyUser().userId);
+            }
 
             mNotificationRoomId = roomId;
 
-            Notification n = buildMessageNotification(member.getName(), body, event.roomId, roomName);
+            Notification n = NotificationUtils.buildMessageNotification(
+                    EventStreamService.this,
+                    member.getName(), body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
-            if (bingRule.shouldPlaySound()) {
-                n.defaults |= Notification.DEFAULT_SOUND;
-            }
-
-            Log.w(LOG_TAG, "onMessageEvent >>>> " + event);
             nm.notify(MSG_NOTIFICATION_ID, n);
         }
 
@@ -229,7 +214,9 @@ public class EventStreamService extends Service {
 
         mSession.getDataHandler().addListener(mListener);
         mSession.startEventStream();
-        startWithNotification();
+        if (shouldRunInForeground()) {
+            startWithNotification();
+        }
     }
 
     private void stop() {
@@ -256,16 +243,19 @@ public class EventStreamService extends Service {
         if (mSession != null) {
             mSession.resumeEventStream();
         }
-        startWithNotification();
+        if (shouldRunInForeground()) {
+            startWithNotification();
+        }
     }
 
     private void startWithNotification() {
-        // remove the listening for events notification
+        // TODO: remove the listening for events notification
         Notification notification = buildNotification();
         startForeground(NOTIFICATION_ID, notification);
         mState = StreamAction.START;
     }
 
+<<<<<<< HEAD
     private Notification buildMessageNotification(String from, String body, String roomId, String roomName) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setWhen(System.currentTimeMillis());
@@ -329,25 +319,8 @@ public class EventStreamService extends Service {
         return n;
     }
 
-    private Notification buildNotification() {
-        Notification notification = new Notification(
-                R.drawable.ic_menu_small_matrix,
-                "Matrix",
-                System.currentTimeMillis()
-        );
-
-        // go to the home screen if this is clicked.
-        Intent i = new Intent(this, HomeActivity.class);
-
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|
-                Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        PendingIntent pi = PendingIntent.getActivity(this, 0, i, 0);
-
-        notification.setLatestEventInfo(this, getString(R.string.app_name),
-                "Listening for events",
-                pi);
-        notification.flags |= Notification.FLAG_NO_CLEAR;
-        return notification;
+    private boolean shouldRunInForeground() {
+        // TODO: Make configurable in settings, false by default if GCM registration succeeded.
+        return true;
     }
 }

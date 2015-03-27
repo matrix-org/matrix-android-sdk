@@ -39,6 +39,10 @@
           android:title="@string/action_disconnect"
           android:orderInCategory="100"
           app:showAsAction="never" />
+    <item android:id="@+id/action_send_bug_report"
+        android:title="@string/send_bug_report"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
     <item android:id="@+id/action_logout"
           android:title="@string/action_logout"
           android:orderInCategory="100"

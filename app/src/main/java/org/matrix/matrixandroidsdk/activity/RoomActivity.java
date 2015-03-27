@@ -50,6 +50,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -62,10 +63,12 @@ import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -98,7 +101,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String CMD_SET_USER_POWER_LEVEL = "/op";
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
-    private static final int REQUEST_IMAGE = 0;
+    private static final int REQUEST_FILES = 0;
     private static final int TAKE_IMAGE = 0;
 
     private MatrixMessageListFragment mMatrixMessageListFragment;
@@ -164,7 +167,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         // the user has tapped on the "View" notification button
-        if ((null != intent.getAction()) && (intent.getAction().startsWith(EventStreamService.TAP_TO_VIEW_ACTION))) {
+        if ((null != intent.getAction()) && (intent.getAction().startsWith(NotificationUtils.TAP_TO_VIEW_ACTION))) {
             // remove any pending notifications
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
@@ -187,14 +190,14 @@ public class RoomActivity extends MXCActionBarActivity {
 
         findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
-            private static final int OPTION_ATTACH_IMAGE = 1;
+            private static final int OPTION_ATTACH_FILES = 1;
             private static final int OPTION_TAKE_IMAGE = 2;
             private static final int OPTION_INVITE_BY_NAME = 3;
             private static final int OPTION_INVITE_BY_LIST = 4;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE_BY_NAME, OPTION_INVITE_BY_LIST, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_FILES, OPTION_TAKE_IMAGE, OPTION_INVITE_BY_NAME, OPTION_INVITE_BY_LIST, OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -204,13 +207,13 @@ public class RoomActivity extends MXCActionBarActivity {
                                     case OPTION_CANCEL:
                                         dialog.cancel();
                                         break;
-                                    case OPTION_ATTACH_IMAGE:
+                                    case OPTION_ATTACH_FILES:
                                         Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                                             fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                                         }
-                                        fileIntent.setType("image/*");
-                                        startActivityForResult(fileIntent, REQUEST_IMAGE);
+                                        fileIntent.setType("*/*");
+                                        startActivityForResult(fileIntent, REQUEST_FILES);
                                         break;
                                     case OPTION_TAKE_IMAGE:
                                         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -314,8 +317,8 @@ public class RoomActivity extends MXCActionBarActivity {
                         case OPTION_CANCEL:
                             label = getString(R.string.cancel);
                             break;
-                        case OPTION_ATTACH_IMAGE:
-                            label = getString(R.string.option_attach_image);
+                        case OPTION_ATTACH_FILES:
+                            label = getString(R.string.option_attach_files);
                             break;
                         case OPTION_TAKE_IMAGE:
                             label = getString(R.string.option_take_image);
@@ -355,6 +358,7 @@ public class RoomActivity extends MXCActionBarActivity {
             finish();
             return;
         }
+        CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
 
@@ -415,6 +419,18 @@ public class RoomActivity extends MXCActionBarActivity {
         }
     }
 
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        Collection<RoomMember> members = mRoom.getActiveMembers();
+        menu.findItem(R.id.action_leave).setVisible(members.size() > 1);
+        menu.findItem(R.id.action_delete).setVisible(members.size() <= 1);
+
+        return true;
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -433,16 +449,12 @@ public class RoomActivity extends MXCActionBarActivity {
             return true;
         }
 
-        if (id == R.id.action_leave) {
+        if ((id == R.id.action_leave) || (id == R.id.action_delete)) {
             MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
             if (session != null) {
                 mRoom.leave(new SimpleApiCallback<Void>(this) {
-
-                    @Override
-                    public void onSuccess(Void info) {
-                        RoomActivity.this.finish();
-                    }
                 });
+                RoomActivity.this.finish();
             }
         }
         else if (id == R.id.action_members) {
@@ -603,18 +615,18 @@ public class RoomActivity extends MXCActionBarActivity {
 
     /**
      * Send a list of images from their URIs
-     * @param imageUris the image URIs
+     * @param mediaUris the media URIs
      */
-    private void sendImages(ArrayList<Uri> imageUris) {
+    private void sendMedias(ArrayList<Uri> mediaUris) {
 
-        for(Uri anUri : imageUris) {
-            final Uri imageUri = anUri;
+        for(Uri anUri : mediaUris) {
+            final Uri mediaUri = anUri;
 
             RoomActivity.this.runOnUiThread(new Runnable() {
 
                 @Override
                 public void run() {
-                    ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, imageUri);
+                    ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
                     if (resource == null) {
                         Toast.makeText(RoomActivity.this,
                                 getString(R.string.message_failed_to_upload),
@@ -623,95 +635,115 @@ public class RoomActivity extends MXCActionBarActivity {
                     }
 
                     // save the file in the filesystem
-                    String imageUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                    String mediaUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
                     String mimeType = resource.mimeType;
+                    Boolean isManaged = false;
 
-                    try {
-                        resource.contentStream.close();
-                    } catch (Exception e) {
-                    }
+                    if ((null != resource.mimeType) && resource.mimeType.startsWith("image/")) {
+                        // manage except if there is an error
+                        isManaged = true;
 
-                    // try to retrieve the gallery thumbnail
-                    // if the image comes from the gallery..
-                    Bitmap thumbnailBitmap = null;
+                        // try to retrieve the gallery thumbnail
+                        // if the image comes from the gallery..
+                        Bitmap thumbnailBitmap = null;
 
-                    try {
-                        ContentResolver resolver = getContentResolver();
-                        List uriPath = imageUri.getPathSegments();
-                        long imageId = Long.parseLong((String) (uriPath.get(uriPath.size() - 1)));
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            long imageId = Long.parseLong((String) (uriPath.get(uriPath.size() - 1)));
 
-                        thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
-                    } catch (Exception e) {
+                            thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                        } catch (Exception e) {
 
-                    }
-
-                    // no thumbnail has been found or the mimetype is unknown
-                    if ((null == thumbnailBitmap) || (null == mimeType) || (mimeType.equals("image/*"))) {
-
-                        // need to decompress the high res image
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                        resource = ResourceUtils.openResource(RoomActivity.this, imageUri);
-
-                        // get the full size bitmap
-                        Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
-
-                        // create a thumbnail bitmap if there is none
-                        if (null == thumbnailBitmap) {
-                            if (fullSizeBitmap != null) {
-                                double fullSizeWidth = fullSizeBitmap.getWidth();
-                                double fullSizeHeight = fullSizeBitmap.getHeight();
-
-                                double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
-                                double thumbnailHeight = mMatrixMessageListFragment.getMaxThumbnailHeight();
-
-                                if (fullSizeWidth > fullSizeHeight) {
-                                    thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
-                                } else {
-                                    thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
-                                }
-
-                                try {
-                                    thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                                } catch (OutOfMemoryError ex) {
-                                }
-                            }
                         }
 
-                        // unknown mimetype
-                        if ((null == mimeType) || (mimeType.equals("image/*"))) {
-                            try {
-                                if (null != fullSizeBitmap) {
-                                    Uri uri = Uri.parse(imageUrl);
-                                    try {
-                                        ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
-                                    } catch (OutOfMemoryError ex) {
+                        // no thumbnail has been found or the mimetype is unknown
+                        if (null == thumbnailBitmap) {
+                            // need to decompress the high res image
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                            resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
+                            // get the full size bitmap
+                            Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+
+                            // create a thumbnail bitmap if there is none
+                            if (null == thumbnailBitmap) {
+                                if (fullSizeBitmap != null) {
+                                    double fullSizeWidth = fullSizeBitmap.getWidth();
+                                    double fullSizeHeight = fullSizeBitmap.getHeight();
+
+                                    double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
+                                    double thumbnailHeight = mMatrixMessageListFragment.getMaxThumbnailHeight();
+
+                                    if (fullSizeWidth > fullSizeHeight) {
+                                        thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
+                                    } else {
+                                        thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
                                     }
 
-                                    // the images are save in jpeg format
-                                    mimeType = "image/jpeg";
-                                } else {
-                                    imageUrl = null;
+                                    try {
+                                        thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                                    } catch (OutOfMemoryError ex) {
+                                    }
                                 }
+                            }
 
-                                resource.contentStream.close();
+                            // unknown mimetype
+                            if ((null == mimeType) || (mimeType.startsWith("image/"))) {
+                                try {
+                                    if (null != fullSizeBitmap) {
+                                        Uri uri = Uri.parse(mediaUrl);
+                                        try {
+                                            ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                        } catch (OutOfMemoryError ex) {
+                                        }
 
-                            } catch (Exception e) {
-                                imageUrl = null;
+                                        // the images are save in jpeg format
+                                        mimeType = "image/jpeg";
+                                    } else {
+                                        isManaged = false;
+                                    }
+
+                                    resource.contentStream.close();
+
+                                } catch (Exception e) {
+                                    isManaged = false;
+                                }
+                            }
+
+                            // reduce the memory consumption
+                            if (null  != fullSizeBitmap) {
+                                fullSizeBitmap.recycle();
+                                System.gc();
                             }
                         }
 
-                        // reduce the memory consumption
-                        fullSizeBitmap.recycle();
-                        System.gc();
+                        String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+
+                        if (null != thumbnailBitmap) {
+                            thumbnailBitmap.recycle();
+                        }
+
+                        // is the image content valid ?
+                        if (isManaged  && (null != thumbnailURL)) {
+                            mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+                        }
                     }
 
-                    String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
-                    thumbnailBitmap.recycle();
+                    // default behaviour
+                    if ((!isManaged) && (null != mediaUrl)) {
+                        String filename = "A file";
 
-                    // is the image content valid ?
-                    if ((null != imageUrl) && (null != thumbnailURL)) {
-                        mMatrixMessageListFragment.uploadImageContent(thumbnailURL, imageUrl, mimeType);
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            filename = (String)uriPath.get(uriPath.size() - 1);
+                        } catch (Exception e) {
+
+                        }
+
+                        mMatrixMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
                     }
                 }
             });
@@ -724,7 +756,7 @@ public class RoomActivity extends MXCActionBarActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if ((requestCode == REQUEST_IMAGE) || (requestCode == TAKE_IMAGE)) {
+            if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
                 ArrayList<Uri> uris = new ArrayList<Uri>();
 
                 if (null != data) {
@@ -756,7 +788,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 }
 
                 if (0 != uris.size()) {
-                    sendImages(uris);
+                    sendMedias(uris);
                 }
             }
         }

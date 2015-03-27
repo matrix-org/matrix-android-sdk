@@ -51,12 +51,13 @@ public class RoomState {
     public String visibility;
     public String creator;
     public String joinRule;
-    public MXDataHandler mDataHandler = null;
     public List<String> aliases;
 
     private String token;
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
     private PowerLevels powerLevels;
+    // the unitary tests crash when MXDataHandler type is set.
+    private Object mDataHandler = null;
 
     public String getToken() {
         return token;
@@ -92,6 +93,10 @@ public class RoomState {
 
     public void setPowerLevels(PowerLevels powerLevels) {
         this.powerLevels = powerLevels;
+    }
+
+    public void setDataHandler(MXDataHandler dataHandler) {
+        mDataHandler = dataHandler;
     }
 
     /**
@@ -295,7 +300,7 @@ public class RoomState {
         // The user may not have joined the room yet. So try to resolve display name from presence data
         // Note: This data may not be available
         if ((null == displayName) && (null != mDataHandler)) {
-            User user = mDataHandler.getUser(userId);
+            User user = ((MXDataHandler)mDataHandler).getUser(userId);
 
             if (null != user) {
                 displayName = user.displayname;
