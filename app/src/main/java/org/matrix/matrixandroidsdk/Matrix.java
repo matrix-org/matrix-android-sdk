@@ -6,6 +6,7 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -21,11 +22,13 @@ public class Matrix {
 
     private LoginStorage mLoginStorage;
     private MXSession mDefaultSession;
+    private GcmRegistrationManager mGcmRegistrationManager;
     private Context mAppContext;
 
     protected Matrix(Context appContext) {
         mAppContext = appContext.getApplicationContext();
         mLoginStorage = new LoginStorage(mAppContext);
+        mGcmRegistrationManager = new GcmRegistrationManager(mAppContext);
         RageShake.getInstance().start(mAppContext);
     }
 
@@ -121,5 +124,9 @@ public class Matrix {
         // TODO support >1 creds.
 
         return credList;
+    }
+
+    public GcmRegistrationManager getSharedGcmRegistrationManager() {
+        return mGcmRegistrationManager;
     }
 }
