@@ -75,6 +75,9 @@ public class CommonActivityUtils {
         } else if (id == R.id.action_settings) {
             activity.startActivity(new Intent(activity, SettingsActivity.class));
             return true;
+        }else if (id == R.id.action_send_bug_report) {
+            RageShake.getInstance().sendBugReport();
+            return true;
         }
         return false;
     }
