@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
@@ -260,13 +261,13 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
 
             if (mDisplayOnlyMatrixUsers && (mSearchPattern.length() != 0)) {
                 for (Contact contact : mLocalContacts) {
-                    if (contact.hasMatridIds(getActivity()) && (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0)) {
+                    if (contact.hasMatridIds(getActivity()) && !TextUtils.isEmpty(contact.mDisplayName) && (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0)) {
                         filteredContacts.add(contact);
                     }
                 }
             } else if (mSearchPattern.length() != 0) {
                 for (Contact contact : mLocalContacts) {
-                    if (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0) {
+                    if (!TextUtils.isEmpty(contact.mDisplayName) && contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0) {
                         // trigger the matrixID retrieval.
                         contact.hasMatridIds(getActivity());
 
