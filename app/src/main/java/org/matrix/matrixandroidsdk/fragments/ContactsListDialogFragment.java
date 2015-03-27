@@ -257,20 +257,18 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
         if (mDisplayOnlyMatrixUsers || (mSearchPattern.length() != 0)) {
             filteredContacts = new ArrayList<Contact>();
 
-            String pattern = mSearchPattern.toLowerCase();
-
-            if (mDisplayOnlyMatrixUsers && (mSearchPattern.length() != 0)) {
+            if (mDisplayOnlyMatrixUsers && !TextUtils.isEmpty(mSearchPattern)) {
                 for (Contact contact : mLocalContacts) {
-                    if (contact.hasMatridIds(getActivity()) && !TextUtils.isEmpty(contact.mDisplayName) && (contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0)) {
+                    if (contact.hasMatridIds(getActivity()) && contact.matchWithPattern(mSearchPattern)) {
                         filteredContacts.add(contact);
                     }
                 }
-            } else if (mSearchPattern.length() != 0) {
+            } else if (!TextUtils.isEmpty(mSearchPattern)) {
                 for (Contact contact : mLocalContacts) {
-                    if (!TextUtils.isEmpty(contact.mDisplayName) && contact.mDisplayName.toLowerCase().indexOf(pattern) >= 0) {
+
+                    if (contact.matchWithPattern(mSearchPattern)) {
                         // trigger the matrixID retrieval.
                         contact.hasMatridIds(getActivity());
-
                         filteredContacts.add(contact);
                     }
                 }
