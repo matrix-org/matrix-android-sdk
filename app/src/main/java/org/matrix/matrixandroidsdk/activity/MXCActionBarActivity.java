@@ -17,6 +17,8 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.content.Intent;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
@@ -38,6 +40,11 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
         // create a "lollipop like " animation
         // not sure it is the save animation curve
+        // appcompat does not support (it does nothing)
+        //
+        // ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(...
+        // ActivityCompat.startActivity(activity, new Intent(activity, DetailActivity.class),  options.toBundle());
+
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
             this.overridePendingTransition(R.anim.anim_slide_in_bottom, R.anim.anim_slide_nothing);
         } else {
@@ -51,11 +58,14 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
         // create a "lollipop like " animation
         // not sure it is the save animation curve
-       /*if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
-            this.overridePendingTransition(R.anim.anim_slide_out_bottom, R.anim.anim_slide_nothing);
+        //
+        // ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(...
+        // ActivityCompat.startActivity(activity, new Intent(activity, DetailActivity.class),  options.toBundle());
+       if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+            this.overridePendingTransition(R.anim.anim_slide_nothing, R.anim.anim_slide_out_bottom);
         } else {
             // the animation is enabled in the theme
-        }*/
+        }
     }
 
 
