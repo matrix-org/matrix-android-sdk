@@ -942,13 +942,14 @@ public class Room {
             // there is no exif info or the size is invalid
             if ((0 == width) || (0 == height)) {
                 try {
-                    Bitmap fullSizeBitmap = BitmapFactory.decodeFile(imageUri.getPath());
+                    BitmapFactory.Options opts = new BitmapFactory.Options();
+                    opts.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(imageUri.getPath(), opts);
 
-                    if (null != fullSizeBitmap) {
-                        width = fullSizeBitmap.getWidth();
-                        height = fullSizeBitmap.getHeight();
-
-                        fullSizeBitmap.recycle();
+                    // don't need to load the bitmap in memory
+                    if ((opts.outHeight > 0) && (opts.outWidth > 0)) {
+                        width = opts.outWidth;
+                        height = opts.outHeight;
                     }
 
                 } catch (Exception e) {
