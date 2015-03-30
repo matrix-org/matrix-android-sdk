@@ -18,7 +18,10 @@ package org.matrix.androidsdk.data;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
+import android.media.Image;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -924,12 +927,38 @@ public class Room {
             File file = new File(filename);
 
             ExifInterface exifMedia = new ExifInterface(filename);
-            String width = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
-            String height = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+            String sWidth = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+            String sHeight = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
 
-            if ((null != width) && (null != height)) {
-                imageInfo.w = Integer.parseInt(width);
-                imageInfo.h = Integer.parseInt(height);
+            int width = 0;
+            int height = 0;
+
+            // extract the Exif info
+            if ((null != sWidth) && (null != sHeight)) {
+                width = Integer.parseInt(sWidth);
+                height = Integer.parseInt(sHeight);
+            }
+
+            // there is no exif info or the size is invalid
+            if ((0 == width) || (0 == height)) {
+                try {
+                    Bitmap fullSizeBitmap = BitmapFactory.decodeFile(imageUri.getPath());
+
+                    if (null != fullSizeBitmap) {
+                        width = fullSizeBitmap.getWidth();
+                        height = fullSizeBitmap.getHeight();
+
+                        fullSizeBitmap.recycle();
+                    }
+
+                } catch (Exception e) {
+                }
+            }
+
+            // valid image size ?
+            if ((0 != width) || (0 != height)) {
+                imageInfo.w = width;
+                imageInfo.h = height;
             }
 
             imageInfo.mimetype = mimeType;
