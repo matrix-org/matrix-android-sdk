@@ -16,6 +16,9 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
+import android.content.Intent;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
@@ -23,6 +26,7 @@ import android.view.MenuItem;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
+import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 /**
@@ -31,8 +35,43 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
 public class MXCActionBarActivity extends ActionBarActivity {
 
     @Override
+    public void startActivity(Intent intent) {
+        super.startActivity(intent);
+
+        // create a "lollipop like " animation
+        // not sure it is the save animation curve
+        // appcompat does not support (it does nothing)
+        //
+        // ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(...
+        // ActivityCompat.startActivity(activity, new Intent(activity, DetailActivity.class),  options.toBundle());
+
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+            this.overridePendingTransition(R.anim.anim_slide_in_bottom, R.anim.anim_slide_nothing);
+        } else {
+            // the animation is enabled in the theme
+        }
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+
+        // create a "lollipop like " animation
+        // not sure it is the save animation curve
+        //
+        // ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(...
+        // ActivityCompat.startActivity(activity, new Intent(activity, DetailActivity.class),  options.toBundle());
+       if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+            this.overridePendingTransition(R.anim.anim_slide_nothing, R.anim.anim_slide_out_bottom);
+        } else {
+            // the animation is enabled in the theme
+        }
+    }
+
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if ((keyCode == KeyEvent.KEYCODE_MENU) && (null == getActionBar())) {
+        if ((keyCode == KeyEvent.KEYCODE_MENU) && (null == getSupportActionBar())) {
             // This is to fix a bug in the v7 support lib. If there is no options menu and you hit MENU, it will crash with a
             // NPE @ android.support.v7.app.ActionBarImplICS.getThemedContext(ActionBarImplICS.java:274)
             // This can safely be removed if we add in menu options on this screen
