@@ -101,13 +101,13 @@ public class HomeActivity extends MXCActionBarActivity {
     // sliding menu
     private Integer[] mSlideMenuResourceIds = new Integer[]{
             R.drawable.ic_material_search, // R.string.action_search_contact,
-            R.drawable.ic_material_search, // R.string.action_search_room,
+            R.drawable.ic_material_find_in_page, // R.string.action_search_room,
             R.drawable.ic_material_group_add, //R.string.create_room,
             R.drawable.ic_material_group, // R.string.join_room,
-            R.drawable.ic_material_message, // R.string.action_mark_all_as_read,
-            R.drawable.ic_material_settings_applications, //  R.string.action_settings,
+            R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
+            R.drawable.ic_material_settings, //  R.string.action_settings,
             R.drawable.ic_material_bug_report, // R.string.send_bug_report,
-            R.drawable.ic_material_exit_to_app, // R.string.action_disconnect,
+            R.drawable.ic_material_clear, // R.string.action_disconnect,
             R.drawable.ic_material_exit_to_app, // R.string.action_logout,
     };
 

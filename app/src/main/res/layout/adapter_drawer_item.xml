@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/adapter_drawer_thumbnail"
         android:layout_gravity="center_vertical"
-        android:paddingLeft="4dp"/>
+        android:paddingLeft="12dp"/>
 
     <TextView
         android:layout_width="wrap_content"

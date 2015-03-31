@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_marginTop="10dp"
-
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="50dp"
-
-        android:layout_marginTop="10dp"
+        android:layout_gravity="left"
+        android:scaleType="fitStart"
+        android:layout_marginTop="20dp"
         android:id="@+id/adapter_drawer_header_image"
-        android:src="@drawable/logo_large"
-        android:layout_gravity="center_vertical"/>
+        android:src="@drawable/logo_large"/>
 
 </RelativeLayout>
