@@ -3,6 +3,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/room_background"
     android:orientation="vertical" >
 
     <TextView
@@ -59,7 +60,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:textAppearance="?android:attr/textAppearanceMedium"
+                style="@style/Base.TextAppearance.AppCompat.Subhead"
                 android:text="Some Person's Name"
                 android:id="@+id/roomMembersAdapter_name"
                 />
@@ -68,7 +69,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:textAppearance="?android:attr/textAppearanceSmall"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text="localpart:domain"
                 android:id="@+id/roomMembersAdapter_userId"
                 />
