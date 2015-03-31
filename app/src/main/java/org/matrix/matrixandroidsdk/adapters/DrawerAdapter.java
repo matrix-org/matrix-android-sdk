@@ -30,6 +30,12 @@ import org.matrix.matrixandroidsdk.R;
  * An adapter which can display room information.
  */
 public class DrawerAdapter extends ArrayAdapter<DrawerAdapter.Entry> {
+
+    private static final int NUM_ROW_TYPES = 2;
+
+    private static final int ROW_TYPE_HEADER = 0;
+    private static final int ROW_TYPE_ENTRY = 1;
+
     public class Entry {
         public int mIconResourceId;
         public String mText;
@@ -41,21 +47,26 @@ public class DrawerAdapter extends ArrayAdapter<DrawerAdapter.Entry> {
     };
 
     private LayoutInflater mLayoutInflater;
-    private int mLayoutResourceId;
+    private int mHeaderLayoutResourceId;
+    private int mEntryLayoutResourceId;
 
     private Context mContext;
 
     /**
-     * Construct an adapter which will display a list of rooms.
-     * @param context Activity context
-     * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
-     *                         the IDs: roomsAdapter_roomName, roomsAdapter_roomTopic
+     * Construct an adapter to display a drawer adapter
+     * @param context the contxt
+     * @param headerLayoutResourceId the header resoource id
+     * @param entryLayoutResourceId the entry layout id
      */
-    public DrawerAdapter(Context context, int layoutResourceId) {
-        super(context, layoutResourceId);
+    public DrawerAdapter(Context context, int headerLayoutResourceId,  int entryLayoutResourceId) {
+        super(context, headerLayoutResourceId, entryLayoutResourceId);
         mContext = context;
-        mLayoutResourceId = layoutResourceId;
+        mHeaderLayoutResourceId = headerLayoutResourceId;
+        mEntryLayoutResourceId = entryLayoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
+
+        // create a dummy section to insert the header
+        this.add(new Entry(0, null));
         setNotifyOnChange(true);
     }
 
@@ -70,18 +81,36 @@ public class DrawerAdapter extends ArrayAdapter<DrawerAdapter.Entry> {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
+
+        if (0 == position) {
+            if (convertView == null) {
+                convertView = mLayoutInflater.inflate(mHeaderLayoutResourceId, parent, false);
+            }
+            return convertView;
+        } else {
+            if (convertView == null) {
+                convertView = mLayoutInflater.inflate(mEntryLayoutResourceId, parent, false);
+            }
+
+            Entry entry = getItem(position);
+
+            TextView textView = (TextView) convertView.findViewById(R.id.adapter_drawer_text);
+            textView.setText(entry.mText);
+
+            ImageView imageView = (ImageView) convertView.findViewById(R.id.adapter_drawer_thumbnail);
+            imageView.setImageResource(entry.mIconResourceId);
+
+            return convertView;
         }
+    }
 
-        Entry entry = getItem(position);
+    @Override
+    public int getViewTypeCount() {
+        return NUM_ROW_TYPES;
+    }
 
-        TextView textView = (TextView) convertView.findViewById(R.id.adapter_drawer_text);
-        textView.setText(entry.mText);
-
-        ImageView imageView = (ImageView) convertView.findViewById(R.id.adapter_drawer_thumbnail);
-        imageView.setImageResource(entry.mIconResourceId);
-
-        return convertView;
+    @Override
+    public int getItemViewType(int position) {
+        return (position == 0) ? ROW_TYPE_HEADER : ROW_TYPE_ENTRY;
     }
 }

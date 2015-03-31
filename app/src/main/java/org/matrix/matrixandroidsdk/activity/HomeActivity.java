@@ -307,7 +307,7 @@ public class HomeActivity extends MXCActionBarActivity {
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
         // Set the adapter for the list view
-        DrawerAdapter adapter = new DrawerAdapter(this, R.layout.adapter_drawer_item);
+        DrawerAdapter adapter = new DrawerAdapter(this, R.layout.adapter_drawer_header,  R.layout.adapter_drawer_item);
 
         for(int index = 0; index < mSlideMenuTitleIds.length; index++) {
             adapter.add(mSlideMenuResourceIds[index], getString(mSlideMenuTitleIds[index]));
@@ -594,34 +594,39 @@ public class HomeActivity extends MXCActionBarActivity {
         // Highlight the selected item, update the title, and close the drawer
         mDrawerList.setItemChecked(position, true);
 
-        int id = mSlideMenuTitleIds[position];
+        final int id = (position == 0) ? R.string.action_settings : mSlideMenuTitleIds[position - 1];
 
-        if (id == R.string.action_search_contact) {
-            FragmentManager fm = getSupportFragmentManager();
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (id == R.string.action_search_contact) {
+                    FragmentManager fm = getSupportFragmentManager();
 
-            ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
-            if (fragment != null) {
-                fragment.dismissAllowingStateLoss();
+                    ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
+                    if (fragment != null) {
+                        fragment.dismissAllowingStateLoss();
+                    }
+                    fragment = ContactsListDialogFragment.newInstance();
+                    fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
+                } else if (id == R.string.action_search_room) {
+                    toggleSearchButton();
+                } else if (id == R.string.create_room) {
+                    createRoom();
+                } else if (id ==  R.string.join_room) {
+                    joinRoomByName();
+                } else if (id ==  R.string.action_mark_all_as_read) {
+                    markAllMessagesAsRead();
+                } else if (id ==  R.string.action_settings) {
+                    HomeActivity.this.startActivity(new Intent(HomeActivity.this, SettingsActivity.class));
+                } else if (id ==  R.string.action_disconnect) {
+                    CommonActivityUtils.disconnect(HomeActivity.this);
+                } else if (id ==  R.string.send_bug_report) {
+                    RageShake.getInstance().sendBugReport();
+                } else if (id ==  R.string.action_logout) {
+                    CommonActivityUtils.logout(HomeActivity.this);
+                }
             }
-            fragment = ContactsListDialogFragment.newInstance();
-            fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
-        } else if (id == R.string.action_search_room) {
-            toggleSearchButton();
-        } else if (id == R.string.create_room) {
-            createRoom();
-        } else if (id ==  R.string.join_room) {
-            joinRoomByName();
-        } else if (id ==  R.string.action_mark_all_as_read) {
-            markAllMessagesAsRead();
-        } else if (id ==  R.string.action_settings) {
-            this.startActivity(new Intent(this, SettingsActivity.class));
-        } else if (id ==  R.string.action_disconnect) {
-            CommonActivityUtils.disconnect(this);
-        } else if (id ==  R.string.send_bug_report) {
-            RageShake.getInstance().sendBugReport();
-        } else if (id ==  R.string.action_logout) {
-            CommonActivityUtils.logout(this);
-        }
+        });
 
         mDrawerLayout.closeDrawer(mDrawerList);
     }
