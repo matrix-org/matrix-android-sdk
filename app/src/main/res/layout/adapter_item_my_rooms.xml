@@ -18,6 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textAppearance="?android:attr/textAppearanceMedium"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="Room Name"
             android:singleLine="true"
             android:ellipsize="end"
@@ -29,13 +30,13 @@
             android:textSize="10sp"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="Jan 1 00:00"
-            android:textColor="#FF888888"
+            android:textColor="?android:attr/textColorSecondary"
             android:id="@+id/roomSummaryAdapter_ts"/>
 
         <Button
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:background="@drawable/ic_menu_delete"
+            android:background="@drawable/ic_material_delete"
             android:id="@+id/roomSummaryAdapter_delete_button"
             android:contentDescription="@string/delete"
             />
@@ -52,10 +53,9 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
+        style="@style/Base.TextAppearance.AppCompat.Caption"
         android:text="Small Text"
         android:singleLine="true"
         android:ellipsize="end"
-        android:textColor="#FF888888"
         android:id="@+id/roomSummaryAdapter_message"/>
 </LinearLayout>
