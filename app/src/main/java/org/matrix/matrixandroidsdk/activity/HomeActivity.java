@@ -18,16 +18,22 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.app.ActionBarDrawerToggle;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -51,6 +57,7 @@ import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.EventUtils;
+import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -78,6 +85,23 @@ public class HomeActivity extends MXCActionBarActivity {
     private boolean mIsPaused = false;
 
     private String mAutomaticallyOpenedRoomId = null;
+
+    // sliding menu
+    private Integer[] mSlideMenuTitleIds = new Integer[]{
+            R.string.action_search_contact,
+            R.string.action_search_room,
+            R.string.create_room,
+            R.string.join_room,
+            R.string.action_mark_all_as_read,
+            R.string.action_settings,
+            R.string.send_bug_report,
+            R.string.action_disconnect,
+            R.string.action_logout,
+    };
+
+    private DrawerLayout mDrawerLayout;
+    private ListView mDrawerList;
+    private ActionBarDrawerToggle mDrawerToggle;
 
     private MXEventListener mListener = new MXEventListener() {
         private boolean mInitialSyncComplete = false;
@@ -267,9 +291,42 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // sanity check
-        if (null != getActionBar()) {
-            getActionBar().setDisplayShowTitleEnabled(false);
+        ArrayList<String> menuEntries = new ArrayList<String>();
+        for(int id : mSlideMenuTitleIds) {
+            menuEntries.add(getString(id));
+        }
+
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerList = (ListView) findViewById(R.id.left_drawer);
+
+        // Set the adapter for the list view
+        mDrawerList.setAdapter(new ArrayAdapter<>(this,
+                R.layout.adapter_drawer_item, menuEntries));
+        // Set the list's click listener
+        mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
+
+        mDrawerToggle = new ActionBarDrawerToggle(
+                this,                  /* host Activity */
+                mDrawerLayout,         /* DrawerLayout object */
+                R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
+                R.string.action_open,  /* "open drawer" description */
+                R.string.action_open  /* "close drawer" description */
+        ) {
+
+            public void onDrawerClosed(View view) {
+            }
+
+            public void onDrawerOpened(View drawerView) {
+            }
+        };
+
+        // Set the drawer toggle as the DrawerListener
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+
+        // display the home and title button
+        if (null != getSupportActionBar()) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setHomeButtonEnabled(true);
         }
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
@@ -493,27 +550,40 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.home, menu);
-        return true;
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        // Sync the toggle state after onRestoreInstanceState has occurred.
+        mDrawerToggle.syncState();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mDrawerToggle.onConfigurationChanged(newConfig);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
+        // Pass the event to ActionBarDrawerToggle, if it returns
+        // true, then it has handled the app icon touch event
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
 
-        if (id == R.id.action_mark_all_as_read) {
-            markAllMessagesAsRead();
-            return true;
-        } else if (id == R.id.action_display_contacts) {
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Run the dedicated sliding menu action
+     * @param position selected menu entry
+     */
+    private void selectItem(int position) {
+        // Highlight the selected item, update the title, and close the drawer
+        mDrawerList.setItemChecked(position, true);
+
+        int id = mSlideMenuTitleIds[position];
+
+        if (id == R.string.action_search_contact) {
             FragmentManager fm = getSupportFragmentManager();
 
             ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
@@ -522,23 +592,34 @@ public class HomeActivity extends MXCActionBarActivity {
             }
             fragment = ContactsListDialogFragment.newInstance();
             fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
-
-            return true;
-        } else if (id == R.id.search_room) {
+        } else if (id == R.string.action_search_room) {
             toggleSearchButton();
-            return true;
-        }
-        else if (id == R.id.action_create_room) {
+        } else if (id == R.string.create_room) {
             createRoom();
-            return true;
-        }
-        else if (id == R.id.action_join_room_by_name) {
+        } else if (id ==  R.string.join_room) {
             joinRoomByName();
-            return true;
+        } else if (id ==  R.string.action_mark_all_as_read) {
+            markAllMessagesAsRead();
+        } else if (id ==  R.string.action_settings) {
+            this.startActivity(new Intent(this, SettingsActivity.class));
+        } else if (id ==  R.string.action_disconnect) {
+            CommonActivityUtils.disconnect(this);
+        } else if (id ==  R.string.send_bug_report) {
+            RageShake.getInstance().sendBugReport();
+        } else if (id ==  R.string.action_logout) {
+            CommonActivityUtils.logout(this);
         }
 
-        return super.onOptionsItemSelected(item);
+        mDrawerLayout.closeDrawer(mDrawerList);
     }
+
+    private class DrawerItemClickListener implements ListView.OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView parent, View view, int position, long id) {
+            selectItem(position);
+        }
+    }
+
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
