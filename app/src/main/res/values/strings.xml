@@ -47,6 +47,7 @@
     <string name="action_mark_all_as_read">Mark all as read</string>
     <string name="action_quick_reply">Quick reply</string>
     <string name="action_open">Open</string>
+    <string name="action_close">Close</string>
 
     <string name="my_rooms">My rooms</string>
     <string name="create_room">Create room</string>

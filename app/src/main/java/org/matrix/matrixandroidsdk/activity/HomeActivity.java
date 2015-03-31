@@ -25,12 +25,10 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
@@ -52,6 +50,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.adapters.DrawerAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
@@ -97,6 +96,19 @@ public class HomeActivity extends MXCActionBarActivity {
             R.string.send_bug_report,
             R.string.action_disconnect,
             R.string.action_logout,
+    };
+
+    // sliding menu
+    private Integer[] mSlideMenuResourceIds = new Integer[]{
+            R.drawable.ic_menu_search, // R.string.action_search_contact,
+            R.drawable.ic_menu_search, // R.string.action_search_room,
+            R.drawable.ic_menu_btn_add, //R.string.create_room,
+            R.drawable.ic_menu_start_conversation, // R.string.join_room,
+            R.drawable.ic_menu_start_conversation, // R.string.action_mark_all_as_read,
+            R.drawable.ic_menu_settings_holo_light, //  R.string.action_settings,
+            R.drawable.ic_menu_settings_holo_light, // R.string.send_bug_report,
+            R.drawable.ic_menu_end_conversation, // R.string.action_disconnect,
+            R.drawable.ic_menu_end_conversation, // R.string.action_logout,
     };
 
     private DrawerLayout mDrawerLayout;
@@ -291,17 +303,18 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        ArrayList<String> menuEntries = new ArrayList<String>();
-        for(int id : mSlideMenuTitleIds) {
-            menuEntries.add(getString(id));
-        }
-
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
         // Set the adapter for the list view
-        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-                R.layout.adapter_drawer_item, menuEntries));
+        DrawerAdapter adapter = new DrawerAdapter(this, R.layout.adapter_drawer_item);
+
+        for(int index = 0; index < mSlideMenuTitleIds.length; index++) {
+            adapter.add(mSlideMenuResourceIds[index], getString(mSlideMenuTitleIds[index]));
+        }
+
+        mDrawerList.setAdapter(adapter);
+
         // Set the list's click listener
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
@@ -310,7 +323,7 @@ public class HomeActivity extends MXCActionBarActivity {
                 mDrawerLayout,         /* DrawerLayout object */
                 R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
                 R.string.action_open,  /* "open drawer" description */
-                R.string.action_open  /* "close drawer" description */
+                R.string.action_close  /* "close drawer" description */
         ) {
 
             public void onDrawerClosed(View view) {
