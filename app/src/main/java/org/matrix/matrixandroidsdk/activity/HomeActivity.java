@@ -300,7 +300,7 @@ public class HomeActivity extends MXCActionBarActivity {
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
         // Set the adapter for the list view
-        mDrawerList.setAdapter(new ArrayAdapter<>(this,
+        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
                 R.layout.adapter_drawer_item, menuEntries));
         // Set the list's click listener
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
