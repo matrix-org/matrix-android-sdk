@@ -259,7 +259,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
         mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventListener);
 
         // load the thumbnail
-        mThumbnailImageView = (ImageView) findViewById(R.id.imageView_avatar);
+        mThumbnailImageView = (ImageView) findViewById(R.id.avatar_img);
 
         // set the title
         mMatrixIdTextView = (TextView) findViewById(R.id.textView_matrixid);

@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/room_background"
     android:paddingLeft="10dp"
     android:paddingRight="10dp">
 
@@ -11,13 +12,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <ImageView
-            android:id="@+id/imageView_avatar"
-            android:layout_width="@dimen/profile_avatar_size"
-            android:layout_height="@dimen/profile_avatar_size"
-            android:layout_alignParentLeft="true"
-            android:layout_marginRight="10dp"
-            android:scaleType="centerCrop"/>
+        <include layout="@layout/large_round_avatar"
+            android:background="@color/room_background"
+            android:id="@+id/memberDetails_roundAvatar"/>
 
         <TextView
             android:id="@+id/textView_matrixid"
@@ -25,8 +22,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="An user name"
+            android:layout_marginLeft="10dp"
             android:layout_centerInParent="true"
-            android:layout_toRightOf="@id/imageView_avatar"
+            android:layout_toRightOf="@id/memberDetails_roundAvatar"
             android:layout_alignParentRight="true"/>
 
         <ProgressBar
