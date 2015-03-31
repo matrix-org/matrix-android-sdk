@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/title"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="@string/settings_title_profile"/>
 
         <RelativeLayout
@@ -38,6 +38,7 @@
 
             <Button
                 android:id="@+id/button_save"
+                style="@style/Base.TextAppearance.AppCompat.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_toRightOf="@id/imageView_avatar"
@@ -60,11 +61,12 @@
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/title"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="@string/settings_title_notifications"/>
 
         <TextView
             android:text = "@string/settings_webclient_push"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
@@ -73,7 +75,7 @@
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/title"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="@string/settings_title_rooms"/>
 
         <LinearLayout
@@ -83,6 +85,7 @@
 
             <TextView
                 android:layout_weight="1"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text = "@string/settings_display_all_events"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -99,6 +102,7 @@
 
             <TextView
                 android:layout_weight="1"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text = "@string/settings_hide_unsupported_events"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -115,6 +119,7 @@
 
             <TextView
                 android:layout_weight="1"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text = "@string/settings_sort_by_last_seen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -131,6 +136,7 @@
 
             <TextView
                 android:layout_weight="1"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text = "@string/settings_display_left_members"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -147,6 +153,7 @@
 
             <TextView
                 android:layout_weight="1"
+                style="@style/Base.TextAppearance.AppCompat.Caption"
                 android:text = "@string/settings_display_public_rooms"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -160,37 +167,43 @@
             android:id="@+id/button_clear_cache"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            style="@style/Base.TextAppearance.AppCompat.Button"
             android:text="@string/clear_cache" />
 
         <TextView
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/title"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="@string/settings_title_config"/>
 
         <TextView
             android:id="@+id/textView_configHomeServer"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/textView_matrixConsoleVersion"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/textView_matrixSDKVersion"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/textView_matrixBuildNumber"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/textView_configUserId"
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
@@ -199,10 +212,11 @@
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/title"
+            style="@style/Base.TextAppearance.AppCompat.Subhead"
             android:text="@string/settings_title_commands"/>
 
         <TextView
+            style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_command_commands"/>
