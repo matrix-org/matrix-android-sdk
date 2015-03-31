@@ -638,13 +638,18 @@ public class HomeActivity extends MXCActionBarActivity {
         }
     }
 
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ((keyCode == KeyEvent.KEYCODE_SEARCH)) {
             toggleSearchButton();
             return true;
         }
+
+        if ((keyCode == KeyEvent.KEYCODE_MENU)) {
+            HomeActivity.this.startActivity(new Intent(HomeActivity.this, SettingsActivity.class));
+            return true;
+        }
+
         return super.onKeyDown(keyCode, event);
     }
 
