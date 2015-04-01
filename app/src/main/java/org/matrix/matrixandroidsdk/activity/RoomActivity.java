@@ -58,8 +58,10 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.adapters.IconAndTextAdapter;
 import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
+import org.matrix.matrixandroidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
@@ -87,6 +89,8 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG";
+    private static final String TAG_FRAGMENT_ATTACHMENTS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_ATTACHMENTS_DIALOG";
+
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
 
@@ -179,6 +183,62 @@ public class RoomActivity extends MXCActionBarActivity {
         }
     };
 
+    /**
+     * Laucnh the files selection intent
+     */
+    private void launchFileSelectionIntent() {
+        Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+        fileIntent.setType("*/*");
+        startActivityForResult(fileIntent, REQUEST_FILES);
+    }
+
+    /**
+     * Launch the camera
+     */
+    private void launchCamera() {
+        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        // the following is a fix for buggy 2.x devices
+        Date date = new Date();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
+        // The Galaxy S not only requires the name of the file to output the image to, but will also not
+        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
+        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        Uri dummyUri = null;
+        try {
+            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        }
+        catch (UnsupportedOperationException uoe) {
+            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
+            try {
+                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
+            }
+        }
+        catch (Exception e) {
+            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
+        }
+        if (dummyUri != null) {
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
+        }
+        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
+        // this will point to the data we're looking for.
+        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
+        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
+        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
+        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
+
+        startActivityForResult(captureIntent, TAKE_IMAGE);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -220,95 +280,42 @@ public class RoomActivity extends MXCActionBarActivity {
 
         mAttachmentButton = (ImageButton)findViewById(R.id.button_more);
         mAttachmentButton.setOnClickListener(new View.OnClickListener() {
-            private static final int OPTION_CANCEL = 0;
-            private static final int OPTION_ATTACH_FILES = 1;
-            private static final int OPTION_TAKE_IMAGE = 2;
 
             @Override
-            public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_FILES, OPTION_TAKE_IMAGE,  OPTION_CANCEL};
+            public void onClick(View view) {
+                FragmentManager fm = getSupportFragmentManager();
+                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
 
-                new AlertDialog.Builder(RoomActivity.this)
-                        .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                switch (options[which]) {
-                                    case OPTION_CANCEL:
-                                        dialog.cancel();
-                                        break;
-                                    case OPTION_ATTACH_FILES:
-                                        Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                                            fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                                        }
-                                        fileIntent.setType("*/*");
-                                        startActivityForResult(fileIntent, REQUEST_FILES);
-                                        break;
-                                    case OPTION_TAKE_IMAGE:
-                                        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-                                        // the following is a fix for buggy 2.x devices
-                                        Date date = new Date();
-                                        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
-                                        ContentValues values = new ContentValues();
-                                        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
-                                        // The Galaxy S not only requires the name of the file to output the image to, but will also not
-                                        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
-                                        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
-                                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                                        Uri dummyUri = null;
-                                        try {
-                                            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                                        }
-                                        catch (UnsupportedOperationException uoe) {
-                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
-                                            try {
-                                                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
-                                            }
-                                            catch (Exception e) {
-                                                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
-                                            }
-                                        }
-                                        catch (Exception e) {
-                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
-                                        }
-                                        if (dummyUri != null) {
-                                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
-                                        }
-                                        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
-                                        // this will point to the data we're looking for.
-                                        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
-                                        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
-                                        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
-                                        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
-
-                                        startActivityForResult(captureIntent, TAKE_IMAGE);
-                                        break;
-                                }
-                            }
-                        })
-                        .show();
-            }
-
-            private String[] buildOptionLabels(int[] options) {
-                String[] labels = new String[options.length];
-                for (int i = 0; i < options.length; i++) {
-                    String label = "";
-                    switch (options[i]) {
-                        case OPTION_CANCEL:
-                            label = getString(R.string.cancel);
-                            break;
-                        case OPTION_ATTACH_FILES:
-                            label = getString(R.string.option_attach_files);
-                            break;
-                        case OPTION_TAKE_IMAGE:
-                            label = getString(R.string.option_take_image);
-                            break;
-                    }
-                    labels[i] = label;
+                if (fragment != null) {
+                    fragment.dismissAllowingStateLoss();
                 }
 
-                return labels;
+                final Integer[] messages = new Integer[]{
+                        R.string.option_send_files,
+                        R.string.option_take_photo,
+                };
+
+                final Integer[] icons = new Integer[]{
+                        R.drawable.ic_material_file,  // R.string.option_send_files
+                        R.drawable.ic_material_camera, // R.string.action_members
+                };
+
+
+                fragment = IconAndTextDialogFragment.newInstance(icons, messages);
+                fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
+                        Integer selectedVal = messages[position];
+
+                        if (selectedVal ==  R.string.option_send_files) {
+                            RoomActivity.this.launchFileSelectionIntent();
+                        } else if (selectedVal == R.string.option_take_photo) {
+                            RoomActivity.this.launchCamera();
+                        }
+                    }
+                });
+
+                fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
             }
         });
 
