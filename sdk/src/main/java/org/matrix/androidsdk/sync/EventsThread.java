@@ -172,7 +172,9 @@ public class EventsThread extends Thread {
 
             try {
                 TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
-                mListener.onEventsReceived(eventsResponse.chunk);
+                if (!mKilling) {
+                    mListener.onEventsReceived(eventsResponse.chunk);
+                }
                 mCurrentToken = eventsResponse.end;
             }
             catch (Exception e) {

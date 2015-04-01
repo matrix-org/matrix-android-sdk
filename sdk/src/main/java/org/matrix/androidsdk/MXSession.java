@@ -213,6 +213,8 @@ public class MXSession {
      * Clear the session data
      */
     public void clear() {
+        // stop events stream
+        stopEventStream();
 
         // cancel any listener
         mDataHandler.clear();
@@ -293,8 +295,10 @@ public class MXSession {
      * Gracefully stop the event stream.
      */
     public void stopEventStream() {
-        mEventsThread.kill();
-        mEventsThread = null;
+        if (null != mEventsThread) {
+            mEventsThread.kill();
+            mEventsThread = null;
+        }
     }
 
     public void pauseEventStream() {
