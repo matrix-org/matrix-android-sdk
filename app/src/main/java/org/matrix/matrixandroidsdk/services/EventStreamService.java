@@ -135,11 +135,16 @@ public class EventStreamService extends Service {
                 return;
             }
 
+            String roomName = null;
+            if(mSession.getMyUser() != null) {
+                roomName = room.getName(mSession.getMyUser().userId);
+            }
+
             mNotificationRoomId = roomId;
 
             Notification n = NotificationUtils.buildMessageNotification(
                     EventStreamService.this,
-                    member.getName(), body, event.roomId, bingRule.shouldPlaySound());
+                    member.getName(), body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 

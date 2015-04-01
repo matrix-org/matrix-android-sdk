@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
+import android.text.TextUtils;
 
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.LockScreenActivity;
@@ -20,7 +21,7 @@ public class NotificationUtils {
     public static final String TAP_TO_VIEW_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.TAP_TO_VIEW_ACTION";
 
     public static Notification buildMessageNotification(
-            Context context, String from, String body, String roomId,
+            Context context, String from, String body, String roomId, String roomName,
             boolean shouldPlaySound) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setWhen(System.currentTimeMillis());
@@ -28,7 +29,13 @@ public class NotificationUtils {
         builder.setContentText(body);
         builder.setAutoCancel(true);
         builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
-        builder.setTicker(from + ":" + body);
+
+        String name = ": ";
+        if(!TextUtils.isEmpty(roomName)) {
+            name = " (" + roomName + "): ";
+        }
+
+        builder.setTicker(from + name + body);
 
         {
             // Build the pending intent for when the notification is clicked
