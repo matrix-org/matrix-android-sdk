@@ -28,16 +28,16 @@
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/ic_menu_btn_add"
+            android:background="@drawable/ic_material_file"
             android:id="@+id/button_more"
             android:layout_alignParentBottom="true"
-            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
             android:contentDescription="@string/more"/>
 
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@android:drawable/ic_menu_send"
+            android:background="@drawable/ic_material_send"
             android:id="@+id/button_send"
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
@@ -49,7 +49,6 @@
             android:hint="Type here..."
             android:id="@+id/editText_messageBox"
             android:layout_alignParentBottom="true"
-            android:layout_toRightOf="@id/button_more"
             android:layout_toLeftOf="@id/button_send"
             android:layout_centerHorizontal="true"/>
 

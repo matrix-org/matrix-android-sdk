@@ -37,7 +37,9 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -107,6 +109,10 @@ public class RoomActivity extends MXCActionBarActivity {
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    private ImageButton mSendButton;
+    private ImageButton mAttachmentButton;
+    private EditText mEditText;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
@@ -198,19 +204,22 @@ public class RoomActivity extends MXCActionBarActivity {
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
 
-        findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
+        mEditText = (EditText)findViewById(R.id.editText_messageBox);
+
+        mSendButton = (ImageButton)findViewById(R.id.button_send);
+        mSendButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
-                EditText editText = (EditText)findViewById(R.id.editText_messageBox);
-                String body = editText.getText().toString();
+                String body = mEditText.getText().toString();
                 sendMessage(body);
                 ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
-                editText.setText("");
+                mEditText.setText("");
             }
         });
 
-        findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
+        mAttachmentButton = (ImageButton)findViewById(R.id.button_more);
+        mAttachmentButton.setOnClickListener(new View.OnClickListener() {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_FILES = 1;
             private static final int OPTION_TAKE_IMAGE = 2;
@@ -303,11 +312,11 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
-        final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
-        editText.addTextChangedListener(new TextWatcher() {
+        mEditText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
-                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), editText.getText().toString());
-                handleTypingNotification(editText.getText().length() != 0);
+                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
+                handleTypingNotification(mEditText.getText().length() != 0);
+                manageSendMoreButtons();
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -346,6 +355,18 @@ public class RoomActivity extends MXCActionBarActivity {
 
         // The error listener needs the current activity
         mSession.setFailureCallback(new ErrorListener(this));
+
+        manageSendMoreButtons();
+    }
+
+    /**
+     *
+     */
+    private void manageSendMoreButtons() {
+        boolean hasText = mEditText.getText().length() > 0;
+
+        mSendButton.setVisibility(hasText ? View.VISIBLE : View.INVISIBLE);
+        mAttachmentButton.setVisibility(hasText ? View.INVISIBLE : View.VISIBLE);
     }
 
     @Override
@@ -376,12 +397,11 @@ public class RoomActivity extends MXCActionBarActivity {
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
-        EditText editText = (EditText)findViewById(R.id.editText_messageBox);
         String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
 
-        if (!cachedText.equals(editText.getText())) {
-            editText.setText("");
-            editText.append(cachedText);
+        if (!cachedText.equals(mEditText.getText())) {
+            mEditText.setText("");
+            mEditText.append(cachedText);
         }
     }
 
