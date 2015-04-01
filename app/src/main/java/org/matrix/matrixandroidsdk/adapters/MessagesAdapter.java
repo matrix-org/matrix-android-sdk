@@ -125,7 +125,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mEvenColourResId;
 
     private int normalColor;
-    private int emoteColor;
     private int notSentColor;
     private int sendingColor;
     private int highlightColor;
@@ -155,7 +154,6 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         setNotifyOnChange(false);
 
         normalColor = context.getResources().getColor(R.color.message_normal);
-        emoteColor = context.getResources().getColor(R.color.message_emote);
         notSentColor = context.getResources().getColor(R.color.message_not_sent);
         sendingColor = context.getResources().getColor(R.color.message_sending);
         highlightColor = context.getResources().getColor(R.color.message_highlighted);
@@ -818,7 +816,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        String emote = getUserDisplayName(msg.userId, roomState) + " ";
+        String emote = "* " + getUserDisplayName(msg.userId, roomState) + " ";
 
         AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
         emote += display.getTextualDisplay();
@@ -833,7 +831,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else if (row.getEvent().isUndeliverable()) {
             textColor = notSentColor;
         } else {
-            textColor = emoteColor;
+            textColor = normalColor;
         }
 
         emoteTextView.setTextColor(textColor);
