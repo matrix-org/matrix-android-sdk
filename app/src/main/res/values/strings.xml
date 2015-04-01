@@ -48,6 +48,9 @@
     <string name="action_quick_reply">Quick reply</string>
     <string name="action_open">Open</string>
     <string name="action_close">Close</string>
+    <string name="action_invite_by_name">Invite from identifier</string>
+    <string name="action_invite_by_list">Invite from other rooms</string>
+
 
     <string name="my_rooms">My rooms</string>
     <string name="create_room">Create room</string>
@@ -119,8 +122,6 @@
     <string name="option_attach_files">Attach files</string>
     <string name="option_take_image">Take image</string>
     <string name="option_attach_video">Attach video</string>
-    <string name="option_invite_by_name">Invite users from identifier</string>
-    <string name="option_invite_by_list">Invite known users</string>
 
     <!-- Home Screen -->
     <string name="users"> users</string>

@@ -65,45 +65,35 @@ import java.util.Date;
  */
 public class CommonActivityUtils {
 
-    public static boolean handleMenuItemSelected(Activity activity, int id) {
-        if (id == R.id.action_logout) {
-            logout(activity);
-            return true;
-        } else if (id == R.id.action_settings) {
-            activity.startActivity(new Intent(activity, SettingsActivity.class));
-            return true;
-        } else if (id == R.id.action_send_bug_report) {
-            RageShake.getInstance().sendBugReport();
-            return true;
-        }
-        return false;
-    }
-
-    public static void logout(Activity context) {
-        stopEventStream(context);
+    /**
+     * Logout the current user.
+     * @param activity the caller activity
+     */
+    public static void logout(Activity activity) {
+        stopEventStream(activity);
 
         // Publish to the server that we're now offline
-        MyPresenceManager.getInstance(context).advertiseOffline();
+        MyPresenceManager.getInstance(activity).advertiseOffline();
 
         // clear the medias cache
-        ConsoleMediasCache.clearCache(context);
+        ConsoleMediasCache.clearCache(activity);
 
         // clear the latest messages cache
-        ConsoleLatestChatMessageCache.clearCache(context);
+        ConsoleLatestChatMessageCache.clearCache(activity);
 
         // clear the preferences
-        PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit();
+        PreferenceManager.getDefaultSharedPreferences(activity).edit().clear().commit();
 
         // clear credentials
-        Matrix.getInstance(context).clearDefaultSessionAndCredentials();
+        Matrix.getInstance(activity).clearDefaultSessionAndCredentials();
 
         // reset the contacts
         PIDsRetriever.reset();
         ContactsManager.reset();
 
         // go to login page
-        context.startActivity(new Intent(context, LoginActivity.class));
-        context.finish();
+        activity.startActivity(new Intent(activity, LoginActivity.class));
+        activity.finish();
     }
 
     public static void disconnect(Activity context) {

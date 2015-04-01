@@ -101,10 +101,6 @@ public class PublicRoomsActivity extends MXCActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
-            return true;
-        }
-
         if (id == R.id.action_my_rooms) {
             finish();
             return true;

@@ -36,7 +36,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -64,6 +63,7 @@ import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.NotificationUtils;
+import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
 import java.text.SimpleDateFormat;
@@ -115,6 +115,27 @@ public class RoomActivity extends MXCActionBarActivity {
     private TimerTask mTypingTimerTask;
     private long  mLastTypingDate = 0;
 
+    // sliding menu
+    private final Integer[] mSlideMenuTitleIds = new Integer[]{
+            R.string.action_room_info,
+            R.string.action_members,
+            R.string.action_invite_by_name,
+            R.string.action_invite_by_list,
+            R.string.action_leave,
+            R.string.action_settings,
+            R.string.send_bug_report,
+    };
+
+    private final Integer[] mSlideMenuResourceIds = new Integer[]{
+            R.drawable.ic_material_description,  // R.string.action_room_info
+            R.drawable.ic_material_group, // R.string.action_members
+            R.drawable.ic_material_person_add, // R.string.option_invite_by_name
+            R.drawable.ic_material_group_add, // R.string.option_invite_by_list
+            R.drawable.ic_material_exit_to_app, // R.string.action_leave
+            R.drawable.ic_material_settings, //  R.string.action_settings,
+            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
+    };
+
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onLiveEvent(final Event event, RoomState roomState) {
@@ -157,7 +178,8 @@ public class RoomActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        // define a sliding menu
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
@@ -192,12 +214,10 @@ public class RoomActivity extends MXCActionBarActivity {
             private static final int OPTION_CANCEL = 0;
             private static final int OPTION_ATTACH_FILES = 1;
             private static final int OPTION_TAKE_IMAGE = 2;
-            private static final int OPTION_INVITE_BY_NAME = 3;
-            private static final int OPTION_INVITE_BY_LIST = 4;
 
             @Override
             public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_FILES, OPTION_TAKE_IMAGE, OPTION_INVITE_BY_NAME, OPTION_INVITE_BY_LIST, OPTION_CANCEL};
+                final int[] options = new int[] {OPTION_ATTACH_FILES, OPTION_TAKE_IMAGE,  OPTION_CANCEL};
 
                 new AlertDialog.Builder(RoomActivity.this)
                         .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
@@ -255,54 +275,6 @@ public class RoomActivity extends MXCActionBarActivity {
 
                                         startActivityForResult(captureIntent, TAKE_IMAGE);
                                         break;
-
-                                    case OPTION_INVITE_BY_NAME:
-                                        AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
-                                            @Override
-                                            public void onSubmit(final String text) {
-                                                if (TextUtils.isEmpty(text)) {
-                                                    return;
-                                                }
-
-                                                // get the user suffix
-                                                String userID = mSession.getCredentials().userId;
-                                                String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
-
-                                                ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
-
-                                                if (userIDsList.size() > 0) {
-                                                    mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
-                                                        @Override
-                                                        public void onSuccess(Void info) {
-                                                            Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                                        }
-                                                    });
-                                                }
-                                            }
-
-                                            @Override
-                                            public void onCancelled() {
-
-                                            }
-                                        });
-
-                                        alert.show();
-                                        break;
-
-                                    case OPTION_INVITE_BY_LIST:
-                                        final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                                        if (session != null) {
-                                            FragmentManager fm = getSupportFragmentManager();
-
-                                            MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
-                                            if (fragment != null) {
-                                                fragment.dismissAllowingStateLoss();
-                                            }
-                                            fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
-                                            fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
-                                        }
-
-                                        break;
                                 }
                             }
                         })
@@ -322,12 +294,6 @@ public class RoomActivity extends MXCActionBarActivity {
                             break;
                         case OPTION_TAKE_IMAGE:
                             label = getString(R.string.option_take_image);
-                            break;
-                        case OPTION_INVITE_BY_NAME:
-                            label = getString(R.string.option_invite_by_name);
-                            break;
-                        case OPTION_INVITE_BY_LIST:
-                            label = getString(R.string.option_invite_by_list);
                             break;
                     }
                     labels[i] = label;
@@ -419,68 +385,11 @@ public class RoomActivity extends MXCActionBarActivity {
         }
     }
 
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-
-        Collection<RoomMember> members = mRoom.getActiveMembers();
-        menu.findItem(R.id.action_leave).setVisible(members.size() > 1);
-        menu.findItem(R.id.action_delete).setVisible(members.size() <= 1);
-
-        return true;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.room, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
-            return true;
-        }
-
-        if ((id == R.id.action_leave) || (id == R.id.action_delete)) {
-            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                mRoom.leave(new SimpleApiCallback<Void>(this) {
-                });
-                RoomActivity.this.finish();
-            }
-        }
-        else if (id == R.id.action_members) {
-            FragmentManager fm = getSupportFragmentManager();
-
-            RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
-            if (fragment != null) {
-                fragment.dismissAllowingStateLoss();
-            }
-            fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
-            fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
-        }
-        else if (id == R.id.action_info) {
-            Intent startRoomInfoIntent = new Intent(this, RoomInfoActivity.class);
-            startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
-            startActivity(startRoomInfoIntent);
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     private void setTopic(String topic) {
         if (null !=  this.getSupportActionBar()) {
             this.getSupportActionBar().setSubtitle(topic);
         }
     }
-
 
     /**
      * check if the text message is an IRC command.
@@ -907,5 +816,91 @@ public class RoomActivity extends MXCActionBarActivity {
             mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>(RoomActivity.this) {
             });
         }
+    }
+
+    /**
+     * Run the dedicated sliding menu action
+     * @param position selected menu entry
+     */
+    @Override
+    protected void selectDrawItem(int position) {
+        super.selectDrawItem(position);
+
+        final int id = (position == 0) ? R.string.action_settings : mSlideMenuTitleIds[position - 1];
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                if (id == R.string.action_invite_by_list) {
+                    final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    if (session != null) {
+                        FragmentManager fm = getSupportFragmentManager();
+
+                        MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                        if (fragment != null) {
+                            fragment.dismissAllowingStateLoss();
+                        }
+                        fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
+                        fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                    }
+                } else if (id == R.string.action_invite_by_name) {
+                    AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
+                        @Override
+                        public void onSubmit(final String text) {
+                            if (TextUtils.isEmpty(text)) {
+                                return;
+                            }
+
+                            // get the user suffix
+                            String userID = mSession.getCredentials().userId;
+                            String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
+
+                            ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
+
+                            if (userIDsList.size() > 0) {
+                                mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled() {
+
+                        }
+                    });
+
+                    alert.show();
+                } else if (id ==  R.string.action_members) {
+                    FragmentManager fm = getSupportFragmentManager();
+
+                    RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
+                    if (fragment != null) {
+                        fragment.dismissAllowingStateLoss();
+                    }
+                    fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
+                    fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
+                } else if (id ==  R.string.action_room_info) {
+                    Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
+                    startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+                    startActivity(startRoomInfoIntent);
+                } else if (id ==  R.string.action_leave) {
+                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    if (session != null) {
+                        mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
+
+                        });
+                        RoomActivity.this.finish();
+                    }
+                } else if (id ==  R.string.action_settings) {
+                    RoomActivity.this.startActivity(new Intent(RoomActivity.this, SettingsActivity.class));
+                } else if (id ==  R.string.send_bug_report) {
+                    RageShake.getInstance().sendBugReport();
+                }
+            }
+        });
     }
 }

@@ -86,7 +86,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private String mAutomaticallyOpenedRoomId = null;
 
     // sliding menu
-    private Integer[] mSlideMenuTitleIds = new Integer[]{
+    private final Integer[] mSlideMenuTitleIds = new Integer[]{
             R.string.action_search_contact,
             R.string.action_search_room,
             R.string.create_room,
@@ -99,7 +99,7 @@ public class HomeActivity extends MXCActionBarActivity {
     };
 
     // sliding menu
-    private Integer[] mSlideMenuResourceIds = new Integer[]{
+    private final Integer[] mSlideMenuResourceIds = new Integer[]{
             R.drawable.ic_material_search, // R.string.action_search_contact,
             R.drawable.ic_material_find_in_page, // R.string.action_search_room,
             R.drawable.ic_material_group_add, //R.string.create_room,
@@ -111,9 +111,6 @@ public class HomeActivity extends MXCActionBarActivity {
             R.drawable.ic_material_exit_to_app, // R.string.action_logout,
     };
 
-    private DrawerLayout mDrawerLayout;
-    private ListView mDrawerList;
-    private ActionBarDrawerToggle mDrawerToggle;
 
     private MXEventListener mListener = new MXEventListener() {
         private boolean mInitialSyncComplete = false;
@@ -303,44 +300,7 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawerList = (ListView) findViewById(R.id.left_drawer);
-
-        // Set the adapter for the list view
-        DrawerAdapter adapter = new DrawerAdapter(this, R.layout.adapter_drawer_header,  R.layout.adapter_drawer_item);
-
-        for(int index = 0; index < mSlideMenuTitleIds.length; index++) {
-            adapter.add(mSlideMenuResourceIds[index], getString(mSlideMenuTitleIds[index]));
-        }
-
-        mDrawerList.setAdapter(adapter);
-
-        // Set the list's click listener
-        mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
-
-        mDrawerToggle = new ActionBarDrawerToggle(
-                this,                  /* host Activity */
-                mDrawerLayout,         /* DrawerLayout object */
-                R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
-                R.string.action_open,  /* "open drawer" description */
-                R.string.action_close  /* "close drawer" description */
-        ) {
-
-            public void onDrawerClosed(View view) {
-            }
-
-            public void onDrawerOpened(View drawerView) {
-            }
-        };
-
-        // Set the drawer toggle as the DrawerListener
-        mDrawerLayout.setDrawerListener(mDrawerToggle);
-
-        // display the home and title button
-        if (null != getSupportActionBar()) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setHomeButtonEnabled(true);
-        }
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {
@@ -563,34 +523,7 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-        // Sync the toggle state after onRestoreInstanceState has occurred.
-        mDrawerToggle.syncState();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        mDrawerToggle.onConfigurationChanged(newConfig);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Pass the event to ActionBarDrawerToggle, if it returns
-        // true, then it has handled the app icon touch event
-        if (mDrawerToggle.onOptionsItemSelected(item)) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    /**
-     * Run the dedicated sliding menu action
-     * @param position selected menu entry
-     */
-    private void selectItem(int position) {
+    protected void selectDrawItem(int position) {
         // Highlight the selected item, update the title, and close the drawer
         mDrawerList.setItemChecked(position, true);
 
@@ -629,13 +562,6 @@ public class HomeActivity extends MXCActionBarActivity {
         });
 
         mDrawerLayout.closeDrawer(mDrawerList);
-    }
-
-    private class DrawerItemClickListener implements ListView.OnItemClickListener {
-        @Override
-        public void onItemClick(AdapterView parent, View view, int position, long id) {
-            selectItem(position);
-        }
     }
 
     @Override
