@@ -16,6 +16,8 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -27,6 +29,8 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
@@ -129,6 +133,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
         // Pass the event to ActionBarDrawerToggle, if it returns
         // true, then it has handled the app icon touch event
         if ((null != mDrawerToggle) && mDrawerToggle.onOptionsItemSelected(item)) {
+            dismissKeyboard(this);
             return true;
         }
 
@@ -138,6 +143,19 @@ public class MXCActionBarActivity extends ActionBarActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Dismiss the soft keyboard if one view in the activity has the focus.
+     * @param activity the activity
+     */
+    public static void dismissKeyboard(Activity activity) {
+        // hide the soft keyboard
+        View view = activity.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager inputManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+        }
     }
 
     /**
@@ -169,6 +187,8 @@ public class MXCActionBarActivity extends ActionBarActivity {
             // Set the list's click listener
             mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
+            final Activity thisApp = this;
+
             mDrawerToggle = new ActionBarDrawerToggle(
                     this,                  /* host Activity */
                     mDrawerLayout,         /* DrawerLayout object */
@@ -181,6 +201,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
                 }
 
                 public void onDrawerOpened(View drawerView) {
+                    dismissKeyboard(thisApp);
                 }
             };
 
