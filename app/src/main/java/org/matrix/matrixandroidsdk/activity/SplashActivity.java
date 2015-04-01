@@ -15,7 +15,6 @@
  */
 package org.matrix.matrixandroidsdk.activity;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -25,22 +24,33 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 public class SplashActivity extends MXCActionBarActivity {
 
     private MXSession mSession;
+    private GcmRegistrationManager mGcmRegistrationManager;
+
+    private boolean mInitialSyncComplete = false;
+    private boolean mPusherRegistrationComplete = false;
 
     private IMXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onInitialSyncComplete() {
             super.onInitialSyncComplete();
+            mInitialSyncComplete = true;
+            finishIfReady();
+        }
+    };
 
+    private void finishIfReady() {
+        if (mInitialSyncComplete && mPusherRegistrationComplete) {
             // Go to the home page
             startActivity(new Intent(SplashActivity.this, HomeActivity.class));
             SplashActivity.this.finish();
         }
-    };
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +74,18 @@ public class SplashActivity extends MXCActionBarActivity {
 
         // Set the main error listener
         Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
+
+
+        mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
+                .getSharedGcmRegistrationManager();
+        mGcmRegistrationManager.setListener(new GcmRegistrationManager.GcmRegistrationIdListener() {
+            @Override
+            public void onPusherRegistered() {
+                mPusherRegistrationComplete = true;
+                finishIfReady();
+            }
+        });
+        mGcmRegistrationManager.registerPusherInBackground();
     }
 
     @Override
@@ -71,5 +93,6 @@ public class SplashActivity extends MXCActionBarActivity {
         super.onDestroy();
 
         mSession.getDataHandler().removeListener(mEventListener);
+        mGcmRegistrationManager.setListener(null);
     }
 }
