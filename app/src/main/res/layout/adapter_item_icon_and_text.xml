@@ -27,7 +27,7 @@
         android:paddingRight="8dp"
         android:singleLine="true"
         android:text = "A text here"
-        style="@style/Base.TextAppearance.AppCompat.Headline"
+        style="@style/Base.TextAppearance.AppCompat.Subhead"
         />
 
 </LinearLayout>

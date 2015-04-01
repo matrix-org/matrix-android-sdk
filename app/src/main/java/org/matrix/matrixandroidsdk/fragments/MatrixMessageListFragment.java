@@ -60,6 +60,7 @@ import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import retrofit.RetrofitError;
@@ -70,7 +71,8 @@ import retrofit.RetrofitError;
  */
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterClickListener {
 
-    private static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETALS";
+    private static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
+    private static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
@@ -98,8 +100,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MXSession mSession;
     private Room mRoom;
     private boolean mDisplayAllEvents = true;
-
-    private AlertDialog mRedactResendAlert = null;
 
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
@@ -735,113 +735,72 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    /**
-     * Item selection management
-     */
-    private static final int OPTION_CANCEL = 0;
-    private static final int OPTION_RESEND = 1;
-    private static final int OPTION_REDACT = 2;
-    private static final int OPTION_MESSAGE_DETAILS = 3;
-
-    private String[] buildOptionLabels(List<Integer> options) {
-        String[] labels = new String[options.size()];
-        for (int i = 0; i < options.size(); i++) {
-            String label = "";
-            switch (options.get(i)) {
-                case OPTION_CANCEL:
-                    label = getString(R.string.cancel);
-                    break;
-                case OPTION_RESEND:
-                    label = getString(R.string.resend);
-                    break;
-                case OPTION_REDACT:
-                    label = getString(R.string.redact);
-                    break;
-                case OPTION_MESSAGE_DETAILS:
-                    label = getString(R.string.message_details);
-                    break;
-            }
-            labels[i] = label;
-        }
-
-        return labels;
-    }
-
     public void onItemClick(int position) {
         final MessageRow messageRow = mAdapter.getItem(position);
-        final List<Integer> options = new ArrayList<Integer>();
+        final List<Integer> textIds = new ArrayList<Integer>();
+        final List<Integer> iconIds = new ArrayList<Integer>();
+
         if (messageRow.getEvent().canBeResent()) {
-            options.add(OPTION_RESEND);
+            textIds.add(R.string.resend);
+            iconIds.add(R.drawable.ic_material_send);
         } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
-            options.add(OPTION_REDACT);
+            textIds.add(R.string.redact);
+            iconIds.add(R.drawable.ic_material_clear);
         }
 
         // display the JSON
-        options.add(OPTION_MESSAGE_DETAILS);
+        textIds.add(R.string.message_details);
+        iconIds.add(R.drawable.ic_material_description);
 
-        // do not launch an other alert if the user did not manage this one.
-        if ((options.size() != 0) && (null == mRedactResendAlert)) {
-            options.add(OPTION_CANCEL);
-            mRedactResendAlert = new AlertDialog.Builder(getActivity())
-                    .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            switch (options.get(which)) {
-                                case OPTION_CANCEL:
-                                    dialog.cancel();
-                                    mRedactResendAlert = null;
-                                    break;
-                                case OPTION_RESEND:
-                                    getActivity().runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            resend(messageRow.getEvent());
-                                        }
-                                    });
-                                    mRedactResendAlert = null;
-                                    break;
-                                case OPTION_REDACT:
-                                    getActivity().runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            redactEvent(messageRow.getEvent().eventId);
-                                        }
-                                    });
-                                    mRedactResendAlert = null;
-                                    break;
-                                case OPTION_MESSAGE_DETAILS:
-                                    getActivity().runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            FragmentManager fm =  getActivity().getSupportFragmentManager();
+        FragmentManager fm = getActivity().getSupportFragmentManager();
+        IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_OPTIONS);
 
-                                            MessageDetailsFragment fragment = (MessageDetailsFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_DETAILS);
-                                            if (fragment != null) {
-                                                fragment.dismissAllowingStateLoss();
-                                            }
-                                            fragment = MessageDetailsFragment.newInstance(messageRow.getEvent().toString());
-                                            fragment.show(fm, TAG_FRAGMENT_MESSAGE_DETAILS);
-                                        }
-                                    });
-                                    mRedactResendAlert = null;
-                                    break;
-                            }
-                        }
-                    })
-                    .create();
-
-            mRedactResendAlert.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    mRedactResendAlert = null;
-                }
-            });
-
-            try {
-                mRedactResendAlert.show();
-            } catch (Exception e) {
-            }
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
         }
+
+        Integer[] lIcons = iconIds.toArray(new Integer[iconIds.size()]);
+        Integer[] lTexts = textIds.toArray(new Integer[iconIds.size()]);
+
+        fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
+        fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
+            @Override
+            public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
+                Integer selectedVal = textIds.get(position);
+
+                if (selectedVal == R.string.resend) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            resend(messageRow.getEvent());
+                        }
+                    });
+                } else if (selectedVal == R.string.redact) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            redactEvent(messageRow.getEvent().eventId);
+                        }
+                    });
+                } else if (selectedVal == R.string.message_details) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            FragmentManager fm =  getActivity().getSupportFragmentManager();
+
+                            MessageDetailsFragment fragment = (MessageDetailsFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_DETAILS);
+                            if (fragment != null) {
+                                fragment.dismissAllowingStateLoss();
+                            }
+                            fragment = MessageDetailsFragment.newInstance(messageRow.getEvent().toString());
+                            fragment.show(fm, TAG_FRAGMENT_MESSAGE_DETAILS);
+                        }
+                    });
+                }
+            }
+        });
+
+        fragment.show(fm, TAG_FRAGMENT_MESSAGE_OPTIONS);
     }
 
     // thumbnails management
