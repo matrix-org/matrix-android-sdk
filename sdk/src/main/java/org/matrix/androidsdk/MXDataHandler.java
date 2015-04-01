@@ -120,6 +120,10 @@ public class MXDataHandler implements IMXEventListener {
         mEventListeners.remove(listener);
     }
 
+    public void clear() {
+        // remove any listener
+        mEventListeners.clear();
+    }
     /**
      * Handle the room data received from a per-room initial sync
      * @param roomResponse the room response object

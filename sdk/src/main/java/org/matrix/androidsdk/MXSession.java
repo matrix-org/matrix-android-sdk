@@ -213,6 +213,10 @@ public class MXSession {
      * Clear the session data
      */
     public void clear() {
+
+        // cancel any listener
+        mDataHandler.clear();
+
         // network event will not be listened anymore
         mNetworkConnectivityReceiver.clear();
         mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
