@@ -37,9 +37,11 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -51,6 +53,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
@@ -70,10 +73,12 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -93,6 +98,10 @@ public class RoomActivity extends MXCActionBarActivity {
 
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
+
+    private static final String PENDING_THUMBNAIL_URL = "PENDING_THUMBNAIL_URL";
+    private static final String PENDING_MEDIA_URL = "PENDING_MEDIA_URL";
+    private static final String PENDING_MIMETYPE = "PENDING_MIMETYPE";
 
     private static final String CAMERA_VALUE_TITLE = "attachment"; // Samsung devices need a filepath to write to or else won't return a Uri (!!!)
 
@@ -117,6 +126,14 @@ public class RoomActivity extends MXCActionBarActivity {
     private ImageButton mSendButton;
     private ImageButton mAttachmentButton;
     private EditText mEditText;
+
+    private View mImagePreviewLayout;
+    private ImageView mImagePreviewView;
+    private ImageButton mImagePreviewButton;
+
+    private String mPendingImageUrl;
+    private String mPendingImediaUrl;
+    private String mPendingMimeType;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
@@ -261,6 +278,24 @@ public class RoomActivity extends MXCActionBarActivity {
             notificationsManager.cancelAll();
         }
 
+        mPendingImageUrl = null;
+        mPendingImediaUrl = null;
+        mPendingMimeType = null;
+
+        if (null != savedInstanceState) {
+            if (savedInstanceState.containsKey(PENDING_THUMBNAIL_URL)) {
+                mPendingImageUrl = savedInstanceState.getString(PENDING_THUMBNAIL_URL);
+            }
+
+            if (savedInstanceState.containsKey(PENDING_MEDIA_URL)) {
+                mPendingImediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
+            }
+
+            if (savedInstanceState.containsKey(PENDING_MIMETYPE)) {
+                mPendingMimeType = savedInstanceState.getString(PENDING_MIMETYPE);
+            }
+        }
+
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
 
@@ -271,10 +306,19 @@ public class RoomActivity extends MXCActionBarActivity {
 
             @Override
             public void onClick(View view) {
-                String body = mEditText.getText().toString();
-                sendMessage(body);
-                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
-                mEditText.setText("");
+                // send the previewed image ?
+                if (null != mPendingImageUrl) {
+                    mMatrixMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
+                    mPendingImageUrl = null;
+                    mPendingImediaUrl = null;
+                    mPendingMimeType = null;
+                    manageSendMoreButtons();
+                } else {
+                    String body = mEditText.getText().toString();
+                    sendMessage(body);
+                    ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
+                    mEditText.setText("");
+                }
             }
         });
 
@@ -363,7 +407,40 @@ public class RoomActivity extends MXCActionBarActivity {
         // The error listener needs the current activity
         mSession.setFailureCallback(new ErrorListener(this));
 
+        mImagePreviewLayout = findViewById(R.id.room_image_preview_layout);
+        mImagePreviewView   = (ImageView)findViewById(R.id.room_image_preview);
+        mImagePreviewButton = (ImageButton)findViewById(R.id.room_image_preview_cancel_button);
+
+        // the user cancels the image selection
+        mImagePreviewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mPendingImageUrl = null;
+                mPendingImediaUrl = null;
+                mPendingMimeType = null;
+                manageSendMoreButtons();
+            }
+        });
+
         manageSendMoreButtons();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+
+        if (null != mPendingImageUrl) {
+            savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingImageUrl);
+        }
+
+        if (null != mPendingImediaUrl) {
+            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingImediaUrl);
+        }
+
+        if (null != mPendingMimeType) {
+            savedInstanceState.putString(PENDING_MIMETYPE, mPendingMimeType);
+        }
     }
 
     /**
@@ -371,9 +448,17 @@ public class RoomActivity extends MXCActionBarActivity {
      */
     private void manageSendMoreButtons() {
         boolean hasText = mEditText.getText().length() > 0;
+        boolean hasPreviewedMedia = (null != mPendingImageUrl);
 
-        mSendButton.setVisibility(hasText ? View.VISIBLE : View.INVISIBLE);
-        mAttachmentButton.setVisibility(hasText ? View.INVISIBLE : View.VISIBLE);
+        if (hasPreviewedMedia) {
+            ConsoleMediasCache.loadBitmap(mImagePreviewView, mPendingImageUrl, 0, mPendingMimeType);
+        }
+
+        mImagePreviewLayout.setVisibility(hasPreviewedMedia ? View.VISIBLE : View.GONE);
+        mEditText.setVisibility(hasPreviewedMedia ? View.INVISIBLE : View.VISIBLE);
+
+        mSendButton.setVisibility((hasText || hasPreviewedMedia) ? View.VISIBLE : View.INVISIBLE);
+        mAttachmentButton.setVisibility((hasText || hasPreviewedMedia)  ? View.INVISIBLE : View.VISIBLE);
     }
 
     @Override
@@ -555,6 +640,8 @@ public class RoomActivity extends MXCActionBarActivity {
      */
     private void sendMedias(ArrayList<Uri> mediaUris) {
 
+        final int mediaCount = mediaUris.size();
+
         for(Uri anUri : mediaUris) {
             final Uri mediaUri = anUri;
 
@@ -663,7 +750,18 @@ public class RoomActivity extends MXCActionBarActivity {
 
                         // is the image content valid ?
                         if (isManaged  && (null != thumbnailURL)) {
-                            mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+
+                            // if there is only one image
+                            if (mediaCount == 1) {
+                                // display an image preview before sending it
+                                mPendingImageUrl = thumbnailURL;
+                                mPendingImediaUrl = mediaUrl;
+                                mPendingMimeType = mimeType;
+
+                                manageSendMoreButtons();
+                            } else {
+                                mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+                            }
                         }
                     }
 

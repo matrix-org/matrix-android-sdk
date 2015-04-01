@@ -43,17 +43,50 @@
             android:layout_alignParentRight="true"
             android:contentDescription="@string/send"/>
 
-        <EditText
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:hint="Type here..."
-            android:id="@+id/editText_messageBox"
-            android:layout_alignParentBottom="true"
+
+        <RelativeLayout
             android:layout_toLeftOf="@id/button_send"
-            android:layout_centerHorizontal="true"/>
+            android:layout_alignParentBottom="true"
+            android:id="@+id/editText_messageBox_layout"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:hint="Type here..."
+                android:id="@+id/editText_messageBox"
+                android:layout_centerHorizontal="true"/>
+
+            <LinearLayout
+                android:id="@+id/room_image_preview_layout"
+                android:background="@drawable/black_border"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <ImageButton
+                    android:id="@+id/room_image_preview_cancel_button"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/ic_material_clear"/>
+
+                <ImageView
+                    android:layout_marginTop="10dp"
+                    android:layout_marginRight="5dp"
+                    android:layout_marginBottom="10dp"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/room_image_preview"/>
+                </LinearLayout>
+
+        </RelativeLayout>
 
         <LinearLayout
-            android:layout_above="@id/editText_messageBox"
+            android:layout_above="@id/editText_messageBox_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/anchor_fragment_messages"
