@@ -5,7 +5,7 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
-    <ListView
+    <org.matrix.matrixandroidsdk.view.AutoScrollDownListView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/listView_messages"
