@@ -44,7 +44,8 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
  * A foreground service in charge of controlling whether the event stream is running or not.
  */
 public class EventStreamService extends Service {
-    public static enum StreamAction {
+
+    public enum StreamAction {
         UNKNOWN,
         STOP,
         START,
