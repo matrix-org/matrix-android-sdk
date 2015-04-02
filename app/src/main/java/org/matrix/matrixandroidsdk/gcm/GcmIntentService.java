@@ -57,6 +57,6 @@ public class GcmIntentService extends IntentService {
         Notification n = NotificationUtils.buildMessageNotification(this, from, body, roomId, roomName, true);
         NotificationManager nm =(NotificationManager) GcmIntentService.this
                 .getSystemService(Context.NOTIFICATION_SERVICE);
-        nm.notify(MSG_NOTIFICATION_ID, n);
+        nm.notify(roomId, MSG_NOTIFICATION_ID, n);
     }
 }

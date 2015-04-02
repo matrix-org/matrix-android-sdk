@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.RemoteInput;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.TextUtils;
 
@@ -19,6 +20,10 @@ public class NotificationUtils {
 
     public static final String QUICK_LAUNCH_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.QUICK_LAUNCH_ACTION";
     public static final String TAP_TO_VIEW_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.TAP_TO_VIEW_ACTION";
+    public static final String CAR_VOICE_REPLY_KEY = "org.matrix.matrixandroidsdk.services.EventStreamService.CAR_VOICE_REPLY_KEY" ;
+    public static final String ACTION_MESSAGE_HEARD = "org.matrix.matrixandroidsdk.ACTION_MESSAGE_HEARD";
+    public static final String ACTION_MESSAGE_REPLY = "org.matrix.matrixandroidsdk.ACTION_MESSAGE_REPLY";
+    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOME_ID";
 
     public static Notification buildMessageNotification(
             Context context, String from, String body, String roomId, String roomName,
@@ -84,6 +89,8 @@ public class NotificationUtils {
                     stackBuildertap.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
         }
 
+        extendForCar(context, builder, roomId, roomName, from, body);
+
         Notification n = builder.build();
         n.flags |= Notification.FLAG_SHOW_LIGHTS;
         n.defaults |= Notification.DEFAULT_LIGHTS;
@@ -92,6 +99,51 @@ public class NotificationUtils {
             n.defaults |= Notification.DEFAULT_SOUND;
         }
         return n;
+    }
+
+    private static void extendForCar(Context context, NotificationCompat.Builder builder, String roomId, String roomName, String from, String body) {
+        // send message to car if connected
+        {
+            int carConversationId = roomId.hashCode();
+            Intent msgHeardIntent = new Intent()
+                    .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                    .setAction(ACTION_MESSAGE_HEARD)
+                    .putExtra(EXTRA_ROOM_ID, roomId);
+
+            PendingIntent msgHeardPendingIntent =
+                    PendingIntent.getBroadcast(context,
+                            carConversationId,
+                            msgHeardIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT);
+
+            Intent msgReplyIntent = new Intent()
+                    .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                    .setAction(ACTION_MESSAGE_REPLY)
+                    .putExtra(EXTRA_ROOM_ID, roomId);
+
+            PendingIntent msgReplyPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    carConversationId,
+                    msgReplyIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+
+            // Build a RemoteInput for receiving voice input in a Car Notification
+            RemoteInput remoteInput = new RemoteInput.Builder(CAR_VOICE_REPLY_KEY)
+                    .setLabel(context.getString(R.string.action_quick_reply))
+                    .build();
+
+            // Create an unread conversation object to organize a group of messages
+            // from a room.
+            NotificationCompat.CarExtender.UnreadConversation.Builder unreadConvBuilder =
+                    new NotificationCompat.CarExtender.UnreadConversation.Builder(roomName)
+                            .setReadPendingIntent(msgHeardPendingIntent)
+                            .setReplyAction(msgReplyPendingIntent, remoteInput);
+
+            unreadConvBuilder.addMessage(context.getString(R.string.user_says_body, from, body))
+                    .setLatestTimestamp(System.currentTimeMillis());
+            builder.extend(new NotificationCompat.CarExtender()
+                    .setUnreadConversation(unreadConvBuilder.build()));
+        }
     }
 
     private NotificationUtils() {}

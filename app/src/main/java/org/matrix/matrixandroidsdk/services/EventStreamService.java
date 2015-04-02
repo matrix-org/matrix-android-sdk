@@ -31,6 +31,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -44,7 +45,8 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
  * A foreground service in charge of controlling whether the event stream is running or not.
  */
 public class EventStreamService extends Service {
-    public static enum StreamAction {
+
+    public enum StreamAction {
         UNKNOWN,
         STOP,
         START,
@@ -92,6 +94,17 @@ public class EventStreamService extends Service {
     }
 
     private MXEventListener mListener = new MXEventListener() {
+
+        @Override
+        public void onLiveEvent(final Event event, final RoomState roomState) {
+            super.onLiveEvent(event, roomState);
+            Log.i(LOG_TAG, "onLiveEvent >>>> " + event);
+        }
+
+        @Override
+        public void onPresenceUpdate(final Event event, final User user) {
+            Log.i(LOG_TAG, "onPresenceUpdate >>>> " + event);
+        }
 
         @Override
         public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
@@ -148,7 +161,7 @@ public class EventStreamService extends Service {
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
-            nm.notify(MSG_NOTIFICATION_ID, n);
+            nm.notify(event.roomId, MSG_NOTIFICATION_ID, n);
         }
 
         @Override

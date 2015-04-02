@@ -124,7 +124,17 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name="org.matrix.matrixandroidsdk.car.CarBroadcastReceiver">
+            <intent-filter>
+                <action android:name="org.matrix.matrixandroidsdk.ACTION_MESSAGE_HEARD" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.matrix.matrixandroidsdk.ACTION_MESSAGE_REPLY" />
+            </intent-filter>
+        </receiver>
+
         <service android:name=".gcm.GcmIntentService" />
+
         <service android:name="org.matrix.matrixandroidsdk.services.EventStreamService" />
 
         <provider
@@ -132,6 +142,9 @@
             android:name="org.matrix.matrixandroidsdk.db.ConsoleContentProvider"
             android:exported="true" />
 
+        <meta-data
+          android:name="com.google.android.gms.car.application"
+          android:resource="@xml/automotive_app_desc" />
     </application>
 
 </manifest>
