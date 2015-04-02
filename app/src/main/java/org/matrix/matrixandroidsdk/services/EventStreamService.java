@@ -31,7 +31,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -94,17 +93,6 @@ public class EventStreamService extends Service {
     }
 
     private MXEventListener mListener = new MXEventListener() {
-
-        @Override
-        public void onLiveEvent(final Event event, final RoomState roomState) {
-            super.onLiveEvent(event, roomState);
-            Log.i(LOG_TAG, "onLiveEvent >>>> " + event);
-        }
-
-        @Override
-        public void onPresenceUpdate(final Event event, final User user) {
-            Log.i(LOG_TAG, "onPresenceUpdate >>>> " + event);
-        }
 
         @Override
         public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
