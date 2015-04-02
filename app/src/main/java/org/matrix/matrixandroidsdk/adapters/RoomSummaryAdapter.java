@@ -130,7 +130,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public void notifyDataSetChanged() {
-        mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
+    // sanity check
+    // ensure that the client is not logged out before refreshing the UI
+    // the refresh could have been triggered with delay after a logout
+    if (!Matrix.hasValidValidSession()) {
+        return;
+    }
+
+    mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
         mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
 
         // there is a pattern to search

@@ -173,6 +173,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public void notifyDataSetChanged() {
+        // sanity check
+        // ensure that the client is not logged out before refreshing the UI
+        // the refresh could have been triggered with delay after a logout
+        if (!Matrix.hasValidValidSession()) {
+            return;
+        }
+
         super.notifyDataSetChanged();
     }
 

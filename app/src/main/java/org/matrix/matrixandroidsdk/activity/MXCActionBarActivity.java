@@ -51,6 +51,8 @@ public class MXCActionBarActivity extends ActionBarActivity {
     protected ListView mDrawerList;
     protected ActionBarDrawerToggle mDrawerToggle;
 
+    protected int mSelectedSlidingMenuIndex = -1;
+
     @Override
     public void startActivity(Intent intent) {
         super.startActivity(intent);
@@ -198,9 +200,14 @@ public class MXCActionBarActivity extends ActionBarActivity {
             ) {
 
                 public void onDrawerClosed(View view) {
+                    if (mSelectedSlidingMenuIndex >= 0) {
+                        selectDrawItem(mSelectedSlidingMenuIndex);
+                        mSelectedSlidingMenuIndex = -1;
+                    }
                 }
 
                 public void onDrawerOpened(View drawerView) {
+                    mSelectedSlidingMenuIndex = -1;
                     dismissKeyboard(thisApp);
                 }
             };
@@ -240,15 +247,17 @@ public class MXCActionBarActivity extends ActionBarActivity {
      * @param position selected menu entry
      */
     protected void selectDrawItem(int position) {
-        // Highlight the selected item, update the title, and close the drawer
-        mDrawerList.setItemChecked(position, true);
-        mDrawerLayout.closeDrawer(mDrawerList);
     }
 
     private class DrawerItemClickListener implements ListView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView parent, View view, int position, long id) {
-            selectDrawItem(position);
+            // wait that the activity sliding animation is done
+            // before performing the dedicated task
+            // 1- because it triggers weird UI effect
+            // 2- the application used to crash when logging out because adapter was refreshed with a null MXSession.
+            mSelectedSlidingMenuIndex = position;
+            mDrawerLayout.closeDrawer(mDrawerList);
         }
     }
 }

@@ -59,6 +59,14 @@ public class Matrix {
     }
 
     /**
+     *
+     * @return true if the matrix client instance defines a valid session
+     */
+    public static Boolean hasValidValidSession() {
+        return (null != instance) && (null != instance.mDefaultSession);
+    }
+
+    /**
      * Clears the default session and the login credentials.
      */
     public synchronized void clearDefaultSessionAndCredentials() {

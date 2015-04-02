@@ -33,6 +33,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
@@ -201,6 +202,18 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                 break;
             }
         }
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        // sanity check
+        // ensure that the client is not logged out before refreshing the UI
+        // the refresh could have been triggered with delay after a logout
+        if (!Matrix.hasValidValidSession()) {
+            return;
+        }
+
+        super.notifyDataSetChanged();
     }
 
     @Override
