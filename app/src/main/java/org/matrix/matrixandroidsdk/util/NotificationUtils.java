@@ -23,7 +23,7 @@ public class NotificationUtils {
     public static final String CAR_VOICE_REPLY_KEY = "org.matrix.matrixandroidsdk.services.EventStreamService.CAR_VOICE_REPLY_KEY" ;
     public static final String ACTION_MESSAGE_HEARD = "org.matrix.matrixandroidsdk.ACTION_MESSAGE_HEARD";
     public static final String ACTION_MESSAGE_REPLY = "org.matrix.matrixandroidsdk.ACTION_MESSAGE_REPLY";
-    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOME_ID";
+    public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOM_ID";
 
     public static Notification buildMessageNotification(
             Context context, String from, String body, String roomId, String roomName,

@@ -30,6 +30,10 @@ public class CarBroadcastReceiver extends BroadcastReceiver {
             final CharSequence reply = getMessageText(intent);
 
             final MXSession session = Matrix.getInstance(context).getDefaultSession();
+            if (session == null) {
+                return;
+            }
+
             final Room room = session.getDataHandler().getRoom(roomId);
             final Message message = new Message();
             message.body = reply.toString();
@@ -45,17 +49,17 @@ public class CarBroadcastReceiver extends BroadcastReceiver {
 
                 @Override
                 public void onNetworkError(final Exception e) {
-                    Log.d(TAG, "sending reply failed!", e);
+                    Log.e(TAG, "sending reply failed!", e);
                 }
 
                 @Override
                 public void onMatrixError(final MatrixError e) {
-                    Log.d(TAG, "sending reply failed with matrix error " + e.errcode + " " + e.error);
+                    Log.e(TAG, "sending reply failed with matrix error " + e.errcode + " " + e.error);
                 }
 
                 @Override
                 public void onUnexpectedError(final Exception e) {
-                    Log.d(TAG, "sending reply failed!", e);
+                    Log.e(TAG, "sending reply failed!", e);
                 }
             });
         }

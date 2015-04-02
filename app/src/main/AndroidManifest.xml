@@ -127,8 +127,6 @@
         <receiver android:name="org.matrix.matrixandroidsdk.car.CarBroadcastReceiver">
             <intent-filter>
                 <action android:name="org.matrix.matrixandroidsdk.ACTION_MESSAGE_HEARD" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="org.matrix.matrixandroidsdk.ACTION_MESSAGE_REPLY" />
             </intent-filter>
         </receiver>
