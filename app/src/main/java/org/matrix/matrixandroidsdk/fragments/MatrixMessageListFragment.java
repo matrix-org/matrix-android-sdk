@@ -29,6 +29,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -53,6 +54,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
+import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
 import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
@@ -100,6 +102,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MXSession mSession;
     private Room mRoom;
     private boolean mDisplayAllEvents = true;
+    private boolean mCheckSlideToHide = false;
 
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
@@ -145,6 +148,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
+        mMessageListView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                // the user scroll over the keyboard
+                // hides the keyboard
+                if (mCheckSlideToHide && (event.getY() > mMessageListView.getHeight())) {
+                    mCheckSlideToHide = false;
+                    MXCActionBarActivity.dismissKeyboard(getActivity());
+                }
+
+                return false;
+            }
+        });
+
         mAdapter.setMessagesAdapterClickListener(new MessagesAdapter.MessagesAdapterClickListener() {
             @Override
             public void onItemClick(int position) {
@@ -182,6 +199,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
+                mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
+
                 //check only when the user scrolls the content
                 if  (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
                     int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
