@@ -25,11 +25,13 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -758,6 +760,8 @@ public class RoomActivity extends MXCActionBarActivity {
                                 mPendingImediaUrl = mediaUrl;
                                 mPendingMimeType = mimeType;
 
+                                mMatrixMessageListFragment.scrollToBottom();
+
                                 manageSendMoreButtons();
                             } else {
                                 mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
@@ -772,7 +776,27 @@ public class RoomActivity extends MXCActionBarActivity {
                         try {
                             ContentResolver resolver = getContentResolver();
                             List uriPath = mediaUri.getPathSegments();
-                            filename = (String)uriPath.get(uriPath.size() - 1);
+                            filename = "";
+
+                            if (mediaUri.toString().startsWith("content://")) {
+                                Cursor cursor = null;
+                                try {
+                                    cursor = RoomActivity.this.getContentResolver().query(mediaUri, null, null, null, null);
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                    }
+                                } catch (Exception e) {
+
+                                }
+                                finally {
+                                    cursor.close();
+                                }
+
+                                if (filename.length() == 0) {
+                                    filename = (String)uriPath.get(uriPath.size() - 1);
+                                }
+                            }
+
                         } catch (Exception e) {
 
                         }

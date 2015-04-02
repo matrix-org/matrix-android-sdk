@@ -216,6 +216,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_TEXT, body);
     }
 
+    public void scrollToBottom() {
+        mMessageListView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mMessageListView.setSelection(mAdapter.getCount() - 1);
+            }
+        }, 300);
+    }
+
     // create a dummy message row for the message
     // It is added to the Adapter
     // return the created Message
@@ -225,6 +234,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
+        scrollToBottom();
 
         return messageRow;
     }
