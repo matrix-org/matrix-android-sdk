@@ -379,6 +379,15 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
+        mEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    mMatrixMessageListFragment.scrollToBottom();
+                }
+            }
+        });
+
         // make sure we're logged in.
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {
