@@ -102,48 +102,46 @@ public class NotificationUtils {
     }
 
     private static void extendForCar(Context context, NotificationCompat.Builder builder, String roomId, String roomName, String from, String body) {
-        // send message to car if connected
-        {
-            int carConversationId = roomId.hashCode();
-            Intent msgHeardIntent = new Intent()
-                    .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-                    .setAction(ACTION_MESSAGE_HEARD)
-                    .putExtra(EXTRA_ROOM_ID, roomId);
+        int carConversationId = roomId.hashCode();
+        Intent msgHeardIntent = new Intent()
+                .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                .setAction(ACTION_MESSAGE_HEARD)
+                .putExtra(EXTRA_ROOM_ID, roomId);
 
-            PendingIntent msgHeardPendingIntent =
-                    PendingIntent.getBroadcast(context,
-                            carConversationId,
-                            msgHeardIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent msgHeardPendingIntent =
+                PendingIntent.getBroadcast(context,
+                        carConversationId,
+                        msgHeardIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT);
 
-            Intent msgReplyIntent = new Intent()
-                    .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-                    .setAction(ACTION_MESSAGE_REPLY)
-                    .putExtra(EXTRA_ROOM_ID, roomId);
+        Intent msgReplyIntent = new Intent()
+                .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                .setAction(ACTION_MESSAGE_REPLY)
+                .putExtra(EXTRA_ROOM_ID, roomId);
 
-            PendingIntent msgReplyPendingIntent = PendingIntent.getBroadcast(
-                    context,
-                    carConversationId,
-                    msgReplyIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent msgReplyPendingIntent = PendingIntent.getBroadcast(
+                context,
+                carConversationId,
+                msgReplyIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
 
-            // Build a RemoteInput for receiving voice input in a Car Notification
-            RemoteInput remoteInput = new RemoteInput.Builder(CAR_VOICE_REPLY_KEY)
-                    .setLabel(context.getString(R.string.action_quick_reply))
-                    .build();
+        // Build a RemoteInput for receiving voice input in a Car Notification
+        RemoteInput remoteInput = new RemoteInput.Builder(CAR_VOICE_REPLY_KEY)
+                .setLabel(context.getString(R.string.action_quick_reply))
+                .build();
 
-            // Create an unread conversation object to organize a group of messages
-            // from a room.
-            NotificationCompat.CarExtender.UnreadConversation.Builder unreadConvBuilder =
-                    new NotificationCompat.CarExtender.UnreadConversation.Builder(roomName)
-                            .setReadPendingIntent(msgHeardPendingIntent)
-                            .setReplyAction(msgReplyPendingIntent, remoteInput);
+        // Create an unread conversation object to organize a group of messages
+        // from a room.
+        NotificationCompat.CarExtender.UnreadConversation.Builder unreadConvBuilder =
+                new NotificationCompat.CarExtender.UnreadConversation.Builder(roomName)
+                        .setReadPendingIntent(msgHeardPendingIntent)
+                        .setReplyAction(msgReplyPendingIntent, remoteInput);
 
-            unreadConvBuilder.addMessage(context.getString(R.string.user_says_body, from, body))
-                    .setLatestTimestamp(System.currentTimeMillis());
-            builder.extend(new NotificationCompat.CarExtender()
-                    .setUnreadConversation(unreadConvBuilder.build()));
-        }
+        unreadConvBuilder.addMessage(context.getString(R.string.user_says_body, from, body))
+                .setLatestTimestamp(System.currentTimeMillis());
+        builder.extend(new NotificationCompat.CarExtender()
+                .setUnreadConversation(unreadConvBuilder.build()));
+
     }
 
     private NotificationUtils() {}

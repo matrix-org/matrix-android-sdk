@@ -161,7 +161,7 @@ public class EventStreamService extends Service {
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
-            nm.notify(event.roomId, MSG_NOTIFICATION_ID, n);
+            nm.notify(MSG_NOTIFICATION_ID, n);
         }
 
         @Override
