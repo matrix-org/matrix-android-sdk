@@ -7,7 +7,6 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_gravity="left"
-        android:scaleType="fitStart"
         android:layout_marginTop="20dp"
         android:id="@+id/adapter_drawer_header_image"
         android:src="@drawable/logo_large"/>
