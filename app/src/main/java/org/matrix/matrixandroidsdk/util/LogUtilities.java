@@ -46,6 +46,10 @@ public class LogUtilities {
                 "-d",
                 "-v",
                 "threadtime",
+                "Retrofit:S",
+                "ProgressBar:S",
+                "AbsListView:S",
+                "dalvikvm:S",
                 "*:*"
     };
 
