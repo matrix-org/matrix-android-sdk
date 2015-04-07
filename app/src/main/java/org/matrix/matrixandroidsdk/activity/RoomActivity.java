@@ -134,6 +134,8 @@ public class RoomActivity extends MXCActionBarActivity {
     private TimerTask mTypingTimerTask;
     private long  mLastTypingDate = 0;
 
+    private Boolean mIgnoreTextUpdate = false;
+
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
             R.string.action_room_info,
@@ -357,9 +359,15 @@ public class RoomActivity extends MXCActionBarActivity {
 
         mEditText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
-                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
-                handleTypingNotification(mEditText.getText().length() != 0);
-                manageSendMoreButtons();
+                String textInPlace = ConsoleLatestChatMessageCache.getLatestText(RoomActivity.this, mRoom.getRoomId());
+
+                // check if there is really an update
+                // avoid useless updates (initializations..)
+                if (!mIgnoreTextUpdate && !textInPlace.equals(mEditText.getText().toString())) {
+                    ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
+                    handleTypingNotification(mEditText.getText().length() != 0);
+                    manageSendMoreButtons();
+                }
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -483,9 +491,11 @@ public class RoomActivity extends MXCActionBarActivity {
 
         String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
 
-        if (!cachedText.equals(mEditText.getText())) {
+        if (!cachedText.equals(mEditText.getText().toString())) {
+            mIgnoreTextUpdate = true;
             mEditText.setText("");
             mEditText.append(cachedText);
+            mIgnoreTextUpdate = false;
         }
     }
 
