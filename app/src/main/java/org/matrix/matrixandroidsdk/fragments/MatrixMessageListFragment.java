@@ -465,22 +465,36 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    mAdapter.waitForEcho(messageRow);
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread (
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    mAdapter.waitForEcho(messageRow);
+                                }
+                            }
+                    );
                 }
 
-                private void commonFailure(Event event) {
-                    // display the error message only if the message cannot be resent
-                    if ((null != event.unsentException) && (event.isUndeliverable())) {
-                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    } else if (null != event.unsentMatrixError) {
-                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
-                    }
+                private void commonFailure(final Event event) {
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread(
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    // display the error message only if the message cannot be resent
+                                    if ((null != event.unsentException) && (event.isUndeliverable())) {
+                                        if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        }
+                                    } else if (null != event.unsentMatrixError) {
+                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                                    }
 
-                    mAdapter.notifyDataSetChanged();
+                                    mAdapter.notifyDataSetChanged();
+                                }
+                            }
+                    );
                 }
 
                 @Override
