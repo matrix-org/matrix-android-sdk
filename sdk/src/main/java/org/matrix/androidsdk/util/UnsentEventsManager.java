@@ -79,6 +79,8 @@ public class UnsentEventsManager {
         // the retry is in progress
         public Boolean mIsResending = false;
 
+        public String mEventDescription = null;
+
         /**
          *
          * @return true if the message can be resent
@@ -94,12 +96,21 @@ public class UnsentEventsManager {
         public void resendEventAfter(int delayMs) {
             stopTimer();
 
+            if (null != mEventDescription) {
+                Log.d(LOG_TAG, "Resend after " + delayMs + " [" +  mEventDescription + "]");
+            }
+
             mAutoResendTimer = new Timer();
             mAutoResendTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     try {
                         UnsentEventSnapshot.this.mIsResending = true;
+
+                        if (null != mEventDescription) {
+                            Log.d(LOG_TAG, "Resend [" +  mEventDescription + "]");
+                        }
+
                         mRequestRetryCallBack.onRetry();
                     } catch (Exception e) {
                     }
@@ -167,6 +178,10 @@ public class UnsentEventsManager {
             }
 
             if (null != snapshot) {
+                if (null != snapshot.mEventDescription) {
+                    Log.d(LOG_TAG, "Resend Succeeded [" +  snapshot.mEventDescription + "]");
+                }
+
                 snapshot.stopTimers();
 
                 synchronized (mUnsentEventsMap) {
@@ -196,17 +211,20 @@ public class UnsentEventsManager {
     /**
      * The event failed to be sent and cannot be resent.
      * It triggers the error callbacks.
+     * @param eventDescription the event description
      * @param error the retrofit error
      * @param callback the callback.
      */
-    public static void triggerErrorCallback(RetrofitError error, ApiCallback callback) {
-
+    public static void triggerErrorCallback(String eventDescription, RetrofitError error, ApiCallback callback) {
         if (null != error) {
             Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
         }
 
         if (null == error) {
             try {
+                if (null != eventDescription) {
+                    Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
+                }
                 callback.onUnexpectedError(error);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
@@ -214,6 +232,9 @@ public class UnsentEventsManager {
         }
         else if (error.isNetworkError()) {
             try {
+                if (null != eventDescription) {
+                    Log.e(LOG_TAG, "Network Error " + eventDescription);
+                }
                 callback.onNetworkError(error);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
@@ -230,6 +251,10 @@ public class UnsentEventsManager {
             }
             if (mxError != null) {
                 try {
+                    if (null != eventDescription) {
+                        Log.e(LOG_TAG, "Matrix Error " + mxError + " " + eventDescription);
+                    }
+
                     callback.onMatrixError(mxError);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
@@ -237,6 +262,10 @@ public class UnsentEventsManager {
             }
             else {
                 try {
+                    if (null != eventDescription) {
+                        Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
+                    }
+
                     callback.onUnexpectedError(error);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
@@ -247,12 +276,17 @@ public class UnsentEventsManager {
 
     /**
      * warns that an event failed to be sent.
+     * @paral eventDescription the event description
      * @param retrofitError the retrofit error .
      * @param apiCallback the apiCallback.
      * @param requestRetryCallBack requestRetryCallBack.
      */
-    public void onEventSendingFailed(final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
+    public void onEventSendingFailed(final String eventDescription,  final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
         boolean isManaged = false;
+
+        if (null != eventDescription) {
+            Log.d(LOG_TAG, "Fail to send [" +  eventDescription + "]");
+        }
 
         if ((null != requestRetryCallBack) && (null != apiCallback)) {
             synchronized (mUnsentEventsMap) {
@@ -295,6 +329,10 @@ public class UnsentEventsManager {
                             mUnsentEventsMap.remove(apiCallback);
                             mUnsentEvents.remove(snapshot);
 
+                            if (null != eventDescription) {
+                                Log.d(LOG_TAG, "Cancel [" +  eventDescription + "]");
+                            }
+
                             isManaged = false;
                         } else {
                             isManaged = true;
@@ -307,6 +345,7 @@ public class UnsentEventsManager {
                         snapshot.mRetrofitError = retrofitError;
                         snapshot.mRequestRetryCallBack = requestRetryCallBack;
                         snapshot.mRetryCount = 1;
+                        snapshot.mEventDescription = eventDescription;
                         mUnsentEventsMap.put(apiCallback, snapshot);
                         mUnsentEvents.add(snapshot);
 
@@ -317,13 +356,18 @@ public class UnsentEventsManager {
                             @Override
                             public void run() {
                                 try {
+
+                                    if (null != eventDescription) {
+                                        Log.d(LOG_TAG, "Cancel to send [" +  eventDescription + "]");
+                                    }
+
                                     fSnapshot.stopTimers();
                                     synchronized (mUnsentEventsMap) {
                                         mUnsentEventsMap.remove(apiCallback);
                                         mUnsentEvents.remove(fSnapshot);
                                     }
 
-                                    triggerErrorCallback(retrofitError, apiCallback);
+                                    triggerErrorCallback(eventDescription, retrofitError, apiCallback);
                                 } catch (Exception e) {
                                 }
                             }
@@ -344,7 +388,7 @@ public class UnsentEventsManager {
         }
 
         if (!isManaged) {
-            triggerErrorCallback(retrofitError, apiCallback);
+            triggerErrorCallback(eventDescription, retrofitError, apiCallback);
         }
     }
 
@@ -352,6 +396,8 @@ public class UnsentEventsManager {
      * check if some messages must be resent
      */
     private void resentUnsents() {
+        Log.d(LOG_TAG, "resentUnsents");
+
         synchronized (mUnsentEventsMap) {
             if (mUnsentEvents.size() > 0) {
                 try {
@@ -361,6 +407,11 @@ public class UnsentEventsManager {
 
                         // don't resend an unsent event
                         if (unsentEventSnapshot.canBeResent()) {
+
+                            if (null != unsentEventSnapshot.mEventDescription) {
+                                Log.d(LOG_TAG, "Automatically resend " + unsentEventSnapshot.mEventDescription);
+                            }
+
                             unsentEventSnapshot.mIsResending = true;
                             unsentEventSnapshot.mRequestRetryCallBack.onRetry();
                             break;

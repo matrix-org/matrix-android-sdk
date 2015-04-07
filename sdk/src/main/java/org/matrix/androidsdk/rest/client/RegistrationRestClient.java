@@ -51,11 +51,13 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * @param callback the callback success and failure callback
      */
     public void registerWithPassword(String user, String password, final ApiCallback<Credentials> callback) {
+        final String description = "registerWithPassword user : " + user;
+
         PasswordLoginParams params = new PasswordLoginParams();
         params.user = user;
         params.password = password;
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(mUnsentEventsManager, callback, null) {
+        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);

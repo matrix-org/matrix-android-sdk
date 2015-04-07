@@ -58,7 +58,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback callback to provide the list of public rooms on success
      */
     public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
-        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        final String description = "loadPublicRooms";
+
+        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 loadPublicRooms(callback);
@@ -76,7 +78,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback callback to provide the information
      */
     public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
-        mApi.initialSync(10, new RestAdapterCallback<InitialSyncResponse>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        final String description = "initialSync";
+
+        mApi.initialSync(10, new RestAdapterCallback<InitialSyncResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 initialSync(callback);

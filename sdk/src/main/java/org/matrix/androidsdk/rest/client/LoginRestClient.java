@@ -52,11 +52,13 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithPassword(final String user, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPassword user : " + user;
+
         PasswordLoginParams params = new PasswordLoginParams();
         params.user = user;
         params.password = password;
 
-        mApi.login(params, new RestAdapterCallback<JsonObject>(mUnsentEventsManager, callback,
+        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override

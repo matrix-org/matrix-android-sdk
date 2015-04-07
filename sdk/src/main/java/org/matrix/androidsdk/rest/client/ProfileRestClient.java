@@ -42,7 +42,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback to return the name on success
      */
     public void displayname(final String userId, final ApiCallback<String> callback) {
-        mApi.displayname(userId, new RestAdapterCallback<User>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        final String description = "displayname userId : " + userId;
+
+        mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 displayname(userId, callback);
@@ -61,12 +63,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback if the call succeeds
      */
     public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
+        final String description = "updateDisplayname newName : " + newName;
+
         User user = new User();
         user.displayname = newName;
 
         // don't retry if the network comes back
         // let the user chooses what he want to do
-        mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 updateDisplayname(newName, callback);
@@ -80,7 +84,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback to return the URL on success
      */
     public void avatarUrl(final String userId, final ApiCallback<String> callback) {
-        mApi.avatarUrl(userId, new RestAdapterCallback<User>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        final String description = "avatarUrl userId : " + userId;
+
+        mApi.avatarUrl(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 avatarUrl(userId, callback);
@@ -99,10 +105,12 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback if the call succeeds
      */
     public void updateAvatarUrl(final String newUrl, final ApiCallback<Void> callback) {
+        final String description = "updateAvatarUrl newUrl : " + newUrl;
+
         User user = new User();
         user.avatarUrl = newUrl;
 
-        mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 updateAvatarUrl(newUrl, callback);

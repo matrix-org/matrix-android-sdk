@@ -465,7 +465,7 @@ public class ContentManager {
                 if ((null != mFailureException) && ((mFailureException instanceof UnknownHostException) || (mFailureException instanceof SSLException))) {
                     mResponseFromServer = s;
                     // public void onEventSendingFailed(final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
-                    mUnsentEventsManager.onEventSendingFailed(null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
+                    mUnsentEventsManager.onEventSendingFailed(null, null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
                         @Override
                         public void onRetry() {
                             try {

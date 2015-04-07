@@ -38,6 +38,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
         public void onRetry();
     }
 
+    private String mEventDescription;
     private ApiCallback mApiCallback;
     private RequestRetryCallBack mRequestRetryCallBack;
     private UnsentEventsManager mUnsentEventsManager;
@@ -49,7 +50,12 @@ public class RestAdapterCallback<T> implements Callback<T> {
         this.mUnsentEventsManager = null;
     }
 
-    public RestAdapterCallback(UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
+    public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
+        if (null != description) {
+            Log.d(LOG_TAG, "Trigger the event [" + description + "]");
+        }
+
+        this.mEventDescription = description;
         this.mApiCallback = apiCallback;
         this.mRequestRetryCallBack = requestRetryCallBack;
         this.mUnsentEventsManager = unsentEventsManager;
@@ -57,6 +63,10 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     @Override
     public void success(T t, Response response) {
+        if (null != mEventDescription) {
+            Log.d(LOG_TAG, "Succeed : [" + mEventDescription + "]");
+        }
+
         // add try catch to prevent application crashes while managing destroyed object
         try {
             if (null != mUnsentEventsManager) {
@@ -74,8 +84,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
      */
     @Override
     public void failure(RetrofitError error) {
+        if (null != mEventDescription) {
+            Log.d(LOG_TAG, "Failed : [" + mEventDescription + "]");
+        }
+
         if (null != mUnsentEventsManager) {
-            mUnsentEventsManager.onEventSendingFailed(error, mApiCallback, mRequestRetryCallBack);
+            Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
+            mUnsentEventsManager.onEventSendingFailed(mEventDescription, error, mApiCallback, mRequestRetryCallBack);
         } else {
             if (error.isNetworkError()) {
                 try {
