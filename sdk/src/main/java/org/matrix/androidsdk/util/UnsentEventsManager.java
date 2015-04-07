@@ -46,7 +46,7 @@ public class UnsentEventsManager {
 
     // Some matrix errors could have been triggered.
     // Assume that the server requires some delays because of internal issues
-    static List<Integer> AUTO_RESENT_MS_DELAYS =  Arrays.asList(1 * 1000, 10 * 1000, 20 * 1000);
+    static List<Integer> AUTO_RESENT_MS_DELAYS =  Arrays.asList(1 * 1000, 5 * 1000, 10 * 1000);
 
     // perform only MAX_RETRIES retries
     static int MAX_RETRIES = 3;
@@ -304,8 +304,10 @@ public class UnsentEventsManager {
                             public void run() {
                                 try {
                                     fSnapshot.stopTimers();
-                                    mUnsentEventsMap.remove(apiCallback);
-                                    mUnsentEvents.remove(fSnapshot);
+                                    synchronized (mUnsentEventsMap) {
+                                        mUnsentEventsMap.remove(apiCallback);
+                                        mUnsentEvents.remove(fSnapshot);
+                                    }
 
                                     triggerErrorCallback(retrofitError, apiCallback);
                                 } catch (Exception e) {
