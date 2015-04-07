@@ -40,16 +40,21 @@ public class LogUtilities {
              "DEBUG:V " + ///< All DEBUG logging - which includes native land crashes (seg faults, etc)
              "*:S" ///< Everything else silent, so don't pick it..
              };
+
+    public static final String[]  LOGCAT_CMD_DEBUG = new String[] {
+                "logcat",
+                "-d",
+                "-v",
+                "threadtime",
+                "*:*"
+    };
+
     private static final int BUFFER_SIZE = 1024;
 
-    /**
-     *
-     * @return the logcat error
-     */
-    public static String getLogCat() {
+    private static String getLog(String[] cmd) {
         Process logcatProc = null;
         try {
-            logcatProc = Runtime.getRuntime().exec(LOGCAT_CMD);
+            logcatProc = Runtime.getRuntime().exec(cmd);
         }
         catch (IOException e1) {
             return null;
@@ -78,7 +83,18 @@ public class LogUtilities {
                 catch (IOException e) {}
             }
         }
-
         return response;
+    }
+
+    /**
+     *
+     * @return the logcat error
+     */
+    public static String getLogCatError() {
+        return getLog(LOGCAT_CMD);
+    }
+
+    public static String getLogCatDebug() {
+        return getLog(LOGCAT_CMD_DEBUG);
     }
 }
