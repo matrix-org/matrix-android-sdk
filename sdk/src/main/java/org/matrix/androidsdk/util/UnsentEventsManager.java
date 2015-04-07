@@ -56,6 +56,8 @@ public class UnsentEventsManager {
     private HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<Object, UnsentEventSnapshot>();
     // get the sending order
     private ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<UnsentEventSnapshot>();
+    // true of the device is connected to a data network
+    private boolean mbIsConnected = false;
 
     /**
      * storage class
@@ -78,7 +80,8 @@ public class UnsentEventsManager {
         public Timer mLifeTimeTimer = null;
         // the retry is in progress
         public Boolean mIsResending = false;
-
+        // human description of the event
+        // The snapshot creator can hide some fields
         public String mEventDescription = null;
 
         /**
@@ -156,6 +159,8 @@ public class UnsentEventsManager {
         mNetworkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
+                mbIsConnected = isConnected;
+
                 if (isConnected) {
                     resentUnsents();
                 }
@@ -378,8 +383,13 @@ public class UnsentEventsManager {
 
                     // retry to send the message ?
                     if (isManaged) {
+                        // resend the event only if there is an available network
+                        // retrofitError.isNetworkError() does not provide a valid description of the failure
+                        // 1- there is no available network / the connection is lost. (what we could expect)
+                        // 2- the server did not response after 15s : the client would wrongly behave, it would wait until to switch to a valid network
+                        //    It never happens, so the message is never resent.
                         //
-                        if ((null != retrofitError) && !retrofitError.isNetworkError()) {
+                        if (mbIsConnected) {
                             snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : AUTO_RESENT_MS_DELAYS.get(snapshot.mRetryCount - 1));
                         }
                     }
