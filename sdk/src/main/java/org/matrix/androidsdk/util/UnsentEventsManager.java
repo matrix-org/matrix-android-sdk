@@ -76,6 +76,16 @@ public class UnsentEventsManager {
         private Timer mAutoResendTimer = null;
 
         public Timer mLifeTimeTimer = null;
+        // the retry is in progress
+        public Boolean mIsResending = false;
+
+        /**
+         *
+         * @return true if the message can be resent
+         */
+        public Boolean canBeResent() {
+            return (null == mAutoResendTimer) && !mIsResending;
+        }
 
         /**
          * Resend the event after
@@ -89,6 +99,7 @@ public class UnsentEventsManager {
                 @Override
                 public void run() {
                     try {
+                        UnsentEventSnapshot.this.mIsResending = true;
                         mRequestRetryCallBack.onRetry();
                     } catch (Exception e) {
                     }
@@ -147,21 +158,23 @@ public class UnsentEventsManager {
      */
     public void onEventSent(ApiCallback apiCallback) {
         if (null != apiCallback) {
+            UnsentEventSnapshot snapshot = null;
+
             synchronized (mUnsentEventsMap) {
                 if (mUnsentEventsMap.containsKey(apiCallback)) {
+                    snapshot = mUnsentEventsMap.get(apiCallback);
+                }
+            }
 
-                    UnsentEventSnapshot snapshot = mUnsentEventsMap.get(apiCallback);
-                    snapshot.stopTimers();
+            if (null != snapshot) {
+                snapshot.stopTimers();
 
+                synchronized (mUnsentEventsMap) {
                     mUnsentEventsMap.remove(apiCallback);
                     mUnsentEvents.remove(snapshot);
-
-                    // one more to resend ?
-                    if (mUnsentEvents.size() > 0) {
-                        // resend it
-                        mUnsentEvents.get(0).mRequestRetryCallBack.onRetry();
-                    }
                 }
+
+                resentUnsents();
             }
         }
     }
@@ -174,10 +187,10 @@ public class UnsentEventsManager {
             for(UnsentEventSnapshot snapshot : mUnsentEvents) {
                 snapshot.stopTimers();
             }
-        }
 
-        mUnsentEvents.clear();
-        mUnsentEventsMap.clear();
+            mUnsentEvents.clear();
+            mUnsentEventsMap.clear();
+        }
     }
 
     /**
@@ -268,6 +281,7 @@ public class UnsentEventsManager {
                     if (mUnsentEventsMap.containsKey(apiCallback)) {
                         snapshot = mUnsentEventsMap.get(apiCallback);
 
+                        snapshot.mIsResending = false;
                         snapshot.stopTimer();
 
                         // assume that LIMIT_EXCEEDED error is not a default retry
@@ -341,7 +355,17 @@ public class UnsentEventsManager {
         synchronized (mUnsentEventsMap) {
             if (mUnsentEvents.size() > 0) {
                 try {
-                    mUnsentEvents.get(0).mRequestRetryCallBack.onRetry();
+                    // retry the first
+                    for(int index = 0; index < mUnsentEvents.size(); index++) {
+                        UnsentEventSnapshot unsentEventSnapshot = mUnsentEvents.get(index);
+
+                        // don't resend an unsent event
+                        if (unsentEventSnapshot.canBeResent()) {
+                            unsentEventSnapshot.mIsResending = true;
+                            unsentEventSnapshot.mRequestRetryCallBack.onRetry();
+                            break;
+                        }
+                    }
                 } catch (Exception e) {
 
                 }
