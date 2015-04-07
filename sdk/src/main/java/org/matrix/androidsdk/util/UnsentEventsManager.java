@@ -308,6 +308,11 @@ public class UnsentEventsManager {
                     }
                 }
 
+                // trace the matrix error.
+                if ((null != eventDescription) && (null != mxError)) {
+                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.error + " [" +  eventDescription + "]");
+                }
+
                 int matrixRetryTimeout = -1;
 
                 if ((null != mxError) &&  MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mxError.retry_after_ms)) {
