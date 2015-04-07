@@ -49,7 +49,7 @@ public class RestClient<T> {
     public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
-    private static final int CONNECTION_TIMEOUT_MS = 60000;
+    private static final int CONNECTION_TIMEOUT_MS = 15000;
     private static final int READ_TIMEOUT_MS = 60000;
 
     protected Credentials mCredentials;
@@ -75,6 +75,8 @@ public class RestClient<T> {
 
         // HTTP client
         OkHttpClient okHttpClient = new OkHttpClient();
+        int a = okHttpClient.getConnectTimeout();
+
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
