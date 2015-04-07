@@ -144,7 +144,8 @@ public class HomeActivity extends MXCActionBarActivity {
                     }
 
                     // load the public load in background
-                    refreshPublicRoomsList();
+                    // done onResume
+                    //refreshPublicRoomsList();
                 }
             });
         }
