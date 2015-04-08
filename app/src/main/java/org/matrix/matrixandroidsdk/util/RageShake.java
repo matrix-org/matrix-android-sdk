@@ -136,11 +136,6 @@ public class RageShake implements SensorEventListener {
 
                 message += "\n\n\n";
 
-                String log = LogUtilities.getLogCatError();
-
-                if (null != log) {
-                    message += log;
-                }
 
                 intent.putExtra(Intent.EXTRA_TEXT, message);
 
@@ -148,25 +143,27 @@ public class RageShake implements SensorEventListener {
                 intent.setType("image/jpg");
                 intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path));
 
-                String logCat = LogUtilities.getLogCatDebug();
-                if (logCat != null) {
-                    try {
-                        ByteArrayOutputStream os = new ByteArrayOutputStream();
-                        GZIPOutputStream gzip = new GZIPOutputStream(os);
-                        gzip.write(logCat.getBytes());
-                        gzip.finish();
+                String errorLog = LogUtilities.getLogCatError();
+                String debugLog = LogUtilities.getLogCatDebug();
 
-                        File debugLogFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "logs-" + new Date() + ".gz");
-                        FileOutputStream fos = new FileOutputStream(debugLogFile);
-                        os.writeTo(fos);
+                errorLog += "\n\n\n\n\n\n\n\n\n\n------------------ Debug logs ------------------\n\n\n\n\n\n\n\n";
+                errorLog += debugLog;
 
-                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(debugLogFile));
-                    }
-                    catch (IOException e) {
-                        Log.e(LOG_TAG,""+e);
-                    }
+                try {
+                    ByteArrayOutputStream os = new ByteArrayOutputStream();
+                    GZIPOutputStream gzip = new GZIPOutputStream(os);
+                    gzip.write(errorLog.getBytes());
+                    gzip.finish();
+
+                    File debugLogFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "logs-" + new Date() + ".gz");
+                    FileOutputStream fos = new FileOutputStream(debugLogFile);
+                    os.writeTo(fos);
+
+                    intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(debugLogFile));
                 }
-
+                catch (IOException e) {
+                    Log.e(LOG_TAG, "" + e);
+                }
 
                 ConsoleApplication.getCurrentActivity().startActivity(intent);
             } catch (Exception e) {

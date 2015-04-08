@@ -61,11 +61,11 @@ public class LogUtilities {
             logcatProc = Runtime.getRuntime().exec(cmd);
         }
         catch (IOException e1) {
-            return null;
+            return "";
         }
 
         BufferedReader reader = null;
-        String response = null;
+        String response = "";
         try {
             String separator = System.getProperty("line.separator");
             StringBuilder sb = new StringBuilder();
