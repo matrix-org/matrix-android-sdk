@@ -26,35 +26,27 @@ import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
-import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.contacts.ContactsManager;
 import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
-import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.lang.reflect.Member;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,17 +67,11 @@ public class CommonActivityUtils {
         // Publish to the server that we're now offline
         MyPresenceManager.getInstance(activity).advertiseOffline();
 
-        // clear the medias cache
-        ConsoleMediasCache.clearCache(activity);
-
-        // clear the latest messages cache
-        ConsoleLatestChatMessageCache.clearCache(activity);
-
         // clear the preferences
         PreferenceManager.getDefaultSharedPreferences(activity).edit().clear().commit();
 
         // clear credentials
-        Matrix.getInstance(activity).clearDefaultSessionAndCredentials();
+        Matrix.getInstance(activity).clearDefaultSessionAndCredentials(activity);
 
         // reset the contacts
         PIDsRetriever.reset();

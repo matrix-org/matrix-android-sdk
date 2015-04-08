@@ -29,6 +29,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -72,6 +73,15 @@ public class MembersInvitationDialogFragment extends DialogFragment {
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }
+    }
+
+    /**
+     * Return the used medias cache.
+     * This method can be overridden to use another medias cache
+     * @return the used medias cache
+     */
+    public MXMediasCache getMXMediasCache() {
+        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
     }
 
     @Override
@@ -227,7 +237,7 @@ public class MembersInvitationDialogFragment extends DialogFragment {
             }
         }
 
-        mAdapter = new MembersInvitationAdapter(getActivity(), R.layout.adapter_item_members_invitation);
+        mAdapter = new MembersInvitationAdapter(getActivity(), R.layout.adapter_item_members_invitation, getMXMediasCache());
 
         Collections.sort(members_OneToOne, alphaComparator);
         Collections.sort(members_MaxTenMembers, alphaComparator);

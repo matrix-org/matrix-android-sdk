@@ -46,6 +46,8 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXLatestChatMessageCache;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -57,8 +59,6 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
@@ -114,6 +114,9 @@ public class RoomActivity extends MXCActionBarActivity {
     private MatrixMessageListFragment mMatrixMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    private MXLatestChatMessageCache mLatestChatMessageCache;
+    private MXMediasCache mMediasCache;
 
     private ImageButton mSendButton;
     private ImageButton mAttachmentButton;
@@ -310,7 +313,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 } else {
                     String body = mEditText.getText().toString();
                     sendMessage(body);
-                    ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
+                    RoomActivity.this.mLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
                     mEditText.setText("");
                 }
             }
@@ -359,12 +362,14 @@ public class RoomActivity extends MXCActionBarActivity {
 
         mEditText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
-                String textInPlace = ConsoleLatestChatMessageCache.getLatestText(RoomActivity.this, mRoom.getRoomId());
+                MXLatestChatMessageCache latestChatMessageCache = RoomActivity.this.mLatestChatMessageCache;
+
+                String textInPlace = latestChatMessageCache.getLatestText(RoomActivity.this, mRoom.getRoomId());
 
                 // check if there is really an update
                 // avoid useless updates (initializations..)
                 if (!mIgnoreTextUpdate && !textInPlace.equals(mEditText.getText().toString())) {
-                    ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
+                    latestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
                     handleTypingNotification(mEditText.getText().length() != 0);
                     manageSendMoreButtons();
                 }
@@ -422,6 +427,9 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
+        mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
+        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+
         manageSendMoreButtons();
     }
 
@@ -451,7 +459,7 @@ public class RoomActivity extends MXCActionBarActivity {
         boolean hasPreviewedMedia = (null != mPendingImageUrl);
 
         if (hasPreviewedMedia) {
-            ConsoleMediasCache.loadBitmap(mImagePreviewView, mPendingImageUrl, 0, mPendingMimeType);
+            mMediasCache.loadBitmap(mImagePreviewView, mPendingImageUrl, 0, mPendingMimeType);
         }
 
         mImagePreviewLayout.setVisibility(hasPreviewedMedia ? View.VISIBLE : View.GONE);
@@ -489,7 +497,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
-        String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
+        String cachedText = Matrix.getInstance(this).getDefaultLatestChatMessageCache().getLatestText(this, mRoom.getRoomId());
 
         if (!cachedText.equals(mEditText.getText().toString())) {
             mIgnoreTextUpdate = true;
@@ -660,7 +668,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     }
 
                     // save the file in the filesystem
-                    String mediaUrl = ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                    String mediaUrl = mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
                     String mimeType = resource.mimeType;
                     Boolean isManaged = false;
 
@@ -720,7 +728,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                     if (null != fullSizeBitmap) {
                                         Uri uri = Uri.parse(mediaUrl);
                                         try {
-                                            ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                            mMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
                                         } catch (OutOfMemoryError ex) {
                                         }
 
@@ -744,7 +752,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             }
                         }
 
-                        String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+                        String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
 
                         if (null != thumbnailBitmap) {
                             thumbnailBitmap.recycle();

@@ -23,7 +23,8 @@ import android.util.Log;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.db.MXLatestChatMessageCache;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
@@ -36,7 +37,6 @@ import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
-import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -44,12 +44,9 @@ import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -81,6 +78,9 @@ public class MXSession {
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private UnsentEventsManager mUnsentEventsManager;
+
+    private MXLatestChatMessageCache mLatestChatMessageCache;
+    private MXMediasCache mMediasCache;
 
     /**
      * Create a basic session for direct API calls.
@@ -124,13 +124,17 @@ public class MXSession {
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
         mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager) ;
 
-
+        // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
+
+        // return the default cache manager
+        mLatestChatMessageCache = new MXLatestChatMessageCache();
+        mMediasCache = new MXMediasCache(mContentManager);
     }
 
     /**
@@ -209,10 +213,18 @@ public class MXSession {
         this.mRoomsRestClient = roomsRestClient;
     }
 
+    public MXLatestChatMessageCache getLatestChatMessageCache() {
+        return mLatestChatMessageCache;
+    }
+
+    public MXMediasCache getMediasCache() {
+        return mMediasCache;
+    }
+
     /**
      * Clear the session data
      */
-    public void clear() {
+    public void clear(Context context) {
         // stop events stream
         stopEventStream();
 
@@ -229,6 +241,9 @@ public class MXSession {
         // stop any pending request
         // clear data
         mContentManager.clear();
+
+        mLatestChatMessageCache.clearCache(context);
+        mMediasCache.clearCache(context);
     }
 
     /**

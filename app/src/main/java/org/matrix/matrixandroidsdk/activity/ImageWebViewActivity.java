@@ -17,31 +17,20 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import java.io.File;
-import java.io.OutputStream;
-import java.net.URI;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import android.app.Activity;
-import android.content.ContentResolver;
-import android.content.ContentUris;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 
 import android.view.View;
 import android.webkit.WebView;
-import android.widget.ImageView;
 
+import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 public class ImageWebViewActivity extends Activity {
@@ -104,9 +93,11 @@ public class ImageWebViewActivity extends Activity {
         final String fcss= css;
         final String viewportContent = "width=640";
 
+        final MXMediasCache mediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 
-        String path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
+        String path = mediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
 
         // is the high picture already downloaded ?
         if (null != path) {
@@ -116,7 +107,7 @@ public class ImageWebViewActivity extends Activity {
             mThumbnailUri = null;
 
             // try to retrieve the thumbnail
-            path = ConsoleMediasCache.mediaCacheFilename(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
+            path = mediasCache.mediaCacheFilename(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
             if (null == path) {
                 Log.e(LOG_TAG, "No Image thumbnail");
                 finish();
@@ -126,12 +117,12 @@ public class ImageWebViewActivity extends Activity {
             final String loadingUri = mHighResUri;
             mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
 
-            final String downloadId = ConsoleMediasCache.loadBitmap(this, loadingUri, mRotationAngle, mHighResMimeType);
+            final String downloadId = mediasCache.loadBitmap(this, loadingUri, mRotationAngle, mHighResMimeType);
 
             if (null != downloadId) {
-                pieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+                pieFractionView.setFraction(mediasCache.progressValueForDownloadId(downloadId));
 
-                ConsoleMediasCache.addDownloadListener(downloadId, new ConsoleMediasCache.DownloadCallback() {
+                mediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                     @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                         if (aDownloadId.equals(downloadId)) {
@@ -144,7 +135,7 @@ public class ImageWebViewActivity extends Activity {
                         if (aDownloadId.equals(downloadId)) {
                             pieFractionView.setVisibility(View.GONE);
 
-                            String path = ConsoleMediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
+                            String path = mediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
 
                             if (null != path) {
                                 final File file =  new File(ImageWebViewActivity.this.getFilesDir(), path);

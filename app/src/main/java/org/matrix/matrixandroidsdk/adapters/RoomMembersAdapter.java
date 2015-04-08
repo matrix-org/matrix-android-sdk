@@ -30,12 +30,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
@@ -63,6 +63,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     private boolean mSortByLastActive = true;
     private boolean mDisplayMembership = true;
+
+    private MXMediasCache mMediasCache = null;
 
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
@@ -123,7 +125,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState) {
+    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
@@ -138,6 +140,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         mMembershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, context.getString(R.string.membership_leave));
         mMembershipStrings.put(RoomMember.MEMBERSHIP_BAN, context.getString(R.string.membership_ban));
 
+        mMediasCache = mediasCache;
     }
 
     public void sortByLastActivePresence(boolean useLastActive) {
@@ -267,7 +270,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(imageView, url, size);
+            mMediasCache.loadAvatarThumbnail(imageView, url, size);
         }
 
         // The presence ring

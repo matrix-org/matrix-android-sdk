@@ -16,23 +16,16 @@
 
 package org.matrix.matrixandroidsdk.adapters;
 
-import android.app.ActionBar;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.media.ExifInterface;
-import android.net.Uri;
-import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -42,13 +35,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.gson.JsonNull;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -64,14 +57,9 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
-import org.matrix.matrixandroidsdk.contacts.Contact;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
-import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.view.PieFractionView;
 
-import java.io.File;
-import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -132,6 +120,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mMaxImageWidth;
     private int mMaxImageHeight;
 
+    private MXMediasCache mMediasCache;
+
     private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
 
     private DateFormat mDateFormat;
@@ -139,7 +129,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private MXSession mSession;
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
-                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId) {
+                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, MXMediasCache mediasCache) {
         super(context, 0);
         mContext = context;
         mRowTypeToLayoutId.put(ROW_TYPE_TEXT, textResLayoutId);
@@ -147,6 +137,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mRowTypeToLayoutId.put(ROW_TYPE_NOTICE, noticeResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_FILE, fileResLayoutId);
+        mMediasCache = mediasCache;
         mLayoutInflater = LayoutInflater.from(mContext);
         mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         // the refresh will be triggered only when it is required
@@ -656,7 +647,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-        final String downloadId = ConsoleMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, "image/jpeg");
+        final String downloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, "image/jpeg");
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
@@ -700,7 +691,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 final String fDownloadId = downloadId;
 
-                ConsoleMediasCache.addDownloadListener(downloadId, new ConsoleMediasCache.DownloadCallback() {
+                mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                     @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                         if (aDownloadId.equals(fDownloadId)) {
@@ -721,7 +712,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 });
 
-                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+                downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
                 downloadProgressLayout.setVisibility(View.GONE);
@@ -835,7 +826,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        ConsoleMediasCache.loadAvatarThumbnail(avatarView, url, size);
+        mMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
 
     private View getEmoteView(int position, View convertView, ViewGroup parent) {
@@ -889,14 +880,14 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
 
         // if the content downloading ?
-        final String downloadId = ConsoleMediasCache.downloadIdFromUrl(mContext.getApplicationContext(), fileMessage.url, fileMessage.getMimeType());
+        final String downloadId = mMediasCache.downloadIdFromUrl(mContext.getApplicationContext(), fileMessage.url, fileMessage.getMimeType());
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
         final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
         final View fileTypeView = convertView.findViewById(R.id.messagesAdapter_file_type);
 
-        final ConsoleMediasCache.DownloadCallback downloadCallback = new ConsoleMediasCache.DownloadCallback() {
+        final MXMediasCache.DownloadCallback downloadCallback = new MXMediasCache.DownloadCallback() {
             @Override
             public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                 if (aDownloadId.equals(downloadId)) {
@@ -912,7 +903,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     downloadProgressLayout.setVisibility(View.GONE);
 
                     // save into the downloads
-                    String mediaPath = ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                    String mediaPath = mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
                     if (null != mediaPath) {
                         CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
@@ -925,13 +916,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         fileTextView.setVisibility(View.VISIBLE);
 
         if (null != downloadProgressLayout) {
-            if ((null != downloadId) && (ConsoleMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
+            if ((null != downloadId) && (mMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
                 fileTypeView.setVisibility(View.GONE);
                 downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
                 downloadProgressLayout.setVisibility(View.VISIBLE);
                 fileTextView.setVisibility(View.GONE);
-                ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
-                downloadPieFractionView.setFraction(ConsoleMediasCache.progressValueForDownloadId(downloadId));
+                mMediasCache.addDownloadListener(downloadId, downloadCallback);
+                downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
 
             } else {
                 downloadProgressLayout.setVisibility(View.GONE);
@@ -943,7 +934,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onClick(View v) {
                     if (null != fileMessage.url) {
-                        String mediaPath =  ConsoleMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                        String mediaPath =  mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
                         
                         // is the file already saved
                         if (null != mediaPath) {
@@ -955,8 +946,8 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             // display the pie chart
                             downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
                             downloadProgressLayout.setVisibility(View.VISIBLE);
-                            ConsoleMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-                            ConsoleMediasCache.addDownloadListener(downloadId, downloadCallback);
+                            mMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                            mMediasCache.addDownloadListener(downloadId, downloadCallback);
                         }
                     }
                 }

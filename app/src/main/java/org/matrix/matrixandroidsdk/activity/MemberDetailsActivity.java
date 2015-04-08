@@ -36,11 +36,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -374,7 +371,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
         if (mMember.avatarUrl != null) {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(mThumbnailImageView, mMember.avatarUrl, size);
+            Matrix.getInstance(this).getDefaultMediasCache().loadAvatarThumbnail(mThumbnailImageView, mMember.avatarUrl, size);
         }
     }
 

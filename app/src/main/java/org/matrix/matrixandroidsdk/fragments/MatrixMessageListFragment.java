@@ -40,6 +40,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -57,12 +58,10 @@ import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
 import org.matrix.matrixandroidsdk.adapters.MessageRow;
 import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import retrofit.RetrofitError;
@@ -122,6 +121,35 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mRoom = mSession.getDataHandler().getRoom(roomId);
     }
 
+    /**
+     * Layout getters
+     * The class can be inherited to manage customized layout
+     * @return
+     */
+    public int getTextMessageLayout() {
+        return R.layout.adapter_item_message_text;
+    }
+
+    public int getImageMessageLayout() {
+        return R.layout.adapter_item_message_image;
+    }
+
+    public int getNoticeMessageLayout() {
+        return R.layout.adapter_item_message_notice;
+    }
+
+    public int getEmoteMessageLayout() {
+        return R.layout.adapter_item_message_emote;
+    }
+
+    public int getFileMessageLayout() {
+        return R.layout.adapter_item_message_file;
+    }
+
+    public MXMediasCache getMXMediasCache() {
+        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
@@ -131,11 +159,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = new MessagesAdapter(getActivity(),
-                    R.layout.adapter_item_message_text,
-                    R.layout.adapter_item_message_image,
-                    R.layout.adapter_item_message_notice,
-                    R.layout.adapter_item_message_emote,
-                    R.layout.adapter_item_message_file
+                    getTextMessageLayout(),
+                    getImageMessageLayout(),
+                    getNoticeMessageLayout(),
+                    getEmoteMessageLayout(),
+                    getFileMessageLayout(),
+                    getMXMediasCache()
             );
         }
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
@@ -316,7 +345,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             message = new FileMessage();
 
                             // replace the thumbnail and the media contents by the computed ones
-                            ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
+                            getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
                             message.url = uploadResponse.contentUri;
                             message.info = tmpFileMessage.info;
                             message.body = tmpFileMessage.body;
@@ -397,8 +426,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                         message = new ImageMessage();
 
                                                         // replace the thumbnail and the media contents by the computed ones
-                                                        ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                                                        ConsoleMediasCache.saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
+                                                        getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                                                        getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
 
                                                         message.thumbnailUrl = null;
                                                         message.url = uploadResponse.contentUri;

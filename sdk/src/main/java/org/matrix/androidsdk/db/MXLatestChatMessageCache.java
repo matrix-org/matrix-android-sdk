@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.db;
-
+package org.matrix.androidsdk.db;
 
 import android.app.Activity;
 import android.content.Context;
@@ -27,18 +26,18 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 
-public class ConsoleLatestChatMessageCache {
+public class MXLatestChatMessageCache {
 
     private static final String LOG_TAG = "ConsoleLatestChatMessageCache";
     private static final String FILENAME = "ConsoleLatestChatMessageCache";
 
-    private static HashMap<String, String> mLatestMesssageByRoomId = null;
+    private HashMap<String, String> mLatestMesssageByRoomId = null;
 
     /**
      * Clear the text caches.
      * @param context The application context to use.
      */
-    public static void clearCache(Activity context) {
+    public void clearCache(Context context) {
         String[] filesList = context.fileList();
 
         for(String file : filesList) {
@@ -56,7 +55,7 @@ public class ConsoleLatestChatMessageCache {
      * Open the texts cache file.
      * @param context the context.
      */
-    private static void openLatestMessagesDict(Context context) {
+    private void openLatestMessagesDict(Context context) {
         try
         {
             FileInputStream fis = context.openFileInput(FILENAME.hashCode() + "");
@@ -75,7 +74,7 @@ public class ConsoleLatestChatMessageCache {
      * @param roomId the roomId
      * @return the latest message
      */
-    public static String getLatestText(Context context, String roomId) {
+    public String getLatestText(Context context, String roomId) {
         if (null == mLatestMesssageByRoomId) {
             openLatestMessagesDict(context);
         }
@@ -95,7 +94,7 @@ public class ConsoleLatestChatMessageCache {
      * Update the latest message dictionnary.
      * @param context the context.
      */
-    private static void saveLatestMessagesDict(Context context) {
+    private void saveLatestMessagesDict(Context context) {
         try
         {
             FileOutputStream fos = context.openFileOutput(FILENAME.hashCode() + "", Context.MODE_PRIVATE);
@@ -113,7 +112,7 @@ public class ConsoleLatestChatMessageCache {
      * @param roomId the roomId.
      * @param message the message.
      */
-    public static void updateLatestMessage(Context context, String roomId, String message) {
+    public void updateLatestMessage(Context context, String roomId, String message) {
         if (null == mLatestMesssageByRoomId) {
             openLatestMessagesDict(context);
         }

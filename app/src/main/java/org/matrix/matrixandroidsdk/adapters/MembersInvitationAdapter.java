@@ -26,9 +26,9 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.util.ArrayList;
 
@@ -45,6 +45,8 @@ public class MembersInvitationAdapter extends ArrayAdapter<RoomMember> {
     private ArrayList<String> mSectionTitles;
     private ArrayList<RoomMember> mSelectedMembers;
 
+    private MXMediasCache mMediasCache;
+
     /**
      * Construct an adapter which will display a list of room members.
      * @param context Activity context
@@ -52,13 +54,14 @@ public class MembersInvitationAdapter extends ArrayAdapter<RoomMember> {
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
      */
-    public MembersInvitationAdapter(Context context, int layoutResourceId) {
+    public MembersInvitationAdapter(Context context, int layoutResourceId, MXMediasCache mediasCache) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
 
         mSelectedMembers = new ArrayList<RoomMember>();
+        mMediasCache = mediasCache;
 
         // left the caller manages the refresh
         setNotifyOnChange(false);
@@ -110,7 +113,7 @@ public class MembersInvitationAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(imageView, url, size);
+            mMediasCache.loadAvatarThumbnail(imageView, url, size);
         }
 
         // The presence ring

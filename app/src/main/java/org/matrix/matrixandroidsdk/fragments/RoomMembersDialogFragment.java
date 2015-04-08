@@ -35,6 +35,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
@@ -153,6 +154,15 @@ public class RoomMembersDialogFragment extends DialogFragment {
         return d;
     }
 
+    /**
+     * Return the used medias cache.
+     * This method can be overridden to use another medias cache
+     * @return the used medias cache
+     */
+    public MXMediasCache getMXMediasCache() {
+        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -162,7 +172,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         final Room room = mSession.getDataHandler().getRoom(mRoomId);
 
-        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState());
+        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState(), getMXMediasCache());
 
         // apply the sort settings
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
