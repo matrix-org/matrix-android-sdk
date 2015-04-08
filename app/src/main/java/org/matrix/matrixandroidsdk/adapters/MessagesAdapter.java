@@ -396,13 +396,13 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
         }
 
-        TextView leftTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_left);
-        TextView rightTsTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_timestamp_right);
+        View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
+        View rightTsTextLayout =convertView.findViewById(R.id.message_timestamp_layout_right);
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
         if (null != textView) {
-            if (null == rightTsTextView) {
+            if (null == rightTsTextLayout) {
                 textView.setVisibility(View.VISIBLE);
 
                 if (isMergedView) {
@@ -421,9 +421,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         TextView tsTextView;
 
-        if (null == rightTsTextView) {
-            tsTextView = leftTsTextView;
+        if (null == rightTsTextLayout) {
+            tsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
         } else {
+            TextView leftTsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+            TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+
             if (isMyEvent) {
                 tsTextView = leftTsTextView;
                 rightTsTextView.setVisibility(View.GONE);

@@ -44,17 +44,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:textSize="9sp"
-                    android:layout_gravity="left"
-                    android:gravity="left"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="8dp"
-                    android:textColor="@color/chat_gray_text"
-                    android:text="1970/01/01 00:00:00"
-                    android:id="@+id/messagesAdapter_timestamp_left"/>
+                <include layout="@layout/message_timestamp"
+                    android:id="@+id/message_timestamp_layout_left"/>
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -76,17 +67,9 @@
 
                 </FrameLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:textSize="9sp"
-                    android:layout_gravity="right"
-                    android:gravity="right"
-                    android:paddingLeft="4dp"
-                    android:paddingRight="4dp"
-                    android:textColor="@color/chat_gray_text"
-                    android:text="1970/01/01 00:00:00"
-                    android:id="@+id/messagesAdapter_timestamp_right"/>
+                <include layout="@layout/message_timestamp"
+                    android:id="@+id/message_timestamp_layout_right"/>
+
             </LinearLayout>
 
         </LinearLayout>
