@@ -33,7 +33,7 @@
                     android:layout_gravity="left"
                     android:paddingLeft="4dp"
                     android:paddingRight="4dp"
-                    android:textColor="#FFAAAAAA"
+                    android:textColor="@color/chat_gray_text"
                     android:text="SENDER"
                     android:id="@+id/messagesAdapter_sender"/>
 
@@ -52,7 +52,7 @@
                     android:gravity="left"
                     android:paddingLeft="0dp"
                     android:paddingRight="8dp"
-                    android:textColor="#FFAAAAAA"
+                    android:textColor="@color/chat_gray_text"
                     android:text="1970/01/01 00:00:00"
                     android:id="@+id/messagesAdapter_timestamp_left"/>
 
@@ -84,7 +84,7 @@
                     android:gravity="right"
                     android:paddingLeft="4dp"
                     android:paddingRight="4dp"
-                    android:textColor="#FFAAAAAA"
+                    android:textColor="@color/chat_gray_text"
                     android:text="1970/01/01 00:00:00"
                     android:id="@+id/messagesAdapter_timestamp_right"/>
             </LinearLayout>
@@ -95,24 +95,6 @@
             android:id="@+id/messagesAdapter_roundAvatar_right"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/messagesAdapter_message_separator"
-        android:orientation="vertical">
-
-        <View
-            android:layout_width="fill_parent"
-            android:layout_height="5dp" />
-
-        <View
-            android:layout_width="fill_parent"
-            android:background="#DDDDDD"
-            android:layout_height="1dp" />
-
-        <View
-            android:layout_width="fill_parent"
-            android:layout_height="5dp" />
-    </LinearLayout>
+    <include layout="@layout/message_separator"/>
 
 </LinearLayout>

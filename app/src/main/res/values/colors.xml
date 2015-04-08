@@ -18,8 +18,9 @@
     <color name="message_sending">#aaa</color>
     <color name="message_not_sent">#f00</color>
 
+    <color name="chat_gray_text">#FFAAAAAA</color>
     <color name="room_summary_unread_background">#ede</color>
-    <color name="room_summary_highlight_background">#ff88BBFF</color>
-    <color name="room_summary_public_highlight_background">#ffFFFFDD</color>
+    <color name="room_summary_highlight_background">#FF88BBFF</color>
+    <color name="room_summary_public_highlight_background">#FFFFFFDD</color>
 
 </resources>
