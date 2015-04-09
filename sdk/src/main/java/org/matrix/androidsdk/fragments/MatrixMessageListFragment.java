@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.fragments;
+package org.matrix.androidsdk.fragments;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -38,14 +33,15 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -54,17 +50,9 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.ToastErrorHandler;
-import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
-import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
-import org.matrix.matrixandroidsdk.adapters.ConsoleMessagesAdapter;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import retrofit.RetrofitError;
 
@@ -74,18 +62,14 @@ import retrofit.RetrofitError;
  */
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterClickListener {
 
-    private static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
-    private static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
+    protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
+    protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
-    public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
-    public static final String ARG_LAYOUT_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
+    public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
+    public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
-
-    public static MatrixMessageListFragment newInstance(String roomId) {
-        return newInstance(roomId, R.layout.fragment_matrix_message_list_fragment);
-    }
 
     public static MatrixMessageListFragment newInstance(String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
@@ -97,17 +81,37 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
-    private ConsoleMessagesAdapter mAdapter;
-    private ListView mMessageListView;
+    protected MessagesAdapter mAdapter;
+    public ListView mMessageListView;
     private Handler mUiHandler;
-    private MXSession mSession;
+    protected MXSession mSession;
     private Room mRoom;
     private boolean mDisplayAllEvents = true;
-    private boolean mCheckSlideToHide = false;
+    public boolean mCheckSlideToHide = false;
 
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
+
+    public MXSession getMXSession() {
+        return null;
+    }
+
+    public MXMediasCache getMXMediasCache() {
+        return null;
+    }
+
+    public MessagesAdapter createMessagesAdapter() {
+        return null;
+    }
+
+    /**
+     * The user scrolls the list.
+     * Apply an expected behaviour
+     * @param event the scroll event
+     */
+    public void onListTouch(MotionEvent event) {
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,8 +119,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         setRetainInstance(true);
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
+        mSession = getMXSession();
 
-        mSession = Matrix.getInstance(getActivity()).getDefaultSession();
+        if (null == mSession) {
+            throw new RuntimeException("Must have valid default MXSession.");
+        }
+
+        if (null == getMXMediasCache()) {
+            throw new RuntimeException("Must have valid default MediasCache.");
+        }
 
         Bundle args = getArguments();
         String roomId = args.getString(ARG_ROOM_ID);
@@ -124,32 +135,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Layout getters
-     * The class can be inherited to manage customized layout
-     * @return
+     * return true to display all the events.
+     * else the unknown events will be hidden.
      */
-    public int getTextMessageLayout() {
-        return org.matrix.androidsdk.R.layout.adapter_item_message_text;
-    }
-
-    public int getImageMessageLayout() {
-        return org.matrix.androidsdk.R.layout.adapter_item_message_image;
-    }
-
-    public int getNoticeMessageLayout() {
-        return org.matrix.androidsdk.R.layout.adapter_item_message_notice;
-    }
-
-    public int getEmoteMessageLayout() {
-        return org.matrix.androidsdk.R.layout.adapter_item_message_emote;
-    }
-
-    public int getFileMessageLayout() {
-        return org.matrix.androidsdk.R.layout.adapter_item_message_file;
-    }
-
-    public MXMediasCache getMXMediasCache() {
-        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+    public boolean isDisplayAllEvents() {
+        return true;
     }
 
     @Override
@@ -160,7 +150,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
-            mAdapter = new ConsoleMessagesAdapter(getActivity(), getMXMediasCache());
+            mAdapter = createMessagesAdapter();
+
+            if (null == getMXMediasCache()) {
+                throw new RuntimeException("Must have valid default MessagesAdapter.");
+            }
         }
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
@@ -175,13 +169,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // the user scroll over the keyboard
-                // hides the keyboard
-                if (mCheckSlideToHide && (event.getY() > mMessageListView.getHeight())) {
-                    mCheckSlideToHide = false;
-                    MXCActionBarActivity.dismissKeyboard(getActivity());
-                }
-
+                onListTouch(event);
                 return false;
             }
         });
@@ -193,10 +181,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        mDisplayAllEvents = preferences.getBoolean(getString(R.string.settings_key_display_all_events), false);
+        mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
+    }
+
+    /**
+     * Create the messageFragment.
+     * Should be inherited.
+     * @param roomId the roomID
+     * @return the MatrixMessagesFragment
+     */
+    public MatrixMessagesFragment createMessagesFragmentInstance(String roomId) {
+        return MatrixMessagesFragment.newInstance(mSession, roomId, this);
     }
 
     @Override
@@ -208,7 +205,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (mMatrixMessagesFragment == null) {
             // this fragment controls all the logic for handling messages / API calls
-            mMatrixMessagesFragment = MatrixMessagesFragment.newInstance(args.getString(ARG_ROOM_ID), this);
+            mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
             fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
         }
         else {
@@ -360,7 +357,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     Toast.LENGTH_LONG).show();
                         } else {
                             // send the message
-                            if (message.url != null)  {
+                            if (message.url != null) {
                                 send(messageRow);
                             }
                         }
@@ -455,7 +452,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    private void resend(Event event) {
+    protected void resend(Event event) {
         // remove the event
         mSession.getDataHandler().deleteRoomEvent(event);
         mAdapter.removeEventById(event.eventId);
@@ -547,30 +544,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    private void displayLoadingProgress() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
-
-                if (null != progressView) {
-                    progressView.setVisibility(View.VISIBLE);
-                }
-            }
-        });
+    /**
+     * Display a global spinner or any UI item to warn the user that there are some pending actions.
+     */
+    public void displayLoadingProgress() {
     }
 
-    private void dismissLoadingProgress() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+    /**
+     * Dismiss any global spinner.
+     */
+    public void dismissLoadingProgress() {
+    }
 
-                if (null != progressView) {
-                    progressView.setVisibility(View.GONE);
-                }
-            }
-        });
+    /**
+     * logout from the application
+     */
+    public void logout() {
     }
 
     public void requestHistory() {
@@ -621,7 +610,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.error);
                     // The access token was not recognized: log out
                     if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
-                        CommonActivityUtils.logout(MatrixMessageListFragment.this.getActivity());
+                        logout();
                     }
 
                     final MatrixError matrixError = e;
@@ -652,7 +641,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    private void redactEvent(String eventId) {
+    protected void redactEvent(String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId,
                 new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
@@ -810,72 +799,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * User actions when the user click on message row.
+     */
     public void onItemClick(int position) {
-        final MessageRow messageRow = mAdapter.getItem(position);
-        final List<Integer> textIds = new ArrayList<Integer>();
-        final List<Integer> iconIds = new ArrayList<Integer>();
-
-        if (messageRow.getEvent().canBeResent()) {
-            textIds.add(R.string.resend);
-            iconIds.add(R.drawable.ic_material_send);
-        } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
-            textIds.add(R.string.redact);
-            iconIds.add(R.drawable.ic_material_clear);
-        }
-
-        // display the JSON
-        textIds.add(R.string.message_details);
-        iconIds.add(R.drawable.ic_material_description);
-
-        FragmentManager fm = getActivity().getSupportFragmentManager();
-        IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_OPTIONS);
-
-        if (fragment != null) {
-            fragment.dismissAllowingStateLoss();
-        }
-
-        Integer[] lIcons = iconIds.toArray(new Integer[iconIds.size()]);
-        Integer[] lTexts = textIds.toArray(new Integer[iconIds.size()]);
-
-        fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
-        fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
-            @Override
-            public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
-                Integer selectedVal = textIds.get(position);
-
-                if (selectedVal == R.string.resend) {
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            resend(messageRow.getEvent());
-                        }
-                    });
-                } else if (selectedVal == R.string.redact) {
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            redactEvent(messageRow.getEvent().eventId);
-                        }
-                    });
-                } else if (selectedVal == R.string.message_details) {
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            FragmentManager fm =  getActivity().getSupportFragmentManager();
-
-                            MessageDetailsFragment fragment = (MessageDetailsFragment) fm.findFragmentByTag(TAG_FRAGMENT_MESSAGE_DETAILS);
-                            if (fragment != null) {
-                                fragment.dismissAllowingStateLoss();
-                            }
-                            fragment = MessageDetailsFragment.newInstance(messageRow.getEvent().toString());
-                            fragment.show(fm, TAG_FRAGMENT_MESSAGE_DETAILS);
-                        }
-                    });
-                }
-            }
-        });
-
-        fragment.show(fm, TAG_FRAGMENT_MESSAGE_OPTIONS);
     }
 
     // thumbnails management

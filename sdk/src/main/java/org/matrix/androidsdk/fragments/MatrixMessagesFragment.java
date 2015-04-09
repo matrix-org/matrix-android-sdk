@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.fragments;
+package org.matrix.androidsdk.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
@@ -33,11 +33,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 
 /**
  * A non-UI fragment containing logic for extracting messages from a room, including handling
@@ -48,16 +44,17 @@ public class MatrixMessagesFragment extends Fragment {
      * The room ID to get messages for.
      * Fragment argument: String.
      */
-    public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
+    public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
 
     private static final String LOG_TAG = "MatrixMessagesFragment";
 
-    public static MatrixMessagesFragment newInstance(String roomId, MatrixMessagesListener listener) {
+    public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         fragment.setArguments(args);
         fragment.setMatrixMessagesListener(listener);
+        fragment.setMXSession(session);
         return fragment;
     }
 
@@ -72,6 +69,11 @@ public class MatrixMessagesFragment extends Fragment {
          * Called when the first batch of messages is loaded.
          */
         public void onInitialMessagesLoaded();
+
+        // UI events
+        public void displayLoadingProgress();
+        public void dismissLoadingProgress();
+        public void logout();
     }
 
     // The listener to send messages back
@@ -79,6 +81,7 @@ public class MatrixMessagesFragment extends Fragment {
     // The adapted listener to register to the SDK
     private IMXEventListener mEventListener;
     private Context mContext;
+    private MXSession mSession;
     private Room mRoom;
 
     @Override
@@ -86,18 +89,17 @@ public class MatrixMessagesFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         mContext = getActivity().getApplicationContext();
-        // TODO : Specify which session should be used.
-        MXSession session = Matrix.getInstance(mContext).getDefaultSession();
+
         String roomId = getArguments().getString(ARG_ROOM_ID);
         if (roomId == null) {
             throw new RuntimeException("Must have a room ID specified.");
         }
-        if (session == null) {
+        if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
 
         // check if this room has been joined, if not, join it then get messages.
-        mRoom = session.getDataHandler().getRoom(roomId);
+        mRoom = mSession.getDataHandler().getRoom(roomId);
         boolean joinedRoom = false;
 
         // does the room already exist ?
@@ -107,7 +109,7 @@ public class MatrixMessagesFragment extends Fragment {
             // check if some required fields are initialized
             // else, the joining could have been half broken (network error)
             if (null != mRoom.getLiveState().creator) {
-                RoomMember self = mRoom.getMember(session.getCredentials().userId);
+                RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
                 if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
                     joinedRoom = true;
                 }
@@ -159,35 +161,27 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     private void displayLoadingProgress() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
-
-                if ((null != progressView) && (progressView.getVisibility() != View.VISIBLE)) {
-                    progressView.setVisibility(View.VISIBLE);
-                }
-            }
-        });
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.displayLoadingProgress();
+        }
     }
 
     private void dismissLoadingProgress() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final View progressView = getActivity().findViewById(R.id.loading_room_content_progress);
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.dismissLoadingProgress();
+        }
+    }
 
-                if (null != progressView) {
-                    progressView.setVisibility(View.GONE);
-                }
-            }
-        });
+    public void logout() {
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.logout();
+        }
     }
 
     private void joinRoom() {
         displayLoadingProgress();
 
-        RoomSummary roomSummary = Matrix.getInstance(mContext).getDefaultSession().getDataHandler().getStore().getSummary(mRoom.getRoomId());
+        RoomSummary roomSummary = mSession.getDataHandler().getStore().getSummary(mRoom.getRoomId());
 
         if (null != roomSummary) {
             roomSummary.setInviterUserId(null);
@@ -219,7 +213,7 @@ public class MatrixMessagesFragment extends Fragment {
                 Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
                 // The access token was not recognized: log out
                 if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
-                    CommonActivityUtils.logout(MatrixMessagesFragment.this.getActivity());
+                    logout();
                 }
 
                 final MatrixError matrixError = e;
@@ -286,6 +280,13 @@ public class MatrixMessagesFragment extends Fragment {
         mMatrixMessagesListener = listener;
     }
 
+    /**
+     * Set the MX session
+     * @param session
+     */
+    public void setMXSession(MXSession session) {
+        mSession = session;
+    }
     /**
      * Request earlier messages in this room.
      * @param callback the callback

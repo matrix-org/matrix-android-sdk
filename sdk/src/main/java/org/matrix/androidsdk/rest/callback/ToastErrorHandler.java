@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk;
+package org.matrix.androidsdk.rest.callback;
 
 import android.content.Context;
 import android.widget.Toast;
-
-import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**

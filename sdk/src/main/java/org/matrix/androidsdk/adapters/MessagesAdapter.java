@@ -123,8 +123,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private MXSession mSession;
 
-    public abstract MXSession getMXSession();
-
     public int normalMesageColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);
     }
@@ -141,8 +139,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
-    public MessagesAdapter(Context context, MXMediasCache mediasCache) {
-        this(context,
+    public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
+        this(session, context,
                 org.matrix.androidsdk.R.layout.adapter_item_message_text,
                 org.matrix.androidsdk.R.layout.adapter_item_message_image,
                 org.matrix.androidsdk.R.layout.adapter_item_message_notice,
@@ -151,7 +149,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mediasCache);
     }
 
-    public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
+    public MessagesAdapter(MXSession session, Context context, int textResLayoutId, int imageResLayoutId,
                            int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, MXMediasCache mediasCache) {
         super(context, 0);
         mContext = context;
@@ -177,7 +175,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
         mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
 
-        mSession = getMXSession();
+        mSession = session;
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {

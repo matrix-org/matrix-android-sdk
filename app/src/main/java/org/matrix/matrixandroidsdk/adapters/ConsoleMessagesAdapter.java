@@ -33,14 +33,10 @@ import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 /**
  * An adapter which can display room information.
  */
-public class ConsoleMessagesAdapter extends MessagesAdapter{
+public class ConsoleMessagesAdapter extends MessagesAdapter {
 
-    public ConsoleMessagesAdapter(Context context, MXMediasCache mediasCache) {
-        super(context, mediasCache);
-    }
-
-    public MXSession getMXSession() {
-        return Matrix.getInstance(mContext).getDefaultSession();
+    public ConsoleMessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
+        super(session, context, mediasCache);
     }
 
     @Override

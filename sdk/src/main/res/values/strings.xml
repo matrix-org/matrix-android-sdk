@@ -25,4 +25,12 @@
     <string name="downloading_dot">Downloading ...</string>
     <string name="uploading_dot">Uploading ...</string>
 
+    <string name="message_uploading">Uploading&#8230;</string>
+    <string name="message_failed_to_upload">Failed to upload image</string>
+
+    <!-- general errors -->
+    <string name="network_error">Network error</string>
+    <string name="matrix_error">Matrix error</string>
+    <string name="unexpected_error">Unexpected error</string>
+
 </resources>

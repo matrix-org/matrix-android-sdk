@@ -49,6 +49,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
+import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -60,7 +61,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.ConsoleMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -111,7 +112,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final int REQUEST_FILES = 0;
     private static final int TAKE_IMAGE = 0;
 
-    private MatrixMessageListFragment mMatrixMessageListFragment;
+    private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
 
@@ -191,7 +192,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     setTitle(mRoom.getName(mSession.getCredentials().userId));
                     setTopic(mRoom.getTopic());
 
-                    mMatrixMessageListFragment.onInitialMessagesLoaded();
+                    mConsoleMessageListFragment.onInitialMessagesLoaded();
                 }
             });
         }
@@ -305,7 +306,7 @@ public class RoomActivity extends MXCActionBarActivity {
             public void onClick(View view) {
                 // send the previewed image ?
                 if (null != mPendingImageUrl) {
-                    mMatrixMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
+                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
                     mPendingImageUrl = null;
                     mPendingImediaUrl = null;
                     mPendingMimeType = null;
@@ -394,12 +395,12 @@ public class RoomActivity extends MXCActionBarActivity {
         mRoom = mSession.getDataHandler().getRoom(roomId);
 
         FragmentManager fm = getSupportFragmentManager();
-        mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
+        mConsoleMessageListFragment = (ConsoleMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
-        if (mMatrixMessageListFragment == null) {
+        if (mConsoleMessageListFragment == null) {
             // this fragment displays messages and handles all message logic
-            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoom.getRoomId());
-            fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
+            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
+            fm.beginTransaction().add(R.id.anchor_fragment_messages, mConsoleMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
         // set general room information
@@ -551,7 +552,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 String message = body.substring(CMD_EMOTE.length()).trim();
 
                 if (message.length() > 0) {
-                    mMatrixMessageListFragment.sendEmote(message);
+                    mConsoleMessageListFragment.sendEmote(message);
                 }
             } else if (body.startsWith(CMD_JOIN_ROOM)) {
                 isIRCCmd = true;
@@ -639,7 +640,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private void sendMessage(String body) {
         if (!TextUtils.isEmpty(body)) {
             if (!manageIRCCommand(body)) {
-                mMatrixMessageListFragment.sendTextMessage(body);
+                mConsoleMessageListFragment.sendTextMessage(body);
             }
         }
     }
@@ -706,8 +707,8 @@ public class RoomActivity extends MXCActionBarActivity {
                                     double fullSizeWidth = fullSizeBitmap.getWidth();
                                     double fullSizeHeight = fullSizeBitmap.getHeight();
 
-                                    double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
-                                    double thumbnailHeight = mMatrixMessageListFragment.getMaxThumbnailHeight();
+                                    double thumbnailWidth = mConsoleMessageListFragment.getMaxThumbnailWith();
+                                    double thumbnailHeight = mConsoleMessageListFragment.getMaxThumbnailHeight();
 
                                     if (fullSizeWidth > fullSizeHeight) {
                                         thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
@@ -768,11 +769,11 @@ public class RoomActivity extends MXCActionBarActivity {
                                 mPendingImediaUrl = mediaUrl;
                                 mPendingMimeType = mimeType;
 
-                                mMatrixMessageListFragment.scrollToBottom();
+                                mConsoleMessageListFragment.scrollToBottom();
 
                                 manageSendMoreButtons();
                             } else {
-                                mMatrixMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+                                mConsoleMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
                             }
                         }
                     }
@@ -809,7 +810,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
                         }
 
-                        mMatrixMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
+                        mConsoleMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
                     }
                 }
             });
