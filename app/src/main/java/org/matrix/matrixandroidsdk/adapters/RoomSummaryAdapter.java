@@ -35,6 +35,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
@@ -431,7 +432,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
-                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
+                EventDisplay display = new EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                 display.setPrependMessagesWithAuthor(true);
                 message = display.getTextualDisplay();
 

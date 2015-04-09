@@ -76,17 +76,6 @@
     <string name="membership_kick">Kicked</string>
     <string name="membership_ban">Banned</string>
 
-    <string name="notice_room_invite">%1$s invited %2$s to the room.</string>
-    <string name="notice_room_join">%1$s joined</string>
-    <string name="notice_room_leave">%1$s left</string>
-    <string name="notice_room_kick">%1$s kicked %2$s from the room.</string>
-    <string name="notice_room_unban">%1$s unbanned %2$s from the room.</string>
-    <string name="notice_room_ban">%1$s banned %2$s from the room.</string>
-    <string name="notice_avatar_url_changed">%1$s changed their avatar.</string>
-    <string name="notice_display_name_changed">%1$s changed their display name to %2$s.</string>
-    <string name="notice_topic_changed">%1$s changed the topic to %2$s.</string>
-    <string name="notice_room_name_changed">%1$s changed the room name to %2$s.</string>
-
     <!-- general errors -->
     <string name="network_error">Network error</string>
     <string name="matrix_error">Matrix error</string>
@@ -102,11 +91,6 @@
     <string name="last_seen_mins">%dm</string>
     <string name="last_seen_hours">%dh</string>
     <string name="last_seen_days">%dd</string>
-
-    <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Room Invitation</string>
-    <string name="summary_user_invitation">%1$s\'s invitation</string>
-    <string name="summary_user_sent_image">%1$s sent an image.</string>
 
 
     <string name="invite">Invite</string>
@@ -126,13 +110,6 @@
     <!-- Home Screen -->
     <string name="users"> users</string>
     <string name="user"> user</string>
-
-    <!-- Room Screen -->
-    <string name="could_not_redact">Could not redact"</string>
-    <string name="unable_to_send_message">Unable to send message</string>
-    <string name="downloading_dot">Downloading ...</string>
-    <string name="downloading">Downloading</string>
-    <string name="uploading_dot">Uploading ...</string>
 
     <!-- Login Screen -->
     <string name="login_error_must_start_http">URL must start with http[s]://</string>

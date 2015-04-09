@@ -38,6 +38,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.adapters.MessageRow;
+import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -57,8 +59,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ToastErrorHandler;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
-import org.matrix.matrixandroidsdk.adapters.MessageRow;
-import org.matrix.matrixandroidsdk.adapters.MessagesAdapter;
+import org.matrix.matrixandroidsdk.adapters.ConsoleMessagesAdapter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -96,7 +97,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
-    private MessagesAdapter mAdapter;
+    private ConsoleMessagesAdapter mAdapter;
     private ListView mMessageListView;
     private Handler mUiHandler;
     private MXSession mSession;
@@ -128,23 +129,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @return
      */
     public int getTextMessageLayout() {
-        return R.layout.adapter_item_message_text;
+        return org.matrix.androidsdk.R.layout.adapter_item_message_text;
     }
 
     public int getImageMessageLayout() {
-        return R.layout.adapter_item_message_image;
+        return org.matrix.androidsdk.R.layout.adapter_item_message_image;
     }
 
     public int getNoticeMessageLayout() {
-        return R.layout.adapter_item_message_notice;
+        return org.matrix.androidsdk.R.layout.adapter_item_message_notice;
     }
 
     public int getEmoteMessageLayout() {
-        return R.layout.adapter_item_message_emote;
+        return org.matrix.androidsdk.R.layout.adapter_item_message_emote;
     }
 
     public int getFileMessageLayout() {
-        return R.layout.adapter_item_message_file;
+        return org.matrix.androidsdk.R.layout.adapter_item_message_file;
     }
 
     public MXMediasCache getMXMediasCache() {
@@ -159,14 +160,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
-            mAdapter = new MessagesAdapter(getActivity(),
-                    getTextMessageLayout(),
-                    getImageMessageLayout(),
-                    getNoticeMessageLayout(),
-                    getEmoteMessageLayout(),
-                    getFileMessageLayout(),
-                    getMXMediasCache()
-            );
+            mAdapter = new ConsoleMessagesAdapter(getActivity(), getMXMediasCache());
         }
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
@@ -476,6 +470,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
                 uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.getMimeType());
+                return;
+            }
+        } else if (message instanceof FileMessage) {
+            FileMessage fileMessage = (FileMessage)message;
+
+            // media has not been uploaded
+            if (fileMessage.isLocalContent()) {
+                uploadMediaContent(fileMessage.url, fileMessage.getMimeType(), fileMessage.body);
                 return;
             }
         }

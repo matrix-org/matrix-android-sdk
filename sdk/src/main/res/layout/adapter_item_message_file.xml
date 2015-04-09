@@ -32,6 +32,7 @@
                     android:id="@+id/message_timestamp_layout_left"/>
 
                 <FrameLayout
+                    android:layout_marginLeft="4dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content">
                     
@@ -41,7 +42,7 @@
                         android:id="@+id/upload_content_layout"
                         android:orientation="vertical">
 
-                        <org.matrix.matrixandroidsdk.view.PieFractionView
+                        <org.matrix.androidsdk.view.PieFractionView
                             android:id="@+id/upload_content_piechart"
                             android:layout_width="40dp"
                             android:layout_height="40dp"/>
@@ -131,7 +132,7 @@
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
-                            <org.matrix.matrixandroidsdk.view.PieFractionView
+                            <org.matrix.androidsdk.view.PieFractionView
                                 android:id="@+id/download_content_piechart"
                                 android:paddingLeft="5dp"
                                 android:layout_width="40dp"

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.adapters;
+package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -39,6 +38,7 @@ import android.widget.TextView;
 import com.google.gson.JsonNull;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -50,15 +50,10 @@ import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.EventDisplay;
+import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.matrixandroidsdk.ConsoleApplication;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
-import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
-import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
-import org.matrix.matrixandroidsdk.util.EventUtils;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
+import org.matrix.androidsdk.view.PieFractionView;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -71,7 +66,7 @@ import java.util.Locale;
  * An adapter which can display events. Events are not limited to m.room.message event types, but
  * can include topic changes (m.room.topic) and room member changes (m.room.member).
  */
-public class MessagesAdapter extends ArrayAdapter<MessageRow> {
+public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public static interface MessagesAdapterClickListener {
         /**
          * Called when the body item is clicked.
@@ -98,7 +93,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
-    private Context mContext;
+    protected Context mContext;
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
     private LayoutInflater mLayoutInflater;
 
@@ -120,13 +115,41 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mMaxImageWidth;
     private int mMaxImageHeight;
 
-    private MXMediasCache mMediasCache;
+    protected MXMediasCache mMediasCache;
 
     private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
 
     private DateFormat mDateFormat;
 
     private MXSession mSession;
+
+    public abstract MXSession getMXSession();
+
+    public int normalMesageColor(Context context) {
+        return context.getResources().getColor(R.color.message_normal);
+    }
+
+    public int notSentMessageColor(Context context) {
+        return context.getResources().getColor(R.color.message_not_sent);
+    }
+
+    public int sendingMessageColor(Context context) {
+        return context.getResources().getColor(R.color.message_sending);
+    }
+
+    public int highlightMessageColor(Context context) {
+        return context.getResources().getColor(R.color.message_highlighted);
+    }
+
+    public MessagesAdapter(Context context, MXMediasCache mediasCache) {
+        this(context,
+                org.matrix.androidsdk.R.layout.adapter_item_message_text,
+                org.matrix.androidsdk.R.layout.adapter_item_message_image,
+                org.matrix.androidsdk.R.layout.adapter_item_message_notice,
+                org.matrix.androidsdk.R.layout.adapter_item_message_emote,
+                org.matrix.androidsdk.R.layout.adapter_item_message_file,
+                mediasCache);
+    }
 
     public MessagesAdapter(Context context, int textResLayoutId, int imageResLayoutId,
                            int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, MXMediasCache mediasCache) {
@@ -144,34 +167,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // for example, retrieve the historical messages triggers a refresh for each message
         setNotifyOnChange(false);
 
-        normalColor = context.getResources().getColor(R.color.message_normal);
-        notSentColor = context.getResources().getColor(R.color.message_not_sent);
-        sendingColor = context.getResources().getColor(R.color.message_sending);
-        highlightColor = context.getResources().getColor(R.color.message_highlighted);
+        normalColor = normalMesageColor(context);
+        notSentColor = notSentMessageColor(context);
+        sendingColor = sendingMessageColor(context);
+        highlightColor = highlightMessageColor(context);
 
         WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
         mMaxImageWidth = Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
         mMaxImageHeight = Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
 
-        mSession = Matrix.getInstance(mContext).getDefaultSession();
+        mSession = getMXSession();
     }
 
     public void setAlternatingColours(int oddResId, int evenResId) {
         mOddColourResId = oddResId;
         mEvenColourResId = evenResId;
-    }
-
-    @Override
-    public void notifyDataSetChanged() {
-        // sanity check
-        // ensure that the client is not logged out before refreshing the UI
-        // the refresh could have been triggered with delay after a logout
-        if (!Matrix.hasValidValidSession()) {
-            return;
-        }
-
-        super.notifyDataSetChanged();
     }
 
     @Override
@@ -335,7 +346,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to render view at position " + position + ": "+e);
+            Log.e(LOG_TAG, "Failed to render view at position " + position + ": " + e);
             return convertView;
         }
     }
@@ -343,6 +354,15 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private String getUserDisplayName(String userId, RoomState roomState) {
         RoomMember roomMember = roomState.getMember(userId);
         return (roomMember != null) ? roomMember.getName() : userId;
+    }
+
+    /**
+     * Define the action to perform when the user tap on an avatar
+     * @param roomId the room ID
+     * @param userId the user ID
+     */
+    public void onAvatarClick(String roomId, String userId) {
+
     }
 
     // return true if convertView is merged with previous View
@@ -463,10 +483,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 avatarLeftView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Intent startRoomInfoIntent = new Intent(mContext, MemberDetailsActivity.class);
-                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, roomId);
-                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, userId);
-                        mContext.startActivity(startRoomInfoIntent);
+                        onAvatarClick(roomId, userId);
                     }
                 });
             }
@@ -496,7 +513,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 if (TextUtils.isEmpty(url) && (null != msg.userId)) {
-                    url = AdapterUtils.getIdenticonURL(msg.userId);
+                    url = ContentManager.getIdenticonURL(msg.userId);
                 }
 
                 if (!TextUtils.isEmpty(url)) {
@@ -560,7 +577,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
         final CharSequence body = display.getTextualDisplay();
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         bodyTextView.setText(body);
@@ -572,7 +589,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else if (row.getEvent().isUndeliverable()) {
             textColor = notSentColor;
         } else {
-            textColor = (EventUtils.shouldHighlight(mContext, msg) ? highlightColor : normalColor);
+            textColor = (EventUtils.shouldHighlight(mSession, mContext, msg) ? highlightColor : normalColor);
         }
 
         bodyTextView.setTextColor(textColor);
@@ -597,6 +614,9 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         setBackgroundColour(convertView, position);
 
         return convertView;
+    }
+
+    public void onImageClick(ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
     }
 
     private View getImageView(int position, View convertView, ViewGroup parent) {
@@ -729,18 +749,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
-                    if (null != imageMessage.url) {
-                        Intent viewImageIntent = new Intent(mContext, ImageWebViewActivity.class);
-                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_HIGHRES_IMAGE_URI, imageMessage.url);
-                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_WIDTH, maxImageWidth);
-                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_THUMBNAIL_HEIGHT, maxImageHeight);
-                        viewImageIntent.putExtra(ImageWebViewActivity.KEY_IMAGE_ROTATION, rotationAngle);
-                        if (null != imageMessage.getMimeType()) {
-                            viewImageIntent.putExtra(ImageWebViewActivity.KEY_HIGHRES_MIME_TYPE, imageMessage.getMimeType());
-                        }
-                        mContext.startActivity(viewImageIntent);
-                    }
+                    onImageClick(imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
                 }
             });
         }
@@ -812,7 +821,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
         CharSequence notice = display.getTextualDisplay();
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
@@ -840,7 +849,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         String emote = "* " + getUserDisplayName(msg.userId, roomState) + " ";
 
-        AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, msg, roomState);
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
         emote += display.getTextualDisplay();
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
@@ -861,6 +870,12 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
         return convertView;
+    }
+
+    public void onFileDownloaded(FileMessage fileMessage){
+    }
+
+    public void onFileClick(FileMessage fileMessage) {
     }
 
     private View getFileView(int position, View convertView, ViewGroup parent) {
@@ -902,12 +917,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
 
-                    // save into the downloads
-                    String mediaPath = mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-
-                    if (null != mediaPath) {
-                        CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
-                    }
+                    onFileDownloaded(fileMessage);
                 }
             }
         };
@@ -933,23 +943,22 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
             fileTextView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (null != fileMessage.url) {
-                        String mediaPath =  mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-                        
-                        // is the file already saved
-                        if (null != mediaPath) {
-                           String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
-                           CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
-                        } else {
-                            fileTypeView.setVisibility(View.GONE);
-                            fileTextView.setVisibility(View.GONE);
-                            // display the pie chart
-                            downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
-                            downloadProgressLayout.setVisibility(View.VISIBLE);
-                            mMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-                            mMediasCache.addDownloadListener(downloadId, downloadCallback);
-                        }
+                if (null != fileMessage.url) {
+                    String mediaPath =  mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+
+                    // is the file already saved
+                    if (null != mediaPath) {
+                        onFileClick(fileMessage);
+                    } else {
+                        fileTypeView.setVisibility(View.GONE);
+                        fileTextView.setVisibility(View.GONE);
+                        // display the pie chart
+                        downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
+                        downloadProgressLayout.setVisibility(View.VISIBLE);
+                        mMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                        mMediasCache.addDownloadListener(downloadId, downloadCallback);
                     }
+                }
                 }
             });
         }
@@ -1032,7 +1041,7 @@ public class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
-            AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, event, roomState);
+            EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
         }
         return false;

@@ -45,17 +45,15 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.adapters.DrawerAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
-import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
-import org.matrix.matrixandroidsdk.util.EventUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
@@ -221,7 +219,7 @@ public class HomeActivity extends MXCActionBarActivity {
                         if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
                             mAdapter.incrementUnreadCount(event.roomId);
 
-                            if (EventUtils.shouldHighlight(HomeActivity.this, event)) {
+                            if (EventUtils.shouldHighlight(mSession, HomeActivity.this, event)) {
                                 mAdapter.highlightRoom(event.roomId);
                             }
                         }

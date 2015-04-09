@@ -116,6 +116,21 @@ public class ContentManager {
         mPendingUploadByUploadId.clear();
     }
 
+    public static String getIdenticonURL(String userId) {
+        // sanity check
+        if (null != userId) {
+            String urlEncodedUser = null;
+            try {
+                urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
+            } catch (Exception e) {
+            }
+
+            return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;
+        }
+
+        return null;
+    }
+
     /**
      * Get an actual URL for accessing the full-size image of the given content URI.
      * @param contentUrl the mxc:// content URI

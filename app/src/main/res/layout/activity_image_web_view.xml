@@ -9,7 +9,7 @@
 	    android:layout_height="fill_parent"
         android:background="#000" />
 
-    <org.matrix.matrixandroidsdk.view.PieFractionView
+    <org.matrix.androidsdk.view.PieFractionView
         android:id="@+id/download_zoomed_image_piechart"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"

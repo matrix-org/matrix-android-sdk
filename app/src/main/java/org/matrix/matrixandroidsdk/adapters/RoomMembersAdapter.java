@@ -34,9 +34,10 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.view.PieFractionView;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -265,7 +266,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         String url = member.avatarUrl;
 
         if (TextUtils.isEmpty(url)) {
-            url = AdapterUtils.getIdenticonURL(member.getUserId());
+            url = ContentManager.getIdenticonURL(member.getUserId());
         }
 
         if (!TextUtils.isEmpty(url)) {

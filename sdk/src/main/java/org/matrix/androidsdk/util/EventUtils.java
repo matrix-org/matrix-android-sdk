@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk.util;
+package org.matrix.androidsdk.util;
 
 import android.content.Context;
 
@@ -23,9 +23,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 
 import java.util.regex.Pattern;
 
@@ -40,12 +37,11 @@ public class EventUtils {
      * @param event the event
      * @return whether the event is important and should be highlighted
      */
-    public static boolean shouldHighlight(Context context, Event event) {
+    public static boolean shouldHighlight(MXSession session, Context context, Event event) {
         if (!Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             return false;
         }
 
-        MXSession session = Matrix.getInstance(context).getDefaultSession();
         String myUserId = session.getCredentials().userId;
 
         // Don't highlight the user's own messages
@@ -83,22 +79,24 @@ public class EventUtils {
 
     /**
      * Whether the given event should trigger a notification.
+     * @param session the current matrix session
      * @param context the context
      * @param event the event
+     * @param activeRoomID the RoomID of disaplyed roomActivity
      * @return true if the event should trigger a notification
      */
-    public static boolean shouldNotify(Context context, Event event) {
+    public static boolean shouldNotify(MXSession session, Context context, Event event, String activeRoomID) {
         // Only room events trigger notifications
         if (event.roomId == null) {
             return false;
         }
 
         // No notification if the user is currently viewing the room
-        if (event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+        if (event.roomId.equals(activeRoomID)) {
             return false;
         }
 
-        if (shouldHighlight(context, event)) {
+        if (shouldHighlight(session, context, event)) {
             return true;
         }
 
@@ -106,7 +104,6 @@ public class EventUtils {
             return false;
         }
 
-        MXSession session = Matrix.getInstance(context).getDefaultSession();
         Room room = session.getDataHandler().getRoom(event.roomId);
         if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
                 && !event.userId.equals(session.getCredentials().userId)) {

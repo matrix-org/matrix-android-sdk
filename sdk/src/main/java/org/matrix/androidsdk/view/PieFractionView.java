@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk.view;
+package org.matrix.androidsdk.view;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -23,7 +23,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
-import org.matrix.matrixandroidsdk.R;
+import org.matrix.androidsdk.R;
 
 /**
  * View that displays a disc representing a percentage.
@@ -41,6 +41,14 @@ public class PieFractionView extends View {
     private int powerColor;
     private int restColor;
 
+    public int fillColor() {
+        return getResources().getColor(R.color.pie_fraction_fill);
+    }
+
+    public int getRestColor() {
+        return getResources().getColor(R.color.pie_fraction_rest);
+    }
+
     public PieFractionView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -51,8 +59,8 @@ public class PieFractionView extends View {
         rectF = new RectF(0, 0, width, height);
         paint = new Paint();
 
-        powerColor = getResources().getColor(R.color.pie_fraction_fill);
-        restColor = getResources().getColor(R.color.pie_fraction_rest);
+        powerColor = fillColor();
+        restColor = getRestColor();
     }
 
     public void setFraction(int fraction) {

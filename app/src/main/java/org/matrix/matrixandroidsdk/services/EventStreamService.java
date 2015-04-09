@@ -32,6 +32,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
@@ -117,7 +118,7 @@ public class EventStreamService extends Service {
             String body;
 
             if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                body = AdapterUtils.EventDisplay.getMembershipNotice(getApplicationContext(), event, roomState);
+                body = EventDisplay.getMembershipNotice(getApplicationContext(), event, roomState);
             } else {
                 body = event.content.getAsJsonPrimitive("body").getAsString();
             }

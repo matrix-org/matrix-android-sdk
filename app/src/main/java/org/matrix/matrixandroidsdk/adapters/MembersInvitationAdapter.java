@@ -28,6 +28,7 @@ import android.widget.TextView;
 
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.R;
 
 import java.util.ArrayList;
@@ -108,7 +109,7 @@ public class MembersInvitationAdapter extends ArrayAdapter<RoomMember> {
         String url = member.avatarUrl;
 
         if (TextUtils.isEmpty(url)) {
-            url = AdapterUtils.getIdenticonURL(member.getUserId());
+            url = ContentManager.getIdenticonURL(member.getUserId());
         }
 
         if (!TextUtils.isEmpty(url)) {

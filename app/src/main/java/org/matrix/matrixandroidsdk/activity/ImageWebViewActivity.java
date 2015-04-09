@@ -29,9 +29,9 @@ import android.view.View;
 import android.webkit.WebView;
 
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.view.PieFractionView;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 public class ImageWebViewActivity extends Activity {
     private static final String LOG_TAG = "ImageWebViewActivity";
