@@ -30,6 +30,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import java.util.List;
 
@@ -41,6 +42,7 @@ import static org.mockito.Mockito.*;
 /**
  * Class for unit testing EventsThread.
  */
+@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class EventsThreadTest {
 

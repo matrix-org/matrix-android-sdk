@@ -14,38 +14,21 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.fragments;
+package org.matrix.androidsdk.fragments;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.IMXStore;
-import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.matrixandroidsdk.ConsoleApplication;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
-import org.matrix.matrixandroidsdk.adapters.IconAndTextAdapter;
-import org.matrix.matrixandroidsdk.adapters.MembersInvitationAdapter;
+import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.adapters.IconAndTextAdapter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 
 /**
  * A dialog fragment showing a list of icon + text entry
@@ -55,8 +38,8 @@ public class IconAndTextDialogFragment extends DialogFragment {
     private static final String LOG_TAG = "IconAndTextDialogFragment";
 
     // params
-    public static final String ARG_ICONS_LIST_ID = "org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment.ARG_ICONS_LIST_ID";
-    public static final String ARG_TEXTS_LIST_ID = "org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment.ARG_TEXTS_LIST_ID";
+    public static final String ARG_ICONS_LIST_ID = "org.matrix.androidsdk.fragments.MembersInvitationDialogFragment.ARG_ICONS_LIST_ID";
+    public static final String ARG_TEXTS_LIST_ID = "org.matrix.androidsdk.fragments.MembersInvitationDialogFragment.ARG_TEXTS_LIST_ID";
 
     /**
      * Interface definition for a callback to be invoked when an item in this

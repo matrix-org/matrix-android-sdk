@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.adapters;
+package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -23,7 +23,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import org.matrix.matrixandroidsdk.R;
+import org.matrix.androidsdk.R;
 
 /**
  * An adapter which can display m.room.member content.

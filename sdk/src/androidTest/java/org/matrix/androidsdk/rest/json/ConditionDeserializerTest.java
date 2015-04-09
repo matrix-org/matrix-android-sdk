@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.bingrules.DeviceCondition;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Modifier;
 
@@ -35,6 +36,7 @@ import static org.junit.Assert.*;
 /**
  * Class for unit testing the ConditionDeserializer.
  */
+@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class ConditionDeserializerTest {
 
