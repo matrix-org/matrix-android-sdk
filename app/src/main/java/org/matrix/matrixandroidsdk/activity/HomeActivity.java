@@ -18,26 +18,23 @@ package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v4.app.ActionBarDrawerToggle;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -53,6 +50,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.MessageDetailsFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -74,6 +72,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
     private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
+    private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
 
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
@@ -308,6 +307,7 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
+        // the chevron is managed in the header view
         mMyRoomList.setGroupIndicator(null);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
 
@@ -358,6 +358,63 @@ public class HomeActivity extends MXCActionBarActivity {
                     CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 }
                 return true;
+            }
+        });
+
+        mMyRoomList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                if (ExpandableListView.getPackedPositionType(id) == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
+                    long packedPos = ((ExpandableListView) parent).getExpandableListPosition(position);
+                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPos);
+
+                    if (mAdapter.isRecentsGroupIndex(groupPosition)) {
+                        final int childPosition = ExpandableListView.getPackedPositionChild(packedPos);
+
+                        FragmentManager fm = HomeActivity.this.getSupportFragmentManager();
+                        IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ROOM_OPTIONS);
+
+                        if (fragment != null) {
+                            fragment.dismissAllowingStateLoss();
+                        }
+
+                        final Integer[] lIcons = new Integer[]{R.drawable.ic_material_exit_to_app};
+                        final Integer[] lTexts = new Integer[]{R.string.action_leave};
+
+                        fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
+                        fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
+                                Integer selectedVal = lTexts[position];
+
+                                if (selectedVal == R.string.action_leave) {
+                                    HomeActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            String roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+                                            Room room = mSession.getDataHandler().getRoom(roomId);
+
+                                            if (null != room) {
+                                                room.leave(new SimpleApiCallback<Void>(HomeActivity.this) {
+                                                    @Override
+                                                    public void onSuccess(Void info) {
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                        fragment.show(fm, TAG_FRAGMENT_ROOM_OPTIONS);
+
+                        return true;
+                    }
+                }
+
+                return false;
             }
         });
 

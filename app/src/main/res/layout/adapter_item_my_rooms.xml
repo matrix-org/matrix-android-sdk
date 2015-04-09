@@ -33,14 +33,6 @@
             android:textColor="?android:attr/textColorSecondary"
             android:id="@+id/roomSummaryAdapter_ts"/>
 
-        <Button
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/ic_material_delete"
-            android:id="@+id/roomSummaryAdapter_delete_button"
-            android:contentDescription="@string/delete"
-            />
-
         <ProgressBar
             android:layout_width="30dp"
             android:layout_height="30dp"

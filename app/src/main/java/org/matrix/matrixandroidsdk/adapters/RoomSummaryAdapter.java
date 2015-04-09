@@ -375,15 +375,8 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
-        final Button deleteButton = (Button) convertView.findViewById(R.id.roomSummaryAdapter_delete_button);
-        deleteButton.setVisibility((groupPosition == mRecentsGroupIndex) ? View.VISIBLE : View.GONE);
-
         final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
         deleteProgress.setVisibility(View.GONE);
-        
-        // required to have the onChildClick event
-        // does not work when settings in the adapter xml file.
-        deleteButton.setFocusable(false);
 
         if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
@@ -457,35 +450,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
 
-            // the user taps on
-            final String fRoomid = summary.getRoomId();
-            deleteButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
-                    Room room = session.getDataHandler().getRoom(fRoomid);
-
-                    if (null != room) {
-                        room.leave(new SimpleApiCallback<Void>(mContext, deleteButton) {
-                            @Override
-                            public void onSuccess(Void info) {
-
-                            }
-                        });
-                    }
-                }
-            });
-
             MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
-            Room room = session.getDataHandler().getRoom(fRoomid);
+            Room room = session.getDataHandler().getRoom(summary.getRoomId());
 
             if (room.isLeaving()) {
                 convertView.setAlpha(0.3f);
-                deleteButton.setVisibility(View.GONE);
                 deleteProgress.setVisibility(View.VISIBLE);
             } else {
                 convertView.setAlpha(1.0f);
-                deleteButton.setVisibility(View.VISIBLE);
                 deleteProgress.setVisibility(View.GONE);
             }
 
