@@ -349,12 +349,19 @@ public class HomeActivity extends MXCActionBarActivity {
 
                 if (mAdapter.isRecentsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+
+                    Room room = mSession.getDataHandler().getRoom(roomId);
+                    // cannot join a leaving room
+                    if ((null == room) || room.isLeaving()) {
+                        roomId = null;
+                    }
+
                     mAdapter.resetUnreadCount(roomId);
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
                 }
 
-                if (null != roomId) {
+                if (null != roomId){
                     CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 }
                 return true;
