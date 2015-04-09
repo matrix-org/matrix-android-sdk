@@ -308,6 +308,7 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
+        mMyRoomList.setGroupIndicator(null);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
 
         if (null != savedInstanceState) {

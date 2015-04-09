@@ -63,7 +63,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
     @Override
     public MessagesAdapter createMessagesAdapter() {
         // use the defaults message layouts
-        // can set any
+        // can set any adapters
         return new ConsoleMessagesAdapter(mSession, getActivity(), getMXMediasCache());
     }
 

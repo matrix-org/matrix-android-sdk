@@ -26,6 +26,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.MXSession;
@@ -546,6 +547,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             heading.setText(header);
         } else {
             heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
+        }
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.heading_image);
+
+        if (isExpanded) {
+            imageView.setImageResource(R.drawable.expander_close_holo_light);
+        } else {
+            imageView.setImageResource(R.drawable.expander_open_holo_light);
         }
 
         return convertView;
