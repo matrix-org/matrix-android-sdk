@@ -372,8 +372,9 @@ public class RoomActivity extends MXCActionBarActivity {
                 if (!mIgnoreTextUpdate && !textInPlace.equals(mEditText.getText().toString())) {
                     latestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
                     handleTypingNotification(mEditText.getText().length() != 0);
-                    manageSendMoreButtons();
                 }
+
+                manageSendMoreButtons();
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -430,8 +431,6 @@ public class RoomActivity extends MXCActionBarActivity {
 
         mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
         mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
-
-        manageSendMoreButtons();
     }
 
     @Override
@@ -506,6 +505,8 @@ public class RoomActivity extends MXCActionBarActivity {
             mEditText.append(cachedText);
             mIgnoreTextUpdate = false;
         }
+
+        manageSendMoreButtons();
     }
 
     private void setTopic(String topic) {
