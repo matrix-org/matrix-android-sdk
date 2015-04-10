@@ -209,7 +209,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
                 public void onDrawerOpened(View drawerView) {
                     mSelectedSlidingMenuIndex = -1;
-                    dismissKeyboard(thisApp);
+                    //dismissKeyboard(thisApp);
                 }
             };
 
