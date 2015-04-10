@@ -175,10 +175,12 @@ public class HomeActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     if ((event.roomId != null) && isDisplayableEvent(event)) {
-                        mAdapter.setLatestEvent(event, roomState);
-
                         String selfUserId = mSession.getCredentials().userId;
                         Room room = mSession.getDataHandler().getRoom(event.roomId);
+
+                        // roomState is the state before the update
+                        // need to update to updated state so the live state
+                        mAdapter.setLatestEvent(event, (null == room) ? roomState : room.getLiveState());
 
                         RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
                         if (summary == null) {

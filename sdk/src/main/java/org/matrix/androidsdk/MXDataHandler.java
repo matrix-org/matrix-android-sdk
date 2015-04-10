@@ -149,7 +149,7 @@ public class MXDataHandler implements IMXEventListener {
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
             beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-            mStore.storeSummary(room.getRoomId(), lastEvent, beforeLiveRoomState, mCredentials.userId);
+            mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
         }
 
         // Handle presence
