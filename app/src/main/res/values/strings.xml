@@ -50,6 +50,7 @@
     <string name="action_close">Close</string>
     <string name="action_invite_by_name">Invite from identifier</string>
     <string name="action_invite_by_list">Invite from other rooms</string>
+    <string name="action_home">Home</string>
 
 
     <string name="my_rooms">My rooms</string>

@@ -17,6 +17,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.ClipData;
@@ -49,7 +50,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
-import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -142,6 +142,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
+            R.string.action_home,
             R.string.action_room_info,
             R.string.action_members,
             R.string.action_invite_by_name,
@@ -152,6 +153,7 @@ public class RoomActivity extends MXCActionBarActivity {
     };
 
     private final Integer[] mSlideMenuResourceIds = new Integer[]{
+            R.drawable.ic_material_home, // R.string.action_home
             R.drawable.ic_material_description,  // R.string.action_room_info
             R.drawable.ic_material_group, // R.string.action_members
             R.drawable.ic_material_person_add, // R.string.option_invite_by_name
@@ -990,7 +992,15 @@ public class RoomActivity extends MXCActionBarActivity {
             @Override
             public void run() {
 
-                if (id == R.string.action_invite_by_list) {
+                if (id == R.string.action_home) {
+                    RoomActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            RoomActivity.this.finish();
+                        }
+                    });
+                }
+                else if (id == R.string.action_invite_by_list) {
                     final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
                     if (session != null) {
                         FragmentManager fm = getSupportFragmentManager();
