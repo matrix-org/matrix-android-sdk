@@ -38,6 +38,9 @@ public class BingRule {
     @SerializedName("default")
     public boolean isDefault = false;
 
+    @SerializedName("enabled")
+    public boolean isEnabled = true;
+
     public BingRule(boolean isDefaultValue) {
         this.isDefault = isDefaultValue;
     }

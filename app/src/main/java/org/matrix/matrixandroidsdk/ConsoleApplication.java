@@ -18,6 +18,8 @@ package org.matrix.matrixandroidsdk;
 import android.app.Activity;
 import android.app.Application;
 
+import org.matrix.matrixandroidsdk.contacts.ContactsManager;
+import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
 import java.util.Timer;
@@ -29,7 +31,7 @@ import java.util.TimerTask;
 public class ConsoleApplication extends Application {
     private Timer mActivityTransitionTimer;
     private TimerTask mActivityTransitionTimerTask;
-    public boolean isInBackground;
+    public boolean isInBackground = true;
     private final long MAX_ACTIVITY_TRANSITION_TIME_MS = 2000;
 
     @Override
@@ -37,6 +39,10 @@ public class ConsoleApplication extends Application {
         super.onCreate();
         mActivityTransitionTimer = null;
         mActivityTransitionTimerTask = null;
+
+        // get the contact update at application launch
+        ContactsManager.refreshLocalContactsSnapshot(this);
+
         isInBackground = false;
     }
 
@@ -45,6 +51,7 @@ public class ConsoleApplication extends Application {
         this.mActivityTransitionTimerTask = new TimerTask() {
             public void run() {
                 ConsoleApplication.this.isInBackground = true;
+                PIDsRetriever.onAppBackgrounded();
             }
         };
 
@@ -58,6 +65,11 @@ public class ConsoleApplication extends Application {
 
         if (this.mActivityTransitionTimer != null) {
             this.mActivityTransitionTimer.cancel();
+        }
+
+        if (isInBackground) {
+            // get the contact update at application launch
+            ContactsManager.refreshLocalContactsSnapshot(this);
         }
 
         this.isInBackground = false;

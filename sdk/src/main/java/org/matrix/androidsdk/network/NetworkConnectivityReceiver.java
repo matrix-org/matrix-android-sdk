@@ -47,12 +47,23 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     public void onReceive(final Context context, final Intent intent) {
         try {
             ConnectivityManager connMgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            mIsConnected = connMgr.getActiveNetworkInfo() != null;
-            onNetworkUpdate();
+
+            // avoid triggering useless info
+            if (mIsConnected != (connMgr.getActiveNetworkInfo() != null)) {
+                mIsConnected = connMgr.getActiveNetworkInfo() != null;
+                onNetworkUpdate();
+            }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to report connectivity: "+e);
+            Log.e(LOG_TAG, "Failed to report connectivity: " + e.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Clear the events listener data.
+     */
+    public void clear() {
+        mNetworkEventListeners.clear();
     }
 
     /**
@@ -106,8 +117,8 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                 } catch(Exception e) {
 
                 }
-                mOnNetworkConnectedEventListeners.remove(listener);
             }
+            mOnNetworkConnectedEventListeners.clear();
         }
     }
 

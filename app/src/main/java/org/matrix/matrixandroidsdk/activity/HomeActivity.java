@@ -19,36 +19,46 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.TextWatcher;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
-import org.matrix.matrixandroidsdk.util.EventUtils;
+import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
+import org.matrix.matrixandroidsdk.fragments.MessageDetailsFragment;
+import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
+import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 
 /**
  * Displays the main screen of the app, with rooms the user has joined and the ability to create
@@ -59,14 +69,45 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
+
+    private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
+    private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
+    private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
+
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
 
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
-    private boolean mSortSummaryAtResume = false;
 
     private String mAutomaticallyOpenedRoomId = null;
+
+    // sliding menu
+    private final Integer[] mSlideMenuTitleIds = new Integer[]{
+            R.string.action_search_contact,
+            R.string.action_search_room,
+            R.string.create_room,
+            R.string.join_room,
+            R.string.action_mark_all_as_read,
+            R.string.action_settings,
+            R.string.send_bug_report,
+            R.string.action_disconnect,
+            R.string.action_logout,
+    };
+
+    // sliding menu
+    private final Integer[] mSlideMenuResourceIds = new Integer[]{
+            R.drawable.ic_material_search, // R.string.action_search_contact,
+            R.drawable.ic_material_find_in_page, // R.string.action_search_room,
+            R.drawable.ic_material_group_add, //R.string.create_room,
+            R.drawable.ic_material_group, // R.string.join_room,
+            R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
+            R.drawable.ic_material_settings, //  R.string.action_settings,
+            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
+            R.drawable.ic_material_clear, // R.string.action_disconnect,
+            R.drawable.ic_material_exit_to_app, // R.string.action_logout,
+    };
+
 
     private MXEventListener mListener = new MXEventListener() {
         private boolean mInitialSyncComplete = false;
@@ -100,7 +141,30 @@ public class HomeActivity extends MXCActionBarActivity {
                     }
 
                     // load the public load in background
-                    refreshPublicRoomsList();
+                    // done onResume
+                    //refreshPublicRoomsList();
+                }
+            });
+        }
+
+        @Override
+        public void onRoomInitialSyncComplete(final String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
+        @Override
+        public void onRoomInternalUpdate(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.sortSummaries();
+                    mAdapter.notifyDataSetChanged();
                 }
             });
         }
@@ -111,10 +175,12 @@ public class HomeActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     if ((event.roomId != null) && isDisplayableEvent(event)) {
-                        mAdapter.setLatestEvent(event, roomState);
-
                         String selfUserId = mSession.getCredentials().userId;
                         Room room = mSession.getDataHandler().getRoom(event.roomId);
+
+                        // roomState is the state before the update
+                        // need to update to updated state so the live state
+                        mAdapter.setLatestEvent(event, (null == room) ? roomState : room.getLiveState());
 
                         RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
                         if (summary == null) {
@@ -126,7 +192,10 @@ public class HomeActivity extends MXCActionBarActivity {
                                     addNewRoom(event.roomId);
                                 } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                                     RoomMember member = JsonUtils.toRoomMember(event.content);
-                                    if (RoomMember.MEMBERSHIP_INVITE.equals(member.membership) && event.stateKey.equals(selfUserId)) {
+
+                                    // add the room summary if the user has
+                                    if ((RoomMember.MEMBERSHIP_INVITE.equals(member.membership) || RoomMember.MEMBERSHIP_JOIN.equals(member.membership))
+                                            && event.stateKey.equals(selfUserId)) {
                                         // we were invited to a new room.
                                         addNewRoom(event.roomId);
                                     }
@@ -151,7 +220,7 @@ public class HomeActivity extends MXCActionBarActivity {
                         if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
                             mAdapter.incrementUnreadCount(event.roomId);
 
-                            if (EventUtils.shouldHighlight(HomeActivity.this, event)) {
+                            if (EventUtils.shouldHighlight(mSession, HomeActivity.this, event)) {
                                 mAdapter.highlightRoom(event.roomId);
                             }
                         }
@@ -159,8 +228,6 @@ public class HomeActivity extends MXCActionBarActivity {
                         if (!mIsPaused) {
                             mAdapter.sortSummaries();
                             mAdapter.notifyDataSetChanged();
-                        } else {
-                            mSortSummaryAtResume = false;
                         }
                     }
                 }
@@ -219,7 +286,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 mAdapter.setPublicRoomsList(publicRooms);
@@ -233,10 +300,7 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // sanity check
-        if (null != getActionBar()) {
-            getActionBar().setDisplayShowTitleEnabled(false);
-        }
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {
@@ -245,6 +309,8 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
+        // the chevron is managed in the header view
+        mMyRoomList.setGroupIndicator(null);
         mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
 
         if (null != savedInstanceState) {
@@ -285,15 +351,79 @@ public class HomeActivity extends MXCActionBarActivity {
 
                 if (mAdapter.isRecentsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+
+                    Room room = mSession.getDataHandler().getRoom(roomId);
+                    // cannot join a leaving room
+                    if ((null == room) || room.isLeaving()) {
+                        roomId = null;
+                    }
+
                     mAdapter.resetUnreadCount(roomId);
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
                 }
 
-                if (null != roomId) {
+                if (null != roomId){
                     CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 }
                 return true;
+            }
+        });
+
+        mMyRoomList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                if (ExpandableListView.getPackedPositionType(id) == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
+                    long packedPos = ((ExpandableListView) parent).getExpandableListPosition(position);
+                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPos);
+
+                    if (mAdapter.isRecentsGroupIndex(groupPosition)) {
+                        final int childPosition = ExpandableListView.getPackedPositionChild(packedPos);
+
+                        FragmentManager fm = HomeActivity.this.getSupportFragmentManager();
+                        IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ROOM_OPTIONS);
+
+                        if (fragment != null) {
+                            fragment.dismissAllowingStateLoss();
+                        }
+
+                        final Integer[] lIcons = new Integer[]{R.drawable.ic_material_exit_to_app};
+                        final Integer[] lTexts = new Integer[]{R.string.action_leave};
+
+                        fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
+                        fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
+                                Integer selectedVal = lTexts[position];
+
+                                if (selectedVal == R.string.action_leave) {
+                                    HomeActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            String roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+                                            Room room = mSession.getDataHandler().getRoom(roomId);
+
+                                            if (null != room) {
+                                                room.leave(new SimpleApiCallback<Void>(HomeActivity.this) {
+                                                    @Override
+                                                    public void onSuccess(Void info) {
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                        fragment.show(fm, TAG_FRAGMENT_ROOM_OPTIONS);
+
+                        return true;
+                    }
+                }
+
+                return false;
             }
         });
 
@@ -378,9 +508,7 @@ public class HomeActivity extends MXCActionBarActivity {
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(true);
             expandAllGroups();
-
         } else {
-
             // need to collapse/expand the groups to avoid invalid refreshes
             collapseAllGroups();
             mAdapter.setDisplayAllGroups(false);
@@ -428,10 +556,10 @@ public class HomeActivity extends MXCActionBarActivity {
         MyPresenceManager.getInstance(this).advertiseOnline();
         mIsPaused = false;
 
-        if (mSortSummaryAtResume) {
-            mAdapter.sortSummaries();
-        }
-
+        // some unsent messages could have been added
+        // it does not trigger any live event.
+        // So, it is safer to sort the messages when debackgrounding
+        mAdapter.sortSummaries();
         // expand/collapse to force th group refresh
         collapseAllGroups();
         // all the groups must be displayed during a search
@@ -461,63 +589,96 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.home, menu);
-        return true;
+    protected void selectDrawItem(int position) {
+        // Highlight the selected item, update the title, and close the drawer
+        mDrawerList.setItemChecked(position, true);
+
+        final int id = (position == 0) ? R.string.action_settings : mSlideMenuTitleIds[position - 1];
+
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (id == R.string.action_search_contact) {
+                    FragmentManager fm = getSupportFragmentManager();
+
+                    ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
+                    if (fragment != null) {
+                        fragment.dismissAllowingStateLoss();
+                    }
+                    fragment = ContactsListDialogFragment.newInstance();
+                    fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
+                } else if (id == R.string.action_search_room) {
+                    toggleSearchButton();
+                } else if (id == R.string.create_room) {
+                    createRoom();
+                } else if (id ==  R.string.join_room) {
+                    joinRoomByName();
+                } else if (id ==  R.string.action_mark_all_as_read) {
+                    markAllMessagesAsRead();
+                } else if (id ==  R.string.action_settings) {
+                    HomeActivity.this.startActivity(new Intent(HomeActivity.this, SettingsActivity.class));
+                } else if (id ==  R.string.action_disconnect) {
+                    CommonActivityUtils.disconnect(HomeActivity.this);
+                } else if (id ==  R.string.send_bug_report) {
+                    RageShake.getInstance().sendBugReport();
+                } else if (id ==  R.string.action_logout) {
+                    CommonActivityUtils.logout(HomeActivity.this);
+                }
+            }
+        });
+
+        mDrawerLayout.closeDrawer(mDrawerList);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
-            return true;
-        }
-
-        if (id == R.id.action_mark_all_as_read) {
-            markAllMessagesAsRead();
-            return true;
-        }
-        else if (id == R.id.search_room) {
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_SEARCH)) {
             toggleSearchButton();
             return true;
         }
-        else if (id == R.id.action_create_private_room) {
-            createRoom(false);
-            return true;
-        }
-        else if (id == R.id.action_create_public_room) {
-            createRoom(true);
+
+        if ((keyCode == KeyEvent.KEYCODE_MENU)) {
+            HomeActivity.this.startActivity(new Intent(HomeActivity.this, SettingsActivity.class));
             return true;
         }
 
-        return super.onOptionsItemSelected(item);
+        return super.onKeyDown(keyCode, event);
     }
 
-    private void createRoom(final boolean isPublic) {
-        final String roomVisibility = isPublic ? RoomState.VISIBILITY_PUBLIC : RoomState.VISIBILITY_PRIVATE;
-        // For public rooms, we ask for the alias; for private, the room name
-        String alertTitle = getString(isPublic ? R.string.create_room_set_alias : R.string.create_room_set_name);
-        String textFieldHint = getString(isPublic ? R.string.create_room_alias_hint : R.string.create_room_name_hint);
-
-        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, alertTitle, textFieldHint, null, new CommonActivityUtils.OnSubmitListener() {
+    private void joinRoomByName() {
+        AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, getString(R.string.join_room_title),  getString(R.string.join_room_hint), null, new CommonActivityUtils.OnSubmitListener() {
             @Override
             public void onSubmit(String text) {
-                if (text.length() == 0) {
-                    return;
-                }
                 MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                String alias = isPublic ? text : null;
-                String name = isPublic ? null : text;
-                session.createRoom(name, null, roomVisibility, alias, new SimpleApiCallback<String>() {
+
+                session.joinRoom(text, new ApiCallback<String>() {
+                    @Override
+                    public void onSuccess(String roomId) {
+                        if (null != roomId) {
+                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                        }
+                    }
 
                     @Override
-                    public void onSuccess(String info) {
-                        CommonActivityUtils.goToRoomPage(info, HomeActivity.this);
+                    public void onNetworkError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                getString(R.string.network_error),
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.error,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Toast.makeText(HomeActivity.this,
+                                e.getLocalizedMessage(),
+                                Toast.LENGTH_LONG).show();
+
                     }
                 });
             }
@@ -526,6 +687,17 @@ public class HomeActivity extends MXCActionBarActivity {
             public void onCancelled() {}
         });
         alert.show();
+    }
+
+    private void createRoom() {
+        FragmentManager fm = getSupportFragmentManager();
+
+        RoomCreationDialogFragment fragment = (RoomCreationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CREATE_ROOM_DIALOG);
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
+        }
+        fragment = RoomCreationDialogFragment.newInstance();
+        fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 
     private void markAllMessagesAsRead(){

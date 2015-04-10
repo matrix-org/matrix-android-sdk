@@ -25,8 +25,10 @@ import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.api.ProfileApi;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.lang.reflect.Modifier;
 import java.util.concurrent.TimeUnit;
@@ -43,10 +45,11 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
-    private static final String URI_PREFIX = "/_matrix/client/api/v1";
+    public static final String URI_API_PREFIX = "/_matrix/client/api/v1";
+    public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
-    private static final int CONNECTION_TIMEOUT_MS = 60000;
+    private static final int CONNECTION_TIMEOUT_MS = 15000;
     private static final int READ_TIMEOUT_MS = 60000;
 
     protected Credentials mCredentials;
@@ -55,13 +58,13 @@ public class RestClient<T> {
 
     protected Gson gson;
 
-    protected NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    protected UnsentEventsManager mUnsentEventsManager;
 
     /**
      * Public constructor.
      * @param hsUri The http[s] URI to the home server.
      */
-    public RestClient(Uri hsUri, Class<T> type) {
+    public RestClient(Uri hsUri, Class<T> type, String uriPrefix) {
         // sanity check
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
@@ -72,12 +75,14 @@ public class RestClient<T> {
 
         // HTTP client
         OkHttpClient okHttpClient = new OkHttpClient();
+        int a = okHttpClient.getConnectTimeout();
+
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(hsUri.toString() + URI_PREFIX)
+                .setEndpoint(hsUri.toString() + uriPrefix)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
@@ -100,17 +105,17 @@ public class RestClient<T> {
      * Constructor providing the full user credentials. To use to avoid having to log the user in.
      * @param credentials the user credentials
      */
-    public RestClient(Credentials credentials, Class<T> type) {
-        this(Uri.parse(credentials.homeServer), type);
+    public RestClient(Credentials credentials, Class<T> type, String uriPrefix) {
+        this(Uri.parse(credentials.homeServer), type, uriPrefix);
         mCredentials = credentials;
     }
 
     /**
-     * Update the nerwork listener
-     * @param networkConnectivityReceiver the new network listener
+     * Set the unsentEvents manager.
+     * @param unsentEventsManager The unsentEvents manager.
      */
-    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
-        mNetworkConnectivityReceiver = networkConnectivityReceiver;
+    public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
+        mUnsentEventsManager = unsentEventsManager;
     }
 
     /**

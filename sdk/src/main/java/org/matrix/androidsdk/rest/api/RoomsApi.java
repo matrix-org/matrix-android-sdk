@@ -148,6 +148,14 @@ public interface RoomsApi {
     public void join(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
+     * Join the room with the given alias.
+     * @param roomAliasOrId a room alias (or room id)
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/join/{roomAliasOrId}")
+    public void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
+
+    /**
      * Leave the given room.
      * @param roomId the room id
      * @param callback the asynchronous callback called when finished
@@ -192,14 +200,6 @@ public interface RoomsApi {
      */
     @PUT("/rooms/{roomId}/typing/{userId}")
     public void typing(@Path("roomId") String roomId, @Path("userId") String userId, @Body Typing typing, Callback<Void> callback);
-
-    /**
-     * Join the room with the given alias.
-     * @param roomAliasOrId a room alias (or room id)
-     * @param callback the asynchronous callback called with the response
-     */
-    @POST("/join/{roomAliasOrId}")
-    public void joinRoomByAlias(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
 
     /**
      * Create a room.

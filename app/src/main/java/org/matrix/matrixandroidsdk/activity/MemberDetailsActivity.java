@@ -36,11 +36,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -151,7 +148,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                     String text = (String)((Button)v).getText();
 
                     final View refreshingView = findViewById(R.id.profile_mask);
-                    final ApiCallback callback = new SimpleApiCallback<Void>() {
+                    final ApiCallback callback = new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                         @Override
                         public void onMatrixError(MatrixError e) {
                             if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -189,7 +186,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>() {
+                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                                     @Override
                                     public void onMatrixError(MatrixError e) {
                                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -259,7 +256,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
         mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventListener);
 
         // load the thumbnail
-        mThumbnailImageView = (ImageView) findViewById(R.id.imageView_avatar);
+        mThumbnailImageView = (ImageView) findViewById(R.id.avatar_img);
 
         // set the title
         mMatrixIdTextView = (TextView) findViewById(R.id.textView_matrixid);
@@ -374,7 +371,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
         if (mMember.avatarUrl != null) {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(mThumbnailImageView, mMember.avatarUrl, size);
+            Matrix.getInstance(this).getDefaultMediasCache().loadAvatarThumbnail(mThumbnailImageView, mMember.avatarUrl, size);
         }
     }
 

@@ -38,6 +38,7 @@ import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -45,12 +46,8 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
-
-import java.util.Formatter;
 
 public class SettingsActivity extends MXCActionBarActivity {
 
@@ -67,13 +64,15 @@ public class SettingsActivity extends MXCActionBarActivity {
 
     private Uri newAvatarUri;
 
+    private MXMediasCache mMediasCache;
+
     void refreshProfileThumbnail() {
         mAvatarImageView = (ImageView) findViewById(R.id.imageView_avatar);
         if (mMyUser.avatarUrl == null) {
             mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(mAvatarImageView, mMyUser.avatarUrl, size);
+            mMediasCache.loadAvatarThumbnail(mAvatarImageView, mMyUser.avatarUrl, size);
         }
     }
 
@@ -85,6 +84,8 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         MXSession session = Matrix.getInstance(this).getDefaultSession();
         mMyUser = session.getMyUser();
+
+        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
 
         refreshProfileThumbnail();
 
@@ -159,15 +160,15 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         final Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
 
-        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, mMediasCache.cacheSize(this));
         clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
 
         clearCacheButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ConsoleMediasCache.clearCache(SettingsActivity.this);
+                mMediasCache.clearCache(SettingsActivity.this);
 
-                String cacheSize = android.text.format.Formatter.formatFileSize(SettingsActivity.this, ConsoleMediasCache.cacheSize(SettingsActivity.this));
+                String cacheSize = android.text.format.Formatter.formatFileSize(SettingsActivity.this, mMediasCache.cacheSize(SettingsActivity.this));
                 clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
             }
         });
@@ -208,13 +209,13 @@ public class SettingsActivity extends MXCActionBarActivity {
         // refresh the myUser profile
         if ((null != session) && (null !=  session.getProfileApiClient())) {
 
-            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>() {
+            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
                 @Override
                 public void onSuccess(String displayname) {
                     mMyUser.displayname = displayname;
                     mDisplayNameEditText.setText(mMyUser.displayname);
 
-                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>() {
+                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
                         @Override
                         public void onSuccess(String avatarUrl) {
                             mMyUser.avatarUrl = avatarUrl;
@@ -228,7 +229,7 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         // refresh the cache size
         Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
-        String cacheSize = android.text.format.Formatter.formatFileSize(this, ConsoleMediasCache.cacheSize(this));
+        String cacheSize = android.text.format.Formatter.formatFileSize(this, mMediasCache.cacheSize(this));
         clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
     }
 

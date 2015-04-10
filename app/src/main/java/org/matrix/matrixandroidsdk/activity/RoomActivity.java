@@ -1,65 +1,78 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.activity;
 
+import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
-import android.app.ProgressDialog;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.ExifInterface;
-import android.media.RemoteControlClient;
 import android.net.Uri;
-import android.os.MemoryFile;
+import android.os.Build;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXLatestChatMessageCache;
+import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.ImageInfo;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
-import org.matrix.matrixandroidsdk.db.ConsoleLatestChatMessageCache;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
-import org.matrix.matrixandroidsdk.fragments.MatrixMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.ConsoleMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.NotificationUtils;
+import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -69,14 +82,21 @@ import java.util.TimerTask;
 /**
  * Displays a single room with messages.
  */
-public class RoomActivity extends MXCActionBarActivity implements MatrixMessageListFragment.MatrixMessageListFragmentListener {
+public class RoomActivity extends MXCActionBarActivity {
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.RoomActivity.EXTRA_ROOM_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGE_LIST = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGE_LIST";
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
+    private static final String TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG";
+    private static final String TAG_FRAGMENT_ATTACHMENTS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_ATTACHMENTS_DIALOG";
+
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
+
+    private static final String PENDING_THUMBNAIL_URL = "PENDING_THUMBNAIL_URL";
+    private static final String PENDING_MEDIA_URL = "PENDING_MEDIA_URL";
+    private static final String PENDING_MIMETYPE = "PENDING_MIMETYPE";
 
     private static final String CAMERA_VALUE_TITLE = "attachment"; // Samsung devices need a filepath to write to or else won't return a Uri (!!!)
 
@@ -91,12 +111,27 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private static final String CMD_SET_USER_POWER_LEVEL = "/op";
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
-    private static final int REQUEST_IMAGE = 0;
+    private static final int REQUEST_FILES = 0;
     private static final int TAKE_IMAGE = 0;
 
-    private MatrixMessageListFragment mMatrixMessageListFragment;
+    private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+
+    private MXLatestChatMessageCache mLatestChatMessageCache;
+    private MXMediasCache mMediasCache;
+
+    private ImageButton mSendButton;
+    private ImageButton mAttachmentButton;
+    private EditText mEditText;
+
+    private View mImagePreviewLayout;
+    private ImageView mImagePreviewView;
+    private ImageButton mImagePreviewButton;
+
+    private String mPendingImageUrl;
+    private String mPendingImediaUrl;
+    private String mPendingMimeType;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
 
@@ -104,6 +139,31 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
     private Timer mTypingTimer = null;
     private TimerTask mTypingTimerTask;
     private long  mLastTypingDate = 0;
+
+    private Boolean mIgnoreTextUpdate = false;
+
+    // sliding menu
+    private final Integer[] mSlideMenuTitleIds = new Integer[]{
+            R.string.action_home,
+            R.string.action_room_info,
+            R.string.action_members,
+            R.string.action_invite_by_name,
+            R.string.action_invite_by_list,
+            R.string.action_leave,
+            R.string.action_settings,
+            R.string.send_bug_report,
+    };
+
+    private final Integer[] mSlideMenuResourceIds = new Integer[]{
+            R.drawable.ic_material_home, // R.string.action_home
+            R.drawable.ic_material_description,  // R.string.action_room_info
+            R.drawable.ic_material_group, // R.string.action_members
+            R.drawable.ic_material_person_add, // R.string.option_invite_by_name
+            R.drawable.ic_material_group_add, // R.string.option_invite_by_list
+            R.drawable.ic_material_exit_to_app, // R.string.action_leave
+            R.drawable.ic_material_settings, //  R.string.action_settings,
+            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
+    };
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -126,14 +186,85 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 }
             });
         }
+
+        @Override
+        public void onRoomInitialSyncComplete(String roomId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // set general room information
+                    setTitle(mRoom.getName(mSession.getCredentials().userId));
+                    setTopic(mRoom.getTopic());
+
+                    mConsoleMessageListFragment.onInitialMessagesLoaded();
+                }
+            });
+        }
     };
+
+    /**
+     * Laucnh the files selection intent
+     */
+    private void launchFileSelectionIntent() {
+        Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+        fileIntent.setType("*/*");
+        startActivityForResult(fileIntent, REQUEST_FILES);
+    }
+
+    /**
+     * Launch the camera
+     */
+    private void launchCamera() {
+        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        // the following is a fix for buggy 2.x devices
+        Date date = new Date();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
+        // The Galaxy S not only requires the name of the file to output the image to, but will also not
+        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
+        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        Uri dummyUri = null;
+        try {
+            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        }
+        catch (UnsupportedOperationException uoe) {
+            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
+            try {
+                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
+            }
+        }
+        catch (Exception e) {
+            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
+        }
+        if (dummyUri != null) {
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
+        }
+        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
+        // this will point to the data we're looking for.
+        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
+        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
+        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
+        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
+
+        startActivityForResult(captureIntent, TAKE_IMAGE);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        // define a sliding menu
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
@@ -143,157 +274,111 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         }
 
         // the user has tapped on the "View" notification button
-        if ((null != intent.getAction()) && (intent.getAction().startsWith(EventStreamService.TAP_TO_VIEW_ACTION))) {
+        if ((null != intent.getAction()) && (intent.getAction().startsWith(NotificationUtils.TAP_TO_VIEW_ACTION))) {
             // remove any pending notifications
             NotificationManager notificationsManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationsManager.cancelAll();
         }
 
+        mPendingImageUrl = null;
+        mPendingImediaUrl = null;
+        mPendingMimeType = null;
+
+        if (null != savedInstanceState) {
+            if (savedInstanceState.containsKey(PENDING_THUMBNAIL_URL)) {
+                mPendingImageUrl = savedInstanceState.getString(PENDING_THUMBNAIL_URL);
+            }
+
+            if (savedInstanceState.containsKey(PENDING_MEDIA_URL)) {
+                mPendingImediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
+            }
+
+            if (savedInstanceState.containsKey(PENDING_MIMETYPE)) {
+                mPendingMimeType = savedInstanceState.getString(PENDING_MIMETYPE);
+            }
+        }
+
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
         Log.i(LOG_TAG, "Displaying "+roomId);
 
-        findViewById(R.id.button_send).setOnClickListener(new View.OnClickListener() {
+        mEditText = (EditText)findViewById(R.id.editText_messageBox);
+
+        mSendButton = (ImageButton)findViewById(R.id.button_send);
+        mSendButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
-                EditText editText = (EditText)findViewById(R.id.editText_messageBox);
-                String body = editText.getText().toString();
-                sendMessage(body);
-                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
-                editText.setText("");
+                // send the previewed image ?
+                if (null != mPendingImageUrl) {
+                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
+                    mPendingImageUrl = null;
+                    mPendingImediaUrl = null;
+                    mPendingMimeType = null;
+                    manageSendMoreButtons();
+                } else {
+                    String body = mEditText.getText().toString();
+                    sendMessage(body);
+                    RoomActivity.this.mLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
+                    mEditText.setText("");
+                }
             }
         });
 
-        findViewById(R.id.button_more).setOnClickListener(new View.OnClickListener() {
-            private static final int OPTION_CANCEL = 0;
-            private static final int OPTION_ATTACH_IMAGE = 1;
-            private static final int OPTION_TAKE_IMAGE = 2;
-            private static final int OPTION_INVITE = 3;
+        mAttachmentButton = (ImageButton)findViewById(R.id.button_more);
+        mAttachmentButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
-            public void onClick(View v) {
-                final int[] options = new int[] {OPTION_ATTACH_IMAGE, OPTION_TAKE_IMAGE, OPTION_INVITE, OPTION_CANCEL};
+            public void onClick(View view) {
+                FragmentManager fm = getSupportFragmentManager();
+                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment)fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
 
-                new AlertDialog.Builder(RoomActivity.this)
-                        .setItems(buildOptionLabels(options), new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                switch (options[which]) {
-                                    case OPTION_CANCEL:
-                                        dialog.cancel();
-                                        break;
-                                    case OPTION_ATTACH_IMAGE:
-                                        Intent fileIntent = new Intent(Intent.ACTION_PICK);
-                                        fileIntent.setType("image/*");
-                                        startActivityForResult(fileIntent, REQUEST_IMAGE);
-                                        break;
-                                    case OPTION_TAKE_IMAGE:
-                                        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-                                        // the following is a fix for buggy 2.x devices
-                                        Date date = new Date();
-                                        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
-                                        ContentValues values = new ContentValues();
-                                        values.put(MediaStore.Images.Media.TITLE, CAMERA_VALUE_TITLE + formatter.format(date));
-                                        // The Galaxy S not only requires the name of the file to output the image to, but will also not
-                                        // set the mime type of the picture it just took (!!!). We assume that the Galaxy S takes image/jpegs
-                                        // so the attachment uploader doesn't freak out about there being no mimetype in the content database.
-                                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                                        Uri dummyUri = null;
-                                        try {
-                                            dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                                        }
-                                        catch (UnsupportedOperationException uoe) {
-                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI - no SD card? Attempting to insert into device storage.");
-                                            try {
-                                                dummyUri = RoomActivity.this.getContentResolver().insert(MediaStore.Images.Media.INTERNAL_CONTENT_URI, values);
-                                            }
-                                            catch (Exception e) {
-                                                Log.e(LOG_TAG, "Unable to insert camera URI into internal storage. Giving up. "+e);
-                                            }
-                                        }
-                                        catch (Exception e) {
-                                            Log.e(LOG_TAG, "Unable to insert camera URI into MediaStore.Images.Media.EXTERNAL_CONTENT_URI. "+e);
-                                        }
-                                        if (dummyUri != null) {
-                                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, dummyUri);
-                                        }
-                                        // Store the dummy URI which will be set to a placeholder location. When all is lost on samsung devices,
-                                        // this will point to the data we're looking for.
-                                        // Because Activities tend to use a single MediaProvider for all their intents, this field will only be the
-                                        // *latest* TAKE_PICTURE Uri. This is deemed acceptable as the normal flow is to create the intent then immediately
-                                        // fire it, meaning onActivityResult/getUri will be the next thing called, not another createIntentFor.
-                                        RoomActivity.this.mLatestTakePictureCameraUri = dummyUri == null ? null : dummyUri.toString();
-
-                                        startActivityForResult(captureIntent, TAKE_IMAGE);
-                                        break;
-                                    case OPTION_INVITE: {
-                                            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                                            if (session != null) {
-                                                AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, "Invite User", "@localpart:domain", null, new CommonActivityUtils.OnSubmitListener() {
-                                                    @Override
-                                                    public void onSubmit(final String text) {
-                                                        if (TextUtils.isEmpty(text)) {
-                                                            return;
-                                                        }
-                                                        if (!text.startsWith("@") || !text.contains(":")) {
-                                                            Toast.makeText(getApplicationContext(), "User must be of the form '@name:example.com'.", Toast.LENGTH_LONG).show();
-                                                            return;
-                                                        }
-                                                        mRoom.invite(text.trim(), new SimpleApiCallback<Void>() {
-                                                            @Override
-                                                            public void onSuccess(Void info) {
-                                                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                                            }
-                                                        });
-                                                    }
-
-                                                    @Override
-                                                    public void onCancelled() {
-
-                                                    }
-                                                });
-                                                alert.show();
-                                            }
-                                        }
-
-                                        break;
-                                }
-                            }
-                        })
-                        .show();
-            }
-
-            private String[] buildOptionLabels(int[] options) {
-                String[] labels = new String[options.length];
-                for (int i = 0; i < options.length; i++) {
-                    String label = "";
-                    switch (options[i]) {
-                        case OPTION_CANCEL:
-                            label = getString(R.string.cancel);
-                            break;
-                        case OPTION_ATTACH_IMAGE:
-                            label = getString(R.string.option_attach_image);
-                            break;
-                        case OPTION_TAKE_IMAGE:
-                            label = getString(R.string.option_take_image);
-                            break;
-                        case OPTION_INVITE:
-                            label = getString(R.string.option_invite);
-                            break;
-                    }
-                    labels[i] = label;
+                if (fragment != null) {
+                    fragment.dismissAllowingStateLoss();
                 }
 
-                return labels;
+                final Integer[] messages = new Integer[]{
+                        R.string.option_send_files,
+                        R.string.option_take_photo,
+                };
+
+                final Integer[] icons = new Integer[]{
+                        R.drawable.ic_material_file,  // R.string.option_send_files
+                        R.drawable.ic_material_camera, // R.string.action_members
+                };
+
+
+                fragment = IconAndTextDialogFragment.newInstance(icons, messages);
+                fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
+                        Integer selectedVal = messages[position];
+
+                        if (selectedVal ==  R.string.option_send_files) {
+                            RoomActivity.this.launchFileSelectionIntent();
+                        } else if (selectedVal == R.string.option_take_photo) {
+                            RoomActivity.this.launchCamera();
+                        }
+                    }
+                });
+
+                fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
             }
         });
 
-        final EditText editText = (EditText)findViewById(R.id.editText_messageBox);
-        editText.addTextChangedListener(new TextWatcher() {
+        mEditText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(android.text.Editable s) {
-                ConsoleLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), editText.getText().toString());
-                handleTypingNotification(editText.getText().length() != 0);
+                MXLatestChatMessageCache latestChatMessageCache = RoomActivity.this.mLatestChatMessageCache;
+
+                String textInPlace = latestChatMessageCache.getLatestText(RoomActivity.this, mRoom.getRoomId());
+
+                // check if there is really an update
+                // avoid useless updates (initializations..)
+                if (!mIgnoreTextUpdate && !textInPlace.equals(mEditText.getText().toString())) {
+                    latestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), mEditText.getText().toString());
+                    handleTypingNotification(mEditText.getText().length() != 0);
+                }
+
+                manageSendMoreButtons();
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -310,32 +395,82 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
             finish();
             return;
         }
+        CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
 
         FragmentManager fm = getSupportFragmentManager();
-        mMatrixMessageListFragment = (MatrixMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
+        mConsoleMessageListFragment = (ConsoleMessageListFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGE_LIST);
 
-        if (mMatrixMessageListFragment == null) {
+        if (mConsoleMessageListFragment == null) {
             // this fragment displays messages and handles all message logic
-            mMatrixMessageListFragment = MatrixMessageListFragment.newInstance(mRoom.getRoomId());
-            fm.beginTransaction().add(R.id.anchor_fragment_messages, mMatrixMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
+            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
+            fm.beginTransaction().add(R.id.anchor_fragment_messages, mConsoleMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
         // set general room information
         setTitle(mRoom.getName(mSession.getCredentials().userId));
         setTopic(mRoom.getTopic());
 
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
-
         // listen for room name or topic changes
         mRoom.addEventListener(mEventListener);
 
         // The error listener needs the current activity
         mSession.setFailureCallback(new ErrorListener(this));
+
+        mImagePreviewLayout = findViewById(R.id.room_image_preview_layout);
+        mImagePreviewView   = (ImageView)findViewById(R.id.room_image_preview);
+        mImagePreviewButton = (ImageButton)findViewById(R.id.room_image_preview_cancel_button);
+
+        // the user cancels the image selection
+        mImagePreviewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mPendingImageUrl = null;
+                mPendingImediaUrl = null;
+                mPendingMimeType = null;
+                manageSendMoreButtons();
+            }
+        });
+
+        mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
+        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+
+        if (null != mPendingImageUrl) {
+            savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingImageUrl);
+        }
+
+        if (null != mPendingImediaUrl) {
+            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingImediaUrl);
+        }
+
+        if (null != mPendingMimeType) {
+            savedInstanceState.putString(PENDING_MIMETYPE, mPendingMimeType);
+        }
+    }
+
+    /**
+     *
+     */
+    private void manageSendMoreButtons() {
+        boolean hasText = mEditText.getText().length() > 0;
+        boolean hasPreviewedMedia = (null != mPendingImageUrl);
+
+        if (hasPreviewedMedia) {
+            mMediasCache.loadBitmap(mImagePreviewView, mPendingImageUrl, 0, mPendingMimeType);
+        }
+
+        mImagePreviewLayout.setVisibility(hasPreviewedMedia ? View.VISIBLE : View.GONE);
+        mEditText.setVisibility(hasPreviewedMedia ? View.INVISIBLE : View.VISIBLE);
+
+        mSendButton.setVisibility((hasText || hasPreviewedMedia) ? View.VISIBLE : View.INVISIBLE);
+        mAttachmentButton.setVisibility((hasText || hasPreviewedMedia)  ? View.INVISIBLE : View.VISIBLE);
     }
 
     @Override
@@ -354,7 +489,6 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
         MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(null);
         // warn other member that the typing is ended
         cancelTypingNotification();
     }
@@ -365,76 +499,54 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
         MyPresenceManager.getInstance(this).advertiseOnline();
 
-        // warn when the initial sync is performed
-        // The events listeners are not triggered until the room initial sync is done.
-        // So, the room name might be invalid until this first sync.
-        mMatrixMessageListFragment.setMatrixMessageListFragmentListener(this);
-
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
-        EditText editText = (EditText)findViewById(R.id.editText_messageBox);
-        String cachedText = ConsoleLatestChatMessageCache.getLatestText(this, mRoom.getRoomId());
+        String cachedText = Matrix.getInstance(this).getDefaultLatestChatMessageCache().getLatestText(this, mRoom.getRoomId());
 
-        if (!cachedText.equals(editText.getText())) {
-            editText.setText("");
-            editText.append(cachedText);
+        if (!cachedText.equals(mEditText.getText().toString())) {
+            mIgnoreTextUpdate = true;
+            mEditText.setText("");
+            mEditText.append(cachedText);
+            mIgnoreTextUpdate = false;
         }
+
+        manageSendMoreButtons();
+
+        // refresh the UI : the timezone could have been updated
+        mConsoleMessageListFragment.refresh();
     }
 
+    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.room, menu);
         return true;
-    }
+    }*/
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
+        if (id == R.id.action_go_home) {
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    RoomActivity.this.finish();
+                }
+            });
+
             return true;
         }
 
-        if (id == R.id.action_leave) {
-            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                mRoom.leave(new SimpleApiCallback<Void>() {
-
-                    @Override
-                    public void onSuccess(Void info) {
-                        RoomActivity.this.finish();
-                    }
-                });
-            }
-        }
-        else if (id == R.id.action_members) {
-            FragmentManager fm = getSupportFragmentManager();
-
-            RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
-            if (fragment != null) {
-                fragment.dismissAllowingStateLoss();
-            }
-            fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
-            fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
-        }
-        else if (id == R.id.action_info) {
-            Intent startRoomInfoIntent = new Intent(this, RoomInfoActivity.class);
-            startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
-            startActivity(startRoomInfoIntent);
-        }
         return super.onOptionsItemSelected(item);
     }
 
     private void setTopic(String topic) {
-        if (null !=  this.getActionBar()) {
-            this.getActionBar().setSubtitle(topic);
+        if (null !=  this.getSupportActionBar()) {
+            this.getSupportActionBar().setSubtitle(topic);
         }
     }
-
 
     /**
      * check if the text message is an IRC command.
@@ -449,7 +561,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         if ((null != body) && (body.startsWith("/"))) {
             MXSession session = Matrix.getInstance(this).getDefaultSession();
 
-            final ApiCallback callback = new SimpleApiCallback<Void>() {
+            final ApiCallback callback = new SimpleApiCallback<Void>(this) {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -474,7 +586,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 String message = body.substring(CMD_EMOTE.length()).trim();
 
                 if (message.length() > 0) {
-                    mMatrixMessageListFragment.sendEmote(message);
+                    mConsoleMessageListFragment.sendEmote(message);
                 }
             } else if (body.startsWith(CMD_JOIN_ROOM)) {
                 isIRCCmd = true;
@@ -482,7 +594,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoomByRoomAlias(roomAlias,new SimpleApiCallback<String>() {
+                    session.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
 
                         @Override
                         public void onSuccess(String roomId) {
@@ -559,141 +671,228 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
         return isIRCCmd;
     }
 
-
     private void sendMessage(String body) {
         if (!TextUtils.isEmpty(body)) {
             if (!manageIRCCommand(body)) {
-                mMatrixMessageListFragment.sendTextMessage(body);
+                mConsoleMessageListFragment.sendTextMessage(body);
             }
         }
     }
 
+    /**
+     * Send a list of images from their URIs
+     * @param mediaUris the media URIs
+     */
+    private void sendMedias(ArrayList<Uri> mediaUris) {
+
+        final int mediaCount = mediaUris.size();
+
+        for(Uri anUri : mediaUris) {
+            final Uri mediaUri = anUri;
+
+            RoomActivity.this.runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+                    if (resource == null) {
+                        Toast.makeText(RoomActivity.this,
+                                getString(R.string.message_failed_to_upload),
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    // save the file in the filesystem
+                    String mediaUrl = mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                    String mimeType = resource.mimeType;
+                    Boolean isManaged = false;
+
+                    if ((null != resource.mimeType) && resource.mimeType.startsWith("image/")) {
+                        // manage except if there is an error
+                        isManaged = true;
+
+                        // try to retrieve the gallery thumbnail
+                        // if the image comes from the gallery..
+                        Bitmap thumbnailBitmap = null;
+
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            long imageId = Long.parseLong((String) (uriPath.get(uriPath.size() - 1)));
+
+                            thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                        } catch (Exception e) {
+
+                        }
+
+                        // no thumbnail has been found or the mimetype is unknown
+                        if (null == thumbnailBitmap) {
+                            // need to decompress the high res image
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                            resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
+                            // get the full size bitmap
+                            Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+
+                            // create a thumbnail bitmap if there is none
+                            if (null == thumbnailBitmap) {
+                                if (fullSizeBitmap != null) {
+                                    double fullSizeWidth = fullSizeBitmap.getWidth();
+                                    double fullSizeHeight = fullSizeBitmap.getHeight();
+
+                                    double thumbnailWidth = mConsoleMessageListFragment.getMaxThumbnailWith();
+                                    double thumbnailHeight = mConsoleMessageListFragment.getMaxThumbnailHeight();
+
+                                    if (fullSizeWidth > fullSizeHeight) {
+                                        thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
+                                    } else {
+                                        thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
+                                    }
+
+                                    try {
+                                        thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                                    } catch (OutOfMemoryError ex) {
+                                    }
+                                }
+                            }
+
+                            // unknown mimetype
+                            if ((null == mimeType) || (mimeType.startsWith("image/"))) {
+                                try {
+                                    if (null != fullSizeBitmap) {
+                                        Uri uri = Uri.parse(mediaUrl);
+                                        try {
+                                            mMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                        } catch (OutOfMemoryError ex) {
+                                        }
+
+                                        // the images are save in jpeg format
+                                        mimeType = "image/jpeg";
+                                    } else {
+                                        isManaged = false;
+                                    }
+
+                                    resource.contentStream.close();
+
+                                } catch (Exception e) {
+                                    isManaged = false;
+                                }
+                            }
+
+                            // reduce the memory consumption
+                            if (null  != fullSizeBitmap) {
+                                fullSizeBitmap.recycle();
+                                System.gc();
+                            }
+                        }
+
+                        String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+
+                        if (null != thumbnailBitmap) {
+                            thumbnailBitmap.recycle();
+                        }
+
+                        // is the image content valid ?
+                        if (isManaged  && (null != thumbnailURL)) {
+
+                            // if there is only one image
+                            if (mediaCount == 1) {
+                                // display an image preview before sending it
+                                mPendingImageUrl = thumbnailURL;
+                                mPendingImediaUrl = mediaUrl;
+                                mPendingMimeType = mimeType;
+
+                                mConsoleMessageListFragment.scrollToBottom();
+
+                                manageSendMoreButtons();
+                            } else {
+                                mConsoleMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
+                            }
+                        }
+                    }
+
+                    // default behaviour
+                    if ((!isManaged) && (null != mediaUrl)) {
+                        String filename = "A file";
+
+                        try {
+                            ContentResolver resolver = getContentResolver();
+                            List uriPath = mediaUri.getPathSegments();
+                            filename = "";
+
+                            if (mediaUri.toString().startsWith("content://")) {
+                                Cursor cursor = null;
+                                try {
+                                    cursor = RoomActivity.this.getContentResolver().query(mediaUri, null, null, null, null);
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                    }
+                                } catch (Exception e) {
+
+                                }
+                                finally {
+                                    cursor.close();
+                                }
+
+                                if (filename.length() == 0) {
+                                    filename = (String)uriPath.get(uriPath.size() - 1);
+                                }
+                            }
+
+                        } catch (Exception e) {
+
+                        }
+
+                        mConsoleMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
+                    }
+                }
+            });
+        }
+    }
+
+    @SuppressLint("NewApi")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if ((requestCode == REQUEST_IMAGE) || (requestCode == TAKE_IMAGE)) {
-                Uri dataUri;
+            if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
+                ArrayList<Uri> uris = new ArrayList<Uri>();
 
                 if (null != data) {
-                    dataUri =  data.getData();
+                    ClipData clipData = null;
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                        clipData = data.getClipData();
+                    }
+
+                    // multiple data
+                    if (null != clipData) {
+                        int count = clipData.getItemCount();
+
+                        for (int i = 0; i < count; i++) {
+                            ClipData.Item item = clipData.getItemAt(i);
+                            Uri uri = item.getUri();
+
+                            if (null != uri) {
+                                uris.add(uri);
+                            }
+                        }
+
+                    } else if (null != data.getData()) {
+                        uris.add(data.getData());
+                    }
                 } else {
-                    dataUri =  mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri);
+                    uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
+                    mLatestTakePictureCameraUri = null;
                 }
 
-                mLatestTakePictureCameraUri = null;
-
-                final Uri imageUri = dataUri;
-
-                ResourceUtils.Resource resource = ResourceUtils.openResource(this, imageUri);
-                if (resource == null) {
-                    Toast.makeText(RoomActivity.this,
-                            getString(R.string.message_failed_to_upload),
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                // save the file in the filesystem
-                String imageUrl =  ConsoleMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null);
-                String mimeType = resource.mimeType;
-
-                try {
-                    resource.contentStream.close();
-                } catch(Exception e) {
-                }
-
-                // try to retrieve the gallery thumbnail
-                // if the image comes from the gallery..
-                Bitmap thumbnailBitmap = null;
-
-                try {
-                    ContentResolver resolver = getContentResolver();
-                    List uriPath = imageUri.getPathSegments();
-                    long imageId = Long.parseLong((String)(uriPath.get(uriPath.size() - 1)));
-
-                    thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
-                } catch (Exception e) {
-
-                }
-
-                // no thumbnail has been found or the mimetype is unknown
-                if ((null == thumbnailBitmap) || (null == mimeType) || (mimeType.equals("image/*"))) {
-
-                    // need to decompress the high res image
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                    resource = ResourceUtils.openResource(this, imageUri);
-
-                    // get the full size bitmap
-                    Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
-
-                    // create a thumbnail bitmap if there is none
-                    if (null == thumbnailBitmap) {
-                        if (fullSizeBitmap != null) {
-                            double fullSizeWidth = fullSizeBitmap.getWidth();
-                            double fullSizeHeight = fullSizeBitmap.getHeight();
-
-                            double thumbnailWidth = mMatrixMessageListFragment.getMaxThumbnailWith();
-                            double thumbnailHeight =  mMatrixMessageListFragment.getMaxThumbnailHeight();
-
-                            if (fullSizeWidth > fullSizeHeight) {
-                                thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
-                            } else {
-                                thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
-                            }
-
-                            try {
-                                thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                            } catch (OutOfMemoryError ex) {
-                            }
-                        }
-                    }
-
-                    // unknown mimetype
-                    if ((null == mimeType) || (mimeType.equals("image/*"))) {
-                        try {
-                            if (null != fullSizeBitmap) {
-                                Uri uri = Uri.parse(imageUrl);
-                                try {
-                                    ConsoleMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
-                                } catch (OutOfMemoryError ex) {
-                                }
-
-                                // the images are save in jpeg format
-                                mimeType = "image/jpeg";
-                            } else {
-                                imageUrl = null;
-                            }
-
-                            resource.contentStream.close();
-
-                        } catch (Exception e) {
-                            imageUrl = null;
-                        }
-                    }
-
-                    // reduce the memory consumption
-                    fullSizeBitmap.recycle();
-                    System.gc();
-                }
-
-                String thumbnailURL = ConsoleMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
-                thumbnailBitmap.recycle();
-
-                // is the image content valid ?
-                if ((null != imageUrl) && (null != thumbnailURL)) {
-                    mMatrixMessageListFragment.uploadImageContent(thumbnailURL, imageUrl, mimeType);
+                if (0 != uris.size()) {
+                    sendMedias(uris);
                 }
             }
         }
-    }
-
-    @Override
-    public void onInitialMessagesLoaded() {
-        // set general room information
-        setTitle(mRoom.getName(mSession.getCredentials().userId));
-        setTopic(mRoom.getTopic());
     }
 
     /**
@@ -769,7 +968,7 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
         final boolean typingStatus = isTyping;
 
-        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>() {
+        mRoom.sendTypingNotification(typingStatus, notificationTimeoutMS, new SimpleApiCallback<Void>(RoomActivity.this) {
             @Override
             public void onSuccess(Void info) {
                 // Reset last typing date
@@ -806,8 +1005,102 @@ public class RoomActivity extends MXCActionBarActivity implements MatrixMessageL
 
             mLastTypingDate = 0;
 
-            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>() {
+            mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>(RoomActivity.this) {
             });
         }
+    }
+
+    /**
+     * Run the dedicated sliding menu action
+     * @param position selected menu entry
+     */
+    @Override
+    protected void selectDrawItem(int position) {
+        super.selectDrawItem(position);
+
+        final int id = (position == 0) ? R.string.action_settings : mSlideMenuTitleIds[position - 1];
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                if (id == R.string.action_home) {
+                    RoomActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            RoomActivity.this.finish();
+                        }
+                    });
+                }
+                else if (id == R.string.action_invite_by_list) {
+                    final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    if (session != null) {
+                        FragmentManager fm = getSupportFragmentManager();
+
+                        MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                        if (fragment != null) {
+                            fragment.dismissAllowingStateLoss();
+                        }
+                        fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
+                        fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+                    }
+                } else if (id == R.string.action_invite_by_name) {
+                    AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
+                        @Override
+                        public void onSubmit(final String text) {
+                            if (TextUtils.isEmpty(text)) {
+                                return;
+                            }
+
+                            // get the user suffix
+                            String userID = mSession.getCredentials().userId;
+                            String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
+
+                            ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
+
+                            if (userIDsList.size() > 0) {
+                                mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled() {
+
+                        }
+                    });
+
+                    alert.show();
+                } else if (id ==  R.string.action_members) {
+                    FragmentManager fm = getSupportFragmentManager();
+
+                    RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
+                    if (fragment != null) {
+                        fragment.dismissAllowingStateLoss();
+                    }
+                    fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
+                    fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
+                } else if (id ==  R.string.action_room_info) {
+                    Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
+                    startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+                    startActivity(startRoomInfoIntent);
+                } else if (id ==  R.string.action_leave) {
+                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+                    if (session != null) {
+                        mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
+
+                        });
+                        RoomActivity.this.finish();
+                    }
+                } else if (id ==  R.string.action_settings) {
+                    RoomActivity.this.startActivity(new Intent(RoomActivity.this, SettingsActivity.class));
+                } else if (id ==  R.string.send_bug_report) {
+                    RageShake.getInstance().sendBugReport();
+                }
+            }
+        });
     }
 }

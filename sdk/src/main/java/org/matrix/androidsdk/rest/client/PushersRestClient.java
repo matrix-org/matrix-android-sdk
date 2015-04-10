@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.RestClient;
@@ -19,7 +35,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String DATA_KEY_HTTP_URL = "url";
 
     public PushersRestClient(Credentials credentials) {
-        super(credentials, PushersApi.class);
+        super(credentials, PushersApi.class, RestClient.URI_API_PREFIX);
     }
 
     /** Add a new HTTP pusher.
@@ -30,14 +46,12 @@ public class PushersRestClient extends RestClient<PushersApi> {
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
-     * @param callback the callback called when the request completed
      */
     public void addHttpPusher(
             String pushkey, String appId,
             String profileTag, String lang,
             String appDisplayName, String deviceDisplayName,
-            URL url,
-            ApiCallback<Void> callback) {
+            String url) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -47,8 +61,8 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.appDisplayName= appDisplayName;
         pusher.deviceDisplayName = deviceDisplayName;
         pusher.data = new HashMap<String, String>();
-        pusher.data.put(DATA_KEY_HTTP_URL, url.toString());
+        pusher.data.put(DATA_KEY_HTTP_URL, url);
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(callback, null));
+        mApi.set(pusher);
     }
 }

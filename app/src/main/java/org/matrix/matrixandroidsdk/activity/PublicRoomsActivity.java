@@ -1,7 +1,22 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.activity;
 
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,7 +52,7 @@ public class PublicRoomsActivity extends MXCActionBarActivity {
         final RoomsAdapter adapter = new RoomsAdapter(this, R.layout.adapter_item_public_rooms);
         adapter.setAlternatingColours(0xFFFFFFFF, 0xFFEEEEEE);
         publicRoomsGridView.setAdapter(adapter);
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
+        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 for (PublicRoom publicRoom : publicRooms) {
@@ -85,10 +100,6 @@ public class PublicRoomsActivity extends MXCActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        if (CommonActivityUtils.handleMenuItemSelected(this, id)) {
-            return true;
-        }
 
         if (id == R.id.action_my_rooms) {
             finish();

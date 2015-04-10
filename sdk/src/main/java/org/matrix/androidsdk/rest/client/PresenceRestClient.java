@@ -31,7 +31,7 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
      * {@inheritDoc}
      */
     public PresenceRestClient(Credentials credentials) {
-        super(credentials, PresenceApi.class);
+        super(credentials, PresenceApi.class, RestClient.URI_API_PREFIX);
     }
 
     /**
@@ -41,13 +41,15 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
      * @param callback on success callback
      */
     public void setPresence(final String presence, final String statusMsg, final ApiCallback<Void> callback) {
+        final String description = "setPresence presence : " + presence + " statusMsg " + statusMsg;
+
         User userPresence = new User();
         userPresence.presence = presence;
         userPresence.statusMsg = statusMsg;
 
-        mApi.presenceStatus(mCredentials.userId, userPresence, new RestAdapterCallback<Void>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.presenceStatus(mCredentials.userId, userPresence, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
-            public void onNetworkFailed() {
+            public void onRetry() {
                 setPresence(presence, statusMsg, callback);
             }
         }));
@@ -59,9 +61,11 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
      * @param callback on success callback containing a User object with populated presence and statusMsg fields
      */
     public void getPresence(final String userId, final ApiCallback<User> callback) {
-        mApi.presenceStatus(userId, new RestAdapterCallback<User>(callback, new RestAdapterCallback.RequestRetryCallBack() {
+        final String description = "getPresence userId : " + userId;
+
+        mApi.presenceStatus(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
-            public void onNetworkFailed() {
+            public void onRetry() {
                 getPresence(userId, callback);
             }
         }));

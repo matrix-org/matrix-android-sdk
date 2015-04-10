@@ -1,22 +1,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="org.matrix.matrixandroidsdk.RoomActivity" >
-
-    <item
-        android:id="@+id/action_members"
-        android:title="@string/action_members"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_info"
-        android:title="@string/action_room_info"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_leave"
-        android:title="@string/action_leave"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_settings"
-        android:title="@string/action_settings"
-        app:showAsAction="never" />
+    tools:context="org.matrix.matrixandroidsdk.PublicRoomsActivity" >
+    <item android:id="@+id/action_go_home"
+          android:title="@string/action_home"
+          android:icon="@drawable/ic_material_home"
+          app:showAsAction="ifRoom" />
 </menu>

@@ -1,7 +1,22 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.preference.PreferenceManager;
@@ -9,38 +24,26 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseExpandableListAdapter;
-import android.widget.CheckedTextView;
-import android.widget.ExpandableListView;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.activity.HomeActivity;
-import org.matrix.matrixandroidsdk.activity.RoomActivity;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-
-import javax.net.ssl.SSLContext;
 
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
@@ -48,8 +51,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
     private int mUnreadColor;
     private int mHighlightColor;
     private int mPublicHighlightColor;
@@ -67,8 +68,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private String mSearchedPattern = "";
 
-    private DateFormat mDateFormat;
-
     private String mMyUserId = null;
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
@@ -85,7 +84,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
-        mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         //setNotifyOnChange(false);
 
         mRecentsSummariesList = new ArrayList<RoomSummary>();
@@ -125,7 +123,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public void notifyDataSetChanged() {
-        mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
+    // sanity check
+    // ensure that the client is not logged out before refreshing the UI
+    // the refresh could have been triggered with delay after a logout
+    if (!Matrix.hasValidValidSession()) {
+        return;
+    }
+
+    mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
         mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
 
         // there is a pattern to search
@@ -228,6 +233,13 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     public void addRoomSummary(RoomSummary roomSummary) {
+        // check if the summary is not added twice.
+        for(RoomSummary rSum : mRecentsSummariesList) {
+            if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
+                return;
+            }
+        }
+
         mRecentsSummariesList.add(roomSummary);
     }
 
@@ -241,6 +253,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     public void removeRoomSummary(RoomSummary roomSummary) {
         mRecentsSummariesList.remove(roomSummary);
+
+        if (null != roomSummary.getRoomId()) {
+            mUnreadCountMap.remove(roomSummary.getRoomId());
+        }
     }
 
     public RoomSummary getSummaryByRoomId(String roomId) {
@@ -294,11 +310,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
 
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
-    }
-
     public void sortSummaries() {
         Collections.sort(mRecentsSummariesList, new Comparator<RoomSummary>() {
             @Override
@@ -309,9 +320,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     return -1;
                 }
 
-                if (lhs.getLatestEvent().originServerTs > rhs.getLatestEvent().originServerTs) {
+                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
                     return -1;
-                } else if (lhs.getLatestEvent().originServerTs < rhs.getLatestEvent().originServerTs) {
+                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
                     return 1;
                 }
                 return 0;
@@ -354,6 +365,12 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
+
+        // default UI
+        // when a room is deleting, the UI is dimmed
+        final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
+        deleteProgress.setVisibility(View.GONE);
+        convertView.setAlpha(1.0f);
 
         if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
@@ -403,11 +420,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setText(roomNameMessage);
 
             if (summary.getLatestEvent() != null) {
-                AdapterUtils.EventDisplay display = new AdapterUtils.EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
+                EventDisplay display = new EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                 display.setPrependMessagesWithAuthor(true);
                 message = display.getTextualDisplay();
-
-                timestamp = mDateFormat.format(new Date(summary.getLatestEvent().originServerTs));
+                timestamp = summary.getLatestEvent().formattedOriginServerTs();
             }
 
             // check if this is an invite
@@ -427,8 +443,12 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
 
-            if (mOddColourResId != 0 && mEvenColourResId != 0) {
-                convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
+            MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
+            Room room = session.getDataHandler().getRoom(summary.getRoomId());
+
+            if (room.isLeaving()) {
+                convertView.setAlpha(0.3f);
+                deleteProgress.setVisibility(View.VISIBLE);
             }
 
         } else {
@@ -489,6 +509,14 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             heading.setText(header);
         } else {
             heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
+        }
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.heading_image);
+
+        if (isExpanded) {
+            imageView.setImageResource(R.drawable.expander_close_holo_light);
+        } else {
+            imageView.setImageResource(R.drawable.expander_open_holo_light);
         }
 
         return convertView;

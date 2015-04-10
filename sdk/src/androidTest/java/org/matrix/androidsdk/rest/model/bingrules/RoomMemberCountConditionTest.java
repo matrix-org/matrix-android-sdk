@@ -23,12 +23,14 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class RoomMemberCountConditionTest {
 

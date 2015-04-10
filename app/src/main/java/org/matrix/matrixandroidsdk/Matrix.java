@@ -5,7 +5,10 @@ import android.content.Context;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MXMemoryStore;
+import org.matrix.androidsdk.db.MXLatestChatMessageCache;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -21,11 +24,13 @@ public class Matrix {
 
     private LoginStorage mLoginStorage;
     private MXSession mDefaultSession;
+    private GcmRegistrationManager mGcmRegistrationManager;
     private Context mAppContext;
 
     protected Matrix(Context appContext) {
         mAppContext = appContext.getApplicationContext();
         mLoginStorage = new LoginStorage(mAppContext);
+        mGcmRegistrationManager = new GcmRegistrationManager(mAppContext);
         RageShake.getInstance().start(mAppContext);
     }
 
@@ -52,13 +57,46 @@ public class Matrix {
             return null;
         }
         mDefaultSession = createSession(creds);
+
         return mDefaultSession;
+    }
+
+    /**
+     * Return the used media caches.
+     * This class can inherited to customized it.
+     * @return the mediasCache.
+     */
+    public MXMediasCache getDefaultMediasCache() {
+        if (null != mDefaultSession) {
+            return mDefaultSession.getMediasCache();
+        }
+        return null;
+    }
+
+    /**
+     * Return the used latestMessages caches.
+     * This class can inherited to customized it.
+     * @return the latest messages cache.
+     */
+    public MXLatestChatMessageCache getDefaultLatestChatMessageCache() {
+        if (null != mDefaultSession) {
+            return mDefaultSession.getLatestChatMessageCache();
+        }
+        return null;
+    }
+    /**
+     *
+     * @return true if the matrix client instance defines a valid session
+     */
+    public static Boolean hasValidValidSession() {
+        return (null != instance) && (null != instance.mDefaultSession);
     }
 
     /**
      * Clears the default session and the login credentials.
      */
-    public synchronized void clearDefaultSessionAndCredentials() {
+    public synchronized void clearDefaultSessionAndCredentials(Context context) {
+        mDefaultSession.clear(context);
         mDefaultSession = null;
         mLoginStorage.setDefaultCredentials(null);
     }
@@ -121,5 +159,9 @@ public class Matrix {
         // TODO support >1 creds.
 
         return credList;
+    }
+
+    public GcmRegistrationManager getSharedGcmRegistrationManager() {
+        return mGcmRegistrationManager;
     }
 }

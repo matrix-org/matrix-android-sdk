@@ -12,8 +12,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'robolectric'
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion '19.1.0'
+    compileSdkVersion 21
+    buildToolsVersion '21.0.0'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -24,9 +24,9 @@ android {
 
     defaultConfig {
         minSdkVersion 11
-        targetSdkVersion 18
+        targetSdkVersion 21
         versionCode 1
-        versionName "0.2.3"
+        versionName "0.2.4-dev"
         testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
     }
 
@@ -48,13 +48,14 @@ robolectric {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:21.0.+'
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
     compile 'com.squareup.okhttp:okhttp:2.0.0'
     androidTestCompile 'org.mockito:mockito-core:1.+'
     androidTestCompile('junit:junit:4.11') {
-        exclude module: 'hamcrest-core'                                         
+        exclude module: 'hamcrest-core'
     }
     androidTestCompile('org.robolectric:robolectric:2.4') {
         exclude module: 'classworlds'
@@ -73,5 +74,7 @@ dependencies {
         exclude module: 'wagon-http-lightweight'
         exclude module: 'wagon-provider-api'
     }
-    androidTestCompile 'com.squareup:fest-android:1.0.+' 
+    testCompile('com.squareup:fest-android:1.0.+') {
+        exclude group: 'com.android.support', module: 'support-v4'
+    }
 }

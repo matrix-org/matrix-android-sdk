@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+
 import java.util.List;
 
 import retrofit.Callback;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests RestClient.
  */
+@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class RestClientTest {
 

@@ -9,6 +9,7 @@
     <string name="title_activity_room_info">Room info</string>
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_member_details">Member Details</string>
+    <string name="title_activity_invite_user">Invite Users</string>
 
     <!-- button names -->
     <string name="ok">OK</string>
@@ -25,6 +26,8 @@
     <string name="chat">Chat</string>
     <string name="clear_cache">Clear Cache</string>
     <string name="more">More</string>
+    <string name="chat_with">Chat with </string>
+    <string name="delete">Delete</string>
 
     <!-- actions -->
     <string name="action_settings">Settings</string>
@@ -32,19 +35,27 @@
     <string name="action_public_rooms">Public Rooms</string>
     <string name="action_my_rooms">My Rooms</string>
     <string name="action_leave">Leave Room</string>
+    <string name="action_delete">Delete Room</string>
     <string name="action_invite">Invite</string>
     <string name="action_disconnect">Disconnect</string>
     <string name="action_logout">Logout</string>
+    <string name="send_bug_report">Send bug report</string>
     <string name="action_create_room">Create...</string>
     <string name="action_room_info">Room info</string>
     <string name="action_search_room">Search room</string>
+    <string name="action_search_contact">Search contact</string>
     <string name="action_mark_all_as_read">Mark all as read</string>
     <string name="action_quick_reply">Quick reply</string>
     <string name="action_open">Open</string>
+    <string name="action_close">Close</string>
+    <string name="action_invite_by_name">Invite from identifier</string>
+    <string name="action_invite_by_list">Invite from other rooms</string>
+    <string name="action_home">Home</string>
+
 
     <string name="my_rooms">My rooms</string>
-    <string name="private_room">Private Room</string>
-    <string name="public_room">Public Room</string>
+    <string name="create_room">Create room</string>
+    <string name="join_room">Join room</string>
     <string name="create">Create:</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
@@ -57,28 +68,14 @@
     <string name="create_room_alias_hint">room-alias</string>
     <string name="create_room_set_name">Set room name</string>
     <string name="create_room_name_hint">My room</string>
+    <string name="join_room_title">Join Room</string>
+    <string name="join_room_hint">(e.g. #foo:example.org)</string>
 
     <string name="membership_invite">Invited</string>
     <string name="membership_join">Joined</string>
     <string name="membership_leave">Left</string>
     <string name="membership_kick">Kicked</string>
     <string name="membership_ban">Banned</string>
-
-    <string name="notice_room_invite">%1$s invited %2$s to the room.</string>
-    <string name="notice_room_join">%1$s joined</string>
-    <string name="notice_room_leave">%1$s left</string>
-    <string name="notice_room_kick">%1$s kicked %2$s from the room.</string>
-    <string name="notice_room_unban">%1$s unbanned %2$s from the room.</string>
-    <string name="notice_room_ban">%1$s banned %2$s from the room.</string>
-    <string name="notice_avatar_url_changed">%1$s changed their avatar.</string>
-    <string name="notice_display_name_changed">%1$s changed their display name to %2$s.</string>
-    <string name="notice_topic_changed">%1$s changed the topic to %2$s.</string>
-    <string name="notice_room_name_changed">%1$s changed the room name to %2$s.</string>
-
-    <!-- general errors -->
-    <string name="network_error">Network error</string>
-    <string name="matrix_error">Matrix error</string>
-    <string name="unexpected_error">Unexpected error</string>
 
     <plurals name="num_members">
         <item quantity="one">%1$s user</item>
@@ -91,11 +88,6 @@
     <string name="last_seen_hours">%dh</string>
     <string name="last_seen_days">%dd</string>
 
-    <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Room Invitation</string>
-    <string name="summary_user_invitation">%1$s\'s invitation</string>
-    <string name="summary_user_sent_image">%1$s sent an image.</string>
-
 
     <string name="invite">Invite</string>
     <string name="kick">Kick</string>
@@ -104,23 +96,14 @@
 
     <string name="message_changes_successful">Changes successfully made</string>
     <string name="message_unsaved_changes">There are unsaved changes. Leaving will discard them.</string>
-    <string name="message_uploading">Uploading&#8230;</string>
-    <string name="message_failed_to_upload">Failed to upload image</string>
 
-    <string name="option_attach_image">Attach image</string>
-    <string name="option_take_image">Take image</string>
+    <string name="option_send_files">Send files</string>
+    <string name="option_take_photo">Take photo</string>
     <string name="option_attach_video">Attach video</string>
-    <string name="option_invite">Invite</string>
 
     <!-- Home Screen -->
     <string name="users"> users</string>
     <string name="user"> user</string>
-
-    <!-- Room Screen -->
-    <string name="could_not_redact">Could not redact"</string>
-    <string name="unable_to_send_message">Unable to send message</string>
-    <string name="downloading_dot">Downloading ...</string>
-    <string name="uploading_dot">Uploading ...</string>
 
     <!-- Login Screen -->
     <string name="login_error_must_start_http">URL must start with http[s]://</string>
@@ -132,9 +115,34 @@
     <!-- members list Screen -->
     <string name="members_list">Members List</string>
 
+    <!-- invitation members list Screen -->
+    <string name="members_one_to_one">One to one room members</string>
+    <string name="members_small_room_members">Small room members</string>
+    <string name="members_large_room_members">Large room members</string>
+
+    <!-- room creation dialog Screen -->
+    <string name="room_creation_room_name">Name</string>
+    <string name="room_creation_room_name_hint">(e.g lunchGroup)</string>
+    <string name="room_creation_room_alias">Alias</string>
+    <string name="room_creation_room_alias_hint">(e.g. #foo:matrix.org)"</string>
+    <string name="room_creation_participants">With</string>
+    <string name="room_creation_participants_hint">(e.g. @me:hs;...)</string>
+    <string name="room_creation_create_room">Create room</string>
+    <string name="room_creation_public">Public</string>
+    <string name="room_creation_private">Private</string>
+
+    <!-- contacts list screen -->
+    <string name="contacts">Contacts</string>
+    <string name="invite_this_user_to_use_matrix">Invite this user to use matrix with</string>
+    <string name="invitation_message">I\'d like to chat with you with matrix. Please, visit the website http://matrix.org to have more information.</string>
+
     <!-- Settings screen -->
+
+    <string name="settings_webclient_push">To configure global notification settings (like rules), go find a webclient and hit Settings > Notifications.</string>
+
     <string name="settings_title_profile">Profile</string>
     <string name="settings_title_config">Configuration</string>
+    <string name="settings_title_notifications">Notifications</string>
     <string name="settings_title_rooms">Rooms</string>
     <string name="settings_title_commands">Commands</string>
     <string name="settings_config_console_version">matrixConsole version: %s</string>
@@ -165,5 +173,6 @@
     <string name="settings_key_display_public_rooms_recents">settings_key_display_public_rooms_recents</string>
 
     <string name="logo">Logo</string>
+    <string name="user_says_body">%1$s says %2$s</string>
 
 </resources>

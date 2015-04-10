@@ -15,10 +15,18 @@
  */
 package org.matrix.matrixandroidsdk.util;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -26,6 +34,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.hardware.Sensor;
@@ -34,6 +43,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
@@ -44,6 +54,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.androidsdk.data.MyUser;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 
 
 public class RageShake implements SensorEventListener {
@@ -110,13 +121,49 @@ public class RageShake implements SensorEventListener {
                 message += "homeServer :" + session.getCredentials().homeServer + "\n";
 
                 message += "\n";
-                message += "matrixConsole version: " + "\n";
-                message += "SDK version:  " + "\n";
+
+                String versionName = "";
+
+                try {
+                    PackageInfo pInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                    versionName = pInfo.versionName;
+                } catch (Exception e) {
+
+                }
+
+                message += "matrixConsole version: " + versionName + "\n";
+                message += "SDK version:  " + versionName + "\n";
+
+                message += "\n\n\n";
+
+
                 intent.putExtra(Intent.EXTRA_TEXT, message);
 
                 // attachments
                 intent.setType("image/jpg");
                 intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path));
+
+                String errorLog = LogUtilities.getLogCatError();
+                String debugLog = LogUtilities.getLogCatDebug();
+
+                errorLog += "\n\n\n\n\n\n\n\n\n\n------------------ Debug logs ------------------\n\n\n\n\n\n\n\n";
+                errorLog += debugLog;
+
+                try {
+                    ByteArrayOutputStream os = new ByteArrayOutputStream();
+                    GZIPOutputStream gzip = new GZIPOutputStream(os);
+                    gzip.write(errorLog.getBytes());
+                    gzip.finish();
+
+                    File debugLogFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "logs-" + new Date() + ".gz");
+                    FileOutputStream fos = new FileOutputStream(debugLogFile);
+                    os.writeTo(fos);
+
+                    intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(debugLogFile));
+                }
+                catch (IOException e) {
+                    Log.e(LOG_TAG, "" + e);
+                }
 
                 ConsoleApplication.getCurrentActivity().startActivity(intent);
             } catch (Exception e) {

@@ -67,7 +67,7 @@ public class EventsThread extends Thread {
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
-        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback), null);
+        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback));
     }
 
     /**
@@ -172,7 +172,9 @@ public class EventsThread extends Thread {
 
             try {
                 TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
-                mListener.onEventsReceived(eventsResponse.chunk);
+                if (!mKilling) {
+                    mListener.onEventsReceived(eventsResponse.chunk);
+                }
                 mCurrentToken = eventsResponse.end;
             }
             catch (Exception e) {

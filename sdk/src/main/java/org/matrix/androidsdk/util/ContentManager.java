@@ -18,8 +18,13 @@ package org.matrix.androidsdk.util;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.ImageInfo;
+import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,9 +32,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import javax.net.ssl.SSLException;
 
 /**
  * Class for accessing content from the current session.
@@ -45,9 +57,17 @@ public class ContentManager {
 
     private static final String LOG_TAG = "ContentManager";
 
+    // home server Uri
     private String mHsUri;
+
+    // user access token
     private String mAccessToken;
 
+    // unsent events manager
+    // it will restart the the upload if it fails
+    private UnsentEventsManager mUnsentEventsManager;
+
+    // upload ID -> task
     private static HashMap<String, ContentUploadTask> mPendingUploadByUploadId = new HashMap<String, ContentUploadTask>();
 
     /**
@@ -73,9 +93,42 @@ public class ContentManager {
      * @param hsUri the home server URL
      * @param accessToken the user's access token
      */
-    public ContentManager(String hsUri, String accessToken) {
+    public ContentManager(String hsUri, String accessToken, UnsentEventsManager unsentEventsManager) {
         mHsUri = hsUri;
         mAccessToken = accessToken;
+        mUnsentEventsManager = unsentEventsManager;
+    }
+
+    /**
+     * Clear the content content
+     */
+    public void clear() {
+        Collection<ContentUploadTask> tasks = mPendingUploadByUploadId.values();
+
+        // cancels the running task
+        for(ContentUploadTask task : tasks) {
+            try {
+                task.cancel(true);
+            } catch (Exception e) {
+            }
+        }
+
+        mPendingUploadByUploadId.clear();
+    }
+
+    public static String getIdenticonURL(String userId) {
+        // sanity check
+        if (null != userId) {
+            String urlEncodedUser = null;
+            try {
+                urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
+            } catch (Exception e) {
+            }
+
+            return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;
+        }
+
+        return null;
     }
 
     /**
@@ -136,7 +189,12 @@ public class ContentManager {
      * @param callback the async callback returning a mxc: URI to access the uploaded file
      */
     public void uploadContent(InputStream contentStream, String mimeType, String uploadId, UploadCallback callback) {
-        new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        try {
+            new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            // cannot start the task
+            callback.onUploadComplete(uploadId, null);
+        }
     }
 
     /**
@@ -166,27 +224,120 @@ public class ContentManager {
      * Private AsyncTask used to upload files.
      */
     private class ContentUploadTask extends AsyncTask<Void, Integer, String> {
-        private String mimeType;
-        private InputStream contentStream;
-        private String mUploadId;
-        private int mProgress = 0;
-        private ArrayList<UploadCallback> callbacks = new ArrayList<UploadCallback>();
+        // progress callbacks
+        private ArrayList<UploadCallback> mCallbacks = new ArrayList<UploadCallback>();
 
+        // the progress rate
+        private int mProgress = 0;
+
+        // the media mimeType
+        private String mimeType;
+
+        // the media to upload
+        private InputStream contentStream;
+
+        // its unique identifier
+        private String mUploadId;
+
+        // the upload exception
+        private Exception mFailureException;
+
+        // store the server response to provide it the listeners
+        private String mResponseFromServer = null;
+
+        // dummy ApiCallback uses to be warned when the upload must be declared as "undeliverable".
+        private ApiCallback mApiCallback;
+
+        /**
+         * Public constructor
+         * @param contentStream the stream to upload
+         * @param mimeType the mime type
+         * @param callback the upload callback
+         * @param uploadId the upload Identifier
+         */
         public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId) {
-            callbacks.add(callback);
+
+            try {
+                contentStream.reset();
+            } catch (Exception e) {
+
+            }
+
+            if (mCallbacks.indexOf(callback) < 0) {
+                mCallbacks.add(callback);
+            }
             this.mimeType = mimeType;
             this.contentStream = contentStream;
             this.mUploadId = uploadId;
+            this.mFailureException = null;
+
+            // dummy callback to be warned that the upload must be cancelled.
+            mApiCallback = new ApiCallback() {
+                @Override
+                public void onSuccess(Object info) {
+
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    dispatchResult(mResponseFromServer);
+                }
+            };
 
             if (null != uploadId) {
                 mPendingUploadByUploadId.put(uploadId, this);
             }
         }
 
-        public void addCallback(UploadCallback callback) {
-            callbacks.add(callback);
+        /**
+         * Private contrustor.
+         * @param contentStream the stream to upload
+         * @param mimeType the mime type
+         * @param someCallbacks the callbacks list
+         * @param uploadId the upload Identifier
+         * @param apiCallback the dummy apicallback (it is used as identifier by the contentManager)
+         */
+        private ContentUploadTask(InputStream contentStream, String mimeType, ArrayList<UploadCallback> someCallbacks, String uploadId, ApiCallback apiCallback) {
+
+            try {
+                contentStream.reset();
+            } catch (Exception e) {
+
+            }
+
+            this.mApiCallback = apiCallback;
+            this.mCallbacks = someCallbacks;
+            this.mimeType = mimeType;
+            this.contentStream = contentStream;
+            this.mUploadId = uploadId;
+            this.mFailureException = null;
+
+            if (null != uploadId) {
+                mPendingUploadByUploadId.put(uploadId, this);
+            }
         }
 
+        /**
+         * Add a callback to the callbacks list
+         * @param callback
+         */
+        public void addCallback(UploadCallback callback) {
+            mCallbacks.add(callback);
+        }
+
+        /**
+         * @return the upload progress
+         */
         public int getProgress() {
             return mProgress;
         }
@@ -247,9 +398,6 @@ public class ContentManager {
 
                     bytesRead = contentStream.read(buffer, 0, bufferSize);
                 }
-
-                // close streams
-                contentStream.close();
                 publishProgress(mProgress = 92);
                 dos.flush();
                 publishProgress(mProgress = 94);
@@ -279,6 +427,7 @@ public class ContentManager {
                 }
             }
             catch (Exception e) {
+                mFailureException = e;
                 Log.e(LOG_TAG, "Error: " + e.getMessage());
             }
 
@@ -289,7 +438,7 @@ public class ContentManager {
             super.onProgressUpdate(progress);
             Log.d(LOG_TAG, "UI Upload " + mHsUri + " : " + mProgress);
 
-            for (UploadCallback callback:callbacks) {
+            for (UploadCallback callback : mCallbacks) {
                 try {
                     callback.onUploadProgress(mUploadId, progress[0]);
                 } catch (Exception e) {
@@ -297,18 +446,55 @@ public class ContentManager {
             }
         }
 
-        @Override
-        protected void onPostExecute(String s) {
+        /**
+         * Dispatch the result to the callbacks
+         * @param s the server response
+         */
+        private void dispatchResult(final String s) {
             if (null != mUploadId) {
                 mPendingUploadByUploadId.remove(mUploadId);
+            }
+            mUnsentEventsManager.onEventSent(mApiCallback);
+
+            // close the source stream
+            try {
+                contentStream.close();
+            } catch (Exception e) {
             }
 
             ContentResponse uploadResponse = (s == null) ? null : JsonUtils.toContentResponse(s);
 
-            for (UploadCallback callback:callbacks) {
+            for (UploadCallback callback : mCallbacks) {
                 try {
                     callback.onUploadComplete(mUploadId, uploadResponse);
                 } catch (Exception e) {
+                }
+            }
+        }
+
+        @Override
+        protected void onPostExecute(final String s) {
+            // do not call the callback if cancelled.
+            if (!isCancelled()) {
+                // connection error
+                if ((null != mFailureException) && ((mFailureException instanceof UnknownHostException) || (mFailureException instanceof SSLException))) {
+                    mResponseFromServer = s;
+                    // public void onEventSendingFailed(final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
+                    mUnsentEventsManager.onEventSendingFailed(null, null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            try {
+                                ContentUploadTask task = new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId, mApiCallback);
+                                mPendingUploadByUploadId.put(mUploadId, task);
+                                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            } catch (Exception e) {
+                                // cannot start the task
+                                dispatchResult(s);
+                            }
+                        }
+                    });
+                } else {
+                    dispatchResult(s);
                 }
             }
         }

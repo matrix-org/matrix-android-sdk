@@ -23,6 +23,7 @@ public class Message {
     public static final String MSGTYPE_AUDIO = "m.audio";
     public static final String MSGTYPE_VIDEO = "m.video";
     public static final String MSGTYPE_LOCATION = "m.location";
+    public static final String MSGTYPE_FILE = "m.file";
 
     public String msgtype;
     public String body;

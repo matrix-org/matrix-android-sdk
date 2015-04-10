@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Medium Text"
+        style="@style/Base.TextAppearance.AppCompat.Subhead"
         android:gravity="center"
         android:id="@+id/roomsAdapter_roomName"
         />
@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
+        style="@style/Base.TextAppearance.AppCompat.Caption"
         android:text="Small Text"
         android:gravity="center"
         android:id="@+id/roomsAdapter_roomTopic"/>

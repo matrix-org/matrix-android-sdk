@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.matrixandroidsdk.adapters;
 
 import android.content.Context;
@@ -14,12 +30,14 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.view.PieFractionView;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
-import org.matrix.matrixandroidsdk.db.ConsoleMediasCache;
-import org.matrix.matrixandroidsdk.view.PieFractionView;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,6 +64,8 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     private boolean mSortByLastActive = true;
     private boolean mDisplayMembership = true;
+
+    private MXMediasCache mMediasCache = null;
 
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
@@ -106,7 +126,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState) {
+    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
@@ -121,6 +141,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         mMembershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, context.getString(R.string.membership_leave));
         mMembershipStrings.put(RoomMember.MEMBERSHIP_BAN, context.getString(R.string.membership_ban));
 
+        mMediasCache = mediasCache;
     }
 
     public void sortByLastActivePresence(boolean useLastActive) {
@@ -188,6 +209,18 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     }
 
     @Override
+    public void notifyDataSetChanged() {
+        // sanity check
+        // ensure that the client is not logged out before refreshing the UI
+        // the refresh could have been triggered with delay after a logout
+        if (!Matrix.hasValidValidSession()) {
+            return;
+        }
+
+        super.notifyDataSetChanged();
+    }
+
+    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
@@ -233,12 +266,12 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         String url = member.avatarUrl;
 
         if (TextUtils.isEmpty(url)) {
-            url = AdapterUtils.getIdenticonURL(member.getUserId());
+            url = ContentManager.getIdenticonURL(member.getUserId());
         }
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            ConsoleMediasCache.loadAvatarThumbnail(imageView, url, size);
+            mMediasCache.loadAvatarThumbnail(imageView, url, size);
         }
 
         // The presence ring

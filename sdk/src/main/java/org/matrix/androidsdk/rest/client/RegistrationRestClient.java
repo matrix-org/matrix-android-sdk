@@ -40,7 +40,7 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * @param hsUri the home server URI
      */
     public RegistrationRestClient(Uri hsUri) {
-        super(hsUri, RegistrationApi.class);
+        super(hsUri, RegistrationApi.class, RestClient.URI_API_PREFIX);
         mHsUri = hsUri;
     }
 
@@ -51,11 +51,13 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * @param callback the callback success and failure callback
      */
     public void registerWithPassword(String user, String password, final ApiCallback<Credentials> callback) {
+        final String description = "registerWithPassword user : " + user;
+
         PasswordLoginParams params = new PasswordLoginParams();
         params.user = user;
         params.password = password;
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(callback, null) {
+        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
