@@ -1,3 +1,68 @@
+Changes in Matrix Android SDK in 0.3.0 (2015-04-10)
+===================================================
+
+-----
+ SDK
+-----
+Improvements:
+ * Any request is automatically resent until it succeeds (with a 3 minutes timeline).
+ * Remove the dataHandler listeners when logging out to avoid getting unexpected callback call.
+
+-----------------
+ Matrix Console
+-----------------
+Improvements:
+ * Add the image watermarks
+ * Display the members count in the members list.
+ * Can invite several users from the known members list or from their user ids.
+ * Hide the image icon until it is fully loaded.
+ * Add the hardware search button management (e.g. motorola RAZR).
+ * Improve many dialogs (room creation, invitation..).
+ * Display leaving rooms.
+ * Can send several files at once.
+ * Make GCM receiver display notifications and move to own package.
+ * Make RoomActivity start the event stream.
+ * Add app-global GcmRegistrationManager to register for push services.
+ * The bug report contains more details.
+ * Add some sliding menus.
+ * Include room name in message notifications.
+ * Room name will be picked up if passed to GcmIntentService.
+ * Add an inliner image preview before sending the message.
+ * Ensure that the login parameters are only on one line.
+ * Add basic support for Android Auto.
+ * Remove tag from notifications (to maintain current behaviour on phones)
+ * Scroll the history to the bottom when opening the keyboard.
+ * Remove some tags in the logs to avoid displaying the accesstoken.
+
+Features:
+ * Supoort Android Lollipop. 
+ * Use the material design support.
+ * Add the contacts support.
+ * Manage the new push rules.
+ * Factors the message adapter and fragments to be able to create some new ones without copying too many code.
+
+Bug fixes:
+ * SYAND-46 : Crash on launch on my S4 running Android 4.
+ * SYAND-51 : New room subscription did not occur in android app.
+ * SYAND-54 : Images should be available in gallery apps.
+ * SYAND-55 : share multiple images at once.
+ * SYAND-58 : scroll in "Invite known user”.
+ * SYAND-60 : ” Leave room" should be renamed when you are the latest user in the room.
+ * SYAND-62 : Android doesn't seem to specify width/height metadata for images it sends.
+ * SYAND-64 : Room name on recents doesn't update.
+ * SYAND-65 : Recent entries when leaving rooms
+ * SYAND-66 : Auto-capitalisation is not turned on for the main text entry box.
+ * SYAND-67 : Screen doesn't turn on for incoming messages.
+ * The unread messages counter was invalid after leaving a room.
+ * The client synchronisation was not properly managed when the account was shared on several devices.
+ * Fix many application crashes while leaving a chat or logging out.
+ * The room summaries were not properly sorted when a message sending failed.
+ * Some images were partially displayed.
+ * The emotes were drawn in magenta.
+ * Stop the events thread asap when logging out and ignore received events.
+ * Some unexpected typing events were sent.
+ * The time zone updates were not properly managed.
+
 Changes in Matrix Android SDK in 0.2.3 (2015-03-10)
 ===================================================
 
