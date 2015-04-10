@@ -23,6 +23,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
@@ -151,6 +152,12 @@ public class EventStreamService extends Service {
             nm.cancelAll();
 
             nm.notify(MSG_NOTIFICATION_ID, n);
+
+            // turn the screen on for 3 seconds
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "MXEventListener");
+            wl.acquire(3000);
+            wl.release();
         }
 
         @Override
