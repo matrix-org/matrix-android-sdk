@@ -25,7 +25,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,22 +32,17 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 public class RoomSummaryAdapter extends BaseExpandableListAdapter {
@@ -74,8 +68,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private String mSearchedPattern = "";
 
-    private DateFormat mDateFormat;
-
     private String mMyUserId = null;
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
@@ -92,7 +84,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
-        mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         //setNotifyOnChange(false);
 
         mRecentsSummariesList = new ArrayList<RoomSummary>();
@@ -329,9 +320,9 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     return -1;
                 }
 
-                if (lhs.getLatestEvent().originServerTs > rhs.getLatestEvent().originServerTs) {
+                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
                     return -1;
-                } else if (lhs.getLatestEvent().originServerTs < rhs.getLatestEvent().originServerTs) {
+                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
                     return 1;
                 }
                 return 0;
@@ -375,8 +366,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
+        // default UI
+        // when a room is deleting, the UI is dimmed
         final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
         deleteProgress.setVisibility(View.GONE);
+        convertView.setAlpha(1.0f);
 
         if (groupPosition == mRecentsGroupIndex) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
@@ -429,8 +423,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 EventDisplay display = new EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                 display.setPrependMessagesWithAuthor(true);
                 message = display.getTextualDisplay();
-
-                timestamp = mDateFormat.format(new Date(summary.getLatestEvent().originServerTs));
+                timestamp = summary.getLatestEvent().formattedOriginServerTs();
             }
 
             // check if this is an invite
@@ -456,9 +449,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             if (room.isLeaving()) {
                 convertView.setAlpha(0.3f);
                 deleteProgress.setVisibility(View.VISIBLE);
-            } else {
-                convertView.setAlpha(1.0f);
-                deleteProgress.setVisibility(View.GONE);
             }
 
         } else {

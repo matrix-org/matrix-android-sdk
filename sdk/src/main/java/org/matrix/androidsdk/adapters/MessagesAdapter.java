@@ -56,11 +56,8 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -160,7 +157,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mRowTypeToLayoutId.put(ROW_TYPE_FILE, fileResLayoutId);
         mMediasCache = mediasCache;
         mLayoutInflater = LayoutInflater.from(mContext);
-        mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
         // the refresh will be triggered only when it is required
         // for example, retrieve the historical messages triggers a refresh for each message
         setNotifyOnChange(false);
@@ -446,7 +442,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         tsTextView.setVisibility(View.VISIBLE);
-        tsTextView.setText(getTimestamp(msg.originServerTs));
+        tsTextView.setText(msg.formattedOriginServerTs());
 
         if (row.getEvent().isUndeliverable()) {
             tsTextView.setTextColor(notSentColor);
@@ -1015,10 +1011,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         setBackgroundColour(convertView, position);
         return convertView;
-    }
-
-    private String getTimestamp(long ts) {
-        return mDateFormat.format(new Date(ts));
     }
 
     private void setBackgroundColour(View view, int position) {

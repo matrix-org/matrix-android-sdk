@@ -562,6 +562,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void logout() {
     }
 
+    public void refresh() {
+        mAdapter.notifyDataSetChanged();
+    }
+
     public void requestHistory() {
         // avoid launching catchup if there is already one in progress
         if (!mIsCatchingUp) {

@@ -511,6 +511,9 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         manageSendMoreButtons();
+
+        // refresh the UI : the timezone could have been updated
+        mConsoleMessageListFragment.refresh();
     }
 
     @Override

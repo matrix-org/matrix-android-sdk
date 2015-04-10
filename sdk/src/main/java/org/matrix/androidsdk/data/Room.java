@@ -1012,7 +1012,7 @@ public class Room {
         ArrayList<Event> unsentEvents = getUnsentEvents();
 
         for(Event event : unsentEvents) {
-            if ((System.currentTimeMillis() - event.originServerTs) > MAX_MESSAGE_TIME_LIFE_MS) {
+            if ((System.currentTimeMillis() - event.getOriginServerTs()) > MAX_MESSAGE_TIME_LIFE_MS) {
                 event.mSentState = Event.SentState.UNDELIVERABLE;
                 mDataHandler.onResentEvent(event);
             }
@@ -1037,7 +1037,7 @@ public class Room {
             final Event unsentEvent = evensList.get(index);
 
             // is the event too old to be resent ?
-            if ((System.currentTimeMillis() - unsentEvent.originServerTs) > MAX_MESSAGE_TIME_LIFE_MS) {
+            if ((System.currentTimeMillis() - unsentEvent.getOriginServerTs()) > MAX_MESSAGE_TIME_LIFE_MS) {
 
                 unsentEvent.mSentState = Event.SentState.UNDELIVERABLE;
 

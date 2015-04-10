@@ -15,19 +15,17 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import android.app.Activity;
-import android.widget.Toast;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
-
-import retrofit.RetrofitError;
+import java.util.TimeZone;
 
 /**
  * Generic event class with all possible fields for events.
@@ -81,6 +79,13 @@ public class Event {
     // sent state
     public SentState mSentState = SentState.SENT;
 
+    // the time raw offset (time zone management)
+    private long mTimeZoneRawOffset = 0;
+
+    private long getTimeZoneOffset() {
+        return TimeZone.getDefault().getRawOffset();
+    }
+
     /**
      * Default constructor
      */
@@ -91,6 +96,8 @@ public class Event {
         userId = roomId = eventId = null;
         originServerTs = age = 0;
 
+        mTimeZoneRawOffset = getTimeZoneOffset();
+
         stateKey = null;
         prevContent = null;
 
@@ -100,6 +107,28 @@ public class Event {
         unsentException = null;
 
         mSentState = SentState.SENT;
+    }
+
+    public long getOriginServerTs() {
+        return originServerTs;
+    }
+
+    static DateFormat mDateFormat = null;
+    static long mFormatterRawOffset = 1234;
+
+    public String formattedOriginServerTs() {
+        // the formatter must be updated if the timezone has been updated
+        // else the formatted string are wrong (does not use the current timezone)
+        if ((null == mDateFormat) || (mFormatterRawOffset != getTimeZoneOffset())) {
+            mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
+            mFormatterRawOffset = getTimeZoneOffset();
+        }
+
+        return mDateFormat.format(new Date(getOriginServerTs()));
+    }
+
+    public void setOriginServerTs(long anOriginServer) {
+        originServerTs = anOriginServer;
     }
 
     /**
@@ -144,6 +173,7 @@ public class Event {
         copy.roomId = roomId;
         copy.userId = userId;
         copy.originServerTs = originServerTs;
+        copy.mTimeZoneRawOffset = mTimeZoneRawOffset;
         copy.age = age;
 
         copy.stateKey = stateKey;
