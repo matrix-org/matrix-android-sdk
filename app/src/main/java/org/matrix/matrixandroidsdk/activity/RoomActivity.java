@@ -37,6 +37,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -509,6 +511,31 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         manageSendMoreButtons();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.room, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_go_home) {
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    RoomActivity.this.finish();
+                }
+            });
+
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void setTopic(String topic) {
