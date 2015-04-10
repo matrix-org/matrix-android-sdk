@@ -180,10 +180,11 @@ public class MXCActionBarActivity extends ActionBarActivity {
             // Set the adapter for the list view
             DrawerAdapter adapter = new DrawerAdapter(this, R.layout.adapter_drawer_header, R.layout.adapter_drawer_item);
 
+            adapter.setNotifyOnChange(false);
             for (int index = 0; index < iconResourceIds.length; index++) {
                 adapter.add(iconResourceIds[index], getString(textResourceIds[index]));
             }
-
+            adapter.setNotifyOnChange(true);
             mDrawerList.setAdapter(adapter);
 
             // Set the list's click listener
