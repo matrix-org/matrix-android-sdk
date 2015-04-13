@@ -26,6 +26,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
@@ -139,6 +140,17 @@ public class MXCActionBarActivity extends ActionBarActivity {
             return true;
         }
 
+        // the drawer is managed by the activity
+        if (item.getItemId() == R.id.ic_action_drawer) {
+            if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
+                mDrawerLayout.closeDrawer(Gravity.RIGHT);
+            } else {
+                dismissKeyboard(this);
+                mDrawerLayout.openDrawer(Gravity.RIGHT);
+            }
+            return true;
+        }
+
         if (item.getItemId() == android.R.id.home) {
             // pop the activity to avoid creating a new instance of the parent activity
             this.onBackPressed();
@@ -164,8 +176,9 @@ public class MXCActionBarActivity extends ActionBarActivity {
      * Define a sliding menu
      * @param iconResourceIds the icons resource Ids
      * @param textResourceIds the text resources Ids
+     * @param replaceUpButton The icon replaces the up button (left side)
      */
-    protected void addSlidingMenu(Integer[] iconResourceIds, Integer[] textResourceIds) {
+    protected void addSlidingMenu(Integer[] iconResourceIds, Integer[] textResourceIds, Boolean replaceUpButton) {
         // sanity checks
         if ((null == iconResourceIds) || (null == textResourceIds) || (iconResourceIds.length != textResourceIds.length)) {
             return;
@@ -190,26 +203,28 @@ public class MXCActionBarActivity extends ActionBarActivity {
             // Set the list's click listener
             mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
-            mDrawerToggle = new ActionBarDrawerToggle(
-                    this,                  /* host Activity */
-                    mDrawerLayout,         /* DrawerLayout object */
-                    R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
-                    R.string.action_open,  /* "open drawer" description */
-                    R.string.action_close  /* "close drawer" description */
-            ) {
+            if (replaceUpButton) {
+                mDrawerToggle = new ActionBarDrawerToggle(
+                        this,                  /* host Activity */
+                        mDrawerLayout,         /* DrawerLayout object */
+                        R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
+                        R.string.action_open,  /* "open drawer" description */
+                        R.string.action_close  /* "close drawer" description */
+                ) {
 
-                public void onDrawerClosed(View view) {
-                    if (mSelectedSlidingMenuIndex >= 0) {
-                        selectDrawItem(mSelectedSlidingMenuIndex);
-                        mSelectedSlidingMenuIndex = -1;
+                    public void onDrawerClosed(View view) {
+                        if (mSelectedSlidingMenuIndex >= 0) {
+                            selectDrawItem(mSelectedSlidingMenuIndex);
+                            mSelectedSlidingMenuIndex = -1;
+                        }
                     }
-                }
 
-                public void onDrawerOpened(View drawerView) {
-                    mSelectedSlidingMenuIndex = -1;
-                    //dismissKeyboard(thisApp);
-                }
-            };
+                    public void onDrawerOpened(View drawerView) {
+                        mSelectedSlidingMenuIndex = -1;
+                        //dismissKeyboard(thisApp);
+                    }
+                };
+            }
 
             // Set the drawer toggle as the DrawerListener
             mDrawerLayout.setDrawerListener(mDrawerToggle);
@@ -257,6 +272,18 @@ public class MXCActionBarActivity extends ActionBarActivity {
             // 2- the application used to crash when logging out because adapter was refreshed with a null MXSession.
             mSelectedSlidingMenuIndex = position;
             mDrawerLayout.closeDrawer(mDrawerList);
+
+            // the drawer button does not replace the home button.
+            // trigger the
+            if (null == mDrawerToggle) {
+                mDrawerLayout.postDelayed(new Runnable() {
+                                              @Override
+                                              public void run() {
+                                                  selectDrawItem(mSelectedSlidingMenuIndex);
+                                                  mSelectedSlidingMenuIndex = -1;
+                                              }
+                                          }, 500);
+            }
         }
     }
 }

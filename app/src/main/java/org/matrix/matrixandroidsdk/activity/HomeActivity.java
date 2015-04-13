@@ -300,7 +300,7 @@ public class HomeActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds, true);
 
         mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
         if (mSession == null) {

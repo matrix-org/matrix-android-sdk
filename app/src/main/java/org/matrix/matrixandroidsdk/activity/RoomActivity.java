@@ -37,6 +37,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -144,7 +145,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
-            R.string.action_home,
+           // R.string.action_home,
             R.string.action_room_info,
             R.string.action_members,
             R.string.action_invite_by_name,
@@ -155,7 +156,7 @@ public class RoomActivity extends MXCActionBarActivity {
     };
 
     private final Integer[] mSlideMenuResourceIds = new Integer[]{
-            R.drawable.ic_material_home, // R.string.action_home
+            //R.drawable.ic_material_home, // R.string.action_home
             R.drawable.ic_material_description,  // R.string.action_room_info
             R.drawable.ic_material_group, // R.string.action_members
             R.drawable.ic_material_person_add, // R.string.option_invite_by_name
@@ -264,7 +265,7 @@ public class RoomActivity extends MXCActionBarActivity {
         setContentView(R.layout.activity_room);
 
         // define a sliding menu
-        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds, false);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
@@ -515,31 +516,22 @@ public class RoomActivity extends MXCActionBarActivity {
         mConsoleMessageListFragment.refresh();
     }
 
-    /*
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.room, menu);
         return true;
-    }*/
+    }
 
+    /*
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_go_home) {
-            this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    RoomActivity.this.finish();
-                }
-            });
-
-            return true;
-        }
-
         return super.onOptionsItemSelected(item);
     }
+    */
 
     private void setTopic(String topic) {
         if (null !=  this.getSupportActionBar()) {

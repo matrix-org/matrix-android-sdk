@@ -2,8 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="org.matrix.matrixandroidsdk.PublicRoomsActivity" >
-    <item android:id="@+id/action_go_home"
+    <item android:id="@+id/ic_action_drawer"
           android:title="@string/action_home"
-          android:icon="@drawable/ic_material_home"
+          android:icon="@drawable/ic_drawer"
           app:showAsAction="ifRoom" />
 </menu>
