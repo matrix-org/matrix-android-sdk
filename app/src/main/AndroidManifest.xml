@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.matrix.matrixandroidsdk"
-    android:versionName="0.3.1-dev">
+    android:versionName="0.3.0">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -142,7 +142,7 @@
 
         <!--meta-data
           android:name="com.google.android.gms.car.application"
-          android:resource="@xml/automotive_app_desc" />
-    </application-->
+          android:resource="@xml/automotive_app_desc"-->
+    </application>
 
 </manifest>
