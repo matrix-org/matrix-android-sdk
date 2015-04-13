@@ -318,7 +318,6 @@ public class RoomActivity extends MXCActionBarActivity {
                 } else {
                     String body = mEditText.getText().toString();
                     sendMessage(body);
-                    RoomActivity.this.mLatestChatMessageCache.updateLatestMessage(RoomActivity.this, mRoom.getRoomId(), "");
                     mEditText.setText("");
                 }
             }
