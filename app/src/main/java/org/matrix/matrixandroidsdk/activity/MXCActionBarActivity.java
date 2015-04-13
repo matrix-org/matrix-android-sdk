@@ -190,8 +190,6 @@ public class MXCActionBarActivity extends ActionBarActivity {
             // Set the list's click listener
             mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
-            final Activity thisApp = this;
-
             mDrawerToggle = new ActionBarDrawerToggle(
                     this,                  /* host Activity */
                     mDrawerLayout,         /* DrawerLayout object */

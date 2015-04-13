@@ -266,7 +266,7 @@ public class EventStreamService extends Service {
 
     private Notification buildNotification() {
         Notification notification = new Notification(
-                R.drawable.ic_menu_small_matrix,
+                (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) ? R.drawable.ic_menu_small_matrix : R.drawable.ic_menu_small_matrix_transparent ,
                 "Matrix",
                 System.currentTimeMillis()
         );

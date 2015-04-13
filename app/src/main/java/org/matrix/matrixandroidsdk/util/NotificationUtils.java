@@ -33,7 +33,12 @@ public class NotificationUtils {
         builder.setContentTitle(from);
         builder.setContentText(body);
         builder.setAutoCancel(true);
-        builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
+
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+            builder.setSmallIcon(R.drawable.ic_menu_small_matrix);
+        } else {
+            builder.setSmallIcon(R.drawable.ic_menu_small_matrix_transparent);
+        }
 
         String name = ": ";
         if(!TextUtils.isEmpty(roomName)) {
