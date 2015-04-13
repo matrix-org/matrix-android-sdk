@@ -33,4 +33,8 @@
     <string name="matrix_error">Matrix error</string>
     <string name="unexpected_error">Unexpected error</string>
 
+    <!-- Home Screen -->
+    <string name="users"> users</string>
+    <string name="user"> user</string>
+
 </resources>

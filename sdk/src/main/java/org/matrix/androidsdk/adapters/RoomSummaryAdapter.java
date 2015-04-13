@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.adapters;
+package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,14 +27,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.util.EventDisplay;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,11 +42,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-public class RoomSummaryAdapter extends BaseExpandableListAdapter {
+public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
-    private Context mContext;
+    protected Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
+    private int mHeaderLayoutResourceId;
+
+    protected MXSession mxSession;
 
     private int mUnreadColor;
     private int mHighlightColor;
@@ -73,26 +73,37 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
     private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
 
+    // abstract methods
+    public abstract int getUnreadMessageBackgroundColor();
+    public abstract int getHighlightMessageBackgroundColor();
+    public abstract int getPublicHighlightMessageBackgroundColor();
+    public abstract boolean displayPublicRooms();
+    public abstract String myRoomsTitle();
+    public abstract String publicRoomsTitle();
+
     /**
      * Construct an adapter which will display a list of rooms.
+     * @param session the MXsession
      * @param context Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomsAdapter_roomName, roomsAdapter_roomTopic
+     * @param headerLayoutResourceId the header layout id
      */
-    public RoomSummaryAdapter(Context context, int layoutResourceId) {
-        //super(context, layoutResourceId);
+    public RoomSummaryAdapter(MXSession session, Context context, int layoutResourceId, int headerLayoutResourceId) {
+        mxSession = session;
         mContext = context;
         mLayoutResourceId = layoutResourceId;
+        mHeaderLayoutResourceId = headerLayoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
         //setNotifyOnChange(false);
 
         mRecentsSummariesList = new ArrayList<RoomSummary>();
         mPublicRoomsList  = new ArrayList<PublicRoom>();
-        mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
-        mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
-        mPublicHighlightColor = context.getResources().getColor(R.color.room_summary_public_highlight_background);
+        mUnreadColor = getUnreadMessageBackgroundColor();
+        mHighlightColor = getHighlightMessageBackgroundColor();
+        mPublicHighlightColor = getPublicHighlightMessageBackgroundColor();
 
-        mMyUserId = Matrix.getInstance(context.getApplicationContext()).getDefaultSession().getCredentials().userId;
+        mMyUserId = mxSession.getCredentials().userId;;
     }
 
     /**
@@ -109,7 +120,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      *  search management
      */
-
     public void setSearchedPattern(String pattern) {
         if (null == pattern) {
             pattern = "";
@@ -123,13 +133,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public void notifyDataSetChanged() {
-    // sanity check
-    // ensure that the client is not logged out before refreshing the UI
-    // the refresh could have been triggered with delay after a logout
-    if (!Matrix.hasValidValidSession()) {
-        return;
-    }
-
     mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
         mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
 
@@ -192,9 +195,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @param displayAllGroups status
      */
     public void setDisplayAllGroups(boolean displayAllGroups) {
-        // the user can force to clear the public rooms with the recents ones
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
-        displayAllGroups |= preferences.getBoolean(mContext.getString(R.string.settings_key_display_public_rooms_recents), true);
+        displayAllGroups |= displayPublicRooms();
 
         if (mDisplayAllGroups != displayAllGroups) {
             mDisplayAllGroups = displayAllGroups;
@@ -203,9 +204,8 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     /**
-     * publics list management
+     * public rooms list management
      */
-
     public void setPublicRoomsList(List<PublicRoom> aRoomsList) {
         if (null == aRoomsList) {
             mPublicRoomsList  = new ArrayList<PublicRoom>();
@@ -225,9 +225,8 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
     /**
-     * recents list management
+     * recent rooms list management
      */
-
     public List<RoomSummary> getRecentsSummariesList() {
         return mRecentsSummariesList;
     }
@@ -272,6 +271,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      * Set the latest event for a room summary.
      * @param event The latest event
+     * @param roomState the roomState
      */
     public void setLatestEvent(Event event, RoomState roomState) {
         RoomSummary summary = getSummaryByRoomId(event.roomId);
@@ -283,6 +283,10 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
 
+    /**
+     * Increments the unread message counters for a dedicated room.
+     * @param roomId The room identifier
+     */
     public void incrementUnreadCount(String roomId) {
         Integer count = mUnreadCountMap.get(roomId);
         if (count == null) {
@@ -291,17 +295,28 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mUnreadCountMap.put(roomId, count + 1);
     }
 
+    /**
+     * Defines that the room must be highlighted in the rooms list
+     * @param roomId The room ID of the room to highlight.
+     */
     public void highlightRoom(String roomId) {
         if (mHighLightedRooms.indexOf(roomId) < 0) {
             mHighLightedRooms.add(roomId);
         }
     }
 
+    /**
+     * Reset the unread messages counter and remove the rooms from the highlighted rooms lists.
+     * @param roomId
+     */
     public void resetUnreadCount(String roomId) {
         mUnreadCountMap.put(roomId, 0);
         mHighLightedRooms.remove(roomId);
     }
 
+    /**
+     * Reset the unread message counters.
+     */
     public void resetUnreadCounts() {
         Set<String> roomIds = mUnreadCountMap.keySet();
 
@@ -310,6 +325,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
 
+    /**
+     * Sort the room summaries list.
+     * 1 - Sort by the latest event timestamp (most recent first).
+     * 2 - Sort the public rooms by the number of members (bigger room first)
+     */
     public void sortSummaries() {
         Collections.sort(mRecentsSummariesList, new Comparator<RoomSummary>() {
             @Override
@@ -337,12 +357,19 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         });
     }
 
+    /**
+     * Retrieve a Room from its roomId
+     * @param roomID the room roomId to retrieve.
+     * @return the Room.
+     */
+    private Room roomFromRoomid(String roomID){
+        return mxSession.getDataHandler().getStore().getRoom(roomID);
+    }
+
     @Override
     public View getChildView(int groupPosition, final int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
 
         // display a spinner while loading the public rooms
-        //
-
         // detect if the view is progressbar_waiting_room_members one
         View spinner = null;
         if (null != convertView) {
@@ -394,7 +421,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             RoomState latestRoomState = summary.getLatestRoomState();
             if (null == latestRoomState) {
-                Room room = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession().getDataHandler().getStore().getRoom(summary.getRoomId());
+                Room room = roomFromRoomid(summary.getRoomId());
 
                 if (null != room.getLiveState()) {
                     latestRoomState = room.getLiveState().deepCopy();
@@ -443,8 +470,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
 
-            MXSession session = Matrix.getInstance(mContext.getApplicationContext()).getDefaultSession();
-            Room room = session.getDataHandler().getRoom(summary.getRoomId());
+            Room room = roomFromRoomid(summary.getRoomId());
 
             if (room.isLeaving()) {
                 convertView.setAlpha(0.3f);
@@ -487,7 +513,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     @Override
     public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = mLayoutInflater.inflate(R.layout.adapter_room_section_header, null);
+            convertView = mLayoutInflater.inflate(mHeaderLayoutResourceId, null);
         }
 
         TextView heading = (TextView) convertView.findViewById(R.id.heading);
@@ -500,7 +526,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 unreadCount += i;
             }
 
-            String header = mContext.getResources().getString(R.string.my_rooms);
+            String header = myRoomsTitle();
 
             if (unreadCount > 0) {
                 header += " ("  + unreadCount + ")";
@@ -508,7 +534,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             heading.setText(header);
         } else {
-            heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
+            heading.setText(publicRoomsTitle());
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.heading_image);
@@ -596,6 +622,4 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public boolean isChildSelectable(int groupPosition, int childPosition) {
         return true;
     }
-
-
 }

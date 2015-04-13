@@ -30,7 +30,6 @@ import android.widget.ExpandableListView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
@@ -48,9 +47,8 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
-import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
+import org.matrix.matrixandroidsdk.adapters.ConsoleRoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
-import org.matrix.matrixandroidsdk.fragments.MessageDetailsFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -282,7 +280,7 @@ public class HomeActivity extends MXCActionBarActivity {
     };
 
     private MXSession mSession;
-    private RoomSummaryAdapter mAdapter;
+    private ConsoleRoomSummaryAdapter mAdapter;
     private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
@@ -311,7 +309,7 @@ public class HomeActivity extends MXCActionBarActivity {
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         // the chevron is managed in the header view
         mMyRoomList.setGroupIndicator(null);
-        mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
+        mAdapter = new ConsoleRoomSummaryAdapter(mSession, this, R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
 
         if (null != savedInstanceState) {
             if (savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {

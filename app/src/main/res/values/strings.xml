@@ -102,10 +102,6 @@
     <string name="option_take_photo">Take photo</string>
     <string name="option_attach_video">Attach video</string>
 
-    <!-- Home Screen -->
-    <string name="users"> users</string>
-    <string name="user"> user</string>
-
     <!-- Login Screen -->
     <string name="login_error_must_start_http">URL must start with http[s]://</string>
     <string name="login_error_network_error">Unable to login: Network error</string>
