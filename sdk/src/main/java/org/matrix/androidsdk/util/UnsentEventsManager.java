@@ -86,10 +86,9 @@ public class UnsentEventsManager {
 
         /**
          *
-         * @return true if the message can be resent
          */
-        public Boolean canBeResent() {
-            return (null == mAutoResendTimer) && !mIsResending;
+        public Boolean waitToBeResent() {
+            return (null != mAutoResendTimer);
         }
 
         /**
@@ -420,15 +419,20 @@ public class UnsentEventsManager {
                     for(int index = 0; index < mUnsentEvents.size(); index++) {
                         UnsentEventSnapshot unsentEventSnapshot = mUnsentEvents.get(index);
 
-                        // don't resend an unsent event
-                        if (unsentEventSnapshot.canBeResent()) {
+                        // check if there is no required delay to resend the message
+                        if (!unsentEventSnapshot.waitToBeResent()) {
+                            // if the message is already resending,
+                            if (unsentEventSnapshot.mIsResending) {
+                                // do not resend any other one to try to keep the messages sending order.
+                                return;
+                            } else {
+                                if (null != unsentEventSnapshot.mEventDescription) {
+                                    Log.d(LOG_TAG, "Automatically resend " + unsentEventSnapshot.mEventDescription);
+                                }
 
-                            if (null != unsentEventSnapshot.mEventDescription) {
-                                Log.d(LOG_TAG, "Automatically resend " + unsentEventSnapshot.mEventDescription);
+                                unsentEventSnapshot.mIsResending = true;
+                                unsentEventSnapshot.mRequestRetryCallBack.onRetry();
                             }
-
-                            unsentEventSnapshot.mIsResending = true;
-                            unsentEventSnapshot.mRequestRetryCallBack.onRetry();
                             break;
                         }
                     }
