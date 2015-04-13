@@ -282,7 +282,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
                                                   selectDrawItem(mSelectedSlidingMenuIndex);
                                                   mSelectedSlidingMenuIndex = -1;
                                               }
-                                          }, 500);
+                                          }, 300);
             }
         }
     }
