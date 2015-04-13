@@ -145,7 +145,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
-           // R.string.action_home,
+            R.string.action_home,
             R.string.action_room_info,
             R.string.action_members,
             R.string.action_invite_by_name,
@@ -156,7 +156,7 @@ public class RoomActivity extends MXCActionBarActivity {
     };
 
     private final Integer[] mSlideMenuResourceIds = new Integer[]{
-            //R.drawable.ic_material_home, // R.string.action_home
+            R.drawable.ic_material_home, // R.string.action_home
             R.drawable.ic_material_description,  // R.string.action_room_info
             R.drawable.ic_material_group, // R.string.action_members
             R.drawable.ic_material_person_add, // R.string.option_invite_by_name
@@ -265,7 +265,7 @@ public class RoomActivity extends MXCActionBarActivity {
         setContentView(R.layout.activity_room);
 
         // define a sliding menu
-        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds, false);
+        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds, true);
 
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
@@ -517,12 +517,13 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
 
+    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.room, menu);
         return true;
-    }
+    }*/
 
     /*
     @Override
