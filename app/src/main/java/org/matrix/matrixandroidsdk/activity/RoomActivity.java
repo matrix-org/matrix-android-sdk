@@ -70,6 +70,7 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -792,13 +793,20 @@ public class RoomActivity extends MXCActionBarActivity {
                                 try {
                                     if (null != fullSizeBitmap) {
                                         Uri uri = Uri.parse(mediaUrl);
+
+                                        if (null == mimeType) {
+                                            // the images are save in jpeg format
+                                            mimeType = "image/jpeg";
+                                        }
+
+                                        resource.contentStream.close();
+                                        resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
                                         try {
-                                            mMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                            mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
                                         } catch (OutOfMemoryError ex) {
                                         }
 
-                                        // the images are save in jpeg format
-                                        mimeType = "image/jpeg";
                                     } else {
                                         isManaged = false;
                                     }
