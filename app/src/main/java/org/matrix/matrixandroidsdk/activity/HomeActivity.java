@@ -22,6 +22,8 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -82,11 +84,11 @@ public class HomeActivity extends MXCActionBarActivity {
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
-            R.string.action_search_contact,
-            R.string.action_search_room,
+            //R.string.action_search_contact,
+            //R.string.action_search_room,
             R.string.create_room,
             R.string.join_room,
-            R.string.action_mark_all_as_read,
+           // R.string.action_mark_all_as_read,
             R.string.action_settings,
             R.string.send_bug_report,
             R.string.action_disconnect,
@@ -95,11 +97,11 @@ public class HomeActivity extends MXCActionBarActivity {
 
     // sliding menu
     private final Integer[] mSlideMenuResourceIds = new Integer[]{
-            R.drawable.ic_material_search, // R.string.action_search_contact,
-            R.drawable.ic_material_find_in_page, // R.string.action_search_room,
+            //R.drawable.ic_material_search, // R.string.action_search_contact,
+            //R.drawable.ic_material_find_in_page, // R.string.action_search_room,
             R.drawable.ic_material_group_add, //R.string.create_room,
             R.drawable.ic_material_group, // R.string.join_room,
-            R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
+            //R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
             R.drawable.ic_material_settings, //  R.string.action_settings,
             R.drawable.ic_material_bug_report, // R.string.send_bug_report,
             R.drawable.ic_material_clear, // R.string.action_disconnect,
@@ -597,14 +599,7 @@ public class HomeActivity extends MXCActionBarActivity {
             @Override
             public void run() {
                 if (id == R.string.action_search_contact) {
-                    FragmentManager fm = getSupportFragmentManager();
-
-                    ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
-                    if (fragment != null) {
-                        fragment.dismissAllowingStateLoss();
-                    }
-                    fragment = ContactsListDialogFragment.newInstance();
-                    fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
+                    toggleSearchContacts();
                 } else if (id == R.string.action_search_room) {
                     toggleSearchButton();
                 } else if (id == R.string.create_room) {
@@ -641,6 +636,40 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.home, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.ic_action_search_contact) {
+            toggleSearchContacts();
+        } else if (id == R.id.ic_action_search_room) {
+            toggleSearchButton();
+        } else if (id == R.id.ic_action_mark_all_as_read) {
+            markAllMessagesAsRead();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void toggleSearchContacts() {
+        FragmentManager fm = getSupportFragmentManager();
+
+        ContactsListDialogFragment fragment = (ContactsListDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CONTACTS_LIST);
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
+        }
+        fragment = ContactsListDialogFragment.newInstance();
+        fragment.show(fm, TAG_FRAGMENT_CONTACTS_LIST);
     }
 
     private void joinRoomByName() {
@@ -698,7 +727,7 @@ public class HomeActivity extends MXCActionBarActivity {
         fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 
-    private void markAllMessagesAsRead(){
+    private void markAllMessagesAsRead() {
         mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
     }
