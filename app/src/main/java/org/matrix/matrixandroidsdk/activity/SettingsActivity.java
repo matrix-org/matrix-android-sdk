@@ -318,7 +318,7 @@ public class SettingsActivity extends MXCActionBarActivity {
                 }
 
                 @Override
-                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse, String serverErrorMessage)  {
                     if (uploadResponse == null) {
                         Toast.makeText(SettingsActivity.this,
                                 getString(R.string.settings_failed_to_upload_avatar),

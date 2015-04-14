@@ -326,7 +326,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -353,7 +353,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
 
                             Toast.makeText(getActivity(),
-                                    getString(R.string.message_failed_to_upload),
+                                    (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
                                     Toast.LENGTH_LONG).show();
                         } else {
                             // send the message
@@ -407,7 +407,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
@@ -437,7 +437,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                         imageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
 
                                                         Toast.makeText(getActivity(),
-                                                                getString(R.string.message_failed_to_upload),
+                                                                (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
                                                                 Toast.LENGTH_LONG).show();
                                                     } else {
                                                         // send the message

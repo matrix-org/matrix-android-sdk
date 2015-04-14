@@ -772,7 +772,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
@@ -981,7 +981,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
