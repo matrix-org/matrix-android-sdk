@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.adapters;
+package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -29,6 +29,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.R;
+
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -36,8 +38,6 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.view.PieFractionView;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -47,9 +47,9 @@ import java.util.Map;
 /**
  * An adapter which can display m.room.member content.
  */
-public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
+public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
-    private Context mContext;
+    protected Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
@@ -119,14 +119,23 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
     };
 
+    // abstract methods
+    public abstract int lastSeenTextColor();
+    public abstract int presenceOfflineColor();
+    public abstract int presenceOnlineColor();
+    public abstract int presenceUnavailableColor();
+
     /**
      * Construct an adapter which will display a list of room members.
      * @param context Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
+     * @param roomState the roomState.
+     * @param mediasCache the media cache
+     * @param membershipStrings  the membership strings by RoomMember.MEMBERSHIP_XX value
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache) {
+    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
@@ -136,11 +145,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         // left the caller manages the refresh
         setNotifyOnChange(false);
 
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_INVITE, context.getString(R.string.membership_invite));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_JOIN, context.getString(R.string.membership_join));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, context.getString(R.string.membership_leave));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_BAN, context.getString(R.string.membership_ban));
-
+        mMembershipStrings = membershipStrings;
         mMediasCache = mediasCache;
     }
 
@@ -209,18 +214,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     }
 
     @Override
-    public void notifyDataSetChanged() {
-        // sanity check
-        // ensure that the client is not logged out before refreshing the UI
-        // the refresh could have been triggered with delay after a logout
-        if (!Matrix.hasValidValidSession()) {
-            return;
-        }
-
-        super.notifyDataSetChanged();
-    }
-
-    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
@@ -240,7 +233,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             String lastActiveDisplay = "(" + buildLastActiveDisplay(user.getRealLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
-            int lastSeenTextColor = mContext.getResources().getColor(R.color.member_list_last_seen_text);
+            int lastSeenTextColor = lastSeenTextColor();
             ssb.setSpan(new ForegroundColorSpan(lastSeenTextColor), memberName.length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             textView.setText(ssb);
         }
@@ -249,7 +242,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
             textView.setText(User.PRESENCE_OFFLINE);
-            textView.setTextColor(mContext.getResources().getColor(R.color.presence_offline));
+            textView.setTextColor(presenceOfflineColor());
             textView.setVisibility(View.VISIBLE);
         } else {
             textView.setText(mMembershipStrings.get(member.membership));
@@ -279,11 +272,11 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         presenceRing.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
         if (user != null) {
             if (User.PRESENCE_ONLINE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_online));
+                presenceRing.setColorFilter(presenceOnlineColor());
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
+                presenceRing.setColorFilter(presenceUnavailableColor());
             } else if (User.PRESENCE_OFFLINE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_offline));
+                presenceRing.setColorFilter(presenceUnavailableColor());
             }
         }
 

@@ -46,9 +46,10 @@ import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
-import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
+import org.matrix.matrixandroidsdk.adapters.ConsoleRoomMembersAdapter;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * A dialog fragment showing a list of room members for a given room.
@@ -67,7 +68,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
     }
 
     private ListView mListView;
-    private RoomMembersAdapter mAdapter;
+    private ConsoleRoomMembersAdapter mAdapter;
     private String mRoomId;
     private MXSession mSession;
 
@@ -172,7 +173,13 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         final Room room = mSession.getDataHandler().getRoom(mRoomId);
 
-        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState(), getMXMediasCache());
+        HashMap<String, String> membershipStrings = new HashMap<String, String>();
+        membershipStrings.put(RoomMember.MEMBERSHIP_INVITE, getActivity().getString(R.string.membership_invite));
+        membershipStrings.put(RoomMember.MEMBERSHIP_JOIN, getActivity().getString(R.string.membership_join));
+        membershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, getActivity().getString(R.string.membership_leave));
+        membershipStrings.put(RoomMember.MEMBERSHIP_BAN, getActivity().getString(R.string.membership_ban));
+
+        mAdapter = new ConsoleRoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState(), getMXMediasCache(), membershipStrings);
 
         // apply the sort settings
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
