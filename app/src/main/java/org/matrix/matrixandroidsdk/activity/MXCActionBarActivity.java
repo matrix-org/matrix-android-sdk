@@ -28,8 +28,10 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -41,6 +43,8 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.DrawerAdapter;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+
+import java.lang.reflect.Method;
 
 /**
  * extends ActionBarActivity to manage the rageshake
@@ -140,23 +144,35 @@ public class MXCActionBarActivity extends ActionBarActivity {
             return true;
         }
 
-        // the drawer is managed by the activity
-        if (item.getItemId() == R.id.ic_action_drawer) {
-            if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
-                mDrawerLayout.closeDrawer(Gravity.RIGHT);
-            } else {
-                dismissKeyboard(this);
-                mDrawerLayout.openDrawer(Gravity.RIGHT);
-            }
-            return true;
-        }
-
         if (item.getItemId() == android.R.id.home) {
             // pop the activity to avoid creating a new instance of the parent activity
             this.onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu)
+    {
+        // display the menu icon with the text
+        if (((featureId == Window.FEATURE_ACTION_BAR) || ((featureId == Window.FEATURE_OPTIONS_PANEL))) && menu != null){
+            if(menu.getClass().getSimpleName().equals("MenuBuilder")){
+                try{
+                    Method m = menu.getClass().getDeclaredMethod(
+                            "setOptionalIconsVisible", Boolean.TYPE);
+                    m.setAccessible(true);
+                    m.invoke(menu, true);
+                }
+                catch(NoSuchMethodException e){
+                    //Log.e(TAG, "onMenuOpened", e);
+                }
+                catch(Exception e){
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return super.onMenuOpened(featureId, menu);
     }
 
     /**
