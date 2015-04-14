@@ -207,7 +207,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
                 mDrawerToggle = new ActionBarDrawerToggle(
                         this,                  /* host Activity */
                         mDrawerLayout,         /* DrawerLayout object */
-                        R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
+                         R.drawable.ic_material_menu,  /* nav drawer icon to replace 'Up' caret */
                         R.string.action_open,  /* "open drawer" description */
                         R.string.action_close  /* "close drawer" description */
                 ) {
