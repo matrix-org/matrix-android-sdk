@@ -196,6 +196,9 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                 if (supportShare) {
                     textIds.add(R.string.share);
                     iconIds.add(R.drawable.ic_material_share);
+
+                    textIds.add(R.string.forward);
+                    iconIds.add(R.drawable.ic_material_forward);
                 }
             }
         }
@@ -221,7 +224,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
             @Override
             public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
-                Integer selectedVal = textIds.get(position);
+                final Integer selectedVal = textIds.get(position);
 
                 if (selectedVal == R.string.resend) {
                     getActivity().runOnUiThread(new Runnable() {
@@ -237,7 +240,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                             redactEvent(messageRow.getEvent().eventId);
                         }
                     });
-                } else if (selectedVal == R.string.share) {
+                } else if ((selectedVal == R.string.share) || (selectedVal == R.string.forward)) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -255,7 +258,11 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                                 sendIntent.setType("text/plain");
                             }
 
-                            startActivity(sendIntent);
+                            if (selectedVal == R.string.forward) {
+                                CommonActivityUtils.sendFilesTo(getActivity(), mSession, sendIntent);
+                            } else {
+                                startActivity(sendIntent);
+                            }
                         }
                     });
                 } else if (selectedVal == R.string.message_details) {

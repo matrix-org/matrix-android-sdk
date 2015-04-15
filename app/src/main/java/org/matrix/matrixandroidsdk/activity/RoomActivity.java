@@ -732,7 +732,6 @@ public class RoomActivity extends MXCActionBarActivity {
      * @param mediaUris the media URIs
      */
     private void sendMedias(ArrayList<Uri> mediaUris) {
-
         final int mediaCount = mediaUris.size();
 
         for(Uri anUri : mediaUris) {
@@ -941,6 +940,21 @@ public class RoomActivity extends MXCActionBarActivity {
         } else {
             uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
             mLatestTakePictureCameraUri = null;
+        }
+
+        // check the extras
+        if (0 == uris.size()) {
+            Bundle bundle = data.getExtras();
+
+            if (bundle.containsKey(Intent.EXTRA_STREAM)) {
+                Object streamUri = bundle.get(Intent.EXTRA_STREAM);
+
+                if (streamUri instanceof Uri) {
+                    uris.add((Uri)streamUri);
+                }
+            } else if (bundle.containsKey(Intent.EXTRA_TEXT)) {
+                this.sendMessage(bundle.getString(Intent.EXTRA_TEXT));
+            }
         }
 
         if (0 != uris.size()) {

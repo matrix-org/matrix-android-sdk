@@ -16,6 +16,7 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -358,7 +359,7 @@ public class HomeActivity extends MXCActionBarActivity {
             this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    sendFilesTo(intent);
+                    CommonActivityUtils.sendFilesTo(HomeActivity.this, mSession, intent);
                 }
             });
         }
@@ -611,6 +612,10 @@ public class HomeActivity extends MXCActionBarActivity {
         if (intent.hasExtra(EXTRA_JUMP_TO_ROOM_ID)) {
             mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
         }
+
+        if (intent.hasExtra(EXTRA_ROOM_INTENT)) {
+            mOpenedRoomIntent = intent.getParcelableExtra(EXTRA_ROOM_INTENT);
+        }
     }
 
     @Override
@@ -756,59 +761,4 @@ public class HomeActivity extends MXCActionBarActivity {
         mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
     }
-
-    private void sendFilesTo(final Intent intent) {
-        final List<RoomSummary> summaries =  new  ArrayList<RoomSummary>(mSession.getDataHandler().getStore().getSummaries());
-
-        Collections.sort(summaries, new Comparator<RoomSummary>() {
-            @Override
-            public int compare(RoomSummary lhs, RoomSummary rhs) {
-                if (lhs == null || lhs.getLatestEvent() == null) {
-                    return 1;
-                } else if (rhs == null || rhs.getLatestEvent() == null) {
-                    return -1;
-                }
-
-                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
-                    return -1;
-                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
-                    return 1;
-                }
-                return 0;
-            }
-        });
-
-        AlertDialog.Builder builderSingle = new AlertDialog.Builder(this);
-        builderSingle.setTitle(getText(R.string.send_files_in));
-        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, R.layout.dialog_room_selection);
-
-        for(RoomSummary summary : summaries) {
-            arrayAdapter.add(summary.getRoomName());
-        }
-
-        builderSingle.setNegativeButton(getText(R.string.cancel),
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-
-        builderSingle.setAdapter(arrayAdapter,
-                new DialogInterface.OnClickListener() {
-
-                    @Override
-                    public void onClick(DialogInterface dialog, final int which) {
-                        dialog.dismiss();
-                        HomeActivity.this.runOnUiThread( new Runnable() {
-                            @Override
-                            public void run() {
-                                CommonActivityUtils.goToRoomPage(summaries.get(which).getRoomId(), HomeActivity.this, intent);
-                            }
-                        });
-                    }
-                });
-        builderSingle.show();
-    }
-
 }

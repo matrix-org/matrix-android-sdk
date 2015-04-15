@@ -26,12 +26,14 @@ import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -50,7 +52,10 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Contains useful functions which are called in multiple activities.
@@ -322,6 +327,65 @@ public class CommonActivityUtils {
         return res;
     }
 
+    /**
+     * Offer to send some dedicated intent data to an existing room
+     * @param fromActivity the caller activity
+     * @param session the MXsession
+     * @param intent the intent param
+     */
+    public static void sendFilesTo(final Activity fromActivity, final MXSession session, final Intent intent) {
+        final List<RoomSummary> summaries =  new  ArrayList<RoomSummary>(session.getDataHandler().getStore().getSummaries());
+
+        Collections.sort(summaries, new Comparator<RoomSummary>() {
+            @Override
+            public int compare(RoomSummary lhs, RoomSummary rhs) {
+                if (lhs == null || lhs.getLatestEvent() == null) {
+                    return 1;
+                } else if (rhs == null || rhs.getLatestEvent() == null) {
+                    return -1;
+                }
+
+                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
+                    return -1;
+                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(fromActivity);
+        builderSingle.setTitle(fromActivity.getText(R.string.send_files_in));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(fromActivity, R.layout.dialog_room_selection);
+
+        for(RoomSummary summary : summaries) {
+            arrayAdapter.add(summary.getRoomName());
+        }
+
+        builderSingle.setNegativeButton(fromActivity.getText(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        builderSingle.setAdapter(arrayAdapter,
+                new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, final int which) {
+                        dialog.dismiss();
+                        fromActivity.runOnUiThread( new Runnable() {
+                            @Override
+                            public void run() {
+                                CommonActivityUtils.goToRoomPage(summaries.get(which).getRoomId(), fromActivity, intent);
+                            }
+                        });
+                    }
+                });
+        builderSingle.show();
+    }
     /**
      * Parse an userIDS text into a list.
      *
