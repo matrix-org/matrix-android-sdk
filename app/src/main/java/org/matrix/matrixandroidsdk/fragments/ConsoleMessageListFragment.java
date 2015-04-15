@@ -16,6 +16,8 @@
 
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.content.SharedPreferences;
@@ -30,11 +32,16 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
+import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
 import org.matrix.matrixandroidsdk.adapters.ConsoleMessagesAdapter;
+import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -144,12 +151,53 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         final List<Integer> textIds = new ArrayList<>();
         final List<Integer> iconIds = new ArrayList<Integer>();
 
+        String mediaUrl = null;
+        String mediaMimeType = null;
+        Uri mediaUri = null;
+
         if (messageRow.getEvent().canBeResent()) {
             textIds.add(R.string.resend);
             iconIds.add(R.drawable.ic_material_send);
         } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
             textIds.add(R.string.redact);
             iconIds.add(R.drawable.ic_material_clear);
+
+            if (Event.EVENT_TYPE_MESSAGE.equals(messageRow.getEvent().type)) {
+                Boolean supportShare = true;
+                Message message = JsonUtils.toMessage(messageRow.getEvent().content);
+
+                // check if the media has been downloaded
+                if ((message instanceof ImageMessage) || (message instanceof FileMessage)) {
+                    if (message instanceof ImageMessage) {
+                        ImageMessage imageMessage = (ImageMessage) message;
+
+                        mediaUrl = imageMessage.url;
+                        mediaMimeType = imageMessage.getMimeType();
+                    } else {
+                        FileMessage fileMessage = (FileMessage) message;
+
+                        mediaUrl = fileMessage.url;
+                        mediaMimeType = fileMessage.getMimeType();
+                    }
+
+                    supportShare = false;
+                    MXMediasCache cache = getMXMediasCache();
+
+                    String filename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+                    if (null != filename) {
+                        try {
+                            mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + filename);
+                            supportShare = true;
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+
+                if (supportShare) {
+                    textIds.add(R.string.share);
+                    iconIds.add(R.drawable.ic_material_share);
+                }
+            }
         }
 
         // display the JSON
@@ -165,6 +213,9 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
         Integer[] lIcons = iconIds.toArray(new Integer[iconIds.size()]);
         Integer[] lTexts = textIds.toArray(new Integer[iconIds.size()]);
+
+        final String  fmediaMimeType = mediaMimeType;
+        final Uri fmediaUri = mediaUri;
 
         fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
         fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
@@ -184,6 +235,27 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         @Override
                         public void run() {
                             redactEvent(messageRow.getEvent().eventId);
+                        }
+                    });
+                } else if (selectedVal == R.string.share) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent sendIntent = new Intent();
+                            sendIntent.setAction(Intent.ACTION_SEND);
+
+                            Event event = messageRow.getEvent();
+                            Message message = JsonUtils.toMessage(event.content);
+
+                            if (null != fmediaUri) {
+                                sendIntent.setType(fmediaMimeType);
+                                sendIntent.putExtra(Intent.EXTRA_STREAM, fmediaUri);
+                            } else {
+                                sendIntent.putExtra(Intent.EXTRA_TEXT, message.body);
+                                sendIntent.setType("text/plain");
+                            }
+
+                            startActivity(sendIntent);
                         }
                     });
                 } else if (selectedVal == R.string.message_details) {

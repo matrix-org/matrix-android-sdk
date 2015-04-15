@@ -186,7 +186,7 @@ public class CommonActivityUtils {
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
                                                if (null != intentParam) {
-                                                intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                                    intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
                                                fromActivity.startActivity(intent);
                                            }

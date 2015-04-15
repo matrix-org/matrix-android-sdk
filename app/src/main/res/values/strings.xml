@@ -20,6 +20,7 @@
     <string name="send">Send</string>
     <string name="resend">Resend</string>
     <string name="redact">Redact</string>
+    <string name="share">Share</string>
     <string name="message_details">Message details</string>
     <string name="view">View</string>
     <string name="set_power_level">Power level</string>
