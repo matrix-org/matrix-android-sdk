@@ -156,7 +156,7 @@ public class CommonActivityUtils {
         return dialog;
     }
 
-    public static void goToRoomPage(final String roomId, final Activity fromActivity) {
+    public static void goToRoomPage(final String roomId, final Activity fromActivity, final Intent intentParam) {
 
         MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
         Room room = session.getDataHandler().getRoom(roomId);
@@ -176,12 +176,18 @@ public class CommonActivityUtils {
                                                Intent intent = new Intent(fromActivity, HomeActivity.class);
                                                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                                intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
+                                               if (null != intentParam) {
+                                                   intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                               }
                                                fromActivity.startActivity(intent);
                                            } else {
                                                // already to the home activity
                                                // so just need to open the room activity
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                               if (null != intentParam) {
+                                                intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                               }
                                                fromActivity.startActivity(intent);
                                            }
                                        }
@@ -223,7 +229,7 @@ public class CommonActivityUtils {
 
         // the room already exists -> switch to it
         if (null != roomId) {
-            CommonActivityUtils.goToRoomPage(roomId, fromActivity);
+            CommonActivityUtils.goToRoomPage(roomId, fromActivity, null);
 
             // everything is ok
             if (null != callback) {
@@ -239,7 +245,7 @@ public class CommonActivityUtils {
                     room.invite(otherUserId, new SimpleApiCallback<Void>(this) {
                         @Override
                         public void onSuccess(Void info) {
-                            CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity);
+                            CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity, null);
 
                             callback.onSuccess(null);
                         }

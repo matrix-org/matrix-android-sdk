@@ -123,7 +123,7 @@ public class RoomCreationDialogFragment extends DialogFragment {
                         session.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>(getActivity()) {
                             @Override
                             public void onSuccess(String roomId) {
-                                CommonActivityUtils.goToRoomPage(roomId, activity);
+                                CommonActivityUtils.goToRoomPage(roomId, activity, null);
 
                                 Room room = mSession.getDataHandler().getRoom(roomId);
 

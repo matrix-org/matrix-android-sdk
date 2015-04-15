@@ -53,6 +53,7 @@
     <string name="action_home">Home</string>
     <string name="action_drawer">Extras</string>
 
+    <string name="send_files_in">Send into</string>
 
     <string name="my_rooms">My rooms</string>
     <string name="create_room">Create room</string>

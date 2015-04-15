@@ -17,6 +17,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
@@ -27,6 +28,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.Toast;
@@ -56,6 +58,9 @@ import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -75,12 +80,14 @@ public class HomeActivity extends MXCActionBarActivity {
     private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
 
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
+    public static final String EXTRA_ROOM_INTENT = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_ROOM_INTENT";
 
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
 
     private String mAutomaticallyOpenedRoomId = null;
+    private Intent mOpenedRoomIntent = null;
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
@@ -334,9 +341,26 @@ public class HomeActivity extends MXCActionBarActivity {
             }
         }
 
-        Intent intent = getIntent();
+        final Intent intent = getIntent();
         if (intent.hasExtra(EXTRA_JUMP_TO_ROOM_ID)) {
             mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
+        }
+
+        if (intent.hasExtra(EXTRA_ROOM_INTENT)) {
+            mOpenedRoomIntent = intent.getParcelableExtra(EXTRA_ROOM_INTENT);
+        }
+
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        // send files from external application
+        if ((Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) && type != null) {
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    sendFilesTo(intent);
+                }
+            });
         }
 
         mMyRoomList.setAdapter(mAdapter);
@@ -364,7 +388,7 @@ public class HomeActivity extends MXCActionBarActivity {
                 }
 
                 if (null != roomId){
-                    CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                    CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this, null);
                 }
                 return true;
             }
@@ -572,8 +596,9 @@ public class HomeActivity extends MXCActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    CommonActivityUtils.goToRoomPage(HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this);
+                    CommonActivityUtils.goToRoomPage(HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this, mOpenedRoomIntent);
                     HomeActivity.this.mAutomaticallyOpenedRoomId = null;
+                    HomeActivity.this.mOpenedRoomIntent = null;
                 }
             });
         }
@@ -682,7 +707,7 @@ public class HomeActivity extends MXCActionBarActivity {
                     @Override
                     public void onSuccess(String roomId) {
                         if (null != roomId) {
-                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
+                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this, null);
                         }
                     }
 
@@ -731,4 +756,59 @@ public class HomeActivity extends MXCActionBarActivity {
         mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
     }
+
+    private void sendFilesTo(final Intent intent) {
+        final List<RoomSummary> summaries =  new  ArrayList<RoomSummary>(mSession.getDataHandler().getStore().getSummaries());
+
+        Collections.sort(summaries, new Comparator<RoomSummary>() {
+            @Override
+            public int compare(RoomSummary lhs, RoomSummary rhs) {
+                if (lhs == null || lhs.getLatestEvent() == null) {
+                    return 1;
+                } else if (rhs == null || rhs.getLatestEvent() == null) {
+                    return -1;
+                }
+
+                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
+                    return -1;
+                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(this);
+        builderSingle.setTitle(getText(R.string.send_files_in));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, R.layout.dialog_room_selection);
+
+        for(RoomSummary summary : summaries) {
+            arrayAdapter.add(summary.getRoomName());
+        }
+
+        builderSingle.setNegativeButton(getText(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        builderSingle.setAdapter(arrayAdapter,
+                new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, final int which) {
+                        dialog.dismiss();
+                        HomeActivity.this.runOnUiThread( new Runnable() {
+                            @Override
+                            public void run() {
+                                CommonActivityUtils.goToRoomPage(summaries.get(which).getRoomId(), HomeActivity.this, intent);
+                            }
+                        });
+                    }
+                });
+        builderSingle.show();
+    }
+
 }

@@ -17,6 +17,7 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.ClipData;
@@ -39,6 +40,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -408,6 +410,21 @@ public class RoomActivity extends MXCActionBarActivity {
 
         mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
         mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+
+        // some medias must be sent while opening the chat
+        if (intent.hasExtra(HomeActivity.EXTRA_ROOM_INTENT)) {
+            final Intent mediaIntent = intent.getParcelableExtra(HomeActivity.EXTRA_ROOM_INTENT);
+
+            // sanity check
+            if (null != mediaIntent) {
+                mEditText.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendMediasIntent(mediaIntent);
+                    }
+                }, 1000);
+            }
+        }
     }
 
     @Override
@@ -574,7 +591,7 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     private void setTopic(String topic) {
-        if (null !=  this.getSupportActionBar()) {
+        if (null != this.getSupportActionBar()) {
             this.getSupportActionBar().setSubtitle(topic);
         }
     }
@@ -630,7 +647,7 @@ public class RoomActivity extends MXCActionBarActivity {
                         @Override
                         public void onSuccess(String roomId) {
                             if (null != roomId) {
-                                CommonActivityUtils.goToRoomPage(roomId, RoomActivity.this);
+                                CommonActivityUtils.goToRoomPage(roomId, RoomActivity.this, null);
                             }
                         }
                     });
@@ -890,45 +907,54 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     @SuppressLint("NewApi")
+    private void sendMediasIntent(final Intent data) {
+        // sanity check
+        if (null == data) {
+            return;
+        }
+
+        ArrayList<Uri> uris = new ArrayList<Uri>();
+
+        if (null != data) {
+            ClipData clipData = null;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                clipData = data.getClipData();
+            }
+
+            // multiple data
+            if (null != clipData) {
+                int count = clipData.getItemCount();
+
+                for (int i = 0; i < count; i++) {
+                    ClipData.Item item = clipData.getItemAt(i);
+                    Uri uri = item.getUri();
+
+                    if (null != uri) {
+                        uris.add(uri);
+                    }
+                }
+
+            } else if (null != data.getData()) {
+                uris.add(data.getData());
+            }
+        } else {
+            uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
+            mLatestTakePictureCameraUri = null;
+        }
+
+        if (0 != uris.size()) {
+            sendMedias(uris);
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
             if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
-                ArrayList<Uri> uris = new ArrayList<Uri>();
-
-                if (null != data) {
-                    ClipData clipData = null;
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                        clipData = data.getClipData();
-                    }
-
-                    // multiple data
-                    if (null != clipData) {
-                        int count = clipData.getItemCount();
-
-                        for (int i = 0; i < count; i++) {
-                            ClipData.Item item = clipData.getItemAt(i);
-                            Uri uri = item.getUri();
-
-                            if (null != uri) {
-                                uris.add(uri);
-                            }
-                        }
-
-                    } else if (null != data.getData()) {
-                        uris.add(data.getData());
-                    }
-                } else {
-                    uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
-                    mLatestTakePictureCameraUri = null;
-                }
-
-                if (0 != uris.size()) {
-                    sendMedias(uris);
-                }
+                sendMediasIntent(data);
             }
         }
     }
