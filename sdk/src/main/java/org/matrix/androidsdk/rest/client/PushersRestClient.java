@@ -16,15 +16,22 @@
 
 package org.matrix.androidsdk.rest.client;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.net.URL;
 import java.util.HashMap;
+
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
 
 /**
  * REST client for the Pushers API.
@@ -48,10 +55,10 @@ public class PushersRestClient extends RestClient<PushersApi> {
      * @param url the URL that should be used to send notifications
      */
     public void addHttpPusher(
-            String pushkey, String appId,
-            String profileTag, String lang,
-            String appDisplayName, String deviceDisplayName,
-            String url) {
+            final String pushkey, final String appId,
+            final String profileTag, final String lang,
+            final String appDisplayName, final String deviceDisplayName,
+            final String url) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -63,6 +70,16 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.data = new HashMap<String, String>();
         pusher.data.put(DATA_KEY_HTTP_URL, url);
 
-        mApi.set(pusher);
+        final String description = "addHttpPusher";
+
+        mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, null, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    addHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url);
+                } catch (Exception e) {
+                }
+            }
+        }));
     }
 }
