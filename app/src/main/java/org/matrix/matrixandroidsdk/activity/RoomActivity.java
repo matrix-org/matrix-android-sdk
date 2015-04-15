@@ -120,7 +120,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
     private static final int REQUEST_FILES = 0;
-    private static final int TAKE_IMAGE = 0;
+    private static final int TAKE_IMAGE = 1;
     private static final int CREATE_DOCUMENT = 2;
 
     private ConsoleMessageListFragment mConsoleMessageListFragment;
@@ -982,8 +982,10 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         }
 
-        mPendingMediaUrl = null;
-        mPendingMimeType = null;
+        if (requestCode == CREATE_DOCUMENT) {
+            mPendingMediaUrl = null;
+            mPendingMimeType = null;
+        }
     }
 
     /**
