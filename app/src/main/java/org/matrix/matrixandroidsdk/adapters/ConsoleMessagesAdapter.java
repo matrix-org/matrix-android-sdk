@@ -68,7 +68,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
         String mediaPath = mMediasCache.mediaCacheFilename(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
         if (null != mediaPath) {
-            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
         }
     }
 
@@ -79,7 +79,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
 
             // is the file already saved
             if (null != mediaPath) {
-                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
                 CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
             }
         }

@@ -56,6 +56,13 @@
     <string name="action_drawer">Extras</string>
 
     <string name="send_files_in">Send into</string>
+    <string name="save_files_in">Save into</string>
+    <string name="file_is_saved">%1$s is saved.</string>
+
+    <string name="downloads">Downloads</string>
+    <string name="gallery">Gallery</string>
+    <string name="sd_scard">SD card</string>
+    <string name="other">Other</string>
 
     <string name="my_rooms">My rooms</string>
     <string name="create_room">Create room</string>

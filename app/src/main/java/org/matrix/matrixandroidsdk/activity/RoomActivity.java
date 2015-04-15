@@ -17,7 +17,6 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.ClipData;
@@ -30,6 +29,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.v4.app.FragmentManager;
@@ -40,6 +40,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -57,7 +58,9 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -72,6 +75,9 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -114,7 +120,8 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
     private static final int REQUEST_FILES = 0;
-    private static final int TAKE_IMAGE = 0;
+    private static final int TAKE_IMAGE = 1;
+    private static final int CREATE_DOCUMENT = 2;
 
     private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
@@ -132,7 +139,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private ImageButton mImagePreviewButton;
 
     private String mPendingImageUrl;
-    private String mPendingImediaUrl;
+    private String mPendingMediaUrl;
     private String mPendingMimeType;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
@@ -257,7 +264,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         mPendingImageUrl = null;
-        mPendingImediaUrl = null;
+        mPendingMediaUrl = null;
         mPendingMimeType = null;
 
         if (null != savedInstanceState) {
@@ -266,7 +273,7 @@ public class RoomActivity extends MXCActionBarActivity {
             }
 
             if (savedInstanceState.containsKey(PENDING_MEDIA_URL)) {
-                mPendingImediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
+                mPendingMediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
             }
 
             if (savedInstanceState.containsKey(PENDING_MIMETYPE)) {
@@ -286,9 +293,9 @@ public class RoomActivity extends MXCActionBarActivity {
             public void onClick(View view) {
                 // send the previewed image ?
                 if (null != mPendingImageUrl) {
-                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
+                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
                     mPendingImageUrl = null;
-                    mPendingImediaUrl = null;
+                    mPendingMediaUrl = null;
                     mPendingMimeType = null;
                     manageSendMoreButtons();
                 } else {
@@ -402,7 +409,7 @@ public class RoomActivity extends MXCActionBarActivity {
             @Override
             public void onClick(View view) {
                 mPendingImageUrl = null;
-                mPendingImediaUrl = null;
+                mPendingMediaUrl = null;
                 mPendingMimeType = null;
                 manageSendMoreButtons();
             }
@@ -436,8 +443,8 @@ public class RoomActivity extends MXCActionBarActivity {
             savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingImageUrl);
         }
 
-        if (null != mPendingImediaUrl) {
-            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingImediaUrl);
+        if (null != mPendingMediaUrl) {
+            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingMediaUrl);
         }
 
         if (null != mPendingMimeType) {
@@ -854,7 +861,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             if (mediaCount == 1) {
                                 // display an image preview before sending it
                                 mPendingImageUrl = thumbnailURL;
-                                mPendingImediaUrl = mediaUrl;
+                                mPendingMediaUrl = mediaUrl;
                                 mPendingMimeType = mimeType;
 
                                 mConsoleMessageListFragment.scrollToBottom();
@@ -969,9 +976,77 @@ public class RoomActivity extends MXCActionBarActivity {
         if (resultCode == RESULT_OK) {
             if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
                 sendMediasIntent(data);
+            } else if (requestCode == CREATE_DOCUMENT) {
+                Uri currentUri = data.getData();
+                writeMediaUrl(currentUri);
             }
         }
+
+        mPendingMediaUrl = null;
+        mPendingMimeType = null;
     }
+
+    /**
+     *
+     * @param message
+     * @param mediaUrl
+     * @param mediaMimeType
+     */
+    public void createDocument(Message message, final String mediaUrl, final String mediaMimeType) {
+        String filename = "MatrixConsole_" + System.currentTimeMillis();
+
+        MimeTypeMap mime = MimeTypeMap.getSingleton();
+        filename += "." + mime.getExtensionFromMimeType(mediaMimeType);
+
+        if (message instanceof FileMessage) {
+            FileMessage fileMessage = (FileMessage)message;
+
+            if (null != fileMessage.body) {
+                filename = fileMessage.body;
+            }
+        }
+
+        mPendingMediaUrl = mediaUrl;
+        mPendingMimeType = mediaMimeType;
+
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType(mediaMimeType)
+                .putExtra(Intent.EXTRA_TITLE, filename);
+
+        startActivityForResult(intent, CREATE_DOCUMENT);
+
+    }
+
+
+	private void writeMediaUrl(Uri destUri)
+	{
+		try{
+			ParcelFileDescriptor pfd =
+				this.getContentResolver().
+                		openFileDescriptor(destUri, "w");
+
+			FileOutputStream fileOutputStream =
+                           new FileOutputStream(pfd.getFileDescriptor());
+
+            String sourceFilePath = mMediasCache.mediaCacheFilename(this, mPendingMediaUrl, mPendingMimeType);
+
+            InputStream inputStream = this.openFileInput(sourceFilePath);
+
+            byte[] buffer = new byte[1024 * 10];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, len);
+            }
+
+			fileOutputStream.close();
+			pfd.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
     /**
      * send a typing event notification

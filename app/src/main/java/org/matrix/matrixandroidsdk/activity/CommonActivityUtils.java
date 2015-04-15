@@ -16,13 +16,16 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
@@ -494,7 +497,7 @@ public class CommonActivityUtils {
                 fileExt = sourceFilePath.substring(dotPos);
             }
 
-            dstFileName = "MatrixConsole_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
+            dstFileName = "MatrixConsole_" + System.currentTimeMillis() + fileExt;
         } else {
             dstFileName = outputFilename;
         }
@@ -548,8 +551,20 @@ public class CommonActivityUtils {
      * @param filename the filename (optional)
      * @return the downloads file path
      */
-    public static String saveMediaIntoDownloads(Context context, String path, String filename) {
-        return saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
+    @SuppressLint("NewApi")
+    public static String saveMediaIntoDownloads(Context context, String path, String filename, String mimeType) {
+        String fullFilePath = saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            if (null != fullFilePath) {
+                DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+
+                File file = new File(fullFilePath);
+                downloadManager.addCompletedDownload(file.getName(), file.getName(), true, mimeType, file.getAbsolutePath(), file.length(), true);
+            }
+        }
+
+        return fullFilePath;
     }
 
     /**

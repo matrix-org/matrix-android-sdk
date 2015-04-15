@@ -16,18 +16,25 @@
 
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
@@ -40,9 +47,11 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
+import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.adapters.ConsoleMessagesAdapter;
 import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -154,6 +163,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         String mediaUrl = null;
         String mediaMimeType = null;
         Uri mediaUri = null;
+        Message message = null;
 
         if (messageRow.getEvent().canBeResent()) {
             textIds.add(R.string.resend);
@@ -164,7 +174,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(messageRow.getEvent().type)) {
                 Boolean supportShare = true;
-                Message message = JsonUtils.toMessage(messageRow.getEvent().content);
+                message = JsonUtils.toMessage(messageRow.getEvent().content);
 
                 // check if the media has been downloaded
                 if ((message instanceof ImageMessage) || (message instanceof FileMessage)) {
@@ -199,6 +209,9 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
                     textIds.add(R.string.forward);
                     iconIds.add(R.drawable.ic_material_forward);
+
+                    textIds.add(R.string.save);
+                    iconIds.add(R.drawable.ic_material_save);
                 }
             }
         }
@@ -219,6 +232,8 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
         final String  fmediaMimeType = mediaMimeType;
         final Uri fmediaUri = mediaUri;
+        final String fmediaUrl = mediaUrl;
+        final Message fMessage = message;
 
         fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
         fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
@@ -231,6 +246,13 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         @Override
                         public void run() {
                             resend(messageRow.getEvent());
+                        }
+                    });
+                } else if (selectedVal == R.string.save) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            save(fMessage, fmediaUrl, fmediaMimeType);
                         }
                     });
                 } else if (selectedVal == R.string.redact) {
@@ -286,4 +308,77 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         fragment.show(fm, TAG_FRAGMENT_MESSAGE_OPTIONS);
     }
 
+    private void save(final Message message, final String mediaUrl, final String mediaMimeType) {
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(getActivity());
+
+        builderSingle.setTitle(getActivity().getText(R.string.save_files_in));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.dialog_room_selection);
+
+        ArrayList<String> entries = new ArrayList<String>();
+
+        entries.add(getActivity().getText(R.string.downloads).toString());
+
+        if (mediaMimeType.startsWith("image/")) {
+            entries.add(getActivity().getText(R.string.gallery).toString());
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            entries.add(getActivity().getText(R.string.other).toString());
+        }
+
+        arrayAdapter.addAll(entries);
+
+        final ArrayList<String> fEntries = entries;
+
+        builderSingle.setNegativeButton(getActivity().getText(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        builderSingle.setAdapter(arrayAdapter,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, final int which) {
+                        dialog.dismiss();
+
+                        MXMediasCache cache = getMXMediasCache();
+                        String cacheFilename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+
+                        String entry = fEntries.get(which);
+                        String savedFilename = null;
+
+                        if (getActivity().getText(R.string.gallery).toString().equals(entry)) {
+                            // save in the gallery
+                            savedFilename = CommonActivityUtils.saveImageIntoGallery(getActivity(), cacheFilename);
+                        } else if (getActivity().getText(R.string.downloads).toString().equals(entry)) {
+                            String filename = null;
+
+                            if (message instanceof FileMessage)  {
+                                filename = ((FileMessage)message).body;
+                            }
+
+                            // save into downloads
+                            savedFilename = CommonActivityUtils.saveMediaIntoDownloads(getActivity(), cacheFilename, filename, mediaMimeType);
+                        } else {
+                            if (getActivity() instanceof RoomActivity) {
+                                ((RoomActivity)getActivity()).createDocument(message, mediaUrl, mediaMimeType);
+                            }
+                        }
+
+                        if (null != savedFilename) {
+                            final String fSavedFilename = new File(savedFilename).getName();
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(getActivity(), getActivity().getString(R.string.file_is_saved, fSavedFilename), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    }
+                });
+        builderSingle.show();
+    }
 }
