@@ -21,6 +21,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.webkit.MimeTypeMap;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,7 +43,14 @@ public class ConsoleContentProvider extends ContentProvider {
 
     @Override
     public String getType(Uri arg0) {
-        return null;
+        String type = null;
+        String extension = MimeTypeMap.getFileExtensionFromUrl(arg0.toString());
+        if (extension != null) {
+            MimeTypeMap mime = MimeTypeMap.getSingleton();
+            type = mime.getMimeTypeFromExtension(extension);
+        }
+
+        return type;
     }
 
     @Override
