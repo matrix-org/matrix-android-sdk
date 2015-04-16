@@ -57,6 +57,8 @@ public class SettingsActivity extends MXCActionBarActivity {
 
     private MyUser mMyUser;
 
+    private MXSession mSession;
+
     // Views
     private ImageView mAvatarImageView;
     private EditText mDisplayNameEditText;
@@ -82,9 +84,9 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         setContentView(R.layout.activity_settings);
 
-        MXSession session = Matrix.getInstance(this).getDefaultSession();
-        mMyUser = session.getMyUser();
-
+        // TODO should manage each known sessions
+        mSession = Matrix.getInstance(this).getDefaultSession();
+        mMyUser = mSession.getMyUser();
         mMediasCache = Matrix.getInstance(this).getMediasCache();
 
         refreshProfileThumbnail();
@@ -144,7 +146,7 @@ public class SettingsActivity extends MXCActionBarActivity {
         buildNumberTextView.setText(getString(R.string.settings_config_build_number, ""));
 
         TextView hsTextView = (TextView) findViewById(R.id.textView_configHomeServer);
-        hsTextView.setText(getString(R.string.settings_config_home_server, session.getCredentials().homeServer));
+        hsTextView.setText(getString(R.string.settings_config_home_server, mSession.getCredentials().homeServer));
 
         TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
         userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
@@ -204,28 +206,23 @@ public class SettingsActivity extends MXCActionBarActivity {
         final View refreshingView = findViewById(R.id.profile_mask);
         refreshingView.setVisibility(View.VISIBLE);
 
-        final MXSession session = Matrix.getInstance(this).getDefaultSession();
+        // TODO manage multi accounts
+        mSession.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
+            @Override
+            public void onSuccess(String displayname) {
+                mMyUser.displayname = displayname;
+                mDisplayNameEditText.setText(mMyUser.displayname);
 
-        // refresh the myUser profile
-        if ((null != session) && (null !=  session.getProfileApiClient())) {
-
-            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
-                @Override
-                public void onSuccess(String displayname) {
-                    mMyUser.displayname = displayname;
-                    mDisplayNameEditText.setText(mMyUser.displayname);
-
-                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
-                        @Override
-                        public void onSuccess(String avatarUrl) {
-                            mMyUser.avatarUrl = avatarUrl;
-                            refreshProfileThumbnail();
-                            refreshingView.setVisibility(View.GONE);
-                        }
-                    });
-                }
-            });
-        }
+                mSession.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
+                    @Override
+                    public void onSuccess(String avatarUrl) {
+                        mMyUser.avatarUrl = avatarUrl;
+                        refreshProfileThumbnail();
+                        refreshingView.setVisibility(View.GONE);
+                    }
+                });
+            }
+        });
 
         // refresh the cache size
         Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
@@ -307,11 +304,10 @@ public class SettingsActivity extends MXCActionBarActivity {
                 return;
             }
 
-            MXSession session = Matrix.getInstance(this).getDefaultSession();
-
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
-            session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, null, new ContentManager.UploadCallback() {
+            // TODO add multi sessions management
+            mSession.getContentManager().uploadContent(resource.contentStream, resource.mimeType, null, new ContentManager.UploadCallback() {
                 @Override
                 public void onUploadProgress(String anUploadId, int percentageProgress) {
                     progressDialog.setMessage(getString(R.string.message_uploading) + " (" + percentageProgress + "%)");
