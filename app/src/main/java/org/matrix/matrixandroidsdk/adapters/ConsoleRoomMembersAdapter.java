@@ -41,11 +41,11 @@ public class ConsoleRoomMembersAdapter extends RoomMembersAdapter {
     }
 
     public int presenceOnlineColor() {
-        return mContext.getResources().getColor(R.color.presence_offline);
+        return mContext.getResources().getColor(R.color.presence_online);
     }
 
     public int presenceOfflineColor() {
-        return mContext.getResources().getColor(R.color.presence_online);
+        return mContext.getResources().getColor(R.color.presence_offline);
     }
 
     public int presenceUnavailableColor() {

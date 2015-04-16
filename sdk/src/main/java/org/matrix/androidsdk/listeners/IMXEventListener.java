@@ -78,14 +78,15 @@ public interface IMXEventListener {
 
     /**
      * The bing rules have been updated
-     *
+     * @param accountId the account Id.
      */
-    public void onBingRulesUpdate();
+    public void onBingRulesUpdate(String accountId);
 
     /**
      * The initial sync is complete and the store can be queried for current state.
+     * @param accountId the account Id.
      */
-    public void onInitialSyncComplete();
+    public void onInitialSyncComplete(String accountId);
 
     /**
      * The room initial sync is completed.

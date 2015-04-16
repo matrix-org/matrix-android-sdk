@@ -89,7 +89,7 @@ public class MXDataHandler implements IMXEventListener {
         mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                MXDataHandler.this.onBingRulesUpdate();
+                MXDataHandler.this.onBingRulesUpdate(getUserId());
             }
         });
     }
@@ -103,7 +103,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    MXDataHandler.this.onBingRulesUpdate(getUserId());
                 }
             });
         }
@@ -112,7 +112,7 @@ public class MXDataHandler implements IMXEventListener {
     public void addListener(IMXEventListener listener) {
         mEventListeners.add(listener);
         if (mInitialSyncComplete) {
-            listener.onInitialSyncComplete();
+            listener.onInitialSyncComplete(getUserId());
         }
     }
 
@@ -472,22 +472,22 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onBingRulesUpdate() {
+    public void onBingRulesUpdate(String accountId) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onBingRulesUpdate();
+                listener.onBingRulesUpdate(accountId);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onInitialSyncComplete() {
+    public void onInitialSyncComplete(String accountId) {
         mInitialSyncComplete = true;
 
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onInitialSyncComplete();
+                listener.onInitialSyncComplete(accountId);
             } catch (Exception e) {
             }
         }

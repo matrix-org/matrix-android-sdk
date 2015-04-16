@@ -15,34 +15,33 @@
  */
 package org.matrix.matrixandroidsdk.activity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
+import java.util.Collection;
+import java.util.HashMap;
+
 public class SplashActivity extends MXCActionBarActivity {
 
-    private MXSession mSession;
+    private Collection<MXSession> mSessions;
     private GcmRegistrationManager mGcmRegistrationManager;
 
     private boolean mInitialSyncComplete = false;
     private boolean mPusherRegistrationComplete = false;
 
-    private IMXEventListener mEventListener = new MXEventListener() {
-        @Override
-        public void onInitialSyncComplete() {
-            super.onInitialSyncComplete();
-            mInitialSyncComplete = true;
-            finishIfReady();
-        }
-    };
+    private HashMap<MXSession, IMXEventListener> mListeners;
+    private HashMap<MXSession, IMXEventListener> mDoneListeners;
 
     private void finishIfReady() {
         if (mInitialSyncComplete && mPusherRegistrationComplete) {
@@ -58,23 +57,54 @@ public class SplashActivity extends MXCActionBarActivity {
 
         setContentView(R.layout.activity_splash);
 
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        if (mSession == null) {
+        mSessions =  Matrix.getInstance(getApplicationContext()).getSessions();
+
+        if (mSessions == null) {
             finish();
             return;
         }
 
-        mSession.getDataHandler().addListener(mEventListener);
+        mListeners = new HashMap<MXSession, IMXEventListener>();
+        mDoneListeners = new HashMap<MXSession, IMXEventListener>();
+
+        for(MXSession session : mSessions) {
+
+            final MXSession fSession = session;
+
+            final IMXEventListener eventListener = new MXEventListener() {
+                @Override
+                public void onInitialSyncComplete(String accountId) {
+                    super.onInitialSyncComplete(accountId);
+                    Boolean noMoreListener;
+
+                    synchronized(mListeners) {
+                        mDoneListeners.put(fSession, mListeners.get(fSession));
+                        // do not remove the listeners here
+                        // it crashes the application because of the upper loop
+                        //fSession.getDataHandler().removeListener(mListeners.get(fSession));
+                        // remove from the pendings list
+
+                        mListeners.remove(fSession);
+                        noMoreListener = mInitialSyncComplete = (mListeners.size() == 0);
+                    }
+
+                    if (noMoreListener) {
+                        finishIfReady();
+                    }
+                }
+            };
+
+            mListeners.put(fSession, eventListener);
+            fSession.getDataHandler().addListener(eventListener);
+        }
 
         // Start the event stream service
         Intent intent = new Intent(this, EventStreamService.class);
         intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
-        // TODO Add args to specify which session.
         startService(intent);
 
         // Set the main error listener
         Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
-
 
         mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
                 .getSharedGcmRegistrationManager();
@@ -92,7 +122,12 @@ public class SplashActivity extends MXCActionBarActivity {
     protected void onDestroy() {
         super.onDestroy();
 
-        mSession.getDataHandler().removeListener(mEventListener);
+        Collection<MXSession> sessions = mDoneListeners.keySet();
+
+        for(MXSession session : sessions) {
+            session.getDataHandler().removeListener(mDoneListeners.get(session));
+        }
+
         mGcmRegistrationManager.setListener(null);
     }
 }

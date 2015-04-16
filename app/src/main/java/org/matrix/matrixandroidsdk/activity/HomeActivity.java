@@ -118,7 +118,7 @@ public class HomeActivity extends MXCActionBarActivity {
         private boolean mInitialSyncComplete = false;
 
         @Override
-        public void onInitialSyncComplete() {
+        public void onInitialSyncComplete(String accountId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
