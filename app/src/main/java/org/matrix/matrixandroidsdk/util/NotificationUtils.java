@@ -53,7 +53,7 @@ public class NotificationUtils {
             roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
 
             if (null != toAccount) {
-                roomIntent.putExtra(RoomActivity.EXTRA_FROM_MX_USER_ID, toAccount);
+                roomIntent.putExtra(RoomActivity.EXTRA_ACCOUNT_ID, toAccount);
             }
 
             // Recreate the back stack

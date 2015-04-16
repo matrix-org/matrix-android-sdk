@@ -86,9 +86,9 @@ public class Event {
     }
 
     // userId is already used -> message sender ID
-    // mReceiverUserId defines which account receives the event.
+    // mAccountId defines which account receives the event.
     // it is useful in multi accounts application.
-    private String mReceiverUserId;
+    private String mAccountId;
 
     /**
      * Default constructor
@@ -190,17 +190,17 @@ public class Event {
         copy.unsentException = unsentException;
         copy.unsentMatrixError = unsentMatrixError;
 
-        copy.mReceiverUserId = mReceiverUserId;
+        copy.mAccountId = mAccountId;
         return copy;
     }
 
     // theses both methods manage the receiverUserId.
-    public void setReceiverUserId(String receiverUserId) {
-        mReceiverUserId = receiverUserId;
+    public void setAccountId(String accountId) {
+        mAccountId = accountId;
     }
 
-    public String getReceiverUserId() {
-        return mReceiverUserId;
+    public String getAccountId() {
+        return mAccountId;
     }
 
     /**

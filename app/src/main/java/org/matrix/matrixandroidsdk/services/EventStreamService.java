@@ -147,7 +147,7 @@ public class EventStreamService extends Service {
 
             Notification n = NotificationUtils.buildMessageNotification(
                     EventStreamService.this,
-                    member.getName(), event.getReceiverUserId(), body, event.roomId, roomName, bingRule.shouldPlaySound());
+                    member.getName(), event.getAccountId(), body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 

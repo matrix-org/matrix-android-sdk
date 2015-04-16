@@ -13,6 +13,7 @@ import org.matrix.matrixandroidsdk.store.LoginStorage;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -43,6 +44,13 @@ public class Matrix {
     }
 
     /**
+     * @return The list of sessions
+     */
+    public Collection<MXSession> getSessions() {
+        return mMXSessions;
+    }
+
+    /**
      * Retrieve the default session if one exists.
      *
      * The default session may be user-configured, or it may be the last session the user was using.
@@ -66,19 +74,19 @@ public class Matrix {
     /**
      *Retrieve a session from an user Id.
      * The application should be able to manage multi session.
-     * @param userId The account identifier
+     * @param accountId The account identifier
      * @return the MXsession if it exists.
      */
-    public synchronized MXSession getSession(String userId) {
+    public synchronized MXSession getSession(String accountId) {
         // sanity checks
-        if ((mMXSessions.size() == 0) || (null == userId)) {
+        if ((mMXSessions.size() == 0) || (null == accountId)) {
             return null;
         }
 
         for(MXSession session : mMXSessions) {
             Credentials credentials =  session.getCredentials();
 
-            if ((null != credentials) && (credentials.userId.equals(userId))) {
+            if ((null != credentials) && (credentials.userId.equals(accountId))) {
                 return session;
             }
         }

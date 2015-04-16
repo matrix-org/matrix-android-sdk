@@ -82,7 +82,7 @@ public class CommonActivityUtils {
         Matrix.getInstance(activity).clearSessions(activity, true);
 
         // reset the contacts
-        PIDsRetriever.reset();
+        PIDsRetriever.getIntance().reset();
         ContactsManager.reset();
 
         // go to login page
@@ -164,8 +164,23 @@ public class CommonActivityUtils {
         return dialog;
     }
 
-    public static void goToRoomPage(final String roomId, final Activity fromActivity, final Intent intentParam) {
-        final MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
+    public static void goToRoomPage(final MXSession aSession, final String roomId, final Activity fromActivity, final Intent intentParam) {
+        // check first if the 1:1 room already exists
+        MXSession session = aSession;
+
+        // no session is provided
+        if (null == session) {
+            // get the default one.
+            session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+        }
+
+        // sanity check
+        if (null == session) {
+            return;
+        }
+
+        final MXSession fSession = session;
+
         Room room = session.getDataHandler().getRoom(roomId);
 
         // do not open a leaving room.
@@ -192,7 +207,7 @@ public class CommonActivityUtils {
                                                // so just need to open the room activity
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                                               intent.putExtra(RoomActivity.EXTRA_FROM_MX_USER_ID, session.getCredentials().userId);
+                                               intent.putExtra(RoomActivity.EXTRA_ACCOUNT_ID, fSession.getCredentials().userId);
                                                if (null != intentParam) {
                                                     intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
@@ -203,20 +218,41 @@ public class CommonActivityUtils {
         );
     }
 
-    public static void goToOneToOneRoom(final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+    public static void goToOneToOneRoom(final String accountId, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+        MXSession session = null;
 
+        if (null != accountId) {
+            session = Matrix.getInstance(fromActivity).getSession(accountId);
+        }
+
+        if (null == session) {
+            session = Matrix.getInstance(fromActivity).getDefaultSession();
+        }
+
+        goToOneToOneRoom(session, otherUserId, fromActivity, callback);
+    }
+
+    public static void goToOneToOneRoom(final MXSession aSession, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
         // sanity check
         if (null == otherUserId) {
             return;
         }
 
         // check first if the 1:1 room already exists
-        final MXSession session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+        MXSession session = aSession;
+
+        // no session is provided
+        if (null == session) {
+            // get the default one.
+            session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+        }
 
         // sanity check
         if (null == session) {
             return;
         }
+
+        final MXSession fSession = session;
 
         // so, list the existing room, and search the 2 users room with this other users
         String roomId = null;
@@ -237,7 +273,7 @@ public class CommonActivityUtils {
 
         // the room already exists -> switch to it
         if (null != roomId) {
-            CommonActivityUtils.goToRoomPage(roomId, fromActivity, null);
+            CommonActivityUtils.goToRoomPage(session, roomId, fromActivity, null);
 
             // everything is ok
             if (null != callback) {
@@ -248,12 +284,12 @@ public class CommonActivityUtils {
 
                 @Override
                 public void onSuccess(String roomId) {
-                    final Room room = session.getDataHandler().getRoom(roomId);
+                    final Room room = fSession.getDataHandler().getRoom(roomId);
 
                     room.invite(otherUserId, new SimpleApiCallback<Void>(this) {
                         @Override
                         public void onSuccess(Void info) {
-                            CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity, null);
+                            CommonActivityUtils.goToRoomPage(fSession, room.getRoomId(), fromActivity, null);
 
                             callback.onSuccess(null);
                         }
@@ -382,7 +418,7 @@ public class CommonActivityUtils {
                         fromActivity.runOnUiThread( new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToRoomPage(summaries.get(which).getRoomId(), fromActivity, intent);
+                                CommonActivityUtils.goToRoomPage(session, summaries.get(which).getRoomId(), fromActivity, intent);
                             }
                         });
                     }

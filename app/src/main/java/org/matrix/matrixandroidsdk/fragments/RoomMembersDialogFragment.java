@@ -223,7 +223,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
                         Intent startRoomInfoIntent = new Intent(activity, MemberDetailsActivity.class);
                         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, mRoomId);
                         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MEMBER_ID, roomMember.getUserId());
-                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_FROM_MX_USER_ID, mSession.getCredentials().userId);
+                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ACCOUNT_ID, mSession.getCredentials().userId);
                         startActivity(startRoomInfoIntent);
                     }
                 });

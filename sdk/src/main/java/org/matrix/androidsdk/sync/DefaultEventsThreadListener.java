@@ -50,7 +50,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     public void onEventsReceived(List<Event> events) {
         // set the used account
         for(Event event : events) {
-            event.setReceiverUserId(mData.getUserId());
+            event.setAccountId(mData.getUserId());
         }
 
         mData.handleLiveEvents(events);

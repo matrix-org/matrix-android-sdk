@@ -51,7 +51,7 @@ public class ConsoleApplication extends Application {
         this.mActivityTransitionTimerTask = new TimerTask() {
             public void run() {
                 ConsoleApplication.this.isInBackground = true;
-                PIDsRetriever.onAppBackgrounded();
+                PIDsRetriever.getIntance().onAppBackgrounded();
             }
         };
 

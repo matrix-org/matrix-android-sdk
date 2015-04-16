@@ -178,17 +178,17 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
                 final Activity activity = ContactsListDialogFragment.this.getActivity();
 
                 if (contact.hasMatridIds(ContactsListDialogFragment.this.getActivity())) {
-                    final String matrixID = contact.getFirstMatrixId();
+                    final  Contact.MXID mxid = contact.getFirstMatrixId();
                     // The user is trying to leave with unsaved changes. Warn about that
                     new AlertDialog.Builder(activity)
-                            .setMessage(activity.getText(R.string.chat_with) + " " + matrixID + " ?")
+                            .setMessage(activity.getText(R.string.chat_with) + " " + mxid.mMatrixId + " ?")
                             .setPositiveButton("YES", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     activity.runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
-                                            CommonActivityUtils.goToOneToOneRoom(matrixID, activity, new SimpleApiCallback<Void>(getActivity()) {
+                                            CommonActivityUtils.goToOneToOneRoom(mxid.mAccountId,  mxid.mMatrixId, activity, new SimpleApiCallback<Void>(getActivity()) {
                                             });
                                         }
                                     });
@@ -305,21 +305,21 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     @Override
     public void onStart() {
         super.onStart();
-        PIDsRetriever.setPIDsRetrieverListener(this);
+        PIDsRetriever.getIntance().setPIDsRetrieverListener(this);
         ContactsManager.addListener(this);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        PIDsRetriever.setPIDsRetrieverListener(null);
+        PIDsRetriever.getIntance().setPIDsRetrieverListener(null);
         ContactsManager.removeListener(this);
     }
 
     /**
      * Called when the contact PIDs are retrieved
      */
-    @Override public void onPIDsRetrieved(Contact contact, final boolean has3PIDs) {
+    @Override public void onPIDsRetrieved(String accountId, Contact contact, final boolean has3PIDs) {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
