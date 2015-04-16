@@ -16,9 +16,7 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
@@ -29,7 +27,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.Toast;
@@ -571,14 +568,15 @@ public class HomeActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.advertiseAllUnavailableAfterDelay();
         mIsPaused = true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.createPresenceManager(this, Matrix.getInstance(this).getSessions());
+        MyPresenceManager.advertiseAllOnline();
         mIsPaused = false;
 
         // some unsent messages could have been added

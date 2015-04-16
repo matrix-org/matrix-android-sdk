@@ -106,13 +106,13 @@ public class RoomInfoActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.getInstance(this, mSession).advertiseUnavailableAfterDelay();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.getInstance(this, mSession).advertiseOnline();
     }
 
     private void saveChanges() {

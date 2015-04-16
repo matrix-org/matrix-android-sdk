@@ -488,7 +488,7 @@ public class RoomActivity extends MXCActionBarActivity {
     protected void onPause() {
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.getInstance(this, mSession).advertiseUnavailableAfterDelay();
         // warn other member that the typing is ended
         cancelTypingNotification();
     }
@@ -497,7 +497,7 @@ public class RoomActivity extends MXCActionBarActivity {
     protected void onResume() {
         super.onResume();
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.getInstance(this, mSession).advertiseOnline();
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 

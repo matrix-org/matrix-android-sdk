@@ -69,11 +69,17 @@ public class CommonActivityUtils {
      * Logout the current user.
      * @param activity the caller activity
      */
+    // TODO manage session
     public static void logout(Activity activity) {
         stopEventStream(activity);
 
-        // Publish to the server that we're now offline
-        MyPresenceManager.getInstance(activity).advertiseOffline();
+        // warn that the user logs out
+        Collection<MXSession> sessions = Matrix.getInstance(activity).getSessions();
+        for(MXSession session : sessions) {
+            // Publish to the server that we're now offline
+            MyPresenceManager.getInstance(activity, session).advertiseOffline();
+            MyPresenceManager.remove(session);
+        }
 
         // clear the preferences
         PreferenceManager.getDefaultSharedPreferences(activity).edit().clear().commit();

@@ -193,13 +193,13 @@ public class SettingsActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.advertiseAllUnavailableAfterDelay();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.advertiseAllOnline();
 
         final View refreshingView = findViewById(R.id.profile_mask);
         refreshingView.setVisibility(View.VISIBLE);
