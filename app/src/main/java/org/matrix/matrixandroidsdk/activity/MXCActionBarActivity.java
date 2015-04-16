@@ -26,6 +26,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -50,6 +51,29 @@ import java.lang.reflect.Method;
  * extends ActionBarActivity to manage the rageshake
  */
 public class MXCActionBarActivity extends ActionBarActivity {
+
+    public static final String EXTRA_FROM_MX_USER_ID = "org.matrix.matrixandroidsdk.MXCActionBarActivity.EXTRA_FROM_MX_USER_ID";
+
+    /**
+     * Return the used MXSession from an intent.
+     * @param intent
+     * @return the MXsession if it exists.
+     */
+    protected MXSession getSession(Intent intent) {
+        MXSession session = null;
+
+        // is the matrix user id provided ?
+        if (intent.hasExtra(EXTRA_FROM_MX_USER_ID)) {
+            session = Matrix.getInstance(getApplicationContext()).getSession(intent.getStringExtra(EXTRA_FROM_MX_USER_ID));
+        }
+
+        // else use the default session (i.e. the first known one).
+        if (null == session) {
+            session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        }
+
+        return session;
+    }
 
     // add left sliding menu
     protected DrawerLayout mDrawerLayout;
@@ -123,11 +147,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
             // sanity check
             if (null != matrixInstance) {
-                final MXSession session = matrixInstance.getDefaultSession();
-
-                if ((null != session) && (null != session.getDataHandler())) {
-                    session.getDataHandler().refreshPushRules();
-                }
+                matrixInstance.refreshPushRules();
             }
 
             EventStreamService.cancelNotificationsForRoomId(null);

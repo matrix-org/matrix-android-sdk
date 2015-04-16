@@ -174,6 +174,10 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    public String getUserId() {
+        return mCredentials.userId;
+    }
+
     private void handleInitialSyncInvite(String roomId, String inviterUserId) {
         Room room = getRoom(roomId);
 

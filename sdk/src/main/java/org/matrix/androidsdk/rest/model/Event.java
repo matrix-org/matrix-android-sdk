@@ -81,10 +81,14 @@ public class Event {
 
     // the time raw offset (time zone management)
     private long mTimeZoneRawOffset = 0;
-
     private long getTimeZoneOffset() {
         return TimeZone.getDefault().getRawOffset();
     }
+
+    // userId is already used -> message sender ID
+    // mReceiverUserId defines which account receives the event.
+    // it is useful in multi accounts application.
+    private String mReceiverUserId;
 
     /**
      * Default constructor
@@ -185,7 +189,18 @@ public class Event {
 
         copy.unsentException = unsentException;
         copy.unsentMatrixError = unsentMatrixError;
+
+        copy.mReceiverUserId = mReceiverUserId;
         return copy;
+    }
+
+    // theses both methods manage the receiverUserId.
+    public void setReceiverUserId(String receiverUserId) {
+        mReceiverUserId = receiverUserId;
+    }
+
+    public String getReceiverUserId() {
+        return mReceiverUserId;
     }
 
     /**

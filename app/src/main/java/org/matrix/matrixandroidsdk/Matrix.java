@@ -64,6 +64,29 @@ public class Matrix {
     }
 
     /**
+     *Retrieve a session from an user Id.
+     * The application should be able to manage multi session.
+     * @param userId The account identifier
+     * @return the MXsession if it exists.
+     */
+    public synchronized MXSession getSession(String userId) {
+        // sanity checks
+        if ((mMXSessions.size() == 0) || (null == userId)) {
+            return null;
+        }
+
+        for(MXSession session : mMXSessions) {
+            Credentials credentials =  session.getCredentials();
+
+            if ((null != credentials) && (credentials.userId.equals(userId))) {
+                return session;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Return the used media caches.
      * This class can inherited to customized it.
      * @return the mediasCache.
@@ -92,6 +115,17 @@ public class Matrix {
      */
     public static Boolean hasValidValidSession() {
         return (null != instance) && (instance.mMXSessions.size() > 0);
+    }
+
+    /**
+     * Refresh the sessions push rules.
+     */
+    public void refreshPushRules() {
+        for(MXSession session : mMXSessions) {
+            if (null != session.getDataHandler()) {
+                session.getDataHandler().refreshPushRules();
+            }
+        }
     }
 
     /**

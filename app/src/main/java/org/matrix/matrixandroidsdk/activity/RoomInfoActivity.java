@@ -65,7 +65,8 @@ public class RoomInfoActivity extends MXCActionBarActivity {
         Log.i(LOG_TAG, "Displaying "+roomId);
 
         // make sure we're logged in.
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        mSession = getSession(intent);
+
         if (mSession == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();

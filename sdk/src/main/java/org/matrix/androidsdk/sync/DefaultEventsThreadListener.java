@@ -48,6 +48,11 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
     @Override
     public void onEventsReceived(List<Event> events) {
+        // set the used account
+        for(Event event : events) {
+            event.setReceiverUserId(mData.getUserId());
+        }
+
         mData.handleLiveEvents(events);
     }
 }

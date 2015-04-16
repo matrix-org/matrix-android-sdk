@@ -26,7 +26,7 @@ public class NotificationUtils {
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOM_ID";
 
     public static Notification buildMessageNotification(
-            Context context, String from, String body, String roomId, String roomName,
+            Context context, String from, String toAccount, String body, String roomId, String roomName,
             boolean shouldPlaySound) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setWhen(System.currentTimeMillis());
@@ -51,6 +51,11 @@ public class NotificationUtils {
             // Build the pending intent for when the notification is clicked
             Intent roomIntent = new Intent(context, RoomActivity.class);
             roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+
+            if (null != toAccount) {
+                roomIntent.putExtra(RoomActivity.EXTRA_FROM_MX_USER_ID, toAccount);
+            }
+
             // Recreate the back stack
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(context)
                     .addParentStack(RoomActivity.class)

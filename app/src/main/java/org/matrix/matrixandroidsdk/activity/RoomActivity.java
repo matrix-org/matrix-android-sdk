@@ -41,7 +41,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.MimeTypeMap;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -126,6 +125,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+    private String mMyUserId;
 
     private MXLatestChatMessageCache mLatestChatMessageCache;
     private MXMediasCache mMediasCache;
@@ -162,7 +162,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
                             || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
                             || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                        setTitle(mRoom.getName(mSession.getCredentials().userId));
+                        setTitle(mRoom.getName(mMyUserId));
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
@@ -179,7 +179,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     // set general room information
-                    setTitle(mRoom.getName(mSession.getCredentials().userId));
+                    setTitle(mRoom.getName(mMyUserId));
                     setTopic(mRoom.getTopic());
 
                     mConsoleMessageListFragment.onInitialMessagesLoaded();
@@ -282,11 +282,11 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        Log.i(LOG_TAG, "Displaying "+roomId);
+        Log.i(LOG_TAG, "Displaying " + roomId);
 
-        mEditText = (EditText)findViewById(R.id.editText_messageBox);
+        mEditText = (EditText) findViewById(R.id.editText_messageBox);
 
-        mSendButton = (ImageButton)findViewById(R.id.button_send);
+        mSendButton = (ImageButton) findViewById(R.id.button_send);
         mSendButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -306,13 +306,13 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
-        mAttachmentButton = (ImageButton)findViewById(R.id.button_more);
+        mAttachmentButton = (ImageButton) findViewById(R.id.button_more);
         mAttachmentButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
                 FragmentManager fm = getSupportFragmentManager();
-                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment)fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
+                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
 
                 if (fragment != null) {
                     fragment.dismissAllowingStateLoss();
@@ -335,7 +335,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
                         Integer selectedVal = messages[position];
 
-                        if (selectedVal ==  R.string.option_send_files) {
+                        if (selectedVal == R.string.option_send_files) {
                             RoomActivity.this.launchFileSelectionIntent();
                         } else if (selectedVal == R.string.option_take_photo) {
                             RoomActivity.this.launchCamera();
@@ -370,13 +370,16 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
-        // make sure we're logged in.
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        mSession = getSession(intent);
+
         if (mSession == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();
             return;
         }
+
+        mMyUserId = mSession.getCredentials().userId;
+
         CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
@@ -391,7 +394,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         // set general room information
-        setTitle(mRoom.getName(mSession.getCredentials().userId));
+        setTitle(mRoom.getName(mMyUserId));
         setTopic(mRoom.getTopic());
 
         // listen for room name or topic changes
@@ -525,17 +528,14 @@ public class RoomActivity extends MXCActionBarActivity {
         int id = item.getItemId();
 
         if (id == R.id.ic_action_invite_by_list) {
-            final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                FragmentManager fm = getSupportFragmentManager();
+            FragmentManager fm = getSupportFragmentManager();
 
-                MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
-                if (fragment != null) {
-                    fragment.dismissAllowingStateLoss();
-                }
-                fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
-                fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+            MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
             }
+            fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
+            fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
         } else if (id == R.id.ic_action_invite_by_name) {
             AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
                 @Override
@@ -545,8 +545,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     }
 
                     // get the user suffix
-                    String userID = mSession.getCredentials().userId;
-                    String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
+                    String homeServerSuffix = mMyUserId.substring(mMyUserId.indexOf(":"), mMyUserId.length());
 
                     ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
 
@@ -579,15 +578,12 @@ public class RoomActivity extends MXCActionBarActivity {
         } else if (id ==  R.id.ic_action_room_info) {
             Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
             startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+            startRoomInfoIntent.putExtra(EXTRA_FROM_MX_USER_ID, mMyUserId);
             startActivity(startRoomInfoIntent);
         } else if (id ==  R.id.ic_action_leave) {
-            MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (session != null) {
-                mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
-
-                });
-                RoomActivity.this.finish();
-            }
+            mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
+            });
+            RoomActivity.this.finish();
         } else if (id ==  R.id.ic_action_settings) {
             RoomActivity.this.startActivity(new Intent(RoomActivity.this, SettingsActivity.class));
         } else if (id ==  R.id.ic_send_bug_report) {
@@ -614,8 +610,6 @@ public class RoomActivity extends MXCActionBarActivity {
 
         // check if it has the IRC marker
         if ((null != body) && (body.startsWith("/"))) {
-            MXSession session = Matrix.getInstance(this).getDefaultSession();
-
             final ApiCallback callback = new SimpleApiCallback<Void>(this) {
                 @Override
                 public void onMatrixError(MatrixError e) {
@@ -631,7 +625,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 String newDisplayname = body.substring(CMD_CHANGE_DISPLAY_NAME.length()).trim();
 
                 if (newDisplayname.length() > 0) {
-                    MyUser myUser = session.getMyUser();
+                    MyUser myUser = mSession.getMyUser();
 
                     myUser.updateDisplayName(newDisplayname, callback);
                 }
@@ -649,7 +643,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
+                    mSession.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
 
                         @Override
                         public void onSuccess(String roomId) {

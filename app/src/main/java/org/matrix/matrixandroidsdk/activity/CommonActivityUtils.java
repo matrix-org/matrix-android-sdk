@@ -165,8 +165,7 @@ public class CommonActivityUtils {
     }
 
     public static void goToRoomPage(final String roomId, final Activity fromActivity, final Intent intentParam) {
-
-        MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
+        final MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
         Room room = session.getDataHandler().getRoom(roomId);
 
         // do not open a leaving room.
@@ -193,6 +192,7 @@ public class CommonActivityUtils {
                                                // so just need to open the room activity
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                               intent.putExtra(RoomActivity.EXTRA_FROM_MX_USER_ID, session.getCredentials().userId);
                                                if (null != intentParam) {
                                                     intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }

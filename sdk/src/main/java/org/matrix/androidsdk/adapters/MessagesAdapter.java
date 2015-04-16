@@ -118,7 +118,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private DateFormat mDateFormat;
 
-    private MXSession mSession;
+    protected MXSession mSession;
 
     public int normalMesageColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);

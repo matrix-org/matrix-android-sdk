@@ -47,12 +47,13 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
     private static final String LOG_TAG = "MemberDetailsActivity";
 
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.MemberDetailsActivity.EXTRA_ROOM_ID";
-    public static final String EXTRA_USER_ID = "org.matrix.matrixandroidsdk.MemberDetailsActivity.EXTRA_USER_ID";
+    public static final String EXTRA_MEMBER_ID = "org.matrix.matrixandroidsdk.MemberDetailsActivity.EXTRA_MEMBER_ID";
 
     // info
     private Room mRoom;
     private String mRoomId;
-    private String mUserId;
+    private String mMemberId;
+    private String mFromUserId;
     private RoomMember mMember;
     private MXSession mSession;
 
@@ -72,7 +73,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                     if ((Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) || (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type))) {
 
                         // update only if it is the current user
-                        if ((null != event.userId) && (event.userId.equals(mUserId))) {
+                        if ((null != event.userId) && (event.userId.equals(mMemberId))) {
                             MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -101,15 +102,22 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
         }
         mRoomId = intent.getStringExtra(EXTRA_ROOM_ID);
 
-        if (!intent.hasExtra(EXTRA_USER_ID)) {
-            Log.e(LOG_TAG, "No user ID extra.");
+        if (!intent.hasExtra(EXTRA_MEMBER_ID)) {
+            Log.e(LOG_TAG, "No member ID extra.");
             finish();
             return;
         }
 
-        mUserId = intent.getStringExtra(EXTRA_USER_ID);
+        mMemberId = intent.getStringExtra(EXTRA_MEMBER_ID);
 
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        mSession = getSession(intent);
+
+        if (null == mSession) {
+            Log.e(LOG_TAG, "The no session");
+            finish();
+            return;
+        }
+
         mRoom = mSession.getDataHandler().getRoom(mRoomId);
 
         if (null == mRoom) {
@@ -121,7 +129,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
         // find out the room member
         Collection<RoomMember> members = mRoom.getMembers();
         for(RoomMember member : members) {
-            if (member.getUserId().equals(mUserId)) {
+            if (member.getUserId().equals(mMemberId)) {
                 mMember = member;
                 break;
             }
@@ -129,7 +137,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
         // sanity checks
         if (null == mMember) {
-            Log.e(LOG_TAG, "The user " + mUserId + " is not in the room " + mRoomId);
+            Log.e(LOG_TAG, "The user " + mMemberId + " is not in the room " + mRoomId);
             finish();
             return;
         }
@@ -186,7 +194,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToOneToOneRoom(mUserId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
+                                CommonActivityUtils.goToOneToOneRoom(mMemberId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                                     @Override
                                     public void onMatrixError(MatrixError e) {
                                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {
@@ -211,7 +219,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         });
                     } else  if (text.equals(getResources().getString(R.string.set_power_level))) {
                         String title = getResources().getString(R.string.set_power_level);
-                        String initText =  mRoom.getLiveState().getPowerLevels().getUserPowerLevel(mUserId) + "";
+                        String initText =  mRoom.getLiveState().getPowerLevels().getUserPowerLevel(mMemberId) + "";
 
                         final AlertDialog alert = CommonActivityUtils.createEditTextAlert(MemberDetailsActivity.this,title,null,initText,new CommonActivityUtils.OnSubmitListener() {
                             @Override
@@ -272,7 +280,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
             // find out the room member
             Collection<RoomMember> members = mRoom.getMembers();
             for (RoomMember member : members) {
-                if (member.getUserId().equals(mUserId)) {
+                if (member.getUserId().equals(mMemberId)) {
                     mMember = member;
                     break;
                 }
@@ -288,21 +296,20 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
         final View refreshingView = findViewById(R.id.profile_mask);
         refreshingView.setVisibility(View.GONE);
 
-        mMatrixIdTextView.setText(mUserId);
+        mMatrixIdTextView.setText(mMemberId);
         this.setTitle(mMember.displayname);
         this.refreshProfileThumbnail();
 
-        MyUser myUser = Matrix.getInstance(this).getDefaultSession().getMyUser();
         ArrayList<String> buttonTitles = new ArrayList<String>();
 
         // Check user's power level before allowing an action (kick, ban, ...)
         PowerLevels powerLevels = mRoom.getLiveState().getPowerLevels();
 
-        int userPowerLevel = powerLevels.getUserPowerLevel(mUserId);
-        int myPowerLevel = powerLevels.getUserPowerLevel(myUser.userId);
+        int userPowerLevel = powerLevels.getUserPowerLevel(mMemberId);
+        int myPowerLevel = powerLevels.getUserPowerLevel(mFromUserId);
 
         // Consider the case of the user himself
-        if (mUserId.equals(myUser.userId)) {
+        if (mMemberId.equals(mFromUserId)) {
             buttonTitles.add(getResources().getString(R.string.leave));
 
             if (userPowerLevel >= powerLevels.stateDefault) {

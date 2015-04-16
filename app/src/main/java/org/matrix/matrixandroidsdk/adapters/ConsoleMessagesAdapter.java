@@ -43,7 +43,8 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
     public void onAvatarClick(String roomId, String userId){
         Intent startRoomInfoIntent = new Intent(mContext, MemberDetailsActivity.class);
         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, roomId);
-        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, userId);
+        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MEMBER_ID, userId);
+        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_FROM_MX_USER_ID, mSession.getCredentials().userId);
         mContext.startActivity(startRoomInfoIntent);
     }
 
