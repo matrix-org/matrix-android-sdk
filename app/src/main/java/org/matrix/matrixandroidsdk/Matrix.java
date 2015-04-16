@@ -96,9 +96,9 @@ public class Matrix {
      * Clears the default session and the login credentials.
      */
     public synchronized void clearDefaultSessionAndCredentials(Context context) {
+        mLoginStorage.removeCredentials(mDefaultSession.getCredentials());
         mDefaultSession.clear(context);
         mDefaultSession = null;
-        mLoginStorage.setDefaultCredentials(null);
     }
 
     /**
@@ -113,7 +113,7 @@ public class Matrix {
      * @param session The session to store as the default session.
      */
     public synchronized void setDefaultSession(MXSession session) {
-        mLoginStorage.setDefaultCredentials(session.getCredentials());
+        mLoginStorage.addCredentials(session.getCredentials());
         mDefaultSession = session;
     }
 
