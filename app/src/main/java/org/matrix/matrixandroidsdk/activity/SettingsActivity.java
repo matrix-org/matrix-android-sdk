@@ -85,7 +85,7 @@ public class SettingsActivity extends MXCActionBarActivity {
         MXSession session = Matrix.getInstance(this).getDefaultSession();
         mMyUser = session.getMyUser();
 
-        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+        mMediasCache = Matrix.getInstance(this).getMediasCache();
 
         refreshProfileThumbnail();
 

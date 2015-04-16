@@ -73,7 +73,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
     @Override
     public MXMediasCache getMXMediasCache() {
-       return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+       return Matrix.getInstance(getActivity()).getMediasCache();
     }
 
     @Override

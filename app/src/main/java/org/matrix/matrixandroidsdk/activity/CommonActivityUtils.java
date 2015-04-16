@@ -79,7 +79,7 @@ public class CommonActivityUtils {
         PreferenceManager.getDefaultSharedPreferences(activity).edit().clear().commit();
 
         // clear credentials
-        Matrix.getInstance(activity).clearDefaultSessionAndCredentials(activity);
+        Matrix.getInstance(activity).clearSessions(activity, true);
 
         // reset the contacts
         PIDsRetriever.reset();
@@ -90,13 +90,13 @@ public class CommonActivityUtils {
         activity.finish();
     }
 
-    public static void disconnect(Activity context) {
-        stopEventStream(context);
+    public static void disconnect(Activity activity) {
+        stopEventStream(activity);
 
         // Clear session
-        Matrix.getInstance(context).clearDefaultSession();
+        Matrix.getInstance(activity).clearSessions(activity, false);
 
-        context.finish();
+        activity.finish();
     }
 
     public static void stopEventStream(Activity context) {

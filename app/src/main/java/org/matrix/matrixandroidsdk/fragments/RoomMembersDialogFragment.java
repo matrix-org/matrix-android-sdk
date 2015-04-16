@@ -161,7 +161,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
      * @return the used medias cache
      */
     public MXMediasCache getMXMediasCache() {
-        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+        return Matrix.getInstance(getActivity()).getMediasCache();
     }
 
     @Override

@@ -416,7 +416,7 @@ public class RoomActivity extends MXCActionBarActivity {
         });
 
         mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
-        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+        mMediasCache = Matrix.getInstance(this).getMediasCache();
 
         // some medias must be sent while opening the chat
         if (intent.hasExtra(HomeActivity.EXTRA_ROOM_INTENT)) {

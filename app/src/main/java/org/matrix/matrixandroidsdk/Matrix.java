@@ -23,13 +23,14 @@ public class Matrix {
     private static Matrix instance = null;
 
     private LoginStorage mLoginStorage;
-    private MXSession mDefaultSession;
+    private ArrayList<MXSession> mMXSessions;
     private GcmRegistrationManager mGcmRegistrationManager;
     private Context mAppContext;
 
     protected Matrix(Context appContext) {
         mAppContext = appContext.getApplicationContext();
         mLoginStorage = new LoginStorage(mAppContext);
+        mMXSessions = new ArrayList<MXSession>();
         mGcmRegistrationManager = new GcmRegistrationManager(mAppContext);
         RageShake.getInstance().start(mAppContext);
     }
@@ -48,17 +49,18 @@ public class Matrix {
      * @return The default session or null.
      */
     public synchronized MXSession getDefaultSession() {
-        if (mDefaultSession != null) {
-            return mDefaultSession;
+        if (mMXSessions.size() > 0) {
+            return mMXSessions.get(0);
         }
 
         Credentials creds = mLoginStorage.getDefaultCredentials();
         if (creds == null) {
             return null;
         }
-        mDefaultSession = createSession(creds);
 
-        return mDefaultSession;
+        MXSession defaultSession = createSession(creds);
+        mMXSessions.add(defaultSession);
+        return defaultSession;
     }
 
     /**
@@ -66,9 +68,9 @@ public class Matrix {
      * This class can inherited to customized it.
      * @return the mediasCache.
      */
-    public MXMediasCache getDefaultMediasCache() {
-        if (null != mDefaultSession) {
-            return mDefaultSession.getMediasCache();
+    public MXMediasCache getMediasCache() {
+        if (mMXSessions.size() > 0) {
+            return mMXSessions.get(0).getMediasCache();
         }
         return null;
     }
@@ -79,8 +81,8 @@ public class Matrix {
      * @return the latest messages cache.
      */
     public MXLatestChatMessageCache getDefaultLatestChatMessageCache() {
-        if (null != mDefaultSession) {
-            return mDefaultSession.getLatestChatMessageCache();
+        if (mMXSessions.size() > 0) {
+            return mMXSessions.get(0).getLatestChatMessageCache();
         }
         return null;
     }
@@ -89,32 +91,37 @@ public class Matrix {
      * @return true if the matrix client instance defines a valid session
      */
     public static Boolean hasValidValidSession() {
-        return (null != instance) && (null != instance.mDefaultSession);
+        return (null != instance) && (instance.mMXSessions.size() > 0);
     }
 
     /**
      * Clears the default session and the login credentials.
      */
-    public synchronized void clearDefaultSessionAndCredentials(Context context) {
-        mLoginStorage.removeCredentials(mDefaultSession.getCredentials());
-        mDefaultSession.clear(context);
-        mDefaultSession = null;
+    public synchronized void clearSessions(Context context, Boolean clearCredentials) {
+        for(MXSession session : mMXSessions) {
+            if (clearCredentials) {
+                mLoginStorage.removeCredentials(session.getCredentials());
+            }
+            session.clear(context);
+        }
+
+        mMXSessions.clear();
     }
 
     /**
      * Clears the default session.
      */
-    public synchronized void clearDefaultSession() {
-        mDefaultSession = null;
+    public synchronized void clearSessions(Context context) {
+        clearSessions(context, false);
     }
 
     /**
      * Set a default session.
      * @param session The session to store as the default session.
      */
-    public synchronized void setDefaultSession(MXSession session) {
+    public synchronized void addSession(MXSession session) {
         mLoginStorage.addCredentials(session.getCredentials());
-        mDefaultSession = session;
+        mMXSessions.add(session);
     }
 
     /**
@@ -142,23 +149,6 @@ public class Matrix {
             }
         }
         return new MXSession(new MXDataHandler(new MXMemoryStore(), credentials), credentials, mAppContext);
-    }
-
-    /**
-     * Retrieve a list of possible credentials to use.
-     * @param context Application context
-     * @return A list of credentials, or an empty list.
-     */
-    public List<Credentials> getCredentialsList(Context context) {
-        List<Credentials> credList = new ArrayList<Credentials>();
-
-        Credentials creds = mLoginStorage.getDefaultCredentials();
-        if (creds != null) {
-            credList.add(creds);
-        }
-        // TODO support >1 creds.
-
-        return credList;
     }
 
     public GcmRegistrationManager getSharedGcmRegistrationManager() {
