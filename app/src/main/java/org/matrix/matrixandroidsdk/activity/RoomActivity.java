@@ -578,7 +578,7 @@ public class RoomActivity extends MXCActionBarActivity {
         } else if (id ==  R.id.ic_action_room_info) {
             Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
             startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
-            startRoomInfoIntent.putExtra(EXTRA_FROM_MX_USER_ID, mMyUserId);
+            startRoomInfoIntent.putExtra(EXTRA_ACCOUNT_ID, mMyUserId);
             startActivity(startRoomInfoIntent);
         } else if (id ==  R.id.ic_action_leave) {
             mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
@@ -648,7 +648,7 @@ public class RoomActivity extends MXCActionBarActivity {
                         @Override
                         public void onSuccess(String roomId) {
                             if (null != roomId) {
-                                CommonActivityUtils.goToRoomPage(roomId, RoomActivity.this, null);
+                                CommonActivityUtils.goToRoomPage(mSession, roomId, RoomActivity.this, null);
                             }
                         }
                     });

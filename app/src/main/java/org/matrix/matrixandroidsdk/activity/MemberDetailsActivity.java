@@ -194,7 +194,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
                         MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToOneToOneRoom(mMemberId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
+                                CommonActivityUtils.goToOneToOneRoom(mSession, mMemberId, MemberDetailsActivity.this, new SimpleApiCallback<Void>(MemberDetailsActivity.this) {
                                     @Override
                                     public void onMatrixError(MatrixError e) {
                                         if (MatrixError.FORBIDDEN.equals(e.errcode)) {

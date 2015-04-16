@@ -389,7 +389,7 @@ public class HomeActivity extends MXCActionBarActivity {
                 }
 
                 if (null != roomId){
-                    CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this, null);
+                    CommonActivityUtils.goToRoomPage(null, roomId, HomeActivity.this, null);
                 }
                 return true;
             }
@@ -597,7 +597,7 @@ public class HomeActivity extends MXCActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    CommonActivityUtils.goToRoomPage(HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this, mOpenedRoomIntent);
+                    CommonActivityUtils.goToRoomPage(null, HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this, mOpenedRoomIntent);
                     HomeActivity.this.mAutomaticallyOpenedRoomId = null;
                     HomeActivity.this.mOpenedRoomIntent = null;
                 }
@@ -712,7 +712,7 @@ public class HomeActivity extends MXCActionBarActivity {
                     @Override
                     public void onSuccess(String roomId) {
                         if (null != roomId) {
-                            CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this, null);
+                            CommonActivityUtils.goToRoomPage(null, roomId, HomeActivity.this, null);
                         }
                     }
 

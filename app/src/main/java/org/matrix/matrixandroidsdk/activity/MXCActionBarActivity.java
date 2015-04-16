@@ -52,7 +52,7 @@ import java.lang.reflect.Method;
  */
 public class MXCActionBarActivity extends ActionBarActivity {
 
-    public static final String EXTRA_FROM_MX_USER_ID = "org.matrix.matrixandroidsdk.MXCActionBarActivity.EXTRA_FROM_MX_USER_ID";
+    public static final String EXTRA_ACCOUNT_ID = "org.matrix.matrixandroidsdk.MXCActionBarActivity.EXTRA_ACCOUNT_ID";
 
     /**
      * Return the used MXSession from an intent.
@@ -63,8 +63,8 @@ public class MXCActionBarActivity extends ActionBarActivity {
         MXSession session = null;
 
         // is the matrix user id provided ?
-        if (intent.hasExtra(EXTRA_FROM_MX_USER_ID)) {
-            session = Matrix.getInstance(getApplicationContext()).getSession(intent.getStringExtra(EXTRA_FROM_MX_USER_ID));
+        if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
+            session = Matrix.getInstance(getApplicationContext()).getSession(intent.getStringExtra(EXTRA_ACCOUNT_ID));
         }
 
         // else use the default session (i.e. the first known one).
