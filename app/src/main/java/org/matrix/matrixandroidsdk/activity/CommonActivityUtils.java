@@ -176,13 +176,7 @@ public class CommonActivityUtils {
 
     public static void goToRoomPage(final MXSession aSession, final String roomId, final Activity fromActivity, final Intent intentParam) {
         // check first if the 1:1 room already exists
-        MXSession session = aSession;
-
-        // no session is provided
-        if (null == session) {
-            // get the default one.
-            session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
-        }
+        MXSession session = (aSession == null) ? Matrix.getMXSession(fromActivity, null) : aSession;
 
         // sanity check
         if (null == session) {
@@ -240,7 +234,7 @@ public class CommonActivityUtils {
         }
 
         // check first if the 1:1 room already exists
-        MXSession session = aSession;
+        MXSession session = (aSession == null) ? Matrix.getMXSession(fromActivity, null) : aSession;
 
         // no session is provided
         if (null == session) {

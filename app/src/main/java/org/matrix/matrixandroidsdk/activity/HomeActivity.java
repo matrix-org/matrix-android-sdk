@@ -116,7 +116,6 @@ public class HomeActivity extends MXCActionBarActivity {
     };
 
     private HashMap<MXSession, MXEventListener> mListenersBySession = new HashMap<MXSession, MXEventListener>();
-    private MXSession mSession;
     private ConsoleRoomSummaryAdapter mAdapter;
     private EditText mSearchRoomEditText;
 
@@ -137,12 +136,6 @@ public class HomeActivity extends MXCActionBarActivity {
         setContentView(R.layout.activity_home);
 
         addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds, true);
-
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        if (mSession == null) {
-            finish();
-            return;
-        }
 
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         // the chevron is managed in the header view
@@ -798,7 +791,7 @@ public class HomeActivity extends MXCActionBarActivity {
             fragment.dismissAllowingStateLoss();
         }
         // TODO should offer to select account
-        fragment = RoomCreationDialogFragment.newInstance(mSession);
+        fragment = RoomCreationDialogFragment.newInstance(Matrix.getInstance(getApplicationContext()).getDefaultSession());
         fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 

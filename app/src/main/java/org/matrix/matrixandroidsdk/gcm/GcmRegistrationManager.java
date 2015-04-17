@@ -53,6 +53,7 @@ public final class GcmRegistrationManager {
         mListener = listener;
     }
 
+    // TODO: handle multi sessions management
     public void registerPusherInBackground() {
         new AsyncTask<Void, Void, Void>() {
             @Override
