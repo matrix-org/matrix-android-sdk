@@ -153,7 +153,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
-        public void onLiveEvent(final Event event, RoomState roomState) {
+        public void onLiveEvent(final String accountId, final Event event, RoomState roomState) {
             RoomActivity.this.runOnUiThread(new Runnable() {
 
                 @Override
@@ -174,7 +174,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         @Override
-        public void onRoomInitialSyncComplete(String roomId) {
+        public void onRoomInitialSyncComplete(final String accountId, String roomId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -182,7 +182,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     setTitle(mRoom.getName(mMyUserId));
                     setTopic(mRoom.getTopic());
 
-                    mConsoleMessageListFragment.onInitialMessagesLoaded();
+                    mConsoleMessageListFragment.onInitialMessagesLoaded(accountId);
                 }
             });
         }

@@ -77,7 +77,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
     private IMXEventListener mEventsListenener = new MXEventListener() {
         @Override
-        public void onPresenceUpdate(Event event, final User user) {
+        public void onPresenceUpdate(final String accountId, Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
             uiThreadHandler.post(new Runnable() {
                 @Override
@@ -90,7 +90,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
         }
 
         @Override
-        public void onLiveEvent(final Event event, RoomState roomState) {
+        public void onLiveEvent(final String accountId, final Event event, RoomState roomState) {
             uiThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {

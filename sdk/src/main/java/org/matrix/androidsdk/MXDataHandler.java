@@ -265,7 +265,7 @@ public class MXDataHandler implements IMXEventListener {
                         room.requestHistory(new SimpleApiCallback<Integer>() {
                             @Override
                             public void onSuccess(Integer info) {
-                                onRoomInitialSyncComplete(event.roomId);
+                                onRoomInitialSyncComplete(getUserId(), event.roomId);
                             }
                         });
                     }
@@ -294,7 +294,7 @@ public class MXDataHandler implements IMXEventListener {
                 user.lastActiveAgo = userPresence.lastActiveAgo;
                 user.lastActiveReceived();
             }
-            this.onPresenceUpdate(event, user);
+            this.onPresenceUpdate(getUserId(), event, user);
         }
 
         // Room event
@@ -309,7 +309,7 @@ public class MXDataHandler implements IMXEventListener {
 
             storeLiveRoomEvent(event);
 
-            onLiveEvent(event, beforeState);
+            onLiveEvent(getUserId(), event, beforeState);
 
             BingRule bingRule;
 
@@ -323,7 +323,7 @@ public class MXDataHandler implements IMXEventListener {
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
                     && (mBingRulesManager != null) && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))) {
-                onBingEvent(event, beforeState, bingRule);
+                onBingEvent(getUserId(), event, beforeState, bingRule);
             }
         }
 
@@ -402,70 +402,70 @@ public class MXDataHandler implements IMXEventListener {
     // Proxy IMXEventListener callbacks to everything in mEventListeners
 
     @Override
-    public void onPresenceUpdate(Event event, User user) {
+    public void onPresenceUpdate(String accountId, Event event, User user) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onPresenceUpdate(event, user);
+                listener.onPresenceUpdate(accountId, event, user);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onLiveEvent(Event event, RoomState roomState) {
+    public void onLiveEvent(String accountId, Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onLiveEvent(event, roomState);
+                listener.onLiveEvent(accountId, event, roomState);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onBackEvent(Event event, RoomState roomState) {
+    public void onBackEvent(String accountId, Event event, RoomState roomState) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onBackEvent(event, roomState);
+                listener.onBackEvent(accountId, event, roomState);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
+    public void onBingEvent(String accountId, Event event, RoomState roomState, BingRule bingRule) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onBingEvent(event, roomState, bingRule);
+                listener.onBingEvent(accountId, event, roomState, bingRule);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onDeleteEvent(Event event) {
+    public void onDeleteEvent(String accountId, Event event) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onDeleteEvent(event);
+                listener.onDeleteEvent(accountId, event);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-    public void onResentEvent(Event event) {
+    public void onResentEvent(String accountId, Event event) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onResentEvent(event);
+                listener.onResentEvent(accountId, event);
             } catch (Exception e) {
             }
         }
     }
 
     @Override
-         public void onResendingEvent(Event event) {
+         public void onResendingEvent(String accountId, Event event) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onResendingEvent(event);
+                listener.onResendingEvent(accountId, event);
             } catch (Exception e) {
             }
         }
@@ -493,19 +493,19 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void onRoomInitialSyncComplete(String roomId) {
+    public void onRoomInitialSyncComplete(String accountId, String roomId) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onRoomInitialSyncComplete(roomId);
+                listener.onRoomInitialSyncComplete(accountId, roomId);
             } catch (Exception e) {
             }
         }
     }
 
-    public void onRoomInternalUpdate(String roomId) {
+    public void onRoomInternalUpdate(String accountId, String roomId) {
         for (IMXEventListener listener : mEventListeners) {
             try {
-                listener.onRoomInternalUpdate(roomId);
+                listener.onRoomInternalUpdate(accountId, roomId);
             } catch (Exception e) {
             }
         }

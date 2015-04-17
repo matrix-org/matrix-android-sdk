@@ -59,16 +59,16 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     public static interface MatrixMessagesListener {
-        public void onLiveEvent(Event event, RoomState roomState);
-        public void onBackEvent(Event event, RoomState roomState);
-        public void onDeleteEvent(Event event);
-        public void onResendingEvent(Event event);
-        public void onResentEvent(Event event);
+        public void onLiveEvent(String accountId, Event event, RoomState roomState);
+        public void onBackEvent(String accountId, Event event, RoomState roomState);
+        public void onDeleteEvent(String accountId, Event event);
+        public void onResendingEvent(String accountId, Event event);
+        public void onResentEvent(String accountId, Event event);
 
         /**
          * Called when the first batch of messages is loaded.
          */
-        public void onInitialMessagesLoaded();
+        public void onInitialMessagesLoaded(String accountId);
 
         // UI events
         public void displayLoadingProgress();
@@ -118,28 +118,28 @@ public class MatrixMessagesFragment extends Fragment {
 
         mEventListener = new MXEventListener() {
             @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onLiveEvent(event, roomState);
+            public void onLiveEvent(String accountId, Event event, RoomState roomState) {
+                mMatrixMessagesListener.onLiveEvent(accountId, event, roomState);
             }
 
             @Override
-            public void onBackEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onBackEvent(event, roomState);
+            public void onBackEvent(String accountId, Event event, RoomState roomState) {
+                mMatrixMessagesListener.onBackEvent(accountId, event, roomState);
             }
 
             @Override
-            public void onDeleteEvent(Event event)  {
-                mMatrixMessagesListener.onDeleteEvent(event);
+            public void onDeleteEvent(String accountId, Event event)  {
+                mMatrixMessagesListener.onDeleteEvent(accountId, event);
             }
 
             @Override
-                public void onResendingEvent(Event event)  {
-                mMatrixMessagesListener.onResendingEvent(event);
+                public void onResendingEvent(String accountId, Event event)  {
+                mMatrixMessagesListener.onResendingEvent(accountId, event);
             }
 
             @Override
-            public void onResentEvent(Event event)  {
-                mMatrixMessagesListener.onResentEvent(event);
+            public void onResentEvent(String accountId, Event event)  {
+                mMatrixMessagesListener.onResentEvent(accountId, event);
             }
         };
 
@@ -246,7 +246,7 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Integer info) {
                 MatrixMessagesFragment.this.dismissLoadingProgress();
-                mMatrixMessagesListener.onInitialMessagesLoaded();
+                mMatrixMessagesListener.onInitialMessagesLoaded(mSession.getCredentials().userId);
             }
 
             @Override

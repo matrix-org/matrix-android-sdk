@@ -101,7 +101,7 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
 
         @Override
-        public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
+        public void onBingEvent(final String accountId, Event event, RoomState roomState, BingRule bingRule) {
             Log.i(LOG_TAG, "onMessageEvent >>>> " + event);
 
             final String roomId = event.roomId;
@@ -151,7 +151,7 @@ public class EventStreamService extends Service {
 
             Notification n = NotificationUtils.buildMessageNotification(
                     EventStreamService.this,
-                    member.getName(), event.getAccountId(), body, event.roomId, roomName, bingRule.shouldPlaySound());
+                    member.getName(), accountId, body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
@@ -165,11 +165,11 @@ public class EventStreamService extends Service {
         }
 
         @Override
-        public void onResendingEvent(Event event) {
+        public void onResendingEvent(final String accountId, Event event) {
         }
 
         @Override
-        public void onResentEvent(Event event) {
+        public void onResentEvent(final String accountId, Event event) {
         }
     };
 

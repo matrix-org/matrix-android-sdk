@@ -85,11 +85,6 @@ public class Event {
         return TimeZone.getDefault().getRawOffset();
     }
 
-    // userId is already used -> message sender ID
-    // mAccountId defines which account receives the event.
-    // it is useful in multi accounts application.
-    private String mAccountId;
-
     /**
      * Default constructor
      */
@@ -189,18 +184,7 @@ public class Event {
 
         copy.unsentException = unsentException;
         copy.unsentMatrixError = unsentMatrixError;
-
-        copy.mAccountId = mAccountId;
         return copy;
-    }
-
-    // theses both methods manage the receiverUserId.
-    public void setAccountId(String accountId) {
-        mAccountId = accountId;
-    }
-
-    public String getAccountId() {
-        return mAccountId;
     }
 
     /**

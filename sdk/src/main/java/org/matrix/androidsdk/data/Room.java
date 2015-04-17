@@ -207,11 +207,11 @@ public class Room {
         // Create a global listener that we'll add to the data handler
         IMXEventListener globalListener = new MXEventListener() {
             @Override
-            public void onPresenceUpdate(Event event, User user) {
+            public void onPresenceUpdate(String accountId, Event event, User user) {
                 // Only pass event through if the user is a member of the room
                 if (getMember(user.userId) != null) {
                     try {
-                        eventListener.onPresenceUpdate(event, user);
+                        eventListener.onPresenceUpdate(accountId, event, user);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage());
                     }
@@ -219,7 +219,7 @@ public class Room {
             }
 
             @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
+            public void onLiveEvent(String accountId, Event event, RoomState roomState) {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
                 if (mRoomId.equals(event.roomId) && isReady) {
 
@@ -244,7 +244,7 @@ public class Room {
                     }
 
                     try {
-                        eventListener.onLiveEvent(event, roomState);
+                        eventListener.onLiveEvent(accountId, event, roomState);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
                     }
@@ -252,11 +252,11 @@ public class Room {
             }
 
             @Override
-            public void onBackEvent(Event event, RoomState roomState) {
+            public void onBackEvent(String accountId, Event event, RoomState roomState) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
                     try {
-                        eventListener.onBackEvent(event, roomState);
+                        eventListener.onBackEvent(accountId, event, roomState);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
                     }
@@ -264,11 +264,11 @@ public class Room {
             }
 
             @Override
-            public void onDeleteEvent(Event event) {
+            public void onDeleteEvent(String accountId, Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
                     try {
-                        eventListener.onDeleteEvent(event);
+                        eventListener.onDeleteEvent(accountId, event);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onDeleteEvent exception " + e.getMessage());
                     }
@@ -276,11 +276,11 @@ public class Room {
             }
 
             @Override
-            public void onResendingEvent(Event event) {
+            public void onResendingEvent(String accountId, Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
                     try {
-                        eventListener.onResendingEvent(event);
+                        eventListener.onResendingEvent(accountId, event);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onResendingEvent exception " + e.getMessage());
                     }
@@ -288,11 +288,11 @@ public class Room {
             }
 
             @Override
-            public void onResentEvent(Event event) {
+            public void onResentEvent(String accountId, Event event) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
                     try {
-                        eventListener.onResentEvent(event);
+                        eventListener.onResentEvent(accountId, event);
                     }
                     catch (Exception e) {
                         Log.e(LOG_TAG, "onResentEvent exception " + e.getMessage());
@@ -301,11 +301,11 @@ public class Room {
             }
             
             @Override
-            public void onRoomInitialSyncComplete(String roomId) {
+            public void onRoomInitialSyncComplete(String accountId, String roomId) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(roomId)) {
                     try {
-                        eventListener.onRoomInitialSyncComplete(roomId);
+                        eventListener.onRoomInitialSyncComplete(accountId, roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage());
                     }
@@ -313,11 +313,11 @@ public class Room {
             }
 
             @Override
-            public void onRoomInternalUpdate(String roomId) {
+            public void onRoomInternalUpdate(String accountId, String roomId) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(roomId)) {
                     try {
-                        eventListener.onRoomInternalUpdate(roomId);
+                        eventListener.onRoomInternalUpdate(accountId, roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
                     }
@@ -464,7 +464,7 @@ public class Room {
                     if (event.stateKey != null) {
                         processStateEvent(event, EventDirection.BACKWARDS);
                     }
-                    mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                    mDataHandler.onBackEvent(mDataHandler.getUserId(), event, mBackState.deepCopy());
                 }
                 if (response.chunk.size() == 0) {
                     canStillPaginate = false;
@@ -655,7 +655,7 @@ public class Room {
      */
     public void leave(final ApiCallback<Void> callback) {
         this.mIsLeaving = true;
-        mDataHandler.onRoomInternalUpdate(mRoomId);
+        mDataHandler.onRoomInternalUpdate(mDataHandler.getUserId(), mRoomId);
 
         mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
             @Override
@@ -678,7 +678,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(mDataHandler.getUserId(), mRoomId);
             }
 
             @Override
@@ -691,7 +691,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(mDataHandler.getUserId(), mRoomId);
             }
 
             @Override
@@ -704,7 +704,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(mDataHandler.getUserId(), mRoomId);
             }
         });
     }
@@ -1014,7 +1014,7 @@ public class Room {
         for(Event event : unsentEvents) {
             if ((System.currentTimeMillis() - event.getOriginServerTs()) > MAX_MESSAGE_TIME_LIFE_MS) {
                 event.mSentState = Event.SentState.UNDELIVERABLE;
-                mDataHandler.onResentEvent(event);
+                mDataHandler.onResentEvent(mDataHandler.getUserId(), event);
             }
         }
     }
@@ -1042,14 +1042,14 @@ public class Room {
                 unsentEvent.mSentState = Event.SentState.UNDELIVERABLE;
 
                 // warn that the event has been resent
-                mDataHandler.onResentEvent(unsentEvent);
+                mDataHandler.onResentEvent(mDataHandler.getUserId(), unsentEvent);
 
                 // send the next one
                 Room.this.resendEventsList(evensList, index + 1, maxTime);
 
             } else {
                 unsentEvent.mSentState = Event.SentState.SENDING;
-                mDataHandler.onResendingEvent(unsentEvent);
+                mDataHandler.onResendingEvent(mDataHandler.getUserId(), unsentEvent);
 
                 boolean hasPreviousTask = false;
                 final Message message = JsonUtils.toMessage(unsentEvent.content);
@@ -1060,13 +1060,13 @@ public class Room {
                     if (imageMessage.isLocalContent()) {
                         // delete the previous image message
                         mDataHandler.deleteRoomEvent(unsentEvent);
-                        mDataHandler.onDeleteEvent(unsentEvent);
+                        mDataHandler.onDeleteEvent(mDataHandler.getUserId(), unsentEvent);
 
                         final Event newEvent = new Event(message, mMyUserId, mRoomId);
                         evensList.set(index, newEvent);
 
                         mDataHandler.storeLiveRoomEvent(unsentEvent);
-                        mDataHandler.onLiveEvent(newEvent, getLiveState());
+                        mDataHandler.onLiveEvent(mDataHandler.getUserId(), newEvent, getLiveState());
 
                         String filename;
                         // try to parse it
@@ -1117,7 +1117,7 @@ public class Room {
                 if (!hasPreviousTask) {
                     final Event unsentEventCopy = unsentEvent.deepCopy();
 
-                    mDataHandler.onResendingEvent(unsentEvent);
+                    mDataHandler.onResendingEvent(mDataHandler.getUserId(), unsentEvent);
 
                     sendEvent(unsentEvent, new ApiCallback<Void>() {
                         private Event storeUnsentMessage() {
@@ -1132,7 +1132,7 @@ public class Room {
                         private void common(Event sentEvent, Exception exception, MatrixError matrixError) {
                             // replace the resent event
                             mDataHandler.deleteRoomEvent(unsentEventCopy);
-                            mDataHandler.onDeleteEvent(unsentEventCopy);
+                            mDataHandler.onDeleteEvent(mDataHandler.getUserId(), unsentEventCopy);
 
                             // with a new one
                             unsentEvent.eventId = sentEvent.eventId;
@@ -1140,7 +1140,7 @@ public class Room {
                             unsentEvent.unsentException = exception;
                             unsentEvent.unsentMatrixError = matrixError;
 
-                            mDataHandler.onLiveEvent(unsentEvent, getLiveState());
+                            mDataHandler.onLiveEvent(mDataHandler.getUserId(), unsentEvent, getLiveState());
 
                             // send the next one
                             Room.this.resendEventsList(evensList, index + 1, maxTime);
@@ -1190,7 +1190,7 @@ public class Room {
                 }
 
                 if (null != lastEvent) {
-                    mDataHandler.onLiveEvent(lastEvent, getLiveState());
+                    mDataHandler.onLiveEvent(mDataHandler.getUserId(), lastEvent, getLiveState());
                 }
             }
         }

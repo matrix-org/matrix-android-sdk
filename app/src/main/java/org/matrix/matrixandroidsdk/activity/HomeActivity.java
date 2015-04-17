@@ -153,7 +153,7 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         @Override
-        public void onRoomInitialSyncComplete(final String roomId) {
+        public void onRoomInitialSyncComplete(final String accountId, final String roomId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -164,7 +164,7 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         @Override
-        public void onRoomInternalUpdate(String roomId) {
+        public void onRoomInternalUpdate(final String accountId, String roomId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -175,7 +175,7 @@ public class HomeActivity extends MXCActionBarActivity {
         }
 
         @Override
-        public void onLiveEvent(final Event event, final RoomState roomState) {
+        public void onLiveEvent(final String accountId, final Event event, final RoomState roomState) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -291,7 +291,8 @@ public class HomeActivity extends MXCActionBarActivity {
     private EditText mSearchRoomEditText;
 
     private void refreshPublicRoomsList() {
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
+        // use any session to get the public rooms list
+        Matrix.getInstance(getApplicationContext()).getSession(null).getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>(this) {
             @Override
             public void onSuccess(List<PublicRoom> publicRooms) {
                 mAdapter.setPublicRoomsList(publicRooms);

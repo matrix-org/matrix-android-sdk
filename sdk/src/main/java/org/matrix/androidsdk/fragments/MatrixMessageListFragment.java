@@ -661,7 +661,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onLiveEvent(final Event event, final RoomState roomState) {
+    public void onLiveEvent(final String accountId, final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -680,7 +680,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onBackEvent(final Event event, final RoomState roomState) {
+    public void onBackEvent(final String accountId, final Event event, final RoomState roomState) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -692,7 +692,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onDeleteEvent(final Event event) {
+    public void onDeleteEvent(final String accountId, final Event event) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -703,7 +703,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onResendingEvent(final Event event) {
+    public void onResendingEvent(final String accountId, final Event event) {
         // not anymore required
         // because the message keeps the same UI until the server echo is receieved.
         /*mUiHandler.post(new Runnable() {
@@ -715,7 +715,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onResentEvent(final Event event) {
+    public void onResentEvent(final String accountId, final Event event) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -724,7 +724,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    public void onInitialMessagesLoaded() {
+    public void onInitialMessagesLoaded(String accountId) {
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {
             @Override
