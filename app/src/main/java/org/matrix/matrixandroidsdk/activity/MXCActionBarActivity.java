@@ -60,19 +60,13 @@ public class MXCActionBarActivity extends ActionBarActivity {
      * @return the MXsession if it exists.
      */
     protected MXSession getSession(Intent intent) {
-        MXSession session = null;
+        String accountId = null;
 
-        // is the matrix user id provided ?
         if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
-            session = Matrix.getInstance(getApplicationContext()).getSession(intent.getStringExtra(EXTRA_ACCOUNT_ID));
+            accountId = intent.getStringExtra(EXTRA_ACCOUNT_ID);
         }
 
-        // else use the default session (i.e. the first known one).
-        if (null == session) {
-            session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-        }
-
-        return session;
+        return Matrix.getInstance(getApplicationContext()).getSession(accountId);
     }
 
     // add left sliding menu
@@ -142,7 +136,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
         ConsoleApplication.setCurrentActivity(this);
 
         // refresh the push rules when debackgrounding the application
-        if (((ConsoleApplication)getApplication()).isInBackground) {
+        if (ConsoleApplication.isAppInBackground()) {
             Matrix matrixInstance =  Matrix.getInstance(getApplicationContext());
 
             // sanity check

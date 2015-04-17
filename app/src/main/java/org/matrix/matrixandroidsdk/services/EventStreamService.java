@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
+import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
@@ -103,7 +104,7 @@ public class EventStreamService extends Service {
             final String roomId = event.roomId;
 
             // Just don't bing for the room the user's currently in
-            if ((roomId != null) && event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
+            if (!ConsoleApplication.isAppInBackground() && (roomId != null) && event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId())) {
                 return;
             }
 

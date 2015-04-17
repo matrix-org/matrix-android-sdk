@@ -225,17 +225,7 @@ public class CommonActivityUtils {
     }
 
     public static void goToOneToOneRoom(final String accountId, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
-        MXSession session = null;
-
-        if (null != accountId) {
-            session = Matrix.getInstance(fromActivity).getSession(accountId);
-        }
-
-        if (null == session) {
-            session = Matrix.getInstance(fromActivity).getDefaultSession();
-        }
-
-        goToOneToOneRoom(session, otherUserId, fromActivity, callback);
+        goToOneToOneRoom(Matrix.getInstance(fromActivity).getSession(accountId), otherUserId, fromActivity, callback);
     }
 
     public static void goToOneToOneRoom(final MXSession aSession, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {

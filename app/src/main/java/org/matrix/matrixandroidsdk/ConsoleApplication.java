@@ -80,5 +80,16 @@ public class ConsoleApplication extends Application {
         mCurrentActivity = activity;
     }
     public static Activity getCurrentActivity() { return mCurrentActivity; }
+
+    /**
+     * Return true if the application is in background.
+     */
+    public static boolean isAppInBackground() {
+        if (mCurrentActivity != null) {
+            return ((ConsoleApplication)(mCurrentActivity.getApplication())).isInBackground;
+        }
+
+        return true;
+    }
 }
 

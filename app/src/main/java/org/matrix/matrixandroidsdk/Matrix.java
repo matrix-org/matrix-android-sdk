@@ -80,7 +80,7 @@ public class Matrix {
     public synchronized MXSession getSession(String accountId) {
         // sanity checks
         if ((mMXSessions.size() == 0) || (null == accountId)) {
-            return null;
+            return getDefaultSession();
         }
 
         for(MXSession session : mMXSessions) {
@@ -91,7 +91,7 @@ public class Matrix {
             }
         }
 
-        return null;
+        return getDefaultSession();
     }
 
     /**
