@@ -26,7 +26,7 @@ public class NotificationUtils {
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOM_ID";
 
     public static Notification buildMessageNotification(
-            Context context, String from, String accountId, String body, String roomId, String roomName,
+            Context context, String from, String matrixId, String body, String roomId, String roomName,
             boolean shouldPlaySound) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setWhen(System.currentTimeMillis());
@@ -52,8 +52,8 @@ public class NotificationUtils {
             Intent roomIntent = new Intent(context, RoomActivity.class);
             roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
 
-            if (null != accountId) {
-                roomIntent.putExtra(RoomActivity.EXTRA_ACCOUNT_ID, accountId);
+            if (null != matrixId) {
+                roomIntent.putExtra(RoomActivity.EXTRA_MATRIX_ID, matrixId);
             }
 
             // Recreate the back stack
@@ -77,8 +77,8 @@ public class NotificationUtils {
             quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
             quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESSAGE_BODY, body);
 
-            if (null != accountId) {
-                quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ACCOUNT_ID, accountId);
+            if (null != matrixId) {
+                quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MATRIX_ID, matrixId);
             }
 
             // the action must be unique else the parameters are ignored

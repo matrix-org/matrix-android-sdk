@@ -57,14 +57,14 @@ public class EventStreamService extends Service {
     }
 
     public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
-    public static final String EXTRA_ACCOUNT_ID = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_ACCOUNT_ID";
+    public static final String EXTRA_MATRIX_ID = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_MATRIX_ID";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
     private static final int MSG_NOTIFICATION_ID = 43;
 
     private MXSession mSession;
-    private String mAccountId;
+    private String mMatrixId;
     private StreamAction mState = StreamAction.UNKNOWN;
 
     private String mNotificationRoomId = null;
@@ -101,7 +101,7 @@ public class EventStreamService extends Service {
     private MXEventListener mListener = new MXEventListener() {
 
         @Override
-        public void onBingEvent(final String accountId, Event event, RoomState roomState, BingRule bingRule) {
+        public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
             Log.i(LOG_TAG, "onMessageEvent >>>> " + event);
 
             final String roomId = event.roomId;
@@ -151,7 +151,7 @@ public class EventStreamService extends Service {
 
             Notification n = NotificationUtils.buildMessageNotification(
                     EventStreamService.this,
-                    member.getName(), accountId, body, event.roomId, roomName, bingRule.shouldPlaySound());
+                    member.getName(), mSession.getCredentials().userId, body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
@@ -165,11 +165,11 @@ public class EventStreamService extends Service {
         }
 
         @Override
-        public void onResendingEvent(final String accountId, Event event) {
+        public void onResendingEvent(Event event) {
         }
 
         @Override
-        public void onResentEvent(final String accountId, Event event) {
+        public void onResentEvent(Event event) {
         }
     };
 
@@ -177,10 +177,10 @@ public class EventStreamService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
 
-        if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
-            if (null == mAccountId) {
-                mAccountId = intent.getStringExtra(EXTRA_ACCOUNT_ID);
-                mSession = Matrix.getInstance(getApplicationContext()).getSession(mAccountId);
+        if (intent.hasExtra(EXTRA_MATRIX_ID)) {
+            if (null == mMatrixId) {
+                mMatrixId = intent.getStringExtra(EXTRA_MATRIX_ID);
+                mSession = Matrix.getInstance(getApplicationContext()).getSession(mMatrixId);
             }
         }
 

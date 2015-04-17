@@ -25,91 +25,80 @@ public interface IMXEventListener {
 
     /**
      * User presence was updated.
-     * @param accountId the account Id.
      * @param event The presence event.
      * @param user The new user value.
      */
-    public void onPresenceUpdate(String accountId, Event event, User user);
+    public void onPresenceUpdate(Event event, User user);
 
     /**
      * A live room event was received.
-     * @param accountId the account Id.
      * @param event the event
      * @param roomState the room state right before the event
      */
-    public void onLiveEvent(String accountId, Event event, RoomState roomState);
+    public void onLiveEvent(Event event, RoomState roomState);
 
     /**
      * A back room event was received.
-     * @param accountId the account Id.
      * @param event the event
      * @param roomState the room state right before the event
      */
-    public void onBackEvent(String accountId, Event event, RoomState roomState);
+    public void onBackEvent(Event event, RoomState roomState);
 
     /**
      * A received event fulfills the bing rules
      * The first matched bing rule is provided in paramater to perform
      * dedicated action like playing a notification sound.
      *
-     * @param accountId the account Id.
      * @param event the event
      * @param roomState the room state right before the event
      * @param bingRule the bing rule
      */
-    public void onBingEvent(String accountId, Event event, RoomState roomState, BingRule bingRule);
+    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
      * An event has been deleted
      *
-     * @param accountId the account Id.
      * @param event the event
      */
-    public void onDeleteEvent(String accountId, Event event);
+    public void onDeleteEvent(Event event);
 
     /**
      * An event is automatically resending.
      *
-     * @param accountId the account Id.
      * @param event the event
      */
-    public void onResendingEvent(String accountId, Event event);
+    public void onResendingEvent(Event event);
 
     /**
      * An event has been automatically resent
      *
-     * @param accountId the account Id.
      * @param event the event
      */
-    public void onResentEvent(String accountId, Event event);
+    public void onResentEvent(Event event);
 
     /**
      * The bing rules have been updated
-     * @param accountId the account Id.
      */
-    public void onBingRulesUpdate(String accountId);
+    public void onBingRulesUpdate();
 
     /**
      * The initial sync is complete and the store can be queried for current state.
-     * @param accountId the account Id.
      */
-    public void onInitialSyncComplete(String accountId);
+    public void onInitialSyncComplete();
 
     /**
      * The room initial sync is completed.
      * It is triggered after retrieving the room info and performing a first requestHistory
      *
-     * @param accountId the account Id.
      * @param roomId the roomID
      */
-    public void onRoomInitialSyncComplete(String accountId, String roomId);
+    public void onRoomInitialSyncComplete(String roomId);
 
     /**
      * The room data has been internally updated.
      * It could be triggered when a request failed.
      *
-     * @param accountId the account Id.
      * @param roomId the roomID
      */
-    public void onRoomInternalUpdate(String accountId, String roomId);
+    public void onRoomInternalUpdate(String roomId);
 }

@@ -83,25 +83,25 @@ public class Matrix {
     /**
      * Static method to return a MXSession from an account Id.
      * @param context the application content.
-     * @param accountId the account id
+     * @param matrixId the matrix id
      * @return the MXSession.
      */
-    public static MXSession getMXSession(Context context, String accountId) {
-        return Matrix.getInstance(context.getApplicationContext()).getSession(accountId);
+    public static MXSession getMXSession(Context context, String matrixId) {
+        return Matrix.getInstance(context.getApplicationContext()).getSession(matrixId);
     }
 
     /**
      *Retrieve a session from an user Id.
      * The application should be able to manage multi session.
-     * @param accountId The account identifier
+     * @param matrixId the matrix id
      * @return the MXsession if it exists.
      */
-    public synchronized MXSession getSession(String accountId) {
-        if (null != accountId) {
+    public synchronized MXSession getSession(String matrixId) {
+        if (null != matrixId) {
             for (MXSession session : mMXSessions) {
                 Credentials credentials = session.getCredentials();
 
-                if ((null != credentials) && (credentials.userId.equals(accountId))) {
+                if ((null != credentials) && (credentials.userId.equals(matrixId))) {
                     return session;
                 }
             }

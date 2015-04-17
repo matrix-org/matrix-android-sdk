@@ -421,7 +421,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
             // display the unread messages count
-            String roomNameMessage = (latestRoomState != null) ? latestRoomState.getDisplayName(summary.getAccountId()) : summary.getRoomName();
+            String roomNameMessage = (latestRoomState != null) ? latestRoomState.getDisplayName(summary.getMatrixId()) : summary.getRoomName();
 
             if (null != roomNameMessage) {
                 if ((null != unreadCount) && (unreadCount > 0)) {
@@ -466,13 +466,13 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
             PublicRoom publicRoom = publicRoomsList.get(childPosition);
 
-            String defaultAccountId = null;
+            String matrixId = null;
 
             if (mRecentsSummariesList.size() > 0) {
-                defaultAccountId = mRecentsSummariesList.get(0).getAccountId();
+                matrixId = mRecentsSummariesList.get(0).getMatrixId();
             }
 
-            String displayName = publicRoom.getDisplayName(defaultAccountId);
+            String displayName = publicRoom.getDisplayName(matrixId);
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
             textView.setTypeface(null, Typeface.BOLD);

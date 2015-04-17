@@ -54,7 +54,7 @@ public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
      * @return the Room.
      */
     public Room roomFromRoomSummary(RoomSummary roomSummary) {
-        return Matrix.getMXSession(mContext, roomSummary.getAccountId()).getDataHandler().getStore().getRoom(roomSummary.getRoomId());
+        return Matrix.getMXSession(mContext, roomSummary.getMatrixId()).getDataHandler().getStore().getRoom(roomSummary.getRoomId());
     }
 
     public boolean displayPublicRooms() {

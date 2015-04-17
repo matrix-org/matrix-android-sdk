@@ -52,7 +52,7 @@ import java.lang.reflect.Method;
  */
 public class MXCActionBarActivity extends ActionBarActivity {
 
-    public static final String EXTRA_ACCOUNT_ID = "org.matrix.matrixandroidsdk.MXCActionBarActivity.EXTRA_ACCOUNT_ID";
+    public static final String EXTRA_MATRIX_ID = "org.matrix.matrixandroidsdk.MXCActionBarActivity.EXTRA_MATRIX_ID";
 
     /**
      * Return the used MXSession from an intent.
@@ -60,13 +60,13 @@ public class MXCActionBarActivity extends ActionBarActivity {
      * @return the MXsession if it exists.
      */
     protected MXSession getSession(Intent intent) {
-        String accountId = null;
+        String matrixId = null;
 
-        if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
-            accountId = intent.getStringExtra(EXTRA_ACCOUNT_ID);
+        if (intent.hasExtra(EXTRA_MATRIX_ID)) {
+            matrixId = intent.getStringExtra(EXTRA_MATRIX_ID);
         }
 
-        return Matrix.getInstance(getApplicationContext()).getSession(accountId);
+        return Matrix.getInstance(getApplicationContext()).getSession(matrixId);
     }
 
     // add left sliding menu

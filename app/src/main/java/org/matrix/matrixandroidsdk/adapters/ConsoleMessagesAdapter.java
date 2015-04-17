@@ -44,7 +44,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
         Intent startRoomInfoIntent = new Intent(mContext, MemberDetailsActivity.class);
         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, roomId);
         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MEMBER_ID, userId);
-        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ACCOUNT_ID, mSession.getCredentials().userId);
+        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MATRIX_ID, mSession.getCredentials().userId);
         mContext.startActivity(startRoomInfoIntent);
     }
 

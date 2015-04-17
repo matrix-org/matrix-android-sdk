@@ -107,10 +107,10 @@ public class User {
         // Create a global listener that we'll add to the data handler
         IMXEventListener globalListener = new MXEventListener() {
             @Override
-            public void onPresenceUpdate(String accountId, Event event, User user) {
+            public void onPresenceUpdate(Event event, User user) {
                 // Only pass event through for this user
                 if (user.userId.equals(userId)) {
-                    eventListener.onPresenceUpdate(accountId, event, user);
+                    eventListener.onPresenceUpdate(event, user);
                 }
             }
         };

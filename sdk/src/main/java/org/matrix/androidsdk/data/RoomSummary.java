@@ -38,7 +38,7 @@ public class RoomSummary {
     private RoomState mLatestRoomState;
     private Collection<RoomMember> mMembers;
     private String mInviter; // only populated if you've been invited.
-    private String mAccountId;
+    private String mMatrixId;
 
     public RoomSummary() {}
 
@@ -51,8 +51,8 @@ public class RoomSummary {
         mMembers = members;
     }
 
-    public String getAccountId() {
-        return mAccountId;
+    public String getMatrixId() {
+        return mMatrixId;
     }
 
     public String getRoomId() {
@@ -91,8 +91,8 @@ public class RoomSummary {
         return mMembers;
     }
 
-    public void setAccountId(String accountId) {
-        mAccountId = accountId;
+    public void setMatrixId(String matrixId) {
+        mMatrixId = matrixId;
     }
 
     /**

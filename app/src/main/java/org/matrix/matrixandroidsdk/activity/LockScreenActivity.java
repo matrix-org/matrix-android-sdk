@@ -40,7 +40,7 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
     public static final String EXTRA_SENDER_NAME = "extra_sender_name";
     public static final String EXTRA_MESSAGE_BODY = "extra_chat_body";
     public static final String EXTRA_ROOM_ID = "extra_room_id";
-    public static final String EXTRA_ACCOUNT_ID = "extra_account_id";
+    public static final String EXTRA_MATRIX_ID = "extra_matrix_id";
 
     private static LockScreenActivity mLockScreenActivity = null;
 
@@ -84,13 +84,13 @@ public class LockScreenActivity extends Activity { // do NOT extend from UC*Acti
         }
 
         final String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        String accountId = null;
+        String matrixId = null;
 
-        if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
-            accountId = intent.getStringExtra(EXTRA_ACCOUNT_ID);
+        if (intent.hasExtra(EXTRA_MATRIX_ID)) {
+            matrixId = intent.getStringExtra(EXTRA_MATRIX_ID);
         }
 
-        final MXSession session = Matrix.getInstance(getApplicationContext()).getSession(accountId);
+        final MXSession session = Matrix.getInstance(getApplicationContext()).getSession(matrixId);
         final Room room = session.getDataHandler().getRoom(roomId);
 
         // display the room name as title

@@ -73,8 +73,8 @@ public class SplashActivity extends MXCActionBarActivity {
 
             final IMXEventListener eventListener = new MXEventListener() {
                 @Override
-                public void onInitialSyncComplete(String accountId) {
-                    super.onInitialSyncComplete(accountId);
+                public void onInitialSyncComplete() {
+                    super.onInitialSyncComplete();
                     Boolean noMoreListener;
 
                     synchronized(mListeners) {
@@ -99,7 +99,7 @@ public class SplashActivity extends MXCActionBarActivity {
 
             // Start the event stream service
             Intent intent = new Intent(this, EventStreamService.class);
-            intent.putExtra(EventStreamService.EXTRA_ACCOUNT_ID, fSession.getCredentials().userId);
+            intent.putExtra(EventStreamService.EXTRA_MATRIX_ID, fSession.getCredentials().userId);
             intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
             startService(intent);
 

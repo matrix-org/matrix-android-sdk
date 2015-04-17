@@ -72,7 +72,7 @@ public class MyPresenceManager {
 
         myUser.addEventListener(new MXEventListener() {
             @Override
-            public void onPresenceUpdate(final String accountId, Event event, User user) {
+            public void onPresenceUpdate(Event event, User user) {
                 myUser.presence = user.presence;
 
                 // If the received presence is the same as the last one we've advertised, this must be

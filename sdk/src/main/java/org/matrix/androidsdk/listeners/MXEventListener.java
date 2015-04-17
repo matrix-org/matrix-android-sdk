@@ -28,49 +28,49 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 public class MXEventListener implements IMXEventListener {
 
     @Override
-    public void onPresenceUpdate(String AccountId, Event event, User user) {
+    public void onPresenceUpdate(Event event, User user) {
 
     }
 
     @Override
-    public void onLiveEvent(String AccountId, Event event, RoomState roomState) {
+    public void onLiveEvent(Event event, RoomState roomState) {
 
     }
 
     @Override
-    public void onBackEvent(String AccountId, Event event, RoomState roomState) {
+    public void onBackEvent(Event event, RoomState roomState) {
 
     }
 
     @Override
-    public void onBingEvent(String AccountId, Event event, RoomState roomState, BingRule bingRule) {
+    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
     }
 
     @Override
-    public void onDeleteEvent(String AccountId, Event event) {
+    public void onDeleteEvent(Event event) {
     }
 
     @Override
-    public void onResendingEvent(String AccountId, Event event) {
+    public void onResendingEvent(Event event) {
     }
 
     @Override
-    public void onResentEvent(String AccountId, Event event) {
+    public void onResentEvent(Event event) {
     }
 
     @Override
-    public void onBingRulesUpdate(String accountId) {
+    public void onBingRulesUpdate() {
     }
 
     @Override
-    public void onInitialSyncComplete(String accountId) {
+    public void onInitialSyncComplete() {
     }
 
     @Override
-    public void onRoomInitialSyncComplete(String AccountId, String roomId) {
+    public void onRoomInitialSyncComplete(String roomId) {
     }
 
     @Override
-    public void onRoomInternalUpdate(String AccountId, String roomId) {
+    public void onRoomInternalUpdate(String roomId) {
     }
 }

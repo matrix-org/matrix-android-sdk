@@ -64,7 +64,7 @@ public class MemberDetailsActivity extends MXCActionBarActivity {
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
-        public void onLiveEvent(final String accountId, final Event event, RoomState roomState) {
+        public void onLiveEvent(final Event event, RoomState roomState) {
             MemberDetailsActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

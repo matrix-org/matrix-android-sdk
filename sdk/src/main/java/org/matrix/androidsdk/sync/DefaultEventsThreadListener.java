@@ -43,7 +43,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
             mData.handleInitialRoomResponse(roomResponse);
         }
 
-        mData.onInitialSyncComplete(mData.getUserId());
+        mData.onInitialSyncComplete();
     }
 
     @Override

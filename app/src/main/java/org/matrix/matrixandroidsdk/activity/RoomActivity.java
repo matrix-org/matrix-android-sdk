@@ -153,7 +153,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
-        public void onLiveEvent(final String accountId, final Event event, RoomState roomState) {
+        public void onLiveEvent(final Event event, RoomState roomState) {
             RoomActivity.this.runOnUiThread(new Runnable() {
 
                 @Override
@@ -174,7 +174,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         @Override
-        public void onRoomInitialSyncComplete(final String accountId, String roomId) {
+        public void onRoomInitialSyncComplete(String roomId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -182,7 +182,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     setTitle(mRoom.getName(mMyUserId));
                     setTopic(mRoom.getTopic());
 
-                    mConsoleMessageListFragment.onInitialMessagesLoaded(accountId);
+                    mConsoleMessageListFragment.onInitialMessagesLoaded();
                 }
             });
         }
@@ -578,7 +578,7 @@ public class RoomActivity extends MXCActionBarActivity {
         } else if (id ==  R.id.ic_action_room_info) {
             Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
             startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
-            startRoomInfoIntent.putExtra(EXTRA_ACCOUNT_ID, mMyUserId);
+            startRoomInfoIntent.putExtra(EXTRA_MATRIX_ID, mMyUserId);
             startActivity(startRoomInfoIntent);
         } else if (id ==  R.id.ic_action_leave) {
             mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {

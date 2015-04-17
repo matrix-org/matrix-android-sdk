@@ -74,7 +74,7 @@ public class CommonActivityUtils {
         stopEventStream(activity);
 
         // warn that the user logs out
-        Collection<MXSession> sessions = Matrix.getInstance(activity).getSessions();
+        Collection<MXSession> sessions = Matrix.getMXSessions(activity);
         for(MXSession session : sessions) {
             // Publish to the server that we're now offline
             MyPresenceManager.getInstance(activity, session).advertiseOffline();
@@ -170,8 +170,8 @@ public class CommonActivityUtils {
         return dialog;
     }
 
-    public static void goToRoomPage(final String accountId, final String roomId, final Activity fromActivity, final Intent intentParam) {
-        goToRoomPage(Matrix.getMXSession(fromActivity, accountId), roomId, fromActivity, intentParam);
+    public static void goToRoomPage(final String matrixId, final String roomId, final Activity fromActivity, final Intent intentParam) {
+        goToRoomPage(Matrix.getMXSession(fromActivity, matrixId), roomId, fromActivity, intentParam);
     }
 
     public static void goToRoomPage(final MXSession aSession, final String roomId, final Activity fromActivity, final Intent intentParam) {
@@ -208,7 +208,7 @@ public class CommonActivityUtils {
                                                Intent intent = new Intent(fromActivity, HomeActivity.class);
                                                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                                intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
-                                               intent.putExtra(HomeActivity.EXTRA_JUMP_ACCOUNT_ID, fSession.getCredentials().userId);
+                                               intent.putExtra(HomeActivity.EXTRA_JUMP_MATRIX_ID, fSession.getCredentials().userId);
                                                if (null != intentParam) {
                                                    intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
@@ -218,7 +218,7 @@ public class CommonActivityUtils {
                                                // so just need to open the room activity
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
-                                               intent.putExtra(RoomActivity.EXTRA_ACCOUNT_ID, fSession.getCredentials().userId);
+                                               intent.putExtra(RoomActivity.EXTRA_MATRIX_ID, fSession.getCredentials().userId);
                                                if (null != intentParam) {
                                                     intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
@@ -229,8 +229,8 @@ public class CommonActivityUtils {
         );
     }
 
-    public static void goToOneToOneRoom(final String accountId, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
-        goToOneToOneRoom(Matrix.getInstance(fromActivity).getSession(accountId), otherUserId, fromActivity, callback);
+    public static void goToOneToOneRoom(final String matrixId, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+        goToOneToOneRoom(Matrix.getMXSession(fromActivity, matrixId), otherUserId, fromActivity, callback);
     }
 
     public static void goToOneToOneRoom(final MXSession aSession, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
@@ -373,8 +373,7 @@ public class CommonActivityUtils {
      * @param intent the intent param
      */
     public static void sendFilesTo(final Activity fromActivity, final Intent intent) {
-        Matrix matrix = Matrix.getInstance(fromActivity);
-        Collection<MXSession> sessions = matrix.getSessions();
+        Collection<MXSession> sessions = Matrix.getMXSessions(fromActivity);
 
         ArrayList<RoomSummary> mergedSummaries = new ArrayList<RoomSummary>();
         for(MXSession session : sessions) {
@@ -427,7 +426,7 @@ public class CommonActivityUtils {
                             @Override
                             public void run() {
                                 RoomSummary summary = fMergedSummaries.get(which);
-                                CommonActivityUtils.goToRoomPage(summary.getAccountId(), fMergedSummaries.get(which).getRoomId(), fromActivity, intent);
+                                CommonActivityUtils.goToRoomPage(summary.getMatrixId(), fMergedSummaries.get(which).getRoomId(), fromActivity, intent);
                             }
                         });
                     }
