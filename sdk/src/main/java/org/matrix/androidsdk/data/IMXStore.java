@@ -105,12 +105,13 @@ public interface IMXStore {
 
     /**
      * Store the summary for the given room id.
+     * @param accountId the accountId
      * @param roomId the room id
      * @param event the latest event of the room
      * @param roomState the room state - used to display the event
      * @param selfUserId our own user id - used to display the room name
      */
-    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
+    public void storeSummary(String accountId, String roomId, Event event, RoomState roomState, String selfUserId);
 
     /**
      * Return the list of latest unsent events.

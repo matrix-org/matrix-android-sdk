@@ -78,6 +78,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
 
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
+    public static final String EXTRA_JUMP_ACCOUNT_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_ACCOUNT_ID";
     public static final String EXTRA_ROOM_INTENT = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_ROOM_INTENT";
 
     private List<PublicRoom> mPublicRooms = null;
@@ -85,6 +86,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private boolean mIsPaused = false;
 
     private String mAutomaticallyOpenedRoomId = null;
+    private String mAutomaticallyOpenedAccountId = null;
     private Intent mOpenedRoomIntent = null;
 
     // sliding menu
@@ -118,13 +120,19 @@ public class HomeActivity extends MXCActionBarActivity {
         private boolean mInitialSyncComplete = false;
 
         @Override
-        public void onInitialSyncComplete(String accountId) {
+        public void onInitialSyncComplete(final String accountId) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+
+                    MXSession session = Matrix.getInstance(HomeActivity.this).getSession(accountId);
+
                     mInitialSyncComplete = true;
-                    for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
-                        addSummary(summary);
+
+                    Collection<RoomSummary> summaries = session.getDataHandler().getStore().getSummaries();
+
+                    for (RoomSummary summary : summaries) {
+                        addSummary(session, summary);
                     }
 
                     // highlighted public rooms
@@ -180,8 +188,9 @@ public class HomeActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     if ((event.roomId != null) && isDisplayableEvent(event)) {
-                        String selfUserId = mSession.getCredentials().userId;
-                        Room room = mSession.getDataHandler().getRoom(event.roomId);
+
+                        MXSession session = Matrix.getInstance(HomeActivity.this).getSession(accountId);
+                        Room room = session.getDataHandler().getRoom(event.roomId);
 
                         // roomState is the state before the update
                         // need to update to updated state so the live state
@@ -194,15 +203,15 @@ public class HomeActivity extends MXCActionBarActivity {
                             // are new rooms created AFTER we have synced).
                             if (mInitialSyncComplete) {
                                 if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                                    addNewRoom(event.roomId);
+                                    addNewRoom(session, event.roomId);
                                 } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                                     RoomMember member = JsonUtils.toRoomMember(event.content);
 
                                     // add the room summary if the user has
                                     if ((RoomMember.MEMBERSHIP_INVITE.equals(member.membership) || RoomMember.MEMBERSHIP_JOIN.equals(member.membership))
-                                            && event.stateKey.equals(selfUserId)) {
+                                            && event.stateKey.equals(accountId)) {
                                         // we were invited to a new room.
-                                        addNewRoom(event.roomId);
+                                        addNewRoom(session, event.roomId);
                                     }
                                 }
                             }
@@ -210,7 +219,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
                         // If we've left the room, remove it from the list
                         else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
-                                isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
+                                isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, accountId, summary)) {
                             mAdapter.removeRoomSummary(summary);
                         }
 
@@ -218,14 +227,14 @@ public class HomeActivity extends MXCActionBarActivity {
                         else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
                                 || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
                                 || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                            summary.setName(room.getName(mSession.getCredentials().userId));
+                            summary.setName(room.getName(accountId));
                         }
 
                         // If we're not currently viewing this room or not sent by myself, increment the unread count
-                        if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
+                        if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(accountId)) {
                             mAdapter.incrementUnreadCount(event.roomId);
 
-                            if (EventUtils.shouldHighlight(mSession, HomeActivity.this, event)) {
+                            if (EventUtils.shouldHighlight(session, HomeActivity.this, event)) {
                                 mAdapter.highlightRoom(event.roomId);
                             }
                         }
@@ -249,9 +258,9 @@ public class HomeActivity extends MXCActionBarActivity {
                     || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type);
         }
 
-        private void addNewRoom(String roomId) {
-            RoomSummary summary = mSession.getDataHandler().getStore().getSummary(roomId);
-            addSummary(summary);
+        private void addNewRoom(MXSession session, String roomId) {
+            RoomSummary summary = session.getDataHandler().getStore().getSummary(roomId);
+            addSummary(session, summary);
             mAdapter.sortSummaries();
         }
 
@@ -264,16 +273,16 @@ public class HomeActivity extends MXCActionBarActivity {
             return false;
         }
 
-        private void addSummary(RoomSummary summary) {
-            String selfUserId = mSession.getCredentials().userId;
+        private void addSummary(MXSession session, RoomSummary summary) {
+            String selfUserId = session.getCredentials().userId;
             boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
             if (isInvited) {
-                Room room = mSession.getDataHandler().getStore().getRoom(summary.getRoomId());
+                Room room = session.getDataHandler().getStore().getRoom(summary.getRoomId());
 
                 // display the room name instead of "Room invitation"
                 // at least, you know who invited you
                 if (null != room) {
-                    summary.setName(room.getName(mSession.getCredentials().userId));
+                    summary.setName(room.getName(session.getCredentials().userId));
                 } else {
                     summary.setName(getString(R.string.summary_invitation));
                 }
@@ -317,7 +326,7 @@ public class HomeActivity extends MXCActionBarActivity {
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         // the chevron is managed in the header view
         mMyRoomList.setGroupIndicator(null);
-        mAdapter = new ConsoleRoomSummaryAdapter(mSession, this, R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
+        mAdapter = new ConsoleRoomSummaryAdapter(this, R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
 
         if (null != savedInstanceState) {
             if (savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
@@ -345,6 +354,10 @@ public class HomeActivity extends MXCActionBarActivity {
             mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
         }
 
+        if (intent.hasExtra(EXTRA_JUMP_ACCOUNT_ID)) {
+            mAutomaticallyOpenedAccountId = intent.getStringExtra(EXTRA_JUMP_ACCOUNT_ID);
+        }
+
         if (intent.hasExtra(EXTRA_ROOM_INTENT)) {
             mOpenedRoomIntent = intent.getParcelableExtra(EXTRA_ROOM_INTENT);
         }
@@ -357,25 +370,31 @@ public class HomeActivity extends MXCActionBarActivity {
             this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    CommonActivityUtils.sendFilesTo(HomeActivity.this, mSession, intent);
+                    CommonActivityUtils.sendFilesTo(HomeActivity.this, intent);
                 }
             });
         }
 
         mMyRoomList.setAdapter(mAdapter);
+        Collection<MXSession> sessions = Matrix.getMXSessions(HomeActivity.this);
 
-        mSession.getDataHandler().addListener(mListener);
+        for(MXSession session : sessions) {
+            session.getDataHandler().addListener(mListener);
+        }
 
         mMyRoomList.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v,
                                         int groupPosition, int childPosition, long id) {
                 String roomId = null;
+                MXSession session = null;
 
                 if (mAdapter.isRecentsGroupIndex(groupPosition)) {
-                    roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+                    RoomSummary roomSummary = mAdapter.getRoomSummaryAt(childPosition);
+                    session = Matrix.getInstance(HomeActivity.this).getSession(roomSummary.getAccountId());
 
-                    Room room = mSession.getDataHandler().getRoom(roomId);
+                    roomId = roomSummary.getRoomId();
+                    Room room = session.getDataHandler().getRoom(roomId);
                     // cannot join a leaving room
                     if ((null == room) || room.isLeaving()) {
                         roomId = null;
@@ -383,11 +402,12 @@ public class HomeActivity extends MXCActionBarActivity {
 
                     mAdapter.resetUnreadCount(roomId);
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
+                    // should offer to select which account to use
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
                 }
 
                 if (null != roomId){
-                    CommonActivityUtils.goToRoomPage(null, roomId, HomeActivity.this, null);
+                    CommonActivityUtils.goToRoomPage(session, roomId, HomeActivity.this, null);
                 }
                 return true;
             }
@@ -424,8 +444,11 @@ public class HomeActivity extends MXCActionBarActivity {
                                     HomeActivity.this.runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
-                                            String roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
-                                            Room room = mSession.getDataHandler().getRoom(roomId);
+                                            RoomSummary roomSummary = mAdapter.getRoomSummaryAt(childPosition);
+                                            MXSession session = Matrix.getInstance(HomeActivity.this).getSession(roomSummary.getAccountId());
+
+                                            String roomId = roomSummary.getRoomId();
+                                            Room room = session.getDataHandler().getRoom(roomId);
 
                                             if (null != room) {
                                                 room.leave(new SimpleApiCallback<Void>(HomeActivity.this) {
@@ -563,7 +586,11 @@ public class HomeActivity extends MXCActionBarActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mSession.getDataHandler().removeListener(mListener);
+        Collection<MXSession> sessions = Matrix.getInstance(this).getSessions();
+
+        for(MXSession session : sessions) {
+            session.getDataHandler().removeListener(mListener);
+        }
     }
 
     @Override
@@ -596,8 +623,9 @@ public class HomeActivity extends MXCActionBarActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    CommonActivityUtils.goToRoomPage(null, HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this, mOpenedRoomIntent);
+                    CommonActivityUtils.goToRoomPage(mAutomaticallyOpenedAccountId, HomeActivity.this.mAutomaticallyOpenedRoomId, HomeActivity.this, mOpenedRoomIntent);
                     HomeActivity.this.mAutomaticallyOpenedRoomId = null;
+                    HomeActivity.this.mAutomaticallyOpenedAccountId = null;
                     HomeActivity.this.mOpenedRoomIntent = null;
                 }
             });
@@ -702,16 +730,16 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void joinRoomByName() {
+        // TODO should offer to select the account
         AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, getString(R.string.join_room_title),  getString(R.string.join_room_hint), null, new CommonActivityUtils.OnSubmitListener() {
             @Override
             public void onSubmit(String text) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-
                 session.joinRoom(text, new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String roomId) {
                         if (null != roomId) {
-                            CommonActivityUtils.goToRoomPage(null, roomId, HomeActivity.this, null);
+                            CommonActivityUtils.goToRoomPage((MXSession) null, roomId, HomeActivity.this, null);
                         }
                     }
 
@@ -752,6 +780,7 @@ public class HomeActivity extends MXCActionBarActivity {
         if (fragment != null) {
             fragment.dismissAllowingStateLoss();
         }
+        // TODO should offer to select account
         fragment = RoomCreationDialogFragment.newInstance(mSession);
         fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }

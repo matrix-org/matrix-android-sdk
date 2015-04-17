@@ -149,7 +149,7 @@ public class MXDataHandler implements IMXEventListener {
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
             beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-            mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+            mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
         }
 
         // Handle presence
@@ -200,7 +200,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
+        mStore.storeSummary(getUserId(), roomId, inviteEvent, null, mCredentials.userId);
 
         // Set the inviter ID
         RoomSummary roomSummary = mStore.getSummary(roomId);
@@ -369,7 +369,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
                 mStore.storeLiveRoomEvent(event);
-                mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
+                mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
             }
         }
     }
@@ -386,7 +386,7 @@ public class MXDataHandler implements IMXEventListener {
             Event lastEvent = mStore.getLatestEvent(event.roomId);
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
 
-            mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+            mStore.storeSummary(getUserId(), event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
         }
     }
 

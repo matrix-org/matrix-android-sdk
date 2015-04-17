@@ -21,6 +21,9 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.androidsdk.adapters.RoomSummaryAdapter;
 
@@ -29,8 +32,8 @@ import org.matrix.androidsdk.adapters.RoomSummaryAdapter;
  */
 public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
 
-    public ConsoleRoomSummaryAdapter(MXSession session, Context context, int layoutResourceId, int headerLayoutResourceId)  {
-        super(session, context, layoutResourceId, headerLayoutResourceId);
+    public ConsoleRoomSummaryAdapter(Context context, int layoutResourceId, int headerLayoutResourceId)  {
+        super(context, layoutResourceId, headerLayoutResourceId);
     }
 
     public int getUnreadMessageBackgroundColor() {
@@ -43,6 +46,15 @@ public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
 
     public int getPublicHighlightMessageBackgroundColor() {
         return mContext.getResources().getColor(R.color.room_summary_public_highlight_background);
+    }
+
+    /**
+     * Retrieve a Room from a room summary
+     * @param roomSummary the room roomId to retrieve.
+     * @return the Room.
+     */
+    public Room roomFromRoomSummary(RoomSummary roomSummary) {
+        return Matrix.getMXSession(mContext, roomSummary.getAccountId()).getDataHandler().getStore().getRoom(roomSummary.getRoomId());
     }
 
     public boolean displayPublicRooms() {

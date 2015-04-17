@@ -49,8 +49,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mLayoutResourceId;
     private int mHeaderLayoutResourceId;
 
-    protected MXSession mxSession;
-
     private int mUnreadColor;
     private int mHighlightColor;
     private int mPublicHighlightColor;
@@ -83,14 +81,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     /**
      * Construct an adapter which will display a list of rooms.
-     * @param session the MXsession
      * @param context Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomsAdapter_roomName, roomsAdapter_roomTopic
      * @param headerLayoutResourceId the header layout id
      */
-    public RoomSummaryAdapter(MXSession session, Context context, int layoutResourceId, int headerLayoutResourceId) {
-        mxSession = session;
+    public RoomSummaryAdapter(Context context, int layoutResourceId, int headerLayoutResourceId) {
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mHeaderLayoutResourceId = headerLayoutResourceId;
@@ -102,8 +98,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mUnreadColor = getUnreadMessageBackgroundColor();
         mHighlightColor = getHighlightMessageBackgroundColor();
         mPublicHighlightColor = getPublicHighlightMessageBackgroundColor();
-
-        mMyUserId = mxSession.getCredentials().userId;;
     }
 
     /**
@@ -357,14 +351,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         });
     }
 
-    /**
-     * Retrieve a Room from its roomId
-     * @param roomID the room roomId to retrieve.
-     * @return the Room.
-     */
-    private Room roomFromRoomid(String roomID){
-        return mxSession.getDataHandler().getStore().getRoom(roomID);
-    }
+    public abstract Room roomFromRoomSummary(RoomSummary roomSummary);
 
     @Override
     public View getChildView(int groupPosition, final int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
@@ -421,7 +408,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             RoomState latestRoomState = summary.getLatestRoomState();
             if (null == latestRoomState) {
-                Room room = roomFromRoomid(summary.getRoomId());
+                Room room = roomFromRoomSummary(summary);
 
                 if (null != room.getLiveState()) {
                     latestRoomState = room.getLiveState().deepCopy();
@@ -470,7 +457,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
 
-            Room room = roomFromRoomid(summary.getRoomId());
+            Room room = roomFromRoomSummary(summary);
 
             if (room.isLeaving()) {
                 convertView.setAlpha(0.3f);

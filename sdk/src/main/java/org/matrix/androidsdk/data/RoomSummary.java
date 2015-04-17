@@ -38,6 +38,7 @@ public class RoomSummary {
     private RoomState mLatestRoomState;
     private Collection<RoomMember> mMembers;
     private String mInviter; // only populated if you've been invited.
+    private String mAccountId;
 
     public RoomSummary() {}
 
@@ -48,6 +49,10 @@ public class RoomSummary {
         mName = name;
         mTopic = topic;
         mMembers = members;
+    }
+
+    public String getAccountId() {
+        return mAccountId;
     }
 
     public String getRoomId() {
@@ -84,6 +89,10 @@ public class RoomSummary {
 
     public Collection<RoomMember> getMembers() {
         return mMembers;
+    }
+
+    public void setAccountId(String accountId) {
+        mAccountId = accountId;
     }
 
     /**

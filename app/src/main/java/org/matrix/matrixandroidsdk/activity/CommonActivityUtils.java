@@ -170,6 +170,10 @@ public class CommonActivityUtils {
         return dialog;
     }
 
+    public static void goToRoomPage(final String accountId, final String roomId, final Activity fromActivity, final Intent intentParam) {
+        goToRoomPage(Matrix.getMXSession(fromActivity, accountId), roomId, fromActivity, intentParam);
+    }
+
     public static void goToRoomPage(final MXSession aSession, final String roomId, final Activity fromActivity, final Intent intentParam) {
         // check first if the 1:1 room already exists
         MXSession session = aSession;
@@ -204,6 +208,7 @@ public class CommonActivityUtils {
                                                Intent intent = new Intent(fromActivity, HomeActivity.class);
                                                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                                intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
+                                               intent.putExtra(HomeActivity.EXTRA_JUMP_ACCOUNT_ID, fSession.getCredentials().userId);
                                                if (null != intentParam) {
                                                    intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
@@ -365,13 +370,20 @@ public class CommonActivityUtils {
     /**
      * Offer to send some dedicated intent data to an existing room
      * @param fromActivity the caller activity
-     * @param session the MXsession
      * @param intent the intent param
      */
-    public static void sendFilesTo(final Activity fromActivity, final MXSession session, final Intent intent) {
-        final List<RoomSummary> summaries =  new  ArrayList<RoomSummary>(session.getDataHandler().getStore().getSummaries());
+    public static void sendFilesTo(final Activity fromActivity, final Intent intent) {
+        Matrix matrix = Matrix.getInstance(fromActivity);
+        Collection<MXSession> sessions = matrix.getSessions();
 
-        Collections.sort(summaries, new Comparator<RoomSummary>() {
+        ArrayList<RoomSummary> mergedSummaries = new ArrayList<RoomSummary>();
+        for(MXSession session : sessions) {
+            mergedSummaries.addAll(session.getDataHandler().getStore().getSummaries());
+        }
+
+        final ArrayList<RoomSummary> fMergedSummaries = mergedSummaries;
+
+        Collections.sort(fMergedSummaries, new Comparator<RoomSummary>() {
             @Override
             public int compare(RoomSummary lhs, RoomSummary rhs) {
                 if (lhs == null || lhs.getLatestEvent() == null) {
@@ -393,7 +405,7 @@ public class CommonActivityUtils {
         builderSingle.setTitle(fromActivity.getText(R.string.send_files_in));
         final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(fromActivity, R.layout.dialog_room_selection);
 
-        for(RoomSummary summary : summaries) {
+        for(RoomSummary summary : fMergedSummaries) {
             arrayAdapter.add(summary.getRoomName());
         }
 
@@ -414,13 +426,15 @@ public class CommonActivityUtils {
                         fromActivity.runOnUiThread( new Runnable() {
                             @Override
                             public void run() {
-                                CommonActivityUtils.goToRoomPage(session, summaries.get(which).getRoomId(), fromActivity, intent);
+                                RoomSummary summary = fMergedSummaries.get(which);
+                                CommonActivityUtils.goToRoomPage(summary.getAccountId(), fMergedSummaries.get(which).getRoomId(), fromActivity, intent);
                             }
                         });
                     }
                 });
         builderSingle.show();
     }
+
     /**
      * Parse an userIDS text into a list.
      *

@@ -275,7 +275,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                             }
 
                             if (selectedVal == R.string.forward) {
-                                CommonActivityUtils.sendFilesTo(getActivity(), mSession, sendIntent);
+                                CommonActivityUtils.sendFilesTo(getActivity(), sendIntent);
                             } else {
                                 startActivity(sendIntent);
                             }

@@ -44,6 +44,15 @@ public class Matrix {
     }
 
     /**
+     * Static method top the MXSession list
+     * @param context the application content
+     * @return the sessions list
+     */
+    public static Collection<MXSession> getMXSessions(Context context) {
+        return Matrix.getInstance(context.getApplicationContext()).getSessions();
+    }
+
+    /**
      * @return The list of sessions
      */
     public Collection<MXSession> getSessions() {
@@ -69,6 +78,16 @@ public class Matrix {
         MXSession defaultSession = createSession(creds);
         mMXSessions.add(defaultSession);
         return defaultSession;
+    }
+
+    /**
+     * Static method to return a MXSession from an account Id.
+     * @param context the application content.
+     * @param accountId the account id
+     * @return the MXSession.
+     */
+    public static MXSession getMXSession(Context context, String accountId) {
+        return Matrix.getInstance(context.getApplicationContext()).getSession(accountId);
     }
 
     /**
