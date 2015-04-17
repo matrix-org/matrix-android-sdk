@@ -55,13 +55,16 @@ public class EventStreamService extends Service {
         PAUSE,
         RESUME
     }
+
     public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
+    public static final String EXTRA_ACCOUNT_ID = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_ACCOUNT_ID";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
     private static final int MSG_NOTIFICATION_ID = 43;
 
     private MXSession mSession;
+    private String mAccountId;
     private StreamAction mState = StreamAction.UNKNOWN;
 
     private String mNotificationRoomId = null;
@@ -173,6 +176,14 @@ public class EventStreamService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
+
+        if (intent.hasExtra(EXTRA_ACCOUNT_ID)) {
+            if (null == mAccountId) {
+                mAccountId = intent.getStringExtra(EXTRA_ACCOUNT_ID);
+                mSession = Matrix.getInstance(getApplicationContext()).getSession(mAccountId);
+            }
+        }
+
         Log.d(LOG_TAG, "onStartCommand >> "+action);
         switch (action) {
             case START:
@@ -212,12 +223,10 @@ public class EventStreamService extends Service {
             resume();
             return;
         }
+
         if (mSession == null) {
-            mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-            if (mSession == null) {
-                Log.e(LOG_TAG, "No valid MXSession.");
-                return;
-            }
+            Log.e(LOG_TAG, "No valid MXSession.");
+            return;
         }
 
         mActiveEventStreamService = this;

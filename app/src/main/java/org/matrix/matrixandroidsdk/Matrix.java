@@ -78,16 +78,13 @@ public class Matrix {
      * @return the MXsession if it exists.
      */
     public synchronized MXSession getSession(String accountId) {
-        // sanity checks
-        if ((mMXSessions.size() == 0) || (null == accountId)) {
-            return getDefaultSession();
-        }
+        if (null != accountId) {
+            for (MXSession session : mMXSessions) {
+                Credentials credentials = session.getCredentials();
 
-        for(MXSession session : mMXSessions) {
-            Credentials credentials =  session.getCredentials();
-
-            if ((null != credentials) && (credentials.userId.equals(accountId))) {
-                return session;
+                if ((null != credentials) && (credentials.userId.equals(accountId))) {
+                    return session;
+                }
             }
         }
 

@@ -47,23 +47,23 @@ import java.util.ArrayList;
 public class RoomCreationDialogFragment extends DialogFragment {
     private static final String LOG_TAG = "RoomCreationDialogFragment";
 
-    public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment.ARG_ROOM_ID";
-
     private MXSession mSession;
 
-    public static RoomCreationDialogFragment newInstance() {
+    public static RoomCreationDialogFragment newInstance(MXSession session) {
         RoomCreationDialogFragment f = new RoomCreationDialogFragment();
         Bundle args = new Bundle();
         f.setArguments(args);
+        f.setSession(session);
         return f;
+    }
+
+    public void setSession(MXSession session) {
+        mSession = session;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Context context = getActivity().getApplicationContext();
-
-        mSession = Matrix.getInstance(context).getDefaultSession();
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }
@@ -93,10 +93,8 @@ public class RoomCreationDialogFragment extends DialogFragment {
                         EditText roomAliasEdittext = (EditText)view.findViewById(R.id.editText_roomAlias);
                         String roomAlias = roomAliasEdittext.getText().toString();
 
-                        MXSession session = Matrix.getInstance(getActivity()).getDefaultSession();
-
                         // get the user suffix
-                        String userID = session.getCredentials().userId;
+                        String userID = mSession.getCredentials().userId;
                         String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
 
                         // check the syntax
@@ -120,7 +118,7 @@ public class RoomCreationDialogFragment extends DialogFragment {
                         // get the members list
                         final ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(participantsEdittext.getText().toString(), homeServerSuffix);
 
-                        session.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>(getActivity()) {
+                        mSession.createRoom(roomName, null, roomVisibility, roomAlias, new SimpleApiCallback<String>(getActivity()) {
                             @Override
                             public void onSuccess(String roomId) {
                                 CommonActivityUtils.goToRoomPage(mSession, roomId, activity, null);

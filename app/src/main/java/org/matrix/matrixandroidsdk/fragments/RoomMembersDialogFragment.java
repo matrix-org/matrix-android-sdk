@@ -59,11 +59,12 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment.ARG_ROOM_ID";
 
-    public static RoomMembersDialogFragment newInstance(String roomId) {
+    public static RoomMembersDialogFragment newInstance(MXSession session, String roomId) {
         RoomMembersDialogFragment f= new RoomMembersDialogFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         f.setArguments(args);
+        f.setSession(session);
         return f;
     }
 
@@ -122,14 +123,16 @@ public class RoomMembersDialogFragment extends DialogFragment {
         }
     };
 
+    public void setSession(MXSession session) {
+        mSession = session;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mRoomId = getArguments().getString(ARG_ROOM_ID);
-        Context context = getActivity().getApplicationContext();
         uiThreadHandler = new Handler();
 
-        mSession = Matrix.getInstance(context).getDefaultSession();
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }

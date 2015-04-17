@@ -96,15 +96,16 @@ public class SplashActivity extends MXCActionBarActivity {
 
             mListeners.put(fSession, eventListener);
             fSession.getDataHandler().addListener(eventListener);
+
+            // Start the event stream service
+            Intent intent = new Intent(this, EventStreamService.class);
+            intent.putExtra(EventStreamService.EXTRA_ACCOUNT_ID, fSession.getCredentials().userId);
+            intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
+            startService(intent);
+
+            // Set the main error listener
+            fSession.setFailureCallback(new ErrorListener(this));
         }
-
-        // Start the event stream service
-        Intent intent = new Intent(this, EventStreamService.class);
-        intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
-        startService(intent);
-
-        // Set the main error listener
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().setFailureCallback(new ErrorListener(this));
 
         mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
                 .getSharedGcmRegistrationManager();

@@ -111,7 +111,7 @@ public class RageShake implements SensorEventListener {
 
                 message += "Application info\n";
 
-                MXSession session = Matrix.getInstance(mContext).getDefaultSession();
+                MXSession session = Matrix.getInstance(mContext).getSession(null);
                 MyUser mMyUser = session.getMyUser();
 
                 message += "userId : "+ mMyUser.userId + "\n";

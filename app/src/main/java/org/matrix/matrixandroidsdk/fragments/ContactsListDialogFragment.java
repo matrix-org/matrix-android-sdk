@@ -55,7 +55,6 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
 
     private ListView mListView;
     private ContactsListAdapter mAdapter;
-    private MXSession mSession;
 
     private ArrayList<Contact> mLocalContacts;
     private ArrayList<Contact> mFilteredContacts;
@@ -72,13 +71,6 @@ public class ContactsListDialogFragment extends DialogFragment implements PIDsRe
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        Context context = getActivity().getApplicationContext();
-
-        mSession = Matrix.getInstance(context).getDefaultSession();
-        if (mSession == null) {
-            throw new RuntimeException("No MXSession.");
-        }
     }
 
     @Override

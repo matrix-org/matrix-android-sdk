@@ -751,7 +751,7 @@ public class HomeActivity extends MXCActionBarActivity {
         if (fragment != null) {
             fragment.dismissAllowingStateLoss();
         }
-        fragment = RoomCreationDialogFragment.newInstance();
+        fragment = RoomCreationDialogFragment.newInstance(mSession);
         fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
 

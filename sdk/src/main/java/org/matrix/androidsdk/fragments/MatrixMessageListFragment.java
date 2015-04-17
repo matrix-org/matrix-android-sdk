@@ -71,12 +71,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
-    public static MatrixMessageListFragment newInstance(String roomId, int layoutResId) {
+    public static MatrixMessageListFragment newInstance(MXSession session, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
         f.setArguments(args);
+        f.mSession = session;
         return f;
     }
 
@@ -92,10 +93,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
-
-    public MXSession getMXSession() {
-        return null;
-    }
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -117,9 +114,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+
+        Bundle args = getArguments();
+
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
-        mSession = getMXSession();
 
         if (null == mSession) {
             throw new RuntimeException("Must have valid default MXSession.");
@@ -129,7 +128,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             throw new RuntimeException("Must have valid default MediasCache.");
         }
 
-        Bundle args = getArguments();
+
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
     }

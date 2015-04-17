@@ -17,7 +17,6 @@
 package org.matrix.matrixandroidsdk.fragments;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -34,7 +33,6 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
-import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
@@ -57,18 +55,14 @@ import java.util.List;
 
 public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
-    public static ConsoleMessageListFragment newInstance(String roomId, int layoutResId) {
+    public static ConsoleMessageListFragment newInstance(MXSession session, String roomId, int layoutResId) {
         ConsoleMessageListFragment f = new ConsoleMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
         f.setArguments(args);
+        f.mSession = session;
         return f;
-    }
-
-    @Override
-    public MXSession getMXSession() {
-        return Matrix.getInstance(getActivity()).getDefaultSession();
     }
 
     @Override
