@@ -806,7 +806,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-    private View getNoticeView(int position, View convertView, ViewGroup parent) {
+    private View getNoticeView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
@@ -823,6 +823,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
+
+        // add a click listener because the text view gains the focus.
+        //  mMessageListView.setOnItemClickListener is never called.
+        convertView.setClickable(true);
+        // click on the avatar opens the details page
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // warn listener of click events if there is no selection
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
 
         return convertView;
     }

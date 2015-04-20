@@ -157,55 +157,58 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         String mediaUrl = null;
         String mediaMimeType = null;
         Uri mediaUri = null;
-        Message message = null;
+        Message message = JsonUtils.toMessage(messageRow.getEvent().content);
 
-        if (messageRow.getEvent().canBeResent()) {
-            textIds.add(R.string.resend);
-            iconIds.add(R.drawable.ic_material_send);
-        } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
-            textIds.add(R.string.redact);
-            iconIds.add(R.drawable.ic_material_clear);
+        if (!Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(messageRow.getEvent().type) &&
+            !Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(messageRow.getEvent().type) &&
+            !Event.EVENT_TYPE_STATE_ROOM_NAME.equals(messageRow.getEvent().type))
+        {
+            if (messageRow.getEvent().canBeResent()) {
+                textIds.add(R.string.resend);
+                iconIds.add(R.drawable.ic_material_send);
+            } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
+                textIds.add(R.string.redact);
+                iconIds.add(R.drawable.ic_material_clear);
+                if (Event.EVENT_TYPE_MESSAGE.equals(messageRow.getEvent().type)) {
+                    Boolean supportShare = true;
 
-            if (Event.EVENT_TYPE_MESSAGE.equals(messageRow.getEvent().type)) {
-                Boolean supportShare = true;
-                message = JsonUtils.toMessage(messageRow.getEvent().content);
+                    // check if the media has been downloaded
+                    if ((message instanceof ImageMessage) || (message instanceof FileMessage)) {
+                        if (message instanceof ImageMessage) {
+                            ImageMessage imageMessage = (ImageMessage) message;
 
-                // check if the media has been downloaded
-                if ((message instanceof ImageMessage) || (message instanceof FileMessage)) {
-                    if (message instanceof ImageMessage) {
-                        ImageMessage imageMessage = (ImageMessage) message;
+                            mediaUrl = imageMessage.url;
+                            mediaMimeType = imageMessage.getMimeType();
+                        } else {
+                            FileMessage fileMessage = (FileMessage) message;
 
-                        mediaUrl = imageMessage.url;
-                        mediaMimeType = imageMessage.getMimeType();
-                    } else {
-                        FileMessage fileMessage = (FileMessage) message;
+                            mediaUrl = fileMessage.url;
+                            mediaMimeType = fileMessage.getMimeType();
+                        }
 
-                        mediaUrl = fileMessage.url;
-                        mediaMimeType = fileMessage.getMimeType();
-                    }
+                        supportShare = false;
+                        MXMediasCache cache = getMXMediasCache();
 
-                    supportShare = false;
-                    MXMediasCache cache = getMXMediasCache();
-
-                    String filename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
-                    if (null != filename) {
-                        try {
-                            mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + filename);
-                            supportShare = true;
-                        } catch (Exception e) {
+                        String filename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+                        if (null != filename) {
+                            try {
+                                mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + filename);
+                                supportShare = true;
+                            } catch (Exception e) {
+                            }
                         }
                     }
-                }
 
-                if (supportShare) {
-                    textIds.add(R.string.share);
-                    iconIds.add(R.drawable.ic_material_share);
+                    if (supportShare) {
+                        textIds.add(R.string.share);
+                        iconIds.add(R.drawable.ic_material_share);
 
-                    textIds.add(R.string.forward);
-                    iconIds.add(R.drawable.ic_material_forward);
+                        textIds.add(R.string.forward);
+                        iconIds.add(R.drawable.ic_material_forward);
 
-                    textIds.add(R.string.save);
-                    iconIds.add(R.drawable.ic_material_save);
+                        textIds.add(R.string.save);
+                        iconIds.add(R.drawable.ic_material_save);
+                    }
                 }
             }
         }
