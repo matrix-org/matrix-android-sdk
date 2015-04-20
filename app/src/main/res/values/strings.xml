@@ -140,7 +140,7 @@
 
     <string name="settings_webclient_push">To configure global notification settings (like rules), go find a webclient and hit Settings > Notifications.</string>
 
-    <string name="settings_title_profile">Profile</string>
+    <string name="settings_title_profile">Profile information</string>
     <string name="settings_title_config">Configuration</string>
     <string name="settings_title_notifications">Notifications</string>
     <string name="settings_title_rooms">Rooms</string>
@@ -163,6 +163,9 @@
     <string name="settings_config_access_token">Access token: %s</string>
     <string name="settings_command_commands">The following commands are available in the room chat:\r\n\r\n /nick &#60;display_name&#62;&#58; change your display name\r\n /me &#60;action&#62;&#58; send the action you are doing. /me will be replaced by your display name\r\n /join &#60;room_alias&#62;&#58; join a room\r\n /kick &#60;user_id&#62; [&#60;reason>]&#58; kick the user\r\n /ban &#60;user_id&#62; [&#60;reason&#62;]&#58; ban the user\r\n /unban &#60;user_id&#62;&#58; unban the user\r\n /op &#60;user_id&#62; &#60;power_level&#62;&#58; set user power level\r\n /deop &#60;user_id&#62;&#58; reset user power level to the room default value</string>
     <string name="settings_failed_to_upload_avatar">Failed to upload avatar</string>
+
+    <string name="settings_display_name_hint">Enter a display name</string>
+    <string name="settings_update_profile">Update profile</string>
 
     <!-- Settings keys -->
     <string name="settings_key_display_all_events">settings_key_display_all_events</string>

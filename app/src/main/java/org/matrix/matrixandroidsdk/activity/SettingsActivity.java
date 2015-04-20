@@ -70,7 +70,10 @@ public class SettingsActivity extends MXCActionBarActivity {
 
     void refreshProfileThumbnail() {
         mAvatarImageView = (ImageView) findViewById(R.id.imageView_avatar);
-        if (mMyUser.avatarUrl == null) {
+
+        if (null != newAvatarUri) {
+            mAvatarImageView.setImageURI(newAvatarUri);
+        } else if (mMyUser.avatarUrl == null) {
             mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
@@ -99,6 +102,9 @@ public class SettingsActivity extends MXCActionBarActivity {
                 startActivityForResult(fileIntent, REQUEST_IMAGE);
             }
         });
+
+        TextView matrixIdTextView = (TextView) findViewById(R.id.textView_matrix_id);
+        matrixIdTextView.setText(mMyUser.userId);
 
         mDisplayNameEditText = (EditText) findViewById(R.id.editText_displayName);
         mDisplayNameEditText.setText(mMyUser.displayname);
@@ -210,14 +216,21 @@ public class SettingsActivity extends MXCActionBarActivity {
         mSession.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
             @Override
             public void onSuccess(String displayname) {
-                mMyUser.displayname = displayname;
-                mDisplayNameEditText.setText(mMyUser.displayname);
+
+                if ((null != displayname) && !displayname.equals(mMyUser.displayname)) {
+                    mMyUser.displayname = displayname;
+                    mDisplayNameEditText.setText(mMyUser.displayname);
+                }
 
                 mSession.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
                     @Override
                     public void onSuccess(String avatarUrl) {
-                        mMyUser.avatarUrl = avatarUrl;
-                        refreshProfileThumbnail();
+                        if ((null != avatarUrl) && !avatarUrl.equals(mMyUser.avatarUrl)) {
+                            newAvatarUri = null;
+                            mMyUser.avatarUrl = avatarUrl;
+                            refreshProfileThumbnail();
+                        }
+
                         refreshingView.setVisibility(View.GONE);
                     }
                 });
