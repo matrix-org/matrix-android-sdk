@@ -282,6 +282,7 @@ public class EventStreamService extends Service {
                 session.getDataHandler().removeListener(mListener);
             }
         }
+        mMatrixIds = null;
         mSessions = null;
         mState = StreamAction.STOP;
 
@@ -301,7 +302,6 @@ public class EventStreamService extends Service {
 
     private void resume() {
         if (mSessions != null) {
-
             for(MXSession session : mSessions) {
                 session.resumeEventStream();
             }
