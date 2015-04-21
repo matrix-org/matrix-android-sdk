@@ -7,6 +7,7 @@
 
     <TextView
         android:id="@+id/textView_matrix_id"
+        android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

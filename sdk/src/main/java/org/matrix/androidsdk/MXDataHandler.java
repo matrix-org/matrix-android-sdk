@@ -110,7 +110,10 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void addListener(IMXEventListener listener) {
-        mEventListeners.add(listener);
+        // avoid adding twice
+        if (mEventListeners.indexOf(listener) == -1) {
+            mEventListeners.add(listener);
+        }
         if (mInitialSyncComplete) {
             listener.onInitialSyncComplete();
         }

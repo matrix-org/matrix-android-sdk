@@ -48,6 +48,11 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
     @Override
     public void onEventsReceived(List<Event> events) {
+        // store the matrix id
+        for(Event event : events) {
+            event.setMatrixId(mData.getUserId());
+        }
+
         mData.handleLiveEvents(events);
     }
 }

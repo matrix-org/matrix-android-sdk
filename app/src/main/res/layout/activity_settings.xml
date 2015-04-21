@@ -14,7 +14,6 @@
         <TextView
             android:id="@+id/settings_profile_information_header"
             android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             style="@style/Base.TextAppearance.AppCompat.Title"

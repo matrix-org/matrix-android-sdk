@@ -17,11 +17,16 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,6 +36,12 @@ import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -39,10 +50,12 @@ import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -55,6 +68,7 @@ import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -98,6 +112,7 @@ public class HomeActivity extends MXCActionBarActivity {
            // R.string.action_mark_all_as_read,
             R.string.action_settings,
             R.string.send_bug_report,
+            R.string.action_add_account,
             R.string.action_disconnect,
             R.string.action_logout,
     };
@@ -111,6 +126,7 @@ public class HomeActivity extends MXCActionBarActivity {
             //R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
             R.drawable.ic_material_settings, //  R.string.action_settings,
             R.drawable.ic_material_bug_report, // R.string.send_bug_report,
+            R.drawable.ic_material_person_add, // R.string.action_add_account,
             R.drawable.ic_material_clear, // R.string.action_disconnect,
             R.drawable.ic_material_exit_to_app, // R.string.action_logout,
     };
@@ -140,16 +156,24 @@ public class HomeActivity extends MXCActionBarActivity {
         mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
         // the chevron is managed in the header view
         mMyRoomList.setGroupIndicator(null);
-        mAdapter = new ConsoleRoomSummaryAdapter(this, R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
+        mAdapter = new ConsoleRoomSummaryAdapter(this, Matrix.getMXSessions(this), R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
 
         if (null != savedInstanceState) {
             if (savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
-                // the unread messages map is saved in the bundle
-                // It is used to  restore a valid map after a screen rotation for example
-                Serializable map = savedInstanceState.getSerializable(UNREAD_MESSAGE_MAP);
+                String jsonString = savedInstanceState.getString(UNREAD_MESSAGE_MAP);
 
-                if (null != map) {
-                    mAdapter.setUnreadCountMap((HashMap<String, Integer>) map);
+                ArrayList<HashMap<String, Integer>> arrayList = null;
+
+                try {
+                    Gson converter = new Gson();
+                    Type type = new TypeToken<List<HashMap<String, Integer>>>(){}.getType();
+                    List<HashMap<String, Integer>> list = converter.fromJson(jsonString, type);
+                    arrayList = new ArrayList<HashMap<String, Integer>>(list) ;
+                } catch (Exception e) {
+                }
+
+                if (null != arrayList) {
+                    mAdapter.setUnreadCountMap(arrayList);
                 }
             }
 
@@ -204,7 +228,7 @@ public class HomeActivity extends MXCActionBarActivity {
                 MXSession session = null;
 
                 if (mAdapter.isRecentsGroupIndex(groupPosition)) {
-                    RoomSummary roomSummary = mAdapter.getRoomSummaryAt(childPosition);
+                    RoomSummary roomSummary = mAdapter.getRoomSummaryAt(groupPosition, childPosition);
                     session = Matrix.getInstance(HomeActivity.this).getSession(roomSummary.getMatrixId());
 
                     roomId = roomSummary.getRoomId();
@@ -214,7 +238,7 @@ public class HomeActivity extends MXCActionBarActivity {
                         roomId = null;
                     }
 
-                    mAdapter.resetUnreadCount(roomId);
+                    mAdapter.resetUnreadCount(groupPosition, roomId);
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     // should offer to select which account to use
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
@@ -233,7 +257,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
                 if (ExpandableListView.getPackedPositionType(id) == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
                     long packedPos = ((ExpandableListView) parent).getExpandableListPosition(position);
-                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPos);
+                    final int groupPosition = ExpandableListView.getPackedPositionGroup(packedPos);
 
                     if (mAdapter.isRecentsGroupIndex(groupPosition)) {
                         final int childPosition = ExpandableListView.getPackedPositionChild(packedPos);
@@ -258,7 +282,7 @@ public class HomeActivity extends MXCActionBarActivity {
                                     HomeActivity.this.runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
-                                            RoomSummary roomSummary = mAdapter.getRoomSummaryAt(childPosition);
+                                            RoomSummary roomSummary = mAdapter.getRoomSummaryAt(groupPosition, childPosition);
                                             MXSession session = Matrix.getInstance(HomeActivity.this).getSession(roomSummary.getMatrixId());
 
                                             String roomId = roomSummary.getRoomId();
@@ -326,7 +350,19 @@ public class HomeActivity extends MXCActionBarActivity {
         // save the unread messages counters
         // to avoid resetting counters after a screen rotation
         if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
-            savedInstanceState.putSerializable(UNREAD_MESSAGE_MAP, mAdapter.getUnreadCountMap());
+
+            String encodedMap = null;
+
+            try {
+                JSONArray jsArray = new JSONArray(mAdapter.getUnreadCountMap());
+                encodedMap = jsArray.toString();
+
+            } catch (Exception e) {
+            }
+
+            if (null != encodedMap) {
+                savedInstanceState.putString(UNREAD_MESSAGE_MAP, encodedMap );
+            }
         }
 
         if (null != mPublicRooms) {
@@ -341,8 +377,8 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void expandAllGroups() {
-        if (mAdapter.mRecentsGroupIndex >= 0) {
-            mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+        for(int section = 0; section < Matrix.getMXSessions(this).size(); section++) {
+            mMyRoomList.expandGroup(section);
         }
 
         if (mAdapter.mPublicsGroupIndex >= 0) {
@@ -351,8 +387,8 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void collapseAllGroups() {
-        if (mAdapter.mRecentsGroupIndex >= 0) {
-            mMyRoomList.collapseGroup(mAdapter.mRecentsGroupIndex);
+        for(int section = 0; section < Matrix.getMXSessions(this).size(); section++) {
+            mMyRoomList.collapseGroup(section);
         }
 
         if (mAdapter.mPublicsGroupIndex >= 0) {
@@ -376,8 +412,8 @@ public class HomeActivity extends MXCActionBarActivity {
 
             mSearchRoomEditText.setVisibility(View.GONE);
 
-            if (mAdapter.mRecentsGroupIndex >= 0) {
-                mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+            for(int section = 0; section < Matrix.getMXSessions(this).size(); section++) {
+                mMyRoomList.expandGroup(section);
             }
 
             if (mAdapter.mPublicsGroupIndex >= 0) {
@@ -428,8 +464,8 @@ public class HomeActivity extends MXCActionBarActivity {
                         mAdapter.sortSummaries();
                         mAdapter.notifyDataSetChanged();
 
-                        if (mAdapter.mRecentsGroupIndex >= 0) {
-                            mMyRoomList.expandGroup(mAdapter.mRecentsGroupIndex);
+                        for(int section = 0; section < Matrix.getMXSessions(HomeActivity.this).size(); section++) {
+                            mMyRoomList.expandGroup(section);
                         }
 
                         if (mAdapter.mPublicsGroupIndex >= 0) {
@@ -471,14 +507,16 @@ public class HomeActivity extends MXCActionBarActivity {
                     @Override
                     public void run() {
                         if ((event.roomId != null) && isDisplayableEvent(event)) {
+                            List<MXSession> sessions = new ArrayList<MXSession>(Matrix.getMXSessions(HomeActivity.this));
+                            int section = sessions.indexOf(session);
                             String matrixId = session.getCredentials().userId;
                             Room room = session.getDataHandler().getRoom(event.roomId);
 
                             // roomState is the state before the update
                             // need to update to updated state so the live state
-                            mAdapter.setLatestEvent(event, (null == room) ? roomState : room.getLiveState());
+                            mAdapter.setLatestEvent(section, event, (null == room) ? roomState : room.getLiveState());
 
-                            RoomSummary summary = mAdapter.getSummaryByRoomId(event.roomId);
+                            RoomSummary summary = mAdapter.getSummaryByRoomId(section, event.roomId);
                             if (summary == null) {
                                 // ROOM_CREATE events will be sent during initial sync. We want to ignore them
                                 // until the initial sync is done (that is, only refresh the list when there
@@ -502,7 +540,7 @@ public class HomeActivity extends MXCActionBarActivity {
                             // If we've left the room, remove it from the list
                             else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                     isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, matrixId, summary)) {
-                                mAdapter.removeRoomSummary(summary);
+                                mAdapter.removeRoomSummary(section, summary);
                             }
 
                             // Watch for potential room name changes
@@ -512,9 +550,13 @@ public class HomeActivity extends MXCActionBarActivity {
                                 summary.setName(room.getName(matrixId));
                             }
 
+                            ViewedRoomTracker rTracker = ViewedRoomTracker.getInstance();
+                            String viewedRoomId = rTracker.getViewedRoomId();
+                            String fromMatrixId = rTracker.getMatrixId();
+
                             // If we're not currently viewing this room or not sent by myself, increment the unread count
-                            if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(matrixId)) {
-                                mAdapter.incrementUnreadCount(event.roomId);
+                            if ((!event.roomId.equals(viewedRoomId) || !matrixId.equals(fromMatrixId))  && !event.userId.equals(matrixId)) {
+                                mAdapter.incrementUnreadCount(section, event.roomId);
 
                                 if (EventUtils.shouldHighlight(session, HomeActivity.this, event)) {
                                     mAdapter.highlightRoom(event.roomId);
@@ -572,7 +614,10 @@ public class HomeActivity extends MXCActionBarActivity {
 
                 // only add summaries to rooms we have not left.
                 if (!isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, selfUserId, summary)) {
-                    mAdapter.addRoomSummary(summary);
+                    List<MXSession> sessions = new ArrayList<MXSession>(Matrix.getMXSessions(HomeActivity.this));
+                    int section = sessions.indexOf(session);
+
+                    mAdapter.addRoomSummary(section, summary);
                 }
             }
         };
@@ -683,6 +728,8 @@ public class HomeActivity extends MXCActionBarActivity {
                     RageShake.getInstance().sendBugReport();
                 } else if (id ==  R.string.action_logout) {
                     CommonActivityUtils.logout(HomeActivity.this);
+                } else if (id ==  R.string.action_add_account) {
+                    HomeActivity.this.addAccount();
                 }
             }
         });
@@ -799,4 +846,85 @@ public class HomeActivity extends MXCActionBarActivity {
         mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
     }
+
+    /**
+     * Add an existing account
+     */
+    private void addAccount() {
+        LayoutInflater factory = LayoutInflater.from(this);
+
+        final View layout = factory.inflate(R.layout.fragment_dialog_add_account, null);
+        final EditText usernameEditText = (EditText) layout.findViewById(R.id.editText_username);
+        final EditText passwordEditText = (EditText) layout.findViewById(R.id.editText_password);
+        final EditText homeServerEditText = (EditText) layout.findViewById(R.id.editText_hs);
+
+
+        final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle(R.string.action_add_account).setView(layout).setPositiveButton(R.string.ok,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,
+                                        int whichButton) {
+
+                        String hsUrl = homeServerEditText.getText().toString();
+                        String username = usernameEditText.getText().toString();
+                        String password = passwordEditText.getText().toString();
+
+                        if (!hsUrl.startsWith("http")) {
+                            Toast.makeText(HomeActivity.this, getString(R.string.login_error_must_start_http), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
+                            Toast.makeText(HomeActivity.this, getString(R.string.login_error_invalid_credentials), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        LoginRestClient client = null;
+
+                        try {
+                            client = new LoginRestClient(Uri.parse(hsUrl));
+                        } catch (Exception e) {
+                        }
+
+                        if (null == client) {
+                            Toast.makeText(HomeActivity.this, getString(R.string.login_error_invalid_home_server), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(HomeActivity.this) {
+                            @Override
+                            public void onSuccess(Credentials credentials) {
+                                MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
+                                Matrix.getInstance(getApplicationContext()).addSession(session);
+                                startActivity(new Intent(HomeActivity.this, SplashActivity.class));
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Toast.makeText(getApplicationContext(), getString(R.string.login_error_network_error), Toast.LENGTH_LONG).show();
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                String msg = getString(R.string.login_error_unable_login) + " : " + e.getMessage();
+                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                String msg = getString(R.string.login_error_unable_login) + " : " + e.error + "("+e.errcode+")";
+                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                            }
+                        });
+
+                    }
+                }).setNegativeButton(R.string.cancel,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,
+                                        int whichButton) {
+                    }
+                });
+        alert.show();
+    }
+
 }

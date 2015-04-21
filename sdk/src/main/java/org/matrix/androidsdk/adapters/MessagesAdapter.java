@@ -402,7 +402,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
-        View rightTsTextLayout =convertView.findViewById(R.id.message_timestamp_layout_right);
+        View rightTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_right);
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);

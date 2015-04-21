@@ -70,14 +70,19 @@ public class Matrix {
             return mMXSessions.get(0);
         }
 
-        Credentials creds = mLoginStorage.getDefaultCredentials();
-        if (creds == null) {
+        ArrayList<Credentials> credsList = mLoginStorage.getCredentialsList();
+
+        // any account ?
+        if ((credsList == null) || (credsList.size() == 0)) {
             return null;
         }
 
-        MXSession defaultSession = createSession(creds);
-        mMXSessions.add(defaultSession);
-        return defaultSession;
+        for(Credentials creds : credsList) {
+            MXSession session = createSession(creds);
+            mMXSessions.add(session);
+        }
+
+        return mMXSessions.get(0);
     }
 
     /**

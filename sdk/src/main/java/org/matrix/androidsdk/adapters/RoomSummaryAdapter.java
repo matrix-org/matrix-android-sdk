@@ -35,6 +35,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.util.EventDisplay;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,28 +54,27 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mHighlightColor;
     private int mPublicHighlightColor;
 
-    private List<RoomSummary>mRecentsSummariesList;
+    private ArrayList<ArrayList<RoomSummary>> mRecentsSummariesList;
     private List<PublicRoom>mPublicRoomsList;
 
-    public int mRecentsGroupIndex = -1;
     public int mPublicsGroupIndex = -1;
 
     private  boolean mDisplayAllGroups = true;
 
-    private List<RoomSummary>mFilteredRecentsSummariesList;
+    private ArrayList<ArrayList<RoomSummary>> mFilteredRecentsSummariesList;
     private List<PublicRoom>mFilteredPublicRoomsList;
 
     private String mSearchedPattern = "";
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
-    private HashMap<String, Integer> mUnreadCountMap = new HashMap<String, Integer>();
+    private ArrayList<HashMap<String, Integer>> mUnreadCountMaps = new ArrayList<HashMap<String, Integer>>();
 
     // abstract methods
     public abstract int getUnreadMessageBackgroundColor();
     public abstract int getHighlightMessageBackgroundColor();
     public abstract int getPublicHighlightMessageBackgroundColor();
     public abstract boolean displayPublicRooms();
-    public abstract String myRoomsTitle();
+    public abstract String myRoomsTitle(int section);
     public abstract String publicRoomsTitle();
 
     /**
@@ -84,14 +84,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      *                         the IDs: roomsAdapter_roomName, roomsAdapter_roomTopic
      * @param headerLayoutResourceId the header layout id
      */
-    public RoomSummaryAdapter(Context context, int layoutResourceId, int headerLayoutResourceId) {
+    public RoomSummaryAdapter(Context context, int nbrSections, int layoutResourceId, int headerLayoutResourceId) {
         mContext = context;
         mLayoutResourceId = layoutResourceId;
         mHeaderLayoutResourceId = headerLayoutResourceId;
         mLayoutInflater = LayoutInflater.from(mContext);
         //setNotifyOnChange(false);
 
-        mRecentsSummariesList = new ArrayList<RoomSummary>();
+        mRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
+        for(int section = 0; section < nbrSections; section++) {
+            mRecentsSummariesList.add(new ArrayList<RoomSummary>());
+            mUnreadCountMaps.add(new HashMap<String, Integer>());
+        }
+
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = getUnreadMessageBackgroundColor();
         mHighlightColor = getHighlightMessageBackgroundColor();
@@ -101,12 +106,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      *  unread messages map
      */
-    public  HashMap<String, Integer> getUnreadCountMap() {
-        return mUnreadCountMap;
+    public  List<HashMap<String, Integer>> getUnreadCountMap() {
+        return mUnreadCountMaps;
     }
 
-    public void setUnreadCountMap(HashMap<String, Integer> map) {
-        mUnreadCountMap = map;
+    public void setUnreadCountMap(ArrayList<HashMap<String, Integer>> maps) {
+        mUnreadCountMaps = maps;
     }
 
     /**
@@ -125,25 +130,31 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public void notifyDataSetChanged() {
-    mFilteredRecentsSummariesList = new ArrayList<RoomSummary>();
+        mFilteredRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
         mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
 
         // there is a pattern to search
         if (mSearchedPattern.length() > 0) {
 
-            // search in the recent rooms
-            for (RoomSummary summary : mRecentsSummariesList) {
-                String roomName = summary.getRoomName();
+            for(int index = 0; index < mRecentsSummariesList.size(); index++) {
+                ArrayList<RoomSummary> roomSummaries = mRecentsSummariesList.get(index);
+                ArrayList<RoomSummary> filteredRes = new ArrayList<RoomSummary>();
 
-                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                    mFilteredRecentsSummariesList.add(summary);
-                } else {
-                    String topic = summary.getRoomTopic();
+                // search in the recent rooms
+                for (RoomSummary summary : roomSummaries) {
+                    String roomName = summary.getRoomName();
 
-                    if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                        mFilteredRecentsSummariesList.add(summary);
+                    if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        filteredRes.add(summary);
+                    } else {
+                        String topic = summary.getRoomTopic();
+
+                        if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                            filteredRes.add(summary);
+                        }
                     }
                 }
+                mFilteredRecentsSummariesList.add(filteredRes);
             }
 
             for (PublicRoom publicRoom : mPublicRoomsList) {
@@ -170,7 +181,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @return true if the recents group oone
      */
     public boolean isRecentsGroupIndex(int groupIndex) {
-        return groupIndex == mRecentsGroupIndex;
+        return groupIndex != mPublicsGroupIndex;
     }
 
     /**
@@ -219,40 +230,47 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      * recent rooms list management
      */
-    public List<RoomSummary> getRecentsSummariesList() {
+    public ArrayList<ArrayList<RoomSummary>> getRecentsSummariesList() {
         return mRecentsSummariesList;
     }
 
-    public void addRoomSummary(RoomSummary roomSummary) {
-        // check if the summary is not added twice.
-        for(RoomSummary rSum : mRecentsSummariesList) {
-            if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
-                return;
+    public void addRoomSummary(int section, RoomSummary roomSummary) {
+        if (section < mRecentsSummariesList.size()) {
+
+            ArrayList<RoomSummary> list = mRecentsSummariesList.get(section);
+
+            // check if the summary is not added twice.
+            for (RoomSummary rSum : list) {
+                if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
+                    return;
+                }
             }
-        }
 
-        mRecentsSummariesList.add(roomSummary);
+            list.add(roomSummary);
+        }
     }
 
-    public RoomSummary getRoomSummaryAt(int index) {
+    public RoomSummary getRoomSummaryAt(int section, int index) {
         if (mSearchedPattern.length() > 0) {
-            return mFilteredRecentsSummariesList.get(index);
+            return mFilteredRecentsSummariesList.get(section).get(index);
         } else {
-            return mRecentsSummariesList.get(index);
+            return mRecentsSummariesList.get(section).get(index);
         }
     }
 
-    public void removeRoomSummary(RoomSummary roomSummary) {
-        mRecentsSummariesList.remove(roomSummary);
+    public void removeRoomSummary(int section, RoomSummary roomSummary) {
+        mRecentsSummariesList.get(section).remove(roomSummary);
 
         if (null != roomSummary.getRoomId()) {
-            mUnreadCountMap.remove(roomSummary.getRoomId());
+            mUnreadCountMaps.get(section).remove(roomSummary.getRoomId());
         }
     }
 
-    public RoomSummary getSummaryByRoomId(String roomId) {
-        for (int i=0; i<mRecentsSummariesList.size(); i++) {
-            RoomSummary summary = mRecentsSummariesList.get(i);
+    public RoomSummary getSummaryByRoomId(int section, String roomId) {
+        ArrayList<RoomSummary> list = mRecentsSummariesList.get(section);
+
+        for (int i=0; i< list.size(); i++) {
+            RoomSummary summary = list.get(i);
             if (roomId.equals(summary.getRoomId())) {
                 return summary;
             }
@@ -265,8 +283,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @param event The latest event
      * @param roomState the roomState
      */
-    public void setLatestEvent(Event event, RoomState roomState) {
-        RoomSummary summary = getSummaryByRoomId(event.roomId);
+    public void setLatestEvent(int section, Event event, RoomState roomState) {
+        RoomSummary summary = getSummaryByRoomId(section, event.roomId);
         if (summary != null) {
             summary.setLatestEvent(event);
             summary.setLatestRoomState(roomState);
@@ -279,12 +297,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * Increments the unread message counters for a dedicated room.
      * @param roomId The room identifier
      */
-    public void incrementUnreadCount(String roomId) {
-        Integer count = mUnreadCountMap.get(roomId);
+    public void incrementUnreadCount(int section, String roomId) {
+        Integer count = mUnreadCountMaps.get(section).get(roomId);
         if (count == null) {
             count = 0;
         }
-        mUnreadCountMap.put(roomId, count + 1);
+        mUnreadCountMaps.get(section).put(roomId, count + 1);
     }
 
     /**
@@ -301,19 +319,29 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * Reset the unread messages counter and remove the rooms from the highlighted rooms lists.
      * @param roomId
      */
-    public void resetUnreadCount(String roomId) {
-        mUnreadCountMap.put(roomId, 0);
+    public void resetUnreadCount(int section, String roomId) {
+        mUnreadCountMaps.get(section).put(roomId, 0);
         mHighLightedRooms.remove(roomId);
     }
+
 
     /**
      * Reset the unread message counters.
      */
     public void resetUnreadCounts() {
-        Set<String> roomIds = mUnreadCountMap.keySet();
+        for(int section = 0; section < mRecentsSummariesList.size(); section++) {
+            resetUnreadCounts(section);
+        }
+    }
+
+    /**
+     * Reset the unread message counters.
+     */
+    public void resetUnreadCounts(int section) {
+        Set<String> roomIds = mUnreadCountMaps.get(section).keySet();
 
         for(String roomId : roomIds) {
-            resetUnreadCount(roomId);
+            resetUnreadCount(section, roomId);
         }
     }
 
@@ -323,23 +351,27 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * 2 - Sort the public rooms by the number of members (bigger room first)
      */
     public void sortSummaries() {
-        Collections.sort(mRecentsSummariesList, new Comparator<RoomSummary>() {
-            @Override
-            public int compare(RoomSummary lhs, RoomSummary rhs) {
-                if (lhs == null || lhs.getLatestEvent() == null) {
-                    return 1;
-                } else if (rhs == null || rhs.getLatestEvent() == null) {
-                    return -1;
-                }
+        for(int section = 0; section < mRecentsSummariesList.size(); section++) {
+            ArrayList<RoomSummary> summariesList = mRecentsSummariesList.get(section);
 
-                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
-                    return -1;
-                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
-                    return 1;
+            Collections.sort(summariesList, new Comparator<RoomSummary>() {
+                @Override
+                public int compare(RoomSummary lhs, RoomSummary rhs) {
+                    if (lhs == null || lhs.getLatestEvent() == null) {
+                        return 1;
+                    } else if (rhs == null || rhs.getLatestEvent() == null) {
+                        return -1;
+                    }
+
+                    if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
+                        return -1;
+                    } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
+                        return 1;
+                    }
+                    return 0;
                 }
-                return 0;
-            }
-        });
+            });
+        }
 
         Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
             @Override
@@ -384,12 +416,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         deleteProgress.setVisibility(View.GONE);
         convertView.setAlpha(1.0f);
 
-        if (groupPosition == mRecentsGroupIndex) {
-            List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
+        if (isRecentsGroupIndex(groupPosition)) {
+            List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
             RoomSummary summary = summariesList.get(childPosition);
 
-            Integer unreadCount = mUnreadCountMap.get(summary.getRoomId());
+            Integer unreadCount = mUnreadCountMaps.get(groupPosition).get(summary.getRoomId());
 
             if ((unreadCount == null) || (unreadCount == 0)) {
                 convertView.setBackgroundColor(0);
@@ -468,8 +500,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             String matrixId = null;
 
-            if (mRecentsSummariesList.size() > 0) {
-                matrixId = mRecentsSummariesList.get(0).getMatrixId();
+            if ((mRecentsSummariesList.size() > 0) && (mRecentsSummariesList.get(0).size() > 0)) {
+                matrixId = mRecentsSummariesList.get(0).get(0).getMatrixId();
             }
 
             String displayName = publicRoom.getDisplayName(matrixId);
@@ -510,15 +542,15 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         TextView heading = (TextView) convertView.findViewById(R.id.heading);
 
-        if (groupPosition == mRecentsGroupIndex) {
+        if (isRecentsGroupIndex(groupPosition)) {
 
             int unreadCount = 0;
 
-            for(Integer i : mUnreadCountMap.values()) {
+            for(Integer i : mUnreadCountMaps.get(groupPosition).values()) {
                 unreadCount += i;
             }
 
-            String header = myRoomsTitle();
+            String header = myRoomsTitle(groupPosition);
 
             if (unreadCount > 0) {
                 header += " ("  + unreadCount + ")";
@@ -552,8 +584,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public int getChildrenCount(int groupPosition) {
-        if (groupPosition == mRecentsGroupIndex) {
-            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
+        if (isRecentsGroupIndex(groupPosition)) {
+            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition).size() : mRecentsSummariesList.get(groupPosition).size();
         } else {
             // display a spinner until the public rooms are loaded
             if (mPublicRoomsList.size() == 0) {
@@ -573,13 +605,9 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public int getGroupCount() {
         int count = 0;
 
-        mRecentsGroupIndex = -1;
         mPublicsGroupIndex = -1;
 
-        if ((mRecentsSummariesList.size() > 0) || mDisplayAllGroups) {
-            mRecentsGroupIndex = count;
-            count++;
-        }
+        count += mRecentsSummariesList.size();
 
         // display the public rooms in the recents only if there is no dedicated room
         if ((mRecentsSummariesList.size() == 0) || mDisplayAllGroups) {

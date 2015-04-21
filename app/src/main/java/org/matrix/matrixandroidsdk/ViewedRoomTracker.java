@@ -23,6 +23,7 @@ public class ViewedRoomTracker {
     private static ViewedRoomTracker instance = null;
 
     private String mViewedRoomId = null;
+    private String mMatrixId = null;
 
     private ViewedRoomTracker(){
     }
@@ -38,7 +39,15 @@ public class ViewedRoomTracker {
         return mViewedRoomId;
     }
 
+    public String getMatrixId() {
+        return mMatrixId;
+    }
+
     public void setViewedRoomId(String roomId) {
         mViewedRoomId = roomId;
+    }
+
+    public void setMatrixId(String matrixId) {
+        mMatrixId = matrixId;
     }
 }

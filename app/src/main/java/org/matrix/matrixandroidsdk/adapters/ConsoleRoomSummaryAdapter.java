@@ -27,13 +27,19 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.androidsdk.adapters.RoomSummaryAdapter;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 /**
  * An adapter which can display room information.
  */
 public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
 
-    public ConsoleRoomSummaryAdapter(Context context, int layoutResourceId, int headerLayoutResourceId)  {
-        super(context, layoutResourceId, headerLayoutResourceId);
+    private ArrayList<MXSession> mSessions = null;
+
+    public ConsoleRoomSummaryAdapter(Context context, Collection<MXSession> sessions, int layoutResourceId, int headerLayoutResourceId)  {
+        super(context, sessions.size(), layoutResourceId, headerLayoutResourceId);
+        mSessions = new ArrayList<MXSession>(sessions);
     }
 
     public int getUnreadMessageBackgroundColor() {
@@ -63,8 +69,12 @@ public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
         return preferences.getBoolean(mContext.getString(R.string.settings_key_display_public_rooms_recents), true);
     }
 
-    public String myRoomsTitle() {
-        return mContext.getResources().getString(R.string.my_rooms);
+    public String myRoomsTitle(int section) {
+        if (mSessions.size() == 1) {
+            return mContext.getResources().getString(R.string.my_rooms);
+        } else {
+            return mSessions.get(section).getMyUser().userId;
+        }
     }
 
     public String publicRoomsTitle() {

@@ -190,6 +190,10 @@ public class SettingsActivity extends MXCActionBarActivity {
             config += "\n";
 
             config += String.format(getString(R.string.settings_config_user_id), session.getMyUser().userId);
+
+            if (sessions.size() > 1) {
+                config += "\n";
+            }
         }
 
         userIdTextView.setText(config);
@@ -246,18 +250,18 @@ public class SettingsActivity extends MXCActionBarActivity {
         super.onResume();
         MyPresenceManager.advertiseAllOnline();
 
-        final View refreshingView = findViewById(R.id.profile_mask);
-        refreshingView.setVisibility(View.VISIBLE);
-
-
         for(MXSession session : Matrix.getMXSessions(this)) {
             final MyUser myUser = session.getMyUser();
             final MXSession fSession = session;
 
+            final LinearLayout linearLayout = mLinearLayoutBySession.get(fSession);
+
+            final View refreshingView = linearLayout.findViewById(R.id.profile_mask);
+            refreshingView.setVisibility(View.VISIBLE);
+
             session.getProfileApiClient().displayname(myUser.userId, new SimpleApiCallback<String>(this) {
                 @Override
                 public void onSuccess(String displayname) {
-                    final LinearLayout linearLayout = mLinearLayoutBySession.get(fSession);
 
                     if ((null != displayname) && !displayname.equals(myUser.displayname)) {
                         myUser.displayname = displayname;

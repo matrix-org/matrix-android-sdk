@@ -29,6 +29,7 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -67,8 +68,9 @@ public class SplashActivity extends MXCActionBarActivity {
         mListeners = new HashMap<MXSession, IMXEventListener>();
         mDoneListeners = new HashMap<MXSession, IMXEventListener>();
 
-        for(MXSession session : mSessions) {
+        ArrayList<String> matrixIds = new ArrayList<String>();
 
+        for(MXSession session : mSessions) {
             final MXSession fSession = session;
 
             final IMXEventListener eventListener = new MXEventListener() {
@@ -94,21 +96,31 @@ public class SplashActivity extends MXCActionBarActivity {
                 }
             };
 
-            mListeners.put(fSession, eventListener);
-            fSession.getDataHandler().addListener(eventListener);
+            if (!fSession.getDataHandler().isInitialSyncComplete()) {
+                mListeners.put(fSession, eventListener);
+                fSession.getDataHandler().addListener(eventListener);
 
+                // Set the main error listener
+                fSession.setFailureCallback(new ErrorListener(this));
+
+                // session to activate
+                matrixIds.add(session.getCredentials().userId);
+            }
+        }
+
+        if (EventStreamService.getInstance() == null) {
             // Start the event stream service
             Intent intent = new Intent(this, EventStreamService.class);
-            intent.putExtra(EventStreamService.EXTRA_MATRIX_ID, fSession.getCredentials().userId);
+            intent.putExtra(EventStreamService.EXTRA_MATRIX_IDS, matrixIds.toArray(new String[matrixIds.size()]));
             intent.putExtra(EventStreamService.EXTRA_STREAM_ACTION, EventStreamService.StreamAction.START.ordinal());
             startService(intent);
-
-            // Set the main error listener
-            fSession.setFailureCallback(new ErrorListener(this));
+        } else {
+            EventStreamService.getInstance().startAccounts(matrixIds);
         }
 
         mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
                 .getSharedGcmRegistrationManager();
+        mPusherRegistrationComplete = mGcmRegistrationManager.isRegistred();
         mGcmRegistrationManager.setListener(new GcmRegistrationManager.GcmRegistrationIdListener() {
             @Override
             public void onPusherRegistered() {

@@ -42,6 +42,10 @@ import org.matrix.matrixandroidsdk.activity.HomeActivity;
 import org.matrix.matrixandroidsdk.adapters.AdapterUtils;
 import org.matrix.matrixandroidsdk.util.NotificationUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 
 /**
  * A foreground service in charge of controlling whether the event stream is running or not.
@@ -57,20 +61,23 @@ public class EventStreamService extends Service {
     }
 
     public static final String EXTRA_STREAM_ACTION = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_STREAM_ACTION";
-    public static final String EXTRA_MATRIX_ID = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_MATRIX_ID";
+    public static final String EXTRA_MATRIX_IDS = "org.matrix.matrixandroidsdk.services.EventStreamService.EXTRA_MATRIX_IDS";
 
     private static final String LOG_TAG = "EventStreamService";
     private static final int NOTIFICATION_ID = 42;
     private static final int MSG_NOTIFICATION_ID = 43;
 
-    private MXSession mSession;
-    private String mMatrixId;
+    private ArrayList<MXSession> mSessions;
+    private ArrayList<String> mMatrixIds;
     private StreamAction mState = StreamAction.UNKNOWN;
 
     private String mNotificationRoomId = null;
 
     private static EventStreamService mActiveEventStreamService = null;
 
+    public static EventStreamService getInstance() {
+        return mActiveEventStreamService;
+    }
 
     /**
      * Cancel the push notifications for a dedicated roomId.
@@ -128,7 +135,9 @@ public class EventStreamService extends Service {
                 body = event.content.getAsJsonPrimitive("body").getAsString();
             }
 
-            Room room = mSession.getDataHandler().getRoom(roomId);
+            MXSession session = Matrix.getMXSession(getApplicationContext(), event.getMatrixId());
+
+            Room room = session.getDataHandler().getRoom(roomId);
 
             // invalid room ?
             if (null == room) {
@@ -143,15 +152,15 @@ public class EventStreamService extends Service {
             }
 
             String roomName = null;
-            if(mSession.getMyUser() != null) {
-                roomName = room.getName(mSession.getMyUser().userId);
+            if(session.getMyUser() != null) {
+                roomName = room.getName(session.getMyUser().userId);
             }
 
             mNotificationRoomId = roomId;
 
             Notification n = NotificationUtils.buildMessageNotification(
                     EventStreamService.this,
-                    member.getName(), mSession.getCredentials().userId, body, event.roomId, roomName, bingRule.shouldPlaySound());
+                    member.getName(), session.getCredentials().userId, body, event.roomId, roomName, bingRule.shouldPlaySound());
             NotificationManager nm = (NotificationManager) EventStreamService.this.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancelAll();
 
@@ -173,14 +182,37 @@ public class EventStreamService extends Service {
         }
     };
 
+    /**
+     * Add some accounts to the current service.
+     * @param matrixIds the account identifiers to add.
+     */
+    public void startAccounts(List<String> matrixIds) {
+        for(String matrixId : matrixIds) {
+            // not yet started
+            if (mMatrixIds.indexOf(matrixId) < 0) {
+                MXSession session = Matrix.getInstance(getApplicationContext()).getSession(matrixId);
+
+                mSessions.add(session);
+                mMatrixIds.add(matrixId);
+                session.getDataHandler().addListener(mListener);
+                session.startEventStream();
+            }
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];
 
-        if (intent.hasExtra(EXTRA_MATRIX_ID)) {
-            if (null == mMatrixId) {
-                mMatrixId = intent.getStringExtra(EXTRA_MATRIX_ID);
-                mSession = Matrix.getInstance(getApplicationContext()).getSession(mMatrixId);
+        if (intent.hasExtra(EXTRA_MATRIX_IDS)) {
+            if (null == mMatrixIds) {
+                mMatrixIds = new ArrayList<String>(Arrays.asList(intent.getStringArrayExtra(EXTRA_MATRIX_IDS)));
+
+                mSessions = new ArrayList<MXSession>();
+
+                for(String matrixId : mMatrixIds) {
+                    mSessions.add(Matrix.getInstance(getApplicationContext()).getSession(matrixId));
+                }
             }
         }
 
@@ -224,27 +256,33 @@ public class EventStreamService extends Service {
             return;
         }
 
-        if (mSession == null) {
+        if (mSessions == null) {
             Log.e(LOG_TAG, "No valid MXSession.");
             return;
         }
 
         mActiveEventStreamService = this;
 
-        mSession.getDataHandler().addListener(mListener);
-        mSession.startEventStream();
-        if (shouldRunInForeground()) {
-            startWithNotification();
+        for(MXSession session : mSessions) {
+            session.getDataHandler().addListener(mListener);
+
+            session.startEventStream();
+
+            if (shouldRunInForeground()) {
+                startWithNotification();
+            }
         }
     }
 
     private void stop() {
         stopForeground(true);
-        if (mSession != null) {
-            mSession.stopEventStream();
-            mSession.getDataHandler().removeListener(mListener);
+        if (mSessions != null) {
+            for(MXSession session : mSessions) {
+                session.stopEventStream();
+                session.getDataHandler().removeListener(mListener);
+            }
         }
-        mSession = null;
+        mSessions = null;
         mState = StreamAction.STOP;
 
         mActiveEventStreamService = null;
@@ -252,15 +290,21 @@ public class EventStreamService extends Service {
 
     private void pause() {
         stopForeground(true);
-        if (mSession != null) {
-            mSession.pauseEventStream();
+
+        if (mSessions != null) {
+            for(MXSession session : mSessions) {
+                session.pauseEventStream();
+            }
         }
         mState = StreamAction.PAUSE;
     }
 
     private void resume() {
-        if (mSession != null) {
-            mSession.resumeEventStream();
+        if (mSessions != null) {
+
+            for(MXSession session : mSessions) {
+                session.resumeEventStream();
+            }
         }
         if (shouldRunInForeground()) {
             startWithNotification();
@@ -268,10 +312,12 @@ public class EventStreamService extends Service {
     }
 
     private void startWithNotification() {
-        // TODO: remove the listening for events notification
-        Notification notification = buildNotification();
-        startForeground(NOTIFICATION_ID, notification);
-        mState = StreamAction.START;
+        // not yet started
+        if (mState != StreamAction.START) {
+            Notification notification = buildNotification();
+            startForeground(NOTIFICATION_ID, notification);
+            mState = StreamAction.START;
+        }
     }
 
     private Notification buildNotification() {

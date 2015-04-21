@@ -41,6 +41,8 @@ public final class GcmRegistrationManager {
     private Context mContext;
     private GcmRegistrationIdListener mListener;
 
+    private Boolean mIsRegistred = false;
+
     public GcmRegistrationManager(Context appContext) {
         mContext = appContext.getApplicationContext();
     }
@@ -69,11 +71,16 @@ public final class GcmRegistrationManager {
 
             @Override
             protected void onPostExecute(Void result) {
+                mIsRegistred = true;
                 if (mListener != null) {
                     mListener.onPusherRegistered();
                 }
             }
         }.execute();
+    }
+
+    public Boolean isRegistred() {
+        return mIsRegistred;
     }
 
     private String getRegistrationId() {
