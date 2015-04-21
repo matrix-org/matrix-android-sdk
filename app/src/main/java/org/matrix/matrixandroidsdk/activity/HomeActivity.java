@@ -864,7 +864,6 @@ public class HomeActivity extends MXCActionBarActivity {
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog,
                                         int whichButton) {
-
                         String hsUrl = homeServerEditText.getText().toString();
                         String username = usernameEditText.getText().toString();
                         String password = passwordEditText.getText().toString();
@@ -894,9 +893,22 @@ public class HomeActivity extends MXCActionBarActivity {
                         client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(HomeActivity.this) {
                             @Override
                             public void onSuccess(Credentials credentials) {
-                                MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
-                                Matrix.getInstance(getApplicationContext()).addSession(session);
-                                startActivity(new Intent(HomeActivity.this, SplashActivity.class));
+                                // check if there is active sessions with the same credentials.
+                                Collection<MXSession> sessions = Matrix.getMXSessions(HomeActivity.this);
+
+                                Boolean isDuplicated = false;
+
+                                for (MXSession existingSession : sessions) {
+                                    isDuplicated |= (existingSession.getCredentials().userId.equals(credentials.userId));
+                                }
+
+                                if (isDuplicated) {
+                                    Toast.makeText(getApplicationContext(), getString(R.string.login_error_already_logged_in), Toast.LENGTH_LONG).show();
+                                } else {
+                                    MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
+                                    Matrix.getInstance(getApplicationContext()).addSession(session);
+                                    startActivity(new Intent(HomeActivity.this, SplashActivity.class));
+                                }
                             }
 
                             @Override
@@ -912,7 +924,7 @@ public class HomeActivity extends MXCActionBarActivity {
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                String msg = getString(R.string.login_error_unable_login) + " : " + e.error + "("+e.errcode+")";
+                                String msg = getString(R.string.login_error_unable_login) + " : " + e.error + "(" + e.errcode + ")";
                                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
                             }
                         });

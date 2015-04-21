@@ -77,9 +77,16 @@ public class Matrix {
             return null;
         }
 
+        ArrayList<String> matrixIds = new ArrayList<String>();
+
         for(Credentials creds : credsList) {
-            MXSession session = createSession(creds);
-            mMXSessions.add(session);
+            // avoid duplicated accounts.
+            if (matrixIds.indexOf(creds.userId) < 0) {
+                MXSession session = createSession(creds);
+                mMXSessions.add(session);
+
+                matrixIds.add(creds.userId);
+            }
         }
 
         return mMXSessions.get(0);

@@ -107,6 +107,7 @@
     <string name="option_attach_video">Attach video</string>
 
     <!-- Login Screen -->
+    <string name="login_error_already_logged_in">Already logged in</string>
     <string name="login_error_must_start_http">URL must start with http[s]://</string>
     <string name="login_error_network_error">Unable to login: Network error</string>
     <string name="login_error_unable_login">Unable to login</string>
