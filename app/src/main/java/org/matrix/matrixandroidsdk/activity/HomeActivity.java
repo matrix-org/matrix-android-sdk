@@ -63,6 +63,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.adapters.ConsoleRoomSummaryAdapter;
+import org.matrix.matrixandroidsdk.fragments.AccountsSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.ContactsListDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.RageShake;
@@ -89,6 +90,8 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
     private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
+    private static final String TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG";
+
     private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
 
     public static final String EXTRA_JUMP_TO_ROOM_ID = "org.matrix.matrixandroidsdk.HomeActivity.EXTRA_JUMP_TO_ROOM_ID";
@@ -787,11 +790,39 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void joinRoomByName() {
-        // TODO should offer to select the account
+        if (Matrix.getMXSessions(this).size() == 1) {
+            joinRoomByName(Matrix.getMXSession(this, null));
+        } else {
+            FragmentManager fm = getSupportFragmentManager();
+
+            AccountsSelectionDialogFragment fragment = (AccountsSelectionDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+
+            fragment = AccountsSelectionDialogFragment.newInstance(Matrix.getMXSessions(getApplicationContext()));
+
+            fragment.setListener(new AccountsSelectionDialogFragment.AccountsListener() {
+                @Override
+                public void onSelected(final MXSession session) {
+
+                    HomeActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            HomeActivity.this.joinRoomByName(session);
+                        }
+                    });
+                }
+            });
+
+            fragment.show(fm, TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+        }
+    }
+
+    private void joinRoomByName(final MXSession session) {
         AlertDialog alert = CommonActivityUtils.createEditTextAlert(this, getString(R.string.join_room_title),  getString(R.string.join_room_hint), null, new CommonActivityUtils.OnSubmitListener() {
             @Override
             public void onSubmit(String text) {
-                MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
                 session.joinRoom(text, new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String roomId) {
@@ -831,16 +862,47 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void createRoom() {
+        if (Matrix.getMXSessions(this).size() == 1) {
+            // use the default session
+            createRoom(Matrix.getMXSession(this, null));
+        } else {
+            FragmentManager fm = getSupportFragmentManager();
+
+            AccountsSelectionDialogFragment fragment = (AccountsSelectionDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+
+            fragment = AccountsSelectionDialogFragment.newInstance(Matrix.getMXSessions(getApplicationContext()));
+
+            fragment.setListener(new AccountsSelectionDialogFragment.AccountsListener() {
+                @Override
+                public void onSelected(final MXSession session) {
+
+                    HomeActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            HomeActivity.this.createRoom(session);
+                        }
+                    });
+                }
+            });
+
+            fragment.show(fm, TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+        }
+    }
+
+    private void createRoom(MXSession session) {
         FragmentManager fm = getSupportFragmentManager();
 
         RoomCreationDialogFragment fragment = (RoomCreationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_CREATE_ROOM_DIALOG);
         if (fragment != null) {
             fragment.dismissAllowingStateLoss();
         }
-        // TODO should offer to select account
-        fragment = RoomCreationDialogFragment.newInstance(Matrix.getInstance(getApplicationContext()).getDefaultSession());
+        fragment = RoomCreationDialogFragment.newInstance(session);
         fragment.show(fm, TAG_FRAGMENT_CREATE_ROOM_DIALOG);
     }
+
 
     private void markAllMessagesAsRead() {
         mAdapter.resetUnreadCounts();

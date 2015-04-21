@@ -117,6 +117,9 @@
     <!-- members list Screen -->
     <string name="members_list">Members List</string>
 
+    <!-- accounts list Screen -->
+    <string name="choose_account">Choose account</string>
+
     <!-- invitation members list Screen -->
     <string name="members_one_to_one">One to one room members</string>
     <string name="members_small_room_members">Small room members</string>
