@@ -37,6 +37,7 @@
     <string name="action_public_rooms">Public Rooms</string>
     <string name="action_my_rooms">My Rooms</string>
     <string name="action_add_account">Add account</string>
+    <string name="action_remove_account">remove account</string>
     <string name="action_leave">Leave Room</string>
     <string name="action_delete">Delete Room</string>
     <string name="action_invite">Invite</string>

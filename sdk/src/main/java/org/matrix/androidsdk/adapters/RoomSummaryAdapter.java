@@ -106,7 +106,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      *  unread messages map
      */
-    public  List<HashMap<String, Integer>> getUnreadCountMap() {
+    public List<HashMap<String, Integer>> getUnreadCountMap() {
         return mUnreadCountMaps;
     }
 
@@ -278,6 +278,16 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         return null;
     }
 
+    public void removeSection(int section) {
+        mRecentsSummariesList.remove(section);
+
+        if ((null != mFilteredRecentsSummariesList) && (mFilteredRecentsSummariesList.size() > section)) {
+            mFilteredRecentsSummariesList.remove(section);
+        }
+
+        mUnreadCountMaps.remove(section);
+    }
+
     /**
      * Set the latest event for a room summary.
      * @param event The latest event
@@ -419,7 +429,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         if (isRecentsGroupIndex(groupPosition)) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
-            RoomSummary summary = summariesList.get(childPosition);
+            RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
 
             Integer unreadCount = mUnreadCountMaps.get(groupPosition).get(summary.getRoomId());
 

@@ -52,6 +52,7 @@ import org.matrix.matrixandroidsdk.util.RageShake;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,11 +66,26 @@ import java.util.List;
  */
 public class CommonActivityUtils {
 
+    public static void logout(Activity activity, MXSession session) {
+
+        // stop the service
+        EventStreamService eventStreamService = EventStreamService.getInstance();
+        ArrayList<String> matrixIds = new ArrayList<String>();
+        matrixIds.add(session.getMyUser().userId);
+        eventStreamService.stopAccounts(matrixIds);
+
+        // Publish to the server that we're now offline
+        MyPresenceManager.getInstance(activity, session).advertiseOffline();
+        MyPresenceManager.remove(session);
+
+        // clear credentials
+        Matrix.getInstance(activity).clearSession(activity, session, true);
+    }
+
     /**
      * Logout the current user.
      * @param activity the caller activity
      */
-    // TODO manage session
     public static void logout(Activity activity) {
         stopEventStream(activity);
 

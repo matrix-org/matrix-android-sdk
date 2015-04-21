@@ -165,24 +165,31 @@ public class Matrix {
     }
 
     /**
-     * Clears the default session and the login credentials.
+     * Clear a session.
+     * @param context the context.
+     * @param session the session to clear.
+     * @param clearCredentials true to clear the credentials.
      */
-    public synchronized void clearSessions(Context context, Boolean clearCredentials) {
-        for(MXSession session : mMXSessions) {
-            if (clearCredentials) {
-                mLoginStorage.removeCredentials(session.getCredentials());
-            }
-            session.clear(context);
+    public synchronized void clearSession(Context context, MXSession session, Boolean clearCredentials) {
+        if (clearCredentials) {
+            mLoginStorage.removeCredentials(session.getCredentials());
         }
 
-        mMXSessions.clear();
+        session.clear(context);
+        mMXSessions.remove(session);
     }
 
     /**
-     * Clears the default session.
+     * Clear any existing session.
+     * @param context the context.
+     * @param clearCredentials  true to clear the credentials.
      */
-    public synchronized void clearSessions(Context context) {
-        clearSessions(context, false);
+    public synchronized void clearSessions(Context context, Boolean clearCredentials) {
+        for(MXSession session : mMXSessions) {
+            clearSession(context, session, clearCredentials);
+        }
+
+        mMXSessions.clear();
     }
 
     /**

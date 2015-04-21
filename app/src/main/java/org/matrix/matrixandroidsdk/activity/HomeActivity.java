@@ -22,7 +22,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
@@ -37,8 +36,6 @@ import android.widget.ExpandableListView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
@@ -72,8 +69,6 @@ import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -116,6 +111,7 @@ public class HomeActivity extends MXCActionBarActivity {
             R.string.action_settings,
             R.string.send_bug_report,
             R.string.action_add_account,
+            R.string.action_remove_account,
             R.string.action_disconnect,
             R.string.action_logout,
     };
@@ -130,6 +126,7 @@ public class HomeActivity extends MXCActionBarActivity {
             R.drawable.ic_material_settings, //  R.string.action_settings,
             R.drawable.ic_material_bug_report, // R.string.send_bug_report,
             R.drawable.ic_material_person_add, // R.string.action_add_account,
+            R.drawable.ic_material_remove_circle_outline, // R.string.action_remove_account,
             R.drawable.ic_material_clear, // R.string.action_disconnect,
             R.drawable.ic_material_exit_to_app, // R.string.action_logout,
     };
@@ -733,6 +730,8 @@ public class HomeActivity extends MXCActionBarActivity {
                     CommonActivityUtils.logout(HomeActivity.this);
                 } else if (id ==  R.string.action_add_account) {
                     HomeActivity.this.addAccount();
+                } else if (id ==  R.string.action_remove_account) {
+                        HomeActivity.this.removeAccount();
                 }
             }
         });
@@ -1001,4 +1000,43 @@ public class HomeActivity extends MXCActionBarActivity {
         alert.show();
     }
 
+    private void removeAccount() {
+        final ArrayList<MXSession> sessions = new ArrayList<MXSession>(Matrix.getMXSessions(this));
+
+        // only one session -> loggout
+        if (sessions.size() == 1) {
+            CommonActivityUtils.logout(HomeActivity.this);
+        }
+
+        FragmentManager fm = getSupportFragmentManager();
+
+        AccountsSelectionDialogFragment fragment = (AccountsSelectionDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+        if (fragment != null) {
+            fragment.dismissAllowingStateLoss();
+        }
+
+        fragment = AccountsSelectionDialogFragment.newInstance(Matrix.getMXSessions(getApplicationContext()));
+
+        fragment.setListener(new AccountsSelectionDialogFragment.AccountsListener() {
+            @Override
+            public void onSelected(final MXSession session) {
+                HomeActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        CommonActivityUtils.logout(HomeActivity.this, session);
+                        mAdapter.removeSection(sessions.indexOf(session));
+                        mAdapter.notifyDataSetChanged();
+
+                        // expand/collapse to force the group refresh
+                        collapseAllGroups();
+                        // all the groups must be displayed during a search
+                        mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
+                        expandAllGroups();
+                    }
+                });
+            }
+        });
+
+        fragment.show(fm, TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+    }
 }

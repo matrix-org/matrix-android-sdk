@@ -232,8 +232,8 @@ public class MXSession {
         mDataHandler.clear();
 
         // network event will not be listened anymore
-        mNetworkConnectivityReceiver.clear();
         mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        mNetworkConnectivityReceiver.clear();
 
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();

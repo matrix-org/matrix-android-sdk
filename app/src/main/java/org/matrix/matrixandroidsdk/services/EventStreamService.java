@@ -200,6 +200,28 @@ public class EventStreamService extends Service {
         }
     }
 
+    /**
+     * Stop some accounts of the current service.
+     * @param matrixIds the account identifiers to add.
+     */
+    public void stopAccounts(List<String> matrixIds) {
+        for(String matrixId : matrixIds) {
+            // not yet started
+            if (mMatrixIds.indexOf(matrixId) >= 0) {
+                MXSession session = Matrix.getInstance(getApplicationContext()).getSession(matrixId);
+
+                if (null != session) {
+
+                    session.stopEventStream();
+                    session.getDataHandler().removeListener(mListener);
+
+                    mSessions.remove(session);
+                    mMatrixIds.remove(matrixId);
+                }
+            }
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         StreamAction action = StreamAction.values()[intent.getIntExtra(EXTRA_STREAM_ACTION, StreamAction.UNKNOWN.ordinal())];

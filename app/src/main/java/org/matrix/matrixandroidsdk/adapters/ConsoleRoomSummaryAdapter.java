@@ -80,4 +80,10 @@ public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
     public String publicRoomsTitle() {
         return mContext.getResources().getString(R.string.action_public_rooms);
     }
+
+    @Override
+    public void removeSection(int section) {
+        super.removeSection(section);
+        mSessions.remove(section);
+    }
 }
