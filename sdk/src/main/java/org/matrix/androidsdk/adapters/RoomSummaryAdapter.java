@@ -106,7 +106,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      *  unread messages map
      */
-    public List<HashMap<String, Integer>> getUnreadCountMap() {
+    public ArrayList<HashMap<String, Integer>> getUnreadCountMap() {
         return mUnreadCountMaps;
     }
 

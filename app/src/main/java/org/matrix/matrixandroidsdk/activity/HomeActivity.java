@@ -35,10 +35,6 @@ import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import org.json.JSONArray;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -66,7 +62,6 @@ import org.matrix.matrixandroidsdk.fragments.RoomCreationDialogFragment;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.Serializable;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -80,7 +75,7 @@ import java.util.List;
 public class HomeActivity extends MXCActionBarActivity {
     private ExpandableListView mMyRoomList = null;
 
-    private static final String UNREAD_MESSAGE_MAP = "UNREAD_MESSAGE_MAP";
+    private static final String UNREAD_MESSAGES_MAPS = "UNREAD_MESSAGES_MAPS";
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
@@ -96,6 +91,8 @@ public class HomeActivity extends MXCActionBarActivity {
     private List<PublicRoom> mPublicRooms = null;
 
     private boolean mIsPaused = false;
+
+    private ArrayList<Integer> mExpandedGroups = null;
 
     private String mAutomaticallyOpenedRoomId = null;
     private String mAutomaticallyOpenedMatrixId = null;
@@ -159,22 +156,8 @@ public class HomeActivity extends MXCActionBarActivity {
         mAdapter = new ConsoleRoomSummaryAdapter(this, Matrix.getMXSessions(this), R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
 
         if (null != savedInstanceState) {
-            if (savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
-                String jsonString = savedInstanceState.getString(UNREAD_MESSAGE_MAP);
-
-                ArrayList<HashMap<String, Integer>> arrayList = null;
-
-                try {
-                    Gson converter = new Gson();
-                    Type type = new TypeToken<List<HashMap<String, Integer>>>(){}.getType();
-                    List<HashMap<String, Integer>> list = converter.fromJson(jsonString, type);
-                    arrayList = new ArrayList<HashMap<String, Integer>>(list) ;
-                } catch (Exception e) {
-                }
-
-                if (null != arrayList) {
-                    mAdapter.setUnreadCountMap(arrayList);
-                }
+            if (savedInstanceState.containsKey(UNREAD_MESSAGES_MAPS)) {
+                mAdapter.setUnreadCountMap((ArrayList<HashMap<String, Integer>>)savedInstanceState.getSerializable(UNREAD_MESSAGES_MAPS));
             }
 
             if (savedInstanceState.containsKey(PUBLIC_ROOMS_LIST)) {
@@ -350,21 +333,8 @@ public class HomeActivity extends MXCActionBarActivity {
         // save the unread messages counters
         // to avoid resetting counters after a screen rotation
         if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
-
-            String encodedMap = null;
-
-            try {
-                JSONArray jsArray = new JSONArray(mAdapter.getUnreadCountMap());
-                encodedMap = jsArray.toString();
-
-            } catch (Exception e) {
-            }
-
-            if (null != encodedMap) {
-                savedInstanceState.putString(UNREAD_MESSAGE_MAP, encodedMap );
-            }
+            savedInstanceState.putSerializable(UNREAD_MESSAGES_MAPS, mAdapter.getUnreadCountMap());
         }
-
         if (null != mPublicRooms) {
             HashMap<String, PublicRoom> hash = new HashMap<String, PublicRoom>();
 
@@ -373,6 +343,30 @@ public class HomeActivity extends MXCActionBarActivity {
             }
 
             savedInstanceState.putSerializable(PUBLIC_ROOMS_LIST, hash);
+        }
+    }
+
+    public ArrayList<Integer> getExpandedGroupsList() {
+        ArrayList<Integer> expList = new ArrayList<Integer>();
+
+        int groupCount = mMyRoomList.getExpandableListAdapter().getGroupCount();
+
+        for(int groupindex = 0; groupindex < groupCount; groupindex++) {
+            if (mMyRoomList.isGroupExpanded(groupindex)) {
+                expList.add(groupindex);
+            }
+        }
+
+        return expList;
+    }
+
+    public void expandGroupIndexes(ArrayList<Integer> indexesList) {
+        if (null == indexesList) {
+            expandAllGroups();
+        } else {
+            for (Integer group : indexesList) {
+                mMyRoomList.expandGroup(group);
+            }
         }
     }
 
@@ -652,6 +646,8 @@ public class HomeActivity extends MXCActionBarActivity {
     protected void onPause() {
         super.onPause();
         MyPresenceManager.advertiseAllUnavailableAfterDelay();
+        mExpandedGroups = getExpandedGroupsList();
+
         mIsPaused = true;
     }
 
@@ -670,9 +666,11 @@ public class HomeActivity extends MXCActionBarActivity {
         collapseAllGroups();
         // all the groups must be displayed during a search
         mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
-        expandAllGroups();
+        expandGroupIndexes(mExpandedGroups);
 
         mAdapter.notifyDataSetChanged();
+
+
 
         if (null != mAutomaticallyOpenedRoomId) {
             runOnUiThread(new Runnable() {
