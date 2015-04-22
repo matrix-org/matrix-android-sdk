@@ -350,10 +350,11 @@ public class Room {
      * Process a state event to keep the internal live and back states up to date.
      * @param event the state event
      * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @return true if the event has been processed.
      */
-    public void processStateEvent(Event event, EventDirection direction) {
+    public boolean processStateEvent(Event event, EventDirection direction) {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        affectedState.applyState(event, direction);
+        return affectedState.applyState(event, direction);
     }
 
     /**
@@ -462,11 +463,17 @@ public class Room {
                 mBackState.setToken(response.end);
                 for (Event event : response.chunk) {
                     RoomState backStateCopy = mBackState.deepCopy();
+                    Boolean processedEvent = true;
 
                     if (event.stateKey != null) {
-                        processStateEvent(event, EventDirection.BACKWARDS);
+                        processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
                     }
-                    mDataHandler.onBackEvent(event, backStateCopy);
+
+                    // warn the listener only if the message is processed.
+                    // it should avoid duplicated events.
+                    if (processedEvent) {
+                        mDataHandler.onBackEvent(event, backStateCopy);
+                    }
                 }
                 if (response.chunk.size() == 0) {
                     canStillPaginate = false;

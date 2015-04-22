@@ -38,6 +38,45 @@ public class RoomMember {
         this.userId = userId;
     }
 
+    private Boolean fieldsAreEqual(String s1, String s2) {
+        // compare display name
+        if (s1 == null) {
+            return (s1 == s2);
+        } else {
+            return s1.equals(s2);
+        }
+    }
+
+    /**
+     * Compare two members.
+     * The members are equals if each field have the same value.
+     * @param otherMember the member to compare.
+     * @return true if they define the same member.
+     */
+    public boolean equals(RoomMember otherMember) {
+        // compare to null
+        if (null == otherMember) {
+            return false;
+        }
+
+        // compare display name
+        Boolean isEqual = fieldsAreEqual(displayname, otherMember.displayname);
+
+        if (isEqual) {
+            isEqual = fieldsAreEqual(avatarUrl, otherMember.avatarUrl);
+        }
+
+        if (isEqual) {
+            isEqual = fieldsAreEqual(membership, otherMember.membership);
+        }
+
+        if (isEqual) {
+            isEqual = fieldsAreEqual(userId, otherMember.userId);
+        }
+
+        return isEqual;
+    }
+
     public String getName() {
         if (displayname != null) {
             return displayname;

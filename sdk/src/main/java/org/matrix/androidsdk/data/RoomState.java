@@ -227,9 +227,12 @@ public class RoomState {
      * Apply the given event (relevant for state changes) to our state.
      * @param event the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
+     * @return true if the event is managed
      */
-    public void applyState(Event event, Room.EventDirection direction) {
-        if (event.stateKey == null) return; // Ignore non-state events
+    public Boolean applyState(Event event, Room.EventDirection direction) {
+        if (event.stateKey == null) {
+            return false;
+        }
 
         JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.content : event.prevContent;
 
@@ -257,15 +260,29 @@ public class RoomState {
             RoomMember member = JsonUtils.toRoomMember(contentToConsider);
             String userId = event.stateKey;
             if (member == null) {
+                // the member has already been removed
+                if (null == getMember(userId)) {
+                    return false;
+                }
                 removeMember(userId);
             }
             else {
+                member.setUserId(userId);
+
+                // check if the member is the same
+                // duplicated message ?
+                if (member.equals(getMember(userId))) {
+                    return false;
+                }
+
                 setMember(userId, member);
             }
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
             powerLevels = JsonUtils.toPowerLevels(contentToConsider);
         }
+
+        return true;
     }
 
     /**

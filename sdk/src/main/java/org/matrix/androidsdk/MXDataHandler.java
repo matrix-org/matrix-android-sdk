@@ -304,9 +304,13 @@ public class MXDataHandler implements IMXEventListener {
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
 
-
             if (event.stateKey != null) {
-                room.processStateEvent(event, Room.EventDirection.FORWARDS);
+                // check if the event has been processed
+                if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
+                    // not processed -> do not warn the appliction
+                    // assume that the event is a duplicated one.
+                    return;
+                }
             }
 
             RoomState liveStateCopy = room.getLiveState().deepCopy();

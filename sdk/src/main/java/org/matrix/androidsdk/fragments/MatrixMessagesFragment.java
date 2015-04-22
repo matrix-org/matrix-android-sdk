@@ -145,6 +145,8 @@ public class MatrixMessagesFragment extends Fragment {
 
         mRoom.addEventListener(mEventListener);
 
+        //joinedRoom = false;
+
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
             joinRoom();
