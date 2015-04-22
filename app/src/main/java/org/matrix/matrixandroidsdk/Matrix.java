@@ -185,11 +185,9 @@ public class Matrix {
      * @param clearCredentials  true to clear the credentials.
      */
     public synchronized void clearSessions(Context context, Boolean clearCredentials) {
-        for(MXSession session : mMXSessions) {
-            clearSession(context, session, clearCredentials);
+        while (mMXSessions.size() > 0) {
+            clearSession(context, mMXSessions.get(0), clearCredentials);
         }
-
-        mMXSessions.clear();
     }
 
     /**
