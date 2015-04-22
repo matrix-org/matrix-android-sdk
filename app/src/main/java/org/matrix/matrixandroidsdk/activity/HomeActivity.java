@@ -97,6 +97,7 @@ public class HomeActivity extends MXCActionBarActivity {
     private String mAutomaticallyOpenedMatrixId = null;
     private Intent mOpenedRoomIntent = null;
 
+
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
             //R.string.action_search_contact,
@@ -104,12 +105,12 @@ public class HomeActivity extends MXCActionBarActivity {
             R.string.create_room,
             R.string.join_room,
            // R.string.action_mark_all_as_read,
-            R.string.action_settings,
-            R.string.send_bug_report,
             R.string.action_add_account,
             R.string.action_remove_account,
+            R.string.action_settings,
             R.string.action_disconnect,
             R.string.action_logout,
+            R.string.send_bug_report,
     };
 
     // sliding menu
@@ -119,12 +120,12 @@ public class HomeActivity extends MXCActionBarActivity {
             R.drawable.ic_material_group_add, //R.string.create_room,
             R.drawable.ic_material_group, // R.string.join_room,
             //R.drawable.ic_material_done_all, // R.string.action_mark_all_as_read,
-            R.drawable.ic_material_settings, //  R.string.action_settings,
-            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
             R.drawable.ic_material_person_add, // R.string.action_add_account,
             R.drawable.ic_material_remove_circle_outline, // R.string.action_remove_account,
+            R.drawable.ic_material_settings, //  R.string.action_settings,
             R.drawable.ic_material_clear, // R.string.action_disconnect,
             R.drawable.ic_material_exit_to_app, // R.string.action_logout,
+            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
     };
 
     private HashMap<MXSession, MXEventListener> mListenersBySession = new HashMap<MXSession, MXEventListener>();
