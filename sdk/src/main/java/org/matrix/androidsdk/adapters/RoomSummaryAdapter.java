@@ -595,7 +595,13 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     @Override
     public int getChildrenCount(int groupPosition) {
         if (isRecentsGroupIndex(groupPosition)) {
-            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition).size() : mRecentsSummariesList.get(groupPosition).size();
+            ArrayList<ArrayList<RoomSummary>> list = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList : mRecentsSummariesList;
+
+            if ((null == list) || (list.size() <= groupPosition)) {
+                return 0;
+            } else {
+                return list.get(groupPosition).size();
+            }
         } else {
             // display a spinner until the public rooms are loaded
             if (mPublicRoomsList.size() == 0) {
