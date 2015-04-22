@@ -303,16 +303,16 @@ public class MXDataHandler implements IMXEventListener {
         // Room event
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
-            // The room state we send with the callback is the one before the current event was processed
-            RoomState beforeState = room.getLiveState().deepCopy();
+
 
             if (event.stateKey != null) {
                 room.processStateEvent(event, Room.EventDirection.FORWARDS);
             }
 
-            storeLiveRoomEvent(event);
+            RoomState liveStateCopy = room.getLiveState().deepCopy();
 
-            onLiveEvent(event, beforeState);
+            storeLiveRoomEvent(event);
+            onLiveEvent(event, liveStateCopy);
 
             BingRule bingRule;
 
@@ -320,16 +320,15 @@ public class MXDataHandler implements IMXEventListener {
             // the initial sync + the first requestHistory call is done here
             // instead of being done in the application
             if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId)) {
-                onSelfJoinEvent(event, beforeState);
+                onSelfJoinEvent(event, liveStateCopy);
             }
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
                     && (mBingRulesManager != null) && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))) {
-                onBingEvent(event, beforeState, bingRule);
+                onBingEvent(event, liveStateCopy, bingRule);
             }
         }
-
         else {
             Log.e(LOG_TAG, "Unknown live event type: " + event.type);
         }

@@ -461,10 +461,12 @@ public class Room {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 mBackState.setToken(response.end);
                 for (Event event : response.chunk) {
+                    RoomState backStateCopy = mBackState.deepCopy();
+
                     if (event.stateKey != null) {
                         processStateEvent(event, EventDirection.BACKWARDS);
                     }
-                    mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                    mDataHandler.onBackEvent(event, backStateCopy);
                 }
                 if (response.chunk.size() == 0) {
                     canStillPaginate = false;

@@ -506,9 +506,7 @@ public class HomeActivity extends MXCActionBarActivity {
                             String matrixId = session.getCredentials().userId;
                             Room room = session.getDataHandler().getRoom(event.roomId);
 
-                            // roomState is the state before the update
-                            // need to update to updated state so the live state
-                            mAdapter.setLatestEvent(section, event, (null == room) ? roomState : room.getLiveState());
+                            mAdapter.setLatestEvent(section, event, roomState);
 
                             RoomSummary summary = mAdapter.getSummaryByRoomId(section, event.roomId);
                             if (summary == null) {
@@ -666,11 +664,11 @@ public class HomeActivity extends MXCActionBarActivity {
         collapseAllGroups();
         // all the groups must be displayed during a search
         mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
-        expandGroupIndexes(mExpandedGroups);
-
         mAdapter.notifyDataSetChanged();
 
-
+        // expand previously expanded groups.
+        // to restore the same UX
+        expandGroupIndexes(mExpandedGroups);
 
         if (null != mAutomaticallyOpenedRoomId) {
             runOnUiThread(new Runnable() {
