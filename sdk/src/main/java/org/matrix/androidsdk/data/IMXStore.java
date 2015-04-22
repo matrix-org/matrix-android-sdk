@@ -48,6 +48,12 @@ public interface IMXStore {
     public void deleteEvent(Event event);
 
     /**
+     * Delete the room data
+     * @param RoomId the roomId.
+     */
+    public void deleteRoom(String roomId);
+
+    /**
      * Store a block of room events either live or from pagination.
      * @param roomId the room id
      * @param eventsResponse The events to be stored.

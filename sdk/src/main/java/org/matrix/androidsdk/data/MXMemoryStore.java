@@ -152,6 +152,17 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void deleteRoom(String roomId) {
+    	// asnity check
+        if (null != roomId) {
+            mRooms.remove(roomId);
+            mRoomEvents.remove(roomId);
+            mRoomTokens.remove(roomId);
+            mRoomSummaries.remove(roomId);
+        }
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
         if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
