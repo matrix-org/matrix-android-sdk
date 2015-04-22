@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -111,14 +112,18 @@ public class RageShake implements SensorEventListener {
 
                 message += "Application info\n";
 
-                MXSession session = Matrix.getInstance(mContext).getSession(null);
-                MyUser mMyUser = session.getMyUser();
+                Collection<MXSession> sessions = Matrix.getMXSessions(mContext);
+                int profileIndex = 1;
 
-                message += "userId : "+ mMyUser.userId + "\n";
-                message += "displayname : " + mMyUser.displayname + "\n";
-                message += "\n";
+                for(MXSession session : sessions) {
+                    message += "Profile " + profileIndex + " :\n";
+                    profileIndex++;
 
-                message += "homeServer :" + session.getCredentials().homeServer + "\n";
+                    MyUser mMyUser = session.getMyUser();
+                    message += "userId : "+ mMyUser.userId + "\n";
+                    message += "displayname : " + mMyUser.displayname + "\n";
+                    message += "homeServer :" + session.getCredentials().homeServer + "\n";
+                }
 
                 message += "\n";
 
@@ -135,7 +140,6 @@ public class RageShake implements SensorEventListener {
                 message += "SDK version:  " + versionName + "\n";
 
                 message += "\n\n\n";
-
 
                 intent.putExtra(Intent.EXTRA_TEXT, message);
 
