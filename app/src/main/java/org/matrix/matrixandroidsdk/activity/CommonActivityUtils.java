@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -46,6 +47,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.contacts.ContactsManager;
 import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
+import org.matrix.matrixandroidsdk.fragments.AccountsSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
@@ -230,7 +232,7 @@ public class CommonActivityUtils {
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
                                                intent.putExtra(RoomActivity.EXTRA_MATRIX_ID, fSession.getCredentials().userId);
                                                if (null != intentParam) {
-                                                    intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                                   intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
                                                }
                                                fromActivity.startActivity(intent);
                                            }
@@ -383,16 +385,45 @@ public class CommonActivityUtils {
      * @param intent the intent param
      */
     public static void sendFilesTo(final Activity fromActivity, final Intent intent) {
-        Collection<MXSession> sessions = Matrix.getMXSessions(fromActivity);
+        if (Matrix.getMXSessions(fromActivity).size() == 1) {
+            sendFilesTo(fromActivity, intent,Matrix.getMXSession(fromActivity, null));
+        } else {
+            FragmentManager fm = ((MXCActionBarActivity)fromActivity).getSupportFragmentManager();
 
-        ArrayList<RoomSummary> mergedSummaries = new ArrayList<RoomSummary>();
-        for(MXSession session : sessions) {
-            mergedSummaries.addAll(session.getDataHandler().getStore().getSummaries());
+            AccountsSelectionDialogFragment fragment = (AccountsSelectionDialogFragment) fm.findFragmentByTag(MXCActionBarActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+
+            fragment = AccountsSelectionDialogFragment.newInstance(Matrix.getMXSessions(fromActivity));
+
+            fragment.setListener(new AccountsSelectionDialogFragment.AccountsListener() {
+                @Override
+                public void onSelected(final MXSession session) {
+                    fromActivity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            sendFilesTo(fromActivity, intent, session);
+                        }
+                    });
+                }
+            });
+
+            fragment.show(fm, MXCActionBarActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
         }
+    }
 
-        final ArrayList<RoomSummary> fMergedSummaries = mergedSummaries;
+    /**
+     * Offer to send some dedicated intent data to an existing room
+     * @param fromActivity the caller activity
+     * @param intent the intent param
+     * @param session the session/
+     */
+    public static void sendFilesTo(final Activity fromActivity, final Intent intent, final MXSession session) {
+        final ArrayList<RoomSummary> mergedSummaries = new ArrayList<RoomSummary>();
+        mergedSummaries.addAll(session.getDataHandler().getStore().getSummaries());
 
-        Collections.sort(fMergedSummaries, new Comparator<RoomSummary>() {
+        Collections.sort(mergedSummaries, new Comparator<RoomSummary>() {
             @Override
             public int compare(RoomSummary lhs, RoomSummary rhs) {
                 if (lhs == null || lhs.getLatestEvent() == null) {
@@ -414,7 +445,7 @@ public class CommonActivityUtils {
         builderSingle.setTitle(fromActivity.getText(R.string.send_files_in));
         final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(fromActivity, R.layout.dialog_room_selection);
 
-        for(RoomSummary summary : fMergedSummaries) {
+        for(RoomSummary summary : mergedSummaries) {
             arrayAdapter.add(summary.getRoomName());
         }
 
@@ -435,8 +466,8 @@ public class CommonActivityUtils {
                         fromActivity.runOnUiThread( new Runnable() {
                             @Override
                             public void run() {
-                                RoomSummary summary = fMergedSummaries.get(which);
-                                CommonActivityUtils.goToRoomPage(summary.getMatrixId(), fMergedSummaries.get(which).getRoomId(), fromActivity, intent);
+                                RoomSummary summary = mergedSummaries.get(which);
+                                CommonActivityUtils.goToRoomPage(session,  summary.getRoomId(), fromActivity, intent);
                             }
                         });
                     }

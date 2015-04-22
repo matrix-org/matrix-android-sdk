@@ -80,7 +80,6 @@ public class HomeActivity extends MXCActionBarActivity {
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
     private static final String TAG_FRAGMENT_CREATE_ROOM_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CREATE_ROOM_DIALOG";
-    private static final String TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG";
 
     private static final String TAG_FRAGMENT_ROOM_OPTIONS = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_ROOM_OPTIONS";
 
@@ -689,6 +688,10 @@ public class HomeActivity extends MXCActionBarActivity {
 
         if (intent.hasExtra(EXTRA_JUMP_TO_ROOM_ID)) {
             mAutomaticallyOpenedRoomId = intent.getStringExtra(EXTRA_JUMP_TO_ROOM_ID);
+        }
+
+        if (intent.hasExtra(EXTRA_JUMP_MATRIX_ID)) {
+            mAutomaticallyOpenedMatrixId = intent.getStringExtra(EXTRA_JUMP_MATRIX_ID);
         }
 
         if (intent.hasExtra(EXTRA_ROOM_INTENT)) {
