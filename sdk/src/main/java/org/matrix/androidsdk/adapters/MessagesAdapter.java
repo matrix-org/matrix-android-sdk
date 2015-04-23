@@ -376,13 +376,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         convertView.setClickable(false);
 
         // the notice messages are never merged
-        if (msgType != ROW_TYPE_NOTICE) {
+        /*if (msgType != ROW_TYPE_NOTICE)*/ {
             //
             String prevUserId = null;
             if (position > 0) {
                 MessageRow prevRow = getItem(position - 1);
 
-                if ((null != prevRow) && (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                if ((null != prevRow) /*&& (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
                     prevUserId = prevRow.getEvent().userId;
                 }
             }
@@ -392,7 +392,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if ((position + 1) < this.getCount()) {
                 MessageRow nextRow = getItem(position + 1);
 
-                if ((null != nextRow) && (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                if ((null != nextRow) /*&& (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
                     nextUserId = nextRow.getEvent().userId;
                 }
             }
