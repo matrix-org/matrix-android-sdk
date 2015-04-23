@@ -389,7 +389,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
         if (mConsoleMessageListFragment == null) {
             // this fragment displays messages and handles all message logic
-            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mSession, mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
+            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mMyUserId, mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
             fm.beginTransaction().add(R.id.anchor_fragment_messages, mConsoleMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 

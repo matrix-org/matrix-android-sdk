@@ -55,14 +55,19 @@ import java.util.List;
 
 public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
-    public static ConsoleMessageListFragment newInstance(MXSession session, String roomId, int layoutResId) {
+    public static ConsoleMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         ConsoleMessageListFragment f = new ConsoleMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
+        args.putString(ARG_MATRIX_ID, matrixId);
         f.setArguments(args);
-        f.mSession = session;
         return f;
+    }
+
+    @Override
+    public MXSession getSession(String matrixId) {
+        return Matrix.getMXSession(getActivity(), matrixId);
     }
 
     @Override

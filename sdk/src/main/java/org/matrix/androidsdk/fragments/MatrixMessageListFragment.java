@@ -66,18 +66,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
     public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
+    public static final String ARG_MATRIX_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
-    public static MatrixMessageListFragment newInstance(MXSession session, String roomId, int layoutResId) {
+    public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
-        f.setArguments(args);
-        f.mSession = session;
+        args.putString(ARG_MATRIX_ID, matrixId);
         return f;
     }
 
@@ -95,6 +95,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsCatchingUp = false;
 
     public MXMediasCache getMXMediasCache() {
+        return null;
+    }
+
+    public MXSession getSession(String matrixId) {
         return null;
     }
 
@@ -119,6 +123,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
+
+        String matrixId = args.getString(ARG_MATRIX_ID);
+        mSession = getSession(matrixId);
 
         if (null == mSession) {
             throw new RuntimeException("Must have valid default MXSession.");
