@@ -290,10 +290,14 @@ public class MXSession {
             eventsListener = new DefaultEventsThreadListener(mDataHandler);
         }
 
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener, networkConnectivityReceiver);
+        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+
+        mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
+
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);
         }
+
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }

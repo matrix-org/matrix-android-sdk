@@ -75,10 +75,18 @@ public class EventsThread extends Thread {
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, NetworkConnectivityReceiver networkConnectivityReceiver) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
+    }
+
+    /**
+     * Set the network connectivity listener.
+     * It is used to avoid restarting the events threads each 10 seconds when there is no available network.
+     * @param networkConnectivityReceiver the network receiver
+     */
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 
