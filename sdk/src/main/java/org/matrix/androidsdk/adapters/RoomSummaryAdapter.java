@@ -450,7 +450,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             if (null == latestRoomState) {
                 Room room = roomFromRoomSummary(summary);
 
-                if (null != room.getLiveState()) {
+                if ((null != room) && (null != room.getLiveState())) {
                     latestRoomState = room.getLiveState().deepCopy();
                 }
             }
@@ -499,7 +499,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             Room room = roomFromRoomSummary(summary);
 
-            if (room.isLeaving()) {
+            if ((null != room) && room.isLeaving()) {
                 convertView.setAlpha(0.3f);
                 deleteProgress.setVisibility(View.VISIBLE);
             }
