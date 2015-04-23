@@ -137,6 +137,14 @@ public class EventStreamService extends Service {
 
             MXSession session = Matrix.getMXSession(getApplicationContext(), event.getMatrixId());
 
+            // invalid session ?
+            // should never happen.
+            // But it could be triggered because of multi accounts management.
+            // The dedicated account is removing but some pushes are still received.
+            if (null == session) {
+                return;
+            }
+
             Room room = session.getDataHandler().getRoom(roomId);
 
             // invalid room ?
