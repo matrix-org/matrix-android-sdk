@@ -85,4 +85,14 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
             }
         }
     }
+
+    @Override
+    public void notifyDataSetChanged() {
+        //  do not refresh the room when the application is in background
+        // on large rooms, it drains a lot of battery
+        if (!ConsoleApplication.isAppInBackground()) {
+            super.notifyDataSetChanged();
+        }
+    }
+
 }
