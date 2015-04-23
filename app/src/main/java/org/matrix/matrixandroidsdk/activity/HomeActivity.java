@@ -532,6 +532,8 @@ public class HomeActivity extends MXCActionBarActivity {
                             // If we've left the room, remove it from the list
                             else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                     isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, matrixId, summary)) {
+                                // remove the cached data
+                                session.getDataHandler().getStore().deleteRoom(event.roomId);
                                 mAdapter.removeRoomSummary(section, summary);
                             }
 

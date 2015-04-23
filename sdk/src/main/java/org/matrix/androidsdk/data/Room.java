@@ -655,8 +655,6 @@ public class Room {
         });
     }
 
-
-
     /**
      * Leave the room.
      * @param callback the callback for when done
@@ -671,9 +669,6 @@ public class Room {
                 Room.this.mIsLeaving = false;
                 try {
                     callback.onSuccess(info);
-
-                    // remove the cached data
-                    mDataHandler.getStore().deleteRoom(mRoomId);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "leave exception " + e.getMessage());
                 }

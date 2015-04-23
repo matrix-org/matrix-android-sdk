@@ -153,7 +153,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void deleteRoom(String roomId) {
-    	// asnity check
+    	// ssnity check
         if (null != roomId) {
             mRooms.remove(roomId);
             mRoomEvents.remove(roomId);
