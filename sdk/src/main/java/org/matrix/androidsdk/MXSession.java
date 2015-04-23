@@ -274,8 +274,9 @@ public class MXSession {
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
      * @param eventsListener the event listener or null if using a DataHandler
+     * @param networkConnectivityReceiver the network connectivity listener.
      */
-    public void startEventStream(EventsThreadListener eventsListener) {
+    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver) {
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
@@ -289,7 +290,7 @@ public class MXSession {
             eventsListener = new DefaultEventsThreadListener(mDataHandler);
         }
 
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+        mEventsThread = new EventsThread(mEventsRestClient, eventsListener, networkConnectivityReceiver);
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);
         }
@@ -303,7 +304,7 @@ public class MXSession {
      * using a DataHandler and no specific failure callback.
      */
     public void startEventStream() {
-        startEventStream(null);
+        startEventStream(null, this.mNetworkConnectivityReceiver);
     }
 
     /**

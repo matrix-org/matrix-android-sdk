@@ -17,6 +17,8 @@ package org.matrix.androidsdk.sync;
 
 import android.util.Log;
 
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -50,15 +52,34 @@ public class EventsThread extends Thread {
     private RestAdapterCallback mEventsFailureCallback;
     private ApiFailureCallback mFailureCallback;
 
+    // avoid restarting the listener if there is no network.
+    // wait that there is an available network.
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private Boolean mbIsConnected = true;
+    IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
+        @Override
+        public void onNetworkConnectionUpdate(boolean isConnected) {
+            synchronized (this) {
+                mbIsConnected = isConnected;
+            }
+
+            // the thread has been suspended and there is an available network
+            if (isConnected && mPaused && !mKilling) {
+                unpause();
+            }
+        }
+    };
+
     /**
      * Default constructor.
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, NetworkConnectivityReceiver networkConnectivityReceiver) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 
     /**
@@ -156,6 +177,14 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
 
+        // sanity check
+        if (null != mNetworkConnectivityReceiver) {
+            mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
+            //
+            mbIsConnected = mNetworkConnectivityReceiver.isConnected();
+            mPaused = !mbIsConnected;
+        }
+
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {
@@ -184,12 +213,27 @@ public class EventsThread extends Thread {
                     mEventsFailureCallback.failure((RetrofitError) e);
                 }
 
-                try {
-                    Thread.sleep(RETRY_WAIT_TIME_MS);
-                } catch (InterruptedException e1) {
-                    Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                boolean isConnected;
+                synchronized (this) {
+                    isConnected = mbIsConnected;
+                }
+
+                // detected if the device is connected before trying again
+                if (isConnected) {
+                    try {
+                        Thread.sleep(RETRY_WAIT_TIME_MS);
+                    } catch (InterruptedException e1) {
+                        Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                    }
+                } else {
+                    // no network -> wait that a network connection comes back.
+                    pause();
                 }
             }
+        }
+
+        if (null != mNetworkConnectivityReceiver) {
+            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
         }
         Log.d(LOG_TAG, "Event stream terminating.");
     }
