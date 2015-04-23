@@ -307,7 +307,7 @@ public class MXDataHandler implements IMXEventListener {
             if (event.stateKey != null) {
                 // check if the event has been processed
                 if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
-                    // not processed -> do not warn the appliction
+                    // not processed -> do not warn the application
                     // assume that the event is a duplicated one.
                     return;
                 }

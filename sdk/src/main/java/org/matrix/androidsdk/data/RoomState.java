@@ -269,10 +269,21 @@ public class RoomState {
             else {
                 member.setUserId(userId);
 
+                RoomMember currentMember = getMember(userId);
+
                 // check if the member is the same
                 // duplicated message ?
-                if (member.equals(getMember(userId))) {
+                if (member.equals(currentMember)) {
                     return false;
+                }
+
+                // when a member leaves a room, his avatar is not anymore provided
+                if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
+                    if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                        if (null == member.avatarUrl) {
+                            member.avatarUrl = currentMember.avatarUrl;
+                        }
+                    }
                 }
 
                 setMember(userId, member);
