@@ -462,7 +462,6 @@ public class Room {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 mBackState.setToken(response.end);
                 for (Event event : response.chunk) {
-                    RoomState backStateCopy = mBackState.deepCopy();
                     Boolean processedEvent = true;
 
                     if (event.stateKey != null) {
@@ -472,7 +471,7 @@ public class Room {
                     // warn the listener only if the message is processed.
                     // it should avoid duplicated events.
                     if (processedEvent) {
-                        mDataHandler.onBackEvent(event, backStateCopy);
+                        mDataHandler.onBackEvent(event, mBackState.deepCopy());
                     }
                 }
                 if (response.chunk.size() == 0) {

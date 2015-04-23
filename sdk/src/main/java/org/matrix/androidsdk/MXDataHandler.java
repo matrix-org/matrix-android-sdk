@@ -313,8 +313,15 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            RoomState liveStateCopy = room.getLiveState().deepCopy();
+            /**
+             * Notice there is a tweak here for the member events
+             * processStateEvent retrieves the avatar url from Event.prevContent
+             * when the member leaves the rooms (the url is not included).
+             * The whole content should be applied but it seems enough and more understandable
+             * to update only the missing field.
+             */
 
+            RoomState liveStateCopy = room.getLiveState().deepCopy();
             storeLiveRoomEvent(event);
             onLiveEvent(event, liveStateCopy);
 

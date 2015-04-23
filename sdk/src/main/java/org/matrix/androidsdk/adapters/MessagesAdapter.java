@@ -494,16 +494,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 String url = null;
 
-                if (sender != null) {
+                // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
+                if (msg.content.has("avatar_url")) {
+                    url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
+                }
+
+                if ((sender != null) && (null == url)) {
                     url = sender.avatarUrl;
-                } else {
-                    // join event
-                    // check if the avatar_url is defined in the event body
-                    // roomState is updated after managing this event
-                    // so, this user could miss
-                    if (msg.content.has("avatar_url")) {
-                        url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
-                    }
                 }
 
                 if (TextUtils.isEmpty(url) && (null != msg.userId)) {
