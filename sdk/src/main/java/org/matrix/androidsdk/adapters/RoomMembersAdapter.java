@@ -73,49 +73,94 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         public int compare(RoomMember member1, RoomMember member2) {
             String lhs = mRoomState.getMemberName(member1.getUserId());
             String rhs = mRoomState.getMemberName(member2.getUserId());
-            if (lhs == null) {
-                return -1;
+
+            if (member1.membership.equals(member2.membership)) {
+                if (lhs == null) {
+                    return -1;
+                } else if (rhs == null) {
+                    return 1;
+                }
+                if (lhs.startsWith("@")) {
+                    lhs = lhs.substring(1);
+                }
+                if (rhs.startsWith("@")) {
+                    rhs = rhs.substring(1);
+                }
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+            } else {
+                // sort by membership
+
+                // display the joined members before the other one
+                if (member1.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return +1;
+                }
+
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
             }
-            else if (rhs == null) {
-                return 1;
-            }
-            if (lhs.startsWith("@")) {
-                lhs = lhs.substring(1);
-            }
-            if (rhs.startsWith("@")) {
-                rhs = rhs.substring(1);
-            }
-            return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
         }
     };
 
     // Comparator to order members by last active time
     private Comparator<RoomMember> lastActiveComparator = new Comparator<RoomMember>() {
         @Override
-        public int compare(RoomMember lhs, RoomMember rhs) {
-            User lUser = mUserMap.get(lhs.getUserId());
-            User rUser = mUserMap.get(rhs.getUserId());
+        public int compare(RoomMember member1, RoomMember member2) {
+            if (member1.membership.equals(member2.membership)) {
+                User lUser = mUserMap.get(member1.getUserId());
+                User rUser = mUserMap.get(member2.getUserId());
 
-            // Null cases
-            if ((lUser == null) || (lUser.lastActiveAgo == null)) {
-                if ((rUser == null) || (rUser.lastActiveAgo == null)) {
-                    // Fall back to alphabetical order
-                    return alphaComparator.compare(lhs, rhs);
+                // Null cases
+                if ((lUser == null) || (lUser.lastActiveAgo == null)) {
+                    if ((rUser == null) || (rUser.lastActiveAgo == null)) {
+                        // Fall back to alphabetical order
+                        return alphaComparator.compare(member1, member2);
+                    }
+                    return 1;
                 }
-                return 1;
-            }
-            if ((rUser == null) || (rUser.lastActiveAgo == null)) {
-                return -1;
-            }
+                if ((rUser == null) || (rUser.lastActiveAgo == null)) {
+                    return -1;
+                }
 
-            // Non-null cases
-            long lLastActive = lUser.getRealLastActiveAgo();
-            long rLastActive = rUser.getRealLastActiveAgo();
-            if (lLastActive < rLastActive) return -1;
-            if (lLastActive > rLastActive) return 1;
+                // Non-null cases
+                long lLastActive = lUser.getRealLastActiveAgo();
+                long rLastActive = rUser.getRealLastActiveAgo();
+                if (lLastActive < rLastActive) return -1;
+                if (lLastActive > rLastActive) return 1;
 
-            // Fall back to alphabetical order
-            return alphaComparator.compare(lhs, rhs);
+                // Fall back to alphabetical order
+                return alphaComparator.compare(member1, member2);
+            } else {
+                // sort by membership
+
+                // display the joined members before the other one
+                if (member1.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return +1;
+                }
+
+                String lhs = mRoomState.getMemberName(member1.getUserId());
+                String rhs = mRoomState.getMemberName(member2.getUserId());
+
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+            }
         }
     };
 
@@ -240,7 +285,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
 
-        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
+        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence) && !RoomMember.MEMBERSHIP_LEAVE.equals(member.membership) && !RoomMember.MEMBERSHIP_BAN.equals(member.membership)) {
             textView.setText(User.PRESENCE_OFFLINE);
             textView.setTextColor(presenceOfflineColor());
             textView.setVisibility(View.VISIBLE);
@@ -289,6 +334,19 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             int powerLevel = mPowerLevels.getUserPowerLevel(member.getUserId());
             pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
             pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
+        }
+
+        // the invited members are displayed with alpha 0.5
+        if (member.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+            convertView.setAlpha(0.3f);
+        } else {
+            convertView.setAlpha(1.0f);
+        }
+
+        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN) ) {
+            convertView.setBackgroundResource(android.R.color.darker_gray);
+        } else {
+            convertView.setBackgroundResource(android.R.color.transparent);
         }
 
         return convertView;
