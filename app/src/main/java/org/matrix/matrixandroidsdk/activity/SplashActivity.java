@@ -157,7 +157,7 @@ public class SplashActivity extends MXCActionBarActivity {
         if (noUpdate) {
             // do not launch an activity if there was nothing new.
             Log.e(LOG_TAG, "nothing to do");
-            finish();
+            finishIfReady();
         }
     }
 

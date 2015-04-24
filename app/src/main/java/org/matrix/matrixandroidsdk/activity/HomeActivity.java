@@ -779,15 +779,6 @@ public class HomeActivity extends MXCActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onBackPressed() {
-        // avoid putting the application in background while tapping one more on back
-        // some issues have been found on S3 Android 4.3 :
-        // -> when putting the application in background with the home button,
-        // the LAUNCHER (splash screen) is restarted instead resuming the application
-        // so a home activity is started over the current opened activity.
-    }
-
     private void toggleSearchContacts() {
         FragmentManager fm = getSupportFragmentManager();
 
