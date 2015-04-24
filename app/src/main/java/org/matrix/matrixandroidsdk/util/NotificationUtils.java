@@ -26,10 +26,11 @@ public class NotificationUtils {
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOM_ID";
 
     public static Notification buildMessageNotification(
-            Context context, String from, String matrixId, String body, String roomId, String roomName,
+            Context context, String from, String matrixId, Boolean displayMatrixId, String body, String roomId, String roomName,
             boolean shouldPlaySound) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setWhen(System.currentTimeMillis());
+
         builder.setContentTitle(from);
         builder.setContentText(body);
         builder.setAutoCancel(true);
@@ -43,6 +44,10 @@ public class NotificationUtils {
         String name = ": ";
         if(!TextUtils.isEmpty(roomName)) {
             name = " (" + roomName + "): ";
+        }
+
+        if (displayMatrixId) {
+            from = "[" + matrixId + "]\n" + from;
         }
 
         builder.setTicker(from + name + body);
