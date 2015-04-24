@@ -48,6 +48,14 @@ public class LoginActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        // resume the application
+        if ((getIntent().getFlags() & Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT) != 0) {
+            Log.e(LOG_TAG, "Resume the application");
+            finish();
+            return;
+        }
+
+
         if (hasCredentials()) {
             Log.e(LOG_TAG, "goToSplash because the credentials are already provided.");
             goToSplash();
