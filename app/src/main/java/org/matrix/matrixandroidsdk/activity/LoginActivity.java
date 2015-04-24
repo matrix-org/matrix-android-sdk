@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -43,6 +44,9 @@ public class LoginActivity extends MXCActionBarActivity {
     private static final String LOG_TAG = "LoginActivity";
     static final int ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE = 314;
 
+    Button mLoginButton = null;
+    Button mcreateAccountButton = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,14 +59,14 @@ public class LoginActivity extends MXCActionBarActivity {
             return;
         }
 
-
         if (hasCredentials()) {
             Log.e(LOG_TAG, "goToSplash because the credentials are already provided.");
             goToSplash();
             finish();
         }
 
-        findViewById(R.id.button_login).setOnClickListener(new View.OnClickListener() {
+        mLoginButton = (Button)findViewById(R.id.button_login);
+        mLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String username = ((EditText)findViewById(R.id.editText_username)).getText().toString();
@@ -72,7 +76,8 @@ public class LoginActivity extends MXCActionBarActivity {
             }
         });
 
-        findViewById(R.id.button_create_account).setOnClickListener(new View.OnClickListener() {
+        mcreateAccountButton = (Button) findViewById(R.id.button_create_account);
+        mcreateAccountButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String hs = ((EditText) findViewById(R.id.editText_hs)).getText().toString();
@@ -120,7 +125,9 @@ public class LoginActivity extends MXCActionBarActivity {
             return;
         }
 
-        // TODO: This client should check that it can use u/p login on this home server!!!
+        mLoginButton.setEnabled(false);
+        mcreateAccountButton.setEnabled(false);
+
         client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(this) {
             @Override
             public void onSuccess(Credentials credentials) {
@@ -133,17 +140,23 @@ public class LoginActivity extends MXCActionBarActivity {
 
             @Override
             public void onNetworkError(Exception e) {
+                mLoginButton.setEnabled(true);
+                mcreateAccountButton.setEnabled(true);
                 Toast.makeText(getApplicationContext(), getString(R.string.login_error_network_error), Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                mLoginButton.setEnabled(true);
+                mcreateAccountButton.setEnabled(true);
                 String msg = getString(R.string.login_error_unable_login) + " : " + e.getMessage();
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                mLoginButton.setEnabled(true);
+                mcreateAccountButton.setEnabled(true);
                 String msg = getString(R.string.login_error_unable_login) + " : " + e.error + "("+e.errcode+")";
                 Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
             }
