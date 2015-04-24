@@ -1,3 +1,55 @@
+Changes in Matrix Android SDK in 0.3.1 (2015-04-24)
+===================================================
+
+-----
+ SDK
+-----
+Improvements:
+ * Move RoomSummaryAdapter from the application  to the SDK.
+ * Move RoomMembersAdapters from the application to the SDK..
+ * Large file upload did not warn the user that the media was too large.
+ * Do not restart the events listener each 10s if there is no available network. Wait that a network connection is retrieved.
+
+Features:
+ * Add multi-accounts management.
+
+Bug fixes:
+ * Some unsent messages were not properly automatically resent.
+ * The content provider did not provide the mimetype.
+ * The application used to randomly crashed on application when there was some network issues.
+ * The duplicated member events were not removed;
+ * Live state : the left/banned thumbnails were lost.
+ * Join a room on the device did not warn the application when the initial sync was done.
+
+-----------------
+ Matrix Console
+-----------------
+Improvements:
+ * Re-order the room actions : move from a sliding menu to a standard menu.
+ * Do not refresh the room when the application is in background to reduce battery draining.
+ * The notice messages are merged as any other messages.
+ * Re-order the members list (join first, invite, leave & ban).
+
+Features:
+ * Applications can share medias with Matrix Console with the "<" button.
+ * Matrix console can share medias with third party applications like emails.
+ * A message can be forwarded to an existing room or to a third party application.
+ * The images are not anymore automatically saved when displayed in fullscreen : there is a new menu when tapping on the message. (The media mud have been downloaded once).
+ * Add multi-accounts management. Create/Join a room require to select an account.
+ * Some push notifications were not triggered when the application was in background.
+
+Bug fixes:
+ * A selected GIF image was transformed into a JPG one.
+ * The room name was sometimes invalid when the user was invited.
+ * SYAND-68 : No hint on display name in settings
+ * SYAND-69 : Avatar section in settings
+ * SYAND-71 : Cannot view message details of a join.
+ * SYAND-72 When an user updates their avatar, the timeline event for the change should reflect the update. 
+ * The room cached data was not removed after leaving it.
+ * The member display name did not include the matrix Id if several members have the same display name.
+ * On some devices, invite members by matrix ID did not work properly because some spaces are automatically appended after a semicolon.
+
+
 Changes in Matrix Android SDK in 0.3.0 (2015-04-10)
 ===================================================
 
