@@ -21,6 +21,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.EditText;
@@ -39,6 +40,7 @@ import org.matrix.matrixandroidsdk.R;
  */
 public class LoginActivity extends MXCActionBarActivity {
 
+    private static final String LOG_TAG = "LoginActivity";
     static final int ACCOUNT_CREATION_ACTIVITY_REQUEST_CODE = 314;
 
     @Override
@@ -113,6 +115,7 @@ public class LoginActivity extends MXCActionBarActivity {
         client.loginWithPassword(username, password, new SimpleApiCallback<Credentials>(this) {
             @Override
             public void onSuccess(Credentials credentials) {
+                Log.e(LOG_TAG, "client loginWithPassword succeeded.");
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
                 Matrix.getInstance(getApplicationContext()).addSession(session);
                 goToSplash();

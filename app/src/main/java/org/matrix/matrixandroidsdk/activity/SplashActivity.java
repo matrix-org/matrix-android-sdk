@@ -18,6 +18,7 @@ package org.matrix.matrixandroidsdk.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -35,6 +36,8 @@ import java.util.HashMap;
 
 public class SplashActivity extends MXCActionBarActivity {
 
+    private static final String LOG_TAG = "SplashActivity";
+
     private Collection<MXSession> mSessions;
     private GcmRegistrationManager mGcmRegistrationManager;
 
@@ -45,7 +48,11 @@ public class SplashActivity extends MXCActionBarActivity {
     private HashMap<MXSession, IMXEventListener> mDoneListeners;
 
     private void finishIfReady() {
+        Log.e(LOG_TAG, "finishIfReady " + mInitialSyncComplete + " " + mPusherRegistrationComplete);
+
         if (mInitialSyncComplete && mPusherRegistrationComplete) {
+            Log.e(LOG_TAG, "finishIfRead start HomeActivity");
+
             // Go to the home page
             startActivity(new Intent(SplashActivity.this, HomeActivity.class));
             SplashActivity.this.finish();
@@ -56,11 +63,14 @@ public class SplashActivity extends MXCActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Log.e(LOG_TAG, "onCreate");
+
         setContentView(R.layout.activity_splash);
 
         mSessions =  Matrix.getInstance(getApplicationContext()).getSessions();
 
         if (mSessions == null) {
+            Log.e(LOG_TAG, "onCreate no Sessions");
             finish();
             return;
         }
@@ -78,6 +88,8 @@ public class SplashActivity extends MXCActionBarActivity {
                 public void onInitialSyncComplete() {
                     super.onInitialSyncComplete();
                     Boolean noMoreListener;
+
+                    Log.e(LOG_TAG, "Session " + fSession.getCredentials().userId + " is initialized");
 
                     synchronized(mListeners) {
                         mDoneListeners.put(fSession, mListeners.get(fSession));
@@ -106,6 +118,10 @@ public class SplashActivity extends MXCActionBarActivity {
                 // session to activate
                 matrixIds.add(session.getCredentials().userId);
             }
+        }
+
+        synchronized(mListeners) {
+            mInitialSyncComplete = (mListeners.size() == 0);
         }
 
         if (EventStreamService.getInstance() == null) {
