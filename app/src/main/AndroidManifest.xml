@@ -63,16 +63,6 @@
 
         </activity>
         <activity
-            android:name="org.matrix.matrixandroidsdk.activity.PublicRoomsActivity"
-            android:label="@string/title_activity_public_rooms"
-            android:parentActivityName="org.matrix.matrixandroidsdk.activity.HomeActivity">
-
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="org.matrix.matrixandroidsdk.activity.HomeActivity"/>
-
-        </activity>
-        <activity
             android:name="org.matrix.matrixandroidsdk.activity.RoomInfoActivity"
             android:label="@string/title_activity_room_info"
             android:parentActivityName="org.matrix.matrixandroidsdk.activity.RoomActivity">
