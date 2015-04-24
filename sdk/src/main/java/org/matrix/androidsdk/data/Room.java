@@ -350,10 +350,11 @@ public class Room {
      * Process a state event to keep the internal live and back states up to date.
      * @param event the state event
      * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @return true if the event has been processed.
      */
-    public void processStateEvent(Event event, EventDirection direction) {
+    public boolean processStateEvent(Event event, EventDirection direction) {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        affectedState.applyState(event, direction);
+        return affectedState.applyState(event, direction);
     }
 
     /**
@@ -461,10 +462,17 @@ public class Room {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 mBackState.setToken(response.end);
                 for (Event event : response.chunk) {
+                    Boolean processedEvent = true;
+
                     if (event.stateKey != null) {
-                        processStateEvent(event, EventDirection.BACKWARDS);
+                        processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
                     }
-                    mDataHandler.onBackEvent(event, mBackState.deepCopy());
+
+                    // warn the listener only if the message is processed.
+                    // it should avoid duplicated events.
+                    if (processedEvent) {
+                        mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                    }
                 }
                 if (response.chunk.size() == 0) {
                     canStillPaginate = false;
@@ -646,8 +654,6 @@ public class Room {
             }
         });
     }
-
-
 
     /**
      * Leave the room.
@@ -1085,7 +1091,7 @@ public class Room {
                                     }
 
                                     @Override
-                                    public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                                         ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(newEvent.content);
 
                                         uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;

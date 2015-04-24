@@ -152,6 +152,17 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void deleteRoom(String roomId) {
+    	// ssnity check
+        if (null != roomId) {
+            mRooms.remove(roomId);
+            mRoomEvents.remove(roomId);
+            mRoomTokens.remove(roomId);
+            mRoomSummaries.remove(roomId);
+        }
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
         if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -215,7 +226,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
+    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
         if (null !=roomId) {
             Room room = mRooms.get(roomId);
             if ((room != null) && (event != null)) { // Should always be true
@@ -223,6 +234,7 @@ public class MXMemoryStore implements IMXStore {
                 if (summary == null) {
                     summary = new RoomSummary();
                 }
+                summary.setMatrixId(matrixId);
                 summary.setLatestEvent(event);
                 summary.setLatestRoomState(roomState);
                 summary.setMembers(room.getMembers());

@@ -232,8 +232,8 @@ public class MXSession {
         mDataHandler.clear();
 
         // network event will not be listened anymore
-        mNetworkConnectivityReceiver.clear();
         mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        mNetworkConnectivityReceiver.clear();
 
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();
@@ -274,8 +274,9 @@ public class MXSession {
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
      * @param eventsListener the event listener or null if using a DataHandler
+     * @param networkConnectivityReceiver the network connectivity listener.
      */
-    public void startEventStream(EventsThreadListener eventsListener) {
+    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver) {
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
@@ -290,9 +291,13 @@ public class MXSession {
         }
 
         mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
+
+        mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
+
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);
         }
+
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
@@ -303,7 +308,7 @@ public class MXSession {
      * using a DataHandler and no specific failure callback.
      */
     public void startEventStream() {
-        startEventStream(null);
+        startEventStream(null, this.mNetworkConnectivityReceiver);
     }
 
     /**

@@ -114,7 +114,7 @@ public class LoginActivity extends MXCActionBarActivity {
             @Override
             public void onSuccess(Credentials credentials) {
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
-                Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
+                Matrix.getInstance(getApplicationContext()).addSession(session);
                 goToSplash();
                 LoginActivity.this.finish();
             }
@@ -161,7 +161,7 @@ public class LoginActivity extends MXCActionBarActivity {
 
                 // let's go...
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);
-                Matrix.getInstance(getApplicationContext()).setDefaultSession(session);
+                Matrix.getInstance(getApplicationContext()).addSession(session);
                 goToSplash();
                 LoginActivity.this.finish();
             }

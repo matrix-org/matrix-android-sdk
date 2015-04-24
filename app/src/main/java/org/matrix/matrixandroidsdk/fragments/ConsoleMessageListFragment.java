@@ -16,12 +16,19 @@
 
 package org.matrix.matrixandroidsdk.fragments;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.adapters.MessageRow;
@@ -30,34 +37,42 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.fragments.MatrixMessageListFragment;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
+import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.MXCActionBarActivity;
+import org.matrix.matrixandroidsdk.activity.RoomActivity;
 import org.matrix.matrixandroidsdk.adapters.ConsoleMessagesAdapter;
+import org.matrix.matrixandroidsdk.db.ConsoleContentProvider;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ConsoleMessageListFragment extends MatrixMessageListFragment {
 
-    public static ConsoleMessageListFragment newInstance(String roomId, int layoutResId) {
+    public static ConsoleMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         ConsoleMessageListFragment f = new ConsoleMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
+        args.putString(ARG_MATRIX_ID, matrixId);
         f.setArguments(args);
         return f;
     }
 
     @Override
-    public MXSession getMXSession() {
-        return Matrix.getInstance(getActivity()).getDefaultSession();
+    public MXSession getSession(String matrixId) {
+        return Matrix.getMXSession(getActivity(), matrixId);
     }
 
     @Override
     public MXMediasCache getMXMediasCache() {
-       return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+       return Matrix.getInstance(getActivity()).getMediasCache();
     }
 
     @Override
@@ -144,12 +159,63 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         final List<Integer> textIds = new ArrayList<>();
         final List<Integer> iconIds = new ArrayList<Integer>();
 
-        if (messageRow.getEvent().canBeResent()) {
-            textIds.add(R.string.resend);
-            iconIds.add(R.drawable.ic_material_send);
-        } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
-            textIds.add(R.string.redact);
-            iconIds.add(R.drawable.ic_material_clear);
+        String mediaUrl = null;
+        String mediaMimeType = null;
+        Uri mediaUri = null;
+        Message message = JsonUtils.toMessage(messageRow.getEvent().content);
+
+        if (!Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(messageRow.getEvent().type) &&
+            !Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(messageRow.getEvent().type) &&
+            !Event.EVENT_TYPE_STATE_ROOM_NAME.equals(messageRow.getEvent().type))
+        {
+            if (messageRow.getEvent().canBeResent()) {
+                textIds.add(R.string.resend);
+                iconIds.add(R.drawable.ic_material_send);
+            } else if (messageRow.getEvent().mSentState == Event.SentState.SENT) {
+                textIds.add(R.string.redact);
+                iconIds.add(R.drawable.ic_material_clear);
+                if (Event.EVENT_TYPE_MESSAGE.equals(messageRow.getEvent().type)) {
+                    Boolean supportShare = true;
+
+                    // check if the media has been downloaded
+                    if ((message instanceof ImageMessage) || (message instanceof FileMessage)) {
+                        if (message instanceof ImageMessage) {
+                            ImageMessage imageMessage = (ImageMessage) message;
+
+                            mediaUrl = imageMessage.url;
+                            mediaMimeType = imageMessage.getMimeType();
+                        } else {
+                            FileMessage fileMessage = (FileMessage) message;
+
+                            mediaUrl = fileMessage.url;
+                            mediaMimeType = fileMessage.getMimeType();
+                        }
+
+                        supportShare = false;
+                        MXMediasCache cache = getMXMediasCache();
+
+                        String filename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+                        if (null != filename) {
+                            try {
+                                mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + filename);
+                                supportShare = true;
+                            } catch (Exception e) {
+                            }
+                        }
+                    }
+
+                    if (supportShare) {
+                        textIds.add(R.string.share);
+                        iconIds.add(R.drawable.ic_material_share);
+
+                        textIds.add(R.string.forward);
+                        iconIds.add(R.drawable.ic_material_forward);
+
+                        textIds.add(R.string.save);
+                        iconIds.add(R.drawable.ic_material_save);
+                    }
+                }
+            }
         }
 
         // display the JSON
@@ -166,11 +232,16 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         Integer[] lIcons = iconIds.toArray(new Integer[iconIds.size()]);
         Integer[] lTexts = textIds.toArray(new Integer[iconIds.size()]);
 
+        final String  fmediaMimeType = mediaMimeType;
+        final Uri fmediaUri = mediaUri;
+        final String fmediaUrl = mediaUrl;
+        final Message fMessage = message;
+
         fragment = IconAndTextDialogFragment.newInstance(lIcons, lTexts);
         fragment.setOnClickListener(new IconAndTextDialogFragment.OnItemClickListener() {
             @Override
             public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
-                Integer selectedVal = textIds.get(position);
+                final Integer selectedVal = textIds.get(position);
 
                 if (selectedVal == R.string.resend) {
                     getActivity().runOnUiThread(new Runnable() {
@@ -179,11 +250,43 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                             resend(messageRow.getEvent());
                         }
                     });
+                } else if (selectedVal == R.string.save) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            save(fMessage, fmediaUrl, fmediaMimeType);
+                        }
+                    });
                 } else if (selectedVal == R.string.redact) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             redactEvent(messageRow.getEvent().eventId);
+                        }
+                    });
+                } else if ((selectedVal == R.string.share) || (selectedVal == R.string.forward)) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent sendIntent = new Intent();
+                            sendIntent.setAction(Intent.ACTION_SEND);
+
+                            Event event = messageRow.getEvent();
+                            Message message = JsonUtils.toMessage(event.content);
+
+                            if (null != fmediaUri) {
+                                sendIntent.setType(fmediaMimeType);
+                                sendIntent.putExtra(Intent.EXTRA_STREAM, fmediaUri);
+                            } else {
+                                sendIntent.putExtra(Intent.EXTRA_TEXT, message.body);
+                                sendIntent.setType("text/plain");
+                            }
+
+                            if (selectedVal == R.string.forward) {
+                                CommonActivityUtils.sendFilesTo(getActivity(), sendIntent);
+                            } else {
+                                startActivity(sendIntent);
+                            }
                         }
                     });
                 } else if (selectedVal == R.string.message_details) {
@@ -207,4 +310,77 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
         fragment.show(fm, TAG_FRAGMENT_MESSAGE_OPTIONS);
     }
 
+    private void save(final Message message, final String mediaUrl, final String mediaMimeType) {
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(getActivity());
+
+        builderSingle.setTitle(getActivity().getText(R.string.save_files_in));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.dialog_room_selection);
+
+        ArrayList<String> entries = new ArrayList<String>();
+
+        entries.add(getActivity().getText(R.string.downloads).toString());
+
+        if (mediaMimeType.startsWith("image/")) {
+            entries.add(getActivity().getText(R.string.gallery).toString());
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            entries.add(getActivity().getText(R.string.other).toString());
+        }
+
+        arrayAdapter.addAll(entries);
+
+        final ArrayList<String> fEntries = entries;
+
+        builderSingle.setNegativeButton(getActivity().getText(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        builderSingle.setAdapter(arrayAdapter,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, final int which) {
+                        dialog.dismiss();
+
+                        MXMediasCache cache = getMXMediasCache();
+                        String cacheFilename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+
+                        String entry = fEntries.get(which);
+                        String savedFilename = null;
+
+                        if (getActivity().getText(R.string.gallery).toString().equals(entry)) {
+                            // save in the gallery
+                            savedFilename = CommonActivityUtils.saveImageIntoGallery(getActivity(), cacheFilename);
+                        } else if (getActivity().getText(R.string.downloads).toString().equals(entry)) {
+                            String filename = null;
+
+                            if (message instanceof FileMessage)  {
+                                filename = ((FileMessage)message).body;
+                            }
+
+                            // save into downloads
+                            savedFilename = CommonActivityUtils.saveMediaIntoDownloads(getActivity(), cacheFilename, filename, mediaMimeType);
+                        } else {
+                            if (getActivity() instanceof RoomActivity) {
+                                ((RoomActivity)getActivity()).createDocument(message, mediaUrl, mediaMimeType);
+                            }
+                        }
+
+                        if (null != savedFilename) {
+                            final String fSavedFilename = new File(savedFilename).getName();
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(getActivity(), getActivity().getString(R.string.file_is_saved, fSavedFilename), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    }
+                });
+        builderSingle.show();
+    }
 }

@@ -26,10 +26,11 @@ public class NotificationUtils {
     public static final String EXTRA_ROOM_ID = "org.matrix.matrixandroidsdk.EXTRA_ROOM_ID";
 
     public static Notification buildMessageNotification(
-            Context context, String from, String body, String roomId, String roomName,
+            Context context, String from, String matrixId, Boolean displayMatrixId, String body, String roomId, String roomName,
             boolean shouldPlaySound) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setWhen(System.currentTimeMillis());
+
         builder.setContentTitle(from);
         builder.setContentText(body);
         builder.setAutoCancel(true);
@@ -45,12 +46,21 @@ public class NotificationUtils {
             name = " (" + roomName + "): ";
         }
 
+        if (displayMatrixId) {
+            from = "[" + matrixId + "]\n" + from;
+        }
+
         builder.setTicker(from + name + body);
 
         {
             // Build the pending intent for when the notification is clicked
             Intent roomIntent = new Intent(context, RoomActivity.class);
             roomIntent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+
+            if (null != matrixId) {
+                roomIntent.putExtra(RoomActivity.EXTRA_MATRIX_ID, matrixId);
+            }
+
             // Recreate the back stack
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(context)
                     .addParentStack(RoomActivity.class)
@@ -71,6 +81,11 @@ public class NotificationUtils {
             quickReplyIntent.putExtra(LockScreenActivity.EXTRA_ROOM_ID, roomId);
             quickReplyIntent.putExtra(LockScreenActivity.EXTRA_SENDER_NAME, from);
             quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MESSAGE_BODY, body);
+
+            if (null != matrixId) {
+                quickReplyIntent.putExtra(LockScreenActivity.EXTRA_MATRIX_ID, matrixId);
+            }
+
             // the action must be unique else the parameters are ignored
             quickReplyIntent.setAction(QUICK_LAUNCH_ACTION + ((int) (System.currentTimeMillis())));
             PendingIntent pIntent = PendingIntent.getActivity(context, 0, quickReplyIntent, 0);

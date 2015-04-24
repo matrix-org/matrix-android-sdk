@@ -54,12 +54,17 @@ public class MembersInvitationDialogFragment extends DialogFragment {
     private MXSession mSession;
     private String mRoomId;
 
-    public static MembersInvitationDialogFragment newInstance(String roomId) {
+    public static MembersInvitationDialogFragment newInstance(MXSession session, String roomId) {
         MembersInvitationDialogFragment f = new MembersInvitationDialogFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         f.setArguments(args);
+        f.setSession(session);
         return f;
+    }
+
+    public void setSession(MXSession session) {
+        mSession = session;
     }
 
     @Override
@@ -68,11 +73,6 @@ public class MembersInvitationDialogFragment extends DialogFragment {
 
         Context context = getActivity().getApplicationContext();
         mRoomId = getArguments().getString(ARG_ROOM_ID);
-
-        mSession = Matrix.getInstance(context).getDefaultSession();
-        if (mSession == null) {
-            throw new RuntimeException("No MXSession.");
-        }
     }
 
     /**
@@ -81,7 +81,7 @@ public class MembersInvitationDialogFragment extends DialogFragment {
      * @return the used medias cache
      */
     public MXMediasCache getMXMediasCache() {
-        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+        return Matrix.getInstance(getActivity()).getMediasCache();
     }
 
     @Override

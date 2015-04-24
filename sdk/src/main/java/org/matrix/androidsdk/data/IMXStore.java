@@ -48,6 +48,12 @@ public interface IMXStore {
     public void deleteEvent(Event event);
 
     /**
+     * Delete the room data
+     * @param RoomId the roomId.
+     */
+    public void deleteRoom(String roomId);
+
+    /**
      * Store a block of room events either live or from pagination.
      * @param roomId the room id
      * @param eventsResponse The events to be stored.
@@ -105,12 +111,13 @@ public interface IMXStore {
 
     /**
      * Store the summary for the given room id.
+     * @param matrixId the matrix id
      * @param roomId the room id
      * @param event the latest event of the room
      * @param roomState the room state - used to display the event
      * @param selfUserId our own user id - used to display the room name
      */
-    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
+    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId);
 
     /**
      * Return the list of latest unsent events.

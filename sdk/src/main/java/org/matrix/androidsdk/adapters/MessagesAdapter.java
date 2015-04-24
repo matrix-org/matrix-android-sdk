@@ -118,7 +118,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private DateFormat mDateFormat;
 
-    private MXSession mSession;
+    protected MXSession mSession;
 
     public int normalMesageColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);
@@ -346,8 +346,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     private String getUserDisplayName(String userId, RoomState roomState) {
-        RoomMember roomMember = roomState.getMember(userId);
-        return (roomMember != null) ? roomMember.getName() : userId;
+        return roomState.getMemberName(userId);
     }
 
     /**
@@ -376,13 +375,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         convertView.setClickable(false);
 
         // the notice messages are never merged
-        if (msgType != ROW_TYPE_NOTICE) {
+        /*if (msgType != ROW_TYPE_NOTICE)*/ {
             //
             String prevUserId = null;
             if (position > 0) {
                 MessageRow prevRow = getItem(position - 1);
 
-                if ((null != prevRow) && (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                if ((null != prevRow) /*&& (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
                     prevUserId = prevRow.getEvent().userId;
                 }
             }
@@ -392,7 +391,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if ((position + 1) < this.getCount()) {
                 MessageRow nextRow = getItem(position + 1);
 
-                if ((null != nextRow) && (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)) {
+                if ((null != nextRow) /*&& (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
                     nextUserId = nextRow.getEvent().userId;
                 }
             }
@@ -402,7 +401,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
-        View rightTsTextLayout =convertView.findViewById(R.id.message_timestamp_layout_right);
+        View rightTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_right);
 
         // manage sender text
         TextView textView = (TextView) convertView.findViewById(R.id.messagesAdapter_sender);
@@ -494,16 +493,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 String url = null;
 
-                if (sender != null) {
+                // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
+                if (msg.content.has("avatar_url")) {
+                    url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
+                }
+
+                if ((sender != null) && (null == url)) {
                     url = sender.avatarUrl;
-                } else {
-                    // join event
-                    // check if the avatar_url is defined in the event body
-                    // roomState is updated after managing this event
-                    // so, this user could miss
-                    if (msg.content.has("avatar_url")) {
-                        url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
-                    }
                 }
 
                 if (TextUtils.isEmpty(url) && (null != msg.userId)) {
@@ -772,7 +768,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
@@ -806,7 +802,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-    private View getNoticeView(int position, View convertView, ViewGroup parent) {
+    private View getNoticeView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
@@ -823,6 +819,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
+
+        // add a click listener because the text view gains the focus.
+        //  mMessageListView.setOnItemClickListener is never called.
+        convertView.setClickable(true);
+        // click on the avatar opens the details page
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // warn listener of click events if there is no selection
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
 
         return convertView;
     }
@@ -981,7 +991,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {

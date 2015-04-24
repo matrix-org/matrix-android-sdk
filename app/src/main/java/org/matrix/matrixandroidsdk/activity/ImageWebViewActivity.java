@@ -93,7 +93,7 @@ public class ImageWebViewActivity extends Activity {
         final String fcss= css;
         final String viewportContent = "width=640";
 
-        final MXMediasCache mediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+        final MXMediasCache mediasCache = Matrix.getInstance(this).getMediasCache();
 
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 

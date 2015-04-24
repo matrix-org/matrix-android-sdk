@@ -38,7 +38,7 @@ public class ErrorListener implements ApiFailureCallback {
         Log.e(LOG_TAG, "Network error: " + e.getMessage());
 
         // do not trigger toaster if the application is in background
-        if (!((ConsoleApplication)mActivity.getApplication()).isInBackground) {
+        if (!ConsoleApplication.isAppInBackground()) {
             mActivity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

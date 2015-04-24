@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.matrixandroidsdk.adapters;
+package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -29,6 +29,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.R;
+
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -36,8 +38,6 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.view.PieFractionView;
-import org.matrix.matrixandroidsdk.Matrix;
-import org.matrix.matrixandroidsdk.R;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -47,9 +47,9 @@ import java.util.Map;
 /**
  * An adapter which can display m.room.member content.
  */
-public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
+public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
-    private Context mContext;
+    protected Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
@@ -73,51 +73,102 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         public int compare(RoomMember member1, RoomMember member2) {
             String lhs = mRoomState.getMemberName(member1.getUserId());
             String rhs = mRoomState.getMemberName(member2.getUserId());
-            if (lhs == null) {
-                return -1;
+
+            if (member1.membership.equals(member2.membership)) {
+                if (lhs == null) {
+                    return -1;
+                } else if (rhs == null) {
+                    return 1;
+                }
+                if (lhs.startsWith("@")) {
+                    lhs = lhs.substring(1);
+                }
+                if (rhs.startsWith("@")) {
+                    rhs = rhs.substring(1);
+                }
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+            } else {
+                // sort by membership
+
+                // display the joined members before the other one
+                if (member1.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return +1;
+                }
+
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
             }
-            else if (rhs == null) {
-                return 1;
-            }
-            if (lhs.startsWith("@")) {
-                lhs = lhs.substring(1);
-            }
-            if (rhs.startsWith("@")) {
-                rhs = rhs.substring(1);
-            }
-            return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
         }
     };
 
     // Comparator to order members by last active time
     private Comparator<RoomMember> lastActiveComparator = new Comparator<RoomMember>() {
         @Override
-        public int compare(RoomMember lhs, RoomMember rhs) {
-            User lUser = mUserMap.get(lhs.getUserId());
-            User rUser = mUserMap.get(rhs.getUserId());
+        public int compare(RoomMember member1, RoomMember member2) {
+            if (member1.membership.equals(member2.membership)) {
+                User lUser = mUserMap.get(member1.getUserId());
+                User rUser = mUserMap.get(member2.getUserId());
 
-            // Null cases
-            if ((lUser == null) || (lUser.lastActiveAgo == null)) {
-                if ((rUser == null) || (rUser.lastActiveAgo == null)) {
-                    // Fall back to alphabetical order
-                    return alphaComparator.compare(lhs, rhs);
+                // Null cases
+                if ((lUser == null) || (lUser.lastActiveAgo == null)) {
+                    if ((rUser == null) || (rUser.lastActiveAgo == null)) {
+                        // Fall back to alphabetical order
+                        return alphaComparator.compare(member1, member2);
+                    }
+                    return 1;
                 }
-                return 1;
-            }
-            if ((rUser == null) || (rUser.lastActiveAgo == null)) {
-                return -1;
-            }
+                if ((rUser == null) || (rUser.lastActiveAgo == null)) {
+                    return -1;
+                }
 
-            // Non-null cases
-            long lLastActive = lUser.getRealLastActiveAgo();
-            long rLastActive = rUser.getRealLastActiveAgo();
-            if (lLastActive < rLastActive) return -1;
-            if (lLastActive > rLastActive) return 1;
+                // Non-null cases
+                long lLastActive = lUser.getRealLastActiveAgo();
+                long rLastActive = rUser.getRealLastActiveAgo();
+                if (lLastActive < rLastActive) return -1;
+                if (lLastActive > rLastActive) return 1;
 
-            // Fall back to alphabetical order
-            return alphaComparator.compare(lhs, rhs);
+                // Fall back to alphabetical order
+                return alphaComparator.compare(member1, member2);
+            } else {
+                // sort by membership
+
+                // display the joined members before the other one
+                if (member1.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_JOIN)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return +1;
+                } else if (member1.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return -1;
+                } else if (member2.membership.equals(RoomMember.MEMBERSHIP_LEAVE)) {
+                    return +1;
+                }
+
+                String lhs = mRoomState.getMemberName(member1.getUserId());
+                String rhs = mRoomState.getMemberName(member2.getUserId());
+
+                return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+            }
         }
     };
+
+    // abstract methods
+    public abstract int lastSeenTextColor();
+    public abstract int presenceOfflineColor();
+    public abstract int presenceOnlineColor();
+    public abstract int presenceUnavailableColor();
 
     /**
      * Construct an adapter which will display a list of room members.
@@ -125,8 +176,11 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
+     * @param roomState the roomState.
+     * @param mediasCache the media cache
+     * @param membershipStrings  the membership strings by RoomMember.MEMBERSHIP_XX value
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache) {
+    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
@@ -136,11 +190,7 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         // left the caller manages the refresh
         setNotifyOnChange(false);
 
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_INVITE, context.getString(R.string.membership_invite));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_JOIN, context.getString(R.string.membership_join));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, context.getString(R.string.membership_leave));
-        mMembershipStrings.put(RoomMember.MEMBERSHIP_BAN, context.getString(R.string.membership_ban));
-
+        mMembershipStrings = membershipStrings;
         mMediasCache = mediasCache;
     }
 
@@ -209,18 +259,6 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     }
 
     @Override
-    public void notifyDataSetChanged() {
-        // sanity check
-        // ensure that the client is not logged out before refreshing the UI
-        // the refresh could have been triggered with delay after a logout
-        if (!Matrix.hasValidValidSession()) {
-            return;
-        }
-
-        super.notifyDataSetChanged();
-    }
-
-    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
@@ -240,16 +278,16 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             String lastActiveDisplay = "(" + buildLastActiveDisplay(user.getRealLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
-            int lastSeenTextColor = mContext.getResources().getColor(R.color.member_list_last_seen_text);
+            int lastSeenTextColor = lastSeenTextColor();
             ssb.setSpan(new ForegroundColorSpan(lastSeenTextColor), memberName.length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             textView.setText(ssb);
         }
 
         textView = (TextView) convertView.findViewById(R.id.roomMembersAdapter_membership);
 
-        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence)) {
+        if ((user != null) && User.PRESENCE_OFFLINE.equals(user.presence) && !RoomMember.MEMBERSHIP_LEAVE.equals(member.membership) && !RoomMember.MEMBERSHIP_BAN.equals(member.membership)) {
             textView.setText(User.PRESENCE_OFFLINE);
-            textView.setTextColor(mContext.getResources().getColor(R.color.presence_offline));
+            textView.setTextColor(presenceOfflineColor());
             textView.setVisibility(View.VISIBLE);
         } else {
             textView.setText(mMembershipStrings.get(member.membership));
@@ -279,11 +317,11 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         presenceRing.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
         if (user != null) {
             if (User.PRESENCE_ONLINE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_online));
+                presenceRing.setColorFilter(presenceOnlineColor());
             } else if (User.PRESENCE_UNAVAILABLE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_unavailable));
+                presenceRing.setColorFilter(presenceUnavailableColor());
             } else if (User.PRESENCE_OFFLINE.equals(user.presence)) {
-                presenceRing.setColorFilter(mContext.getResources().getColor(R.color.presence_offline));
+                presenceRing.setColorFilter(presenceUnavailableColor());
             }
         }
 
@@ -296,6 +334,19 @@ public class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             int powerLevel = mPowerLevels.getUserPowerLevel(member.getUserId());
             pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
             pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
+        }
+
+        // the invited members are displayed with alpha 0.5
+        if (member.membership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+            convertView.setAlpha(0.3f);
+        } else {
+            convertView.setAlpha(1.0f);
+        }
+
+        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN) ) {
+            convertView.setBackgroundResource(android.R.color.darker_gray);
+        } else {
+            convertView.setBackgroundResource(android.R.color.transparent);
         }
 
         return convertView;

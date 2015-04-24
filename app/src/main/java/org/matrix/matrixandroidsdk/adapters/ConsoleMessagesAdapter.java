@@ -43,7 +43,8 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
     public void onAvatarClick(String roomId, String userId){
         Intent startRoomInfoIntent = new Intent(mContext, MemberDetailsActivity.class);
         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, roomId);
-        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, userId);
+        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MEMBER_ID, userId);
+        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MATRIX_ID, mSession.getCredentials().userId);
         mContext.startActivity(startRoomInfoIntent);
     }
 
@@ -68,7 +69,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
         String mediaPath = mMediasCache.mediaCacheFilename(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
         if (null != mediaPath) {
-            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
         }
     }
 
@@ -79,9 +80,19 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
 
             // is the file already saved
             if (null != mediaPath) {
-                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body);
+                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
                 CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
             }
         }
     }
+
+    @Override
+    public void notifyDataSetChanged() {
+        //  do not refresh the room when the application is in background
+        // on large rooms, it drains a lot of battery
+        if (!ConsoleApplication.isAppInBackground()) {
+            super.notifyDataSetChanged();
+        }
+    }
+
 }

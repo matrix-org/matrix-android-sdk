@@ -110,7 +110,10 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void addListener(IMXEventListener listener) {
-        mEventListeners.add(listener);
+        // avoid adding twice
+        if (mEventListeners.indexOf(listener) == -1) {
+            mEventListeners.add(listener);
+        }
         if (mInitialSyncComplete) {
             listener.onInitialSyncComplete();
         }
@@ -149,7 +152,7 @@ public class MXDataHandler implements IMXEventListener {
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
             beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-            mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+            mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
         }
 
         // Handle presence
@@ -160,6 +163,8 @@ public class MXDataHandler implements IMXEventListener {
         // Handle the special case where the room is an invite
         if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
             handleInitialSyncInvite(room.getRoomId(), roomResponse.inviter);
+        } else {
+            onRoomInitialSyncComplete(room.getRoomId());
         }
     }
 
@@ -172,6 +177,10 @@ public class MXDataHandler implements IMXEventListener {
             Room room = getRoom(roomResponse.roomId);
             handleInitialRoomResponse(roomResponse, room);
         }
+    }
+
+    public String getUserId() {
+        return mCredentials.userId;
     }
 
     private void handleInitialSyncInvite(String roomId, String inviterUserId) {
@@ -196,7 +205,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
+        mStore.storeSummary(getUserId(), roomId, inviteEvent, null, mCredentials.userId);
 
         // Set the inviter ID
         RoomSummary roomSummary = mStore.getSummary(roomId);
@@ -296,16 +305,27 @@ public class MXDataHandler implements IMXEventListener {
         // Room event
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
-            // The room state we send with the callback is the one before the current event was processed
-            RoomState beforeState = room.getLiveState().deepCopy();
 
             if (event.stateKey != null) {
-                room.processStateEvent(event, Room.EventDirection.FORWARDS);
+                // check if the event has been processed
+                if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
+                    // not processed -> do not warn the application
+                    // assume that the event is a duplicated one.
+                    return;
+                }
             }
 
-            storeLiveRoomEvent(event);
+            /**
+             * Notice there is a tweak here for the member events
+             * processStateEvent retrieves the avatar url from Event.prevContent
+             * when the member leaves the rooms (the url is not included).
+             * The whole content should be applied but it seems enough and more understandable
+             * to update only the missing field.
+             */
 
-            onLiveEvent(event, beforeState);
+            RoomState liveStateCopy = room.getLiveState().deepCopy();
+            storeLiveRoomEvent(event);
+            onLiveEvent(event, liveStateCopy);
 
             BingRule bingRule;
 
@@ -313,16 +333,15 @@ public class MXDataHandler implements IMXEventListener {
             // the initial sync + the first requestHistory call is done here
             // instead of being done in the application
             if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId)) {
-                onSelfJoinEvent(event, beforeState);
+                onSelfJoinEvent(event, liveStateCopy);
             }
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
                     && (mBingRulesManager != null) && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))) {
-                onBingEvent(event, beforeState, bingRule);
+                onBingEvent(event, liveStateCopy, bingRule);
             }
         }
-
         else {
             Log.e(LOG_TAG, "Unknown live event type: " + event.type);
         }
@@ -365,7 +384,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
                 mStore.storeLiveRoomEvent(event);
-                mStore.storeSummary(event.roomId, event, beforeState, mCredentials.userId);
+                mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
             }
         }
     }
@@ -382,7 +401,7 @@ public class MXDataHandler implements IMXEventListener {
             Event lastEvent = mStore.getLatestEvent(event.roomId);
             RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
 
-            mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+            mStore.storeSummary(getUserId(), event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
         }
     }
 

@@ -23,6 +23,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.Matrix;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -30,35 +31,44 @@ import java.util.HashMap;
  */
 public class PIDsRetriever {
 
-    public static interface PIDsRetrieverListener {
+    public interface PIDsRetrieverListener {
         /**
          * Called when the contact PIDs are retrieved
          */
-        public void onPIDsRetrieved(Contact contact, boolean has3PIDs);
+        public void onPIDsRetrieved(String accountId, Contact contact, boolean has3PIDs);
+    }
+
+    private static PIDsRetriever mPIDsRetriever = null;
+
+    public static PIDsRetriever getIntance() {
+        if (null == mPIDsRetriever) {
+            mPIDsRetriever = new PIDsRetriever();
+        }
+
+        return mPIDsRetriever;
     }
 
     // MatrixID <-> email
-    private static HashMap<String, String> mMatrixIdsByElement = new HashMap<String, String>();
+    private HashMap<String, Contact.MXID> mMatrixIdsByElement = new HashMap<String, Contact.MXID>();
 
-    // con
-    private static PIDsRetrieverListener mListener = null;
+    private PIDsRetrieverListener mListener = null;
 
-    public static void setPIDsRetrieverListener(PIDsRetrieverListener listener) {
+    public void setPIDsRetrieverListener(PIDsRetrieverListener listener) {
         mListener = listener;
     }
 
     /**
      * Clear the email to matrix id conversion table
      */
-    public static void onAppBackgrounded() {
-        mMatrixIdsByElement = new HashMap<String, String>();
+    public void onAppBackgrounded() {
+        mMatrixIdsByElement.clear();
     }
 
     /**
      * reset
      */
-    public static void reset() {
-        mMatrixIdsByElement = new HashMap<String, String>();
+    public void reset() {
+        mMatrixIdsByElement.clear();
         mListener = null;
     }
 
@@ -70,17 +80,17 @@ public class PIDsRetriever {
      * @param contact The contact to update.
      * @param localUpdateOnly true to only support refresh from local information.
      */
-    public static void retrieveMatrixIds(Context context, final Contact contact, boolean localUpdateOnly) {
+    public void retrieveMatrixIds(Context context, final Contact contact, boolean localUpdateOnly) {
         ArrayList<String> requestedAddresses = new ArrayList<String>();
 
         // check if the emails have only been checked
         // i.e. requested their match PID to the identity server.
         for(String email : contact.mEmails) {
             if (mMatrixIdsByElement.containsKey(email)) {
-               String matrixID = mMatrixIdsByElement.get(email);
+               Contact.MXID mxid = mMatrixIdsByElement.get(email);
 
-                if (matrixID.length() > 0) {
-                    contact.mMatrixIdsByElement.put(email,matrixID);
+                if (null != mxid) {
+                    contact.put(email, mxid);
                 }
             } else {
                 requestedAddresses.add(email);
@@ -96,50 +106,55 @@ public class PIDsRetriever {
             }
 
             final ArrayList<String> fRequestedAddresses = requestedAddresses;
+            Collection<MXSession> sessions = Matrix.getInstance(context.getApplicationContext()).getSessions();
 
-            MXSession session = Matrix.getInstance(context.getApplicationContext()).getDefaultSession();
-            session.lookup3Pids(fRequestedAddresses, medias, new ApiCallback<ArrayList<String>>() {
-                @Override
-                public void onSuccess(ArrayList<String> pids) {
-                    boolean foundPIDs = false;
+            for (MXSession session : sessions) {
+                final String accountId = session.getCredentials().userId;
 
-                    // update the global dict
-                    // and the contact dict
-                    for (int i = 0; i < fRequestedAddresses.size(); i++) {
-                        String address = fRequestedAddresses.get(i);
-                        String pid = pids.get(i);
+                session.lookup3Pids(fRequestedAddresses, medias, new ApiCallback<ArrayList<String>>() {
+                    @Override
+                    public void onSuccess(ArrayList<String> pids) {
+                        boolean foundPIDs = false;
 
-                        mMatrixIdsByElement.put(address, pid);
+                        // update the global dict
+                        // and the contact dict
+                        for (int i = 0; i < fRequestedAddresses.size(); i++) {
+                            String address = fRequestedAddresses.get(i);
+                            String pid = pids.get(i);
 
-                        if (pid.length() != 0) {
-                            foundPIDs = true;
-                            contact.mMatrixIdsByElement.put(address, pid);
+                            mMatrixIdsByElement.put(address, new Contact.MXID(pid, accountId));
+
+                            if (pid.length() != 0) {
+                                foundPIDs = true;
+                                contact.put(address, new Contact.MXID(pid, accountId));
+                            }
+                        }
+
+                        // warn the listener of the update
+                        if (null != mListener) {
+                            mListener.onPIDsRetrieved(accountId, contact, foundPIDs);
                         }
                     }
 
-                    // warn the listener of the update
-                    if (null != mListener) {
-                        mListener.onPIDsRetrieved(contact, foundPIDs);
+                    // ignore the network errors
+                    // will be checked again later
+                    @Override
+                    public void onNetworkError(Exception e) {
+
                     }
-                }
 
-                // ignore the network errors
-                // will be checked again later
-                @Override
-                public void onNetworkError(Exception e) {
+                    @Override
+                    public void onMatrixError(MatrixError e) {
 
-                }
-                @Override
-                public void onMatrixError(MatrixError e) {
+                    }
 
-                }
-                @Override
-                public void onUnexpectedError(Exception e) {
+                    @Override
+                    public void onUnexpectedError(Exception e) {
 
-                }
-            });
+                    }
+                });
+            }
         }
-
     }
 }
 

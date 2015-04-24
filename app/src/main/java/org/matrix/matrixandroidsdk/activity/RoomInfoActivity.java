@@ -65,7 +65,8 @@ public class RoomInfoActivity extends MXCActionBarActivity {
         Log.i(LOG_TAG, "Displaying "+roomId);
 
         // make sure we're logged in.
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        mSession = getSession(intent);
+
         if (mSession == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();
@@ -105,13 +106,13 @@ public class RoomInfoActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.getInstance(this, mSession).advertiseUnavailableAfterDelay();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.getInstance(this, mSession).advertiseOnline();
     }
 
     private void saveChanges() {

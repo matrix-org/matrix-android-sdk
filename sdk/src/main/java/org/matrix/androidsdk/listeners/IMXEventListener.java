@@ -78,7 +78,6 @@ public interface IMXEventListener {
 
     /**
      * The bing rules have been updated
-     *
      */
     public void onBingRulesUpdate();
 
@@ -90,6 +89,7 @@ public interface IMXEventListener {
     /**
      * The room initial sync is completed.
      * It is triggered after retrieving the room info and performing a first requestHistory
+     *
      * @param roomId the roomID
      */
     public void onRoomInitialSyncComplete(String roomId);
@@ -97,6 +97,7 @@ public interface IMXEventListener {
     /**
      * The room data has been internally updated.
      * It could be triggered when a request failed.
+     *
      * @param roomId the roomID
      */
     public void onRoomInternalUpdate(String roomId);

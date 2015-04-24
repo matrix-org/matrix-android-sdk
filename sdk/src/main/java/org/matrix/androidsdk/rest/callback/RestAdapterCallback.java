@@ -72,7 +72,10 @@ public class RestAdapterCallback<T> implements Callback<T> {
             if (null != mUnsentEventsManager) {
                 mUnsentEventsManager.onEventSent(mApiCallback);
             }
-            mApiCallback.onSuccess(t);
+
+            if (null != mApiCallback) {
+                mApiCallback.onSuccess(t);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
         }
@@ -94,7 +97,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
         } else {
             if (error.isNetworkError()) {
                 try {
-                    mApiCallback.onNetworkError(error);
+                    if (null != mApiCallback) {
+                        mApiCallback.onNetworkError(error);
+                    }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
                 }
@@ -110,14 +115,18 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 }
                 if (mxError != null) {
                     try {
-                        mApiCallback.onMatrixError(mxError);
+                        if (null != mApiCallback) {
+                            mApiCallback.onMatrixError(mxError);
+                        }
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
                     }
                 }
                 else {
                     try {
-                        mApiCallback.onUnexpectedError(error);
+                        if (null != mApiCallback) {
+                            mApiCallback.onUnexpectedError(error);
+                        }
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                     }

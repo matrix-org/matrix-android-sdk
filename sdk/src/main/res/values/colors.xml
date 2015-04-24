@@ -12,4 +12,7 @@
     <color name="pie_fraction_rest">#aaa</color>
 
     <color name="chat_gray_text">#FFAAAAAA</color>
+
+    <color name="presence_unknown">#aaa</color>
+
 </resources>

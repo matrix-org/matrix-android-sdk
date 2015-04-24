@@ -66,17 +66,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
     public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_ROOM_ID";
+    public static final String ARG_MATRIX_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
     private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
-    public static MatrixMessageListFragment newInstance(String roomId, int layoutResId) {
+    public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
-        f.setArguments(args);
+        args.putString(ARG_MATRIX_ID, matrixId);
         return f;
     }
 
@@ -93,11 +94,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
 
-    public MXSession getMXSession() {
+    public MXMediasCache getMXMediasCache() {
         return null;
     }
 
-    public MXMediasCache getMXMediasCache() {
+    public MXSession getSession(String matrixId) {
         return null;
     }
 
@@ -117,9 +118,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+
+        Bundle args = getArguments();
+
         // for dispatching data to add to the adapter we need to be on the main thread
         mUiHandler = new Handler(Looper.getMainLooper());
-        mSession = getMXSession();
+
+        String matrixId = args.getString(ARG_MATRIX_ID);
+        mSession = getSession(matrixId);
 
         if (null == mSession) {
             throw new RuntimeException("Must have valid default MXSession.");
@@ -129,7 +135,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             throw new RuntimeException("Must have valid default MediasCache.");
         }
 
-        Bundle args = getArguments();
+
         String roomId = args.getString(ARG_ROOM_ID);
         mRoom = mSession.getDataHandler().getRoom(roomId);
     }
@@ -326,7 +332,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -353,7 +359,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
 
                             Toast.makeText(getActivity(),
-                                    getString(R.string.message_failed_to_upload),
+                                    (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
                                     Toast.LENGTH_LONG).show();
                         } else {
                             // send the message
@@ -407,7 +413,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
@@ -437,7 +443,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                         imageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
 
                                                         Toast.makeText(getActivity(),
-                                                                getString(R.string.message_failed_to_upload),
+                                                                (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
                                                                 Toast.LENGTH_LONG).show();
                                                     } else {
                                                         // send the message

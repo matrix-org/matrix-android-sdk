@@ -46,9 +46,10 @@ import org.matrix.matrixandroidsdk.ConsoleApplication;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
-import org.matrix.matrixandroidsdk.adapters.RoomMembersAdapter;
+import org.matrix.matrixandroidsdk.adapters.ConsoleRoomMembersAdapter;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * A dialog fragment showing a list of room members for a given room.
@@ -58,16 +59,17 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
     public static final String ARG_ROOM_ID = "org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment.ARG_ROOM_ID";
 
-    public static RoomMembersDialogFragment newInstance(String roomId) {
+    public static RoomMembersDialogFragment newInstance(MXSession session, String roomId) {
         RoomMembersDialogFragment f= new RoomMembersDialogFragment();
         Bundle args = new Bundle();
         args.putString(ARG_ROOM_ID, roomId);
         f.setArguments(args);
+        f.setSession(session);
         return f;
     }
 
     private ListView mListView;
-    private RoomMembersAdapter mAdapter;
+    private ConsoleRoomMembersAdapter mAdapter;
     private String mRoomId;
     private MXSession mSession;
 
@@ -121,14 +123,16 @@ public class RoomMembersDialogFragment extends DialogFragment {
         }
     };
 
+    public void setSession(MXSession session) {
+        mSession = session;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mRoomId = getArguments().getString(ARG_ROOM_ID);
-        Context context = getActivity().getApplicationContext();
         uiThreadHandler = new Handler();
 
-        mSession = Matrix.getInstance(context).getDefaultSession();
         if (mSession == null) {
             throw new RuntimeException("No MXSession.");
         }
@@ -160,7 +164,7 @@ public class RoomMembersDialogFragment extends DialogFragment {
      * @return the used medias cache
      */
     public MXMediasCache getMXMediasCache() {
-        return Matrix.getInstance(getActivity()).getDefaultMediasCache();
+        return Matrix.getInstance(getActivity()).getMediasCache();
     }
 
     @Override
@@ -172,7 +176,13 @@ public class RoomMembersDialogFragment extends DialogFragment {
 
         final Room room = mSession.getDataHandler().getRoom(mRoomId);
 
-        mAdapter = new RoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState(), getMXMediasCache());
+        HashMap<String, String> membershipStrings = new HashMap<String, String>();
+        membershipStrings.put(RoomMember.MEMBERSHIP_INVITE, getActivity().getString(R.string.membership_invite));
+        membershipStrings.put(RoomMember.MEMBERSHIP_JOIN, getActivity().getString(R.string.membership_join));
+        membershipStrings.put(RoomMember.MEMBERSHIP_LEAVE, getActivity().getString(R.string.membership_leave));
+        membershipStrings.put(RoomMember.MEMBERSHIP_BAN, getActivity().getString(R.string.membership_ban));
+
+        mAdapter = new ConsoleRoomMembersAdapter(getActivity(), R.layout.adapter_item_room_members, room.getLiveState(), getMXMediasCache(), membershipStrings);
 
         // apply the sort settings
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
@@ -215,7 +225,8 @@ public class RoomMembersDialogFragment extends DialogFragment {
                     public void run() {
                         Intent startRoomInfoIntent = new Intent(activity, MemberDetailsActivity.class);
                         startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_ROOM_ID, mRoomId);
-                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_USER_ID, roomMember.getUserId());
+                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MEMBER_ID, roomMember.getUserId());
+                        startRoomInfoIntent.putExtra(MemberDetailsActivity.EXTRA_MATRIX_ID, mSession.getCredentials().userId);
                         startActivity(startRoomInfoIntent);
                     }
                 });

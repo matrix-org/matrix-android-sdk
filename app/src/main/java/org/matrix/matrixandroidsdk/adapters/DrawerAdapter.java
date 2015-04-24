@@ -54,8 +54,8 @@ public class DrawerAdapter extends ArrayAdapter<DrawerAdapter.Entry> {
 
     /**
      * Construct an adapter to display a drawer adapter
-     * @param context the contxt
-     * @param headerLayoutResourceId the header resoource id
+     * @param context the context
+     * @param headerLayoutResourceId the header resource id
      * @param entryLayoutResourceId the entry layout id
      */
     public DrawerAdapter(Context context, int headerLayoutResourceId,  int entryLayoutResourceId) {

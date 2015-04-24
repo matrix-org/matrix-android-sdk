@@ -79,9 +79,11 @@ public class Event {
     // sent state
     public SentState mSentState = SentState.SENT;
 
+    // store the linked matrix id
+    private String mMatrixId;
+
     // the time raw offset (time zone management)
     private long mTimeZoneRawOffset = 0;
-
     private long getTimeZoneOffset() {
         return TimeZone.getDefault().getRawOffset();
     }
@@ -106,8 +108,19 @@ public class Event {
         unsentMatrixError = null;
         unsentException = null;
 
+        mMatrixId = null;
+
         mSentState = SentState.SENT;
     }
+
+    public void setMatrixId(String aMatrixId) {
+        mMatrixId = aMatrixId;
+    }
+
+    public String getMatrixId() {
+        return mMatrixId;
+    }
+
 
     public long getOriginServerTs() {
         return originServerTs;
@@ -185,6 +198,8 @@ public class Event {
 
         copy.unsentException = unsentException;
         copy.unsentMatrixError = unsentMatrixError;
+
+        copy.mMatrixId = mMatrixId;
         return copy;
     }
 

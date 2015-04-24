@@ -145,6 +145,8 @@ public class MatrixMessagesFragment extends Fragment {
 
         mRoom.addEventListener(mEventListener);
 
+        //joinedRoom = false;
+
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
             joinRoom();
@@ -190,8 +192,7 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
-                // the SDK performs the initial sync when it gets the join event echo
-                //requestInitialHistory();
+                requestInitialHistory();
             }
 
             // the request will be automatically restarted when a valid network will be found

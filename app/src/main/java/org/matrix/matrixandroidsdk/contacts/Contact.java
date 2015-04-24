@@ -27,6 +27,15 @@ import java.util.HashMap;
  * A simple contact class
  */
 public class Contact {
+    public static class MXID {
+        public String mMatrixId;
+        public String mAccountId;
+
+        public MXID(String matrixId, String accountId) {
+            mMatrixId = matrixId;
+            mAccountId = accountId;
+        }
+    }
 
     public String mContactId;
     public String mDisplayName;
@@ -37,25 +46,36 @@ public class Contact {
 
     public ArrayList<String>mPhoneNumbers = new ArrayList<String>();
     public ArrayList<String>mEmails = new ArrayList<String>();
-    public HashMap<String, String> mMatrixIdsByElement = null;
+    private HashMap<String, MXID> mMXIDsByElement = null;
 
     /**
      * Check if some matrix IDs are linked to emails
      * @return true if some matrix IDs have been retrieved
      */
     public boolean hasMatridIds(Context context) {
-        Boolean localUpdateOnly = (null != mMatrixIdsByElement);
+        Boolean localUpdateOnly = (null != mMXIDsByElement);
 
         // the PIDs are not yet retrieved
-        if (null == mMatrixIdsByElement) {
-            mMatrixIdsByElement = new HashMap<String, String>();
+        if (null == mMXIDsByElement) {
+            mMXIDsByElement = new HashMap<String, MXID>();
         }
 
         if (couldContainMatridIds()) {
-            PIDsRetriever.retrieveMatrixIds(context, this, localUpdateOnly);
+            PIDsRetriever.getIntance().retrieveMatrixIds(context, this, localUpdateOnly);
         }
 
-        return (mMatrixIdsByElement.size() != 0);
+        return (mMXIDsByElement.size() != 0);
+    }
+
+    /**
+     * Defines a matrix identifier for a dedicated pattern
+     * @param email the pattern
+     * @param mxid the matrixId
+     */
+    public void put(String email, MXID mxid) {
+        if ((null != email) && (null != mxid) && !TextUtils.isEmpty(mxid.mMatrixId)) {
+            mMXIDsByElement.put(email, mxid);
+        }
     }
 
     /**
@@ -108,9 +128,9 @@ public class Contact {
      * Returns the first retrieved matrix ID.
      * @return the first retrieved matrix ID.
      */
-    public String getFirstMatrixId() {
-        if (mMatrixIdsByElement.size() != 0) {
-            return mMatrixIdsByElement.values().iterator().next();
+    public MXID getFirstMatrixId() {
+        if (mMXIDsByElement.size() != 0) {
+            return mMXIDsByElement.values().iterator().next();
         } else {
             return null;
         }

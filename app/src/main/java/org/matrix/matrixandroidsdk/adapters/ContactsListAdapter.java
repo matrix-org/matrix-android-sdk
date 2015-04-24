@@ -88,7 +88,7 @@ public class ContactsListAdapter extends ArrayAdapter<Contact> implements Sectio
         TextView matrixIDTextView = (TextView) convertView.findViewById(R.id.contact_userId);
 
         if (contact.hasMatridIds(mContext)) {
-            matrixIDTextView.setText(contact.getFirstMatrixId());
+            matrixIDTextView.setText(contact.getFirstMatrixId().mMatrixId);
             matrixIDTextView.setVisibility(View.VISIBLE);
             matrixIcon.setVisibility(View.VISIBLE);
         } else {

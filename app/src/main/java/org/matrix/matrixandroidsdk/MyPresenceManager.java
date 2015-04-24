@@ -20,11 +20,15 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.matrixandroidsdk.contacts.Contact;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,15 +59,15 @@ public class MyPresenceManager {
         }
     }
 
-    private static MyPresenceManager instance = null;
+    private static HashMap<MXSession, MyPresenceManager> instances = new HashMap<MXSession, MyPresenceManager>();
 
     private MyUser myUser;
     private Handler mHandler;
     private String latestAdvertisedPresence; // Presence we're advertising
     private String tmpPresence;
 
-    private MyPresenceManager(Context context){
-        myUser = Matrix.getInstance(context).getDefaultSession().getMyUser();
+    private MyPresenceManager(Context context, MXSession session) {
+        myUser = session.getMyUser();
         mHandler = new Handler(Looper.getMainLooper());
 
         myUser.addEventListener(new MXEventListener() {
@@ -89,13 +93,57 @@ public class MyPresenceManager {
         });
     }
 
-    public static synchronized MyPresenceManager getInstance(Context context) {
+    /**
+     * Create an instance without any check.
+     * @param context
+     * @param session
+     * @return
+     */
+    private static MyPresenceManager createInstance(Context context, MXSession session) {
+        MyPresenceManager instance = new MyPresenceManager(context, session);
+        instances.put(session, instance);
+        return instance;
+    }
+
+    /**
+     * Search a presence manager from a dedicated session
+     * @param context the context
+     * @param session the session
+     * @return the linked presence manager
+     */
+    public static synchronized MyPresenceManager getInstance(Context context, MXSession session) {
+        MyPresenceManager instance = instances.get(session);
         if (instance == null) {
-            instance = new MyPresenceManager(context);
+            instance = createInstance(context, session);
         }
         return instance;
     }
 
+    /**
+     * Create an MyPresenceManager instance for each session if it was not yet done.
+     * @param context the context
+     * @param sessions the sessions
+     */
+    public static synchronized void createPresenceManager(Context context, Collection<MXSession> sessions) {
+        for(MXSession session : sessions) {
+            if (!instances.containsKey(session)) {
+                createInstance(context, session);
+            }
+        }
+    }
+
+    /**
+     * Remove a presence manager for a session.
+     * @param session the session
+     */
+    public static synchronized void remove(MXSession session) {
+        instances.remove(session);
+    }
+
+    /**
+     * Send the advertise presence message.
+     * @param presence the presence message.
+     */
     private void advertisePresence(String presence) {
         latestAdvertisedPresence = presence;
         tmpPresence = presence;
@@ -107,6 +155,10 @@ public class MyPresenceManager {
         }
     }
 
+    /**
+     * Send the advertise presence message after delay.
+     * @param presence the presence message.
+     */
     private void advertisePresenceAfterDelay(final String presence) {
         tmpPresence = presence;
 
@@ -121,14 +173,56 @@ public class MyPresenceManager {
         }, DELAY_TS);
     }
 
+    /**
+     * Send the online event to each known MyPresenceManager
+     */
+    public static void advertiseAllOnline() {
+        Collection<MyPresenceManager> values = instances.values();
+
+        for(MyPresenceManager myPresenceManager : values) {
+            myPresenceManager.advertiseOnline();
+        }
+    }
+
+    /**
+     * Send the online message.
+     */
     public void advertiseOnline() {
         advertisePresence(User.PRESENCE_ONLINE);
     }
 
+    /**
+     * Send the offline event to each known MyPresenceManager.
+     */
+    public static void advertiseAllOffline() {
+        Collection<MyPresenceManager> values = instances.values();
+
+        for(MyPresenceManager myPresenceManager : values) {
+            myPresenceManager.advertiseOffline();
+        }
+    }
+
+    /**
+     * Send the offline message.
+     */
     public void advertiseOffline() {
         advertisePresence(User.PRESENCE_OFFLINE);
     }
 
+    /**
+     * Send the Unavailable event to each known MyPresenceManager.
+     */
+    public static void advertiseAllUnavailableAfterDelay() {
+        Collection<MyPresenceManager> values = instances.values();
+
+        for(MyPresenceManager myPresenceManager : values) {
+            myPresenceManager.advertiseUnavailableAfterDelay();
+        }
+    }
+
+    /**
+     * Send the Unavailable mesage after delay
+     */
     public void advertiseUnavailableAfterDelay() {
         // If we've advertised that we're offline, we can't go straight to unavailable
         // This avoids the case where the user logs out, advertising OFFLINE, but then leaves the

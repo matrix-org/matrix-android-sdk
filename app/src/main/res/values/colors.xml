@@ -2,7 +2,6 @@
 <resources>
     <color name="room_background">#f4f4f4</color>
 
-    <color name="presence_unknown">#aaa</color>
     <color name="presence_online">#38af00</color>
     <color name="presence_unavailable">#fc0</color>
     <color name="presence_offline">#E53333</color>

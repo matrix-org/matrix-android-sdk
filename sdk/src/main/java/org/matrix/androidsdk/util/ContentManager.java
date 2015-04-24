@@ -18,6 +18,10 @@ package org.matrix.androidsdk.util;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.google.gson.Gson;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -38,6 +42,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -85,7 +91,7 @@ public class ContentManager {
          * Called when the upload is complete or has failed.
          * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
          */
-        public void onUploadComplete(String uploadId, ContentResponse uploadResponse);
+        public void onUploadComplete(String uploadId, ContentResponse uploadResponse, String serverErrorMessage);
     }
 
     /**
@@ -193,7 +199,7 @@ public class ContentManager {
             new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             // cannot start the task
-            callback.onUploadComplete(uploadId, null);
+            callback.onUploadComplete(uploadId, null, null);
         }
     }
 
@@ -247,6 +253,9 @@ public class ContentManager {
 
         // dummy ApiCallback uses to be warned when the upload must be declared as "undeliverable".
         private ApiCallback mApiCallback;
+
+        // the upload server response code
+        private int mResponseCode;
 
         /**
          * Public constructor
@@ -347,6 +356,8 @@ public class ContentManager {
             HttpURLConnection conn;
             DataOutputStream dos;
 
+            mResponseCode = -1;
+
             int bytesRead, bytesAvailable, bufferSize, totalWritten, totalSize;
             byte[] buffer;
             int maxBufferSize = 1024 * 32;
@@ -405,25 +416,35 @@ public class ContentManager {
                 publishProgress(mProgress = 96);
 
                 // Read the SERVER RESPONSE
-                int status = conn.getResponseCode();
+                mResponseCode = conn.getResponseCode();
 
                 publishProgress(mProgress = 98);
 
-                Log.d(LOG_TAG, "Upload is done with response code" + status);
+                Log.d(LOG_TAG, "Upload is done with response code" + mResponseCode);
 
-                if (status == 200) {
-                    InputStream is = conn.getInputStream();
-                    int ch;
-                    StringBuffer b = new StringBuffer();
-                    while ((ch = is.read()) != -1) {
-                        b.append((char) ch);
-                    }
-                    responseFromServer = b.toString();
-                    is.close();
+                InputStream is;
+
+                if (mResponseCode == 200) {
+                    is = conn.getInputStream();
+                } else {
+                    is = conn.getErrorStream();
                 }
-                else {
-                    Log.e(LOG_TAG, "Error: Upload returned " + status + " status code");
-                    return null;
+
+                int ch;
+                StringBuffer b = new StringBuffer();
+                while ((ch = is.read()) != -1) {
+                    b.append((char) ch);
+                }
+                responseFromServer = b.toString();
+                is.close();
+
+                // the server should provide an error description
+                if (mResponseCode != 200) {
+                    try {
+                        JSONObject responseJSON = new JSONObject(responseFromServer);
+                        responseFromServer = responseJSON.getString("error");
+                    } catch (JSONException e) {
+                    }
                 }
             }
             catch (Exception e) {
@@ -462,11 +483,11 @@ public class ContentManager {
             } catch (Exception e) {
             }
 
-            ContentResponse uploadResponse = (s == null) ? null : JsonUtils.toContentResponse(s);
+            ContentResponse uploadResponse = ((mResponseCode != 200) || (s == null)) ? null : JsonUtils.toContentResponse(s);
 
             for (UploadCallback callback : mCallbacks) {
                 try {
-                    callback.onUploadComplete(mUploadId, uploadResponse);
+                    callback.onUploadComplete(mUploadId, uploadResponse, (mResponseCode != 200) ? s : null);
                 } catch (Exception e) {
                 }
             }

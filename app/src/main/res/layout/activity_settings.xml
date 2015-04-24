@@ -4,6 +4,7 @@
     android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/settings_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -11,57 +12,19 @@
         android:paddingRight="10dp">
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/Base.TextAppearance.AppCompat.Subhead"
-            android:text="@string/settings_title_profile"/>
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <ImageView
-                android:id="@+id/imageView_avatar"
-                android:layout_width="@dimen/profile_avatar_size"
-                android:layout_height="@dimen/profile_avatar_size"
-                android:layout_alignParentLeft="true"
-                android:layout_marginRight="10dp"
-                android:scaleType="centerCrop"/>
-
-            <EditText
-                android:id="@+id/editText_displayName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/imageView_avatar"
-                android:layout_alignParentTop="true"
-                android:layout_alignParentRight="true"/>
-
-            <Button
-                android:id="@+id/button_save"
-                style="@style/Base.TextAppearance.AppCompat.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/imageView_avatar"
-                android:layout_below="@id/editText_displayName"
-                android:layout_alignParentRight="true"
-                android:text="@string/save"
-                android:enabled="false"/>
-
-            <ProgressBar
-                android:id="@+id/profile_mask"
-                android:layout_height="@dimen/profile_avatar_size"
-                android:layout_width="match_parent"
-                android:background="#99CCCCCC"
-                android:layout_alignParentLeft="true"
-                android:indeterminate="true" />
-
-        </RelativeLayout>
-
-        <TextView
+            android:id="@+id/settings_profile_information_header"
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Base.TextAppearance.AppCompat.Subhead"
+            style="@style/Base.TextAppearance.AppCompat.Title"
+            android:text="@string/settings_title_profile"/>
+
+        <TextView
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Base.TextAppearance.AppCompat.Title"
             android:text="@string/settings_title_notifications"/>
 
         <TextView
@@ -73,9 +36,10 @@
 
         <TextView
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Base.TextAppearance.AppCompat.Subhead"
+            style="@style/Base.TextAppearance.AppCompat.Title"
             android:text="@string/settings_title_rooms"/>
 
         <LinearLayout
@@ -172,16 +136,11 @@
 
         <TextView
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Base.TextAppearance.AppCompat.Subhead"
+            style="@style/Base.TextAppearance.AppCompat.Title"
             android:text="@string/settings_title_config"/>
-
-        <TextView
-            android:id="@+id/textView_configHomeServer"
-            style="@style/Base.TextAppearance.AppCompat.Caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/textView_matrixConsoleVersion"
@@ -202,7 +161,7 @@
             android:layout_height="wrap_content"/>
 
         <TextView
-            android:id="@+id/textView_configUserId"
+            android:id="@+id/textView_configUsers"
             style="@style/Base.TextAppearance.AppCompat.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
@@ -210,9 +169,10 @@
         
         <TextView
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Base.TextAppearance.AppCompat.Subhead"
+            style="@style/Base.TextAppearance.AppCompat.Title"
             android:text="@string/settings_title_commands"/>
 
         <TextView

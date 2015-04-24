@@ -33,6 +33,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,30 +50,38 @@ import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
+import java.util.Collection;
+import java.util.HashMap;
+
 public class SettingsActivity extends MXCActionBarActivity {
 
     private static final String LOG_TAG = "SettingsActivity";
 
     private static final int REQUEST_IMAGE = 0;
 
-    private MyUser mMyUser;
+    // stored the updated thumbnails URI by session
+    private HashMap<MXSession, Uri> mTmpThumbnailUriBySession = new HashMap<MXSession, Uri>();
 
-    // Views
-    private ImageView mAvatarImageView;
-    private EditText mDisplayNameEditText;
-    private Button mSaveButton;
+    // linear layout by session
+    // each profile has a dedicated session.
+    private HashMap<MXSession, LinearLayout> mLinearLayoutBySession = new HashMap<MXSession, LinearLayout>();
 
-    private Uri newAvatarUri;
+    private MXSession mUpdatingSession = null;
 
     private MXMediasCache mMediasCache;
 
-    void refreshProfileThumbnail() {
-        mAvatarImageView = (ImageView) findViewById(R.id.imageView_avatar);
-        if (mMyUser.avatarUrl == null) {
-            mAvatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+    void refreshProfileThumbnail(MXSession session, LinearLayout baseLayout) {
+        ImageView avatarView = (ImageView) baseLayout.findViewById(R.id.imageView_avatar);
+        Uri newAvatarUri = mTmpThumbnailUriBySession.get(session);
+        String avatarUrl = session.getMyUser().avatarUrl;
+
+        if (null != newAvatarUri) {
+            avatarView.setImageURI(newAvatarUri);
+        } else if (avatarUrl == null) {
+            avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
             int size = getResources().getDimensionPixelSize(R.dimen.profile_avatar_size);
-            mMediasCache.loadAvatarThumbnail(mAvatarImageView, mMyUser.avatarUrl, size);
+            mMediasCache.loadAvatarThumbnail(avatarView, avatarUrl, size);
         }
     }
 
@@ -82,46 +91,66 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         setContentView(R.layout.activity_settings);
 
-        MXSession session = Matrix.getInstance(this).getDefaultSession();
-        mMyUser = session.getMyUser();
+        mMediasCache = Matrix.getInstance(this).getMediasCache();
 
-        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+        // add any known session
+        LinearLayout globalLayout = (LinearLayout)findViewById(R.id.settings_layout);
+        TextView profileHeader = (TextView)findViewById(R.id.settings_profile_information_header);
+        int pos = globalLayout.indexOfChild(profileHeader);
 
-        refreshProfileThumbnail();
+        for(MXSession session : Matrix.getMXSessions(this)) {
+            final MXSession fSession = session;
 
-        mAvatarImageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent fileIntent = new Intent(Intent.ACTION_PICK);
-                fileIntent.setType("image/*");
-                startActivityForResult(fileIntent, REQUEST_IMAGE);
-            }
-        });
+            LinearLayout profileLayout = (LinearLayout)getLayoutInflater().inflate(R.layout.account_section_settings, null);
+            mLinearLayoutBySession.put(session, profileLayout);
 
-        mDisplayNameEditText = (EditText) findViewById(R.id.editText_displayName);
-        mDisplayNameEditText.setText(mMyUser.displayname);
-        mDisplayNameEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+            pos++;
+            globalLayout.addView(profileLayout, pos);
+            refreshProfileThumbnail(session, profileLayout);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                updateSaveButton();
-            }
+            ImageView avatarView = (ImageView)profileLayout.findViewById(R.id.imageView_avatar);
 
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
-        });
+            avatarView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mUpdatingSession = fSession;
+                    Intent fileIntent = new Intent(Intent.ACTION_PICK);
+                    fileIntent.setType("image/*");
+                    startActivityForResult(fileIntent, REQUEST_IMAGE);
+                }
+            });
 
-        mSaveButton = (Button) findViewById(R.id.button_save);
-        mSaveButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveChanges();
-            }
-        });
+            MyUser myUser = session.getMyUser();
+
+            TextView matrixIdTextView = (TextView) profileLayout.findViewById(R.id.textView_matrix_id);
+            matrixIdTextView.setText(myUser.userId);
+
+            final Button saveButton = (Button) profileLayout.findViewById(R.id.button_save);
+
+            EditText displayNameEditText = (EditText) profileLayout.findViewById(R.id.editText_displayName);
+            displayNameEditText.setText(myUser.displayname);
+            displayNameEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    updateSaveButton(saveButton);
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                }
+            });
+
+            saveButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    saveChanges(fSession);
+                }
+            });
+        }
 
         // Config information
 
@@ -143,11 +172,31 @@ public class SettingsActivity extends MXCActionBarActivity {
         TextView buildNumberTextView = (TextView) findViewById(R.id.textView_matrixBuildNumber);
         buildNumberTextView.setText(getString(R.string.settings_config_build_number, ""));
 
-        TextView hsTextView = (TextView) findViewById(R.id.textView_configHomeServer);
-        hsTextView.setText(getString(R.string.settings_config_home_server, session.getCredentials().homeServer));
+        TextView userIdTextView = (TextView) findViewById(R.id.textView_configUsers);
+        String config = "";
 
-        TextView userIdTextView = (TextView) findViewById(R.id.textView_configUserId);
-        userIdTextView.setText(getString(R.string.settings_config_user_id, mMyUser.userId));
+        int sessionIndex = 1;
+
+        Collection<MXSession> sessions = Matrix.getMXSessions(this);
+
+        for(MXSession session : sessions) {
+
+            if (sessions.size() > 1) {
+                config += "\nAccount " + sessionIndex + " : \n";
+                sessionIndex++;
+            }
+
+            config += String.format(getString(R.string.settings_config_home_server), session.getCredentials().homeServer);
+            config += "\n";
+
+            config += String.format(getString(R.string.settings_config_user_id), session.getMyUser().userId);
+
+            if (sessions.size() > 1) {
+                config += "\n";
+            }
+        }
+
+        userIdTextView.setText(config);
 
         // room settings
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -193,33 +242,43 @@ public class SettingsActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        MyPresenceManager.advertiseAllUnavailableAfterDelay();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        MyPresenceManager.advertiseAllOnline();
 
-        final View refreshingView = findViewById(R.id.profile_mask);
-        refreshingView.setVisibility(View.VISIBLE);
+        for(MXSession session : Matrix.getMXSessions(this)) {
+            final MyUser myUser = session.getMyUser();
+            final MXSession fSession = session;
 
-        final MXSession session = Matrix.getInstance(this).getDefaultSession();
+            final LinearLayout linearLayout = mLinearLayoutBySession.get(fSession);
 
-        // refresh the myUser profile
-        if ((null != session) && (null !=  session.getProfileApiClient())) {
+            final View refreshingView = linearLayout.findViewById(R.id.profile_mask);
+            refreshingView.setVisibility(View.VISIBLE);
 
-            session.getProfileApiClient().displayname(mMyUser.userId, new SimpleApiCallback<String>(this) {
+            session.getProfileApiClient().displayname(myUser.userId, new SimpleApiCallback<String>(this) {
                 @Override
                 public void onSuccess(String displayname) {
-                    mMyUser.displayname = displayname;
-                    mDisplayNameEditText.setText(mMyUser.displayname);
 
-                    session.getProfileApiClient().avatarUrl(mMyUser.userId, new SimpleApiCallback<String>(this) {
+                    if ((null != displayname) && !displayname.equals(myUser.displayname)) {
+                        myUser.displayname = displayname;
+                        EditText displayNameEditText = (EditText) linearLayout.findViewById(R.id.editText_displayName);
+                        displayNameEditText.setText(myUser.displayname);
+                    }
+
+                    fSession.getProfileApiClient().avatarUrl(myUser.userId, new SimpleApiCallback<String>(this) {
                         @Override
                         public void onSuccess(String avatarUrl) {
-                            mMyUser.avatarUrl = avatarUrl;
-                            refreshProfileThumbnail();
+                            if ((null != avatarUrl) && !avatarUrl.equals(myUser.avatarUrl)) {
+                                mTmpThumbnailUriBySession.remove(fSession);
+
+                                myUser.avatarUrl = avatarUrl;
+                                refreshProfileThumbnail(fSession, linearLayout);
+                            }
+
                             refreshingView.setVisibility(View.GONE);
                         }
                     });
@@ -236,13 +295,19 @@ public class SettingsActivity extends MXCActionBarActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_IMAGE) {
+            if (resultCode == RESULT_OK) {
+                mTmpThumbnailUriBySession.put(mUpdatingSession, data.getData());
 
-        if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_IMAGE) {
-                newAvatarUri = data.getData();
-                mAvatarImageView.setImageURI(newAvatarUri);
-                mSaveButton.setEnabled(true); // Enable the save button if it wasn't already
+                final LinearLayout linearLayout = mLinearLayoutBySession.get(mUpdatingSession);
+                ImageView avatarView = (ImageView) linearLayout.findViewById(R.id.imageView_avatar);
+                avatarView.setImageURI(data.getData());
+
+                final Button saveButton = (Button) linearLayout.findViewById(R.id.button_save);
+                saveButton.setEnabled(true); // Enable the save button if it wasn't already
             }
+
+            mUpdatingSession = null;
         }
     }
 
@@ -281,21 +346,29 @@ public class SettingsActivity extends MXCActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void saveChanges() {
+    private void saveChanges(final MXSession session) {
+        LinearLayout linearLayout = mLinearLayoutBySession.get(session);
+        EditText displayNameEditText = (EditText) linearLayout.findViewById(R.id.editText_displayName);
+
         // Save things
-        final String nameFromForm = mDisplayNameEditText.getText().toString();
+        final String nameFromForm = displayNameEditText.getText().toString();
 
         final ApiCallback<Void> changeCallback = UIUtils.buildOnChangeCallback(this);
 
-        if (UIUtils.hasFieldChanged(mMyUser.displayname, nameFromForm)) {
-            mMyUser.updateDisplayName(nameFromForm, new SimpleApiCallback<Void>(changeCallback) {
+        final MyUser myUser = session.getMyUser();
+        final Button saveButton = (Button) linearLayout.findViewById(R.id.button_save);
+
+        if (UIUtils.hasFieldChanged(myUser.displayname, nameFromForm)) {
+            myUser.updateDisplayName(nameFromForm, new SimpleApiCallback<Void>(changeCallback) {
                 @Override
                 public void onSuccess(Void info) {
                     super.onSuccess(info);
-                    updateSaveButton();
+                    updateSaveButton(saveButton);
                 }
             });
         }
+
+        Uri newAvatarUri = mTmpThumbnailUriBySession.get(session);
 
         if (newAvatarUri != null) {
             Log.d(LOG_TAG, "Selected image to upload: " + newAvatarUri);
@@ -307,8 +380,6 @@ public class SettingsActivity extends MXCActionBarActivity {
                 return;
             }
 
-            MXSession session = Matrix.getInstance(this).getDefaultSession();
-
             final ProgressDialog progressDialog = ProgressDialog.show(this, null, getString(R.string.message_uploading), true);
 
             session.getContentManager().uploadContent(resource.contentStream, resource.mimeType, null, new ContentManager.UploadCallback() {
@@ -318,7 +389,7 @@ public class SettingsActivity extends MXCActionBarActivity {
                 }
 
                 @Override
-                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse) {
+                public void onUploadComplete(String anUploadId, ContentResponse uploadResponse, String serverErrorMessage)  {
                     if (uploadResponse == null) {
                         Toast.makeText(SettingsActivity.this,
                                 getString(R.string.settings_failed_to_upload_avatar),
@@ -326,12 +397,13 @@ public class SettingsActivity extends MXCActionBarActivity {
                     }
                     else {
                         Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                        mMyUser.updateAvatarUrl(uploadResponse.contentUri, new SimpleApiCallback<Void>(changeCallback) {
+                        myUser.updateAvatarUrl(uploadResponse.contentUri, new SimpleApiCallback<Void>(changeCallback) {
                             @Override
                             public void onSuccess(Void info) {
                                 super.onSuccess(info);
-                                newAvatarUri = null; // Reset this because its being set is how we know there's been a change
-                                updateSaveButton();
+                                // Reset this because its being set is how we know there's been a change
+                                mTmpThumbnailUriBySession.remove(session);
+                                updateSaveButton(saveButton);
                             }
                         });
                     }
@@ -341,17 +413,29 @@ public class SettingsActivity extends MXCActionBarActivity {
         }
     }
 
-    private void updateSaveButton() {
+    private void updateSaveButton(final Button button) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mSaveButton.setEnabled(areChanges());
+                button.setEnabled(areChanges());
             }
         });
     }
 
     private boolean areChanges() {
-        return (newAvatarUri != null)
-                || UIUtils.hasFieldChanged(mMyUser.displayname, mDisplayNameEditText.getText().toString());
+        if (mTmpThumbnailUriBySession.size() != 0) {
+            return true;
+        }
+
+        for(MXSession session : Matrix.getMXSessions(this)) {
+            LinearLayout linearLayout = mLinearLayoutBySession.get(session);
+            EditText displayNameEditText = (EditText) linearLayout.findViewById(R.id.editText_displayName);
+
+           if (UIUtils.hasFieldChanged(session.getMyUser().displayname, displayNameEditText.getText().toString())) {
+               return true;
+           }
+        }
+
+        return false;
     }
 }

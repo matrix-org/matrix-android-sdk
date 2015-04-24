@@ -43,11 +43,7 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
         // refresh the bing rules when the application is debackgrounded
         if (((ConsoleApplication)getApplication()).wasInBackground) {
-            final MXSession session = Matrix.getInstance(this).getDefaultSession();
-
-            if ((null != session) && (null != session.getDataHandler())) {
-                session.getDataHandler().refreshPushRules();
-            }
+            Matrix.getInstance(this).refreshPushRules();
         }
 
         ((ConsoleApplication)getApplication()).stopActivityTransitionTimer();

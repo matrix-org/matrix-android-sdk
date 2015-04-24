@@ -20,6 +20,8 @@
     <string name="send">Send</string>
     <string name="resend">Resend</string>
     <string name="redact">Redact</string>
+    <string name="share">Share</string>
+    <string name="forward">Forward</string>
     <string name="message_details">Message details</string>
     <string name="view">View</string>
     <string name="set_power_level">Power level</string>
@@ -34,6 +36,8 @@
     <string name="action_members">Members list</string>
     <string name="action_public_rooms">Public Rooms</string>
     <string name="action_my_rooms">My Rooms</string>
+    <string name="action_add_account">Add account</string>
+    <string name="action_remove_account">remove account</string>
     <string name="action_leave">Leave Room</string>
     <string name="action_delete">Delete Room</string>
     <string name="action_invite">Invite</string>
@@ -51,7 +55,16 @@
     <string name="action_invite_by_name">Invite from identifier</string>
     <string name="action_invite_by_list">Invite from other rooms</string>
     <string name="action_home">Home</string>
+    <string name="action_drawer">Extras</string>
 
+    <string name="send_files_in">Send into</string>
+    <string name="save_files_in">Save into</string>
+    <string name="file_is_saved">%1$s is saved.</string>
+
+    <string name="downloads">Downloads</string>
+    <string name="gallery">Gallery</string>
+    <string name="sd_scard">SD card</string>
+    <string name="other">Other</string>
 
     <string name="my_rooms">My rooms</string>
     <string name="create_room">Create room</string>
@@ -82,13 +95,6 @@
         <item quantity="other">%1$s users</item>
     </plurals>
 
-    <!-- Last seen time -->
-    <string name="last_seen_secs">%ds</string>
-    <string name="last_seen_mins">%dm</string>
-    <string name="last_seen_hours">%dh</string>
-    <string name="last_seen_days">%dd</string>
-
-
     <string name="invite">Invite</string>
     <string name="kick">Kick</string>
     <string name="ban">Ban</string>
@@ -101,11 +107,8 @@
     <string name="option_take_photo">Take photo</string>
     <string name="option_attach_video">Attach video</string>
 
-    <!-- Home Screen -->
-    <string name="users"> users</string>
-    <string name="user"> user</string>
-
     <!-- Login Screen -->
+    <string name="login_error_already_logged_in">Already logged in</string>
     <string name="login_error_must_start_http">URL must start with http[s]://</string>
     <string name="login_error_network_error">Unable to login: Network error</string>
     <string name="login_error_unable_login">Unable to login</string>
@@ -114,6 +117,9 @@
 
     <!-- members list Screen -->
     <string name="members_list">Members List</string>
+
+    <!-- accounts list Screen -->
+    <string name="choose_account">Choose account</string>
 
     <!-- invitation members list Screen -->
     <string name="members_one_to_one">One to one room members</string>
@@ -140,7 +146,7 @@
 
     <string name="settings_webclient_push">To configure global notification settings (like rules), go find a webclient and hit Settings > Notifications.</string>
 
-    <string name="settings_title_profile">Profile</string>
+    <string name="settings_title_profile">Profile information</string>
     <string name="settings_title_config">Configuration</string>
     <string name="settings_title_notifications">Notifications</string>
     <string name="settings_title_rooms">Rooms</string>
@@ -163,6 +169,9 @@
     <string name="settings_config_access_token">Access token: %s</string>
     <string name="settings_command_commands">The following commands are available in the room chat:\r\n\r\n /nick &#60;display_name&#62;&#58; change your display name\r\n /me &#60;action&#62;&#58; send the action you are doing. /me will be replaced by your display name\r\n /join &#60;room_alias&#62;&#58; join a room\r\n /kick &#60;user_id&#62; [&#60;reason>]&#58; kick the user\r\n /ban &#60;user_id&#62; [&#60;reason&#62;]&#58; ban the user\r\n /unban &#60;user_id&#62;&#58; unban the user\r\n /op &#60;user_id&#62; &#60;power_level&#62;&#58; set user power level\r\n /deop &#60;user_id&#62;&#58; reset user power level to the room default value</string>
     <string name="settings_failed_to_upload_avatar">Failed to upload avatar</string>
+
+    <string name="settings_display_name_hint">Enter a display name</string>
+    <string name="settings_update_profile">Update profile</string>
 
     <!-- Settings keys -->
     <string name="settings_key_display_all_events">settings_key_display_all_events</string>

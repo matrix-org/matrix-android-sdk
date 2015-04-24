@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.data.Pusher;
+import org.matrix.androidsdk.rest.model.User;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -28,5 +29,5 @@ import retrofit.http.POST;
 public interface PushersApi {
 
     @POST("/pushers/set")
-    public Void set(@Body Pusher pusher);
+    public void set(@Body Pusher pusher, Callback<Void> callback);
 }

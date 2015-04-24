@@ -16,22 +16,28 @@
 
 package org.matrix.matrixandroidsdk.activity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -41,21 +47,42 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.contacts.ContactsManager;
 import org.matrix.matrixandroidsdk.contacts.PIDsRetriever;
+import org.matrix.matrixandroidsdk.fragments.AccountsSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Contains useful functions which are called in multiple activities.
  */
 public class CommonActivityUtils {
+
+    public static void logout(Activity activity, MXSession session) {
+
+        // stop the service
+        EventStreamService eventStreamService = EventStreamService.getInstance();
+        ArrayList<String> matrixIds = new ArrayList<String>();
+        matrixIds.add(session.getMyUser().userId);
+        eventStreamService.stopAccounts(matrixIds);
+
+        // Publish to the server that we're now offline
+        MyPresenceManager.getInstance(activity, session).advertiseOffline();
+        MyPresenceManager.remove(session);
+
+        // clear credentials
+        Matrix.getInstance(activity).clearSession(activity, session, true);
+    }
 
     /**
      * Logout the current user.
@@ -64,17 +91,22 @@ public class CommonActivityUtils {
     public static void logout(Activity activity) {
         stopEventStream(activity);
 
-        // Publish to the server that we're now offline
-        MyPresenceManager.getInstance(activity).advertiseOffline();
+        // warn that the user logs out
+        Collection<MXSession> sessions = Matrix.getMXSessions(activity);
+        for(MXSession session : sessions) {
+            // Publish to the server that we're now offline
+            MyPresenceManager.getInstance(activity, session).advertiseOffline();
+            MyPresenceManager.remove(session);
+        }
 
         // clear the preferences
         PreferenceManager.getDefaultSharedPreferences(activity).edit().clear().commit();
 
         // clear credentials
-        Matrix.getInstance(activity).clearDefaultSessionAndCredentials(activity);
+        Matrix.getInstance(activity).clearSessions(activity, true);
 
         // reset the contacts
-        PIDsRetriever.reset();
+        PIDsRetriever.getIntance().reset();
         ContactsManager.reset();
 
         // go to login page
@@ -82,13 +114,13 @@ public class CommonActivityUtils {
         activity.finish();
     }
 
-    public static void disconnect(Activity context) {
-        stopEventStream(context);
+    public static void disconnect(Activity activity) {
+        stopEventStream(activity);
 
         // Clear session
-        Matrix.getInstance(context).clearDefaultSession();
+        Matrix.getInstance(activity).clearSessions(activity, false);
 
-        context.finish();
+        activity.finish();
     }
 
     public static void stopEventStream(Activity context) {
@@ -156,9 +188,21 @@ public class CommonActivityUtils {
         return dialog;
     }
 
-    public static void goToRoomPage(final String roomId, final Activity fromActivity) {
+    public static void goToRoomPage(final String matrixId, final String roomId, final Activity fromActivity, final Intent intentParam) {
+        goToRoomPage(Matrix.getMXSession(fromActivity, matrixId), roomId, fromActivity, intentParam);
+    }
 
-        MXSession session = Matrix.getInstance(fromActivity).getDefaultSession();
+    public static void goToRoomPage(final MXSession aSession, final String roomId, final Activity fromActivity, final Intent intentParam) {
+        // check first if the 1:1 room already exists
+        MXSession session = (aSession == null) ? Matrix.getMXSession(fromActivity, null) : aSession;
+
+        // sanity check
+        if (null == session) {
+            return;
+        }
+
+        final MXSession fSession = session;
+
         Room room = session.getDataHandler().getRoom(roomId);
 
         // do not open a leaving room.
@@ -176,12 +220,20 @@ public class CommonActivityUtils {
                                                Intent intent = new Intent(fromActivity, HomeActivity.class);
                                                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                                intent.putExtra(HomeActivity.EXTRA_JUMP_TO_ROOM_ID, roomId);
+                                               intent.putExtra(HomeActivity.EXTRA_JUMP_MATRIX_ID, fSession.getCredentials().userId);
+                                               if (null != intentParam) {
+                                                   intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                               }
                                                fromActivity.startActivity(intent);
                                            } else {
                                                // already to the home activity
                                                // so just need to open the room activity
                                                Intent intent = new Intent(fromActivity, RoomActivity.class);
                                                intent.putExtra(RoomActivity.EXTRA_ROOM_ID, roomId);
+                                               intent.putExtra(RoomActivity.EXTRA_MATRIX_ID, fSession.getCredentials().userId);
+                                               if (null != intentParam) {
+                                                   intent.putExtra(HomeActivity.EXTRA_ROOM_INTENT, intentParam);
+                                               }
                                                fromActivity.startActivity(intent);
                                            }
                                        }
@@ -189,20 +241,31 @@ public class CommonActivityUtils {
         );
     }
 
-    public static void goToOneToOneRoom(final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+    public static void goToOneToOneRoom(final String matrixId, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
+        goToOneToOneRoom(Matrix.getMXSession(fromActivity, matrixId), otherUserId, fromActivity, callback);
+    }
 
+    public static void goToOneToOneRoom(final MXSession aSession, final String otherUserId, final Activity fromActivity, final ApiCallback<Void> callback) {
         // sanity check
         if (null == otherUserId) {
             return;
         }
 
         // check first if the 1:1 room already exists
-        final MXSession session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+        MXSession session = (aSession == null) ? Matrix.getMXSession(fromActivity, null) : aSession;
+
+        // no session is provided
+        if (null == session) {
+            // get the default one.
+            session = Matrix.getInstance(fromActivity.getApplicationContext()).getDefaultSession();
+        }
 
         // sanity check
         if (null == session) {
             return;
         }
+
+        final MXSession fSession = session;
 
         // so, list the existing room, and search the 2 users room with this other users
         String roomId = null;
@@ -223,7 +286,7 @@ public class CommonActivityUtils {
 
         // the room already exists -> switch to it
         if (null != roomId) {
-            CommonActivityUtils.goToRoomPage(roomId, fromActivity);
+            CommonActivityUtils.goToRoomPage(session, roomId, fromActivity, null);
 
             // everything is ok
             if (null != callback) {
@@ -234,12 +297,12 @@ public class CommonActivityUtils {
 
                 @Override
                 public void onSuccess(String roomId) {
-                    final Room room = session.getDataHandler().getRoom(roomId);
+                    final Room room = fSession.getDataHandler().getRoom(roomId);
 
                     room.invite(otherUserId, new SimpleApiCallback<Void>(this) {
                         @Override
                         public void onSuccess(Void info) {
-                            CommonActivityUtils.goToRoomPage(room.getRoomId(), fromActivity);
+                            CommonActivityUtils.goToRoomPage(fSession, room.getRoomId(), fromActivity, null);
 
                             callback.onSuccess(null);
                         }
@@ -304,6 +367,7 @@ public class CommonActivityUtils {
         String res = userId;
 
         if (res.length() > 0) {
+            res = res.trim();
             if (!res.startsWith("@")) {
                 res = "@" + res;
             }
@@ -314,6 +378,102 @@ public class CommonActivityUtils {
         }
 
         return res;
+    }
+
+    /**
+     * Offer to send some dedicated intent data to an existing room
+     * @param fromActivity the caller activity
+     * @param intent the intent param
+     */
+    public static void sendFilesTo(final Activity fromActivity, final Intent intent) {
+        if (Matrix.getMXSessions(fromActivity).size() == 1) {
+            sendFilesTo(fromActivity, intent,Matrix.getMXSession(fromActivity, null));
+        } else {
+            FragmentManager fm = ((MXCActionBarActivity)fromActivity).getSupportFragmentManager();
+
+            AccountsSelectionDialogFragment fragment = (AccountsSelectionDialogFragment) fm.findFragmentByTag(MXCActionBarActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+
+            fragment = AccountsSelectionDialogFragment.newInstance(Matrix.getMXSessions(fromActivity));
+
+            fragment.setListener(new AccountsSelectionDialogFragment.AccountsListener() {
+                @Override
+                public void onSelected(final MXSession session) {
+                    fromActivity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            sendFilesTo(fromActivity, intent, session);
+                        }
+                    });
+                }
+            });
+
+            fragment.show(fm, MXCActionBarActivity.TAG_FRAGMENT_ACCOUNT_SELECTION_DIALOG);
+        }
+    }
+
+    /**
+     * Offer to send some dedicated intent data to an existing room
+     * @param fromActivity the caller activity
+     * @param intent the intent param
+     * @param session the session/
+     */
+    public static void sendFilesTo(final Activity fromActivity, final Intent intent, final MXSession session) {
+        final ArrayList<RoomSummary> mergedSummaries = new ArrayList<RoomSummary>();
+        mergedSummaries.addAll(session.getDataHandler().getStore().getSummaries());
+
+        Collections.sort(mergedSummaries, new Comparator<RoomSummary>() {
+            @Override
+            public int compare(RoomSummary lhs, RoomSummary rhs) {
+                if (lhs == null || lhs.getLatestEvent() == null) {
+                    return 1;
+                } else if (rhs == null || rhs.getLatestEvent() == null) {
+                    return -1;
+                }
+
+                if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
+                    return -1;
+                } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(fromActivity);
+        builderSingle.setTitle(fromActivity.getText(R.string.send_files_in));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(fromActivity, R.layout.dialog_room_selection);
+
+        for(RoomSummary summary : mergedSummaries) {
+            arrayAdapter.add(summary.getRoomName());
+        }
+
+        builderSingle.setNegativeButton(fromActivity.getText(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        builderSingle.setAdapter(arrayAdapter,
+                new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, final int which) {
+                        dialog.dismiss();
+                        fromActivity.runOnUiThread( new Runnable() {
+                            @Override
+                            public void run() {
+                                RoomSummary summary = mergedSummaries.get(which);
+                                CommonActivityUtils.goToRoomPage(session,  summary.getRoomId(), fromActivity, intent);
+                            }
+                        });
+                    }
+                });
+        builderSingle.show();
     }
 
     /**
@@ -343,6 +503,7 @@ public class CommonActivityUtils {
 
                         // not yet added ? -> add it
                         if (userIDsList.indexOf(checkedItem) < 0) {
+                            checkedItem.trim();
                             userIDsList.add(checkedItem);
                         }
                     }
@@ -424,7 +585,7 @@ public class CommonActivityUtils {
                 fileExt = sourceFilePath.substring(dotPos);
             }
 
-            dstFileName = "MatrixConsole_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + fileExt;
+            dstFileName = "MatrixConsole_" + System.currentTimeMillis() + fileExt;
         } else {
             dstFileName = outputFilename;
         }
@@ -478,8 +639,20 @@ public class CommonActivityUtils {
      * @param filename the filename (optional)
      * @return the downloads file path
      */
-    public static String saveMediaIntoDownloads(Context context, String path, String filename) {
-        return saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
+    @SuppressLint("NewApi")
+    public static String saveMediaIntoDownloads(Context context, String path, String filename, String mimeType) {
+        String fullFilePath = saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            if (null != fullFilePath) {
+                DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+
+                File file = new File(fullFilePath);
+                downloadManager.addCompletedDownload(file.getName(), file.getName(), true, mimeType, file.getAbsolutePath(), file.length(), true);
+            }
+        }
+
+        return fullFilePath;
     }
 
     /**

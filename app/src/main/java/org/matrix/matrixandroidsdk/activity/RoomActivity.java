@@ -17,7 +17,6 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.ClipData;
@@ -30,6 +29,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.v4.app.FragmentManager;
@@ -40,6 +40,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -56,7 +57,9 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -71,6 +74,10 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -112,11 +119,13 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String CMD_RESET_USER_POWER_LEVEL = "/deop";
 
     private static final int REQUEST_FILES = 0;
-    private static final int TAKE_IMAGE = 0;
+    private static final int TAKE_IMAGE = 1;
+    private static final int CREATE_DOCUMENT = 2;
 
     private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
     private Room mRoom;
+    private String mMyUserId;
 
     private MXLatestChatMessageCache mLatestChatMessageCache;
     private MXMediasCache mMediasCache;
@@ -130,7 +139,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private ImageButton mImagePreviewButton;
 
     private String mPendingImageUrl;
-    private String mPendingImediaUrl;
+    private String mPendingMediaUrl;
     private String mPendingMimeType;
 
     private String mLatestTakePictureCameraUri; // has to be String not Uri because of Serializable
@@ -141,29 +150,6 @@ public class RoomActivity extends MXCActionBarActivity {
     private long  mLastTypingDate = 0;
 
     private Boolean mIgnoreTextUpdate = false;
-
-    // sliding menu
-    private final Integer[] mSlideMenuTitleIds = new Integer[]{
-            R.string.action_home,
-            R.string.action_room_info,
-            R.string.action_members,
-            R.string.action_invite_by_name,
-            R.string.action_invite_by_list,
-            R.string.action_leave,
-            R.string.action_settings,
-            R.string.send_bug_report,
-    };
-
-    private final Integer[] mSlideMenuResourceIds = new Integer[]{
-            R.drawable.ic_material_home, // R.string.action_home
-            R.drawable.ic_material_description,  // R.string.action_room_info
-            R.drawable.ic_material_group, // R.string.action_members
-            R.drawable.ic_material_person_add, // R.string.option_invite_by_name
-            R.drawable.ic_material_group_add, // R.string.option_invite_by_list
-            R.drawable.ic_material_exit_to_app, // R.string.action_leave
-            R.drawable.ic_material_settings, //  R.string.action_settings,
-            R.drawable.ic_material_bug_report, // R.string.send_bug_report,
-    };
 
     private MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -176,7 +162,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
                             || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
                             || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-                        setTitle(mRoom.getName(mSession.getCredentials().userId));
+                        setTitle(mRoom.getName(mMyUserId));
                     }
                     else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
                         Log.e(LOG_TAG, "Updating room topic.");
@@ -193,7 +179,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     // set general room information
-                    setTitle(mRoom.getName(mSession.getCredentials().userId));
+                    setTitle(mRoom.getName(mMyUserId));
                     setTopic(mRoom.getTopic());
 
                     mConsoleMessageListFragment.onInitialMessagesLoaded();
@@ -263,9 +249,6 @@ public class RoomActivity extends MXCActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
 
-        // define a sliding menu
-        addSlidingMenu(mSlideMenuResourceIds, mSlideMenuTitleIds);
-
         Intent intent = getIntent();
         if (!intent.hasExtra(EXTRA_ROOM_ID)) {
             Log.e(LOG_TAG, "No room ID extra.");
@@ -281,7 +264,7 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         mPendingImageUrl = null;
-        mPendingImediaUrl = null;
+        mPendingMediaUrl = null;
         mPendingMimeType = null;
 
         if (null != savedInstanceState) {
@@ -290,7 +273,7 @@ public class RoomActivity extends MXCActionBarActivity {
             }
 
             if (savedInstanceState.containsKey(PENDING_MEDIA_URL)) {
-                mPendingImediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
+                mPendingMediaUrl = savedInstanceState.getString(PENDING_MEDIA_URL);
             }
 
             if (savedInstanceState.containsKey(PENDING_MIMETYPE)) {
@@ -299,20 +282,20 @@ public class RoomActivity extends MXCActionBarActivity {
         }
 
         String roomId = intent.getStringExtra(EXTRA_ROOM_ID);
-        Log.i(LOG_TAG, "Displaying "+roomId);
+        Log.i(LOG_TAG, "Displaying " + roomId);
 
-        mEditText = (EditText)findViewById(R.id.editText_messageBox);
+        mEditText = (EditText) findViewById(R.id.editText_messageBox);
 
-        mSendButton = (ImageButton)findViewById(R.id.button_send);
+        mSendButton = (ImageButton) findViewById(R.id.button_send);
         mSendButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
                 // send the previewed image ?
                 if (null != mPendingImageUrl) {
-                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingImediaUrl, mPendingMimeType);
+                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
                     mPendingImageUrl = null;
-                    mPendingImediaUrl = null;
+                    mPendingMediaUrl = null;
                     mPendingMimeType = null;
                     manageSendMoreButtons();
                 } else {
@@ -323,13 +306,13 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
-        mAttachmentButton = (ImageButton)findViewById(R.id.button_more);
+        mAttachmentButton = (ImageButton) findViewById(R.id.button_more);
         mAttachmentButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
                 FragmentManager fm = getSupportFragmentManager();
-                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment)fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
+                IconAndTextDialogFragment fragment = (IconAndTextDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_ATTACHMENTS_DIALOG);
 
                 if (fragment != null) {
                     fragment.dismissAllowingStateLoss();
@@ -352,7 +335,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     public void onItemClick(IconAndTextDialogFragment dialogFragment, int position) {
                         Integer selectedVal = messages[position];
 
-                        if (selectedVal ==  R.string.option_send_files) {
+                        if (selectedVal == R.string.option_send_files) {
                             RoomActivity.this.launchFileSelectionIntent();
                         } else if (selectedVal == R.string.option_take_photo) {
                             RoomActivity.this.launchCamera();
@@ -387,13 +370,16 @@ public class RoomActivity extends MXCActionBarActivity {
             }
         });
 
-        // make sure we're logged in.
-        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        mSession = getSession(intent);
+
         if (mSession == null) {
             Log.e(LOG_TAG, "No MXSession.");
             finish();
             return;
         }
+
+        mMyUserId = mSession.getCredentials().userId;
+
         CommonActivityUtils.resumeEventStream(this);
 
         mRoom = mSession.getDataHandler().getRoom(roomId);
@@ -403,12 +389,12 @@ public class RoomActivity extends MXCActionBarActivity {
 
         if (mConsoleMessageListFragment == null) {
             // this fragment displays messages and handles all message logic
-            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
+            mConsoleMessageListFragment = ConsoleMessageListFragment.newInstance(mMyUserId, mRoom.getRoomId(), org.matrix.androidsdk.R.layout.fragment_matrix_message_list_fragment);
             fm.beginTransaction().add(R.id.anchor_fragment_messages, mConsoleMessageListFragment, TAG_FRAGMENT_MATRIX_MESSAGE_LIST).commit();
         }
 
         // set general room information
-        setTitle(mRoom.getName(mSession.getCredentials().userId));
+        setTitle(mRoom.getName(mMyUserId));
         setTopic(mRoom.getTopic());
 
         // listen for room name or topic changes
@@ -426,14 +412,29 @@ public class RoomActivity extends MXCActionBarActivity {
             @Override
             public void onClick(View view) {
                 mPendingImageUrl = null;
-                mPendingImediaUrl = null;
+                mPendingMediaUrl = null;
                 mPendingMimeType = null;
                 manageSendMoreButtons();
             }
         });
 
         mLatestChatMessageCache = Matrix.getInstance(this).getDefaultLatestChatMessageCache();
-        mMediasCache = Matrix.getInstance(this).getDefaultMediasCache();
+        mMediasCache = Matrix.getInstance(this).getMediasCache();
+
+        // some medias must be sent while opening the chat
+        if (intent.hasExtra(HomeActivity.EXTRA_ROOM_INTENT)) {
+            final Intent mediaIntent = intent.getParcelableExtra(HomeActivity.EXTRA_ROOM_INTENT);
+
+            // sanity check
+            if (null != mediaIntent) {
+                mEditText.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendMediasIntent(mediaIntent);
+                    }
+                }, 1000);
+            }
+        }
     }
 
     @Override
@@ -445,8 +446,8 @@ public class RoomActivity extends MXCActionBarActivity {
             savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingImageUrl);
         }
 
-        if (null != mPendingImediaUrl) {
-            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingImediaUrl);
+        if (null != mPendingMediaUrl) {
+            savedInstanceState.putString(PENDING_MEDIA_URL, mPendingMediaUrl);
         }
 
         if (null != mPendingMimeType) {
@@ -487,7 +488,8 @@ public class RoomActivity extends MXCActionBarActivity {
     protected void onPause() {
         super.onPause();
         ViewedRoomTracker.getInstance().setViewedRoomId(null);
-        MyPresenceManager.getInstance(this).advertiseUnavailableAfterDelay();
+        ViewedRoomTracker.getInstance().setMatrixId(null);
+        MyPresenceManager.getInstance(this, mSession).advertiseUnavailableAfterDelay();
         // warn other member that the typing is ended
         cancelTypingNotification();
     }
@@ -496,7 +498,8 @@ public class RoomActivity extends MXCActionBarActivity {
     protected void onResume() {
         super.onResume();
         ViewedRoomTracker.getInstance().setViewedRoomId(mRoom.getRoomId());
-        MyPresenceManager.getInstance(this).advertiseOnline();
+        ViewedRoomTracker.getInstance().setMatrixId(mSession.getCredentials().userId);
+        MyPresenceManager.getInstance(this, mSession).advertiseOnline();
 
         EventStreamService.cancelNotificationsForRoomId(mRoom.getRoomId());
 
@@ -515,34 +518,85 @@ public class RoomActivity extends MXCActionBarActivity {
         mConsoleMessageListFragment.refresh();
     }
 
-    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.room, menu);
         return true;
-    }*/
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_go_home) {
-            this.runOnUiThread(new Runnable() {
+        if (id == R.id.ic_action_invite_by_list) {
+            FragmentManager fm = getSupportFragmentManager();
+
+            MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+            fragment = MembersInvitationDialogFragment.newInstance(mSession, mRoom.getRoomId());
+            fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
+        } else if (id == R.id.ic_action_invite_by_name) {
+            AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
                 @Override
-                public void run() {
-                    RoomActivity.this.finish();
+                public void onSubmit(final String text) {
+                    if (TextUtils.isEmpty(text)) {
+                        return;
+                    }
+
+                    // get the user suffix
+                    String homeServerSuffix = mMyUserId.substring(mMyUserId.indexOf(":"), mMyUserId.length());
+
+                    ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
+
+                    if (userIDsList.size() > 0) {
+                        mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
+                            @Override
+                            public void onSuccess(Void info) {
+                                Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void onCancelled() {
+
                 }
             });
 
-            return true;
+            alert.show();
+        } else if (id ==  R.id.ic_action_members) {
+            FragmentManager fm = getSupportFragmentManager();
+
+            RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
+            if (fragment != null) {
+                fragment.dismissAllowingStateLoss();
+            }
+            fragment = RoomMembersDialogFragment.newInstance(mSession, mRoom.getRoomId());
+            fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
+        } else if (id ==  R.id.ic_action_room_info) {
+            Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
+            startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
+            startRoomInfoIntent.putExtra(EXTRA_MATRIX_ID, mMyUserId);
+            startActivity(startRoomInfoIntent);
+        } else if (id ==  R.id.ic_action_leave) {
+            mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
+            });
+            RoomActivity.this.finish();
+        } else if (id ==  R.id.ic_action_settings) {
+            RoomActivity.this.startActivity(new Intent(RoomActivity.this, SettingsActivity.class));
+        } else if (id ==  R.id.ic_send_bug_report) {
+            RageShake.getInstance().sendBugReport();
         }
 
         return super.onOptionsItemSelected(item);
     }
 
     private void setTopic(String topic) {
-        if (null !=  this.getSupportActionBar()) {
+        if (null != this.getSupportActionBar()) {
             this.getSupportActionBar().setSubtitle(topic);
         }
     }
@@ -558,8 +612,6 @@ public class RoomActivity extends MXCActionBarActivity {
 
         // check if it has the IRC marker
         if ((null != body) && (body.startsWith("/"))) {
-            MXSession session = Matrix.getInstance(this).getDefaultSession();
-
             final ApiCallback callback = new SimpleApiCallback<Void>(this) {
                 @Override
                 public void onMatrixError(MatrixError e) {
@@ -575,7 +627,7 @@ public class RoomActivity extends MXCActionBarActivity {
                 String newDisplayname = body.substring(CMD_CHANGE_DISPLAY_NAME.length()).trim();
 
                 if (newDisplayname.length() > 0) {
-                    MyUser myUser = session.getMyUser();
+                    MyUser myUser = mSession.getMyUser();
 
                     myUser.updateDisplayName(newDisplayname, callback);
                 }
@@ -593,12 +645,12 @@ public class RoomActivity extends MXCActionBarActivity {
                 String roomAlias = body.substring(CMD_JOIN_ROOM.length()).trim();
 
                 if (roomAlias.length() > 0) {
-                    session.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
+                    mSession.joinRoom(roomAlias,new SimpleApiCallback<String>(this) {
 
                         @Override
                         public void onSuccess(String roomId) {
                             if (null != roomId) {
-                                CommonActivityUtils.goToRoomPage(roomId, RoomActivity.this);
+                                CommonActivityUtils.goToRoomPage(mSession, roomId, RoomActivity.this, null);
                             }
                         }
                     });
@@ -683,7 +735,6 @@ public class RoomActivity extends MXCActionBarActivity {
      * @param mediaUris the media URIs
      */
     private void sendMedias(ArrayList<Uri> mediaUris) {
-
         final int mediaCount = mediaUris.size();
 
         for(Uri anUri : mediaUris) {
@@ -761,13 +812,20 @@ public class RoomActivity extends MXCActionBarActivity {
                                 try {
                                     if (null != fullSizeBitmap) {
                                         Uri uri = Uri.parse(mediaUrl);
+
+                                        if (null == mimeType) {
+                                            // the images are save in jpeg format
+                                            mimeType = "image/jpeg";
+                                        }
+
+                                        resource.contentStream.close();
+                                        resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
                                         try {
-                                            mMediasCache.saveBitmap(fullSizeBitmap, RoomActivity.this, uri.getPath());
+                                            mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
                                         } catch (OutOfMemoryError ex) {
                                         }
 
-                                        // the images are save in jpeg format
-                                        mimeType = "image/jpeg";
                                     } else {
                                         isManaged = false;
                                     }
@@ -799,7 +857,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             if (mediaCount == 1) {
                                 // display an image preview before sending it
                                 mPendingImageUrl = thumbnailURL;
-                                mPendingImediaUrl = mediaUrl;
+                                mPendingMediaUrl = mediaUrl;
                                 mPendingMimeType = mimeType;
 
                                 mConsoleMessageListFragment.scrollToBottom();
@@ -851,48 +909,142 @@ public class RoomActivity extends MXCActionBarActivity {
     }
 
     @SuppressLint("NewApi")
+    private void sendMediasIntent(final Intent data) {
+        // sanity check
+        if ((null == data) && (null == mLatestTakePictureCameraUri)) {
+            return;
+        }
+
+        ArrayList<Uri> uris = new ArrayList<Uri>();
+
+        if (null != data) {
+            ClipData clipData = null;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                clipData = data.getClipData();
+            }
+
+            // multiple data
+            if (null != clipData) {
+                int count = clipData.getItemCount();
+
+                for (int i = 0; i < count; i++) {
+                    ClipData.Item item = clipData.getItemAt(i);
+                    Uri uri = item.getUri();
+
+                    if (null != uri) {
+                        uris.add(uri);
+                    }
+                }
+
+            } else if (null != data.getData()) {
+                uris.add(data.getData());
+            }
+        } else {
+            uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
+            mLatestTakePictureCameraUri = null;
+        }
+
+        // check the extras
+        if (0 == uris.size()) {
+            Bundle bundle = data.getExtras();
+
+            if (bundle.containsKey(Intent.EXTRA_STREAM)) {
+                Object streamUri = bundle.get(Intent.EXTRA_STREAM);
+
+                if (streamUri instanceof Uri) {
+                    uris.add((Uri)streamUri);
+                }
+            } else if (bundle.containsKey(Intent.EXTRA_TEXT)) {
+                this.sendMessage(bundle.getString(Intent.EXTRA_TEXT));
+            }
+        }
+
+        if (0 != uris.size()) {
+            sendMedias(uris);
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
             if ((requestCode == REQUEST_FILES) || (requestCode == TAKE_IMAGE)) {
-                ArrayList<Uri> uris = new ArrayList<Uri>();
-
-                if (null != data) {
-                    ClipData clipData = null;
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                        clipData = data.getClipData();
-                    }
-
-                    // multiple data
-                    if (null != clipData) {
-                        int count = clipData.getItemCount();
-
-                        for (int i = 0; i < count; i++) {
-                            ClipData.Item item = clipData.getItemAt(i);
-                            Uri uri = item.getUri();
-
-                            if (null != uri) {
-                                uris.add(uri);
-                            }
-                        }
-
-                    } else if (null != data.getData()) {
-                        uris.add(data.getData());
-                    }
-                } else {
-                    uris.add( mLatestTakePictureCameraUri == null ? null : Uri.parse(mLatestTakePictureCameraUri));
-                    mLatestTakePictureCameraUri = null;
-                }
-
-                if (0 != uris.size()) {
-                    sendMedias(uris);
-                }
+                sendMediasIntent(data);
+            } else if (requestCode == CREATE_DOCUMENT) {
+                Uri currentUri = data.getData();
+                writeMediaUrl(currentUri);
             }
         }
+
+        if (requestCode == CREATE_DOCUMENT) {
+            mPendingMediaUrl = null;
+            mPendingMimeType = null;
+        }
     }
+
+    /**
+     *
+     * @param message
+     * @param mediaUrl
+     * @param mediaMimeType
+     */
+    public void createDocument(Message message, final String mediaUrl, final String mediaMimeType) {
+        String filename = "MatrixConsole_" + System.currentTimeMillis();
+
+        MimeTypeMap mime = MimeTypeMap.getSingleton();
+        filename += "." + mime.getExtensionFromMimeType(mediaMimeType);
+
+        if (message instanceof FileMessage) {
+            FileMessage fileMessage = (FileMessage)message;
+
+            if (null != fileMessage.body) {
+                filename = fileMessage.body;
+            }
+        }
+
+        mPendingMediaUrl = mediaUrl;
+        mPendingMimeType = mediaMimeType;
+
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType(mediaMimeType)
+                .putExtra(Intent.EXTRA_TITLE, filename);
+
+        startActivityForResult(intent, CREATE_DOCUMENT);
+
+    }
+
+
+	private void writeMediaUrl(Uri destUri)
+	{
+		try{
+			ParcelFileDescriptor pfd =
+				this.getContentResolver().
+                		openFileDescriptor(destUri, "w");
+
+			FileOutputStream fileOutputStream =
+                           new FileOutputStream(pfd.getFileDescriptor());
+
+            String sourceFilePath = mMediasCache.mediaCacheFilename(this, mPendingMediaUrl, mPendingMimeType);
+
+            InputStream inputStream = this.openFileInput(sourceFilePath);
+
+            byte[] buffer = new byte[1024 * 10];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, len);
+            }
+
+			fileOutputStream.close();
+			pfd.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
     /**
      * send a typing event notification
@@ -1007,99 +1159,5 @@ public class RoomActivity extends MXCActionBarActivity {
             mRoom.sendTypingNotification(false, -1, new SimpleApiCallback<Void>(RoomActivity.this) {
             });
         }
-    }
-
-    /**
-     * Run the dedicated sliding menu action
-     * @param position selected menu entry
-     */
-    @Override
-    protected void selectDrawItem(int position) {
-        super.selectDrawItem(position);
-
-        final int id = (position == 0) ? R.string.action_settings : mSlideMenuTitleIds[position - 1];
-        this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-
-                if (id == R.string.action_home) {
-                    RoomActivity.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            RoomActivity.this.finish();
-                        }
-                    });
-                }
-                else if (id == R.string.action_invite_by_list) {
-                    final MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    if (session != null) {
-                        FragmentManager fm = getSupportFragmentManager();
-
-                        MembersInvitationDialogFragment fragment = (MembersInvitationDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
-                        if (fragment != null) {
-                            fragment.dismissAllowingStateLoss();
-                        }
-                        fragment = MembersInvitationDialogFragment.newInstance(mRoom.getRoomId());
-                        fragment.show(fm, TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG);
-                    }
-                } else if (id == R.string.action_invite_by_name) {
-                    AlertDialog alert = CommonActivityUtils.createEditTextAlert(RoomActivity.this, RoomActivity.this.getResources().getString(R.string.title_activity_invite_user), RoomActivity.this.getResources().getString(R.string.room_creation_participants_hint), null, new CommonActivityUtils.OnSubmitListener() {
-                        @Override
-                        public void onSubmit(final String text) {
-                            if (TextUtils.isEmpty(text)) {
-                                return;
-                            }
-
-                            // get the user suffix
-                            String userID = mSession.getCredentials().userId;
-                            String homeServerSuffix = userID.substring(userID.indexOf(":"), userID.length());
-
-                            ArrayList<String> userIDsList = CommonActivityUtils.parseUserIDsList(text, homeServerSuffix);
-
-                            if (userIDsList.size() > 0) {
-                                mRoom.invite(userIDsList, new SimpleApiCallback<Void>(RoomActivity.this) {
-                                    @Override
-                                    public void onSuccess(Void info) {
-                                        Toast.makeText(getApplicationContext(), "Sent invite to " + text.trim() + ".", Toast.LENGTH_LONG).show();
-                                    }
-                                });
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled() {
-
-                        }
-                    });
-
-                    alert.show();
-                } else if (id ==  R.string.action_members) {
-                    FragmentManager fm = getSupportFragmentManager();
-
-                    RoomMembersDialogFragment fragment = (RoomMembersDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_MEMBERS_DIALOG);
-                    if (fragment != null) {
-                        fragment.dismissAllowingStateLoss();
-                    }
-                    fragment = RoomMembersDialogFragment.newInstance(mRoom.getRoomId());
-                    fragment.show(fm, TAG_FRAGMENT_MEMBERS_DIALOG);
-                } else if (id ==  R.string.action_room_info) {
-                    Intent startRoomInfoIntent = new Intent(RoomActivity.this, RoomInfoActivity.class);
-                    startRoomInfoIntent.putExtra(EXTRA_ROOM_ID, mRoom.getRoomId());
-                    startActivity(startRoomInfoIntent);
-                } else if (id ==  R.string.action_leave) {
-                    MXSession session = Matrix.getInstance(getApplicationContext()).getDefaultSession();
-                    if (session != null) {
-                        mRoom.leave(new SimpleApiCallback<Void>(RoomActivity.this) {
-
-                        });
-                        RoomActivity.this.finish();
-                    }
-                } else if (id ==  R.string.action_settings) {
-                    RoomActivity.this.startActivity(new Intent(RoomActivity.this, SettingsActivity.class));
-                } else if (id ==  R.string.send_bug_report) {
-                    RageShake.getInstance().sendBugReport();
-                }
-            }
-        });
     }
 }
