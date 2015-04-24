@@ -367,6 +367,7 @@ public class CommonActivityUtils {
         String res = userId;
 
         if (res.length() > 0) {
+            res = res.trim();
             if (!res.startsWith("@")) {
                 res = "@" + res;
             }
@@ -502,6 +503,7 @@ public class CommonActivityUtils {
 
                         // not yet added ? -> add it
                         if (userIDsList.indexOf(checkedItem) < 0) {
+                            checkedItem.trim();
                             userIDsList.add(checkedItem);
                         }
                     }
