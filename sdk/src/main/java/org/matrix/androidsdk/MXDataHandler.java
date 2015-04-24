@@ -163,6 +163,8 @@ public class MXDataHandler implements IMXEventListener {
         // Handle the special case where the room is an invite
         if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
             handleInitialSyncInvite(room.getRoomId(), roomResponse.inviter);
+        } else {
+            onRoomInitialSyncComplete(room.getRoomId());
         }
     }
 
