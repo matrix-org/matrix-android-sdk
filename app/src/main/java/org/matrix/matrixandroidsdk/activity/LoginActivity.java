@@ -49,6 +49,7 @@ public class LoginActivity extends MXCActionBarActivity {
         setContentView(R.layout.activity_login);
 
         if (hasCredentials()) {
+            Log.e(LOG_TAG, "goToSplash because the credentials are already provided.");
             goToSplash();
             finish();
         }
@@ -146,6 +147,7 @@ public class LoginActivity extends MXCActionBarActivity {
     }
 
     private void goToSplash() {
+        Log.e(LOG_TAG, "Go to splash.");
         startActivity(new Intent(this, SplashActivity.class));
     }
 
@@ -161,6 +163,8 @@ public class LoginActivity extends MXCActionBarActivity {
                 credentials.userId = userId;
                 credentials.homeServer = homeServer;
                 credentials.accessToken = accessToken;
+
+                Log.e(LOG_TAG, "Account creation succeeds");
 
                 // let's go...
                 MXSession session = Matrix.getInstance(getApplicationContext()).createSession(credentials);

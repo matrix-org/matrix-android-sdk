@@ -120,10 +120,6 @@ public class SplashActivity extends MXCActionBarActivity {
             }
         }
 
-        synchronized(mListeners) {
-            mInitialSyncComplete = (mListeners.size() == 0);
-        }
-
         if (EventStreamService.getInstance() == null) {
             // Start the event stream service
             Intent intent = new Intent(this, EventStreamService.class);
@@ -137,14 +133,32 @@ public class SplashActivity extends MXCActionBarActivity {
         mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
                 .getSharedGcmRegistrationManager();
         mPusherRegistrationComplete = mGcmRegistrationManager.isRegistred();
-        mGcmRegistrationManager.setListener(new GcmRegistrationManager.GcmRegistrationIdListener() {
-            @Override
-            public void onPusherRegistered() {
-                mPusherRegistrationComplete = true;
-                finishIfReady();
-            }
-        });
-        mGcmRegistrationManager.registerPusherInBackground();
+
+        if (!mPusherRegistrationComplete) {
+            mGcmRegistrationManager.setListener(new GcmRegistrationManager.GcmRegistrationIdListener() {
+                @Override
+                public void onPusherRegistered() {
+                    mPusherRegistrationComplete = true;
+                    finishIfReady();
+                }
+            });
+            mGcmRegistrationManager.registerPusherInBackground();
+        }
+
+        boolean noUpdate;
+
+        synchronized(mListeners) {
+            mInitialSyncComplete = (mListeners.size() == 0);
+            noUpdate = mInitialSyncComplete && mPusherRegistrationComplete;
+        }
+
+        // nothing to do ?
+        // just dismiss the activity
+        if (noUpdate) {
+            // do not launch an activity if there was nothing new.
+            Log.e(LOG_TAG, "nothing to do");
+            finish();
+        }
     }
 
     @Override
