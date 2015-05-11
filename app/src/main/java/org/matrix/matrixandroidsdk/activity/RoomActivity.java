@@ -487,11 +487,21 @@ public class RoomActivity extends MXCActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        ViewedRoomTracker.getInstance().setViewedRoomId(null);
-        ViewedRoomTracker.getInstance().setMatrixId(null);
         MyPresenceManager.getInstance(this, mSession).advertiseUnavailableAfterDelay();
         // warn other member that the typing is ended
         cancelTypingNotification();
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+
+        // do not reset ViewedRoomTracker in onPause
+        // else the messages received while the application is in background
+        // are marked as unread in the home/recents activity.
+        // Assume that the finish method is the right place to manage it.
+        ViewedRoomTracker.getInstance().setViewedRoomId(null);
+        ViewedRoomTracker.getInstance().setMatrixId(null);
     }
 
     @Override
