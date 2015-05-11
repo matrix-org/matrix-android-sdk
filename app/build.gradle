@@ -42,7 +42,7 @@ android {
         alpha {
             applicationId "org.matrix.androidsdk.alpha"
             versionCode 4
-            versionName "0.3.1-alpha"
+            versionName "0.3.2-alpha"
         }
     }
 
