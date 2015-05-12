@@ -49,7 +49,7 @@ public class User {
     // This is needed to find the right one when removing the listener.
     private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
 
-    private MXDataHandler mDataHandler;
+    protected MXDataHandler mDataHandler;
     private ArrayList<IMXEventListener> pendingListeners = new ArrayList<IMXEventListener>();
 
     protected void clone(User user) {

@@ -17,9 +17,13 @@ package org.matrix.androidsdk.rest.model;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
+import org.json.JSONObject;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -30,7 +34,7 @@ import java.util.TimeZone;
 /**
  * Generic event class with all possible fields for events.
  */
-public class Event {
+public class Event implements java.io.Serializable {
 
     public enum SentState {
         UNSENT,  // the event has not been sent
@@ -57,7 +61,8 @@ public class Event {
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
 
     public String type;
-    public JsonObject content;
+    public transient JsonObject content;
+    private String contentAsString;
 
     public String eventId;
     public String roomId;
@@ -67,7 +72,8 @@ public class Event {
 
     // Specific to state events
     public String stateKey;
-    public JsonObject prevContent;
+    public transient JsonObject prevContent;
+    private String prevContentAsString;
 
     // Specific to redactions
     public String redacts;
@@ -84,6 +90,7 @@ public class Event {
 
     // the time raw offset (time zone management)
     private long mTimeZoneRawOffset = 0;
+
     private long getTimeZoneOffset() {
         return TimeZone.getDefault().getRawOffset();
     }
@@ -121,7 +128,6 @@ public class Event {
         return mMatrixId;
     }
 
-
     public long getOriginServerTs() {
         return originServerTs;
     }
@@ -146,9 +152,10 @@ public class Event {
 
     /**
      * Create an event from a message.
-     * @param message the event content
+     *
+     * @param message  the event content
      * @param anUserId the event user Id
-     * @param aRoomId the vent room Id
+     * @param aRoomId  the vent room Id
      */
     public Event(Message message, String anUserId, String aRoomId) {
         type = Event.EVENT_TYPE_MESSAGE;
@@ -175,6 +182,7 @@ public class Event {
 
     /**
      * Make a deep copy of this room state object.
+     *
      * @return the copy
      */
     public Event deepCopy() {
@@ -205,6 +213,7 @@ public class Event {
 
     /**
      * Check if the current event can resent.
+     *
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
@@ -213,6 +222,7 @@ public class Event {
 
     /**
      * Check if the current event is sending.
+     *
      * @return true if it is sending.
      */
     public boolean isSending() {
@@ -221,6 +231,7 @@ public class Event {
 
     /**
      * Check if the current event failed to be sent
+     *
      * @return true if the event failed to be sent.
      */
     public boolean isUndeliverable() {
@@ -229,14 +240,16 @@ public class Event {
 
     /**
      * Check if the current event has not been acknowledged.
+     *
      * @return true if the event has not been acknowledged.
      */
-    public boolean isWaitingForEcho () {
+    public boolean isWaitingForEcho() {
         return (mSentState == SentState.WAITING_ECHO);
     }
 
     /**
      * Check if the current event is sent.
+     *
      * @return true if it is sent.
      */
     public boolean isSent() {
@@ -247,7 +260,7 @@ public class Event {
     public java.lang.String toString() {
 
         // build the string by hand
-        String text = "{\n" ;
+        String text = "{\n";
 
         text += "  \"age\" : " + age + ",\n";
 
@@ -270,7 +283,7 @@ public class Event {
         text += "  },\n";
 
         text += "  \"eventId\": \"" + eventId + "\",\n";
-        text += "  \"originServerTs\": " + originServerTs +",\n";
+        text += "  \"originServerTs\": " + originServerTs + ",\n";
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
         text += "  \"userId\": \"" + userId + "\"\n";
@@ -304,5 +317,32 @@ public class Event {
         text += "}";
 
         return text;
+    }
+
+    public void prepareSerialization() {
+        if ((null != content) && (null == contentAsString)) {
+            contentAsString = content.toString();
+        }
+
+        if ((null != prevContent) && (null == prevContentAsString)) {
+            prevContentAsString = prevContent.toString();
+        }
+    }
+
+    public void finalizeDeserialization() {
+
+        if ((null != contentAsString) && (null == contentAsString)) {
+            try {
+                content = new JsonParser().parse(contentAsString).getAsJsonObject();
+            } catch (Exception e) {
+            }
+        }
+
+        if ((null != prevContentAsString) && (null == prevContent)) {
+            try {
+                prevContent = new JsonParser().parse(prevContentAsString).getAsJsonObject();
+            } catch (Exception e) {
+            }
+        }
     }
 }

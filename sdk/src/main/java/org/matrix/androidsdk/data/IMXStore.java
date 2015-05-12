@@ -23,17 +23,87 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * An interface for storing and retrieving Matrix objects.
  */
 public interface IMXStore {
+
+    public interface MXStoreListener {
+        /**
+         * Called when the store is initialized
+         */
+        public void onStoreReady(String accountId);
+    }
+
+    /**
+     * Save changes in the store.
+     * If the store uses permanent storage like database or file, it is the optimised time
+     * to commit the last changes.
+     */
+    public void commit();
+
+    /**
+     * Close the store.
+     * Any pending operation must be complete in this call.
+     */
+    public void close();
+
+    /**
+     * Indicate if the MXStore implementation stores data permanently.
+     * Permanent storage allows the SDK to make less requests at the startup.
+     * @return true if permanent.
+     */
+    public boolean isPermanent();
+
+    /**
+     * Check if the initial load is performed.
+     * @return true if it is ready.
+     */
+    public boolean isReady();
+
+    /**
+     * Returns the latest known event stream token
+     * @return the event stream token
+     */
+    public String getEventStreamToken();
+
+    /**
+     * Set the event stream token.
+     * @param token the event stream token
+     */
+    public void setEventStreamToken(String token);
+
+    /**
+     * Define a MXStore listener.
+     * @param listener
+     */
+    public void setMXStoreListener(MXStoreListener listener);
+
+    /**
+     * profile information
+     */
+    public String displayName();
+    public void setDisplayName(String displayName);
+    public String avatarURL();
+    public void setAvatarURL(String avatarURL);
+
+    /**
+     * getters.
+     */
     public Collection<Room> getRooms();
     public Room getRoom(String roomId);
     public User getUser(String userId);
     public void storeUser(User user);
     public void storeRoom(Room room);
+
+    /**
+     * Store a block of room events either live or from pagination.
+     * @param roomId the room id
+     * @param eventsResponse The events to be stored.
+     * @param direction the direction; forwards for live, backwards for pagination
+     */
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction);
 
     /**
      * Store a live room event.
@@ -49,17 +119,9 @@ public interface IMXStore {
 
     /**
      * Delete the room data
-     * @param RoomId the roomId.
+     * @param roomId the roomId.
      */
     public void deleteRoom(String roomId);
-
-    /**
-     * Store a block of room events either live or from pagination.
-     * @param roomId the room id
-     * @param eventsResponse The events to be stored.
-     * @param direction the direction; forwards for live, backwards for pagination
-     */
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction);
 
     /**
      * Retrieve all non-state room events for this room.
@@ -88,8 +150,9 @@ public interface IMXStore {
      * @param roomId the event's room id
      * @param eventId the event's event id
      * @param newContent the new content
+     * @return true if the event has been successfully replaced.
      */
-    public void updateEventContent(String roomId, String eventId, JsonObject newContent);
+    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent);
 
     // Design note: This is part of the store interface so the concrete implementation can leverage
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
@@ -118,6 +181,12 @@ public interface IMXStore {
      * @param selfUserId our own user id - used to display the room name
      */
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId);
+
+    /**
+     * Store the states of a room.
+     * @param roomId roomId the id of the room.
+     */
+    public void storeStatesForRoom(String roomId);
 
     /**
      * Return the list of latest unsent events.

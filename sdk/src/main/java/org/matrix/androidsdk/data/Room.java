@@ -130,6 +130,18 @@ public class Room {
         return mLiveState;
     }
 
+    public void setLiveState(RoomState liveState) {
+        mLiveState = liveState;
+    }
+
+    public RoomState getBackState() {
+        return mBackState;
+    }
+
+    public void setBackState(RoomState backState) {
+        mBackState = backState;
+    }
+
     public boolean isLeaving() {
         return mIsLeaving;
     }
@@ -354,7 +366,13 @@ public class Room {
      */
     public boolean processStateEvent(Event event, EventDirection direction) {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        return affectedState.applyState(event, direction);
+        Boolean isProcessed = affectedState.applyState(event, direction);
+
+        if (isProcessed) {
+            mDataHandler.getStore().storeStatesForRoom(mRoomId);
+        }
+
+        return isProcessed;
     }
 
     /**
@@ -485,6 +503,7 @@ public class Room {
                     }
                 }
                 isPaginating = false;
+                mDataHandler.getStore().commit();
             }
 
             @Override
@@ -564,6 +583,8 @@ public class Room {
             @Override
             public void onSuccess(RoomResponse roomInfo) {
                 mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+
+                mDataHandler.getStore().commit();
                 if (callback != null) {
                     try {
                         callback.onSuccess(null);

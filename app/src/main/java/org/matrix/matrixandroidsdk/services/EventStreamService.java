@@ -27,6 +27,7 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -203,7 +204,8 @@ public class EventStreamService extends Service {
                 mSessions.add(session);
                 mMatrixIds.add(matrixId);
                 session.getDataHandler().addListener(mListener);
-                session.startEventStream();
+                // perform a full sync
+                session.startEventStream(null);
             }
         }
     }
@@ -275,6 +277,11 @@ public class EventStreamService extends Service {
         return null;
     }
 
+    private void startEventStream(final MXSession session, final IMXStore store) {
+        session.getDataHandler().checkPermanentStorageData();
+        session.startEventStream(store.getEventStreamToken());
+    }
+
     private void start() {
         if (mState == StreamAction.START) {
             Log.w(LOG_TAG, "Already started.");
@@ -295,8 +302,21 @@ public class EventStreamService extends Service {
 
         for(MXSession session : mSessions) {
             session.getDataHandler().addListener(mListener);
+            final IMXStore store = session.getDataHandler().getStore();
 
-            session.startEventStream();
+            // the store is ready (no data loading in progress...)
+            if (store.isReady()) {
+                startEventStream(session, store);
+            } else {
+                final MXSession fSession = session;
+                // wait that the store is ready  before starting the events listener
+                store.setMXStoreListener(new IMXStore.MXStoreListener() {
+                    @Override
+                    public void onStoreReady(String accountId) {
+                        startEventStream(fSession, store);
+                    }
+                });
+            }
 
             if (shouldRunInForeground()) {
                 startWithNotification();

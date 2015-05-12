@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember {
+public class RoomMember implements java.io.Serializable {
     public static final String MEMBERSHIP_JOIN = "join";
     public static final String MEMBERSHIP_INVITE = "invite";
     public static final String MEMBERSHIP_LEAVE = "leave";

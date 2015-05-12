@@ -42,7 +42,7 @@ public class EventsThread extends Thread {
 
     private EventsRestClient mApiClient;
     private EventsThreadListener mListener = null;
-    private String mCurrentToken;
+    private String mCurrentToken = null;
 
     private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
@@ -74,11 +74,13 @@ public class EventsThread extends Thread {
      * Default constructor.
      * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
+     * @param initialToken the sync initial token.
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
         super("Events thread");
         mApiClient = apiClient;
         mListener = listener;
+        mCurrentToken = initialToken;
     }
 
     /**
@@ -135,12 +137,19 @@ public class EventsThread extends Thread {
         // Start with initial sync
         while (!mInitialSyncDone) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mApiClient.initialSync(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+
+            // if a start token is provided
+            // get only the user presences.
+            // else starts a sync from scratch
+            mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
                     mListener.onInitialSyncComplete(initialSync);
-                    mCurrentToken = initialSync.end;
+
+                    if (null != mCurrentToken) {
+                        mCurrentToken = initialSync.end;
+                    }
                     mInitialSyncDone = true;
                     // unblock the events thread
                     latch.countDown();
@@ -173,7 +182,7 @@ public class EventsThread extends Thread {
                     super.onUnexpectedError(e);
                     sleepAndUnblock();
                 }
-            });
+            }, (null == mCurrentToken) ? 10 : 0);
 
             // block until the initial sync callback is invoked.
             try {
@@ -193,6 +202,7 @@ public class EventsThread extends Thread {
             mPaused = !mbIsConnected;
         }
 
+
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {
@@ -210,9 +220,9 @@ public class EventsThread extends Thread {
             try {
                 TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
                 if (!mKilling) {
-                    mListener.onEventsReceived(eventsResponse.chunk);
+                    mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
+                    mCurrentToken = eventsResponse.end;
                 }
-                mCurrentToken = eventsResponse.end;
             }
             catch (Exception e) {
                 Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());

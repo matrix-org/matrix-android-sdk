@@ -19,6 +19,7 @@ public interface EventsThreadListener {
     /**
      * Called every time events come down the stream.
      * @param events the events
+     * @param latestToken the token of the latest event
      */
-    public void onEventsReceived(List<Event> events);
+    public void onEventsReceived(List<Event> events, String latestToken);
 }

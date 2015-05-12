@@ -16,23 +16,21 @@
 
 package org.matrix.androidsdk.data;
 
-import android.util.Log;
+import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -40,13 +38,133 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MXMemoryStore implements IMXStore {
 
-    private Map<String, Room> mRooms = new ConcurrentHashMap<String, Room>();
-    private Map<String, User> mUsers = new ConcurrentHashMap<String, User>();
+    protected Map<String, Room> mRooms;
+    protected Map<String, User> mUsers;
     // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
-    private Map<String, LinkedHashMap<String, Event>> mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
-    private Map<String, String> mRoomTokens = new ConcurrentHashMap<String, String>();
+    protected Map<String, LinkedHashMap<String, Event>> mRoomEvents;
+    protected Map<String, String> mRoomTokens;
 
-    private Map<String, RoomSummary> mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
+    protected Map<String, RoomSummary> mRoomSummaries;
+
+    protected Credentials mCredentials;
+
+    protected String mEventStreamToken = null;
+
+    // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
+    // When nil, nothing is stored on the file system.
+    protected MXFileStoreMetaData mMetadata = null;
+
+    protected void initCommon(){
+        mRooms = new ConcurrentHashMap<String, Room>();
+        mUsers = new ConcurrentHashMap<String, User>();
+        mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
+        mRoomTokens = new ConcurrentHashMap<String, String>();
+        mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
+
+        mEventStreamToken = null;
+    }
+
+    public MXMemoryStore() {
+        initCommon();
+    }
+
+    /**
+     * Default constructor
+     * @param credentials the expected credentials
+     */
+    public MXMemoryStore(Credentials credentials) {
+        initCommon();
+        mCredentials = credentials;
+
+        mMetadata = new MXFileStoreMetaData();
+    }
+
+    /**
+     * Save changes in the store.
+     * If the store uses permanent storage like database or file, it is the optimised time
+     * to commit the last changes.
+     */
+    @Override
+    public void commit() {
+    }
+
+    /**
+     * Close the store.
+     * Any pending operation must be complete in this call.
+     */
+    @Override
+    public void close() {
+    }
+
+    /**
+     * Indicate if the MXStore implementation stores data permanently.
+     * Permanent storage allows the SDK to make less requests at the startup.
+     * @return true if permanent.
+     */
+    @Override
+    public boolean isPermanent() {
+        return false;
+    }
+
+    /**
+     * Check if the initial load is performed.
+     * @return true if it is ready.
+     */
+    @Override
+    public boolean isReady() {
+        return true;
+    }
+
+    /**
+     * Returns the latest known event stream token
+     * @return the event stream token
+     */
+    @Override
+    public String getEventStreamToken() {
+        return mEventStreamToken;
+    }
+
+    /**
+     * Set the event stream token.
+     * @param token the event stream token
+     */
+    @Override
+    public void setEventStreamToken(String token) {
+        mEventStreamToken = token;
+    }
+
+    /**
+     * Define a MXStore listener.
+     * @param listener
+     */
+    @Override
+    public void setMXStoreListener(MXStoreListener listener) {
+    }
+
+    /**
+     * profile information
+     */
+    public String displayName() {
+        return mMetadata.mUserDisplayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        if (TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
+            mMetadata.mUserDisplayName = displayName;
+            commit();
+        }
+    }
+
+    public String avatarURL() {
+        return mMetadata.mUserAvatarUrl;
+    }
+
+    public void setAvatarURL(String avatarURL) {
+        if (TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
+            mMetadata.mUserAvatarUrl = avatarURL;
+            commit();
+        }
+    }
 
     @Override
     public Collection<Room> getRooms() {
@@ -213,21 +331,24 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void updateEventContent(String roomId, String eventId, JsonObject newContent) {
+    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
         if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events != null) {
                 Event event = events.get(eventId);
                 if (event != null) {
                     event.content = newContent;
+                    return true;
                 }
             }
         }
+
+        return false;
     }
 
     @Override
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
-        if (null !=roomId) {
+        if (null != roomId) {
             Room room = mRooms.get(roomId);
             if ((room != null) && (event != null)) { // Should always be true
                 RoomSummary summary = mRoomSummaries.get(roomId);
@@ -237,7 +358,6 @@ public class MXMemoryStore implements IMXStore {
                 summary.setMatrixId(matrixId);
                 summary.setLatestEvent(event);
                 summary.setLatestRoomState(roomState);
-                summary.setMembers(room.getMembers());
                 summary.setName(room.getName(selfUserId));
                 summary.setRoomId(room.getRoomId());
                 summary.setTopic(room.getTopic());
@@ -245,6 +365,10 @@ public class MXMemoryStore implements IMXStore {
                 mRoomSummaries.put(roomId, summary);
             }
         }
+    }
+
+    @Override
+    public void storeStatesForRoom(String roomId) {
     }
 
     @Override

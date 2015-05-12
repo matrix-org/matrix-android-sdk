@@ -53,6 +53,7 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.displayname = displayName;
+                MyUser.this.mDataHandler.getStore().setDisplayName(displayName);
                 super.onSuccess(info);
             }
         });
@@ -69,6 +70,7 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.avatarUrl = avatarUrl;
+                MyUser.this.mDataHandler.getStore().setAvatarURL(avatarUrl);
                 super.onSuccess(info);
             }
         });

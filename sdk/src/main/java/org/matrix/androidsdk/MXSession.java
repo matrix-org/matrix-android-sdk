@@ -21,6 +21,7 @@ import android.net.ConnectivityManager;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
@@ -262,9 +263,24 @@ public class MXSession {
         // MyUser is initialized as late as possible to have a better chance at having the info in storage,
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
-            mMyUser = new MyUser(mDataHandler.getStore().getUser(mCredentials.userId));
+
+            IMXStore store = mDataHandler.getStore();
+
+            mMyUser = new MyUser(store.getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
+
+            // assume the profile is not yet initialized
+            if (null == store.displayName()) {
+                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setDisplayName(mMyUser.displayname);
+            } else {
+                // use the latest user information
+                // The user could have updated his profile in offline mode and kill the application.
+                mMyUser.displayname = store.displayName();
+                mMyUser.avatarUrl = store.avatarURL();
+            }
+
             // Handle the case where the user is null by loading the user information from the server
             mMyUser.userId = mCredentials.userId;
         }
@@ -275,8 +291,9 @@ public class MXSession {
      * Start the event stream (events thread that listens for events) with an event listener.
      * @param eventsListener the event listener or null if using a DataHandler
      * @param networkConnectivityReceiver the network connectivity listener.
+     * @param initialToken the initial sync token (null to start from scratch)
      */
-    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver) {
+    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver, String initialToken) {
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
@@ -290,8 +307,7 @@ public class MXSession {
             eventsListener = new DefaultEventsThreadListener(mDataHandler);
         }
 
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener);
-
+        mEventsThread = new EventsThread(mEventsRestClient, eventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
 
         if (mFailureCallback != null) {
@@ -306,9 +322,10 @@ public class MXSession {
     /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
+     * @param initialToken the initial sync token (null to sync from scratch).
      */
-    public void startEventStream() {
-        startEventStream(null, this.mNetworkConnectivityReceiver);
+    public void startEventStream(String initialToken) {
+        startEventStream(null, this.mNetworkConnectivityReceiver, initialToken);
     }
 
     /**

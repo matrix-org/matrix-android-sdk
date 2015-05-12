@@ -144,7 +144,7 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         // Handle messages / pagination token
-        if (roomResponse.messages != null) {
+        if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
             mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
 
             // To store the summary, we need the last event and the room state from just before
@@ -176,6 +176,22 @@ public class MXDataHandler implements IMXEventListener {
         if (roomResponse.roomId != null) {
             Room room = getRoom(roomResponse.roomId);
             handleInitialRoomResponse(roomResponse, room);
+        }
+    }
+
+    /**
+     * Update the missing data fields loaded from a permanent storage.
+     */
+    public void checkPermanentStorageData() {
+        if (mStore.isPermanent()) {
+            Collection<Room> rooms =  mStore.getRooms();
+
+            for(Room room : rooms) {
+                room.setDataHandler(this);
+                room.setDataRetriever(mDataRetriever);
+                room.setMyUserId(mCredentials.userId);
+                room.setContentManager(mContentManager);
+            }
         }
     }
 
@@ -499,6 +515,7 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         mInitialSyncComplete = true;
+        mStore.commit();
 
         for (IMXEventListener listener : mEventListeners) {
             try {

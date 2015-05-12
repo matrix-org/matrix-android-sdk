@@ -39,7 +39,7 @@ import java.util.Map;
 /**
  * The state of a room.
  */
-public class RoomState {
+public class RoomState implements java.io.Serializable {
     public static final String VISIBILITY_PRIVATE = "private";
     public static final String VISIBILITY_PUBLIC = "public";
 
@@ -57,7 +57,7 @@ public class RoomState {
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
     private PowerLevels powerLevels;
     // the unitary tests crash when MXDataHandler type is set.
-    private Object mDataHandler = null;
+    private transient Object mDataHandler = null;
 
     public String getToken() {
         return token;

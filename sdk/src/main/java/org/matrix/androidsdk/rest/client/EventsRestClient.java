@@ -76,14 +76,15 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * Get initial information about the user's rooms, messages, other users.
      * @param callback callback to provide the information
+     * @param limit the number of messages per room
      */
-    public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
+    public void initialSyncWithLimit(final ApiCallback<InitialSyncResponse> callback, final int limit) {
         final String description = "initialSync";
 
-        mApi.initialSync(10, new RestAdapterCallback<InitialSyncResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.initialSync(limit, new RestAdapterCallback<InitialSyncResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                initialSync(callback);
+                initialSyncWithLimit(callback, limit);
             }
         }));
     }

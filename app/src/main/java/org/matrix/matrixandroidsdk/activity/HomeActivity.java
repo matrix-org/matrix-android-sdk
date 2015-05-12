@@ -583,9 +583,14 @@ public class HomeActivity extends MXCActionBarActivity {
             }
 
             private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
-                for (RoomMember member : summary.getMembers()) {
-                    if (membership.equals(member.membership) && selfUserId.equals(member.getUserId())) {
-                        return true;
+
+                Room room = session.getDataHandler().getStore().getRoom(summary.getRoomId());
+
+                if (null != room) {
+                    for (RoomMember member : room.getMembers()) {
+                        if (membership.equals(member.membership) && selfUserId.equals(member.getUserId())) {
+                            return true;
+                        }
                     }
                 }
                 return false;

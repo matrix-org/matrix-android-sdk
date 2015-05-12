@@ -4,6 +4,8 @@ import android.content.Context;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.MXFileStore;
 import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -94,7 +96,6 @@ public class Matrix {
 
     /**
      * Static method to return a MXSession from an account Id.
-     * @param context the application content.
      * @param matrixId the matrix id
      * @return the MXSession.
      */
@@ -205,16 +206,17 @@ public class Matrix {
      * @return The session.
      */
     public MXSession createSession(Credentials credentials) {
-        return createSession(credentials, true);
+        return createSession(mAppContext, credentials, true);
     }
 
     /**
      * Creates an MXSession from some credentials.
+     * @param context the context.
      * @param credentials The credentials to create a session from.
      * @param useHttps True to enforce https URIs on the home server.
      * @return The session.
      */
-    public MXSession createSession(Credentials credentials, boolean useHttps) {
+    public MXSession createSession(Context context, Credentials credentials, boolean useHttps) {
         if (!credentials.homeServer.startsWith("http")) {
             if (useHttps) {
                 credentials.homeServer = "https://" + credentials.homeServer;
@@ -223,7 +225,16 @@ public class Matrix {
                 credentials.homeServer = "http://" + credentials.homeServer;
             }
         }
-        return new MXSession(new MXDataHandler(new MXMemoryStore(), credentials), credentials, mAppContext);
+
+        IMXStore store;
+
+        if (false) {
+            store = new MXFileStore(credentials, context);
+        } else {
+            store = new MXMemoryStore(credentials);
+        }
+
+        return new MXSession(new MXDataHandler(store, credentials), credentials, mAppContext);
     }
 
     public GcmRegistrationManager getSharedGcmRegistrationManager() {

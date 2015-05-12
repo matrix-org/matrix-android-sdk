@@ -28,15 +28,13 @@ import java.util.Collection;
 /**
  * Stores summarised information about the room.
  */
-public class RoomSummary {
+public class RoomSummary implements java.io.Serializable {
 
     private String mRoomId;
     private String mName;
     private String mTopic;
-    private int mNumMembers;
     private Event mLatestEvent;
     private RoomState mLatestRoomState;
-    private Collection<RoomMember> mMembers;
     private String mInviter; // only populated if you've been invited.
     private String mMatrixId;
 
@@ -48,7 +46,6 @@ public class RoomSummary {
         mRoomId = roomId;
         mName = name;
         mTopic = topic;
-        mMembers = members;
     }
 
     public String getMatrixId() {
@@ -67,10 +64,6 @@ public class RoomSummary {
         return mTopic;
     }
 
-    public int getNumMembers() {
-        return mNumMembers;
-    }
-
     public Event getLatestEvent() {
         return mLatestEvent;
     }
@@ -87,34 +80,8 @@ public class RoomSummary {
         return mInviter;
     }
 
-    public Collection<RoomMember> getMembers() {
-        return mMembers;
-    }
-
     public void setMatrixId(String matrixId) {
         mMatrixId = matrixId;
-    }
-
-    /**
-     * Set the room's members. This can be a subset of members
-     * (see {@link RoomSummary#setNumMembers(int)} for a total count).
-     * @param members A list of members.
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setMembers(Collection<RoomMember> members) {
-        mMembers = members;
-        mNumMembers = mMembers.size();
-        return this;
-    }
-
-    /**
-     * Set the number of members in this room.
-     * @param numMembers The number of members
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setNumMembers(int numMembers) {
-        mNumMembers = numMembers;
-        return this;
     }
 
     /**

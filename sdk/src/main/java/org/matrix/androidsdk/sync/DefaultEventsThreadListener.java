@@ -47,12 +47,25 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     }
 
     @Override
-    public void onEventsReceived(List<Event> events) {
+    public void onEventsReceived(List<Event> events, String latestToken) {
+        boolean presencesEvent = true;
+
         // store the matrix id
         for(Event event : events) {
             event.setMatrixId(mData.getUserId());
+
+            if (presencesEvent) {
+                presencesEvent &= (Event.EVENT_TYPE_PRESENCE.equals(event.type)) || (Event.EVENT_TYPE_TYPING.equals(event.type));
+            }
         }
 
         mData.handleLiveEvents(events);
+
+        // do not update the store if the list contains only presence updates or typing
+        // it should save some ms avoiding useless file writings.
+        if (!presencesEvent) {
+            mData.getStore().setEventStreamToken(latestToken);
+            mData.getStore().commit();
+        }
     }
 }

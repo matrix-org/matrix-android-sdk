@@ -1,0 +1,580 @@
+/*
+ * Copyright 2015 OpenMarket Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.matrix.androidsdk.data;
+
+import android.content.Context;
+import android.util.Log;
+
+import com.google.gson.JsonObject;
+
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.login.Credentials;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Set;
+
+
+/**
+ * An in-file IMXStore.
+ */
+public class MXFileStore extends MXMemoryStore {
+    private static final String LOG_TAG = "MXFileStore";
+
+    // some constant values
+    final int MXFILE_VERSION = 1;
+
+    final String MXFILE_STORE_FOLDER = "MXFileStore";
+    final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+
+    final String MXFILE_STORE_ROOMS_MESSAGES_FOLDER = "messages";
+    final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
+    final String MXFILE_STORE_ROOMS_STATE_FOLDER = "state";
+    final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+
+    private Context mContext = null;
+
+    private android.os.Handler mFileStoreHandler;
+
+    // the data is read from the file system
+    private boolean mIsReady = false;
+
+    private MXStoreListener mListener = null;
+
+    // List of rooms to save on [MXStore commit]
+    private ArrayList<String> mRoomsToCommitForMessages;
+
+    private ArrayList<String> mRoomsToCommitForStates;
+    private ArrayList<String> mRoomsToCommitForSummaries;
+
+    // Flag to indicate metaData needs to be store
+    private boolean mMetaDataHasChanged = false;
+
+    // The path of the MXFileStore folders
+    private File mStoreFolderFile = null;
+    private File mStoreRoomsMessagesFolderFile = null;
+    private File mStoreRoomsTokensFolderFile = null;
+    private File mStoreRoomsStateFolderFile = null;
+    private File mStoreRoomsSummaryFolderFile = null;
+
+    /**
+     * Create the file store dirtree
+     */
+    private void createDirTree(String userId) {
+        // data path
+        // MXFileStore/userID/
+        // MXFileStore/userID/MXFileStore
+        // MXFileStore/userID/Messages/
+        // MXFileStore/userID/Tokens/
+        // MXFileStore/userID/States/
+        // MXFileStore/userID/Summaries/
+
+        // create the dirtree
+        mStoreFolderFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_STORE_FOLDER), userId);
+
+        if (!mStoreFolderFile.exists()) {
+            mStoreFolderFile.mkdirs();
+        }
+
+        mStoreRoomsMessagesFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_MESSAGES_FOLDER);
+        if (!mStoreRoomsMessagesFolderFile.exists()) {
+            mStoreRoomsMessagesFolderFile.mkdirs();
+        }
+
+        mStoreRoomsTokensFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_TOKENS_FOLDER);
+        if (!mStoreRoomsTokensFolderFile.exists()) {
+            mStoreRoomsTokensFolderFile.mkdirs();
+        }
+
+        mStoreRoomsStateFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_STATE_FOLDER);
+        if (!mStoreRoomsStateFolderFile.exists()) {
+            mStoreRoomsStateFolderFile.mkdirs();
+        }
+
+        mStoreRoomsSummaryFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_SUMMARY_FOLDER);
+        if (!mStoreRoomsSummaryFolderFile.exists()) {
+            mStoreRoomsSummaryFolderFile.mkdirs();
+        }
+    }
+
+    /**
+     * Default constructor
+     * @param credentials the expected credentials
+     */
+    public MXFileStore(Credentials credentials, Context context) {
+        initCommon();
+        mContext = context;
+        mIsReady = false;
+        mCredentials = credentials;
+
+        mFileStoreHandler = new android.os.Handler();
+
+        createDirTree(credentials.userId);
+
+        // updated data
+        mRoomsToCommitForMessages = new ArrayList<String>();
+        mRoomsToCommitForStates = new ArrayList<String>();
+        mRoomsToCommitForSummaries = new ArrayList<String>();
+
+        // check if the metadata file exists and if it is valid
+        loadMetaData();
+
+        if ( (null == mMetadata) ||
+             (mMetadata.mVersion != MXFILE_VERSION) ||
+             !mMetadata.mHomeServer.equals(credentials.homeServer) ||
+             !mMetadata.mUserId.equals(credentials.userId) ||
+             !mMetadata.mAccessToken.equals(credentials.accessToken)) {
+            deleteAllData();
+        }
+
+
+        // If metaData is still defined, we can load rooms data
+        if (mMetadata != null) {
+           //[self loadRoomsMessages];
+        }
+
+        // create the medatata file if it does not exist
+        if (null == mMetadata) {
+            mMetadata = new MXFileStoreMetaData();
+            mMetadata.mHomeServer = credentials.homeServer;
+            mMetadata.mUserId = credentials.userId;
+            mMetadata.mAccessToken = credentials.accessToken;
+            mMetadata.mVersion = MXFILE_VERSION;
+            mMetaDataHasChanged = true;
+            saveMetaData();
+
+            // nothing to load so ready to work
+            mIsReady = true;
+        }
+    }
+
+    /**
+     * Save changes in the store.
+     * If the store uses permanent storage like database or file, it is the optimised time
+     * to commit the last changes.
+     */
+    @Override
+    public void commit() {
+        // Save data only if metaData exists
+        if (null != mMetadata) {
+            saveRoomsMessages();
+            saveRoomsState();
+            saveMetaData();
+            saveSummaries();
+        }
+    }
+
+    /**
+     * Close the store.
+     * Any pending operation must be complete in this call.
+     */
+    @Override
+    public void close() {
+    }
+
+    private void deleteAllData()
+    {
+        // delete the dedicated directories
+        try {
+            mStoreFolderFile.delete();
+            createDirTree(mCredentials.userId);
+        } catch(Exception e) {
+        }
+
+        initCommon();
+        mMetadata = null;
+        mEventStreamToken = null;
+    }
+
+    /**
+     * Indicate if the MXStore implementation stores data permanently.
+     * Permanent storage allows the SDK to make less requests at the startup.
+     * @return true if permanent.
+     */
+    @Override
+    public boolean isPermanent() {
+        return true;
+    }
+
+    /**
+     * Check if the initial load is performed.
+     * @return true if it is ready.
+     */
+    @Override
+    public boolean isReady() {
+        return mIsReady;
+    }
+
+    /**
+     * Set the event stream token.
+     * @param token the event stream token
+     */
+    @Override
+    public void setEventStreamToken(String token) {
+        super.setEventStreamToken(token);
+        mMetaDataHasChanged = true;
+    }
+
+    /**
+     * Define a MXStore listener.
+     * @param listener
+     */
+    @Override
+    public void setMXStoreListener(MXStoreListener listener) {
+        mListener = listener;
+    }
+
+    @Override
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+        super.storeRoomEvents(roomId, eventsResponse, direction);
+
+        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
+            mRoomsToCommitForMessages.add(roomId);
+        }
+    }
+
+    /**
+     * Store a live room event.
+     * @param event The event to be stored.
+     */
+    @Override
+    public void storeLiveRoomEvent(Event event) {
+        super.storeLiveRoomEvent(event);
+
+        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
+            mRoomsToCommitForMessages.add(event.roomId);
+        }
+    }
+
+    @Override
+    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
+        Boolean isReplaced = super.updateEventContent(roomId, eventId, newContent);
+
+        if (isReplaced) {
+            if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
+                mRoomsToCommitForMessages.add(roomId);
+            }
+        }
+
+        return isReplaced;
+    }
+
+    @Override
+    public void deleteEvent(Event event) {
+        super.deleteEvent(event);
+
+        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
+            mRoomsToCommitForMessages.add(event.roomId);
+        }
+    }
+
+    private void clearRoomMessagesFiles(String roomId) {
+        // messages list
+        File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+        File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
+
+        // remove the files
+        if (messagesListFile.exists()) {
+            try {
+                messagesListFile.delete();
+            } catch (Exception e) {
+            }
+        }
+
+        if (tokenFile.exists()) {
+            try {
+                tokenFile.delete();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    @Override
+    public void deleteRoom(String roomId) {
+        super.deleteRoom(roomId);
+        clearRoomMessagesFiles(roomId);
+    }
+
+
+    @Override
+    public void storeStatesForRoom(String roomId) {
+        super.storeStatesForRoom(roomId);
+
+        if (mRoomsToCommitForStates.indexOf(roomId) < 0) {
+            mRoomsToCommitForStates.add(roomId);
+        }
+    }
+
+    @Override
+    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
+        super.storeSummary(matrixId, roomId, event, roomState, selfUserId);
+
+        if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
+            mRoomsToCommitForSummaries.add(roomId);
+        }
+    }
+
+    /**
+     * Save updates rooms messages list
+     */
+    private void saveRoomsMessages() {
+        // some updated rooms ?
+        if  (mRoomsToCommitForMessages.size() > 0) {
+            // get the list
+            final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
+            mRoomsToCommitForMessages = new ArrayList<String>();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            long start = System.currentTimeMillis();
+
+                            for(String roomId : fRoomsToCommitForMessages) {
+                                try {
+                                    clearRoomMessagesFiles(roomId);
+
+                                    // messages list
+                                    File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+                                    File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
+
+                                    LinkedHashMap<String, Event> value = mRoomEvents.get(roomId);
+                                    String token = mRoomTokens.get(roomId);
+
+                                    // the list exists ?
+                                    if ((null != value) && (null != token)) {
+                                        FileOutputStream fos = new FileOutputStream(messagesListFile);
+                                        ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                                        for (Event event : value.values()) {
+                                            event.prepareSerialization();
+                                        }
+
+                                        out.writeObject(value);
+                                        out.close();
+
+                                        fos = new FileOutputStream(tokenFile);
+                                        out = new ObjectOutputStream(fos);
+                                        out.writeObject(token);
+                                        out.close();
+                                    }
+                                } catch (Exception e) {
+                                }
+                            }
+
+                            Log.e(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+    private void clearRoomStatesFiles(String roomId) {
+        // states list
+        File statesFile = new File(mStoreRoomsStateFolderFile, roomId);
+
+        // remove the files
+        if (statesFile.exists()) {
+            try {
+                statesFile.delete();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    private void saveRoomsState() {
+        if (mRoomsToCommitForStates.size() > 0) {
+
+            // get the list
+            final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
+            mRoomsToCommitForStates = new ArrayList<String>();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            long start = System.currentTimeMillis();
+
+                            for(String roomId : fRoomsToCommitForStates) {
+                                try {
+                                    clearRoomStatesFiles(roomId);
+
+                                    File metaDataFile = new File(mStoreRoomsStateFolderFile, roomId);
+                                    Room room = mRooms.get(roomId);
+
+                                    if (null != room) {
+
+                                        FileOutputStream fos = new FileOutputStream(metaDataFile);
+                                        ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                                        out.writeObject(room.getLiveState());
+                                        out.writeObject(room.getBackState());
+                                        out.close();
+                                    }
+
+                                } catch (Exception e) {
+                                    e = e;
+                                }
+                            }
+
+                            Log.e(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+
+    private void clearRoomSummaryFiles(String roomId) {
+        // states list
+        File statesFile = new File(mStoreRoomsSummaryFolderFile, roomId);
+
+        // remove the files
+        if (statesFile.exists()) {
+            try {
+                statesFile.delete();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    private void saveSummaries() {
+        if (mRoomsToCommitForSummaries.size() > 0) {
+            // get the list
+            final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
+            mRoomsToCommitForSummaries = new ArrayList<String>();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            long start = System.currentTimeMillis();
+
+                            for(String roomId : fRoomsToCommitForSummaries) {
+                                try {
+                                    clearRoomSummaryFiles(roomId);
+
+                                    File roomSummaryFile = new File(mStoreRoomsSummaryFolderFile, roomId);
+                                    RoomSummary roomSummary = mRoomSummaries.get(roomId);
+
+                                    if (null != roomSummary) {
+                                        FileOutputStream fos = new FileOutputStream(roomSummaryFile);
+                                        ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                                        out.writeObject(roomSummary);
+                                        out.close();
+                                    }
+
+                                } catch (Exception e) {
+                                    e = e;
+                                }
+                            }
+
+                            Log.e(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+    private void loadMetaData() {
+        if (true) {
+            return;
+        }
+        long start = System.currentTimeMillis();
+
+        try {
+            File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
+
+            if (metaDataFile.exists()) {
+                FileInputStream fis = new FileInputStream(metaDataFile);
+                ObjectInputStream out = new ObjectInputStream(fis);
+
+                mMetadata = (MXFileStoreMetaData)out.readObject();
+                out.close();
+
+                // extract the latest event stream token
+                mEventStreamToken = mMetadata.mEventStreamToken;
+            }
+
+        } catch (Exception e) {
+            mMetadata = null;
+        }
+
+        Log.e(LOG_TAG, "loadMetaData : " + (System.currentTimeMillis() - start) + " ms");
+    }
+
+    private void saveMetaData() {
+        if (mMetaDataHasChanged) {
+            mMetaDataHasChanged = false;
+
+            final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            long start = System.currentTimeMillis();
+
+                            try {
+                                File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
+
+                                if (metaDataFile.exists()) {
+                                    metaDataFile.delete();
+                                }
+
+                                FileOutputStream fos = new FileOutputStream(metaDataFile);
+                                ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                                out.writeObject(mMetadata);
+                                out.close();
+                            } catch (Exception e) {
+                            }
+
+                            Log.e(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+}

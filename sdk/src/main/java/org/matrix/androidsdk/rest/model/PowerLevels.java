@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PowerLevels {
+public class PowerLevels implements java.io.Serializable {
     public int ban;
     public int kick;
     public int invite;
