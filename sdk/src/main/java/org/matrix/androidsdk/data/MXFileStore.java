@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
+import android.os.HandlerThread;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
@@ -82,6 +83,9 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreRoomsStateFolderFile = null;
     private File mStoreRoomsSummaryFolderFile = null;
 
+    // the background thread
+    private HandlerThread mHandlerThread;
+
     /**
      * Create the file store dirtree
      */
@@ -132,7 +136,7 @@ public class MXFileStore extends MXMemoryStore {
         mIsReady = false;
         mCredentials = credentials;
 
-        mFileStoreHandler = new android.os.Handler();
+        mHandlerThread = new HandlerThread("MyBackgroundThread");
 
         createDirTree(credentials.userId);
 
@@ -192,36 +196,26 @@ public class MXFileStore extends MXMemoryStore {
         if (!mIsReady && !mIsOpening && (mMetadata != null)) {
             mIsOpening = true;
 
+            mHandlerThread.start();
+            mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    mFileStoreHandler.postDelayed(new Runnable() {
+                    mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             loadRoomsMessages();
                             loadRoomsState();
                             loadSummaries();
 
-                            Runnable r = new Runnable() {
-                                @Override
-                                public void run() {
-                                    mFileStoreHandler.post(new Runnable() {
-                                        public void run() {
-                                            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                                            mIsReady = true;
-                                            mIsOpening = false;
+                            mIsReady = true;
+                            mIsOpening = false;
 
-                                            if (null != mListener) {
-                                                mListener.onStoreReady(mCredentials.userId);
-                                            }
-                                        }
-                                    });
-                                }
-                            };
-
-                            Thread t = new Thread(r);
-                            t.start();
+                            if (null != mListener) {
+                                mListener.onStoreReady(mCredentials.userId);
+                            }
                         }
-                    }, 100);
+                    });
                 }
             };
 
@@ -237,6 +231,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void close() {
         super.close();
+        mHandlerThread.quit();
     }
 
     private void deleteAllData()
@@ -398,7 +393,6 @@ public class MXFileStore extends MXMemoryStore {
         saveSummaries();
     }
 
-
     @Override
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
         super.storeSummary(matrixId, roomId, event, roomState, selfUserId);
@@ -525,7 +519,6 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
-
     /**
      * Load room messages
      */
@@ -534,54 +527,26 @@ public class MXFileStore extends MXMemoryStore {
             // extract the messages list
             String[] filenames = mStoreRoomsMessagesFolderFile.list();
 
-            Log.e(LOG_TAG, "loadSummaries : " + filenames.length + " rooms");
+            long start = System.currentTimeMillis();
 
             for(int index = 0; index < filenames.length; index++) {
-                // the filename is the room ID
-                final String roomId = filenames[index];
-
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        mFileStoreHandler.post(new Runnable() {
-                            public void run() {
-                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                                long start = System.currentTimeMillis();
-                                loadRoomMessages(roomId);
-                                Log.e(LOG_TAG, " " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        });
-                    }
-                };
-
-                Thread t = new Thread(r);
-                t.start();
+                loadRoomMessages(filenames[index]);
             }
+
+            Log.e(LOG_TAG, "loadRoomMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
             // extract the tokens list
             filenames = mStoreRoomsTokensFolderFile.list();
 
+            start = System.currentTimeMillis();
+
             for(int index = 0; index < filenames.length; index++) {
-                // the filename is the room ID
-                final String roomId = filenames[index];
-
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        mFileStoreHandler.post(new Runnable() {
-                            public void run() {
-                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                                long start = System.currentTimeMillis();
-                                loadRoomToken(roomId);
-                                Log.e(LOG_TAG, "loadRoomToken " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        });
-                    }
-                };
-
-                Thread t = new Thread(r);
-                t.start();
+                loadRoomToken(filenames[index]);
             }
+
+            Log.e(LOG_TAG, "loadRoomToken : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+
+
         } catch (Exception e) {
         }
     }
@@ -683,28 +648,13 @@ public class MXFileStore extends MXMemoryStore {
             // extract the room states
             String[] filenames = mStoreRoomsStateFolderFile.list();
 
+            long start = System.currentTimeMillis();
+
             for(int index = 0; index < filenames.length; index++) {
-                // the filename is the room ID
-                final String roomId = filenames[index];
-
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        mFileStoreHandler.post(new Runnable() {
-                            public void run() {
-                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                                long start = System.currentTimeMillis();
-                                loadRoomState(roomId);
-                                Log.e(LOG_TAG, "loadRoomState " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        });
-                    }
-                };
-
-                Thread t = new Thread(r);
-                t.start();
-
+                loadRoomState(filenames[index]);
             }
+
+            Log.e(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
         }
@@ -804,28 +754,16 @@ public class MXFileStore extends MXMemoryStore {
             // extract the room states
             String[] filenames = mStoreRoomsSummaryFolderFile.list();
 
+            long start = System.currentTimeMillis();
+
             for(int index = 0; index < filenames.length; index++) {
-                // the filename is the room ID
-                final String roomId = filenames[index];
-
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        mFileStoreHandler.post(new Runnable() {
-                            public void run() {
-                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                                long start = System.currentTimeMillis();
-                                loadSummary(roomId);
-                                Log.e(LOG_TAG, "loadSummary " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        });
-                    }
-                };
-
-                Thread t = new Thread(r);
-                t.start();
+                loadSummary(filenames[index]);
             }
-        } catch (Exception e) {
+
+            Log.e(LOG_TAG, "loadSummaries " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+
+        }
+        catch (Exception e) {
         }
     }
 
