@@ -32,6 +32,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
@@ -348,6 +349,33 @@ public class MXFileStore extends MXMemoryStore {
             mRoomsToCommitForStates.add(roomId);
         }
     }
+
+    @Override
+    public void flushSummary(RoomSummary summary) {
+        super.flushSummary(summary);
+
+        if (mRoomsToCommitForSummaries.indexOf(summary.getRoomId()) < 0) {
+            mRoomsToCommitForSummaries.add(summary.getRoomId());
+            saveSummaries();
+        }
+    }
+
+    @Override
+    public void flushSummaries() {
+        super.flushSummaries();
+
+        // add any existing roomid to the list to save all
+        Collection<String> roomIds = mRoomSummaries.keySet();
+
+        for(String roomId : roomIds) {
+            if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
+                mRoomsToCommitForSummaries.add(roomId);
+            }
+        }
+
+        saveSummaries();
+    }
+
 
     @Override
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
@@ -712,6 +740,10 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     private void loadMetaData() {
+        if (false) {
+            return;
+        }
+
         long start = System.currentTimeMillis();
 
         try {

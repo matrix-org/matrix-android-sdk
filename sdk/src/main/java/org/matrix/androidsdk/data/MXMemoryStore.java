@@ -348,6 +348,14 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void flushSummary(RoomSummary summary) {
+    }
+
+    @Override
+    public void flushSummaries() {
+    }
+
+    @Override
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
         if (null != roomId) {
             Room room = mRooms.get(roomId);

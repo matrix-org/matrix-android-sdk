@@ -59,7 +59,9 @@ public class EventUtils {
         }
         Room room = session.getDataHandler().getRoom(event.roomId);
         RoomMember myMember = room.getMember(myUserId);
-        if (caseInsensitiveFind(myMember.displayname, body)) {
+
+        // myMember should never be null
+        if ((null != myMember) && caseInsensitiveFind(myMember.displayname, body)) {
             return true;
         }
 

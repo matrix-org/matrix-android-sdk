@@ -37,6 +37,7 @@ import org.matrix.androidsdk.util.EventDisplay;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,7 +68,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private String mSearchedPattern = "";
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
-    private ArrayList<HashMap<String, Integer>> mUnreadCountMaps = new ArrayList<HashMap<String, Integer>>();
+    private ArrayList<HashMap<String, RoomSummary>> mSummaryMapsBySection = new ArrayList<HashMap<String, RoomSummary>>();
 
     // abstract methods
     public abstract int getUnreadMessageBackgroundColor();
@@ -94,24 +95,13 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
         for(int section = 0; section < nbrSections; section++) {
             mRecentsSummariesList.add(new ArrayList<RoomSummary>());
-            mUnreadCountMaps.add(new HashMap<String, Integer>());
+            mSummaryMapsBySection.add(new HashMap<String, RoomSummary>());
         }
 
         mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = getUnreadMessageBackgroundColor();
         mHighlightColor = getHighlightMessageBackgroundColor();
         mPublicHighlightColor = getPublicHighlightMessageBackgroundColor();
-    }
-
-    /**
-     *  unread messages map
-     */
-    public ArrayList<HashMap<String, Integer>> getUnreadCountMap() {
-        return mUnreadCountMaps;
-    }
-
-    public void setUnreadCountMap(ArrayList<HashMap<String, Integer>> maps) {
-        mUnreadCountMaps = maps;
     }
 
     /**
@@ -236,17 +226,14 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     public void addRoomSummary(int section, RoomSummary roomSummary) {
         if (section < mRecentsSummariesList.size()) {
-
             ArrayList<RoomSummary> list = mRecentsSummariesList.get(section);
+            HashMap<String, RoomSummary> maps = mSummaryMapsBySection.get(section);
 
-            // check if the summary is not added twice.
-            for (RoomSummary rSum : list) {
-                if (rSum.getRoomId().equals(roomSummary.getRoomId())) {
-                    return;
-                }
+            // avoid multiple definitions
+            if (maps.get(roomSummary.getRoomId()) == null) {
+                list.add(roomSummary);
+                maps.put(roomSummary.getRoomId(), roomSummary);
             }
-
-            list.add(roomSummary);
         }
     }
 
@@ -262,7 +249,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mRecentsSummariesList.get(section).remove(roomSummary);
 
         if (null != roomSummary.getRoomId()) {
-            mUnreadCountMaps.get(section).remove(roomSummary.getRoomId());
+            mSummaryMapsBySection.get(section).remove(roomSummary.getRoomId());
         }
     }
 
@@ -285,7 +272,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             mFilteredRecentsSummariesList.remove(section);
         }
 
-        mUnreadCountMaps.remove(section);
+        mRecentsSummariesList.remove(section);
     }
 
     /**
@@ -308,11 +295,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @param roomId The room identifier
      */
     public void incrementUnreadCount(int section, String roomId) {
-        Integer count = mUnreadCountMaps.get(section).get(roomId);
-        if (count == null) {
-            count = 0;
+        RoomSummary roomSummary  = mSummaryMapsBySection.get(section).get(roomId);
+
+        if (null != roomSummary) {
+            roomSummary.mUnreadMessagesCount++;
         }
-        mUnreadCountMaps.get(section).put(roomId, count + 1);
     }
 
     /**
@@ -330,10 +317,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @param roomId
      */
     public void resetUnreadCount(int section, String roomId) {
-        mUnreadCountMaps.get(section).put(roomId, 0);
-        mHighLightedRooms.remove(roomId);
-    }
+        RoomSummary roomSummary  = mSummaryMapsBySection.get(section).get(roomId);
 
+        if (null != roomSummary) {
+            roomSummary.mUnreadMessagesCount = 0;
+        }
+    }
 
     /**
      * Reset the unread message counters.
@@ -348,10 +337,10 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * Reset the unread message counters.
      */
     public void resetUnreadCounts(int section) {
-        Set<String> roomIds = mUnreadCountMaps.get(section).keySet();
+        Collection<RoomSummary> summaries = mSummaryMapsBySection.get(section).values();
 
-        for(String roomId : roomIds) {
-            resetUnreadCount(section, roomId);
+        for(RoomSummary summary : summaries) {
+            summary.mUnreadMessagesCount = 0;
         }
     }
 
@@ -431,7 +420,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
 
-            Integer unreadCount = mUnreadCountMaps.get(groupPosition).get(summary.getRoomId());
+            Integer unreadCount = summary.mUnreadMessagesCount;
 
             if ((unreadCount == null) || (unreadCount == 0)) {
                 convertView.setBackgroundColor(0);
@@ -556,8 +545,10 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             int unreadCount = 0;
 
-            for(Integer i : mUnreadCountMaps.get(groupPosition).values()) {
-                unreadCount += i;
+            Collection<RoomSummary> summaries = mSummaryMapsBySection.get(groupPosition).values();
+
+            for(RoomSummary summary : summaries) {
+                unreadCount += summary.mUnreadMessagesCount;
             }
 
             String header = myRoomsTitle(groupPosition);

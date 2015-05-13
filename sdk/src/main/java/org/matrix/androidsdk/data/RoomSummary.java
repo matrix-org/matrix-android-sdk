@@ -30,13 +30,15 @@ import java.util.Collection;
  */
 public class RoomSummary implements java.io.Serializable {
 
-    private String mRoomId;
-    private String mName;
-    private String mTopic;
-    private Event mLatestEvent;
-    private RoomState mLatestRoomState;
-    private String mInviter; // only populated if you've been invited.
-    private String mMatrixId;
+    private String mRoomId = null;
+    private String mName = null;
+    private String mTopic = null;
+    private Event mLatestEvent = null;
+    private RoomState mLatestRoomState = null;
+    // only populated if you've been invited.
+    private String mInviter = null;
+    private String mMatrixId = null;
+    public int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}
 

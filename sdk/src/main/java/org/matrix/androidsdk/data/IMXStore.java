@@ -173,6 +173,17 @@ public interface IMXStore {
     public RoomSummary getSummary(String roomId);
 
     /**
+     * Flush a room summmary
+     * @param summary
+     */
+    public void flushSummary(RoomSummary summary);
+
+    /**
+     * Flush the room summmaries
+     */
+    public void flushSummaries();
+
+    /**
      * Store the summary for the given room id.
      * @param matrixId the matrix id
      * @param roomId the room id

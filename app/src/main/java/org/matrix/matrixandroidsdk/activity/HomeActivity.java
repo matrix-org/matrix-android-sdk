@@ -75,7 +75,6 @@ import java.util.List;
 public class HomeActivity extends MXCActionBarActivity {
     private ExpandableListView mMyRoomList = null;
 
-    private static final String UNREAD_MESSAGES_MAPS = "UNREAD_MESSAGES_MAPS";
     private static final String PUBLIC_ROOMS_LIST = "PUBLIC_ROOMS_LIST";
 
     private static final String TAG_FRAGMENT_CONTACTS_LIST = "org.matrix.androidsdk.HomeActivity.TAG_FRAGMENT_CONTACTS_LIST";
@@ -96,7 +95,6 @@ public class HomeActivity extends MXCActionBarActivity {
     private String mAutomaticallyOpenedRoomId = null;
     private String mAutomaticallyOpenedMatrixId = null;
     private Intent mOpenedRoomIntent = null;
-
 
     // sliding menu
     private final Integer[] mSlideMenuTitleIds = new Integer[]{
@@ -156,10 +154,6 @@ public class HomeActivity extends MXCActionBarActivity {
         mAdapter = new ConsoleRoomSummaryAdapter(this, Matrix.getMXSessions(this), R.layout.adapter_item_my_rooms, R.layout.adapter_room_section_header);
 
         if (null != savedInstanceState) {
-            if (savedInstanceState.containsKey(UNREAD_MESSAGES_MAPS)) {
-                mAdapter.setUnreadCountMap((ArrayList<HashMap<String, Integer>>)savedInstanceState.getSerializable(UNREAD_MESSAGES_MAPS));
-            }
-
             if (savedInstanceState.containsKey(PUBLIC_ROOMS_LIST)) {
                 Serializable map = savedInstanceState.getSerializable(PUBLIC_ROOMS_LIST);
 
@@ -222,6 +216,8 @@ public class HomeActivity extends MXCActionBarActivity {
                     }
 
                     mAdapter.resetUnreadCount(groupPosition, roomId);
+                    session.getDataHandler().getStore().flushSummary(roomSummary);
+
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     // should offer to select which account to use
                     roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
@@ -330,11 +326,6 @@ public class HomeActivity extends MXCActionBarActivity {
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
 
-        // save the unread messages counters
-        // to avoid resetting counters after a screen rotation
-        if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
-            savedInstanceState.putSerializable(UNREAD_MESSAGES_MAPS, mAdapter.getUnreadCountMap());
-        }
         if (null != mPublicRooms) {
             HashMap<String, PublicRoom> hash = new HashMap<String, PublicRoom>();
 
@@ -532,9 +523,9 @@ public class HomeActivity extends MXCActionBarActivity {
                             // If we've left the room, remove it from the list
                             else if (mInitialSyncComplete && Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) &&
                                     isMembershipInRoom(RoomMember.MEMBERSHIP_LEAVE, matrixId, summary)) {
+                                mAdapter.removeRoomSummary(section, summary);
                                 // remove the cached data
                                 session.getDataHandler().getStore().deleteRoom(event.roomId);
-                                mAdapter.removeRoomSummary(section, summary);
                             }
 
                             // Watch for potential room name changes
@@ -913,6 +904,12 @@ public class HomeActivity extends MXCActionBarActivity {
     private void markAllMessagesAsRead() {
         mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
+
+        // flush the summaries
+        Collection<MXSession> sessions = Matrix.getMXSessions(HomeActivity.this);
+        for (MXSession session : sessions) {
+            session.getDataHandler().getStore().flushSummaries();
+        }
     }
 
     /**
