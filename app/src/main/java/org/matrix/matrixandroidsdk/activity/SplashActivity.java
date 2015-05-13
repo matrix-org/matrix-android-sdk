@@ -82,6 +82,7 @@ public class SplashActivity extends MXCActionBarActivity {
 
         for(MXSession session : mSessions) {
             final MXSession fSession = session;
+            session.getDataHandler().getStore().open();
 
             final IMXEventListener eventListener = new MXEventListener() {
                 @Override

@@ -89,6 +89,12 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Open the store.
+     */
+    public void open() {
+    }
+
+    /**
      * Close the store.
      * Any pending operation must be complete in this call.
      */

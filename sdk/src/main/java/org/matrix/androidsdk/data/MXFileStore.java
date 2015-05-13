@@ -61,6 +61,9 @@ public class MXFileStore extends MXMemoryStore {
     // the data is read from the file system
     private boolean mIsReady = false;
 
+    // the store is currently opening
+    private boolean mIsOpening = false;
+
     private MXStoreListener mListener = null;
 
     // List of rooms to save on [MXStore commit]
@@ -149,35 +152,6 @@ public class MXFileStore extends MXMemoryStore {
             deleteAllData();
         }
 
-        // If metaData is still defined, we can load rooms data
-        if (mMetadata != null) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            long start = System.currentTimeMillis();
-
-                            loadRoomsMessages();
-                            loadRoomsState();
-                            loadSummaries();
-
-                            Log.e(LOG_TAG, "Load from filesystem in " + (System.currentTimeMillis() - start) + " ms");
-
-                            mIsReady = true;
-
-                            if (null != mListener) {
-                                mListener.onStoreReady(mCredentials.userId);
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
-        }
-
         // create the medatata file if it does not exist
         if (null == mMetadata) {
             mMetadata = new MXFileStoreMetaData();
@@ -210,11 +184,59 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
+     * Open the store.
+     */
+    public void open() {
+        super.open();
+
+        if (!mIsReady && !mIsOpening && (mMetadata != null)) {
+            mIsOpening = true;
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.postDelayed(new Runnable() {
+                        public void run() {
+                            loadRoomsMessages();
+                            loadRoomsState();
+                            loadSummaries();
+
+                            Runnable r = new Runnable() {
+                                @Override
+                                public void run() {
+                                    mFileStoreHandler.post(new Runnable() {
+                                        public void run() {
+                                            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                            mIsReady = true;
+                                            mIsOpening = false;
+
+                                            if (null != mListener) {
+                                                mListener.onStoreReady(mCredentials.userId);
+                                            }
+                                        }
+                                    });
+                                }
+                            };
+
+                            Thread t = new Thread(r);
+                            t.start();
+                        }
+                    }, 100);
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+    /**
      * Close the store.
      * Any pending operation must be complete in this call.
      */
     @Override
     public void close() {
+        super.close();
     }
 
     private void deleteAllData()
@@ -446,47 +468,94 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
+    private void loadRoomMessages(final String roomId) {
+        LinkedHashMap<String, Event> events = null;
+
+        try {
+            File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+
+            FileInputStream fis = new FileInputStream(messagesListFile);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            events = (LinkedHashMap<String, Event>) ois.readObject();
+
+            for (Event event : events.values()) {
+                event.finalizeDeserialization();
+            }
+
+            ois.close();
+        } catch (Exception e){
+        }
+
+        // succeeds to extract the message list
+        if (null != events) {
+            // create the room object
+            Room room = new Room();
+            room.setRoomId(roomId);
+            // do not wait that the live state update
+            room.setReadyState(true);
+            storeRoom(room);
+
+            mRoomEvents.put(roomId, events);
+        }
+    }
+
+    private void loadRoomToken(final String roomId) {
+        Room room = getRoom(roomId);
+
+        // should always be true
+        if (null != room) {
+            String token = null;
+
+            try {
+                File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
+
+                FileInputStream fis = new FileInputStream(messagesListFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                token = (String) ois.readObject();
+
+                ois.close();
+            } catch (Exception e) {
+            }
+
+            if (null != token) {
+                mRoomTokens.put(roomId, token);
+            } else {
+                deleteRoom(roomId);
+            }
+        }
+    }
+
+
     /**
      * Load room messages
      */
     private void loadRoomsMessages() {
         try {
-            long start = System.currentTimeMillis();
-
             // extract the messages list
             String[] filenames = mStoreRoomsMessagesFolderFile.list();
 
+            Log.e(LOG_TAG, "loadSummaries : " + filenames.length + " rooms");
+
             for(int index = 0; index < filenames.length; index++) {
                 // the filename is the room ID
-                String roomId = filenames[index];
-                LinkedHashMap<String, Event> events = null;
+                final String roomId = filenames[index];
 
-                try {
-                    File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
-
-                    FileInputStream fis = new FileInputStream(messagesListFile);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-                    events = (LinkedHashMap<String, Event>) ois.readObject();
-
-                    for (Event event : events.values()) {
-                        event.finalizeDeserialization();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                long start = System.currentTimeMillis();
+                                loadRoomMessages(roomId);
+                                Log.e(LOG_TAG, " " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        });
                     }
+                };
 
-                    ois.close();
-                } catch (Exception e){
-                }
-
-                // succeeds to extract the message list
-                if (null != events) {
-                    // create the room object
-                    Room room = new Room();
-                    room.setRoomId(roomId);
-                    // do not wait that the live state update
-                    room.setReadyState(true);
-                    storeRoom(room);
-
-                    mRoomEvents.put(roomId, events);
-                }
+                Thread t = new Thread(r);
+                t.start();
             }
 
             // extract the tokens list
@@ -494,34 +563,25 @@ public class MXFileStore extends MXMemoryStore {
 
             for(int index = 0; index < filenames.length; index++) {
                 // the filename is the room ID
-                String roomId = filenames[index];
-                Room room = getRoom(roomId);
+                final String roomId = filenames[index];
 
-                // should always be true
-                if (null != room) {
-                    String token = null;
-
-                    try {
-                        File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
-
-                        FileInputStream fis = new FileInputStream(messagesListFile);
-                        ObjectInputStream ois = new ObjectInputStream(fis);
-                        token = (String) ois.readObject();
-
-                        ois.close();
-                    } catch (Exception e){
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                long start = System.currentTimeMillis();
+                                loadRoomToken(roomId);
+                                Log.e(LOG_TAG, "loadRoomToken " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        });
                     }
+                };
 
-                    if (null != token) {
-                        mRoomTokens.put(roomId, token);
-                    } else {
-                        deleteRoom(roomId);
-                    }
-                }
+                Thread t = new Thread(r);
+                t.start();
             }
-
-            Log.e(LOG_TAG, "loadRoomsMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
-
         } catch (Exception e) {
         }
     }
@@ -586,49 +646,65 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
+    private void loadRoomState(final String roomId) {
+        Room room = getRoom(roomId);
+
+        // should always be true
+        if (null != room) {
+            RoomState liveState = null;
+            RoomState backState = null;
+
+            try {
+                File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
+
+                FileInputStream fis = new FileInputStream(messagesListFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+
+                liveState = (RoomState) ois.readObject();
+                backState = (RoomState) ois.readObject();
+
+                ois.close();
+            } catch (Exception e) {
+            }
+
+            if ((null != liveState) && (null != backState)) {
+                room.setLiveState(liveState);
+                room.setBackState(backState);
+            } else {
+                deleteRoom(roomId);
+            }
+        }
+    }
     /**
      * Load room messages
      */
     private void loadRoomsState() {
         try {
-            long start = System.currentTimeMillis();
-
             // extract the room states
             String[] filenames = mStoreRoomsStateFolderFile.list();
 
             for(int index = 0; index < filenames.length; index++) {
                 // the filename is the room ID
-                String roomId = filenames[index];
-                Room room = getRoom(roomId);
+                final String roomId = filenames[index];
 
-                // should always be true
-                if (null != room) {
-                    RoomState liveState = null;
-                    RoomState backState = null;
-
-                    try {
-                        File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
-
-                        FileInputStream fis = new FileInputStream(messagesListFile);
-                        ObjectInputStream ois = new ObjectInputStream(fis);
-
-                        liveState = (RoomState) ois.readObject();
-                        backState = (RoomState) ois.readObject();
-
-                        ois.close();
-                    } catch (Exception e) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                long start = System.currentTimeMillis();
+                                loadRoomState(roomId);
+                                Log.e(LOG_TAG, "loadRoomState " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        });
                     }
+                };
 
-                    if ((null != liveState) && (null != backState)) {
-                        room.setLiveState(liveState);
-                        room.setBackState(backState);
-                    } else {
-                        deleteRoom(roomId);
-                    }
-                }
+                Thread t = new Thread(r);
+                t.start();
+
             }
-
-            Log.e(LOG_TAG, "loadRoomsState : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
         }
@@ -694,47 +770,61 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
+    private void loadSummary(final String roomId) {
+        Room room = getRoom(roomId);
+
+        // should always be true
+        if (null != room) {
+            RoomSummary summary = null;
+
+            try {
+                File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
+
+                FileInputStream fis = new FileInputStream(messagesListFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+
+                summary = (RoomSummary) ois.readObject();
+                ois.close();
+            } catch (Exception e){
+            }
+
+            if (null != summary) {
+                summary.getLatestEvent().finalizeDeserialization();
+                mRoomSummaries.put(roomId, summary);
+            } else {
+                deleteRoom(roomId);
+            }
+        }
+    }
     /**
      * Load room summaries
      */
     private void loadSummaries() {
         try {
-            long start = System.currentTimeMillis();
-
             // extract the room states
             String[] filenames = mStoreRoomsSummaryFolderFile.list();
 
             for(int index = 0; index < filenames.length; index++) {
                 // the filename is the room ID
-                String roomId = filenames[index];
-                Room room = getRoom(roomId);
+                final String roomId = filenames[index];
 
-                // should always be true
-                if (null != room) {
-                    RoomSummary summary = null;
-
-                    try {
-                        File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
-
-                        FileInputStream fis = new FileInputStream(messagesListFile);
-                        ObjectInputStream ois = new ObjectInputStream(fis);
-
-                        summary = (RoomSummary) ois.readObject();
-                        ois.close();
-                    } catch (Exception e){
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                long start = System.currentTimeMillis();
+                                loadSummary(roomId);
+                                Log.e(LOG_TAG, "loadSummary " + roomId + " in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        });
                     }
+                };
 
-                    if (null != summary) {
-                        summary.getLatestEvent().finalizeDeserialization();
-                        mRoomSummaries.put(roomId, summary);
-                    } else {
-                        deleteRoom(roomId);
-                    }
-                }
+                Thread t = new Thread(r);
+                t.start();
             }
-
-            Log.e(LOG_TAG, "loadSummaries : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
-
         } catch (Exception e) {
         }
     }

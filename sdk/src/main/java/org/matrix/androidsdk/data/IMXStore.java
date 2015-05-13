@@ -44,6 +44,11 @@ public interface IMXStore {
     public void commit();
 
     /**
+     * Open the store.
+     */
+    public void open();
+
+    /**
      * Close the store.
      * Any pending operation must be complete in this call.
      */
