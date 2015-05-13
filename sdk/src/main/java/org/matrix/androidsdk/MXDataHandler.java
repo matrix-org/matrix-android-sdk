@@ -184,6 +184,11 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void checkPermanentStorageData() {
         if (mStore.isPermanent()) {
+            // When the data are extracted from a persistent storage,
+            // some fields are not retrieved :
+            // They are used to retrieve some data
+            // so add the missing links.
+
             Collection<Room> rooms =  mStore.getRooms();
 
             for(Room room : rooms) {
@@ -191,6 +196,11 @@ public class MXDataHandler implements IMXEventListener {
                 room.setDataRetriever(mDataRetriever);
                 room.setMyUserId(mCredentials.userId);
                 room.setContentManager(mContentManager);
+            }
+
+            Collection<RoomSummary> summaries = mStore.getSummaries();
+            for(RoomSummary summary : summaries) {
+                summary.getLatestRoomState().setDataHandler(this);
             }
         }
     }

@@ -35,15 +35,28 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
     @Override
     public void onInitialSyncComplete(InitialSyncResponse response) {
-        // Handle presence events
-        mData.handleLiveEvents(response.presence);
+        // sanity check
+        if (null != response) {
+            // Handle presence events
+            mData.handleLiveEvents(response.presence);
 
-        // Convert rooms from response
-        for (RoomResponse roomResponse : response.rooms) {
-            mData.handleInitialRoomResponse(roomResponse);
+            // Convert rooms from response
+            for (RoomResponse roomResponse : response.rooms) {
+                mData.handleInitialRoomResponse(roomResponse);
+            }
         }
 
         mData.onInitialSyncComplete();
+    }
+
+    /**
+     * Called when getting the users presences.
+     * @param presence the users presence
+     */
+    @Override
+    public void onMembersPresencesSyncComplete(List<Event> presence) {
+        // Handle presence events
+        mData.handleLiveEvents(presence);
     }
 
     @Override

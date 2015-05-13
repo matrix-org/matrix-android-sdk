@@ -130,6 +130,7 @@ public class MXMemoryStore implements IMXStore {
      */
     @Override
     public void setEventStreamToken(String token) {
+        mMetadata.mEventStreamToken = token;
         mEventStreamToken = token;
     }
 
@@ -271,7 +272,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void deleteRoom(String roomId) {
-    	// ssnity check
+    	// sanity check
         if (null != roomId) {
             mRooms.remove(roomId);
             mRoomEvents.remove(roomId);

@@ -106,7 +106,7 @@ public class Room {
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
     // This is used to block live events and history requests until the state is fully processed and ready
-    private boolean isReady = false;
+    private boolean mIsReady = false;
 
     private boolean isResendingEvents = false;
     private boolean checkUnsentMessages = false;
@@ -124,6 +124,10 @@ public class Room {
         mRoomId = roomId;
         mLiveState.roomId = roomId;
         mBackState.roomId = roomId;
+    }
+
+    public void setReadyState(Boolean isReady) {
+        mIsReady = isReady;
     }
 
     public RoomState getLiveState() {
@@ -233,7 +237,7 @@ public class Room {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
-                if (mRoomId.equals(event.roomId) && isReady) {
+                if (mRoomId.equals(event.roomId) && mIsReady) {
 
                     if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
                         // Typing notifications events are not room messages nor room state events
@@ -383,7 +387,7 @@ public class Room {
         for (Event event : stateEvents) {
             processStateEvent(event, EventDirection.FORWARDS);
         }
-        isReady = true;
+        mIsReady = true;
 
         // check if they are some pending events
         //resendUnsentEvents();
@@ -398,7 +402,7 @@ public class Room {
      */
     public void sendEvent(final Event event, final ApiCallback<Void> callback) {
         // wait that the room is synced before sending messages
-        if (!isReady || !selfJoined()) {
+        if (!mIsReady || !selfJoined()) {
             event.mSentState = Event.SentState.WAITING_RETRY;
             try {
                 callback.onNetworkError(null);
@@ -471,7 +475,7 @@ public class Room {
     public boolean requestHistory(final ApiCallback<Integer> callback) {
         if (isPaginating // One at a time please
                 || !canStillPaginate // If we have already reached the end of history
-                || !isReady) { // If the room is not finished being set up
+                || !mIsReady) { // If the room is not finished being set up
             return false;
         }
         isPaginating = true;

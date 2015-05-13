@@ -131,8 +131,41 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
-        Log.d(LOG_TAG, "Requesting initial sync...");
+        if (null != mCurrentToken) {
+            Log.e(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
+        } else {
+            Log.e(LOG_TAG, "Requesting initial sync...");
+        }
+
         mPaused = false;
+
+        // a start token is provided ?
+        if (null != mCurrentToken) {
+            // assume the initial sync is done
+            mInitialSyncDone = true;
+            // warn upper layer
+            mListener.onInitialSyncComplete(null);
+
+            // get the members presence
+            mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+                @Override
+                public void onSuccess(InitialSyncResponse initialSync) {
+                    mListener.onMembersPresencesSyncComplete(initialSync.presence);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                }
+            }, 0);
+        }
 
         // Start with initial sync
         while (!mInitialSyncDone) {
@@ -146,10 +179,7 @@ public class EventsThread extends Thread {
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
                     mListener.onInitialSyncComplete(initialSync);
-
-                    if (null != mCurrentToken) {
-                        mCurrentToken = initialSync.end;
-                    }
+                    mCurrentToken = initialSync.end;
                     mInitialSyncDone = true;
                     // unblock the events thread
                     latch.countDown();
@@ -167,8 +197,12 @@ public class EventsThread extends Thread {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    super.onNetworkError(e);
-                    sleepAndUnblock();
+                    if (null != mCurrentToken) {
+                        onSuccess(null);
+                    } else {
+                        super.onNetworkError(e);
+                        sleepAndUnblock();
+                    }
                 }
 
                 @Override
@@ -182,7 +216,7 @@ public class EventsThread extends Thread {
                     super.onUnexpectedError(e);
                     sleepAndUnblock();
                 }
-            }, (null == mCurrentToken) ? 10 : 0);
+            }, 10);
 
             // block until the initial sync callback is invoked.
             try {

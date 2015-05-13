@@ -61,8 +61,8 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
 
     public String type;
-    public transient JsonObject content;
-    private String contentAsString;
+    public transient JsonObject content = null;
+    private String contentAsString = null;
 
     public String eventId;
     public String roomId;
@@ -72,8 +72,8 @@ public class Event implements java.io.Serializable {
 
     // Specific to state events
     public String stateKey;
-    public transient JsonObject prevContent;
-    private String prevContentAsString;
+    public transient JsonObject prevContent = null;
+    private String prevContentAsString = null;
 
     // Specific to redactions
     public String redacts;
@@ -189,6 +189,7 @@ public class Event implements java.io.Serializable {
         Event copy = new Event();
         copy.type = type;
         copy.content = content;
+        copy.contentAsString = contentAsString;
 
         copy.eventId = eventId;
         copy.roomId = roomId;
@@ -199,6 +200,7 @@ public class Event implements java.io.Serializable {
 
         copy.stateKey = stateKey;
         copy.prevContent = prevContent;
+        copy.prevContentAsString = prevContentAsString;
 
         copy.redacts = redacts;
 
@@ -331,7 +333,7 @@ public class Event implements java.io.Serializable {
 
     public void finalizeDeserialization() {
 
-        if ((null != contentAsString) && (null == contentAsString)) {
+        if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {

@@ -12,9 +12,15 @@ public interface EventsThreadListener {
 
     /**
      * Called with the response of the initial sync.
-     * @param response the response
+     * @param response the response (can be null)
      */
     public void onInitialSyncComplete(InitialSyncResponse response);
+
+    /**
+     * Called when getting the users presences.
+     * @param presence the users presence
+     */
+    public void onMembersPresencesSyncComplete(List<Event> presence);
 
     /**
      * Called every time events come down the stream.

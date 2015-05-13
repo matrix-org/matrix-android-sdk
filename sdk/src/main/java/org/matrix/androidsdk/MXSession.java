@@ -114,7 +114,6 @@ public class MXSession {
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setDataRetriever(mDataRetriever);
         mDataHandler.setPushRulesManager(new BingRulesManager(this));
-        mDataHandler.setContentManager(mContentManager);
 
         // application context
         mAppContent = appContext;
@@ -123,7 +122,9 @@ public class MXSession {
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager) ;
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
+
+        mDataHandler.setContentManager(mContentManager);
 
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
