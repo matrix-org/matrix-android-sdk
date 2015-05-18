@@ -399,6 +399,10 @@ public class MXMemoryStore implements IMXStore {
             response.chunk = new ArrayList<Event>(events.values());
             // We want a chunk that goes from most recent to least
             Collections.reverse(response.chunk);
+            // provide the start token (can be null if it was not provided by the server)
+            if (response.chunk.size() > 0) {
+                response.start = response.chunk.get(0).mToken;
+            }
             response.end = mRoomTokens.get(roomId);
             return response;
         }

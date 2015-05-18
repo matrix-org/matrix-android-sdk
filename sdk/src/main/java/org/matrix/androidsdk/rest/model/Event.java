@@ -85,6 +85,11 @@ public class Event implements java.io.Serializable {
     // sent state
     public SentState mSentState = SentState.SENT;
 
+    // save the token to back paginate
+    // the room history could have been reduced to save memory.
+    // so store the token from each event.
+    public String mToken;
+
     // store the linked matrix id
     private String mMatrixId;
 
@@ -210,6 +215,8 @@ public class Event implements java.io.Serializable {
         copy.unsentMatrixError = unsentMatrixError;
 
         copy.mMatrixId = mMatrixId;
+        copy.mToken = mToken;
+
         return copy;
     }
 

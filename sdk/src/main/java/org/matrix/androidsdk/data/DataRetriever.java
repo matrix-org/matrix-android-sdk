@@ -62,13 +62,18 @@ public class DataRetriever {
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     // Watch for the one event overlap
                     Event oldestEvent = mStore.getOldestEvent(roomId);
+
                     if (info.chunk.size() != 0) {
+                        info.chunk.get(0).mToken = info.start;
+                        info.chunk.get(info.chunk.size()-1).mToken = info.end;
+
                         Event firstReturnedEvent = info.chunk.get(0);
                         if ((oldestEvent != null) && (firstReturnedEvent != null)
                                 && oldestEvent.eventId.equals(firstReturnedEvent.eventId)) {
                             info.chunk.remove(0);
                         }
                     }
+
                     mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onSuccess(info);
                 }

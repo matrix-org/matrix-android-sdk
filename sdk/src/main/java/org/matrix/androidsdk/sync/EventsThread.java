@@ -254,6 +254,13 @@ public class EventsThread extends Thread {
             try {
                 TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
                 if (!mKilling) {
+
+                    // set the dedicated token when they are known.
+                    if (eventsResponse.chunk.size() > 0) {
+                        eventsResponse.chunk.get(0).mToken = eventsResponse.start;
+                        eventsResponse.chunk.get(eventsResponse.chunk.size()-1).mToken = eventsResponse.end;
+                    }
+
                     mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
                     mCurrentToken = eventsResponse.end;
                 }

@@ -47,6 +47,8 @@ public class MXFileStore extends MXMemoryStore {
     // some constant values
     final int MXFILE_VERSION = 1;
 
+    final int MAX_STORED_MESSAGES_COUNT = 50;
+
     final String MXFILE_STORE_FOLDER = "MXFileStore";
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
@@ -207,8 +209,14 @@ public class MXFileStore extends MXMemoryStore {
                             boolean succeed = true;
 
                             succeed &= loadRoomsMessages();
-                            succeed &= loadRoomsState();
-                            succeed &= loadSummaries();
+
+                            if (succeed) {
+                                succeed &= loadRoomsState();
+                            }
+
+                            if (succeed) {
+                                succeed &= loadSummaries();
+                            }
 
                             mIsReady = true;
                             mIsOpening = false;
@@ -447,19 +455,40 @@ public class MXFileStore extends MXMemoryStore {
                                     File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
                                     File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
 
-                                    LinkedHashMap<String, Event> value = mRoomEvents.get(roomId);
+                                    LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
                                     String token = mRoomTokens.get(roomId);
 
                                     // the list exists ?
-                                    if ((null != value) && (null != token)) {
+                                    if ((null != eventsHash) && (null != token)) {
                                         FileOutputStream fos = new FileOutputStream(messagesListFile);
                                         ObjectOutputStream out = new ObjectOutputStream(fos);
 
-                                        for (Event event : value.values()) {
-                                            event.prepareSerialization();
+                                        LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
+                                        ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
+
+                                        int startIndex = 0;
+
+                                        // try to reduce the number of stored messages
+                                        // it does not make sense to keep the full history.
+
+                                        // the method consists in saving messages until finding the oldest known token.
+                                        // At initial sync, it is not saved so keep the whole history.
+                                        // if the user back paginates, the token is stored in the event.
+                                        // if some messages are received, the token is stored in the event.
+                                        if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
+                                            startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
+
+                                            // search backward the first known token
+                                            for( ; (eventsList.get(startIndex).mToken == null) && (startIndex > 0); startIndex--);
                                         }
 
-                                        out.writeObject(value);
+                                        for (int index = startIndex; index < eventsList.size(); index++) {
+                                            Event event = eventsList.get(index);
+                                            event.prepareSerialization();
+                                            hashCopy.put(event.eventId, event);
+                                        }
+
+                                        out.writeObject(hashCopy);
                                         out.close();
 
                                         fos = new FileOutputStream(tokenFile);
@@ -535,6 +564,14 @@ public class MXFileStore extends MXMemoryStore {
                 ObjectInputStream ois = new ObjectInputStream(fis);
                 token = (String) ois.readObject();
 
+                // check if the oldest event has a token.
+                LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
+                if ((null != eventsHash) && (eventsHash.size() > 0)) {
+                    Event event = eventsHash.values().iterator().next();
+
+					token = event.mToken;
+                }
+
                 ois.close();
             } catch (Exception e) {
                 succeed = false;
@@ -563,7 +600,7 @@ public class MXFileStore extends MXMemoryStore {
 
             long start = System.currentTimeMillis();
 
-            for(int index = 0; index < filenames.length; index++) {
+            for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadRoomMessages(filenames[index]);
             }
 
@@ -574,14 +611,15 @@ public class MXFileStore extends MXMemoryStore {
 
             start = System.currentTimeMillis();
 
-            for(int index = 0; index < filenames.length; index++) {
+            for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadRoomToken(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadRoomToken : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
-
         } catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadRoomToken : " + e.getMessage());
         }
 
         return succeed;
@@ -627,7 +665,6 @@ public class MXFileStore extends MXMemoryStore {
                                         ObjectOutputStream out = new ObjectOutputStream(fos);
 
                                         out.writeObject(room.getLiveState());
-                                        out.writeObject(room.getBackState());
                                         out.close();
                                     }
 
@@ -663,7 +700,6 @@ public class MXFileStore extends MXMemoryStore {
                 ObjectInputStream ois = new ObjectInputStream(fis);
 
                 liveState = (RoomState) ois.readObject();
-                backState = (RoomState) ois.readObject();
 
                 ois.close();
             } catch (Exception e) {
@@ -671,9 +707,8 @@ public class MXFileStore extends MXMemoryStore {
                 Log.e(LOG_TAG, "loadRoomState : " + e.getMessage());
             }
 
-            if ((null != liveState) && (null != backState)) {
+            if (null != liveState) {
                 room.setLiveState(liveState);
-                room.setBackState(backState);
             } else {
                 deleteRoom(roomId);
             }
@@ -694,13 +729,15 @@ public class MXFileStore extends MXMemoryStore {
 
             long start = System.currentTimeMillis();
 
-            for(int index = 0; index < filenames.length; index++) {
+            for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadRoomState(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadRoomsState " + e.getMessage());
         }
 
         return succeed;
@@ -807,7 +844,7 @@ public class MXFileStore extends MXMemoryStore {
 
             long start = System.currentTimeMillis();
 
-            for(int index = 0; index < filenames.length; index++) {
+            for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadSummary(filenames[index]);
             }
 
@@ -815,16 +852,14 @@ public class MXFileStore extends MXMemoryStore {
 
         }
         catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadSummaries " + e.getMessage());
         }
 
         return succeed;
     }
 
     private void loadMetaData() {
-        if (false) {
-            return;
-        }
-
         long start = System.currentTimeMillis();
 
         try {
