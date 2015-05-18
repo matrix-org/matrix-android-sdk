@@ -55,6 +55,12 @@ public interface IMXStore {
     public void close();
 
     /**
+     * Clear the store.
+     * Any pending operation must be complete in this call.
+     */
+    public void clear();
+
+    /**
      * Indicate if the MXStore implementation stores data permanently.
      * Permanent storage allows the SDK to make less requests at the startup.
      * @return true if permanent.

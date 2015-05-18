@@ -103,6 +103,15 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Clear the store.
+     * Any pending operation must be complete in this call.
+     */
+    @Override
+    public void clear() {
+        initCommon();
+    }
+
+    /**
      * Indicate if the MXStore implementation stores data permanently.
      * Permanent storage allows the SDK to make less requests at the startup.
      * @return true if permanent.

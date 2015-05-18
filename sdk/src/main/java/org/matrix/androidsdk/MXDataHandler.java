@@ -126,6 +126,10 @@ public class MXDataHandler implements IMXEventListener {
     public void clear() {
         // remove any listener
         mEventListeners.clear();
+
+        // clear the store
+        mStore.close();
+        mStore.clear();
     }
     /**
      * Handle the room data received from a per-room initial sync
