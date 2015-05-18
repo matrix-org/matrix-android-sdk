@@ -256,7 +256,7 @@ public class EventsThread extends Thread {
                 if (!mKilling) {
 
                     // set the dedicated token when they are known.
-                    if (eventsResponse.chunk.size() > 0) {
+                    if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
                         eventsResponse.chunk.get(0).mToken = eventsResponse.start;
                         eventsResponse.chunk.get(eventsResponse.chunk.size()-1).mToken = eventsResponse.end;
                     }
