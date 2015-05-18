@@ -211,6 +211,27 @@ public class MXFileStore extends MXMemoryStore {
                             mIsReady = true;
                             mIsOpening = false;
 
+                            // do not expect having empty list
+                            // assume that something is corrupted
+                            if ((mRoomsToCommitForMessages.size() == 0) || (mRoomsToCommitForStates.size() == 0) || (mRoomsToCommitForSummaries.size() == 0)) {
+                                deleteAllData();
+
+                                mRoomsToCommitForMessages = new ArrayList<String>();
+                                mRoomsToCommitForStates = new ArrayList<String>();
+                                mRoomsToCommitForSummaries = new ArrayList<String>();
+
+                                mMetadata = new MXFileStoreMetaData();
+                                mMetadata.mHomeServer = mCredentials.homeServer;
+                                mMetadata.mUserId = mCredentials.userId;
+                                mMetadata.mAccessToken = mCredentials.accessToken;
+                                mMetadata.mVersion = MXFILE_VERSION;
+                                mMetaDataHasChanged = true;
+                                saveMetaData();
+
+                                // nothing to load so ready to work
+                                mIsReady = true;
+                            }
+
                             if (null != mListener) {
                                 mListener.onStoreReady(mCredentials.userId);
                             }
