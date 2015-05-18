@@ -204,16 +204,18 @@ public class MXFileStore extends MXMemoryStore {
                 public void run() {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
-                            loadRoomsMessages();
-                            loadRoomsState();
-                            loadSummaries();
+                            boolean succeed = true;
+
+                            succeed &= loadRoomsMessages();
+                            succeed &= loadRoomsState();
+                            succeed &= loadSummaries();
 
                             mIsReady = true;
                             mIsOpening = false;
 
                             // do not expect having empty list
                             // assume that something is corrupted
-                            if ((mRoomsToCommitForMessages.size() == 0) || (mRoomsToCommitForStates.size() == 0) || (mRoomsToCommitForSummaries.size() == 0)) {
+                            if (!succeed) {
                                 deleteAllData();
 
                                 mRoomsToCommitForMessages = new ArrayList<String>();
@@ -227,9 +229,6 @@ public class MXFileStore extends MXMemoryStore {
                                 mMetadata.mVersion = MXFILE_VERSION;
                                 mMetaDataHasChanged = true;
                                 saveMetaData();
-
-                                // nothing to load so ready to work
-                                mIsReady = true;
                             }
 
                             if (null != mListener) {
@@ -483,7 +482,9 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
-    private void loadRoomMessages(final String roomId) {
+    private boolean loadRoomMessages(final String roomId) {
+        Boolean succeeded = true;
+
         LinkedHashMap<String, Event> events = null;
 
         try {
@@ -499,6 +500,8 @@ public class MXFileStore extends MXMemoryStore {
 
             ois.close();
         } catch (Exception e){
+            succeeded = false;
+            Log.e(LOG_TAG, "loadRoomMessages : " + e.getMessage());
         }
 
         // succeeds to extract the message list
@@ -512,9 +515,13 @@ public class MXFileStore extends MXMemoryStore {
 
             mRoomEvents.put(roomId, events);
         }
+
+        return succeeded;
     }
 
-    private void loadRoomToken(final String roomId) {
+    private Boolean loadRoomToken(final String roomId) {
+        Boolean succeed = true;
+
         Room room = getRoom(roomId);
 
         // should always be true
@@ -530,6 +537,8 @@ public class MXFileStore extends MXMemoryStore {
 
                 ois.close();
             } catch (Exception e) {
+                succeed = false;
+                Log.e(LOG_TAG, "loadRoomToken : " + e.getMessage());
             }
 
             if (null != token) {
@@ -538,12 +547,16 @@ public class MXFileStore extends MXMemoryStore {
                 deleteRoom(roomId);
             }
         }
+
+        return succeed;
     }
 
     /**
      * Load room messages
      */
-    private void loadRoomsMessages() {
+    private boolean loadRoomsMessages() {
+        Boolean succeed = true;
+
         try {
             // extract the messages list
             String[] filenames = mStoreRoomsMessagesFolderFile.list();
@@ -551,7 +564,7 @@ public class MXFileStore extends MXMemoryStore {
             long start = System.currentTimeMillis();
 
             for(int index = 0; index < filenames.length; index++) {
-                loadRoomMessages(filenames[index]);
+                succeed &= loadRoomMessages(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadRoomMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
@@ -562,7 +575,7 @@ public class MXFileStore extends MXMemoryStore {
             start = System.currentTimeMillis();
 
             for(int index = 0; index < filenames.length; index++) {
-                loadRoomToken(filenames[index]);
+                succeed &= loadRoomToken(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadRoomToken : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
@@ -570,6 +583,8 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
         }
+
+        return succeed;
     }
 
     private void clearRoomStatesFiles(String roomId) {
@@ -632,7 +647,8 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
-    private void loadRoomState(final String roomId) {
+    private boolean loadRoomState(final String roomId) {
+        Boolean succeed = true;
         Room room = getRoom(roomId);
 
         // should always be true
@@ -651,6 +667,8 @@ public class MXFileStore extends MXMemoryStore {
 
                 ois.close();
             } catch (Exception e) {
+                succeed = false;
+                Log.e(LOG_TAG, "loadRoomState : " + e.getMessage());
             }
 
             if ((null != liveState) && (null != backState)) {
@@ -660,11 +678,16 @@ public class MXFileStore extends MXMemoryStore {
                 deleteRoom(roomId);
             }
         }
+
+        return succeed;
     }
+
     /**
      * Load room messages
      */
-    private void loadRoomsState() {
+    private boolean loadRoomsState() {
+        Boolean succeed = true;
+
         try {
             // extract the room states
             String[] filenames = mStoreRoomsStateFolderFile.list();
@@ -672,15 +695,16 @@ public class MXFileStore extends MXMemoryStore {
             long start = System.currentTimeMillis();
 
             for(int index = 0; index < filenames.length; index++) {
-                loadRoomState(filenames[index]);
+                succeed &= loadRoomState(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
         }
-    }
 
+        return succeed;
+    }
 
     private void clearRoomSummaryFiles(String roomId) {
         // states list
@@ -741,7 +765,8 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
-    private void loadSummary(final String roomId) {
+    private boolean loadSummary(final String roomId) {
+        Boolean succeed = true;
         Room room = getRoom(roomId);
 
         // should always be true
@@ -757,6 +782,8 @@ public class MXFileStore extends MXMemoryStore {
                 summary = (RoomSummary) ois.readObject();
                 ois.close();
             } catch (Exception e){
+                succeed = false;
+                Log.e(LOG_TAG, "loadSummary : " + e.getMessage());
             }
 
             if (null != summary) {
@@ -766,11 +793,14 @@ public class MXFileStore extends MXMemoryStore {
                 deleteRoom(roomId);
             }
         }
+
+        return succeed;
     }
     /**
      * Load room summaries
      */
-    private void loadSummaries() {
+    private Boolean loadSummaries() {
+        Boolean succeed = true;
         try {
             // extract the room states
             String[] filenames = mStoreRoomsSummaryFolderFile.list();
@@ -778,7 +808,7 @@ public class MXFileStore extends MXMemoryStore {
             long start = System.currentTimeMillis();
 
             for(int index = 0; index < filenames.length; index++) {
-                loadSummary(filenames[index]);
+                succeed &= loadSummary(filenames[index]);
             }
 
             Log.e(LOG_TAG, "loadSummaries " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
@@ -786,6 +816,8 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
         }
+
+        return succeed;
     }
 
     private void loadMetaData() {
