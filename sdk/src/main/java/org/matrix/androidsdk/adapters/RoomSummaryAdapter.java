@@ -300,7 +300,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         RoomSummary roomSummary  = mSummaryMapsBySection.get(section).get(roomId);
 
         if (null != roomSummary) {
-            roomSummary.mUnreadMessagesCount++;
+            roomSummary.incrementUnreadMessagesCount();
         }
     }
 
@@ -316,35 +316,40 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     /**
      * Reset the unread messages counter and remove the rooms from the highlighted rooms lists.
-     * @param roomId
+     * @param section the section
+     * @param roomId the room Id.
+     * @return true if there is an update.
      */
-    public void resetUnreadCount(int section, String roomId) {
+    public boolean resetUnreadCount(int section, String roomId) {
+        boolean res = false;
+
         RoomSummary roomSummary  = mSummaryMapsBySection.get(section).get(roomId);
 
+        // sanity check
         if (null != roomSummary) {
-            roomSummary.mUnreadMessagesCount = 0;
-            roomSummary.setHighlighted(false);
+            res |= roomSummary.resetUnreadMessagesCount();
+            res |= roomSummary.setHighlighted(false);
         }
+
+        return res;
     }
 
     /**
-     * Reset the unread message counters.
+     * Reset the unread message counters in a section.
+     * @param section the section.
+     * @return true if something has been updated.
      */
-    public void resetUnreadCounts() {
-        for(int section = 0; section < mRecentsSummariesList.size(); section++) {
-            resetUnreadCounts(section);
-        }
-    }
+    public boolean resetUnreadCounts(int section) {
+        boolean res = false;
 
-    /**
-     * Reset the unread message counters.
-     */
-    public void resetUnreadCounts(int section) {
         Collection<RoomSummary> summaries = mSummaryMapsBySection.get(section).values();
 
         for(RoomSummary summary : summaries) {
-            summary.mUnreadMessagesCount = 0;
+            res |= summary.resetUnreadMessagesCount();
+            res |= summary.setHighlighted(false);
         }
+
+        return res;
     }
 
     /**
@@ -420,7 +425,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
             RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
-            Integer unreadCount = summary.mUnreadMessagesCount;
+            Integer unreadCount = summary.getUnreadMessagesCount();
 
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;
@@ -554,7 +559,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             Collection<RoomSummary> summaries = mSummaryMapsBySection.get(groupPosition).values();
 
             for(RoomSummary summary : summaries) {
-                unreadCount += summary.mUnreadMessagesCount;
+                unreadCount += summary.getUnreadMessagesCount();
             }
 
             String header = myRoomsTitle(groupPosition);

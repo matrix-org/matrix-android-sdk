@@ -40,7 +40,7 @@ public class RoomSummary implements java.io.Serializable {
     private String mMatrixId = null;
 
     private boolean mIsHighlighted = false;
-    public int mUnreadMessagesCount = 0;
+    private int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}
 
@@ -166,9 +166,41 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * Set the highlight status.
      * @param isHighlighted the new highlight status.
+     * @return true if there is an update
      */
-    public void setHighlighted(Boolean isHighlighted) {
+    public boolean setHighlighted(Boolean isHighlighted) {
+        boolean isUpdated = (mIsHighlighted != isHighlighted);
+
         mIsHighlighted = isHighlighted;
+
+        return isUpdated;
+    }
+
+    /**
+     * reset the unread messages counter.
+     * @return true if there is an update
+     */
+    public boolean resetUnreadMessagesCount() {
+        if (0 != mUnreadMessagesCount) {
+            mUnreadMessagesCount = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * increment the unread messages counter.
+     */
+    public void incrementUnreadMessagesCount() {
+        mUnreadMessagesCount++;
+    }
+
+    /**
+     * @return the unread messages counter.
+     */
+    public int getUnreadMessagesCount() {
+        return mUnreadMessagesCount;
     }
 
     /**

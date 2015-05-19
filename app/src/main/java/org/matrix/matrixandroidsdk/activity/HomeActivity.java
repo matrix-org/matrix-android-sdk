@@ -215,8 +215,9 @@ public class HomeActivity extends MXCActionBarActivity {
                         roomId = null;
                     }
 
-                    mAdapter.resetUnreadCount(groupPosition, roomId);
-                    session.getDataHandler().getStore().flushSummary(roomSummary);
+                    if (mAdapter.resetUnreadCount(groupPosition, roomId)) {
+                        session.getDataHandler().getStore().flushSummary(roomSummary);
+                    }
 
                 } else if (mAdapter.isPublicsGroupIndex(groupPosition)) {
                     // should offer to select which account to use
@@ -911,14 +912,19 @@ public class HomeActivity extends MXCActionBarActivity {
 
 
     private void markAllMessagesAsRead() {
-        mAdapter.resetUnreadCounts();
-        mAdapter.notifyDataSetChanged();
-
         // flush the summaries
-        Collection<MXSession> sessions = Matrix.getMXSessions(HomeActivity.this);
-        for (MXSession session : sessions) {
-            session.getDataHandler().getStore().flushSummaries();
+        ArrayList<MXSession> sessions = new ArrayList<MXSession>(Matrix.getMXSessions(HomeActivity.this));
+        ;
+        for (int index = 0; index < sessions.size(); index++) {
+            MXSession session = sessions.get(index);
+
+            // flush only if there is an update
+            if (mAdapter.resetUnreadCounts(index)) {
+                session.getDataHandler().getStore().flushSummaries();
+            }
         }
+
+        mAdapter.notifyDataSetChanged();
     }
 
     /**
