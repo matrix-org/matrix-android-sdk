@@ -542,10 +542,7 @@ public class HomeActivity extends MXCActionBarActivity {
                             // If we're not currently viewing this room or not sent by myself, increment the unread count
                             if ((!event.roomId.equals(viewedRoomId) || !matrixId.equals(fromMatrixId))  && !event.userId.equals(matrixId)) {
                                 mAdapter.incrementUnreadCount(section, event.roomId);
-
-                                if (EventUtils.shouldHighlight(session, HomeActivity.this, event)) {
-                                    mAdapter.highlightRoom(event.roomId);
-                                }
+                                summary.mIsHighlighted |= EventUtils.shouldHighlight(session, HomeActivity.this, event);
                             }
 
                             if (!mIsPaused) {

@@ -38,6 +38,8 @@ public class RoomSummary implements java.io.Serializable {
     // only populated if you've been invited.
     private String mInviter = null;
     private String mMatrixId = null;
+
+    public boolean mIsHighlighted = false;
     public int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}

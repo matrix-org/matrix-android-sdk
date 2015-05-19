@@ -419,12 +419,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
             RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
-
             Integer unreadCount = summary.mUnreadMessagesCount;
 
             if ((unreadCount == null) || (unreadCount == 0)) {
                 convertView.setBackgroundColor(0);
-            } else if (mHighLightedRooms.indexOf(summary.getRoomId()) >= 0) {
+            } else if (summary.mIsHighlighted) {
                 convertView.setBackgroundColor(mHighlightColor);
             } else {
                 convertView.setBackgroundColor(mUnreadColor);
