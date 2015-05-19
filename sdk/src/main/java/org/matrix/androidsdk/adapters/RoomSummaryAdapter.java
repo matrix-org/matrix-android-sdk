@@ -77,6 +77,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public abstract boolean displayPublicRooms();
     public abstract String myRoomsTitle(int section);
     public abstract String publicRoomsTitle();
+    public abstract Room roomFromRoomSummary(RoomSummary roomSummary);
+    public abstract String memberDisplayName(String matrixId, String userId);
 
     /**
      * Construct an adapter which will display a list of rooms.
@@ -380,8 +382,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         });
     }
 
-    public abstract Room roomFromRoomSummary(RoomSummary roomSummary);
-
     @Override
     public View getChildView(int groupPosition, final int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
 
@@ -421,14 +421,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
             Integer unreadCount = summary.mUnreadMessagesCount;
 
-            if ((unreadCount == null) || (unreadCount == 0)) {
-                convertView.setBackgroundColor(0);
-            } else if (summary.mIsHighlighted) {
-                convertView.setBackgroundColor(mHighlightColor);
-            } else {
-                convertView.setBackgroundColor(mUnreadColor);
-            }
-
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;
 
@@ -451,10 +443,10 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
             // display the unread messages count
-            String roomNameMessage = (latestRoomState != null) ? latestRoomState.getDisplayName(summary.getMatrixId()) : summary.getRoomName();
+            String roomNameMessage = ((latestRoomState != null) && !summary.isInvited()) ? latestRoomState.getDisplayName(summary.getMatrixId()) : summary.getRoomName();
 
             if (null != roomNameMessage) {
-                if ((null != unreadCount) && (unreadCount > 0)) {
+                if ((null != unreadCount) && (unreadCount > 0) && !summary.isInvited()) {
                     roomNameMessage += " (" + unreadCount + ")";
                 }
             }
@@ -469,14 +461,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
             // check if this is an invite
-            if (summary.isInvited()) {
-                String memberName = summary.getInviterUserId();
+            if (summary.isInvited() && (null != summary.getInviterUserId())) {
+                String inviterName = summary.getInviterUserId();
+                String myName = summary.getMatrixId();
 
                 if (null != latestRoomState) {
-                    memberName = latestRoomState.getMemberName(memberName);
+                    inviterName = latestRoomState.getMemberName(inviterName);
+                    myName = latestRoomState.getMemberName(myName);
+                } else {
+                    inviterName = memberDisplayName(summary.getMatrixId(), inviterName);
+                    myName = memberDisplayName(summary.getMatrixId(), myName);
                 }
 
-                message = mContext.getString(R.string.summary_user_invitation, memberName);
+                message = mContext.getString(R.string.notice_room_invite, inviterName, myName);
             }
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
@@ -484,6 +481,15 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
+
+            // background color
+            if (summary.isHighlighted()) {
+                convertView.setBackgroundColor(mHighlightColor);
+            } else if ((unreadCount == null) || (unreadCount == 0)) {
+                convertView.setBackgroundColor(0);
+            } else {
+                convertView.setBackgroundColor(mUnreadColor);
+            }
 
             Room room = roomFromRoomSummary(summary);
 

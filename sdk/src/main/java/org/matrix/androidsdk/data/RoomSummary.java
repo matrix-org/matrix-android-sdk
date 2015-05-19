@@ -39,7 +39,7 @@ public class RoomSummary implements java.io.Serializable {
     private String mInviter = null;
     private String mMatrixId = null;
 
-    public boolean mIsHighlighted = false;
+    private boolean mIsHighlighted = false;
     public int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}
@@ -61,7 +61,20 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     public String getRoomName() {
-        return mName;
+        String name = mName;
+
+        // when invited, the only received message should be the invitation one
+        if (isInvited()) {
+            if ((null != mLatestEvent) && (null != mLatestRoomState)) {
+                String inviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+
+                if (null != inviterName) {
+                    name = inviterName;
+                }
+            }
+        }
+
+        return name;
     }
 
     public String getRoomTopic() {
@@ -77,6 +90,11 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     public boolean isInvited() {
+        if (null != mLatestRoomState) {
+            RoomMember member = mLatestRoomState.getMember(mMatrixId);
+            return (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
+        }
+
         return mInviter != null;
     }
 
@@ -136,6 +154,21 @@ public class RoomSummary implements java.io.Serializable {
     public RoomSummary setLatestRoomState(RoomState roomState) {
         mLatestRoomState = roomState;
         return this;
+    }
+
+    /**
+     * @return true if the room summay must be highlighted
+     */
+    public Boolean isHighlighted() {
+        return mIsHighlighted || isInvited();
+    }
+
+    /**
+     * Set the highlight status.
+     * @param isHighlighted the new highlight status.
+     */
+    public void setHighlighted(Boolean isHighlighted) {
+        mIsHighlighted = isHighlighted;
     }
 
     /**

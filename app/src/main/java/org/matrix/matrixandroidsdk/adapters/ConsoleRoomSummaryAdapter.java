@@ -19,10 +19,12 @@ package org.matrix.matrixandroidsdk.adapters;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.androidsdk.adapters.RoomSummaryAdapter;
@@ -61,6 +63,16 @@ public class ConsoleRoomSummaryAdapter extends RoomSummaryAdapter {
      */
     public Room roomFromRoomSummary(RoomSummary roomSummary) {
         return Matrix.getMXSession(mContext, roomSummary.getMatrixId()).getDataHandler().getStore().getRoom(roomSummary.getRoomId());
+    }
+
+    public String memberDisplayName(String matrixId, String userId) {
+        User user = Matrix.getMXSession(mContext, matrixId).getDataHandler().getStore().getUser(userId);
+
+        if ((null != user) && !TextUtils.isEmpty(user.displayname)) {
+            return user.displayname;
+        }
+
+        return userId;
     }
 
     public boolean displayPublicRooms() {

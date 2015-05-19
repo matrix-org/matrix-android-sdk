@@ -544,7 +544,7 @@ public class HomeActivity extends MXCActionBarActivity {
                                 mAdapter.incrementUnreadCount(section, event.roomId);
 
                                 if (null != summary) {
-                                    summary.mIsHighlighted |= EventUtils.shouldHighlight(session, HomeActivity.this, event);
+                                    summary.setHighlighted(summary.isHighlighted() || EventUtils.shouldHighlight(session, HomeActivity.this, event));
                                 }
                             }
 
@@ -574,7 +574,6 @@ public class HomeActivity extends MXCActionBarActivity {
             }
 
             private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
-
                 Room room = session.getDataHandler().getStore().getRoom(summary.getRoomId());
 
                 if (null != room) {
@@ -589,15 +588,15 @@ public class HomeActivity extends MXCActionBarActivity {
 
             private void addSummary(RoomSummary summary) {
                 String selfUserId = session.getCredentials().userId;
-                boolean isInvited = isMembershipInRoom(RoomMember.MEMBERSHIP_INVITE, selfUserId, summary);
-                if (isInvited) {
+
+                if (summary.isInvited()) {
                     Room room = session.getDataHandler().getStore().getRoom(summary.getRoomId());
 
                     // display the room name instead of "Room invitation"
                     // at least, you know who invited you
                     if (null != room) {
                         summary.setName(room.getName(session.getCredentials().userId));
-                    } else {
+                    } else if (null == summary.getRoomName()) {
                         summary.setName(getString(R.string.summary_invitation));
                     }
                 }
