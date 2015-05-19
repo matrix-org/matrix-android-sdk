@@ -1028,15 +1028,24 @@ public class HomeActivity extends MXCActionBarActivity {
                 HomeActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        CommonActivityUtils.logout(HomeActivity.this, session);
-                        mAdapter.removeSection(sessions.indexOf(session));
-                        mAdapter.notifyDataSetChanged();
+                        final int sectionPos = sessions.indexOf(session);
 
-                        // expand/collapse to force the group refresh
-                        collapseAllGroups();
-                        // all the groups must be displayed during a search
-                        mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
-                        expandAllGroups();
+                        CommonActivityUtils.logout(HomeActivity.this, session);
+
+                        HomeActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                // expand/collapse to force the group refresh
+                                collapseAllGroups();
+
+                                mAdapter.removeSection(sectionPos);
+                                mAdapter.notifyDataSetChanged();
+
+                                // all the groups must be displayed during a search
+                                mAdapter.setDisplayAllGroups(mSearchRoomEditText.getVisibility() == View.VISIBLE);
+                                expandAllGroups();
+                            }
+                        });
                     }
                 });
             }

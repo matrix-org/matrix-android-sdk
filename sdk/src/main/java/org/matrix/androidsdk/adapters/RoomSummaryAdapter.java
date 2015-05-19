@@ -272,7 +272,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             mFilteredRecentsSummariesList.remove(section);
         }
 
-        mRecentsSummariesList.remove(section);
+        mSummaryMapsBySection.remove(section);
     }
 
     /**
