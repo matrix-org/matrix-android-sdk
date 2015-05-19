@@ -323,6 +323,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         if (null != roomSummary) {
             roomSummary.mUnreadMessagesCount = 0;
+            roomSummary.setHighlighted(false);
         }
     }
 
