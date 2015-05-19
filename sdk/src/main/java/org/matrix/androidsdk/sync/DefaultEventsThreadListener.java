@@ -44,6 +44,10 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
             for (RoomResponse roomResponse : response.rooms) {
                 mData.handleInitialRoomResponse(roomResponse);
             }
+
+            // save the latest token
+            mData.getStore().setEventStreamToken(response.end);
+            mData.getStore().commit();
         }
 
         mData.onInitialSyncComplete();
