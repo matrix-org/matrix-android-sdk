@@ -204,7 +204,9 @@ public class MXDataHandler implements IMXEventListener {
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
             for(RoomSummary summary : summaries) {
-                summary.getLatestRoomState().setDataHandler(this);
+                if (null != summary.getLatestRoomState()) {
+                    summary.getLatestRoomState().setDataHandler(this);
+                }
             }
         }
     }
