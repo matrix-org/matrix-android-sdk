@@ -439,7 +439,6 @@ public class MXFileStore extends MXMemoryStore {
         // messages list
         File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
         File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
-        File summaryFile = new File(mStoreRoomsSummaryFolderFile, roomId);
 
         // remove the files
         if (messagesListFile.exists()) {
@@ -669,6 +668,13 @@ public class MXFileStore extends MXMemoryStore {
             } else {
                 deleteRoom(roomId);
             }
+        } else {
+            try {
+                File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
+                messagesListFile.delete();
+
+            } catch (Exception e) {
+            }
         }
 
         return succeed;
@@ -779,7 +785,6 @@ public class MXFileStore extends MXMemoryStore {
         // should always be true
         if (null != room) {
             RoomState liveState = null;
-            RoomState backState = null;
 
             try {
                 File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
@@ -799,6 +804,13 @@ public class MXFileStore extends MXMemoryStore {
                 room.setLiveState(liveState);
             } else {
                 deleteRoom(roomId);
+            }
+        } else {
+            try {
+                File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
+                messagesListFile.delete();
+
+            } catch (Exception e) {
             }
         }
 
@@ -894,31 +906,29 @@ public class MXFileStore extends MXMemoryStore {
 
     private boolean loadSummary(final String roomId) {
         Boolean succeed = true;
-        Room room = getRoom(roomId);
 
-        // should always be true
-        if (null != room) {
-            RoomSummary summary = null;
+        // do not check if the room exists here.
+        // if the user is invited to a room, the room object is not created until it is joined.
+        RoomSummary summary = null;
 
-            try {
-                File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
+        try {
+            File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
 
-                FileInputStream fis = new FileInputStream(messagesListFile);
-                ObjectInputStream ois = new ObjectInputStream(fis);
+            FileInputStream fis = new FileInputStream(messagesListFile);
+            ObjectInputStream ois = new ObjectInputStream(fis);
 
-                summary = (RoomSummary) ois.readObject();
-                ois.close();
-            } catch (Exception e){
-                succeed = false;
-                Log.e(LOG_TAG, "loadSummary : " + e.getMessage());
-            }
+            summary = (RoomSummary) ois.readObject();
+            ois.close();
+        } catch (Exception e){
+            succeed = false;
+            Log.e(LOG_TAG, "loadSummary : " + e.getMessage());
+        }
 
-            if (null != summary) {
-                summary.getLatestEvent().finalizeDeserialization();
-                mRoomSummaries.put(roomId, summary);
-            } else {
-                deleteRoom(roomId);
-            }
+        if (null != summary) {
+            summary.getLatestEvent().finalizeDeserialization();
+            mRoomSummaries.put(roomId, summary);
+        } else {
+            deleteRoom(roomId);
         }
 
         return succeed;
