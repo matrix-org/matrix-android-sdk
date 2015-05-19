@@ -87,6 +87,11 @@ public interface IMXEventListener {
     public void onInitialSyncComplete();
 
     /**
+     * User presences was synchronized..
+     */
+    public void onPresencesSyncComplete();
+
+    /**
      * The room initial sync is completed.
      * It is triggered after retrieving the room info and performing a first requestHistory
      *

@@ -236,7 +236,6 @@ public class EventsThread extends Thread {
             mPaused = !mbIsConnected;
         }
 
-
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {

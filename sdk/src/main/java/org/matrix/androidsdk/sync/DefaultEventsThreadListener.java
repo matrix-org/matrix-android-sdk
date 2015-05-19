@@ -61,6 +61,8 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     public void onMembersPresencesSyncComplete(List<Event> presence) {
         // Handle presence events
         mData.handleLiveEvents(presence);
+
+        mData.onPresencesSyncComplete();
     }
 
     @Override

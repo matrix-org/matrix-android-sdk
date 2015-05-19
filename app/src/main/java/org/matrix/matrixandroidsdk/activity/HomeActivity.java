@@ -427,6 +427,16 @@ public class HomeActivity extends MXCActionBarActivity {
             private boolean mInitialSyncComplete = false;
 
             @Override
+            public void onPresencesSyncComplete() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
             public void onInitialSyncComplete() {
                 runOnUiThread(new Runnable() {
                     @Override

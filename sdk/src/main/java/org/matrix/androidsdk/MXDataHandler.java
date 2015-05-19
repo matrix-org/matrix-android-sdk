@@ -333,7 +333,6 @@ public class MXDataHandler implements IMXEventListener {
             }
             this.onPresenceUpdate(event, user);
         }
-
         // Room event
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
@@ -536,6 +535,16 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : mEventListeners) {
             try {
                 listener.onInitialSyncComplete();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    @Override
+    public void onPresencesSyncComplete() {
+        for (IMXEventListener listener : mEventListeners) {
+            try {
+                listener.onPresencesSyncComplete();
             } catch (Exception e) {
             }
         }

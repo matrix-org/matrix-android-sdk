@@ -67,6 +67,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onPresencesSyncComplete() {
+    }
+
+    @Override
     public void onRoomInitialSyncComplete(String roomId) {
     }
 

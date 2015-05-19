@@ -228,7 +228,7 @@ public class Matrix {
 
         IMXStore store;
 
-        if (false) {
+        if (true ) {
             store = new MXFileStore(credentials, context);
         } else {
             store = new MXMemoryStore(credentials);
