@@ -372,8 +372,8 @@ public class Room {
         RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
         Boolean isProcessed = affectedState.applyState(event, direction);
 
-        if (isProcessed) {
-            mDataHandler.getStore().storeStatesForRoom(mRoomId);
+        if ((isProcessed) && (direction == EventDirection.FORWARDS)) {
+            mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
         }
 
         return isProcessed;

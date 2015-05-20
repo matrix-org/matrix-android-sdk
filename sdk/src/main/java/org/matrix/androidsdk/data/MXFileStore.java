@@ -473,8 +473,8 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeStatesForRoom(String roomId) {
-        super.storeStatesForRoom(roomId);
+    public void storeLiveStateForRoom(String roomId) {
+        super.storeLiveStateForRoom(roomId);
 
         if (mRoomsToCommitForStates.indexOf(roomId) < 0) {
             mRoomsToCommitForStates.add(roomId);
@@ -775,15 +775,17 @@ public class MXFileStore extends MXMemoryStore {
                                     try {
                                         deleteRoomStateFile(roomId);
 
-                                        File metaDataFile = new File(mStoreRoomsStateFolderFile, roomId);
+                                        File roomStateFile = new File(mStoreRoomsStateFolderFile, roomId);
                                         Room room = mRooms.get(roomId);
 
                                         if (null != room) {
-                                            FileOutputStream fos = new FileOutputStream(metaDataFile);
+                                            long start1 = System.currentTimeMillis();
+                                            FileOutputStream fos = new FileOutputStream(roomStateFile);
                                             ObjectOutputStream out = new ObjectOutputStream(fos);
 
                                             out.writeObject(room.getLiveState());
                                             out.close();
+                                            Log.e(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
                                         }
 
                                     } catch (Exception e) {

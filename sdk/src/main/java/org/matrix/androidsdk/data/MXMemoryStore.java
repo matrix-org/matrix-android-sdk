@@ -392,7 +392,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeStatesForRoom(String roomId) {
+    public void storeLiveStateForRoom(String roomId) {
     }
 
     @Override

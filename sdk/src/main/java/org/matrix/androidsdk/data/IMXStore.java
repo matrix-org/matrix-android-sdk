@@ -205,10 +205,10 @@ public interface IMXStore {
     public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId);
 
     /**
-     * Store the states of a room.
+     * Store the room liveState.
      * @param roomId roomId the id of the room.
      */
-    public void storeStatesForRoom(String roomId);
+    public void storeLiveStateForRoom(String roomId);
 
     /**
      * Return the list of latest unsent events.
