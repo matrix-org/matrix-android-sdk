@@ -282,6 +282,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.add(messageRow);
         scrollToBottom();
 
+        mSession.getDataHandler().getStore().commit();
         return messageRow;
     }
 
