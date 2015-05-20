@@ -397,9 +397,25 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+        Boolean canStore = true;
+
+        // do not flush the room messages file
+        // when the user reads the room history and the events list size reaches its max size.
+        if (direction == Room.EventDirection.BACKWARDS) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            if (null != events) {
+                canStore = (events.size() < MAX_STORED_MESSAGES_COUNT);
+
+                if (!canStore) {
+                    Log.e(LOG_TAG, "storeRoomEvents : do not flush because reaching the max size");
+                }
+            }
+        }
+
         super.storeRoomEvents(roomId, eventsResponse, direction);
 
-        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
+        if (canStore && (mRoomsToCommitForMessages.indexOf(roomId) < 0)) {
             mRoomsToCommitForMessages.add(roomId);
         }
     }
@@ -568,6 +584,10 @@ public class MXFileStore extends MXMemoryStore {
                                                 // search backward the first known token
                                                 for (; (eventsList.get(startIndex).mToken == null) && (startIndex > 0); startIndex--)
                                                     ;
+
+                                                if (startIndex > 0) {
+                                                    Log.e(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " +  eventsList.size() + " -> " + (eventsList.size() - startIndex));
+                                                }
                                             }
 
                                             for (int index = startIndex; index < eventsList.size(); index++) {
