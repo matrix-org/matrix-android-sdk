@@ -137,11 +137,11 @@ public interface IMXStore {
     /**
      * Retrieve all non-state room events for this room.
      * @param roomId The room ID
-     * @param token the associated token
-     * @return A collection of events.
+     * @param fromToken the token
+     * @param limit the maximum number of messages to retrieve.
+     * @return A collection of events. null if there is no cached event.
      */
-    public TokensChunkResponse<Event> getRoomEvents(String roomId, String token);
-
+    public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit);
     /**
      * Get the oldest event from the given room (to prevent pagination overlap).
      * @param roomId the room id

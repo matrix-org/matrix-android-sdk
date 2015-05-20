@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.provider.CalendarContract;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -25,12 +26,14 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -396,23 +399,70 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public TokensChunkResponse<Event> getRoomEvents(String roomId, String token) {
+    public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit)  {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
-        if ((null != roomId) && (token == null)) {
+        if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-            if (events == null) {
+            if ((events == null) || (events.size() == 0)) {
                 return null;
             }
+
+            // check if the token is known in the sublist
+            ArrayList<Event> eventsList = new ArrayList<>(events.values());
+            ArrayList<Event> subEventsList = new ArrayList<>();
+
+            // search from the latest to the oldest events
+            Collections.reverse(eventsList);
+
             TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
-            response.chunk = new ArrayList<Event>(events.values());
-            // We want a chunk that goes from most recent to least
-            Collections.reverse(response.chunk);
-            // provide the start token (can be null if it was not provided by the server)
-            if (response.chunk.size() > 0) {
-                response.start = response.chunk.get(0).mToken;
+
+            // start the latest event and there is enough events to provide to the caller ?
+            if ((null == fromToken) && (eventsList.size() <= limit)) {
+                subEventsList = eventsList;
+            } else {
+                int index = 0;
+
+                if (null != fromToken) {
+                    // search if token is one of the stored events
+                    for (; (index < eventsList.size()) && (!fromToken.equals(eventsList.get(index).mToken)); index++)
+                        ;
+
+                    index++;
+                }
+
+                // found it ?
+                if (index < eventsList.size()) {
+                    for(;index < eventsList.size(); index++) {
+                        Event event = eventsList.get(index);
+                        subEventsList.add(event);
+
+                        // loop until to find an event with a token
+                        if ((subEventsList.size() >= limit) &&  (event.mToken != null)) {
+                            break;
+                        }
+                    }
+                }
             }
-            response.end = mRoomTokens.get(roomId);
+
+            // unknown token
+            if (subEventsList.size() == 0) {
+                return null;
+            }
+
+            response.chunk = subEventsList;
+
+            Event firstEvent = subEventsList.get(0);
+            Event lastEvent = subEventsList.get(subEventsList.size()-1);
+
+            response.start = firstEvent.mToken;
+            response.end = lastEvent.mToken;
+
+            // unknown last event token, use the latest known one
+            if (response.end == null) {
+                response.end = mRoomTokens.get(roomId);
+            }
+
             return response;
         }
         return null;

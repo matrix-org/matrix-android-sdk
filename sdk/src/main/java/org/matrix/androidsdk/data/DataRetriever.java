@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -52,12 +54,29 @@ public class DataRetriever {
      * @param callback the onComplete callback
      */
     public void requestRoomHistory(final String roomId, String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        TokensChunkResponse<Event> storageResponse = mStore.getRoomEvents(roomId, token);
+        final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+
         if (storageResponse != null) {
-            callback.onSuccess(storageResponse);
+            final android.os.Handler handler = new android.os.Handler();
+
+            // call the callback with a delay (and on the UI thread).
+            // to reproduce the same behaviour as a network request. 
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            callback.onSuccess(storageResponse);
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
         }
         else {
-            mRestClient.getEarlierMessages(roomId, token, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
                     // Watch for the one event overlap

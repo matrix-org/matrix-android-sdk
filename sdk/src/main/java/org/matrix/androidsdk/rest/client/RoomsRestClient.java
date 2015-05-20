@@ -47,7 +47,7 @@ import retrofit.client.Response;
 public class RoomsRestClient extends RestClient<RoomsApi> {
 
     private static final String LOG_TAG = "RoomsRestClient";
-    protected static final int MESSAGES_PAGINATION_LIMIT = 20;
+    public static final int DEFAULT_MESSAGES_PAGINATION_LIMIT = 20;
 
     /**
      * {@inheritDoc}
@@ -101,41 +101,32 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Get the last messages for the given room.
-     * @param roomId the room id
-     * @param callback the callback called with the response. Messages will be returned in reverse order.
-     */
-    public void getLatestRoomMessages(final String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        final String description = "getLatestRoomMessages : roomId " + roomId;
-
-        mApi.messages(roomId, "b", MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager,  callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    getLatestRoomMessages(roomId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getLatestRoomMessages : failed " + e.getMessage());
-                }
-            }
-        }));
-    }
-
-    /**
      * Get messages for the given room starting from the given token.
      * @param roomId the room id
      * @param fromToken the token identifying the message to start from
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
     public void getEarlierMessages(final String roomId, final String fromToken, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        final String description = "getEarlierMessages : roomId " + roomId + " fromToken " + fromToken;
+        getEarlierMessages(roomId, fromToken, DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
+    }
 
-        mApi.messagesFrom(roomId, "b", fromToken, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+    /**
+     * Get messages for the given room starting from the given token.
+     * @param roomId the room id
+     * @param fromToken the token identifying the message to start from
+     * @param limit the maximum number of messages to retrieve.
+     * @param callback the callback called with the response. Messages will be returned in reverse order.
+     */
+    public void getEarlierMessages(final String roomId, final String fromToken, final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        final String description = "getEarlierMessages : roomId " + roomId + " fromToken " + fromToken + " with limit " + limit;
+
+        mApi.messagesFrom(roomId, "b", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    getEarlierMessages(roomId, fromToken, callback);
+                    getEarlierMessages(roomId, fromToken, limit, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getLatestRoomMessages : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend getEarlierMessages : failed " + e.getMessage());
                 }
             }
         }));
@@ -346,7 +337,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void initialSync(final String roomId, final ApiCallback<RoomResponse> callback) {
         final String description = "initialSync : roomId " + roomId;
 
-        mApi.initialSync(roomId, MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.initialSync(roomId, DEFAULT_MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
