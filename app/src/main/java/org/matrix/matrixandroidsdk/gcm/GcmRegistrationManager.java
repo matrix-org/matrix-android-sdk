@@ -9,7 +9,9 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.Matrix;
 
 import java.io.IOException;
@@ -55,7 +57,7 @@ public final class GcmRegistrationManager {
         mListener = listener;
     }
 
-    // TODO: handle multi sessions management
+    // TODO: handle multi sessions
     public void registerPusherInBackground() {
         new AsyncTask<Void, Void, Void>() {
             @Override
@@ -102,7 +104,27 @@ public final class GcmRegistrationManager {
         Matrix.getInstance(mContext).getDefaultSession().getPushersRestClient()
                 .addHttpPusher(registrationId, PUSHER_APP_ID, PUSHER_PROFILE_TAG,
                         PUSHER_LANG, PUSHER_APP_NAME, PUSHER_DEVICE_NAME,
-                        PUSHER_URL);
+                        PUSHER_URL, new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                Log.d(LOG_TAG, "registerPusher succeeded");
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.e(LOG_TAG, "registerPusher onNetworkError " + e.getMessage());
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.e(LOG_TAG, "registerPusher onMatrixError " + e.errcode);
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.e(LOG_TAG, "registerPusher onUnexpectedError " + e.getMessage());
+                            }
+                        });
     }
 
     /**

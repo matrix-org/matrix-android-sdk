@@ -58,7 +58,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
             final String pushkey, final String appId,
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
-            final String url) {
+            final String url, final ApiCallback<Void> callback) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -72,11 +72,11 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
         final String description = "addHttpPusher";
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, null, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    addHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url);
+                    addHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, callback);
                 } catch (Exception e) {
                 }
             }
