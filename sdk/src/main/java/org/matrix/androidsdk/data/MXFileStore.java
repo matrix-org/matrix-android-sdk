@@ -189,7 +189,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the background thread is killed.
      */
     private Boolean isKilled() {
-        Boolean isKilled = false;
+        Boolean isKilled;
 
         synchronized (this) {
             isKilled = mIsKilled;
@@ -223,6 +223,8 @@ public class MXFileStore extends MXMemoryStore {
         if (!mIsReady && !mIsOpening && (mMetadata != null)) {
             mIsOpening = true;
 
+            Log.e(LOG_TAG, "Open the store.");
+
             // creation the background handler.
             if (null == mFileStoreHandler) {
                 mHandlerThread.start();
@@ -234,6 +236,8 @@ public class MXFileStore extends MXMemoryStore {
                 public void run() {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
+                            Log.e(LOG_TAG, "Open the store in the background thread.");
+
                             boolean succeed = true;
 
                             succeed &= loadRoomsMessages();
@@ -267,6 +271,8 @@ public class MXFileStore extends MXMemoryStore {
                                 saveMetaData();
                             }
 
+                            Log.e(LOG_TAG, "The store is opened.");
+
                             if (null != mListener) {
                                 mListener.onStoreReady(mCredentials.userId);
                             }
@@ -286,6 +292,8 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public void close() {
+        Log.d(LOG_TAG, "Close the store");
+
         super.close();
         setIsKilled(true);
         mHandlerThread.quit();
@@ -297,6 +305,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public void clear() {
+        Log.d(LOG_TAG, "Clear the store");
         super.close();
         deleteAllData(false);
     }
@@ -382,6 +391,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public void setEventStreamToken(String token) {
+        Log.d(LOG_TAG, "Set token to " + token);
         super.setEventStreamToken(token);
         mMetaDataHasChanged = true;
     }
@@ -408,7 +418,7 @@ public class MXFileStore extends MXMemoryStore {
                 canStore = (events.size() < MAX_STORED_MESSAGES_COUNT);
 
                 if (!canStore) {
-                    Log.e(LOG_TAG, "storeRoomEvents : do not flush because reaching the max size");
+                    Log.d(LOG_TAG, "storeRoomEvents : do not flush because reaching the max size");
                 }
             }
         }
@@ -482,6 +492,8 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void deleteRoom(String roomId) {
+        Log.d(LOG_TAG, "deleteRoom " + roomId);
+
         super.deleteRoom(roomId);
         deleteRoomMessagesFiles(roomId);
         deleteRoomStateFile(roomId);
@@ -586,7 +598,7 @@ public class MXFileStore extends MXMemoryStore {
                                                     ;
 
                                                 if (startIndex > 0) {
-                                                    Log.e(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " +  eventsList.size() + " -> " + (eventsList.size() - startIndex));
+                                                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " +  eventsList.size() + " -> " + (eventsList.size() - startIndex));
                                                 }
                                             }
 
@@ -608,7 +620,7 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                Log.e(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -644,7 +656,7 @@ public class MXFileStore extends MXMemoryStore {
             ois.close();
         } catch (Exception e){
             succeeded = false;
-            Log.e(LOG_TAG, "loadRoomMessages : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomMessages failed : " + e.getMessage());
         }
 
         // succeeds to extract the message list
@@ -698,7 +710,7 @@ public class MXFileStore extends MXMemoryStore {
                 ois.close();
             } catch (Exception e) {
                 succeed = false;
-                Log.e(LOG_TAG, "loadRoomToken : " + e.getMessage());
+                Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage());
             }
 
             if (null != token) {
@@ -735,7 +747,7 @@ public class MXFileStore extends MXMemoryStore {
                 succeed &= loadRoomMessages(filenames[index]);
             }
 
-            Log.e(LOG_TAG, "loadRoomMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            Log.d(LOG_TAG, "loadRoomMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
             // extract the tokens list
             filenames = mStoreRoomsTokensFolderFile.list();
@@ -746,11 +758,11 @@ public class MXFileStore extends MXMemoryStore {
                 succeed &= loadRoomToken(filenames[index]);
             }
 
-            Log.e(LOG_TAG, "loadRoomToken : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            Log.d(LOG_TAG, "loadRoomToken : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomToken : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage());
         }
 
         return succeed;
@@ -805,7 +817,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                             out.writeObject(room.getLiveState());
                                             out.close();
-                                            Log.e(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+                                            Log.d(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
                                         }
 
                                     } catch (Exception e) {
@@ -813,7 +825,7 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                Log.e(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -861,8 +873,8 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
                 messagesListFile.delete();
-
             } catch (Exception e) {
+                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getMessage());
             }
         }
 
@@ -886,7 +898,7 @@ public class MXFileStore extends MXMemoryStore {
                 succeed &= loadRoomState(filenames[index]);
             }
 
-            Log.e(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            Log.d(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
 
         } catch (Exception e) {
             succeed = false;
@@ -953,7 +965,7 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                Log.e(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -1013,11 +1025,11 @@ public class MXFileStore extends MXMemoryStore {
                 succeed &= loadSummary(filenames[index]);
             }
 
-            Log.e(LOG_TAG, "loadSummaries " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            Log.d(LOG_TAG, "loadSummaries " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
         }
         catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadSummaries " + e.getMessage());
+            Log.e(LOG_TAG, "loadSummaries failed : " + e.getMessage());
         }
 
         return succeed;
@@ -1048,7 +1060,7 @@ public class MXFileStore extends MXMemoryStore {
             mMetadata = null;
         }
 
-        Log.e(LOG_TAG, "loadMetaData : " + (System.currentTimeMillis() - start) + " ms");
+        Log.d(LOG_TAG, "loadMetaData : " + (System.currentTimeMillis() - start) + " ms");
     }
 
     /**
@@ -1084,7 +1096,7 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.e(LOG_TAG, "saveMetaData failed : " + e.getMessage());
                                 }
 
-                                Log.e(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
