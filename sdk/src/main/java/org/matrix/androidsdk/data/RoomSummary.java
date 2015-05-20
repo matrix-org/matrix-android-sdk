@@ -34,9 +34,20 @@ public class RoomSummary implements java.io.Serializable {
     private String mName = null;
     private String mTopic = null;
     private Event mLatestEvent = null;
-    private RoomState mLatestRoomState = null;
-    // only populated if you've been invited.
-    private String mInviter = null;
+
+    // the room state is only used to check
+    // 1- the invitation status
+    // 2- the members display name
+    private transient RoomState mLatestRoomState = null;
+
+    // invitation status
+    // retrieved at initial sync
+    // the roomstate is not always known
+    private String mInviterUserId = null;
+    // retrieved from the roomState
+    private Boolean mIsInvited = false;
+    private String mInviterName = null;
+
     private String mMatrixId = null;
 
     private boolean mIsHighlighted = false;
@@ -65,8 +76,16 @@ public class RoomSummary implements java.io.Serializable {
 
         // when invited, the only received message should be the invitation one
         if (isInvited()) {
-            if ((null != mLatestEvent) && (null != mLatestRoomState)) {
-                String inviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+            if (null != mLatestEvent) {
+                String inviterName;
+
+                // try to retrieve a display name
+                if (null != mLatestRoomState) {
+                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                } else {
+                    // use the stored one
+                    inviterName = mInviterName;
+                }
 
                 if (null != inviterName) {
                     name = inviterName;
@@ -77,29 +96,36 @@ public class RoomSummary implements java.io.Serializable {
         return name;
     }
 
+    /**
+     * @return the topic.
+     */
     public String getRoomTopic() {
         return mTopic;
     }
 
+    /**
+     * @return the room summary event.
+     */
     public Event getLatestEvent() {
         return mLatestEvent;
     }
 
+    /**
+     * @return the dedicated room state.
+     */
     public RoomState getLatestRoomState() {
         return mLatestRoomState;
     }
 
+    /**
+     * @return true if the current user is invited
+     */
     public boolean isInvited() {
-        if (null != mLatestRoomState) {
-            RoomMember member = mLatestRoomState.getMember(mMatrixId);
-            return (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
-        }
-
-        return mInviter != null;
+        return mIsInvited || (mInviterUserId != null);
     }
 
     public String getInviterUserId() {
-        return mInviter;
+        return mInviterUserId;
     }
 
     public void setMatrixId(String matrixId) {
@@ -153,6 +179,26 @@ public class RoomSummary implements java.io.Serializable {
      */
     public RoomSummary setLatestRoomState(RoomState roomState) {
         mLatestRoomState = roomState;
+
+        // check for the invitation status
+        if (null != mLatestRoomState) {
+            RoomMember member = mLatestRoomState.getMember(mMatrixId);
+            mIsInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
+        }
+        // when invited, the only received message should be the invitation one
+        if (isInvited()) {
+            mInviterName = null;
+
+            if (null != mLatestEvent) {
+                mInviterName = mInviterUserId = mLatestEvent.userId;
+
+                // try to retrieve a display name
+                if (null != mLatestRoomState) {
+                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                }
+            }
+        }
+
         return this;
     }
 
@@ -209,7 +255,7 @@ public class RoomSummary implements java.io.Serializable {
      * @return This summary for chaining calls.
      */
     public RoomSummary setInviterUserId(String inviterUserId) {
-        mInviter = inviterUserId;
+        mInviterUserId = inviterUserId;
         return this;
     }
 }

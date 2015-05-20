@@ -779,7 +779,6 @@ public class MXFileStore extends MXMemoryStore {
                                         Room room = mRooms.get(roomId);
 
                                         if (null != room) {
-
                                             FileOutputStream fos = new FileOutputStream(metaDataFile);
                                             ObjectOutputStream out = new ObjectOutputStream(fos);
 
@@ -788,7 +787,7 @@ public class MXFileStore extends MXMemoryStore {
                                         }
 
                                     } catch (Exception e) {
-                                        e = e;
+                                        Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
                                     }
                                 }
 

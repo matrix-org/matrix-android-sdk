@@ -438,6 +438,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
                 if ((null != room) && (null != room.getLiveState())) {
                     latestRoomState = room.getLiveState().deepCopy();
+                    // store it to avoid retrieving it once
+                    summary.setLatestRoomState(latestRoomState);
                 }
             }
 
