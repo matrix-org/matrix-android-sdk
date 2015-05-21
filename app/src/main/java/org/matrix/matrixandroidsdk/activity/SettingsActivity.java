@@ -289,8 +289,11 @@ public class SettingsActivity extends MXCActionBarActivity {
 
                         // GCM case
                         if (boxId == R.id.checkbox_useGcm) {
-                            checkBox.setEnabled(false);
-                            checkBox.setAlpha(0.5f);
+
+                            final View gcmLayout = findViewById(R.id.gcm_layout);
+
+                            gcmLayout.setEnabled(false);
+                            gcmLayout.setAlpha(0.5f);
 
                             GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(SettingsActivity.this).getSharedGcmRegistrationManager();
 
@@ -298,8 +301,8 @@ public class SettingsActivity extends MXCActionBarActivity {
                                 gcmRegistrationManager.registerPusher(new GcmRegistrationManager.GcmRegistrationIdListener() {
                                     @Override
                                     public void onPusherRegistered() {
-                                        checkBox.setEnabled(true);
-                                        checkBox.setAlpha(1.0f);
+                                        gcmLayout.setEnabled(true);
+                                        gcmLayout.setAlpha(1.0f);
                                         refreshGCMEntries();
                                     }
 
@@ -312,8 +315,8 @@ public class SettingsActivity extends MXCActionBarActivity {
                                 gcmRegistrationManager.unregisterPusher(new GcmRegistrationManager.GcmUnregistrationIdListener() {
                                     @Override
                                     public void onPusherUnregistered() {
-                                        checkBox.setEnabled(true);
-                                        checkBox.setAlpha(1.0f);
+                                        gcmLayout.setEnabled(true);
+                                        gcmLayout.setAlpha(1.0f);
                                         refreshGCMEntries();
                                     }
 

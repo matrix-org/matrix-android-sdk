@@ -430,25 +430,18 @@ public final class GcmRegistrationManager {
         try {
             SharedPreferences preferences = getSharedPreferences();
 
-            {
-                String pusherAppId = preferences.getString(PREFS_PUSHER_APP_ID_KEY, null);
-                mPusherAppId = TextUtils.isEmpty(pusherAppId) ? DEFAULT_PUSHER_APP_ID : pusherAppId;
-            }
+            String pusherAppId = preferences.getString(PREFS_PUSHER_APP_ID_KEY, null);
+            mPusherAppId = TextUtils.isEmpty(pusherAppId) ? DEFAULT_PUSHER_APP_ID : pusherAppId;
 
-            {
-                String senderId = preferences.getString(PREFS_SENDER_ID_KEY, null);
-                mSenderId = TextUtils.isEmpty(senderId) ? DEFAULT_SENDER_ID : senderId;
-            }
+            String senderId = preferences.getString(PREFS_SENDER_ID_KEY, null);
+            mSenderId = TextUtils.isEmpty(senderId) ? DEFAULT_SENDER_ID : senderId;
 
-            {
-                String pusherUrl = preferences.getString(PREFS_PUSHER_URL_KEY, null);
-                mPusherUrl = TextUtils.isEmpty(pusherUrl) ? DEFAULT_PUSHER_URL : pusherUrl;
-            }
+            String pusherUrl = preferences.getString(PREFS_PUSHER_URL_KEY, null);
+            mPusherUrl = TextUtils.isEmpty(pusherUrl) ? DEFAULT_PUSHER_URL : pusherUrl;
 
-            {
-                String pusherFileTag = preferences.getString(PREFS_PUSHER_FILE_TAG_KEY, null);
-                mPusherFileTag = TextUtils.isEmpty(pusherFileTag) ? DEFAULT_PUSHER_FILE_TAG : pusherFileTag;
-            }
+            String pusherFileTag = preferences.getString(PREFS_PUSHER_FILE_TAG_KEY, null);
+            mPusherFileTag = TextUtils.isEmpty(pusherFileTag) ? DEFAULT_PUSHER_FILE_TAG : pusherFileTag;
+            
         } catch (Exception e) {
 
         }
