@@ -240,4 +240,6 @@ public class Matrix {
     public GcmRegistrationManager getSharedGcmRegistrationManager() {
         return mGcmRegistrationManager;
     }
+
+
 }

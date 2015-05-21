@@ -7,19 +7,20 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
 
 import java.io.IOException;
-import java.util.Locale;
 
 /**
  * Helper class to store the GCM registration ID in {@link SharedPreferences}
@@ -27,31 +28,41 @@ import java.util.Locale;
 public final class GcmRegistrationManager {
     private static String LOG_TAG = "GcmRegistrationManager";
 
-    // theses both entries can be updated from the settings page in debug mode
-    private String mPusherAppId = "org.matrix.console.android";
-    // TODO: Make this configurable at build time
-    private String mSenderId = "0";
+    public static final String PREFS_GCM = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager";
+    public static final String PREFS_KEY_REG_ID_PREFIX = "REG_ID-";
 
-    private String mPusherUrl = "http://matrix.org/_matrix/push/v1/notify";
-    private String mPusherFileTag = "mobile";
+    public static final String PREFS_PUSHER_APP_ID_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherAppId";
+    public static final String PREFS_SENDER_ID_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.senderId";
+    public static final String PREFS_PUSHER_URL_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherUrl";
+    public static final String PREFS_PUSHER_FILE_TAG_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherFileTag";
+    public static final String PREFS_APP_VERSION = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.appVersion";
+
+    // TODO: Make this configurable at build time
+    private static String DEFAULT_SENDER_ID = "0";
+    private static String DEFAULT_PUSHER_APP_ID = "org.matrix.console.android";
+    private static String DEFAULT_PUSHER_URL = "http://matrix.org/_matrix/push/v1/notify";
+    private static String DEFAULT_PUSHER_FILE_TAG = "mobile";
+
+    // theses both entries can be updated from the settings page in debug mode
+    private String mPusherAppId = null;
+    private String mSenderId = null;
+    private String mPusherUrl = null;
+    private String mPusherFileTag = null;
 
     private String mPusherAppName = null;
     private String mPusherLang = null;
 
+    private enum RegistrationState {
+        UNREGISTRATED,
+        REGISTRATING,
+        REGISTRED,
+        UNREGISTRATING
+    };
+
     private static String mBasePusherDeviceName = Build.MODEL.trim();
 
-    public static final String PREFS_GCM = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager";
-    public static final String PREFS_KEY_REG_ID_PREFIX = "REG_ID-";
-
-    public static final String PUSHER_APP_ID_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherAppId";
-    public static final String SENDER_ID_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.senderId";
-    public static final String PUSHER_URL_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherUrl";
-    public static final String PUSHER_FILE_TAG_KEY = "org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager.pusherFileTag";
-
     private Context mContext;
-    private GcmRegistrationIdListener mListener;
-
-    private Boolean mIsRegistred = false;
+    private RegistrationState mRegistrationState = RegistrationState.UNREGISTRATED;
 
     public GcmRegistrationManager(Context appContext) {
         mContext = appContext.getApplicationContext();
@@ -68,6 +79,18 @@ public final class GcmRegistrationManager {
         loadGcmData();
     }
 
+    /**
+     * reset the Registration
+     */
+    public void reset() {
+        unregisterPusher(null);
+
+        // remove the keys
+        getSharedPreferences().edit().clear().commit();
+
+        loadGcmData();
+    }
+
     /*
         getters & setters
      */
@@ -76,8 +99,10 @@ public final class GcmRegistrationManager {
     }
 
     public void setPusherAppId(String pusherAppId) {
-        mPusherAppId = pusherAppId;
-        SaveGCMData();
+        if (!TextUtils.isEmpty(pusherAppId) && !pusherAppId.equals(mPusherAppId)) {
+            mPusherAppId = pusherAppId;
+            SaveGCMData();
+        }
     }
 
     public String senderId() {
@@ -85,8 +110,10 @@ public final class GcmRegistrationManager {
     }
 
     public void setSenderId(String senderId) {
-        mSenderId = senderId;
-        SaveGCMData();
+        if (!TextUtils.isEmpty(senderId) && !senderId.equals(mSenderId)) {
+            mSenderId = senderId;
+            SaveGCMData();
+        }
     }
 
     public String pusherUrl() {
@@ -94,8 +121,10 @@ public final class GcmRegistrationManager {
     }
 
     public void setPusherUrl(String pusherUrl) {
-        mPusherUrl = pusherUrl;
-        SaveGCMData();
+        if (!TextUtils.isEmpty(pusherUrl) && !pusherUrl.equals(mPusherUrl)) {
+            mPusherUrl = pusherUrl;
+            SaveGCMData();
+        }
     }
 
     public String pusherFileTag() {
@@ -103,40 +132,149 @@ public final class GcmRegistrationManager {
     }
 
     public void setPusherFileTag(String pusherFileTag) {
-        mPusherFileTag = pusherFileTag;
-        SaveGCMData();
+        if (!TextUtils.isEmpty(pusherFileTag) && !pusherFileTag.equals(mPusherFileTag)) {
+            mPusherFileTag = pusherFileTag;
+            SaveGCMData();
+        }
     }
 
     public interface GcmRegistrationIdListener {
         void onPusherRegistered();
+        void onPusherRegistrationFailed();
     }
 
-    public void setListener(GcmRegistrationIdListener listener) {
-        mListener = listener;
+    public interface GcmUnregistrationIdListener {
+        void onPusherUnregistered();
+        void onPusherUnregistrationFailed();
     }
 
-    // TODO: handle multi sessions
-    public void registerPusherInBackground() {
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-                String registrationId = getRegistrationId();
-                if (registrationId != null) {
-                    registerPusher(registrationId);
-                } else {
-                    // TODO: Handle error by calling a method on the listener
-                }
-                return null;
+    /**
+     * Check the device to make sure it has the Google Play Services APK. If
+     * it doesn't, display a dialog that allows users to download the APK from
+     * the Google Play Store or enable it in the device's system settings.
+     */
+    private boolean checkPlayServices() {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(mContext);
+        if (resultCode != ConnectionResult.SUCCESS) {
+            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+                Log.e(LOG_TAG, "checkPlayServices isUserRecoverableError " +  GooglePlayServicesUtil.getErrorString(resultCode));
+            } else {
+                Log.e(LOG_TAG, "This device is not supported.");
             }
+            return false;
+        }
+        return true;
+    }
 
-            @Override
-            protected void onPostExecute(Void result) {
-                mIsRegistred = true;
-                if (mListener != null) {
-                    mListener.onPusherRegistered();
-                }
+    /**
+     * Register to the GCM.
+     * @param registrationListener the events listener.
+     */
+    public void registerPusher(final GcmRegistrationIdListener registrationListener) {
+        // already registred
+        if (mRegistrationState == RegistrationState.REGISTRED) {
+            if (null != registrationListener) {
+                registrationListener.onPusherRegistered();
             }
-        }.execute();
+        } else if (mRegistrationState != RegistrationState.UNREGISTRATED) {
+            if (null != registrationListener) {
+                registrationListener.onPusherRegistrationFailed();
+            }
+        } else {
+
+            mRegistrationState = RegistrationState.REGISTRATING;
+
+            new AsyncTask<Void, Void, String>() {
+                @Override
+                protected String doInBackground(Void... voids) {
+                    String registrationId = null;
+
+                    if (checkPlayServices()) {
+                        registrationId = getRegistrationId();
+
+                        if (registrationId != null) {
+                            registerPusher(registrationId);
+                        }
+                    }
+                    return registrationId;
+                }
+
+                @Override
+                protected void onPostExecute(String registrationId) {
+
+                    if (registrationId != null) {
+                        mRegistrationState = RegistrationState.REGISTRED;
+                    } else {
+                        mRegistrationState = RegistrationState.UNREGISTRATED;
+                    }
+
+                    setStoredRegistrationId(registrationId);
+
+                    // warn the listener
+                    if (null != registrationListener) {
+                        try {
+                            if (registrationId != null) {
+                                registrationListener.onPusherRegistered();
+                            } else {
+                                registrationListener.onPusherRegistrationFailed();
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            }.execute();
+        }
+    }
+
+    /**
+     * Unregister from the GCM.
+     * @param unregistrationListener the events listener.
+     */
+    public void unregisterPusher(final GcmUnregistrationIdListener unregistrationListener) {
+
+        // already unregistred
+        if (mRegistrationState == RegistrationState.UNREGISTRATED) {
+            if (null != unregistrationListener) {
+                unregistrationListener.onPusherUnregistered();
+            }
+        } else if (mRegistrationState != RegistrationState.REGISTRED) {
+            if (null != unregistrationListener) {
+                unregistrationListener.onPusherUnregistrationFailed();
+            }
+        } else {
+            mRegistrationState = RegistrationState.UNREGISTRATING;
+
+            new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... voids) {
+
+                    try {
+                        // and callback if not.
+                        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(mContext);
+                        gcm.unregister();
+                    } catch (IOException e) {
+                    }
+
+                    // should warn the sever that the user unregistres his device.
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void param) {
+                    setStoredRegistrationId(null);
+
+                    mRegistrationState = RegistrationState.UNREGISTRATED;
+
+                    // warn the listener
+                    if (null != unregistrationListener) {
+                        try {
+                            unregistrationListener.onPusherUnregistered();
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            }.execute();
+        }
     }
 
     /**
@@ -148,14 +286,22 @@ public final class GcmRegistrationManager {
     }
 
     public Boolean isRegistred() {
-        return mIsRegistred;
+        return mRegistrationState == RegistrationState.REGISTRED;
     }
 
     private String getRegistrationId() {
         String registrationId = getStoredRegistrationId();
+
+        // Check if app was updated; if so, it must clear the registration ID
+        // since the existing registration ID is not guaranteed to work with
+        // the new app version.
+        if (isNewAppVersion()) {
+            registrationId = null;
+            setStoredRegistrationId(null);
+        }
+
         if (registrationId == null) {
             try {
-                // TODO: Check if (an up to date version of) Google Play Services is available
                 // and callback if not.
                 GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(mContext);
                 registrationId = gcm.register(mSenderId);
@@ -171,7 +317,7 @@ public final class GcmRegistrationManager {
         for(MXSession session : Matrix.getInstance(mContext).getSessions()) {
             session.getPushersRestClient()
                     .addHttpPusher(registrationId, mPusherAppId, mPusherFileTag + "_" + session.getMyUser().userId,
-                            mPusherLang, mPusherAppName, mPusherAppName + "_" + session.getMyUser().userId,
+                            mPusherLang, mPusherAppName, mBasePusherDeviceName,
                             mPusherUrl, new ApiCallback<Void>() {
                                 @Override
                                 public void onSuccess(Void info) {
@@ -201,6 +347,30 @@ public final class GcmRegistrationManager {
      */
     private String getStoredRegistrationId() {
         return getSharedPreferences().getString(getRegistrationIdKey(), null);
+    }
+
+    /**
+     * @return true if the current application version is not the same the expected one.
+     */
+    private Boolean isNewAppVersion() {
+        try {
+            PackageInfo pInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+            int currentVersion = pInfo.versionCode;
+
+            int registeredVersion = getSharedPreferences().getInt(PREFS_APP_VERSION, Integer.MIN_VALUE);
+
+            if (registeredVersion != currentVersion) {
+                Log.d(LOG_TAG, "App version changed.");
+                getSharedPreferences().edit().putInt(PREFS_APP_VERSION, currentVersion).commit();
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+
+        }
+
+        return true;
     }
 
     /**
@@ -242,10 +412,10 @@ public final class GcmRegistrationManager {
             SharedPreferences preferences = getSharedPreferences();
             SharedPreferences.Editor editor = preferences.edit();
 
-            editor.putString(PUSHER_APP_ID_KEY, mPusherAppId);
-            editor.putString(SENDER_ID_KEY, mSenderId);
-            editor.putString(PUSHER_URL_KEY, mPusherUrl);
-            editor.putString(PUSHER_FILE_TAG_KEY, mPusherFileTag);
+            editor.putString(PREFS_PUSHER_APP_ID_KEY, mPusherAppId);
+            editor.putString(PREFS_SENDER_ID_KEY, mSenderId);
+            editor.putString(PREFS_PUSHER_URL_KEY, mPusherUrl);
+            editor.putString(PREFS_PUSHER_FILE_TAG_KEY, mPusherFileTag);
 
             editor.commit();
         } catch (Exception e) {
@@ -260,24 +430,24 @@ public final class GcmRegistrationManager {
         try {
             SharedPreferences preferences = getSharedPreferences();
 
-            String pusherAppId = preferences.getString(PUSHER_APP_ID_KEY, null);
-            if (null != pusherAppId) {
-                mPusherAppId = pusherAppId;
+            {
+                String pusherAppId = preferences.getString(PREFS_PUSHER_APP_ID_KEY, null);
+                mPusherAppId = TextUtils.isEmpty(pusherAppId) ? DEFAULT_PUSHER_APP_ID : pusherAppId;
             }
 
-            String senderId = preferences.getString(SENDER_ID_KEY, null);
-            if (null != senderId) {
-                mSenderId = senderId;
+            {
+                String senderId = preferences.getString(PREFS_SENDER_ID_KEY, null);
+                mSenderId = TextUtils.isEmpty(senderId) ? DEFAULT_SENDER_ID : senderId;
             }
 
-            String pusherUrl = preferences.getString(PUSHER_URL_KEY, null);
-            if (null != pusherUrl) {
-                mPusherUrl = pusherUrl;
+            {
+                String pusherUrl = preferences.getString(PREFS_PUSHER_URL_KEY, null);
+                mPusherUrl = TextUtils.isEmpty(pusherUrl) ? DEFAULT_PUSHER_URL : pusherUrl;
             }
 
-            String pusherFileTag = preferences.getString(PUSHER_FILE_TAG_KEY, null);
-            if (null != pusherFileTag) {
-                mPusherFileTag = pusherFileTag;
+            {
+                String pusherFileTag = preferences.getString(PREFS_PUSHER_FILE_TAG_KEY, null);
+                mPusherFileTag = TextUtils.isEmpty(pusherFileTag) ? DEFAULT_PUSHER_FILE_TAG : pusherFileTag;
             }
         } catch (Exception e) {
 

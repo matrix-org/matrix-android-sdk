@@ -105,6 +105,9 @@ public class CommonActivityUtils {
         // clear credentials
         Matrix.getInstance(activity).clearSessions(activity, true);
 
+        // reset the GCM
+        Matrix.getInstance(activity).getSharedGcmRegistrationManager().reset();
+
         // reset the contacts
         PIDsRetriever.getIntance().reset();
         ContactsManager.reset();

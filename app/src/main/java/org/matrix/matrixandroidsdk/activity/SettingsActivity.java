@@ -228,6 +228,8 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         final GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(this).getSharedGcmRegistrationManager();
 
+        refreshGCMEntries();
+
         final EditText appIDEditText = (EditText)findViewById(R.id.editText_gcm_app_id);
         appIDEditText.addTextChangedListener(new TextWatcher() {
 
@@ -272,8 +274,6 @@ public class SettingsActivity extends MXCActionBarActivity {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
         });
-
-        refreshGCMEntries();
     }
 
     private void listenBoxUpdate(final SharedPreferences preferences, final int boxId, final String preferenceKey, boolean defaultValue) {
@@ -289,11 +289,39 @@ public class SettingsActivity extends MXCActionBarActivity {
 
                         // GCM case
                         if (boxId == R.id.checkbox_useGcm) {
-                            refreshGCMEntries();
+                            checkBox.setEnabled(false);
+                            checkBox.setAlpha(0.5f);
+
+                            GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(SettingsActivity.this).getSharedGcmRegistrationManager();
+
                             if (checkBox.isChecked()) {
-                                // Do something here
+                                gcmRegistrationManager.registerPusher(new GcmRegistrationManager.GcmRegistrationIdListener() {
+                                    @Override
+                                    public void onPusherRegistered() {
+                                        checkBox.setEnabled(true);
+                                        checkBox.setAlpha(1.0f);
+                                        refreshGCMEntries();
+                                    }
+
+                                    @Override
+                                    public void onPusherRegistrationFailed() {
+                                        onPusherRegistered();
+                                    }
+                                });
                             } else {
-                                // do something here
+                                gcmRegistrationManager.unregisterPusher(new GcmRegistrationManager.GcmUnregistrationIdListener() {
+                                    @Override
+                                    public void onPusherUnregistered() {
+                                        checkBox.setEnabled(true);
+                                        checkBox.setAlpha(1.0f);
+                                        refreshGCMEntries();
+                                    }
+
+                                    @Override
+                                    public void onPusherUnregistrationFailed() {
+                                        onPusherUnregistered();
+                                    }
+                                });
                             }
                         }
                     }
@@ -311,6 +339,9 @@ public class SettingsActivity extends MXCActionBarActivity {
         GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(this).getSharedGcmRegistrationManager();
 
         Boolean debugMode = (0 != ( getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE));
+
+        final CheckBox gcmBox = (CheckBox) findViewById(R.id.checkbox_useGcm);
+        gcmBox.setChecked(gcmRegistrationManager.isRegistred());
 
         TextView textView  = (TextView)findViewById(R.id.textView_gcm_app_id);
         textView.setVisibility(debugMode ? View.VISIBLE : View.GONE);

@@ -136,14 +136,19 @@ public class SplashActivity extends MXCActionBarActivity {
         mPusherRegistrationComplete = !mGcmRegistrationManager.useGCM() || mGcmRegistrationManager.isRegistred();
 
         if (!mPusherRegistrationComplete) {
-            mGcmRegistrationManager.setListener(new GcmRegistrationManager.GcmRegistrationIdListener() {
+            mGcmRegistrationManager.registerPusher(new GcmRegistrationManager.GcmRegistrationIdListener() {
                 @Override
                 public void onPusherRegistered() {
                     mPusherRegistrationComplete = true;
                     finishIfReady();
                 }
+
+                @Override
+                public void onPusherRegistrationFailed() {
+                    // can register it ignore
+                    onPusherRegistered();
+                }
             });
-            mGcmRegistrationManager.registerPusherInBackground();
         }
 
         boolean noUpdate;
@@ -171,7 +176,5 @@ public class SplashActivity extends MXCActionBarActivity {
         for(MXSession session : sessions) {
             session.getDataHandler().removeListener(mDoneListeners.get(session));
         }
-
-        mGcmRegistrationManager.setListener(null);
     }
 }
