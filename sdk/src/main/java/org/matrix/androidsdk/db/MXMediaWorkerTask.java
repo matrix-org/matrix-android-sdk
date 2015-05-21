@@ -317,6 +317,8 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
             try {
                 URLConnection connection = url.openConnection();
+                // add a timeout to avoid infinite loading display.
+                connection.setReadTimeout(10 * 1000);
                 filelen = connection.getContentLength();
                 stream = connection.getInputStream();
             } catch (FileNotFoundException e) {
@@ -363,8 +365,10 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                     mProgress = 100;
                 }
                 catch (OutOfMemoryError outOfMemoryError) {
+                    Log.e(LOG_TAG, "MediaWorkerTask : out of memory");
                 }
                 catch (Exception e) {
+                    Log.e(LOG_TAG, "MediaWorkerTask fail to read image " + e.getMessage());
                 }
 
                 close(stream);
@@ -410,6 +414,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             return bitmap;
         }
         catch (Exception e) {
+            // remove the image from the loading one
+            // else the loading will be stucked (and never be tried again).
+            synchronized(mPendingDownloadByUrl) {
+                mPendingDownloadByUrl.remove(mUrl);
+            }
             Log.e(LOG_TAG, "Unable to load bitmap: "+e);
             return null;
         }
