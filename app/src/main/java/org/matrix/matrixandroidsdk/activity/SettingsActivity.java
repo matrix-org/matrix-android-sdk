@@ -20,6 +20,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Bundle;
@@ -47,6 +48,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 import org.matrix.matrixandroidsdk.util.UIUtils;
 
@@ -201,6 +203,7 @@ public class SettingsActivity extends MXCActionBarActivity {
         // room settings
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
+        listenBoxUpdate(preferences, R.id.checkbox_useGcm, getString(R.string.settings_key_use_gcm), false);
         listenBoxUpdate(preferences, R.id.checkbox_displayAllEvents, getString(R.string.settings_key_display_all_events), false);
         listenBoxUpdate(preferences, R.id.checkbox_hideUnsupportedEvenst, getString(R.string.settings_key_hide_unsupported_events), true);
         listenBoxUpdate(preferences, R.id.checkbox_sortByLastSeen, getString(R.string.settings_key_sort_by_last_seen), true);
@@ -222,9 +225,58 @@ public class SettingsActivity extends MXCActionBarActivity {
             }
         });
 
+
+        final GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(this).getSharedGcmRegistrationManager();
+
+        final EditText appIDEditText = (EditText)findViewById(R.id.editText_gcm_app_id);
+        appIDEditText.addTextChangedListener(new TextWatcher() {
+
+            public void afterTextChanged(Editable s) {
+                gcmRegistrationManager.setPusherAppId(appIDEditText.getText().toString());
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
+        final EditText senderIDEditText = (EditText)findViewById(R.id.editText_gcm_sender_id);
+        senderIDEditText.addTextChangedListener(new TextWatcher() {
+
+            public void afterTextChanged(Editable s) {
+                gcmRegistrationManager.setSenderId(senderIDEditText.getText().toString());
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
+        final EditText pusherUrlEditText = (EditText)findViewById(R.id.editText_gcm_pusher_url);
+        pusherUrlEditText.addTextChangedListener(new TextWatcher() {
+
+            public void afterTextChanged(Editable s) {
+                gcmRegistrationManager.setPusherUrl(pusherUrlEditText.getText().toString());
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
+        final EditText pusherProfileEditText = (EditText)findViewById(R.id.editText_gcm_pusher_profile_tag);
+        pusherProfileEditText.addTextChangedListener(new TextWatcher() {
+
+            public void afterTextChanged(Editable s) {
+                gcmRegistrationManager.setPusherFileTag(pusherProfileEditText.getText().toString());
+            }
+
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
+        refreshGCMEntries();
     }
 
-    private void listenBoxUpdate(final SharedPreferences preferences, int boxId, final String preferenceKey, boolean defaultValue) {
+    private void listenBoxUpdate(final SharedPreferences preferences, final int boxId, final String preferenceKey, boolean defaultValue) {
         final CheckBox checkBox = (CheckBox) findViewById(boxId);
         checkBox.setChecked(preferences.getBoolean(preferenceKey, defaultValue));
         checkBox.setOnClickListener(
@@ -234,6 +286,16 @@ public class SettingsActivity extends MXCActionBarActivity {
                         SharedPreferences.Editor editor = preferences.edit();
                         editor.putBoolean(preferenceKey, checkBox.isChecked());
                         editor.commit();
+
+                        // GCM case
+                        if (boxId == R.id.checkbox_useGcm) {
+                            refreshGCMEntries();
+                            if (checkBox.isChecked()) {
+                                // Do something here
+                            } else {
+                                // do something here
+                            }
+                        }
                     }
                 }
         );
@@ -243,6 +305,30 @@ public class SettingsActivity extends MXCActionBarActivity {
     protected void onPause() {
         super.onPause();
         MyPresenceManager.advertiseAllUnavailableAfterDelay();
+    }
+
+    private void refreshGCMEntries() {
+        GcmRegistrationManager gcmRegistrationManager = Matrix.getInstance(this).getSharedGcmRegistrationManager();
+
+        Boolean debugMode = (0 != ( getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE));
+
+        TextView textView  = (TextView)findViewById(R.id.textView_gcm_app_id);
+        textView.setVisibility(debugMode ? View.VISIBLE : View.GONE);
+        EditText editText = (EditText)findViewById(R.id.editText_gcm_app_id);
+        editText.setVisibility(debugMode ? View.VISIBLE : View.GONE);
+        editText.setText(gcmRegistrationManager.pusherAppId());
+
+        textView  = (TextView)findViewById(R.id.textView_gcm_sender_id);
+        textView.setVisibility(debugMode ? View.VISIBLE : View.GONE);
+        editText = (EditText)findViewById(R.id.editText_gcm_sender_id);
+        editText.setVisibility(debugMode ? View.VISIBLE : View.GONE);
+        editText.setText(gcmRegistrationManager.senderId());
+
+        editText = (EditText)findViewById(R.id.editText_gcm_pusher_url);
+        editText.setText(gcmRegistrationManager.pusherUrl());
+
+        editText = (EditText)findViewById(R.id.editText_gcm_pusher_profile_tag);
+        editText.setText(gcmRegistrationManager.pusherFileTag());
     }
 
     @Override
@@ -290,6 +376,8 @@ public class SettingsActivity extends MXCActionBarActivity {
         Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
         String cacheSize = android.text.format.Formatter.formatFileSize(this, mMediasCache.cacheSize(this));
         clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+
+        refreshGCMEntries();
     }
 
     @Override

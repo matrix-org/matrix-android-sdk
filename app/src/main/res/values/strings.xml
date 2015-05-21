@@ -147,6 +147,7 @@
     <string name="settings_webclient_push">To configure global notification settings (like rules), go find a webclient and hit Settings > Notifications.</string>
 
     <string name="settings_title_profile">Profile information</string>
+    <string name="settings_title_gcm">Google cloud messaging (GCM)</string>
     <string name="settings_title_config">Configuration</string>
     <string name="settings_title_notifications">Notifications</string>
     <string name="settings_title_rooms">Rooms</string>
@@ -162,6 +163,13 @@
     <string name="settings_display_left_members">Display left members</string>
     <string name="settings_clear_cache">Clear cache</string>
     <string name="settings_display_public_rooms">Display public rooms with recents</string>
+
+    <!-- gcm section -->
+    <string name="settings_use_gcm">Use GCM</string>
+    <string name="settings_gcm_app_id">GCM pusher application ID</string>
+    <string name="settings_gcm_sender_id">GCM sender ID</string>
+    <string name="settings_gcm_pusher_url">GCM pusher url</string>
+    <string name="settings_gcm_pusher_profile_tag">GCM pusher profile tag</string>
 
     <string name="settings_config_home_server">Home server: %s</string>
     <string name="settings_config_identity_server">Identity server: %s</string>
@@ -180,6 +188,7 @@
     <string name="settings_key_sort_by_last_seen">settings_key_sort_by_last_seen</string>
     <string name="settings_key_display_left_members">settings_key_display_left_members</string>
     <string name="settings_key_display_public_rooms_recents">settings_key_display_public_rooms_recents</string>
+    <string name="settings_key_use_gcm">settings_key_use_gcm</string>
 
     <string name="logo">Logo</string>
     <string name="user_says_body">%1$s says %2$s</string>
