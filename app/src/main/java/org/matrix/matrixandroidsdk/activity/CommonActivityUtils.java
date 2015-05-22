@@ -82,6 +82,9 @@ public class CommonActivityUtils {
 
         // clear credentials
         Matrix.getInstance(activity).clearSession(activity, session, true);
+
+        // unregister from the GCM.
+        Matrix.getInstance(activity).getSharedGcmRegistrationManager().unregisterSession(session, null);
     }
 
     /**

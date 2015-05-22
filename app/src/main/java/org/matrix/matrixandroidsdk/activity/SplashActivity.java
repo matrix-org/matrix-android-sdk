@@ -133,7 +133,7 @@ public class SplashActivity extends MXCActionBarActivity {
 
         mGcmRegistrationManager = Matrix.getInstance(getApplicationContext())
                 .getSharedGcmRegistrationManager();
-        mPusherRegistrationComplete = !mGcmRegistrationManager.useGCM() || mGcmRegistrationManager.isRegistred();
+        mPusherRegistrationComplete = mGcmRegistrationManager.isGCMRegistred();
 
         if (!mPusherRegistrationComplete) {
             mGcmRegistrationManager.registerPusher(new GcmRegistrationManager.GcmRegistrationIdListener() {
