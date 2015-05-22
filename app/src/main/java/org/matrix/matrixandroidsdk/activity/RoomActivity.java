@@ -346,6 +346,7 @@ public class RoomActivity extends MXCActionBarActivity {
                     // check if the media could be resized
                     if ("image/jpeg".equals(mPendingMimeType)) {
 
+                        System.gc();
                         FileInputStream imageStream = null;
 
                         try {
@@ -353,18 +354,18 @@ public class RoomActivity extends MXCActionBarActivity {
                             final String filename = uri.getPath();
                             imageStream = new FileInputStream (new File(filename));
 
+                            int fileSize =  imageStream.available();
+
                             BitmapFactory.Options options = new BitmapFactory.Options();
                             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 
                             // get the full size bitmap
                             Bitmap fullSizeBitmap = null;
-
                             try {
                                 fullSizeBitmap = BitmapFactory.decodeStream(imageStream, null, options);
                             } catch (OutOfMemoryError e) {
                             }
 
-                            int fileSize =  imageStream.available();
                             ImageSize fullImageSize = new ImageSize(options.outWidth, options.outHeight);
 
                             imageStream.close();
