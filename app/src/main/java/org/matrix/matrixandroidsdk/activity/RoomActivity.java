@@ -67,6 +67,7 @@ import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
 import org.matrix.matrixandroidsdk.fragments.ConsoleMessageListFragment;
+import org.matrix.matrixandroidsdk.fragments.ImageSizeSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
@@ -74,6 +75,8 @@ import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -97,6 +100,8 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final String TAG_FRAGMENT_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MEMBERS_DIALOG";
     private static final String TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_INVITATION_MEMBERS_DIALOG";
     private static final String TAG_FRAGMENT_ATTACHMENTS_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_ATTACHMENTS_DIALOG";
+    private static final String TAG_FRAGMENT_IMAGE_SIZE_DIALOG = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_IMAGE_SIZE_DIALOG";
+
 
     private static final String LOG_TAG = "RoomActivity";
     private static final int TYPING_TIMEOUT_MS = 10000;
@@ -121,6 +126,11 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final int REQUEST_FILES = 0;
     private static final int TAKE_IMAGE = 1;
     private static final int CREATE_DOCUMENT = 2;
+
+    // max image sizes
+    private static final int LARGE_IMAGE_SIZE  = 1024;
+    private static final int MEDIUM_IMAGE_SIZE = 768;
+    private static final int SMALL_IMAGE_SIZE  = 512;
 
     private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
@@ -244,6 +254,44 @@ public class RoomActivity extends MXCActionBarActivity {
         startActivityForResult(captureIntent, TAKE_IMAGE);
     }
 
+    private class ImageSize {
+        public int mWidth;
+        public int mHeight;
+
+        public ImageSize(ImageSize other) {
+            mWidth = other.mWidth;
+            mHeight = other.mHeight;
+        }
+
+        public ImageSize(int width, int height) {
+            mWidth = width;
+            mHeight = height;
+        }
+    }
+
+    /**
+     * Resize an ImageSize to fit in a square area with maxSide side
+     * @param originalSize the ImageSide to resize
+     * @param maxSide the sqaure side.
+     * @return the resize
+     */
+    private ImageSize resizeWithMaxSide(ImageSize originalSize, int maxSide)
+    {
+        ImageSize resized = new ImageSize(originalSize);
+
+        if ((originalSize.mWidth > maxSide) && (originalSize.mHeight > maxSide))
+        {
+            double ratioX = ((double)maxSide) / ((double)originalSize.mWidth);
+            double ratioY = ((double)maxSide) / ((double)originalSize.mHeight);
+
+            double scale = Math.max(ratioX, ratioY);
+            resized.mWidth  *= scale;
+            resized.mHeight *= scale;
+        }
+
+        return resized;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -293,11 +341,154 @@ public class RoomActivity extends MXCActionBarActivity {
             public void onClick(View view) {
                 // send the previewed image ?
                 if (null != mPendingImageUrl) {
-                    mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
-                    mPendingImageUrl = null;
-                    mPendingMediaUrl = null;
-                    mPendingMimeType = null;
-                    manageSendMoreButtons();
+                    boolean sendMedia = true;
+
+                    // check if the media could be resized
+                    if ("image/jpeg".equals(mPendingMimeType)) {
+
+                        FileInputStream imageStream = null;
+
+                        try {
+                            Uri uri = Uri.parse(mPendingMediaUrl);
+                            final String filename = uri.getPath();
+                            imageStream = new FileInputStream (new File(filename));
+
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+                            // get the full size bitmap
+                            Bitmap fullSizeBitmap = null;
+
+                            try {
+                                fullSizeBitmap = BitmapFactory.decodeStream(imageStream, null, options);
+                            } catch (OutOfMemoryError e) {
+                            }
+
+                            int fileSize =  imageStream.available();
+                            ImageSize fullImageSize = new ImageSize(options.outWidth, options.outHeight);
+
+                            imageStream.close();
+
+                            // can be rescaled ?
+                            if ((null != fullSizeBitmap) &&  (fullImageSize.mWidth > SMALL_IMAGE_SIZE) && (fullImageSize.mHeight > SMALL_IMAGE_SIZE)) {
+                                ImageSize largeImageSize = null;
+
+                                if ((fullImageSize.mWidth > LARGE_IMAGE_SIZE) && (fullImageSize.mHeight > LARGE_IMAGE_SIZE)) {
+                                    largeImageSize = resizeWithMaxSide(fullImageSize, LARGE_IMAGE_SIZE);
+                                }
+
+                                ImageSize mediumImageSize = null;
+
+                                if ((fullImageSize.mWidth > MEDIUM_IMAGE_SIZE) && (fullImageSize.mHeight > MEDIUM_IMAGE_SIZE)) {
+                                    mediumImageSize = resizeWithMaxSide(fullImageSize, MEDIUM_IMAGE_SIZE);
+                                }
+
+                                ImageSize smallImageSize = resizeWithMaxSide(fullImageSize, SMALL_IMAGE_SIZE);
+
+                                if ((fullImageSize.mWidth > MEDIUM_IMAGE_SIZE) && (fullImageSize.mHeight > MEDIUM_IMAGE_SIZE)) {
+                                    mediumImageSize = resizeWithMaxSide(fullImageSize, MEDIUM_IMAGE_SIZE);
+                                }
+
+                                FragmentManager fm = getSupportFragmentManager();
+                                ImageSizeSelectionDialogFragment fragment = (ImageSizeSelectionDialogFragment) fm.findFragmentByTag(TAG_FRAGMENT_IMAGE_SIZE_DIALOG);
+
+                                if (fragment != null) {
+                                    fragment.dismissAllowingStateLoss();
+                                }
+
+                                final ArrayList<String> textsList = new ArrayList<String>();
+                                final ArrayList<ImageSize> sizesList = new ArrayList<ImageSize>();
+
+                                textsList.add(getString(R.string.compression_opt_list_original) + " " + fullImageSize.mWidth + "x" + fullImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, fileSize) + ")");
+                                sizesList.add(fullImageSize);
+
+                                if (null != largeImageSize) {
+                                    int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 2 / 10 / 1024 * 1024;
+
+                                    textsList.add(getString(R.string.compression_opt_list_large) + " " + largeImageSize.mWidth + "x" + largeImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    sizesList.add(largeImageSize);
+                                }
+
+                                if (null != mediumImageSize) {
+                                    int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 2 / 10 / 1024 * 1024;
+
+                                    textsList.add(getString(R.string.compression_opt_list_medium) + " " + mediumImageSize.mWidth + "x" + mediumImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    sizesList.add(mediumImageSize);
+                                }
+
+                                if (null != smallImageSize) {
+                                    int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 2 / 10 / 1024 * 1024;
+
+                                    textsList.add(getString(R.string.compression_opt_list_small) + " " + smallImageSize.mWidth + "x" + smallImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    sizesList.add(smallImageSize);
+                                }
+
+                                final Bitmap ffullSizeBitmap = fullSizeBitmap;
+
+                                fragment = ImageSizeSelectionDialogFragment.newInstance(textsList);
+                                fragment.setListener( new ImageSizeSelectionDialogFragment.ImageSizeListener() {
+                                    @Override
+                                    public void onSelected(int pos) {
+                                        final int fPos = pos;
+
+                                        RoomActivity.this.runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                try {
+                                                    // pos == 0 -> original
+                                                    if (0 != fPos) {
+                                                        ImageSize imageSize = sizesList.get(fPos);
+                                                        Bitmap resizeBitmap = null;
+
+                                                        try {
+                                                            resizeBitmap = Bitmap.createScaledBitmap(ffullSizeBitmap, imageSize.mWidth, imageSize.mHeight, false);
+                                                        } catch (OutOfMemoryError ex) {
+                                                            ex = ex;
+                                                        }
+
+                                                        if (null != resizeBitmap) {
+                                                            String bitmapURL = mMediasCache.saveBitmap(resizeBitmap, RoomActivity.this, null);
+
+                                                            // try to reduce used memory
+                                                            if (null != resizeBitmap) {
+                                                                resizeBitmap.recycle();
+                                                            }
+
+                                                            if (null != bitmapURL) {
+                                                                mPendingMediaUrl = bitmapURL;
+                                                            }
+                                                        }
+                                                    }
+                                                } catch (Exception e) {
+                                                }
+
+                                                //
+                                                mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
+                                                mPendingImageUrl = null;
+                                                mPendingMediaUrl = null;
+                                                mPendingMimeType = null;
+                                                manageSendMoreButtons();
+                                            }
+                                        });
+                                    }
+                                });
+
+                                fragment.show(fm, TAG_FRAGMENT_IMAGE_SIZE_DIALOG);
+                                sendMedia = false;
+                            }
+
+                        } catch (Exception e) {
+                            e = e;
+                        }
+                    }
+
+                    if (sendMedia) {
+                        mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
+                        mPendingImageUrl = null;
+                        mPendingMediaUrl = null;
+                        mPendingMimeType = null;
+                        manageSendMoreButtons();
+                    }
                 } else {
                     String body = mEditText.getText().toString();
                     sendMessage(body);
