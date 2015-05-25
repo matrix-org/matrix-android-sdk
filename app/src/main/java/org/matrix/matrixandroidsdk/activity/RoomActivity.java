@@ -364,6 +364,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             try {
                                 fullSizeBitmap = BitmapFactory.decodeStream(imageStream, null, options);
                             } catch (OutOfMemoryError e) {
+                                Log.e(LOG_TAG, "Onclick BitmapFactory.decodeStream : " + e.getMessage());
                             }
 
                             ImageSize fullImageSize = new ImageSize(options.outWidth, options.outHeight);
@@ -444,7 +445,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                         try {
                                                             resizeBitmap = Bitmap.createScaledBitmap(ffullSizeBitmap, imageSize.mWidth, imageSize.mHeight, false);
                                                         } catch (OutOfMemoryError ex) {
-                                                            ex = ex;
+                                                            Log.e(LOG_TAG, "Onclick BitmapFactory.createScaledBitmap : " + ex.getMessage());
                                                         }
 
                                                         if (null != resizeBitmap) {
@@ -461,6 +462,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                         }
                                                     }
                                                 } catch (Exception e) {
+                                                    Log.e(LOG_TAG, "Onclick " + e.getMessage());
                                                 }
 
                                                 //
@@ -479,7 +481,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             }
 
                         } catch (Exception e) {
-                            e = e;
+                            Log.e(LOG_TAG, "Onclick " + e.getMessage());
                         }
                     }
 
@@ -905,7 +907,7 @@ public class RoomActivity extends MXCActionBarActivity {
                         mRoom.updateUserPowerLevels(userID, Integer.parseInt(powerLevelsAsString), callback);
                     }
                 } catch(Exception e){
-
+                    Log.e(LOG_TAG, "mRoom.updateUserPowerLevels " + e.getMessage());
                 }
             } else if (body.startsWith(CMD_RESET_USER_POWER_LEVEL)) {
                 isIRCCmd = true;
@@ -974,7 +976,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
                             thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
                         } catch (Exception e) {
-
+                            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
                         }
 
                         // no thumbnail has been found or the mimetype is unknown
@@ -1005,8 +1007,15 @@ public class RoomActivity extends MXCActionBarActivity {
                                     try {
                                         thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
                                     } catch (OutOfMemoryError ex) {
+                                        Log.e(LOG_TAG, "Bitmap.createScaledBitmap " + ex.getMessage());
                                     }
                                 }
+                            }
+
+                            // the valid mimetype is not provided
+                            if ("image/*".equals(mimeType)) {
+                                // build a jpg snapshot.
+                                mimeType = null;
                             }
 
                             // unknown mimetype
@@ -1026,6 +1035,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                         try {
                                             mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
                                         } catch (OutOfMemoryError ex) {
+                                            Log.e(LOG_TAG,  "mMediasCache.saveMedia" + ex.getMessage());
                                         }
 
                                     } else {
@@ -1036,6 +1046,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
                                 } catch (Exception e) {
                                     isManaged = false;
+                                    Log.e(LOG_TAG,  "sendMedias " + e.getMessage());
                                 }
                             }
 
@@ -1088,7 +1099,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                         filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                                     }
                                 } catch (Exception e) {
-
+                                    Log.e(LOG_TAG,  "cursor.getString " + e.getMessage());
                                 }
                                 finally {
                                     cursor.close();
@@ -1100,7 +1111,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             }
 
                         } catch (Exception e) {
-
+                            Log.e(LOG_TAG,  "sendMedias 1 " + e.getMessage());
                         }
 
                         mConsoleMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
