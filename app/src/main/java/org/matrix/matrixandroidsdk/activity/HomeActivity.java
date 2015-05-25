@@ -356,8 +356,14 @@ public class HomeActivity extends MXCActionBarActivity {
         if (null == indexesList) {
             expandAllGroups();
         } else {
+
+            int groupCount = mMyRoomList.getExpandableListAdapter().getGroupCount();
+
             for (Integer group : indexesList) {
-                mMyRoomList.expandGroup(group);
+                // check bounds else it could trigger weird UI effect (a list section is duplicated).
+                if (group < groupCount) {
+                    mMyRoomList.expandGroup(group);
+                }
             }
         }
     }
