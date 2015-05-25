@@ -971,8 +971,17 @@ public class RoomActivity extends MXCActionBarActivity {
 
                         try {
                             ContentResolver resolver = getContentResolver();
+
                             List uriPath = mediaUri.getPathSegments();
-                            long imageId = Long.parseLong((String) (uriPath.get(uriPath.size() - 1)));
+                            long imageId = -1;
+                            String lastSegment = (String) uriPath.get(uriPath.size() - 1);
+
+                            // > Kitkat
+                            if (lastSegment.startsWith("image:")) {
+                                lastSegment = lastSegment.substring("image:".length());
+                            }
+
+                            imageId = Long.parseLong(lastSegment);
 
                             thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
                         } catch (Exception e) {
