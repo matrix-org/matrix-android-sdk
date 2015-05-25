@@ -25,17 +25,23 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.adapters.ImageCompressionDescription;
 import org.matrix.matrixandroidsdk.adapters.ImageSizesAdapter;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * A dialog fragment showing a list of image selections string
  */
 public class ImageSizeSelectionDialogFragment  extends DialogFragment {
     private static final String LOG_TAG = "ImageSizeSelectionDialogFragment";
+
+    private static final String SELECTIONS_LIST = "SELECTIONS_LIST";
 
     public static interface ImageSizeListener {
         public void onSelected(int pos);
@@ -51,11 +57,11 @@ public class ImageSizeSelectionDialogFragment  extends DialogFragment {
 
     private ListView mListView;
     private ImageSizesAdapter mAdapter;
-    private Collection<ImageCompressionDescription>  mEntries = null;
+    private ArrayList<ImageCompressionDescription> mEntries = null;
     private ImageSizeListener mListener = null;
 
     public void setEntries(Collection<ImageCompressionDescription> entries) {
-        mEntries = entries;
+        mEntries = new ArrayList<ImageCompressionDescription>(entries);
     }
 
     public void setListener(ImageSizeListener listener) {
@@ -68,8 +74,25 @@ public class ImageSizeSelectionDialogFragment  extends DialogFragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+
+        if (null != mEntries) {
+            savedInstanceState.putSerializable(SELECTIONS_LIST, mEntries);
+        }
+    }
+
+    @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog d = super.onCreateDialog(savedInstanceState);
+
+        if (null != savedInstanceState) {
+            if (savedInstanceState.containsKey(SELECTIONS_LIST)) {
+                mEntries = (ArrayList<ImageCompressionDescription>)savedInstanceState.getSerializable(SELECTIONS_LIST);
+            }
+        }
+
         d.setTitle(getString(R.string.compression_options));
         return d;
     }

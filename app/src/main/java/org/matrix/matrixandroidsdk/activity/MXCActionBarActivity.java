@@ -26,6 +26,9 @@ import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -131,6 +134,15 @@ public class MXCActionBarActivity extends ActionBarActivity {
         ConsoleApplication.setCurrentActivity(null);
 
         ((ConsoleApplication)getApplication()).startActivityTransitionTimer();
+
+        // close any opened dialog
+        FragmentManager fm = getSupportFragmentManager();
+        java.util.List<android.support.v4.app.Fragment> fragments =  fm.getFragments();
+        for (Fragment fragment : fragments) {
+            if (fragment instanceof DialogFragment) {
+                ((DialogFragment)fragment).dismissAllowingStateLoss();
+            }
+        }
     }
 
     @Override
