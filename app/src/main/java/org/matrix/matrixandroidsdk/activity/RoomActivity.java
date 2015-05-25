@@ -66,6 +66,7 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.adapters.ImageCompressionDescription;
 import org.matrix.matrixandroidsdk.fragments.ConsoleMessageListFragment;
 import org.matrix.matrixandroidsdk.fragments.ImageSizeSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
@@ -398,30 +399,46 @@ public class RoomActivity extends MXCActionBarActivity {
                                     fragment.dismissAllowingStateLoss();
                                 }
 
-                                final ArrayList<String> textsList = new ArrayList<String>();
+                                final ArrayList<ImageCompressionDescription> textsList = new ArrayList<ImageCompressionDescription>();
                                 final ArrayList<ImageSize> sizesList = new ArrayList<ImageSize>();
 
-                                textsList.add(getString(R.string.compression_opt_list_original) + " " + fullImageSize.mWidth + "x" + fullImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, fileSize) + ")");
+                                ImageCompressionDescription description = new ImageCompressionDescription();
+                                description.mCompressionText = getString(R.string.compression_opt_list_original);
+                                description.mCompressionInfoText = fullImageSize.mWidth + "x" + fullImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, fileSize) + ")";
+
+                                textsList.add(description);
                                 sizesList.add(fullImageSize);
 
                                 if (null != largeImageSize) {
                                     int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
-                                    textsList.add(getString(R.string.compression_opt_list_large) + " " + largeImageSize.mWidth + "x" + largeImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    description = new ImageCompressionDescription();
+                                    description.mCompressionText = getString(R.string.compression_opt_list_large);
+                                    description.mCompressionInfoText = largeImageSize.mWidth + "x" + largeImageSize.mHeight + " (~" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")";
+
+                                    textsList.add(description);
                                     sizesList.add(largeImageSize);
                                 }
 
                                 if (null != mediumImageSize) {
                                     int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
-                                    textsList.add(getString(R.string.compression_opt_list_medium) + " " + mediumImageSize.mWidth + "x" + mediumImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    description = new ImageCompressionDescription();
+                                    description.mCompressionText = getString(R.string.compression_opt_list_medium);
+                                    description.mCompressionInfoText = mediumImageSize.mWidth + "x" + mediumImageSize.mHeight + " (~" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")";
+
+                                    textsList.add(description);
                                     sizesList.add(mediumImageSize);
                                 }
 
                                 if (null != smallImageSize) {
                                     int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
-                                    textsList.add(getString(R.string.compression_opt_list_small) + " " + smallImageSize.mWidth + "x" + smallImageSize.mHeight + " (" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")");
+                                    description = new ImageCompressionDescription();
+                                    description.mCompressionText = getString(R.string.compression_opt_list_small);
+                                    description.mCompressionInfoText = smallImageSize.mWidth + "x" + smallImageSize.mHeight + " (~" + android.text.format.Formatter.formatFileSize(RoomActivity.this, estFileSize) + ")";
+
+                                    textsList.add(description);
                                     sizesList.add(smallImageSize);
                                 }
 

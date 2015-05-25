@@ -26,6 +26,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.matrix.matrixandroidsdk.R;
+import org.matrix.matrixandroidsdk.adapters.ImageCompressionDescription;
 import org.matrix.matrixandroidsdk.adapters.ImageSizesAdapter;
 
 import java.util.Collection;
@@ -40,7 +41,7 @@ public class ImageSizeSelectionDialogFragment  extends DialogFragment {
         public void onSelected(int pos);
     }
 
-    public static ImageSizeSelectionDialogFragment newInstance(Collection<String> entries) {
+    public static ImageSizeSelectionDialogFragment newInstance(Collection<ImageCompressionDescription> entries) {
         ImageSizeSelectionDialogFragment f= new ImageSizeSelectionDialogFragment();
         Bundle args = new Bundle();
         f.setArguments(args);
@@ -50,10 +51,10 @@ public class ImageSizeSelectionDialogFragment  extends DialogFragment {
 
     private ListView mListView;
     private ImageSizesAdapter mAdapter;
-    private Collection<String>  mEntries = null;
+    private Collection<ImageCompressionDescription>  mEntries = null;
     private ImageSizeListener mListener = null;
 
-    public void setEntries(Collection<String> entries) {
+    public void setEntries(Collection<ImageCompressionDescription> entries) {
         mEntries = entries;
     }
 
@@ -81,7 +82,10 @@ public class ImageSizeSelectionDialogFragment  extends DialogFragment {
         mListView = ((ListView)v.findViewById(R.id.listView_accounts));
 
         mAdapter = new ImageSizesAdapter(getActivity(), R.layout.adapter_item_image_size);
-        mAdapter.addAll(mEntries);
+
+        if (null != mEntries) {
+            mAdapter.addAll(mEntries);
+        }
         mListView.setAdapter(mAdapter);
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {

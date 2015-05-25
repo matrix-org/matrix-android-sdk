@@ -34,8 +34,7 @@ import org.matrix.androidsdk.db.MXMediasCache;
 /**
  * An adapter which can display string
  */
-public class ImageSizesAdapter extends ArrayAdapter<String> {
-
+public class ImageSizesAdapter extends ArrayAdapter<ImageCompressionDescription> {
     protected Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
@@ -59,8 +58,13 @@ public class ImageSizesAdapter extends ArrayAdapter<String> {
             convertView = mLayoutInflater.inflate(mLayoutResourceId, parent, false);
         }
 
-        TextView textView = (TextView)convertView.findViewById(R.id.ImageSizesAdapter_text);
-        textView.setText(getItem(position));
+        ImageCompressionDescription imageSizesDescription = getItem(position);
+
+        TextView textView = (TextView)convertView.findViewById(R.id.ImageSizesAdapter_format);
+        textView.setText(imageSizesDescription.mCompressionText);
+
+        textView = (TextView)convertView.findViewById(R.id.ImageSizesAdapter_info);
+        textView.setText(imageSizesDescription.mCompressionInfoText);
         return convertView;
     }
 }
