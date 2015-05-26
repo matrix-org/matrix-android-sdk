@@ -55,10 +55,11 @@ public class ImageUtils {
      * @param fullImageStream the image stream
      * @param maxSize the square side to draw the image in. -1 to ignore.
      * @param aSampleSize the image dimension divider.
+     * @param quality the image quality (0 -> 100)
      * @return a stream of the resized imaged
      * @throws IOException
      */
-    public static InputStream resizeImage(InputStream fullImageStream, int maxSize, int aSampleSize) throws IOException {
+    public static InputStream resizeImage(InputStream fullImageStream, int maxSize, int aSampleSize, int quality) throws IOException {
         /*
          * This is all a bit of a mess because android doesn't ship with sensible bitmap streaming libraries.
          *
@@ -127,7 +128,7 @@ public class ImageUtils {
 
             // recopy it back into an input stream :/
             outstream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outstream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outstream);
 
             // cleanup
             bitmap.recycle();

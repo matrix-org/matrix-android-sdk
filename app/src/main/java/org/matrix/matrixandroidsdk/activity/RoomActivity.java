@@ -420,7 +420,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 sizesList.add(fullImageSize);
 
                                 if (null != largeImageSize) {
-                                    int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 4 / 10 / 1024 * 1024;
+                                    int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_large);
@@ -431,7 +431,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 }
 
                                 if (null != mediumImageSize) {
-                                    int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 4 / 10 / 1024 * 1024;
+                                    int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_medium);
@@ -442,7 +442,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 }
 
                                 if (null != smallImageSize) {
-                                    int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 4 / 10 / 1024 * 1024;
+                                    int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 2 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_small);
@@ -470,7 +470,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                         InputStream resizeBitmapStream = null;
 
                                                         try {
-                                                            resizeBitmapStream = ImageUtils.resizeImage(imageStream, -1, (fullImageSize.mWidth + imageSize.mWidth - 1) / imageSize.mWidth);
+                                                            resizeBitmapStream = ImageUtils.resizeImage(imageStream, -1, (fullImageSize.mWidth + imageSize.mWidth - 1) / imageSize.mWidth, 75);
                                                         } catch (OutOfMemoryError ex) {
                                                             Log.e(LOG_TAG, "Onclick BitmapFactory.createScaledBitmap : " + ex.getMessage());
                                                         } catch (Exception e) {
