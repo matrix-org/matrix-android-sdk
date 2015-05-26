@@ -15,12 +15,19 @@
  */
 package org.matrix.matrixandroidsdk.util;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.util.Log;
+
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.db.MXMediasCache;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,10 +35,10 @@ public class ImageUtils {
 
     private static final String LOG_TAG = "ImageUtils";
 
-    public static  BitmapFactory.Options decodeBitmapDimensions(InputStream stream) {
+    public static BitmapFactory.Options decodeBitmapDimensions(InputStream stream) {
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(stream,null,o);
+        BitmapFactory.decodeStream(stream, null, o);
         if (o.outHeight == -1 || o.outWidth == -1) {
             // this doesn't look like an image...
             Log.e(LOG_TAG, "Cannot resize input stream, failed to get w/h.");
@@ -43,7 +50,7 @@ public class ImageUtils {
     public static int getSampleSize(int w, int h, int maxSize) {
         int highestDimensionSize = (h > w) ? h : w;
         double ratio = (highestDimensionSize > maxSize) ? (highestDimensionSize / maxSize) : 1.0;
-        int sampleSize = Integer.highestOneBit((int)Math.floor(ratio));
+        int sampleSize = Integer.highestOneBit((int) Math.floor(ratio));
         if (sampleSize == 0) {
             sampleSize = 1;
         }
@@ -52,10 +59,11 @@ public class ImageUtils {
 
     /**
      * Resize an image from its stream.
+     *
      * @param fullImageStream the image stream
-     * @param maxSize the square side to draw the image in. -1 to ignore.
-     * @param aSampleSize the image dimension divider.
-     * @param quality the image quality (0 -> 100)
+     * @param maxSize         the square side to draw the image in. -1 to ignore.
+     * @param aSampleSize     the image dimension divider.
+     * @param quality         the image quality (0 -> 100)
      * @return a stream of the resized imaged
      * @throws IOException
      */
@@ -108,13 +116,12 @@ public class ImageUtils {
         int w = o.outWidth;
         int h = o.outHeight;
         bais.reset(); // yay no need to re-read the stream (which is why we dumped to another stream)
-        int sampleSize = (maxSize == -1) ? aSampleSize : getSampleSize(w,h, maxSize);
+        int sampleSize = (maxSize == -1) ? aSampleSize : getSampleSize(w, h, maxSize);
 
         if (sampleSize == 1) {
             // small optimisation
             return bais;
-        }
-        else {
+        } else {
             // yucky, we have to decompress the entire (albeit subsampled) bitmap into memory then dump it back into a stream
             o = new BitmapFactory.Options();
             o.inSampleSize = sampleSize;
@@ -136,5 +143,87 @@ public class ImageUtils {
 
             return new ByteArrayInputStream(outstream.toByteArray());
         }
+    }
+
+    /**
+     * Apply rotation to the cached image (stored at imageURL).
+     * The rotated image replaces the genuine one.
+     * @param context the application
+     * @param imageURL the genuine image URL.
+     * @param rotationAngle angle in degrees
+     * @param mediasCache the used media cache
+     * @return true if the operation succeeds
+     */
+    public static boolean rotateImage(Context context,String imageURL , int rotationAngle, MXMediasCache mediasCache) {
+        boolean succeeds = false;
+
+        try
+        {
+            Uri imageUri = Uri.parse(imageURL);
+
+            // there is one
+            if (0 != rotationAngle) {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                options.outWidth = -1;
+                options.outHeight = -1;
+
+                // decode the bitmap
+                Bitmap bitmap = null;
+                try {
+                    final String filename = imageUri.getPath();
+                    FileInputStream imageStream = new FileInputStream(new File(filename));
+                    bitmap = BitmapFactory.decodeStream(imageStream, null, options);
+                    imageStream.close();
+                } catch (OutOfMemoryError e) {
+                    Log.e(LOG_TAG, "applyExifRotation BitmapFactory.decodeStream : " + e.getMessage());
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+                }
+
+                android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
+                bitmapMatrix.postRotate(rotationAngle);
+                Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
+                bitmap.recycle();
+
+                if (null != mediasCache) {
+                    mediasCache.saveBitmap(transformedBitmap, context, imageURL);
+                }
+
+                succeeds = true;
+            }
+
+        } catch (OutOfMemoryError e) {
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+        }
+
+        return succeeds;
+    }
+
+    /**
+     * Apply exif rotation to the cached image (stored at imageURL).
+     * The rotated image replaces the genuine one.
+     * @param context the application
+     * @param imageURL the genuine image URL.
+     * @param mediasCache the used media cache
+     * @return true if the operation succeeds
+     */
+    public static Boolean applyExifRotation(Context context,String imageURL , MXMediasCache mediasCache) {
+        Boolean succeeds = false;
+
+        try
+        {
+            Uri imageUri = Uri.parse(imageURL);
+            // get the exif rotation angle
+            final int rotationAngle = Room.getRotationAngleForBitmap(context, imageUri);
+            succeeds = rotateImage(context, imageURL, rotationAngle, mediasCache);
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+        }
+
+        return succeeds;
     }
 }

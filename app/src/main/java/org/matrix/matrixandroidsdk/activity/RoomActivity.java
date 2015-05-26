@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
@@ -270,30 +271,6 @@ public class RoomActivity extends MXCActionBarActivity {
             mHeight = height;
         }
     }
-
-    /**
-     * Resize an ImageSize to fit in a square area with maxSide side
-     * @param originalSize the ImageSide to resize
-     * @param maxSide the sqaure side.
-     * @return the resize
-     */
-    private ImageSize resizeWithMaxSide(ImageSize originalSize, int maxSide)
-    {
-        ImageSize resized = new ImageSize(originalSize);
-
-        if ((originalSize.mWidth > maxSide) && (originalSize.mHeight > maxSide))
-        {
-            double ratioX = ((double)maxSide) / ((double)originalSize.mWidth);
-            double ratioY = ((double)maxSide) / ((double)originalSize.mHeight);
-
-            double scale = Math.max(ratioX, ratioY);
-            resized.mWidth  *= scale;
-            resized.mHeight *= scale;
-        }
-
-        return resized;
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -354,6 +331,9 @@ public class RoomActivity extends MXCActionBarActivity {
                         try {
                             Uri uri = Uri.parse(mPendingMediaUrl);
                             final String filename = uri.getPath();
+
+                            final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, uri);
+
                             imageStream = new FileInputStream (new File(filename));
 
                             int fileSize =  imageStream.available();
@@ -480,11 +460,21 @@ public class RoomActivity extends MXCActionBarActivity {
                                                         if (null != resizeBitmapStream) {
                                                             String bitmapURL = mMediasCache.saveMedia(resizeBitmapStream, RoomActivity.this, null, "image/jpeg");
 
+
                                                             if (null != bitmapURL) {
                                                                 mPendingMediaUrl = bitmapURL;
                                                             }
 
                                                             resizeBitmapStream.close();
+
+                                                            // try to apply exif rotation
+                                                            if (0 != rotationAngle) {
+                                                                // rotate the image content
+                                                                if (ImageUtils.rotateImage(RoomActivity.this, mPendingMediaUrl, rotationAngle, mMediasCache)) {
+                                                                    // and the media thumbnail
+                                                                    ImageUtils.rotateImage(RoomActivity.this, mPendingImageUrl, rotationAngle, mMediasCache);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 } catch (Exception e) {
@@ -1049,7 +1039,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
                             // the valid mimetype is not provided
                             if ("image/*".equals(mimeType)) {
-                                // build a jpg snapshot.
+                                // make a jpg snapshot.
                                 mimeType = null;
                             }
 
@@ -1096,6 +1086,21 @@ public class RoomActivity extends MXCActionBarActivity {
 
                         if (null != thumbnailBitmap) {
                             thumbnailBitmap.recycle();
+                        }
+
+                        //
+                        if (("image/jpg".equals(mimeType) || "image/jpeg".equals(mimeType)) && (null != mediaUrl)) {
+
+                            Uri imageUri = Uri.parse(mediaUrl);
+                            // get the exif rotation angle
+                            final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, imageUri);
+
+                            if (0 != rotationAngle) {
+                                if (ImageUtils.rotateImage(RoomActivity.this, mediaUrl, rotationAngle, mMediasCache)) {
+                                    // check if there is an exif to apply
+                                    ImageUtils.rotateImage(RoomActivity.this, thumbnailURL, rotationAngle, mMediasCache);
+                                }
+                            }
                         }
 
                         // is the image content valid ?
