@@ -137,10 +137,13 @@ public class MXCActionBarActivity extends ActionBarActivity {
 
         // close any opened dialog
         FragmentManager fm = getSupportFragmentManager();
-        java.util.List<android.support.v4.app.Fragment> fragments =  fm.getFragments();
-        for (Fragment fragment : fragments) {
-            if (fragment instanceof DialogFragment) {
-                ((DialogFragment)fragment).dismissAllowingStateLoss();
+        java.util.List<android.support.v4.app.Fragment> fragments = fm.getFragments();
+
+        if (null != fragments) {
+            for (Fragment fragment : fragments) {
+                if (fragment instanceof DialogFragment) {
+                    ((DialogFragment) fragment).dismissAllowingStateLoss();
+                }
             }
         }
     }
