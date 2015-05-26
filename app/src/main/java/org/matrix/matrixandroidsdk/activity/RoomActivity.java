@@ -72,6 +72,7 @@ import org.matrix.matrixandroidsdk.fragments.ImageSizeSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
+import org.matrix.matrixandroidsdk.util.ImageUtils;
 import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
@@ -129,9 +130,9 @@ public class RoomActivity extends MXCActionBarActivity {
     private static final int CREATE_DOCUMENT = 2;
 
     // max image sizes
-    private static final int LARGE_IMAGE_SIZE  = 1024;
-    private static final int MEDIUM_IMAGE_SIZE = 768;
-    private static final int SMALL_IMAGE_SIZE  = 512;
+    private static final int LARGE_IMAGE_SIZE  = 2000;
+    private static final int MEDIUM_IMAGE_SIZE = 1000;
+    private static final int SMALL_IMAGE_SIZE  = 500;
 
     private ConsoleMessageListFragment mConsoleMessageListFragment;
     private MXSession mSession;
@@ -358,7 +359,10 @@ public class RoomActivity extends MXCActionBarActivity {
                             int fileSize =  imageStream.available();
 
                             BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inJustDecodeBounds = true;
                             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                            options.outWidth = -1;
+                            options.outHeight = -1;
 
                             // get the full size bitmap
                             Bitmap fullSizeBitmap = null;
@@ -368,28 +372,34 @@ public class RoomActivity extends MXCActionBarActivity {
                                 Log.e(LOG_TAG, "Onclick BitmapFactory.decodeStream : " + e.getMessage());
                             }
 
-                            ImageSize fullImageSize = new ImageSize(options.outWidth, options.outHeight);
+                            final ImageSize fullImageSize = new ImageSize(options.outWidth, options.outHeight);
 
                             imageStream.close();
 
+                            int maxSide = (fullImageSize.mHeight >  fullImageSize.mWidth) ? fullImageSize.mHeight : fullImageSize.mWidth;
+
                             // can be rescaled ?
-                            if ((null != fullSizeBitmap) &&  (fullImageSize.mWidth > SMALL_IMAGE_SIZE) && (fullImageSize.mHeight > SMALL_IMAGE_SIZE)) {
+                            if (maxSide > SMALL_IMAGE_SIZE) {
                                 ImageSize largeImageSize = null;
 
-                                if ((fullImageSize.mWidth > LARGE_IMAGE_SIZE) && (fullImageSize.mHeight > LARGE_IMAGE_SIZE)) {
-                                    largeImageSize = resizeWithMaxSide(fullImageSize, LARGE_IMAGE_SIZE);
+                                int divider = 2;
+
+                                if (maxSide > LARGE_IMAGE_SIZE) {
+                                    largeImageSize = new ImageSize((fullImageSize.mWidth + (divider-1)) / divider, (fullImageSize.mHeight + (divider-1)) / divider);
+                                    divider *= 2;
                                 }
 
                                 ImageSize mediumImageSize = null;
 
-                                if ((fullImageSize.mWidth > MEDIUM_IMAGE_SIZE) && (fullImageSize.mHeight > MEDIUM_IMAGE_SIZE)) {
-                                    mediumImageSize = resizeWithMaxSide(fullImageSize, MEDIUM_IMAGE_SIZE);
+                                if (maxSide > MEDIUM_IMAGE_SIZE)  {
+                                    mediumImageSize = new ImageSize((fullImageSize.mWidth + (divider-1)) / divider, (fullImageSize.mHeight + (divider-1)) / divider);
+                                    divider *= 2;
                                 }
 
-                                ImageSize smallImageSize = resizeWithMaxSide(fullImageSize, SMALL_IMAGE_SIZE);
+                                ImageSize smallImageSize = null;
 
-                                if ((fullImageSize.mWidth > MEDIUM_IMAGE_SIZE) && (fullImageSize.mHeight > MEDIUM_IMAGE_SIZE)) {
-                                    mediumImageSize = resizeWithMaxSide(fullImageSize, MEDIUM_IMAGE_SIZE);
+                                if (maxSide > SMALL_IMAGE_SIZE)  {
+                                    smallImageSize = new ImageSize((fullImageSize.mWidth + (divider-1)) / divider, (fullImageSize.mHeight + (divider-1)) / divider);
                                 }
 
                                 FragmentManager fm = getSupportFragmentManager();
@@ -410,7 +420,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 sizesList.add(fullImageSize);
 
                                 if (null != largeImageSize) {
-                                    int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 2 / 10 / 1024 * 1024;
+                                    int estFileSize = largeImageSize.mWidth * largeImageSize.mHeight * 4 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_large);
@@ -421,7 +431,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 }
 
                                 if (null != mediumImageSize) {
-                                    int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 2 / 10 / 1024 * 1024;
+                                    int estFileSize = mediumImageSize.mWidth * mediumImageSize.mHeight * 4 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_medium);
@@ -432,7 +442,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                 }
 
                                 if (null != smallImageSize) {
-                                    int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 2 / 10 / 1024 * 1024;
+                                    int estFileSize = smallImageSize.mWidth * smallImageSize.mHeight * 4 / 10 / 1024 * 1024;
 
                                     description = new ImageCompressionDescription();
                                     description.mCompressionText = getString(R.string.compression_opt_list_small);
@@ -441,8 +451,6 @@ public class RoomActivity extends MXCActionBarActivity {
                                     textsList.add(description);
                                     sizesList.add(smallImageSize);
                                 }
-
-                                final Bitmap ffullSizeBitmap = fullSizeBitmap;
 
                                 fragment = ImageSizeSelectionDialogFragment.newInstance(textsList);
                                 fragment.setListener( new ImageSizeSelectionDialogFragment.ImageSizeListener() {
@@ -456,26 +464,27 @@ public class RoomActivity extends MXCActionBarActivity {
                                                 try {
                                                     // pos == 0 -> original
                                                     if (0 != fPos) {
+                                                        FileInputStream imageStream = new FileInputStream (new File(filename));
+
                                                         ImageSize imageSize = sizesList.get(fPos);
-                                                        Bitmap resizeBitmap = null;
+                                                        InputStream resizeBitmapStream = null;
 
                                                         try {
-                                                            resizeBitmap = Bitmap.createScaledBitmap(ffullSizeBitmap, imageSize.mWidth, imageSize.mHeight, false);
+                                                            resizeBitmapStream = ImageUtils.resizeImage(imageStream, -1, (fullImageSize.mWidth + imageSize.mWidth - 1) / imageSize.mWidth);
                                                         } catch (OutOfMemoryError ex) {
                                                             Log.e(LOG_TAG, "Onclick BitmapFactory.createScaledBitmap : " + ex.getMessage());
+                                                        } catch (Exception e) {
+                                                            Log.e(LOG_TAG, "Onclick BitmapFactory.createScaledBitmap failed : " + e.getMessage());
                                                         }
 
-                                                        if (null != resizeBitmap) {
-                                                            String bitmapURL = mMediasCache.saveBitmap(resizeBitmap, RoomActivity.this, null);
-
-                                                            // try to reduce used memory
-                                                            if (null != resizeBitmap) {
-                                                                resizeBitmap.recycle();
-                                                            }
+                                                        if (null != resizeBitmapStream) {
+                                                            String bitmapURL = mMediasCache.saveMedia(resizeBitmapStream, RoomActivity.this, null, "image/jpeg");
 
                                                             if (null != bitmapURL) {
                                                                 mPendingMediaUrl = bitmapURL;
                                                             }
+
+                                                            resizeBitmapStream.close();
                                                         }
                                                     }
                                                 } catch (Exception e) {
