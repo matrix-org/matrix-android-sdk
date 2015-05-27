@@ -359,6 +359,7 @@ public class MXMediasCache {
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
      * @param imageView     the imageView to fill when the image is downloaded
      * @param url           the image url
@@ -473,6 +474,8 @@ public class MXMediasCache {
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
+     *
      * @param context the context
      * @param imageView the imageView to fill when the image is downloaded
      * @param url the image url

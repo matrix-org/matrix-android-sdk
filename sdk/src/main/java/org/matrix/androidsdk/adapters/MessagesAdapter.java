@@ -653,7 +653,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final int maxImageWidth = mMaxImageWidth;
         final int maxImageHeight = mMaxImageHeight;
-        final int rotationAngle = ((null != imageInfo) && (imageInfo.rotation != null)) ? imageInfo.rotation : 0;
+        final int rotationAngle = ((null != imageInfo) && (imageInfo.rotation != null)) ? imageInfo.rotation : Integer.MAX_VALUE;
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);

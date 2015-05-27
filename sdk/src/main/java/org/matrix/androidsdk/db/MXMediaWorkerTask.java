@@ -26,6 +26,8 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
+import org.matrix.androidsdk.data.Room;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -113,6 +115,8 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
     /**
      * Search a cached bitmap from an url.
+     * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
+     *
      * @param appContext the context
      * @param url the media url
      * @param rotation the bitmap rotation
@@ -169,6 +173,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                         fis = appContext.getApplicationContext().openFileInput(filename);
                     }
 
+                    // read the metadata
+                    if (Integer.MAX_VALUE == rotation) {
+                        rotation = Room.getRotationAngleForBitmap(appContext.getApplicationContext(), Uri.parse(url));
+                    }
+
                     if (null != fis) {
                         BitmapFactory.Options options = new BitmapFactory.Options();
                         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -191,6 +200,8 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
                         if (null != bitmap) {
                             synchronized (sMemoryCache) {
+
+
 
                                 if (0 != rotation) {
                                     try {
