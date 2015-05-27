@@ -151,7 +151,7 @@ public class RoomActivity extends MXCActionBarActivity {
     private ImageView mImagePreviewView;
     private ImageButton mImagePreviewButton;
 
-    private String mPendingImageUrl;
+    private String mPendingThumbnailUrl;
     private String mPendingMediaUrl;
     private String mPendingMimeType;
 
@@ -290,13 +290,13 @@ public class RoomActivity extends MXCActionBarActivity {
             notificationsManager.cancelAll();
         }
 
-        mPendingImageUrl = null;
+        mPendingThumbnailUrl = null;
         mPendingMediaUrl = null;
         mPendingMimeType = null;
 
         if (null != savedInstanceState) {
             if (savedInstanceState.containsKey(PENDING_THUMBNAIL_URL)) {
-                mPendingImageUrl = savedInstanceState.getString(PENDING_THUMBNAIL_URL);
+                mPendingThumbnailUrl = savedInstanceState.getString(PENDING_THUMBNAIL_URL);
             }
 
             if (savedInstanceState.containsKey(PENDING_MEDIA_URL)) {
@@ -319,7 +319,7 @@ public class RoomActivity extends MXCActionBarActivity {
             @Override
             public void onClick(View view) {
                 // send the previewed image ?
-                if (null != mPendingImageUrl) {
+                if (null != mPendingThumbnailUrl) {
                     boolean sendMedia = true;
 
                     // check if the media could be resized
@@ -472,7 +472,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                                 // rotate the image content
                                                                 if (ImageUtils.rotateImage(RoomActivity.this, mPendingMediaUrl, rotationAngle, mMediasCache)) {
                                                                     // and the media thumbnail
-                                                                    ImageUtils.rotateImage(RoomActivity.this, mPendingImageUrl, rotationAngle, mMediasCache);
+                                                                    ImageUtils.rotateImage(RoomActivity.this, mPendingThumbnailUrl, rotationAngle, mMediasCache);
                                                                 }
                                                             }
                                                         }
@@ -482,8 +482,8 @@ public class RoomActivity extends MXCActionBarActivity {
                                                 }
 
                                                 //
-                                                mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
-                                                mPendingImageUrl = null;
+                                                mConsoleMessageListFragment.uploadImageContent(mPendingThumbnailUrl, mPendingMediaUrl, mPendingMimeType);
+                                                mPendingThumbnailUrl = null;
                                                 mPendingMediaUrl = null;
                                                 mPendingMimeType = null;
                                                 manageSendMoreButtons();
@@ -502,8 +502,8 @@ public class RoomActivity extends MXCActionBarActivity {
                     }
 
                     if (sendMedia) {
-                        mConsoleMessageListFragment.uploadImageContent(mPendingImageUrl, mPendingMediaUrl, mPendingMimeType);
-                        mPendingImageUrl = null;
+                        mConsoleMessageListFragment.uploadImageContent(mPendingThumbnailUrl, mPendingMediaUrl, mPendingMimeType);
+                        mPendingThumbnailUrl = null;
                         mPendingMediaUrl = null;
                         mPendingMimeType = null;
                         manageSendMoreButtons();
@@ -621,7 +621,7 @@ public class RoomActivity extends MXCActionBarActivity {
         mImagePreviewButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPendingImageUrl = null;
+                mPendingThumbnailUrl = null;
                 mPendingMediaUrl = null;
                 mPendingMimeType = null;
                 manageSendMoreButtons();
@@ -652,8 +652,8 @@ public class RoomActivity extends MXCActionBarActivity {
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
 
-        if (null != mPendingImageUrl) {
-            savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingImageUrl);
+        if (null != mPendingThumbnailUrl) {
+            savedInstanceState.putString(PENDING_THUMBNAIL_URL, mPendingThumbnailUrl);
         }
 
         if (null != mPendingMediaUrl) {
@@ -670,10 +670,10 @@ public class RoomActivity extends MXCActionBarActivity {
      */
     private void manageSendMoreButtons() {
         boolean hasText = mEditText.getText().length() > 0;
-        boolean hasPreviewedMedia = (null != mPendingImageUrl);
+        boolean hasPreviewedMedia = (null != mPendingThumbnailUrl);
 
         if (hasPreviewedMedia) {
-            mMediasCache.loadBitmap(mImagePreviewView, mPendingImageUrl, 0, mPendingMimeType);
+            mMediasCache.loadBitmap(mImagePreviewView, mPendingThumbnailUrl, 0, mPendingMimeType);
         }
 
         mImagePreviewLayout.setVisibility(hasPreviewedMedia ? View.VISIBLE : View.GONE);
@@ -1109,7 +1109,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             // if there is only one image
                             if (mediaCount == 1) {
                                 // display an image preview before sending it
-                                mPendingImageUrl = thumbnailURL;
+                                mPendingThumbnailUrl = thumbnailURL;
                                 mPendingMediaUrl = mediaUrl;
                                 mPendingMimeType = mimeType;
 
