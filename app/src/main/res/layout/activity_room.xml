@@ -95,6 +95,26 @@
             android:layout_alignParentTop="true"
             android:orientation="vertical"
             android:accessibilityLiveRegion="polite"/>
+
+        <View
+            android:id="@+id/medias_processing_progress_background"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:visibility="gone"
+            android:background="@color/chat_encoding_background"
+             />
+
+        <ProgressBar
+            android:id="@+id/medias_processing_progress"
+            android:layout_height="40dp"
+            android:layout_width="40dp"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:visibility="gone"
+            android:indeterminate="true" />
+
     </RelativeLayout>
 
     <!-- The navigation drawer -->

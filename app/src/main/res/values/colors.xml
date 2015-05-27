@@ -9,6 +9,7 @@
     <color name="member_list_last_seen_text">#aaa</color>
 
     <color name="chat_gray_text">#FFAAAAAA</color>
+    <color name="chat_encoding_background">#AAAAAAAA</color>
     <color name="room_summary_unread_background">#ede</color>
     <color name="room_summary_highlight_background">#FF88BBFF</color>
     <color name="room_summary_public_highlight_background">#FFFFFFDD</color>

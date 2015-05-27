@@ -30,6 +30,7 @@ import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
@@ -48,6 +49,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.MXFileStoreMetaData;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -954,211 +956,255 @@ public class RoomActivity extends MXCActionBarActivity {
      * Send a list of images from their URIs
      * @param mediaUris the media URIs
      */
-    private void sendMedias(ArrayList<Uri> mediaUris) {
-        final int mediaCount = mediaUris.size();
+    private void sendMedias(final ArrayList<Uri> mediaUris) {
 
-        for(Uri anUri : mediaUris) {
-            final Uri mediaUri = anUri;
+        final View progressBackground =  findViewById(R.id.medias_processing_progress_background);
+        final View progress = findViewById(R.id.medias_processing_progress);
 
-            RoomActivity.this.runOnUiThread(new Runnable() {
+        progressBackground.setVisibility(View.VISIBLE);
+        progress.setVisibility(View.VISIBLE);
 
-                @Override
-                public void run() {
-                    ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
-                    if (resource == null) {
-                        Toast.makeText(RoomActivity.this,
-                                getString(R.string.message_failed_to_upload),
-                                Toast.LENGTH_LONG).show();
-                        return;
-                    }
+        final HandlerThread handlerThread = new HandlerThread("MediasEncodingThread");
+        handlerThread.start();
 
-                    // save the file in the filesystem
-                    String mediaUrl = mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
-                    String mimeType = resource.mimeType;
-                    Boolean isManaged = false;
+        final android.os.Handler handler = new android.os.Handler(handlerThread.getLooper());
 
-                    if ((null != resource.mimeType) && resource.mimeType.startsWith("image/")) {
-                        // manage except if there is an error
-                        isManaged = true;
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    public void run() {
+                        final int mediaCount = mediaUris.size();
 
-                        // try to retrieve the gallery thumbnail
-                        // if the image comes from the gallery..
-                        Bitmap thumbnailBitmap = null;
+                        for (Uri anUri : mediaUris) {
+                            final Uri mediaUri = anUri;
 
-                        try {
-                            ContentResolver resolver = getContentResolver();
-
-                            List uriPath = mediaUri.getPathSegments();
-                            long imageId = -1;
-                            String lastSegment = (String) uriPath.get(uriPath.size() - 1);
-
-                            // > Kitkat
-                            if (lastSegment.startsWith("image:")) {
-                                lastSegment = lastSegment.substring("image:".length());
+                            ResourceUtils.Resource resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+                            if (resource == null) {
+                                Toast.makeText(RoomActivity.this,
+                                        getString(R.string.message_failed_to_upload),
+                                        Toast.LENGTH_LONG).show();
+                                return;
                             }
 
-                            imageId = Long.parseLong(lastSegment);
+                            // save the file in the filesystem
+                            String mediaUrl = mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                            String mimeType = resource.mimeType;
+                            Boolean isManaged = false;
 
-                            thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
-                        }
+                            if ((null != resource.mimeType) && resource.mimeType.startsWith("image/")) {
+                                // manage except if there is an error
+                                isManaged = true;
 
-                        // no thumbnail has been found or the mimetype is unknown
-                        if (null == thumbnailBitmap) {
-                            // need to decompress the high res image
-                            BitmapFactory.Options options = new BitmapFactory.Options();
-                            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                            resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+                                // try to retrieve the gallery thumbnail
+                                // if the image comes from the gallery..
+                                Bitmap thumbnailBitmap = null;
 
-                            // get the full size bitmap
-                            Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
-
-                            // create a thumbnail bitmap if there is none
-                            if (null == thumbnailBitmap) {
-                                if (fullSizeBitmap != null) {
-                                    double fullSizeWidth = fullSizeBitmap.getWidth();
-                                    double fullSizeHeight = fullSizeBitmap.getHeight();
-
-                                    double thumbnailWidth = mConsoleMessageListFragment.getMaxThumbnailWith();
-                                    double thumbnailHeight = mConsoleMessageListFragment.getMaxThumbnailHeight();
-
-                                    if (fullSizeWidth > fullSizeHeight) {
-                                        thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
-                                    } else {
-                                        thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
-                                    }
-
-                                    try {
-                                        thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
-                                    } catch (OutOfMemoryError ex) {
-                                        Log.e(LOG_TAG, "Bitmap.createScaledBitmap " + ex.getMessage());
-                                    }
-                                }
-                            }
-
-                            // the valid mimetype is not provided
-                            if ("image/*".equals(mimeType)) {
-                                // make a jpg snapshot.
-                                mimeType = null;
-                            }
-
-                            // unknown mimetype
-                            if ((null == mimeType) || (mimeType.startsWith("image/"))) {
                                 try {
-                                    if (null != fullSizeBitmap) {
-                                        Uri uri = Uri.parse(mediaUrl);
+                                    ContentResolver resolver = getContentResolver();
 
-                                        if (null == mimeType) {
-                                            // the images are save in jpeg format
-                                            mimeType = "image/jpeg";
+                                    List uriPath = mediaUri.getPathSegments();
+                                    long imageId = -1;
+                                    String lastSegment = (String) uriPath.get(uriPath.size() - 1);
+
+                                    // > Kitkat
+                                    if (lastSegment.startsWith("image:")) {
+                                        lastSegment = lastSegment.substring("image:".length());
+                                    }
+
+                                    imageId = Long.parseLong(lastSegment);
+
+                                    thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
+                                }
+
+                                // no thumbnail has been found or the mimetype is unknown
+                                if (null == thumbnailBitmap) {
+                                    // need to decompress the high res image
+                                    BitmapFactory.Options options = new BitmapFactory.Options();
+                                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                                    resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
+                                    // get the full size bitmap
+                                    Bitmap fullSizeBitmap = BitmapFactory.decodeStream(resource.contentStream, null, options);
+
+                                    // create a thumbnail bitmap if there is none
+                                    if (null == thumbnailBitmap) {
+                                        if (fullSizeBitmap != null) {
+                                            double fullSizeWidth = fullSizeBitmap.getWidth();
+                                            double fullSizeHeight = fullSizeBitmap.getHeight();
+
+                                            double thumbnailWidth = mConsoleMessageListFragment.getMaxThumbnailWith();
+                                            double thumbnailHeight = mConsoleMessageListFragment.getMaxThumbnailHeight();
+
+                                            if (fullSizeWidth > fullSizeHeight) {
+                                                thumbnailHeight = thumbnailWidth * fullSizeHeight / fullSizeWidth;
+                                            } else {
+                                                thumbnailWidth = thumbnailHeight * fullSizeWidth / fullSizeHeight;
+                                            }
+
+                                            try {
+                                                thumbnailBitmap = Bitmap.createScaledBitmap(fullSizeBitmap, (int) thumbnailWidth, (int) thumbnailHeight, false);
+                                            } catch (OutOfMemoryError ex) {
+                                                Log.e(LOG_TAG, "Bitmap.createScaledBitmap " + ex.getMessage());
+                                            }
                                         }
+                                    }
 
-                                        resource.contentStream.close();
-                                        resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+                                    // the valid mimetype is not provided
+                                    if ("image/*".equals(mimeType)) {
+                                        // make a jpg snapshot.
+                                        mimeType = null;
+                                    }
 
+                                    // unknown mimetype
+                                    if ((null == mimeType) || (mimeType.startsWith("image/"))) {
                                         try {
-                                            mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
-                                        } catch (OutOfMemoryError ex) {
-                                            Log.e(LOG_TAG,  "mMediasCache.saveMedia" + ex.getMessage());
+                                            if (null != fullSizeBitmap) {
+                                                Uri uri = Uri.parse(mediaUrl);
+
+                                                if (null == mimeType) {
+                                                    // the images are save in jpeg format
+                                                    mimeType = "image/jpeg";
+                                                }
+
+                                                resource.contentStream.close();
+                                                resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
+
+                                                try {
+                                                    mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
+                                                } catch (OutOfMemoryError ex) {
+                                                    Log.e(LOG_TAG, "mMediasCache.saveMedia" + ex.getMessage());
+                                                }
+
+                                            } else {
+                                                isManaged = false;
+                                            }
+
+                                            resource.contentStream.close();
+
+                                        } catch (Exception e) {
+                                            isManaged = false;
+                                            Log.e(LOG_TAG, "sendMedias " + e.getMessage());
+                                        }
+                                    }
+
+                                    // reduce the memory consumption
+                                    if (null != fullSizeBitmap) {
+                                        fullSizeBitmap.recycle();
+                                        System.gc();
+                                    }
+                                }
+
+                                String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+
+                                if (null != thumbnailBitmap) {
+                                    thumbnailBitmap.recycle();
+                                }
+
+                                //
+                                if (("image/jpg".equals(mimeType) || "image/jpeg".equals(mimeType)) && (null != mediaUrl)) {
+
+                                    Uri imageUri = Uri.parse(mediaUrl);
+                                    // get the exif rotation angle
+                                    final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, imageUri);
+
+                                    if (0 != rotationAngle) {
+                                        if (ImageUtils.rotateImage(RoomActivity.this, mediaUrl, rotationAngle, mMediasCache)) {
+                                            // check if there is an exif to apply
+                                            ImageUtils.rotateImage(RoomActivity.this, thumbnailURL, rotationAngle, mMediasCache);
+                                        }
+                                    }
+                                }
+
+                                // is the image content valid ?
+                                if (isManaged && (null != thumbnailURL)) {
+
+                                    final String fThumbnailURL = thumbnailURL;
+                                    final String fMediaUrl = mediaUrl;
+                                    final String fMimeType = mimeType;
+
+                                    RoomActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // if there is only one image
+                                            if (mediaCount == 1) {
+                                                // display an image preview before sending it
+                                                mPendingThumbnailUrl = fThumbnailURL;
+                                                mPendingMediaUrl = fMediaUrl;
+                                                mPendingMimeType = fMimeType;
+
+                                                mConsoleMessageListFragment.scrollToBottom();
+
+                                                manageSendMoreButtons();
+                                            } else {
+                                                mConsoleMessageListFragment.uploadImageContent(fThumbnailURL, fMediaUrl, fMimeType);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+
+                            // default behaviour
+                            if ((!isManaged) && (null != mediaUrl)) {
+                                String filename = "A file";
+
+                                try {
+                                    ContentResolver resolver = getContentResolver();
+                                    List uriPath = mediaUri.getPathSegments();
+                                    filename = "";
+
+                                    if (mediaUri.toString().startsWith("content://")) {
+                                        Cursor cursor = null;
+                                        try {
+                                            cursor = RoomActivity.this.getContentResolver().query(mediaUri, null, null, null, null);
+                                            if (cursor != null && cursor.moveToFirst()) {
+                                                filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                            }
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage());
+                                        } finally {
+                                            cursor.close();
                                         }
 
-                                    } else {
-                                        isManaged = false;
+                                        if (filename.length() == 0) {
+                                            filename = (String) uriPath.get(uriPath.size() - 1);
+                                        }
                                     }
 
-                                    resource.contentStream.close();
-
                                 } catch (Exception e) {
-                                    isManaged = false;
-                                    Log.e(LOG_TAG,  "sendMedias " + e.getMessage());
+                                    Log.e(LOG_TAG, "sendMedias 1 " + e.getMessage());
                                 }
-                            }
 
-                            // reduce the memory consumption
-                            if (null  != fullSizeBitmap) {
-                                fullSizeBitmap.recycle();
-                                System.gc();
-                            }
-                        }
+                                final String fMediaUrl = mediaUrl;
+                                final String fMimeType = mimeType;
+                                final String fFilename = filename;
 
-                        String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
-
-                        if (null != thumbnailBitmap) {
-                            thumbnailBitmap.recycle();
-                        }
-
-                        //
-                        if (("image/jpg".equals(mimeType) || "image/jpeg".equals(mimeType)) && (null != mediaUrl)) {
-
-                            Uri imageUri = Uri.parse(mediaUrl);
-                            // get the exif rotation angle
-                            final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, imageUri);
-
-                            if (0 != rotationAngle) {
-                                if (ImageUtils.rotateImage(RoomActivity.this, mediaUrl, rotationAngle, mMediasCache)) {
-                                    // check if there is an exif to apply
-                                    ImageUtils.rotateImage(RoomActivity.this, thumbnailURL, rotationAngle, mMediasCache);
-                                }
-                            }
-                        }
-
-                        // is the image content valid ?
-                        if (isManaged  && (null != thumbnailURL)) {
-
-                            // if there is only one image
-                            if (mediaCount == 1) {
-                                // display an image preview before sending it
-                                mPendingThumbnailUrl = thumbnailURL;
-                                mPendingMediaUrl = mediaUrl;
-                                mPendingMimeType = mimeType;
-
-                                mConsoleMessageListFragment.scrollToBottom();
-
-                                manageSendMoreButtons();
-                            } else {
-                                mConsoleMessageListFragment.uploadImageContent(thumbnailURL, mediaUrl, mimeType);
-                            }
-                        }
-                    }
-
-                    // default behaviour
-                    if ((!isManaged) && (null != mediaUrl)) {
-                        String filename = "A file";
-
-                        try {
-                            ContentResolver resolver = getContentResolver();
-                            List uriPath = mediaUri.getPathSegments();
-                            filename = "";
-
-                            if (mediaUri.toString().startsWith("content://")) {
-                                Cursor cursor = null;
-                                try {
-                                    cursor = RoomActivity.this.getContentResolver().query(mediaUri, null, null, null, null);
-                                    if (cursor != null && cursor.moveToFirst()) {
-                                        filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                RoomActivity.this.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mConsoleMessageListFragment.uploadMediaContent(fMediaUrl, fMimeType, fFilename);
                                     }
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG,  "cursor.getString " + e.getMessage());
-                                }
-                                finally {
-                                    cursor.close();
-                                }
-
-                                if (filename.length() == 0) {
-                                    filename = (String)uriPath.get(uriPath.size() - 1);
-                                }
+                                });
                             }
-
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG,  "sendMedias 1 " + e.getMessage());
                         }
 
-                        mConsoleMessageListFragment.uploadMediaContent(mediaUrl, mimeType, filename);
+                        RoomActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                handlerThread.quit();
+                                progressBackground.setVisibility(View.GONE);
+                                progress.setVisibility(View.GONE);
+                            };
+                        });
                     }
-                }
-            });
-        }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
     }
 
     @SuppressLint("NewApi")
