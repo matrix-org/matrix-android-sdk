@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.matrixandroidsdk.util;
+package org.matrix.androidsdk.util;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
 import android.net.Uri;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.Room;
@@ -34,6 +38,82 @@ import java.io.InputStream;
 public class ImageUtils {
 
     private static final String LOG_TAG = "ImageUtils";
+
+    /**
+     * Gets the bitmap rotation angle from the {@link android.media.ExifInterface}.
+     * @param context Application context for the content resolver.
+     * @param uri The URI to find the orientation for.  Must be local.
+     * @return The orientation value, which may be {@link android.media.ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static int getRotationAngleForBitmap(Context context, Uri uri) {
+        int orientation = getOrientationForBitmap(context, uri);
+
+        int rotationAngle = 0;
+
+        if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
+            rotationAngle = 90;
+        } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
+            rotationAngle = 180 ;
+        } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
+            rotationAngle = 270;
+        }
+
+        return rotationAngle;
+    }
+
+    /**
+     * Gets the {@link ExifInterface} value for the orientation for this local bitmap Uri.
+     * @param context Application context for the content resolver.
+     * @param uri The URI to find the orientation for.  Must be local.
+     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
+     */
+    public static int getOrientationForBitmap(Context context, Uri uri) {
+        int orientation = ExifInterface.ORIENTATION_UNDEFINED;
+
+        if (uri == null) {
+            return orientation;
+        }
+
+        if (uri.getScheme().equals("content")) {
+            String [] proj= {MediaStore.Images.Media.DATA};
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query( uri, proj, null, null, null);
+                if (cursor != null && cursor.getCount() > 0) {
+                    cursor.moveToFirst();
+                    int idxData = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                    String path = cursor.getString(idxData);
+                    if (TextUtils.isEmpty(path)) {
+                        Log.w(LOG_TAG, "Cannot find path in media db for uri " + uri);
+                        return orientation;
+                    }
+                    ExifInterface exif = new ExifInterface(path);
+                    orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+                }
+            }
+            catch (Exception e) {
+                // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
+                // eg IOException from trying to parse the returned path as a file when it is an http uri.
+                Log.e(LOG_TAG, "Cannot get orientation for bitmap: "+e);
+            }
+            finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+        else if (uri.getScheme().equals("file")) {
+            try {
+                ExifInterface exif = new ExifInterface(uri.getPath());
+                orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+            }
+            catch (Exception e) {
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because "+e);
+            }
+        }
+
+        return orientation;
+    }
 
     public static BitmapFactory.Options decodeBitmapDimensions(InputStream stream) {
         BitmapFactory.Options o = new BitmapFactory.Options();
@@ -217,7 +297,7 @@ public class ImageUtils {
         {
             Uri imageUri = Uri.parse(imageURL);
             // get the exif rotation angle
-            final int rotationAngle = Room.getRotationAngleForBitmap(context, imageUri);
+            final int rotationAngle = ImageUtils.getRotationAngleForBitmap(context, imageUri);
             succeeds = rotateImage(context, imageURL, rotationAngle, mediasCache);
 
         } catch (Exception e) {

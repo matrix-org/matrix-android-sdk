@@ -63,6 +63,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.matrixandroidsdk.ErrorListener;
 import org.matrix.matrixandroidsdk.Matrix;
@@ -75,7 +76,6 @@ import org.matrix.matrixandroidsdk.fragments.ImageSizeSelectionDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.MembersInvitationDialogFragment;
 import org.matrix.matrixandroidsdk.fragments.RoomMembersDialogFragment;
 import org.matrix.matrixandroidsdk.services.EventStreamService;
-import org.matrix.matrixandroidsdk.util.ImageUtils;
 import org.matrix.matrixandroidsdk.util.NotificationUtils;
 import org.matrix.matrixandroidsdk.util.RageShake;
 import org.matrix.matrixandroidsdk.util.ResourceUtils;
@@ -334,7 +334,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             Uri uri = Uri.parse(mPendingMediaUrl);
                             final String filename = uri.getPath();
 
-                            final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, uri);
+                            final int rotationAngle = ImageUtils.getRotationAngleForBitmap(RoomActivity.this, uri);
 
                             imageStream = new FileInputStream (new File(filename));
 
@@ -1108,7 +1108,7 @@ public class RoomActivity extends MXCActionBarActivity {
 
                                     Uri imageUri = Uri.parse(mediaUrl);
                                     // get the exif rotation angle
-                                    final int rotationAngle = Room.getRotationAngleForBitmap(RoomActivity.this, imageUri);
+                                    final int rotationAngle = ImageUtils.getRotationAngleForBitmap(RoomActivity.this, imageUri);
 
                                     if (0 != rotationAngle) {
                                         if (ImageUtils.rotateImage(RoomActivity.this, mediaUrl, rotationAngle, mMediasCache)) {

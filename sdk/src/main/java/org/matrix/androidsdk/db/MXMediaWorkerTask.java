@@ -27,6 +27,7 @@ import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.util.ImageUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -183,7 +184,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                             uri = uri.fromFile(new File(originalFile.getParent(), filename));
                         }
 
-                        rotation = Room.getRotationAngleForBitmap(appContext.getApplicationContext(), uri);
+                        rotation = ImageUtils.getRotationAngleForBitmap(appContext.getApplicationContext(), uri);
                     }
 
                     if (null != fis) {
