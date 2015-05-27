@@ -138,7 +138,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 bitmap = sMemoryCache.get(url);
             }
 
-
             // check if the image has not been saved in file system
             if ((null == bitmap) && (null != appContext)) {
                 String filename = null;
@@ -175,7 +174,16 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
                     // read the metadata
                     if (Integer.MAX_VALUE == rotation) {
-                        rotation = Room.getRotationAngleForBitmap(appContext.getApplicationContext(), Uri.parse(url));
+                        Uri uri = null;
+
+                        if (url.startsWith("file:")) {
+                            uri = Uri.parse(url);
+                        } else {
+                            File originalFile = appContext.getFileStreamPath(filename);
+                            uri = uri.fromFile(new File(originalFile.getParent(), filename));
+                        }
+
+                        rotation = Room.getRotationAngleForBitmap(appContext.getApplicationContext(), uri);
                     }
 
                     if (null != fis) {
@@ -200,9 +208,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
                         if (null != bitmap) {
                             synchronized (sMemoryCache) {
-
-
-
                                 if (0 != rotation) {
                                     try {
                                         android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
