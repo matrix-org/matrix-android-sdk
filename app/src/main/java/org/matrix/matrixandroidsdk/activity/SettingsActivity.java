@@ -87,6 +87,22 @@ public class SettingsActivity extends MXCActionBarActivity {
         }
     }
 
+    /**
+     * Return the application cache size as formatted string.
+     * @return the application cache size as formatted string.
+     */
+    private String computeApplicationCacheSize() {
+        long size = 0;
+
+        size += mMediasCache.cacheSize(SettingsActivity.this);
+
+        for(MXSession session : Matrix.getMXSessions(SettingsActivity.this)) {
+            size += session.getDataHandler().getStore().diskUsage();
+        }
+
+        return android.text.format.Formatter.formatFileSize(SettingsActivity.this, size);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -212,16 +228,12 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         final Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
 
-        String cacheSize = android.text.format.Formatter.formatFileSize(this, mMediasCache.cacheSize(this));
-        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + computeApplicationCacheSize() + ")");
 
         clearCacheButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mMediasCache.clearCache(SettingsActivity.this);
-
-                String cacheSize = android.text.format.Formatter.formatFileSize(SettingsActivity.this, mMediasCache.cacheSize(SettingsActivity.this));
-                clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+                Matrix.getInstance(SettingsActivity.this).reloadSessions(SettingsActivity.this);
             }
         });
 
@@ -408,8 +420,7 @@ public class SettingsActivity extends MXCActionBarActivity {
 
         // refresh the cache size
         Button clearCacheButton = (Button) findViewById(R.id.button_clear_cache);
-        String cacheSize = android.text.format.Formatter.formatFileSize(this, mMediasCache.cacheSize(this));
-        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + cacheSize + ")");
+        clearCacheButton.setText(getString(R.string.clear_cache)  + " (" + computeApplicationCacheSize() + ")");
 
         refreshGCMEntries();
     }

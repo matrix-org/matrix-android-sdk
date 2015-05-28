@@ -1051,7 +1051,7 @@ public class HomeActivity extends MXCActionBarActivity {
                     public void run() {
                         final int sectionPos = sessions.indexOf(session);
 
-                        CommonActivityUtils.logout(HomeActivity.this, session);
+                        CommonActivityUtils.logout(HomeActivity.this, session, true);
 
                         HomeActivity.this.runOnUiThread(new Runnable() {
                             @Override

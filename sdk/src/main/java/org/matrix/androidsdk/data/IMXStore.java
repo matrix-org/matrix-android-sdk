@@ -74,6 +74,12 @@ public interface IMXStore {
     public boolean isReady();
 
     /**
+     * Returns to disk usage size in bytes.
+     * @return disk usage size
+     */
+    public long diskUsage();
+
+    /**
      * Returns the latest known event stream token
      * @return the event stream token
      */

@@ -134,6 +134,15 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Returns to disk usage size in bytes.
+     * @return disk usage size
+     */
+    @Override
+    public long diskUsage() {
+        return 0;
+    }
+
+    /**
      * Returns the latest known event stream token
      * @return the event stream token
      */

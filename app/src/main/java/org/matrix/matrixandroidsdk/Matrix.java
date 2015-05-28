@@ -1,6 +1,8 @@
 package org.matrix.matrixandroidsdk;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
@@ -10,6 +12,8 @@ import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
+import org.matrix.matrixandroidsdk.activity.SplashActivity;
 import org.matrix.matrixandroidsdk.gcm.GcmRegistrationManager;
 import org.matrix.matrixandroidsdk.store.LoginStorage;
 import org.matrix.matrixandroidsdk.util.RageShake;
@@ -237,9 +241,36 @@ public class Matrix {
         return new MXSession(new MXDataHandler(store, credentials), credentials, mAppContext);
     }
 
+    /**
+     * Reload the matrix sessions.
+     * The session caches are cleared before being reloaded.
+     * Any opened activity is closed and the application switches to the splash screen.
+     * @param fromActivity the caller activity
+     */
+    public void reloadSessions(Activity fromActivity) {
+        for(MXSession session : mMXSessions) {
+            CommonActivityUtils.logout(fromActivity, session, false);
+        }
+
+        clearSessions(fromActivity, false);
+
+        // build a new sessions list
+        ArrayList<Credentials> credsList = mLoginStorage.getCredentialsList();
+
+        for(Credentials creds : credsList) {
+            MXSession session = createSession(creds);
+            mMXSessions.add(session);
+        }
+
+        Intent intent = new Intent(fromActivity, SplashActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        fromActivity.startActivity(intent);
+        fromActivity.finish();
+    }
+
     public GcmRegistrationManager getSharedGcmRegistrationManager() {
         return mGcmRegistrationManager;
     }
-
 
 }

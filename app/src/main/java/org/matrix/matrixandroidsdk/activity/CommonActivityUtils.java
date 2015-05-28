@@ -68,7 +68,7 @@ import java.util.List;
  */
 public class CommonActivityUtils {
 
-    public static void logout(Activity activity, MXSession session) {
+    public static void logout(Activity activity, MXSession session, Boolean clearCredentials) {
 
         // stop the service
         EventStreamService eventStreamService = EventStreamService.getInstance();
@@ -81,7 +81,7 @@ public class CommonActivityUtils {
         MyPresenceManager.remove(session);
 
         // clear credentials
-        Matrix.getInstance(activity).clearSession(activity, session, true);
+        Matrix.getInstance(activity).clearSession(activity, session, clearCredentials);
 
         // unregister from the GCM.
         Matrix.getInstance(activity).getSharedGcmRegistrationManager().unregisterSession(session, null);

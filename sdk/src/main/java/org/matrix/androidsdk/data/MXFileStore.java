@@ -158,7 +158,6 @@ public class MXFileStore extends MXMemoryStore {
 
         // create the medatata file if it does not exist
         if (null == mMetadata) {
-
             mHandlerThread.start();
             mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
 
@@ -383,6 +382,41 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public boolean isReady() {
         return mIsReady;
+    }
+
+    /**
+     * Delete a directory with its content
+     * @param directory the base directory
+     * @return
+     */
+    private long directorySize(File directory) {
+        long directorySize = 0;
+
+        if (directory.exists()) {
+            File[] files = directory.listFiles();
+
+            if (null != files) {
+                for(int i=0; i<files.length; i++) {
+                    if(files[i].isDirectory()) {
+                        directorySize += directorySize(files[i]);
+                    }
+                    else {
+                        directorySize += files[i].length();
+                    }
+                }
+            }
+        }
+
+        return directorySize;
+    }
+
+    /**
+     * Returns to disk usage size in bytes.
+     * @return disk usage size
+     */
+    @Override
+    public long diskUsage() {
+        return directorySize(mStoreFolderFile);
     }
 
     /**
