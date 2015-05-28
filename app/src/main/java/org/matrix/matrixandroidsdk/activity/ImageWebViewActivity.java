@@ -17,15 +17,22 @@
 package org.matrix.matrixandroidsdk.activity;
 
 import java.io.File;
+import java.io.FileInputStream;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.WebView;
 
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -106,7 +113,38 @@ public class ImageWebViewActivity extends Activity {
         }
 
         if (mRotationAngle != 0) {
-            String cssRotation = calcCssRotation(mRotationAngle);
+            // get the image size to scale it to fill in the device screen.
+            int imageWidth = thumbnailWidth;
+            int imageHeight = thumbnailHeight;
+
+            try {
+                Uri uri = Uri.parse(mHighResUri);
+
+                FileInputStream imageStream = new FileInputStream(new File(uri.getPath()));
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                options.outWidth = -1;
+                options.outHeight = -1;
+
+                // get the full size bitmap
+                Bitmap fullSizeBitmap = null;
+                try {
+                    fullSizeBitmap = BitmapFactory.decodeStream(imageStream, null, options);
+                } catch (OutOfMemoryError e) {
+                    Log.e(LOG_TAG, "Onclick BitmapFactory.decodeStream : " + e.getMessage());
+                }
+
+                imageWidth = options.outWidth;
+                imageHeight =  options.outHeight;
+
+                imageStream.close();
+                fullSizeBitmap.recycle();
+            } catch (Exception e) {
+            }
+
+            String cssRotation = calcCssRotation(mRotationAngle, imageWidth, imageHeight);
+
 
             css += "#image { " + cssRotation + " } ";
             css += "#thumbnail { " + cssRotation + " } ";
@@ -222,22 +260,36 @@ public class ImageWebViewActivity extends Activity {
         mWebView.loadDataWithBaseURL(null, html, mime, encoding, null);
         mWebView.requestLayout();
     }
-    
-    private String calcCssRotation(int rot) {
+
+    private Point getDisplaySize() {
+        Point size = new Point();
+        WindowManager w = getWindowManager();
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)    {
+            w.getDefaultDisplay().getSize(size);
+        }else{
+            Display d = w.getDefaultDisplay();
+            size.x = d.getWidth();
+            size.y = d.getHeight();
+        }
+
+        return size;
+    }
+
+    private String calcCssRotation(int rot, int imageWidth, int imageHeight) {
         if (rot == 90 || rot == 180 || rot == 270) {
-            // we hardcode these as strings rather than building them up programatically just to make it easier to fiddle them
-            // for particular cases (currently)
-            final String rot90 = "-wekbkit-transform-origin: 50% 50%; -webkit-transform: rotate(90deg);";
+            Point displaySize = getDisplaySize();
+            double scale = Math.min((double)imageWidth / imageHeight, (double)displaySize.y / displaySize.x);
+
             final String rot180 = "-webkit-transform: rotate(180deg);";
-            final String rot270 = "-wekbkit-transform-origin: 50% 50%; -webkit-transform: rotate(270deg);";
 
             switch (rot) {
             case 90:
-                return rot90;
+                return "-webkit-transform-origin: 50% 50%; -webkit-transform: rotate(90deg) scale(" + scale + " , " + scale + ");";
             case 180:
                 return rot180;
             case 270:
-                return rot270;
+                return "-webkit-transform-origin: 50% 50%; -webkit-transform: rotate(270deg) scale(" + scale + " , " + scale + ");";
             }
         }
         return "";
