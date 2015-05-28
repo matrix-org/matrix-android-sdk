@@ -29,6 +29,7 @@ import android.view.View;
 import android.webkit.WebView;
 
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.R;
@@ -87,21 +88,29 @@ public class ImageWebViewActivity extends Activity {
                 "display: -webkit-box; -webkit-box-pack: center; -webkit-box-align: center; " +
                 "display: box; box-pack: center; box-align: center; } ";
 
+        final MXMediasCache mediasCache = Matrix.getInstance(this).getMediasCache();
+        String path = mediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
+
+        // is the high picture already downloaded ?
+        if (null != path) {
+            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
+        }
+
+        // the rotation angle must be retrieved from the exif metadata
+        if (mRotationAngle == Integer.MAX_VALUE) {
+            mRotationAngle = ImageUtils.getRotationAngleForBitmap(this, Uri.parse(mThumbnailUri));
+        }
+
         if (mRotationAngle != 0) css += "#image { " + calcCssRotation(mRotationAngle) + " } ";
         if (mRotationAngle != 0) css += "#thumbnail { " + calcCssRotation(mRotationAngle) + " } ";
 
         final String fcss= css;
         final String viewportContent = "width=640";
 
-        final MXMediasCache mediasCache = Matrix.getInstance(this).getMediasCache();
-
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 
-        String path = mediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
-
         // is the high picture already downloaded ?
-        if (null != path) {
-            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
+        if (null != mHighResUri) {
             pieFractionView.setVisibility(View.GONE);
         } else {
             mThumbnailUri = null;
