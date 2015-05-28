@@ -98,11 +98,19 @@ public class ImageWebViewActivity extends Activity {
 
         // the rotation angle must be retrieved from the exif metadata
         if (mRotationAngle == Integer.MAX_VALUE) {
-            mRotationAngle = ImageUtils.getRotationAngleForBitmap(this, Uri.parse(mThumbnailUri));
+            if (null != mThumbnailUri) {
+                mRotationAngle = ImageUtils.getRotationAngleForBitmap(this, Uri.parse(mThumbnailUri));
+            } else {
+                mRotationAngle = 0;
+            }
         }
 
-        if (mRotationAngle != 0) css += "#image { " + calcCssRotation(mRotationAngle) + " } ";
-        if (mRotationAngle != 0) css += "#thumbnail { " + calcCssRotation(mRotationAngle) + " } ";
+        if (mRotationAngle != 0) {
+            String cssRotation = calcCssRotation(mRotationAngle);
+
+            css += "#image { " + cssRotation + " } ";
+            css += "#thumbnail { " + cssRotation + " } ";
+        }
 
         final String fcss= css;
         final String viewportContent = "width=640";
@@ -110,7 +118,7 @@ public class ImageWebViewActivity extends Activity {
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 
         // is the high picture already downloaded ?
-        if (null != mHighResUri) {
+        if (null != path) {
             pieFractionView.setVisibility(View.GONE);
         } else {
             mThumbnailUri = null;
