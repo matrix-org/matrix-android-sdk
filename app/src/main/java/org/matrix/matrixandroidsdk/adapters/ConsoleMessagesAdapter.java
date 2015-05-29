@@ -30,6 +30,8 @@ import org.matrix.matrixandroidsdk.activity.CommonActivityUtils;
 import org.matrix.matrixandroidsdk.activity.ImageWebViewActivity;
 import org.matrix.matrixandroidsdk.activity.MemberDetailsActivity;
 
+import java.io.File;
+
 /**
  * An adapter which can display room information.
  */
@@ -66,21 +68,21 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
     @Override
     public void onFileDownloaded(FileMessage fileMessage) {
         // save into the downloads
-        String mediaPath = mMediasCache.mediaCacheFilename(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+        File mediaFile = mMediasCache.mediaCacheFile(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
-        if (null != mediaPath) {
-            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
+        if (null != mediaFile) {
+            CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaFile, fileMessage.body, fileMessage.getMimeType());
         }
     }
 
     @Override
     public void onFileClick(FileMessage fileMessage) {
         if (null != fileMessage.url) {
-            String mediaPath =  mMediasCache.mediaCacheFilename(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+            File mediaFile =  mMediasCache.mediaCacheFile(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
             // is the file already saved
-            if (null != mediaPath) {
-                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaPath, fileMessage.body, fileMessage.getMimeType());
+            if (null != mediaFile) {
+                String savedMediaPath = CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaFile, fileMessage.body, fileMessage.getMimeType());
                 CommonActivityUtils.openMedia(ConsoleApplication.getCurrentActivity(), savedMediaPath, fileMessage.getMimeType());
             }
         }

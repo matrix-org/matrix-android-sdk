@@ -194,10 +194,11 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         supportShare = false;
                         MXMediasCache cache = getMXMediasCache();
 
-                        String filename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
-                        if (null != filename) {
+                        File mediaFile = cache.mediaCacheFile(getActivity(), mediaUrl, mediaMimeType);
+
+                        if (null != mediaFile) {
                             try {
-                                mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + filename);
+                                mediaUri = Uri.parse("content://" + ConsoleContentProvider.AUTHORITIES + "/" + mediaFile.getName());
                                 supportShare = true;
                             } catch (Exception e) {
                             }
@@ -347,14 +348,14 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         dialog.dismiss();
 
                         MXMediasCache cache = getMXMediasCache();
-                        String cacheFilename = cache.mediaCacheFilename(getActivity(), mediaUrl, mediaMimeType);
+                        File cacheFile = cache.mediaCacheFile(getActivity(), mediaUrl, mediaMimeType);
 
                         String entry = fEntries.get(which);
                         String savedFilename = null;
 
                         if (getActivity().getText(R.string.gallery).toString().equals(entry)) {
                             // save in the gallery
-                            savedFilename = CommonActivityUtils.saveImageIntoGallery(getActivity(), cacheFilename);
+                            savedFilename = CommonActivityUtils.saveImageIntoGallery(getActivity(), cacheFile);
                         } else if (getActivity().getText(R.string.downloads).toString().equals(entry)) {
                             String filename = null;
 
@@ -363,7 +364,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                             }
 
                             // save into downloads
-                            savedFilename = CommonActivityUtils.saveMediaIntoDownloads(getActivity(), cacheFilename, filename, mediaMimeType);
+                            savedFilename = CommonActivityUtils.saveMediaIntoDownloads(getActivity(), cacheFile, filename, mediaMimeType);
                         } else {
                             if (getActivity() instanceof RoomActivity) {
                                 ((RoomActivity)getActivity()).createDocument(message, mediaUrl, mediaMimeType);

@@ -17,6 +17,7 @@ package org.matrix.androidsdk.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -50,5 +51,35 @@ public class ContentUtils {
     public static String getMimeType(String filePath) {
         MimeTypeMap mime = MimeTypeMap.getSingleton();
         return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1));
+    }
+
+    /**
+     * Delete a directory with its content
+     * @param directory the base directory
+     * @return
+     */
+    public static boolean deleteDirectory(File directory) {
+        boolean succeed = true;
+
+        if (directory.exists()) {
+            File[] files = directory.listFiles();
+
+            if (null != files) {
+                for(int i=0; i<files.length; i++) {
+                    if(files[i].isDirectory()) {
+                        succeed &= deleteDirectory(files[i]);
+                    }
+                    else {
+                        succeed &= files[i].delete();
+                    }
+                }
+            }
+        }
+        if (succeed) {
+            return (directory.delete());
+        } else {
+            return false;
+        }
+
     }
 }

@@ -26,6 +26,7 @@ import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.ContentUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -56,67 +57,113 @@ public class MXMediasCache {
     }
 
     private static final String LOG_TAG = "ConsoleMediasCache";
+    final String MXMEDIA_STORE_FOLDER = "MXMediaStore";
+
     private ContentManager mContentmanager = null;
+
+    private String mUserID = null;
+    private File mMediaFolderFile = null;
+
+    /**
+     * Clear the former medias cache.
+     * The dirtree has been updated.
+     *
+     * @param directory The application context to use.
+     */
+    public void cleanFormerMediasCache(File directory) {
+        File[] files = directory.listFiles();
+
+        if (null != files) {
+            for(int i=0; i<files.length; i++) {
+                if(!files[i].isDirectory()) {
+                    String fileName = files[i].getName();
+
+                    // remove standard medias 
+                    if (fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".tmp") || fileName.endsWith(".gif")) {
+                        files[i].delete();
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * constructor
      *
      * @param contentManager
      */
-    public MXMediasCache(ContentManager contentManager) {
+    public MXMediasCache(ContentManager contentManager, String userID, Context context) {
         mContentmanager = contentManager;
+        mUserID = userID;
+
+        File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
+
+        if (!mediaBaseFolderFile.exists()) {
+            cleanFormerMediasCache(context.getApplicationContext().getFilesDir());
+            mediaBaseFolderFile.mkdirs();
+        }
+
+        // create the dirtree
+        mMediaFolderFile = new File(mediaBaseFolderFile, mUserID);
     }
 
     /**
-     * Compute the filesystem cache size
+     * Returns the mediasFolder files.
+     * Creates it if it does not exist
      *
-     * @param context
+     * @return the medias folder file.
+     */
+    private File getMediaFolderFile() {
+        if (!mMediaFolderFile.exists()) {
+            mMediaFolderFile.mkdirs();
+        }
+
+        return mMediaFolderFile;
+    }
+
+    /**
+     * Compute the medias cache size
+     *
      * @return the medias cache size in bytes
      */
-    public long cacheSize(Activity context) {
+    public long cacheSize() {
         long size = 0;
-        String[] filesList = context.fileList();
 
-        for (String filename : filesList) {
-            try {
-                File file = new File(context.getFilesDir(), filename);
-                size += file.length();
-            } catch (Exception e) {
+        File[] files = getMediaFolderFile().listFiles();
 
+        if (null != files) {
+            for(int i=0; i<files.length; i++) {
+                if(!files[i].isDirectory()) {
+                    size += files[i].length();
+                }
             }
         }
+
         return size;
     }
 
     /**
      * Clear the medias caches.
-     *
-     * @param context The application context to use.
      */
-    public void clearCache(Context context) {
-        String[] filesList = context.fileList();
-
-        for (String file : filesList) {
-            try {
-                context.deleteFile(file);
-            } catch (Exception e) {
-
-            }
+    public void clearCache() {
+        // delete the medias dirtee
+        if (ContentUtils.deleteDirectory(getMediaFolderFile())) {
+            mMediaFolderFile.delete();
         }
 
+        // clear the media cache
         MXMediaWorkerTask.clearBitmapsCache();
     }
 
     /**
      * Convert matrix url into http one.
      *
-     * @param context the context
      * @param url     the matrix url
      * @param width   the expected image width
      * @param height  the expected image height
      * @return the URL to access the described resource.
      */
-    private String downloadableUrl(Context context, String url, int width, int height) {
+    private String downloadableUrl(String url, int width, int height) {
         // check if the Url is a matrix one
         if ((null != url) && url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
             if ((width > 0) && (height > 0)) {
@@ -135,19 +182,19 @@ public class MXMediasCache {
      * @param context  the context
      * @param url      the media url
      * @param mimeType the mime type
-     * @return the cache file name (private directory)
+     * @return the cache file
      */
-    public String mediaCacheFilename(Context context, String url, String mimeType) {
-        return mediaCacheFilename(context, url, -1, -1, mimeType);
+    public File mediaCacheFile(Context context, String url, String mimeType) {
+        return mediaCacheFile(context, url, -1, -1, mimeType);
     }
 
-    public String mediaCacheFilename(Context context, String url, int width, int height, String mimeType) {
+    public File mediaCacheFile(Context context, String url, int width, int height, String mimeType) {
         // sanity check
         if (null == url) {
             return null;
         }
 
-        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl(context, url, width, height), mimeType);
+        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
 
         try {
             // already a local file
@@ -156,17 +203,16 @@ public class MXMediasCache {
                 filename = uri.getLastPathSegment();
             }
 
-            File file = new File(context.getApplicationContext().getFilesDir(), filename);
+            File file = new File(mMediaFolderFile, filename);
 
-            if (!file.exists()) {
-                filename = null;
+            if (file.exists()) {
+                return file;
             }
 
         } catch (Exception e) {
-            filename = null;
         }
 
-        return filename;
+        return null;
     }
 
     /**
@@ -183,20 +229,21 @@ public class MXMediasCache {
 
         try {
             if (null != defaultFileName) {
-                File file = new File(defaultFileName);
+                File file = new File(getMediaFolderFile(), defaultFileName);
                 file.delete();
 
                 filename = Uri.fromFile(file).getLastPathSegment();
             }
 
-            FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+            File file = new File(getMediaFolderFile(), filename);
+            FileOutputStream fos = new FileOutputStream(file.getPath());
 
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
 
             fos.flush();
             fos.close();
 
-            cacheURL = Uri.fromFile(context.getFileStreamPath(filename)).toString();
+            cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
         }
 
@@ -230,7 +277,8 @@ public class MXMediasCache {
         String cacheURL = null;
 
         try {
-            FileOutputStream fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
+            File file = new File(getMediaFolderFile(), filename);
+            FileOutputStream fos = new FileOutputStream(file.getPath());
 
             try {
                 byte[] buf = new byte[1024 * 32];
@@ -246,7 +294,7 @@ public class MXMediasCache {
             fos.close();
             stream.close();
 
-            cacheURL = Uri.fromFile(context.getFileStreamPath(filename)).toString();
+            cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
 
         }
@@ -264,39 +312,37 @@ public class MXMediasCache {
      * @return the bitmap or null if it does not exist
      */
     public Bitmap bitmapForUrl(Context context, String url, int rotationAngle, String mimeType) {
-        return MXMediaWorkerTask.bitmapForURL(context, url, rotationAngle, mimeType);
+        return MXMediaWorkerTask.bitmapForURL(context, getMediaFolderFile(),  url, rotationAngle, mimeType);
     }
 
     /**
      * Replace a media cache by a file content.
      *
-     * @param context  the context
      * @param mediaUrl the mediaUrl
      * @param mimeType the mimeType.
      * @param fileUrl  the file which replaces the cached media.
      */
-    public void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, String mimeType) {
-        saveFileMediaForUrl(context, mediaUrl, fileUrl, -1, -1, mimeType);
+    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, String mimeType) {
+        saveFileMediaForUrl(mediaUrl, fileUrl, -1, -1, mimeType);
     }
 
     /**
      * Replace a media cache by a file content.
      * MediaUrl is the same model as the one used in loadBitmap.
      *
-     * @param context  the context
      * @param mediaUrl the mediaUrl
      * @param fileUrl  the file which replaces the cached media.
      * @param width    the expected image width
      * @param height   the expected image height
      * @param mimeType the mimeType.
      */
-    public void saveFileMediaForUrl(Context context, String mediaUrl, String fileUrl, int width, int height, String mimeType) {
-        String downloadableUrl = downloadableUrl(context, mediaUrl, width, height);
+    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType) {
+        String downloadableUrl = downloadableUrl(mediaUrl, width, height);
         String filename = MXMediaWorkerTask.buildFileName(downloadableUrl, mimeType);
 
         try {
             // delete the current content
-            File destFile = new File(context.getFilesDir(), filename);
+            File destFile = new File(mMediaFolderFile, filename);
 
             if (destFile.exists()) {
                 try {
@@ -379,13 +425,12 @@ public class MXMediasCache {
     /**
      * Retuns the download ID from the media URL.
      *
-     * @param context  the application context
      * @param url      the media url
      * @param mimeType the mime type
      * @return the download ID
      */
-    public String downloadIdFromUrl(Context context, String url, String mimeType) {
-        return downloadableUrl(context, url, -1, -1);
+    public String downloadIdFromUrl(String url, String mimeType) {
+        return downloadableUrl(url, -1, -1);
     }
 
     /**
@@ -401,11 +446,11 @@ public class MXMediasCache {
         }
 
         // is the media already downloaded ?
-        if (null != mediaCacheFilename(context, url, mimeType)) {
+        if (null != mediaCacheFile(context, url, mimeType)) {
             return null;
         }
 
-        String downloadableUrl = downloadableUrl(context, url, -1, -1);
+        String downloadableUrl = downloadableUrl(url, -1, -1);
 
         // is the media downloading  ?
         if (null != MXMediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
@@ -413,7 +458,7 @@ public class MXMediasCache {
         }
 
         // download it in background
-        MXMediaWorkerTask task = new MXMediaWorkerTask(context, downloadableUrl, mimeType);
+        MXMediaWorkerTask task = new MXMediaWorkerTask(context, getMediaFolderFile(), downloadableUrl, mimeType);
 
         // avoid crash if there are too many running task
         try {
@@ -495,7 +540,7 @@ public class MXMediasCache {
             return null;
         }
 
-        String downloadableUrl = downloadableUrl(context, url, width, height);
+        String downloadableUrl = downloadableUrl(url, width, height);
 
         if (null != imageView) {
             imageView.setTag(downloadableUrl);
@@ -507,7 +552,7 @@ public class MXMediasCache {
         }
 
         // check if the bitmap is already cached
-        Bitmap bitmap = MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(),downloadableUrl, rotationAngle, mimeType);
+        Bitmap bitmap = MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), getMediaFolderFile(), downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
@@ -524,7 +569,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaWorkerTask task = new MXMediaWorkerTask(context, downloadableUrl, rotationAngle, mimeType);
+                MXMediaWorkerTask task = new MXMediaWorkerTask(context, getMediaFolderFile(), downloadableUrl, rotationAngle, mimeType);
 
                 if (null != imageView) {
                     task.addImageView(imageView);

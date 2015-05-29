@@ -55,6 +55,7 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -899,7 +900,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
 
         // if the content downloading ?
-        final String downloadId = mMediasCache.downloadIdFromUrl(mContext.getApplicationContext(), fileMessage.url, fileMessage.getMimeType());
+        final String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url, fileMessage.getMimeType());
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
@@ -948,10 +949,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onClick(View v) {
                 if (null != fileMessage.url) {
-                    String mediaPath =  mMediasCache.mediaCacheFilename(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+                    File mediaFile =  mMediasCache.mediaCacheFile(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
 
                     // is the file already saved
-                    if (null != mediaPath) {
+                    if (null != mediaFile) {
                         onFileClick(fileMessage);
                     } else {
                         fileTypeView.setVisibility(View.GONE);

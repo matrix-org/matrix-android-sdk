@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.db;
 
+import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,7 +27,6 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.util.ImageUtils;
 
 import java.io.File;
@@ -59,8 +59,10 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private String mUrl;
     private String mMimeType;
     private Context mApplicationContext;
+    private File mDirectoryFile = null;
     private int mRotation = 0;
     private int mProgress = 0;
+
 
     public static void clearBitmapsCache() {
         sMemoryCache.evictAll();
@@ -118,13 +120,13 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
      * Search a cached bitmap from an url.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
-     * @param appContext the context
+     * @param baseFile the base file
      * @param url the media url
      * @param rotation the bitmap rotation
      * @param mimeType the mime type
      * @return the cached bitmap or null it does not exist
      */
-    public static Bitmap bitmapForURL(Context appContext, String url, int rotation, String mimeType) {
+    public static Bitmap bitmapForURL(Context context, File baseFile, String url, int rotation, String mimeType) {
         Bitmap bitmap = null;
 
         // sanity check
@@ -140,7 +142,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             }
 
             // check if the image has not been saved in file system
-            if ((null == bitmap) && (null != appContext)) {
+            if ((null == bitmap) && (null != baseFile)) {
                 String filename = null;
 
                 // the url is a file one
@@ -165,26 +167,18 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 }
 
                 try {
-                    FileInputStream fis;
+                    File file = filename.startsWith(File.separator) ? new File(filename) : new File(baseFile, filename);
 
-                    if (filename.startsWith(File.separator)) {
-                        fis = new FileInputStream (new File(filename));
-                    } else {
-                        fis = appContext.getApplicationContext().openFileInput(filename);
+                    if (!file.exists()) {
+                        Log.d(LOG_TAG, "bitmapForURL() : " + filename + " does not exist");
+                        return null;
                     }
+
+                    FileInputStream fis = new FileInputStream (file);
 
                     // read the metadata
                     if (Integer.MAX_VALUE == rotation) {
-                        Uri uri = null;
-
-                        if (url.startsWith("file:")) {
-                            uri = Uri.parse(url);
-                        } else {
-                            File originalFile = appContext.getFileStreamPath(filename);
-                            uri = uri.fromFile(new File(originalFile.getParent(), filename));
-                        }
-
-                        rotation = ImageUtils.getRotationAngleForBitmap(appContext.getApplicationContext(), uri);
+                        rotation = ImageUtils.getRotationAngleForBitmap(context,  Uri.fromFile(file));
                     }
 
                     if (null != fis) {
@@ -253,24 +247,28 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
+     * @param directoryFile the directry in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
      */
-    public MXMediaWorkerTask(Context appContext,  String url, String mimeType) {
+    public MXMediaWorkerTask(Context appContext, File directoryFile, String url, String mimeType) {
         commonInit(appContext, url, mimeType);
+        mDirectoryFile = directoryFile;
         mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
     }
 
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
+     * @param directoryFile the directry in which the media must be stored
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
      */
-    public MXMediaWorkerTask(Context appContext,  String url, int rotation, String mimeType) {
+    public MXMediaWorkerTask(Context appContext, File directoryFile, String url, int rotation, String mimeType) {
         commonInit(appContext, url, mimeType);
         mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        mDirectoryFile = directoryFile;
         mRotation = rotation;
     }
 
@@ -346,7 +344,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             }
 
             String filename = MXMediaWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
-            FileOutputStream fos = mApplicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
+            FileOutputStream fos = new FileOutputStream(new File(mDirectoryFile, filename));
 
             // a bitmap has been provided
             if (null != bitmap) {
@@ -397,9 +395,9 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             // the file has been successfully downloaded
             if (mProgress == 100) {
                 try {
-                    File originalFile = mApplicationContext.getFileStreamPath(filename);
+                    File originalFile = new File(mDirectoryFile, filename);
                     String newFileName = MXMediaWorkerTask.buildFileName(mUrl, mMimeType);
-                    File newFile = new File(originalFile.getParent(), newFileName);
+                    File newFile = new File(mDirectoryFile, newFileName);
                     if (newFile.exists()) {
                         // Or you could throw here.
                         mApplicationContext.deleteFile(newFileName);
@@ -420,7 +418,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             if (isBitmapDownload()) {
                 // get the bitmap from the filesytem
                 if (null == bitmap) {
-                    bitmap = MXMediaWorkerTask.bitmapForURL(mApplicationContext, key, mRotation, mMimeType);
+                    bitmap = MXMediaWorkerTask.bitmapForURL(mApplicationContext, mDirectoryFile, key, mRotation, mMimeType);
                 }
 
                 synchronized (sMemoryCache) {

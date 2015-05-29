@@ -96,11 +96,11 @@ public class ImageWebViewActivity extends Activity {
                 "display: box; box-pack: center; box-align: center; } ";
 
         final MXMediasCache mediasCache = Matrix.getInstance(this).getMediasCache();
-        String path = mediasCache.mediaCacheFilename(this, mHighResUri, mHighResMimeType);
+        File mediaFile = mediasCache.mediaCacheFile(this, mHighResUri, mHighResMimeType);
 
         // is the high picture already downloaded ?
-        if (null != path) {
-            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
+        if (null != mediaFile) {
+            mThumbnailUri = mHighResUri = "file://" + mediaFile.getPath();
         }
 
         // the rotation angle must be retrieved from the exif metadata
@@ -156,21 +156,21 @@ public class ImageWebViewActivity extends Activity {
         final PieFractionView pieFractionView = (PieFractionView)findViewById(R.id.download_zoomed_image_piechart);
 
         // is the high picture already downloaded ?
-        if (null != path) {
+        if (null != mediaFile) {
             pieFractionView.setVisibility(View.GONE);
         } else {
             mThumbnailUri = null;
 
             // try to retrieve the thumbnail
-            path = mediasCache.mediaCacheFilename(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
-            if (null == path) {
+            mediaFile = mediasCache.mediaCacheFile(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
+            if (null == mediaFile) {
                 Log.e(LOG_TAG, "No Image thumbnail");
                 finish();
                 return;
             }
 
             final String loadingUri = mHighResUri;
-            mThumbnailUri = mHighResUri = "file://" + (new File(this.getFilesDir(), path)).getPath();
+            mThumbnailUri = mHighResUri = "file://" + mediaFile.getPath();
 
             final String downloadId = mediasCache.loadBitmap(this, loadingUri, mRotationAngle, mHighResMimeType);
 
@@ -190,11 +190,10 @@ public class ImageWebViewActivity extends Activity {
                         if (aDownloadId.equals(downloadId)) {
                             pieFractionView.setVisibility(View.GONE);
 
-                            String path = mediasCache.mediaCacheFilename(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
+                            final File mediaFile = mediasCache.mediaCacheFile(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
 
-                            if (null != path) {
-                                final File file =  new File(ImageWebViewActivity.this.getFilesDir(), path);
-                                Uri uri = Uri.fromFile(file);
+                            if (null != mediaFile) {
+                                Uri uri = Uri.fromFile(mediaFile);
                                 mHighResUri = uri.toString();
 
                                 runOnUiThread(new Runnable() {
@@ -203,7 +202,7 @@ public class ImageWebViewActivity extends Activity {
                                         Uri mediaUri = Uri.parse(mHighResUri);
 
                                         // save in the gallery
-                                        CommonActivityUtils.saveImageIntoGallery(ImageWebViewActivity.this, file.getName());
+                                        CommonActivityUtils.saveImageIntoGallery(ImageWebViewActivity.this, mediaFile);
 
                                         // refresh the UI
                                         loadImage(mediaUri, viewportContent, fcss);

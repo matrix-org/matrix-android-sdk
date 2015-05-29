@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.ContentUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -310,40 +311,6 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
-     * Delete a directory with its content
-     * @param directory the base directory
-     * @return
-     */
-    private boolean deleteDirectory(File directory) {
-        boolean succeed = true;
-
-        if (directory.exists()) {
-            File[] files = directory.listFiles();
-
-            if (null != files) {
-                for(int i=0; i<files.length; i++) {
-                    if(files[i].isDirectory()) {
-                        succeed &= deleteDirectory(files[i]);
-                    }
-                    else {
-                        succeed &= files[i].delete();
-                    }
-
-                    if (!succeed) {
-                        Log.e(LOG_TAG, "deleteDirectory : cannot delete " + files[i].getName());
-                    }
-                }
-            }
-        }
-        if (succeed) {
-            return (directory.delete());
-        } else {
-            return false;
-        }
-
-    }
-
-    /**
      * Clear the filesystem storage.
      * @param init true to init the filesystem dirtree
      */
@@ -351,7 +318,7 @@ public class MXFileStore extends MXMemoryStore {
     {
         // delete the dedicated directories
         try {
-            deleteDirectory(mStoreFolderFile);
+            ContentUtils.deleteDirectory(mStoreFolderFile);
             if (init) {
                 createDirTree(mCredentials.userId);
             }

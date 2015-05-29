@@ -94,7 +94,7 @@ public class SettingsActivity extends MXCActionBarActivity {
     private String computeApplicationCacheSize() {
         long size = 0;
 
-        size += mMediasCache.cacheSize(SettingsActivity.this);
+        size += mMediasCache.cacheSize();
 
         for(MXSession session : Matrix.getMXSessions(SettingsActivity.this)) {
             size += session.getDataHandler().getStore().diskUsage();

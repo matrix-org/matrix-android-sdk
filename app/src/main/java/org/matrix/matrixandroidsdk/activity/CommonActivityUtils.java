@@ -52,6 +52,7 @@ import org.matrix.matrixandroidsdk.services.EventStreamService;
 import org.matrix.matrixandroidsdk.util.RageShake;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.lang.reflect.Array;
@@ -567,14 +568,14 @@ public class CommonActivityUtils {
      * The output filename can be provided.
      * The output file is not overriden if it is already exist.
      * @param context the context
-     * @param sourceFilePath the file source path
+     * @param sourceFile the file source path
      * @param dstDirPath the dst path
      * @param outputFilename optional the output filename
      * @return the downloads file path if the file exists or has been properly saved
      */
-    public static String saveFileInto(Context context, String sourceFilePath, String dstDirPath, String outputFilename) {
+    public static String saveFileInto(Context context, File sourceFile, String dstDirPath, String outputFilename) {
         // sanity check
-        if ((null == sourceFilePath) || (null == dstDirPath)) {
+        if ((null == sourceFile) || (null == dstDirPath)) {
             return null;
         }
 
@@ -584,11 +585,11 @@ public class CommonActivityUtils {
         // build a filename is not provided
         if (null == outputFilename) {
             // extract the file extension from the uri
-            int dotPos = sourceFilePath.lastIndexOf(".");
+            int dotPos = sourceFile.getName().lastIndexOf(".");
 
             String fileExt = "";
             if (dotPos > 0) {
-                fileExt = sourceFilePath.substring(dotPos);
+                fileExt = sourceFile.getName().substring(dotPos);
             }
 
             dstFileName = "MatrixConsole_" + System.currentTimeMillis() + fileExt;
@@ -604,14 +605,14 @@ public class CommonActivityUtils {
         File dstFile = new File(dstDir, dstFileName);
 
         // Copy source file to destination
-        InputStream inputStream = null;
+        FileInputStream inputStream = null;
         FileOutputStream outputStream = null;
         try {
             // create only the
             if (!dstFile.exists()) {
                 dstFile.createNewFile();
 
-                inputStream = context.openFileInput(sourceFilePath);
+                inputStream = new FileInputStream(sourceFile);
                 outputStream = new FileOutputStream(dstFile);
 
                 byte[] buffer = new byte[1024 * 10];
@@ -641,13 +642,13 @@ public class CommonActivityUtils {
     /**
      * Save a media URI into the download directory
      * @param context the context
-     * @param path the media path
+     * @param srcFile the source file.
      * @param filename the filename (optional)
      * @return the downloads file path
      */
     @SuppressLint("NewApi")
-    public static String saveMediaIntoDownloads(Context context, String path, String filename, String mimeType) {
-        String fullFilePath = saveFileInto(context, path, Environment.DIRECTORY_DOWNLOADS, filename);
+    public static String saveMediaIntoDownloads(Context context, File srcFile, String filename, String mimeType) {
+        String fullFilePath = saveFileInto(context, srcFile, Environment.DIRECTORY_DOWNLOADS, filename);
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             if (null != fullFilePath) {
@@ -664,10 +665,10 @@ public class CommonActivityUtils {
     /**
      * Save an image URI into the gallery
      * @param context the context.
-     * @param imageFilePath the image path to save.
+     * @param sourceFile the image path to save.
      */
-    public static String saveImageIntoGallery(Context context, String imageFilePath) {
-        String filePath = saveFileInto(context, imageFilePath, Environment.DIRECTORY_PICTURES, null);
+    public static String saveImageIntoGallery(Context context, File sourceFile) {
+        String filePath = saveFileInto(context, sourceFile, Environment.DIRECTORY_PICTURES, null);
 
         if (null != filePath) {
             // This broadcasts that there's been a change in the media directory

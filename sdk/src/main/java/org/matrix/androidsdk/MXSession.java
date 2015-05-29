@@ -136,7 +136,7 @@ public class MXSession {
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache();
-        mMediasCache = new MXMediasCache(mContentManager);
+        mMediasCache = new MXMediasCache(mContentManager, credentials.userId, appContext);
     }
 
     /**
@@ -245,7 +245,7 @@ public class MXSession {
         mContentManager.clear();
 
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clearCache(context);
+        mMediasCache.clearCache();
     }
 
     /**

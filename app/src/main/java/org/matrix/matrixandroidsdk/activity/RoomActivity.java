@@ -1315,7 +1315,6 @@ public class RoomActivity extends MXCActionBarActivity {
 
     }
 
-
 	private void writeMediaUrl(Uri destUri)
 	{
 		try{
@@ -1326,9 +1325,9 @@ public class RoomActivity extends MXCActionBarActivity {
 			FileOutputStream fileOutputStream =
                            new FileOutputStream(pfd.getFileDescriptor());
 
-            String sourceFilePath = mMediasCache.mediaCacheFilename(this, mPendingMediaUrl, mPendingMimeType);
+            File sourceFile = mMediasCache.mediaCacheFile(this, mPendingMediaUrl, mPendingMimeType);
 
-            InputStream inputStream = this.openFileInput(sourceFilePath);
+            FileInputStream inputStream = new FileInputStream(sourceFile);
 
             byte[] buffer = new byte[1024 * 10];
             int len;

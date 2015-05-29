@@ -344,7 +344,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             message = new FileMessage();
 
                             // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
+                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
                             message.url = uploadResponse.contentUri;
                             message.info = tmpFileMessage.info;
                             message.body = tmpFileMessage.body;
@@ -425,8 +425,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                         message = new ImageMessage();
 
                                                         // replace the thumbnail and the media contents by the computed ones
-                                                        getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                                                        getMXMediasCache().saveFileMediaForUrl(getActivity(), uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
+                                                        getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                                                        getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
 
                                                         message.thumbnailUrl = null;
                                                         message.url = uploadResponse.contentUri;
