@@ -263,7 +263,7 @@ public class Matrix {
         }
 
         Intent intent = new Intent(fromActivity, SplashActivity.class);
-        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
         fromActivity.startActivity(intent);
         fromActivity.finish();
