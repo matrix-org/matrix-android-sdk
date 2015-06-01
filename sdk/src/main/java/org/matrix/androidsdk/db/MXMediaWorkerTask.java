@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.db;
 
-import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -102,7 +101,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             mimeType = "image/jpeg";
         }
 
-        String fileExtension =  MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        String fileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
 
         // some devices don't support .jpeg files
         if ("jpeg".equals(fileExtension)) {

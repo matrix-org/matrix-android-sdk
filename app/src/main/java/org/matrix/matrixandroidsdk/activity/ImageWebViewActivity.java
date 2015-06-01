@@ -96,7 +96,7 @@ public class ImageWebViewActivity extends Activity {
                 "display: box; box-pack: center; box-align: center; } ";
 
         final MXMediasCache mediasCache = Matrix.getInstance(this).getMediasCache();
-        File mediaFile = mediasCache.mediaCacheFile(this, mHighResUri, mHighResMimeType);
+        File mediaFile = mediasCache.mediaCacheFile(mHighResUri, mHighResMimeType);
 
         // is the high picture already downloaded ?
         if (null != mediaFile) {
@@ -162,7 +162,7 @@ public class ImageWebViewActivity extends Activity {
             mThumbnailUri = null;
 
             // try to retrieve the thumbnail
-            mediaFile = mediasCache.mediaCacheFile(this, mHighResUri, thumbnailWidth, thumbnailHeight, null);
+            mediaFile = mediasCache.mediaCacheFile(mHighResUri, thumbnailWidth, thumbnailHeight, null);
             if (null == mediaFile) {
                 Log.e(LOG_TAG, "No Image thumbnail");
                 finish();
@@ -190,7 +190,7 @@ public class ImageWebViewActivity extends Activity {
                         if (aDownloadId.equals(downloadId)) {
                             pieFractionView.setVisibility(View.GONE);
 
-                            final File mediaFile = mediasCache.mediaCacheFile(ImageWebViewActivity.this, loadingUri, mHighResMimeType);
+                            final File mediaFile = mediasCache.mediaCacheFile(loadingUri, mHighResMimeType);
 
                             if (null != mediaFile) {
                                 Uri uri = Uri.fromFile(mediaFile);

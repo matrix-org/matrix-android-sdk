@@ -194,7 +194,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         supportShare = false;
                         MXMediasCache cache = getMXMediasCache();
 
-                        File mediaFile = cache.mediaCacheFile(getActivity(), mediaUrl, mediaMimeType);
+                        File mediaFile = cache.mediaCacheFile(mediaUrl, mediaMimeType);
 
                         if (null != mediaFile) {
                             try {
@@ -348,7 +348,7 @@ public class ConsoleMessageListFragment extends MatrixMessageListFragment {
                         dialog.dismiss();
 
                         MXMediasCache cache = getMXMediasCache();
-                        File cacheFile = cache.mediaCacheFile(getActivity(), mediaUrl, mediaMimeType);
+                        File cacheFile = cache.mediaCacheFile(mediaUrl, mediaMimeType);
 
                         String entry = fEntries.get(which);
                         String savedFilename = null;

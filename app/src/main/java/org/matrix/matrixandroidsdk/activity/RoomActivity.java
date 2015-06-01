@@ -460,7 +460,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                         }
 
                                                         if (null != resizeBitmapStream) {
-                                                            String bitmapURL = mMediasCache.saveMedia(resizeBitmapStream, RoomActivity.this, null, "image/jpeg");
+                                                            String bitmapURL = mMediasCache.saveMedia(resizeBitmapStream, null, "image/jpeg");
 
 
                                                             if (null != bitmapURL) {
@@ -988,7 +988,7 @@ public class RoomActivity extends MXCActionBarActivity {
                             }
 
                             // save the file in the filesystem
-                            String mediaUrl = mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, null, resource.mimeType);
+                            String mediaUrl = mMediasCache.saveMedia(resource.contentStream, null, resource.mimeType);
                             String mimeType = resource.mimeType;
                             Boolean isManaged = false;
 
@@ -1073,7 +1073,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                                 resource = ResourceUtils.openResource(RoomActivity.this, mediaUri);
 
                                                 try {
-                                                    mMediasCache.saveMedia(resource.contentStream, RoomActivity.this, uri.getPath(), mimeType);
+                                                    mMediasCache.saveMedia(resource.contentStream, uri.getPath(), mimeType);
                                                 } catch (OutOfMemoryError ex) {
                                                     Log.e(LOG_TAG, "mMediasCache.saveMedia" + ex.getMessage());
                                                 }
@@ -1097,7 +1097,7 @@ public class RoomActivity extends MXCActionBarActivity {
                                     }
                                 }
 
-                                String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, RoomActivity.this, null);
+                                String thumbnailURL = mMediasCache.saveBitmap(thumbnailBitmap, null);
 
                                 if (null != thumbnailBitmap) {
                                     thumbnailBitmap.recycle();
@@ -1325,7 +1325,7 @@ public class RoomActivity extends MXCActionBarActivity {
 			FileOutputStream fileOutputStream =
                            new FileOutputStream(pfd.getFileDescriptor());
 
-            File sourceFile = mMediasCache.mediaCacheFile(this, mPendingMediaUrl, mPendingMimeType);
+            File sourceFile = mMediasCache.mediaCacheFile(mPendingMediaUrl, mPendingMimeType);
 
             FileInputStream inputStream = new FileInputStream(sourceFile);
 

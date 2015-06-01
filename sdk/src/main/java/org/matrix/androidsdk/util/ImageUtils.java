@@ -267,7 +267,7 @@ public class ImageUtils {
                 bitmap.recycle();
 
                 if (null != mediasCache) {
-                    mediasCache.saveBitmap(transformedBitmap, context, imageURL);
+                    mediasCache.saveBitmap(transformedBitmap, imageURL);
                 }
 
                 succeeds = true;

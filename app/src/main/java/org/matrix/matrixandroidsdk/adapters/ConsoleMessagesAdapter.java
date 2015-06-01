@@ -68,7 +68,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
     @Override
     public void onFileDownloaded(FileMessage fileMessage) {
         // save into the downloads
-        File mediaFile = mMediasCache.mediaCacheFile(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+        File mediaFile = mMediasCache.mediaCacheFile(fileMessage.url, fileMessage.getMimeType());
 
         if (null != mediaFile) {
             CommonActivityUtils.saveMediaIntoDownloads(mContext, mediaFile, fileMessage.body, fileMessage.getMimeType());
@@ -78,7 +78,7 @@ public class ConsoleMessagesAdapter extends MessagesAdapter {
     @Override
     public void onFileClick(FileMessage fileMessage) {
         if (null != fileMessage.url) {
-            File mediaFile =  mMediasCache.mediaCacheFile(ConsoleMessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
+            File mediaFile =  mMediasCache.mediaCacheFile(fileMessage.url, fileMessage.getMimeType());
 
             // is the file already saved
             if (null != mediaFile) {
