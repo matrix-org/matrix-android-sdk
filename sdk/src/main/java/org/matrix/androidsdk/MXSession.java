@@ -135,7 +135,7 @@ public class MXSession {
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
-        mLatestChatMessageCache = new MXLatestChatMessageCache();
+        mLatestChatMessageCache = new MXLatestChatMessageCache(credentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, credentials.userId, appContext);
     }
 

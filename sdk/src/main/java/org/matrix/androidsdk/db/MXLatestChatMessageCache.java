@@ -20,6 +20,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.util.ContentUtils;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
@@ -31,21 +34,27 @@ public class MXLatestChatMessageCache {
     private static final String LOG_TAG = "ConsoleLatestChatMessageCache";
     private static final String FILENAME = "ConsoleLatestChatMessageCache";
 
+    final String MXLATESTMESSAGES_STORE_FOLDER = "MXLatestMessagesStore";
+
     private HashMap<String, String> mLatestMesssageByRoomId = null;
+    private String mUserId = null;
+    private File mLatestMessagesDirectory = null;
+    private File mLatestMessagesFile = null;
+
+    /**
+     */
+    public MXLatestChatMessageCache(String userId) {
+        mUserId = userId;
+    }
 
     /**
      * Clear the text caches.
      * @param context The application context to use.
      */
     public void clearCache(Context context) {
-        String[] filesList = context.fileList();
-
-        for(String file : filesList) {
-            try {
-                context.deleteFile(file);
-            } catch (Exception e) {
-
-            }
+        // delete the medias dirtee
+        if (ContentUtils.deleteDirectory(mLatestMessagesDirectory)) {
+            mLatestMessagesDirectory.delete();
         }
 
         mLatestMesssageByRoomId = null;
@@ -56,15 +65,42 @@ public class MXLatestChatMessageCache {
      * @param context the context.
      */
     private void openLatestMessagesDict(Context context) {
+
+        // already checked
+        if (null != mLatestMesssageByRoomId) {
+            return;
+        }
+
+        mLatestMesssageByRoomId = new HashMap<String, String>();
+
         try
         {
-            FileInputStream fis = context.openFileInput(FILENAME.hashCode() + "");
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            mLatestMesssageByRoomId = (HashMap) ois.readObject();
-            ois.close();
-            fis.close();
-        }catch(Exception e) {
-            mLatestMesssageByRoomId = new HashMap<String, String>();
+            mLatestMessagesDirectory = new File(context.getApplicationContext().getFilesDir(), MXLATESTMESSAGES_STORE_FOLDER);
+            mLatestMessagesDirectory = new File(mLatestMessagesDirectory, mUserId);
+
+            mLatestMessagesFile = new File(mLatestMessagesDirectory, FILENAME.hashCode() + "");
+
+            if (!mLatestMessagesDirectory.exists()) {
+
+                // create dir tree
+                mLatestMessagesDirectory.mkdirs();
+
+                File oldFile = new File(context.getApplicationContext().getFilesDir(), FILENAME.hashCode() + "");
+
+                // backward compatibility
+                if (oldFile.exists()) {
+                    oldFile.renameTo(mLatestMessagesFile);
+                }
+            }
+
+            if (mLatestMessagesFile.exists()) {
+                FileInputStream fis = new FileInputStream(mLatestMessagesFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                mLatestMesssageByRoomId = (HashMap) ois.readObject();
+                ois.close();
+                fis.close();
+            }
+        } catch(Exception e) {
         }
     }
 
@@ -97,7 +133,7 @@ public class MXLatestChatMessageCache {
     private void saveLatestMessagesDict(Context context) {
         try
         {
-            FileOutputStream fos = context.openFileOutput(FILENAME.hashCode() + "", Context.MODE_PRIVATE);
+            FileOutputStream fos = new FileOutputStream(mLatestMessagesFile);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(mLatestMesssageByRoomId);
             oos.close();
