@@ -74,7 +74,7 @@ public class MXMediasCache {
      * Clear the former medias cache.
      * The dirtree has been updated.
      *
-     * @param directory The application context to use.
+     * @param directory The upper directory file.
      */
     public void cleanFormerMediasCache(File directory) {
         File[] files = directory.listFiles();
@@ -168,7 +168,6 @@ public class MXMediasCache {
 
         return mThumbnailsFolderFile;
     }
-
 
     /**
      * Recursive method to compute a directory sie

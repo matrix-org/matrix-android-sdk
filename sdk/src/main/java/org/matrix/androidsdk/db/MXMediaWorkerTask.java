@@ -36,6 +36,8 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -61,7 +63,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private File mDirectoryFile = null;
     private int mRotation = 0;
     private int mProgress = 0;
-
 
     public static void clearBitmapsCache() {
         sMemoryCache.evictAll();
@@ -89,13 +90,40 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     }
 
     /**
+     * Generate an unique ID for a string
+     * @param input the string
+     * @return the unique ID
+     */
+    private static String uniqueId(String input){
+        String uniqueId = null;
+
+        try {
+            MessageDigest mDigest = MessageDigest.getInstance("SHA1");
+            byte[] result = mDigest.digest(input.getBytes());
+            StringBuffer sb = new StringBuffer();
+            for (int i = 0; i < result.length; i++) {
+                sb.append(Integer.toString((result[i] & 0xff) + 0x100, 16).substring(1));
+            }
+
+            uniqueId = sb.toString();
+        } catch (Exception e) {
+        }
+
+        if (null == uniqueId) {
+            uniqueId = "" + Math.abs(input.hashCode());
+        }
+
+        return uniqueId;
+    }
+
+    /**
      * Build a filename from an url
      * @param Url the media url
      * @param mimeType the mime type;
      * @return the cache filename
      */
     public static String buildFileName(String Url, String mimeType) {
-        String name = "file_" + Math.abs(Url.hashCode());
+        String name = "file_" + MXMediaWorkerTask.uniqueId(Url);
 
         if (null == mimeType) {
             mimeType = "image/jpeg";
@@ -403,7 +431,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                     }
                     originalFile.renameTo(newFile);
                 } catch (Exception e) {
-                    e = e;
                 }
             }
 
