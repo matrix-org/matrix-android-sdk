@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.media.ExifInterface;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -658,7 +659,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
-        final String downloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, "image/jpeg");
+        // the thumbnails are always prerotated
+        final String downloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);

@@ -19,6 +19,7 @@ package org.matrix.androidsdk.db;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -416,7 +417,7 @@ public class MXMediasCache {
      * @return a download identifier if the image is not cached.
      */
     public String loadAvatarThumbnail(ImageView imageView, String url, int side) {
-        return loadBitmap(imageView.getContext(), imageView, url, side, side, 0, null, getThumbnailsFolderFile());
+        return loadBitmap(imageView.getContext(), imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,  null, getThumbnailsFolderFile());
     }
 
     /**
@@ -426,11 +427,12 @@ public class MXMediasCache {
      * @param imageView     Ihe imageView to update with the image.
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
+     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(ImageView imageView, String url, int rotationAngle, String mimeType) {
-        return loadBitmap(imageView, url, -1, -1, rotationAngle, mimeType);
+    public String loadBitmap(ImageView imageView, String url, int rotationAngle, int orientation, String mimeType) {
+        return loadBitmap(imageView, url, -1, -1, rotationAngle, orientation, mimeType);
     }
 
     /**
@@ -440,11 +442,12 @@ public class MXMediasCache {
      * @param context       The context
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
+     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(Context context, String url, int rotationAngle, String mimeType) {
-        return loadBitmap(context, null, url, -1, -1, rotationAngle, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(Context context, String url, int rotationAngle, int orientation, String mimeType) {
+        return loadBitmap(context, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
     }
 
     /**
@@ -458,11 +461,12 @@ public class MXMediasCache {
      * @param width         the expected image width
      * @param height        the expected image height
      * @param rotationAngle the rotation angle (degrees)
+     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle, String mimeType) {
-        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType) {
+        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
     }
 
     // some tasks have been stacked because there are too many running ones.
@@ -564,7 +568,11 @@ public class MXMediasCache {
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
-     * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
+     *
+     * The rotation angle is checked first.
+     * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
+     * If the orientation is defined, request the properly oriented image to the server
+     *
      *
      * @param context the context
      * @param imageView the imageView to fill when the image is downloaded
@@ -572,11 +580,12 @@ public class MXMediasCache {
      * @param width the expected image width
      * @param height the expected image height
      * @param rotationAngle the rotation angle (degrees)
+     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType the mimeType.
      * @param folderFile tye folder where the media should be stored
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle, String mimeType, File folderFile) {
+    public String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
         if (null == url) {
             return null;
         }
@@ -587,6 +596,14 @@ public class MXMediasCache {
         }
 
         String downloadableUrl = downloadableUrl(url, width, height);
+
+        if ((rotationAngle == Integer.MAX_VALUE) && (orientation != ExifInterface.ORIENTATION_UNDEFINED) && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
+            if (downloadableUrl.indexOf("?") != -1) {
+                downloadableUrl += "&apply_orientation=true";
+            } else {
+                downloadableUrl += "?apply_orientation=true";
+            }
+        }
 
         if (null != imageView) {
             imageView.setTag(downloadableUrl);

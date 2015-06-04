@@ -887,13 +887,26 @@ public class Room {
             String sWidth = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
             String sHeight = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
 
+            // the image rotation is replaced by orientation
+            // imageInfo.rotation = ImageUtils.getRotationAngleForBitmap(context, imageUri);
+            imageInfo.orientation = ImageUtils.getOrientationForBitmap(context, imageUri);
+
             int width = 0;
             int height = 0;
 
             // extract the Exif info
             if ((null != sWidth) && (null != sHeight)) {
-                width = Integer.parseInt(sWidth);
-                height = Integer.parseInt(sHeight);
+
+                if ( (imageInfo.orientation  == ExifInterface.ORIENTATION_TRANSPOSE) ||
+                     (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_90) ||
+                     (imageInfo.orientation  == ExifInterface.ORIENTATION_TRANSVERSE) ||
+                     (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_270)) {
+                    height = Integer.parseInt(sWidth);
+                    width = Integer.parseInt(sHeight);
+                } else {
+                    width = Integer.parseInt(sWidth);
+                    height = Integer.parseInt(sHeight);
+                }
             }
 
             // there is no exif info or the size is invalid
@@ -921,7 +934,6 @@ public class Room {
 
             imageInfo.mimetype = mimeType;
             imageInfo.size = file.length();
-            imageInfo.rotation = ImageUtils.getRotationAngleForBitmap(context, imageUri);
 
             imageMessage.info = imageInfo;
 

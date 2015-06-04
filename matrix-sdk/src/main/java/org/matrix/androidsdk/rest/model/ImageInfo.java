@@ -21,4 +21,6 @@ public class ImageInfo {
     public Integer h;
     public Long size;
     public Integer rotation;
+    // ExifInterface.ORIENTATION_XX values
+    public Integer orientation;
 }
