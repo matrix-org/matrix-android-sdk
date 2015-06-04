@@ -45,15 +45,9 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
     private static final String LOG_TAG = "MediaWorkerTask";
 
-    private static final int MEMORY_CACHE_MB = 8;
     private static HashMap<String, MXMediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MXMediaWorkerTask>();
 
-    private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
-        @Override
-        protected int sizeOf(String key, Bitmap bitmap) {
-            return bitmap.getRowBytes() * bitmap.getHeight(); // size in bytes
-        }
-    };
+    private static LruCache<String, Bitmap> sMemoryCache = null;
 
     private ArrayList<MXMediasCache.DownloadCallback> mCallbacks = new ArrayList<MXMediasCache.DownloadCallback>();
     private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
@@ -158,6 +152,19 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
         // sanity check
         if (null != url) {
+
+            if (null == sMemoryCache) {
+                int lruSize = Math.min(2 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
+
+                Log.d(LOG_TAG, "bitmapForURL  lruSize : " + lruSize);
+
+                sMemoryCache = new LruCache<String, Bitmap>(lruSize){
+                    @Override
+                    protected int sizeOf(String key, Bitmap bitmap) {
+                        return bitmap.getRowBytes() * bitmap.getHeight(); // size in bytes
+                    }
+                };
+            }
 
             // the image is downloading in background
             if (null != mediaWorkerTaskForUrl(url)) {
