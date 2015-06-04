@@ -45,7 +45,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
     private static final String LOG_TAG = "MediaWorkerTask";
 
-    private static final int MEMORY_CACHE_MB = 16;
+    private static final int MEMORY_CACHE_MB = 8;
     private static HashMap<String, MXMediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MXMediaWorkerTask>();
 
     private static LruCache<String, Bitmap> sMemoryCache = new LruCache<String, Bitmap>(1024 * 1024 * MEMORY_CACHE_MB){
@@ -242,7 +242,13 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                                     }
                                 }
 
-                                sMemoryCache.put(url, bitmap);
+                                // cache only small images
+                                // caching large images does not make sense
+                                // it would replace small ones.
+                                // let assume that the application must be faster when showing the chat history.
+                                if ((bitmap.getWidth() < 1000) && (bitmap.getHeight() < 1000)) {
+                                    sMemoryCache.put(url, bitmap);
+                                }
                             }
                         }
 
@@ -446,10 +452,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 if (null == bitmap) {
                     bitmap = MXMediaWorkerTask.bitmapForURL(mApplicationContext, mDirectoryFile, key, mRotation, mMimeType);
                 }
-
-                synchronized (sMemoryCache) {
-                    cacheBitmap(key, bitmap);
-                }
             }
 
             return bitmap;
@@ -512,14 +514,6 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 }
             }
         }
-
-
-    }
-
-    private void cacheBitmap(String key, Bitmap bitmap) {
-        // for now we'll just in-memory cache this. In future, they should be written to the
-        // cache directory as well.
-        sMemoryCache.put(key, bitmap);
     }
 
     private void close(InputStream stream) {
