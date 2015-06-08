@@ -45,8 +45,18 @@ public class JsonUtils {
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
             .create();
 
-    public static Gson getGson() {
-        return gson;
+    // add a call to serializeNulls().
+    // by default the null parameters are not sent in the requests.
+    // serializeNulls forces to add them.
+    private static Gson gsonWithNullSerialization = new GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
+            .serializeNulls()
+            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .create();
+
+    public static Gson getGson(boolean withNullSerialization) {
+        return withNullSerialization ? gsonWithNullSerialization : gson;
     }
 
     public static RoomState toRoomState(JsonObject jsonObject) {

@@ -33,7 +33,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * {@inheritDoc}
      */
     public ThirdPidRestClient(Credentials credentials) {
-        super(credentials, ThirdPidApi.class, RestClient.URI_IDENTITY_PREFIX);
+        super(credentials, ThirdPidApi.class, RestClient.URI_IDENTITY_PREFIX, false);
     }
 
     /**

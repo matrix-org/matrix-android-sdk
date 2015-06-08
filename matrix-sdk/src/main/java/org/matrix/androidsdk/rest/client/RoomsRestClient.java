@@ -53,7 +53,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * {@inheritDoc}
      */
     public RoomsRestClient(Credentials credentials) {
-        super(credentials, RoomsApi.class, RestClient.URI_API_PREFIX);
+        super(credentials, RoomsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

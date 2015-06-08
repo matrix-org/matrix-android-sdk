@@ -64,18 +64,17 @@ public class RestClient<T> {
      * Public constructor.
      * @param hsUri The http[s] URI to the home server.
      */
-    public RestClient(Uri hsUri, Class<T> type, String uriPrefix) {
+    public RestClient(Uri hsUri, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         // sanity check
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
         }
 
         // The JSON -> object mapper
-        gson = JsonUtils.getGson();
+        gson = JsonUtils.getGson(withNullSerialization);
 
         // HTTP client
         OkHttpClient okHttpClient = new OkHttpClient();
-        int a = okHttpClient.getConnectTimeout();
 
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -105,8 +104,8 @@ public class RestClient<T> {
      * Constructor providing the full user credentials. To use to avoid having to log the user in.
      * @param credentials the user credentials
      */
-    public RestClient(Credentials credentials, Class<T> type, String uriPrefix) {
-        this(Uri.parse(credentials.homeServer), type, uriPrefix);
+    public RestClient(Credentials credentials, Class<T> type, String uriPrefix, boolean withNullSerialization) {
+        this(Uri.parse(credentials.homeServer), type, uriPrefix, withNullSerialization);
         mCredentials = credentials;
     }
 

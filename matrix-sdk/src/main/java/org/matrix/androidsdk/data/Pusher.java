@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class Pusher {
     public String pushkey;
-    public String kind;
+    public Object kind;
     public String profileTag;
     public String appId;
     public String appDisplayName;

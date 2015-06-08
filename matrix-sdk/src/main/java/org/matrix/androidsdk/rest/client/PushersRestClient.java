@@ -18,6 +18,9 @@ package org.matrix.androidsdk.rest.client;
 
 import android.util.Log;
 
+import com.google.gson.JsonNull;
+
+import org.json.JSONObject;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
@@ -42,7 +45,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String DATA_KEY_HTTP_URL = "url";
 
     public PushersRestClient(Credentials credentials) {
-        super(credentials, PushersApi.class, RestClient.URI_API_PREFIX);
+        super(credentials, PushersApi.class, RestClient.URI_API_PREFIX, true);
     }
 
     /** Add a new HTTP pusher.

@@ -31,7 +31,7 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
      * {@inheritDoc}
      */
     public PresenceRestClient(Credentials credentials) {
-        super(credentials, PresenceApi.class, RestClient.URI_API_PREFIX);
+        super(credentials, PresenceApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

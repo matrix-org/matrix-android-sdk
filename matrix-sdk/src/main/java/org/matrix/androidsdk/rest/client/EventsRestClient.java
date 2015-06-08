@@ -46,7 +46,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * {@inheritDoc}
      */
     public EventsRestClient(Credentials credentials) {
-        super(credentials, EventsApi.class, RestClient.URI_API_PREFIX);
+        super(credentials, EventsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     protected EventsRestClient(EventsApi api) {
