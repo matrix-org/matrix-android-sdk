@@ -40,7 +40,7 @@ import retrofit.client.Response;
  */
 public class EventsRestClient extends RestClient<EventsApi> {
 
-    protected static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+    public static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
     /**
      * {@inheritDoc}

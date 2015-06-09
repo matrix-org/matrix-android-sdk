@@ -347,6 +347,10 @@ public class MXSession {
         mEventsThread.unpause();
     }
 
+    public void catchupEventStream() {
+        mEventsThread.catchup();
+    }
+
     /**
      * Set a global failure callback implementation.
      * @param failureCallback the failure callback

@@ -46,7 +46,9 @@ public class EventsThread extends Thread {
 
     private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
+    private boolean mIsCatchingUp = false;
     private boolean mKilling = false;
+    private int mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private RestAdapterCallback mEventsFailureCallback;
@@ -107,6 +109,7 @@ public class EventsThread extends Thread {
     public void pause() {
         Log.i(LOG_TAG, "pause()");
         mPaused = true;
+        mIsCatchingUp = false;
     }
 
     /**
@@ -120,6 +123,29 @@ public class EventsThread extends Thread {
                 notify();
             }
         }
+
+        // request the latest events asap
+        mEventRequestTimeout = 0;
+        // cancel any catchup process.
+        mIsCatchingUp = false;
+    }
+
+    /**
+     * Catchup until some events are retrieved.
+     */
+    public void catchup() {
+        Log.e(LOG_TAG, "catchup()");
+        if (mPaused) {
+            mPaused = false;
+            synchronized (this) {
+                notify();
+            }
+        }
+
+        // request the latest events once
+        // without any delay.
+        mEventRequestTimeout = 0;
+        mIsCatchingUp = true;
     }
 
     /**
@@ -239,30 +265,41 @@ public class EventsThread extends Thread {
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {
-                Log.i(LOG_TAG, "Event stream is paused. Waiting.");
+                Log.e(LOG_TAG, "Event stream is paused. Waiting.");
                 try {
                     synchronized (this) {
                         wait();
                     }
-                    Log.i(LOG_TAG, "Event stream woken from pause.");
+                    Log.e(LOG_TAG, "Event stream woken from pause.");
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
                 }
             }
 
             try {
-                TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken);
-                if (!mKilling) {
+                TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
 
+                if (!mKilling) {
                     // set the dedicated token when they are known.
                     if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
                         eventsResponse.chunk.get(0).mToken = eventsResponse.start;
                         eventsResponse.chunk.get(eventsResponse.chunk.size()-1).mToken = eventsResponse.end;
                     }
 
+                    // the catchup request is done once.
+                    if (mIsCatchingUp) {
+                        Log.e(LOG_TAG, "Stop the catchup");
+                        // stop any catch up
+                        mIsCatchingUp = false;
+                        mPaused = true;
+                    }
+
                     mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
                     mCurrentToken = eventsResponse.end;
                 }
+
+                // reset to the default value
+                mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
             }
             catch (Exception e) {
                 Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());
