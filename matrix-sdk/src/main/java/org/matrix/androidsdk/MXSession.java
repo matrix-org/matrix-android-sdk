@@ -334,21 +334,40 @@ public class MXSession {
      */
     public void stopEventStream() {
         if (null != mEventsThread) {
+            Log.d(LOG_TAG, "stopEventStream");
+
             mEventsThread.kill();
             mEventsThread = null;
+        } else {
+            Log.e(LOG_TAG, "stopEventStream : mEventsThread is already null");
         }
     }
 
     public void pauseEventStream() {
-        mEventsThread.pause();
+        if (null != mEventsThread) {
+            Log.d(LOG_TAG, "pauseEventStream");
+            mEventsThread.pause();
+        } else {
+            Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
+        }
     }
 
     public void resumeEventStream() {
-        mEventsThread.unpause();
+        if (null != mEventsThread) {
+            Log.d(LOG_TAG, "unpause");
+            mEventsThread.unpause();
+        } else {
+            Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
+        }
     }
 
     public void catchupEventStream() {
-        mEventsThread.catchup();
+        if (null != mEventsThread) {
+            Log.d(LOG_TAG, "catchupEventStream");
+            mEventsThread.catchup();
+        } else {
+            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null");
+        }
     }
 
     /**

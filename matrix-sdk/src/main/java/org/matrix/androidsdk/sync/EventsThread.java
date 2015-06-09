@@ -134,7 +134,7 @@ public class EventsThread extends Thread {
      * Catchup until some events are retrieved.
      */
     public void catchup() {
-        Log.e(LOG_TAG, "catchup()");
+        Log.d(LOG_TAG, "catchup()");
         if (mPaused) {
             mPaused = false;
             synchronized (this) {
@@ -152,15 +152,26 @@ public class EventsThread extends Thread {
      * Allow the thread to finish its current processing, then permanently stop.
      */
     public void kill() {
+        Log.d(LOG_TAG, "killing ...");
+
         mKilling = true;
+
+        if (mPaused) {
+            mPaused = false;
+            synchronized (this) {
+                notify();
+            }
+
+            Log.d(LOG_TAG, "Resume the thread to kill it.");
+        }
     }
 
     @Override
     public void run() {
         if (null != mCurrentToken) {
-            Log.e(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
+            Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
         } else {
-            Log.e(LOG_TAG, "Requesting initial sync...");
+            Log.d(LOG_TAG, "Requesting initial sync...");
         }
 
         mPaused = false;
@@ -265,64 +276,67 @@ public class EventsThread extends Thread {
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused) {
-                Log.e(LOG_TAG, "Event stream is paused. Waiting.");
+                Log.d(LOG_TAG, "Event stream is paused. Waiting.");
                 try {
                     synchronized (this) {
                         wait();
                     }
-                    Log.e(LOG_TAG, "Event stream woken from pause.");
+                    Log.d(LOG_TAG, "Event stream woken from pause.");
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
                 }
             }
 
-            try {
-                TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
+            // the service could have been killed while being paused.
+            if (!mKilling) {
+                try {
+                    TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
 
-                if (!mKilling) {
-                    // set the dedicated token when they are known.
-                    if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
-                        eventsResponse.chunk.get(0).mToken = eventsResponse.start;
-                        eventsResponse.chunk.get(eventsResponse.chunk.size()-1).mToken = eventsResponse.end;
+                    if (!mKilling) {
+                        // set the dedicated token when they are known.
+                        if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
+                            eventsResponse.chunk.get(0).mToken = eventsResponse.start;
+                            eventsResponse.chunk.get(eventsResponse.chunk.size() - 1).mToken = eventsResponse.end;
+                        }
+
+                        // the catchup request is done once.
+                        if (mIsCatchingUp) {
+                            Log.e(LOG_TAG, "Stop the catchup");
+                            // stop any catch up
+                            mIsCatchingUp = false;
+                            mPaused = true;
+                        }
+
+                        mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
+                        mCurrentToken = eventsResponse.end;
                     }
 
-                    // the catchup request is done once.
-                    if (mIsCatchingUp) {
-                        Log.e(LOG_TAG, "Stop the catchup");
-                        // stop any catch up
-                        mIsCatchingUp = false;
-                        mPaused = true;
+                    // reset to the default value
+                    mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
+
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());
+
+                    if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
+                        mEventsFailureCallback.failure((RetrofitError) e);
                     }
 
-                    mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
-                    mCurrentToken = eventsResponse.end;
-                }
-
-                // reset to the default value
-                mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
-            }
-            catch (Exception e) {
-                Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());
-
-                if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
-                    mEventsFailureCallback.failure((RetrofitError) e);
-                }
-
-                boolean isConnected;
-                synchronized (this) {
-                    isConnected = mbIsConnected;
-                }
-
-                // detected if the device is connected before trying again
-                if (isConnected) {
-                    try {
-                        Thread.sleep(RETRY_WAIT_TIME_MS);
-                    } catch (InterruptedException e1) {
-                        Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                    boolean isConnected;
+                    synchronized (this) {
+                        isConnected = mbIsConnected;
                     }
-                } else {
-                    // no network -> wait that a network connection comes back.
-                    pause();
+
+                    // detected if the device is connected before trying again
+                    if (isConnected) {
+                        try {
+                            Thread.sleep(RETRY_WAIT_TIME_MS);
+                        } catch (InterruptedException e1) {
+                            Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                        }
+                    } else {
+                        // no network -> wait that a network connection comes back.
+                        pause();
+                    }
                 }
             }
         }

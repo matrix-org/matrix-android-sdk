@@ -61,7 +61,12 @@ public class ContentUtils {
     public static boolean deleteDirectory(File directory) {
         boolean succeed = true;
 
-        if ((null != directory) && directory.exists()) {
+        // sanity check
+        if (null == directory) {
+            return true;
+        }
+
+        if (directory.exists()) {
             File[] files = directory.listFiles();
 
             if (null != files) {
