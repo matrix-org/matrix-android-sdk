@@ -59,7 +59,10 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private int mProgress = 0;
 
     public static void clearBitmapsCache() {
-        sMemoryCache.evictAll();
+        // sMemoryCache can be null if no bitmap have been downloaded.
+        if (null != sMemoryCache) {
+            sMemoryCache.evictAll();
+        }
     }
 
     public String getUrl() {
