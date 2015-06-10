@@ -82,7 +82,7 @@ public class EventsThreadTest {
      * Set up normal behavior from the events call.
      */
     private void setUpNormalEvents() {
-        when(mockRestClient.events(anyString())).thenReturn(new TokensChunkResponse<Event>());
+        when(mockRestClient.events(anyString(), anyInt())).thenReturn(new TokensChunkResponse<Event>());
     }
 
     /**
@@ -102,7 +102,7 @@ public class EventsThreadTest {
         verify(mockListener, timeout(1000)).onInitialSyncComplete(any(InitialSyncResponse.class));
 
         // Verify the call to the rest client
-        verify(mockRestClient, timeout(1000).atLeast(2)).events(anyString());
+        verify(mockRestClient, timeout(1000).atLeast(2)).events(anyString(), anyInt());
         // Verify that the listener got notified with events at least a couple of times
         verify(mockListener, timeout(1000).atLeast(2)).onEventsReceived(any(List.class), anyString());
     }
@@ -169,7 +169,7 @@ public class EventsThreadTest {
     private void setUpNetworkErrorEvents() {
         RetrofitError mockNetworkError = mock(RetrofitError.class);
         when(mockNetworkError.isNetworkError()).thenReturn(true);
-        when(mockRestClient.events(anyString()))
+        when(mockRestClient.events(anyString(), anyInt()))
                 .thenThrow(mockNetworkError)
                 .thenReturn(new TokensChunkResponse<Event>());
     }
@@ -236,7 +236,7 @@ public class EventsThreadTest {
 
         // Unpause and verify that events come in again
         eventsThread.unpause();
-        verify(mockRestClient, timeout(1000).atLeastOnce()).events(anyString());
+        verify(mockRestClient, timeout(1000).atLeastOnce()).events(anyString(), anyInt());
     }
 
     /**
