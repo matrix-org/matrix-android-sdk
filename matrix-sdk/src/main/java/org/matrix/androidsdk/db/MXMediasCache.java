@@ -208,11 +208,7 @@ public class MXMediasCache {
      * Clear the medias caches.
      */
     public void clearCache() {
-        // delete the medias dirtee
-        if (ContentUtils.deleteDirectory(getMediasFolderFile())) {
-            mMediasFolderFile.delete();
-        }
-
+        ContentUtils.deleteDirectory(getMediasFolderFile());
         // clear the media cache
         MXMediaWorkerTask.clearBitmapsCache();
     }

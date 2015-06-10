@@ -59,12 +59,12 @@ public class ContentUtils {
      * @return
      */
     public static boolean deleteDirectory(File directory) {
-        boolean succeed = true;
-
         // sanity check
         if (null == directory) {
-            return true;
+            return false;
         }
+
+        boolean succeed = true;
 
         if (directory.exists()) {
             File[] files = directory.listFiles();

@@ -52,11 +52,7 @@ public class MXLatestChatMessageCache {
      * @param context The application context to use.
      */
     public void clearCache(Context context) {
-        // delete the medias dirtee
-        if (ContentUtils.deleteDirectory(mLatestMessagesDirectory)) {
-            mLatestMessagesDirectory.delete();
-        }
-
+        ContentUtils.deleteDirectory(mLatestMessagesDirectory);
         mLatestMesssageByRoomId = null;
     }
 
