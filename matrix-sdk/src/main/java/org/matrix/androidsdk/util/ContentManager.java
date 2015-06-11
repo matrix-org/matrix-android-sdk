@@ -378,9 +378,12 @@ public class ContentManager {
                 conn.setRequestProperty("Content-Type", mimeType);
                 conn.setRequestProperty("Content-Length", Integer.toString(contentStream.available()));
 
+                // avoid caching data before really sending them.
+                conn.setFixedLengthStreamingMode(contentStream.available());
+
                 conn.connect();
 
-                dos = new DataOutputStream(conn.getOutputStream() );
+                dos = new DataOutputStream(conn.getOutputStream());
 
                 // create a buffer of maximum size
 
