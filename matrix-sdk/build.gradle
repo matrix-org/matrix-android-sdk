@@ -42,9 +42,6 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-
             libraryVariants.all { variant ->
                 variant.outputs.each { output ->
                     def outputFile = output.outputFile
