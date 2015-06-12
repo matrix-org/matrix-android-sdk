@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
 import retrofit.RetrofitError;
@@ -312,6 +313,19 @@ public class EventsThread extends Thread {
                             eventsResponse.chunk.get(eventsResponse.chunk.size() - 1).mToken = eventsResponse.end;
                         }
 
+                        // remove presence events because they will be retrieved by a global request
+                        if (sendInitialSyncAfterFirstSync) {
+                            ArrayList<Event> events = new ArrayList<Event>();
+
+                            for(Event event : eventsResponse.chunk) {
+                                if (!Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
+                                    events.add(event);
+                                }
+                            }
+
+                            eventsResponse.chunk = events;
+                        }
+
                         // the catchup request is done once.
                         if (mIsCatchingUp) {
                             Log.e(LOG_TAG, "Stop the catchup");
@@ -320,7 +334,10 @@ public class EventsThread extends Thread {
                             mPaused = true;
                         }
 
-                        mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
+                        if (0 != eventsResponse.chunk.size()) {
+                            mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
+                        }
+
                         mCurrentToken = eventsResponse.end;
 
                         // assume the application catchup is done in one request.
