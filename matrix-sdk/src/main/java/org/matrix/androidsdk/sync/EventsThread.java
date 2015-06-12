@@ -175,13 +175,26 @@ public class EventsThread extends Thread {
         }
 
         mPaused = false;
+        Boolean sendInitialSyncAfterFirstSync = false;
 
         // a start token is provided ?
         if (null != mCurrentToken) {
             // assume the initial sync is done
             mInitialSyncDone = true;
-            // warn upper layer
-            mListener.onInitialSyncComplete(null);
+
+            synchronized (this) {
+                // sanity check
+                if (null != mNetworkConnectivityReceiver) {
+                    sendInitialSyncAfterFirstSync = mNetworkConnectivityReceiver.isConnected();
+                }
+            }
+
+            // send the initialsync when there is no data network available
+            // to let the user uses the application asap
+            if (!sendInitialSyncAfterFirstSync) {
+                // warn upper layer
+                mListener.onInitialSyncComplete(null);
+            }
 
             // get the members presence
             mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
@@ -309,6 +322,16 @@ public class EventsThread extends Thread {
 
                         mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
                         mCurrentToken = eventsResponse.end;
+
+                        // assume the application catchup is done in one request.
+                        // can be false (it seems that a request can only provide 1000 events)
+                        // but it should manage most of use cases.
+                        // it avoid useless UI refreshes.
+                        if (sendInitialSyncAfterFirstSync) {
+                            // warn upper layer
+                            mListener.onInitialSyncComplete(null);
+                            sendInitialSyncAfterFirstSync = false;
+                        }
                     }
 
                     // reset to the default value
@@ -316,6 +339,12 @@ public class EventsThread extends Thread {
 
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());
+
+                    if (sendInitialSyncAfterFirstSync) {
+                        // warn upper layer
+                        mListener.onInitialSyncComplete(null);
+                        sendInitialSyncAfterFirstSync = false;
+                    }
 
                     if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
                         mEventsFailureCallback.failure((RetrofitError) e);
