@@ -303,11 +303,12 @@ public class EventsThread extends Thread {
                         }
 
                         // remove presence events because they will be retrieved by a global request
+                        // same behaviours for the typing events
                         if (removePresenceEvents) {
                             ArrayList<Event> events = new ArrayList<Event>();
 
                             for(Event event : eventsResponse.chunk) {
-                                if (!Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
+                                if (!Event.EVENT_TYPE_PRESENCE.equals(event.type) && !Event.EVENT_TYPE_TYPING.equals(event.type)) {
                                     events.add(event);
                                 }
                             }
