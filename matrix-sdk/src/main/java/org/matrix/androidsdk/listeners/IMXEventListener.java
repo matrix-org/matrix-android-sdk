@@ -38,6 +38,11 @@ public interface IMXEventListener {
     public void onLiveEvent(Event event, RoomState roomState);
 
     /**
+     * The live events from a chunk are performed.
+     */
+    public void onLiveEventsChunkProcessed();
+
+    /**
      * A back room event was received.
      * @param event the event
      * @param roomState the room state right before the event

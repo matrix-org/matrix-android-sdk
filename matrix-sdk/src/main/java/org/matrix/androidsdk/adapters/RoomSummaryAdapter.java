@@ -206,7 +206,15 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             mPublicRoomsList  = new ArrayList<PublicRoom>();
         } else {
             mPublicRoomsList = aRoomsList;
-            sortSummaries();
+
+            // the public rooms must only be sorted once
+            // sortSummaries is called at each new displayable event.
+            Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
+                @Override
+                public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
+                    return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
+                }
+            });
         }
 
         this.notifyDataSetChanged();
@@ -379,13 +387,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 }
             });
         }
-
-        Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
-            @Override
-            public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
-                return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
-            }
-        });
     }
 
     @Override

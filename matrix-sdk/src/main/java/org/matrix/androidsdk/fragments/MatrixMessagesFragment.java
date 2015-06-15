@@ -60,6 +60,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     public static interface MatrixMessagesListener {
         public void onLiveEvent(Event event, RoomState roomState);
+        public void onLiveEventsChunkProcessed();
         public void onBackEvent(Event event, RoomState roomState);
         public void onDeleteEvent(Event event);
         public void onResendingEvent(Event event);
@@ -120,6 +121,11 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 mMatrixMessagesListener.onLiveEvent(event, roomState);
+            }
+
+            @Override
+            public void onLiveEventsChunkProcessed() {
+                mMatrixMessagesListener.onLiveEventsChunkProcessed();
             }
 
             @Override

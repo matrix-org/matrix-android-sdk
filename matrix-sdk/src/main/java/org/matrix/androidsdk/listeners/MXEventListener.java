@@ -38,6 +38,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onLiveEventsChunkProcessed() {
+
+    }
+
+    @Override
     public void onBackEvent(Event event, RoomState roomState) {
 
     }

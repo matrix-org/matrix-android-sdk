@@ -258,6 +258,8 @@ public class MXDataHandler implements IMXEventListener {
         for (Event event : events) {
             handleLiveEvent(event);
         }
+
+        onLiveEventsChunkProcessed();
     }
 
     /**
@@ -462,6 +464,16 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : mEventListeners) {
             try {
                 listener.onLiveEvent(event, roomState);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    @Override
+    public void onLiveEventsChunkProcessed() {
+        for (IMXEventListener listener : mEventListeners) {
+            try {
+                listener.onLiveEventsChunkProcessed();
             } catch (Exception e) {
             }
         }

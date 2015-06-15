@@ -269,6 +269,15 @@ public class Room {
             }
 
             @Override
+            public void onLiveEventsChunkProcessed() {
+                try {
+                    eventListener.onLiveEventsChunkProcessed();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
+                }
+            }
+
+            @Override
             public void onBackEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms
                 if (mRoomId.equals(event.roomId)) {
@@ -1002,6 +1011,7 @@ public class Room {
      * to keep the genuine order
      */
     private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
+
         if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
             final Event unsentEvent = evensList.get(index);
 
@@ -1161,6 +1171,10 @@ public class Room {
                 if (null != lastEvent) {
                     mDataHandler.onLiveEvent(lastEvent, getLiveState());
                 }
+            }
+
+            if ((evensList.size() > 0)) {
+                mDataHandler.onLiveEventsChunkProcessed();
             }
         }
     }
