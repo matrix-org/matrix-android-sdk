@@ -58,10 +58,10 @@ public class MXMediasCache {
     }
 
     private static final String LOG_TAG = "ConsoleMediasCache";
-    final String MXMEDIA_STORE_FOLDER = "MXMediaStore";
-    final String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
-    final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
-    final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
+    static String MXMEDIA_STORE_FOLDER = "MXMediaStore";
+    static String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
+    static String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
+    static String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
 
     private ContentManager mContentmanager = null;
 
@@ -209,8 +209,19 @@ public class MXMediasCache {
      */
     public void clearCache() {
         ContentUtils.deleteDirectory(getMediasFolderFile());
+
         // clear the media cache
         MXMediaWorkerTask.clearBitmapsCache();
+    }
+
+    /**
+     * The thumbnails cached is not cleared when logging out a session
+     * because many sessions share the same thumbnails.
+     * This method must be called when performing an application logout
+     * i.e. logging out of all sessions.
+     */
+    public static void clearThumbnailsCache(Context applicationContext) {
+        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER), MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
     }
 
     /**
