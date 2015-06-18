@@ -542,7 +542,6 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         mInitialSyncComplete = true;
-        mStore.commit();
 
         for (IMXEventListener listener : mEventListeners) {
             try {
