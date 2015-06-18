@@ -177,7 +177,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     public void setDisplayName(String displayName) {
-        if (TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
+        if (!TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
             mMetadata.mUserDisplayName = displayName;
             commit();
         }
@@ -188,7 +188,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     public void setAvatarURL(String avatarURL) {
-        if (TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
+        if (!TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
             mMetadata.mUserAvatarUrl = avatarURL;
             commit();
         }
