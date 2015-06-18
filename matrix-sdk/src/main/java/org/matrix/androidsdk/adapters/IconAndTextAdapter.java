@@ -33,6 +33,7 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
     private Context mContext;
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
+    private Integer mBackgroundColor = null;
 
     protected class Entry {
         protected Integer mIconResId;
@@ -67,6 +68,9 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
         this.add(new Entry(iconResourceId, textResourceId));
     }
 
+    public void setBackgroundColor(Integer color) {
+        mBackgroundColor = color;
+    }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -82,6 +86,11 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
 
         ImageView imageView =  (ImageView) convertView.findViewById(R.id.imageView_icon_and_text);
         imageView.setImageResource(entry.mIconResId);
+
+        if (null != mBackgroundColor) {
+            convertView.setBackgroundColor(mBackgroundColor);
+        }
+
         return convertView;
     }
 }

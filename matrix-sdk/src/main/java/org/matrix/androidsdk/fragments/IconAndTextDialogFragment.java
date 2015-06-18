@@ -38,8 +38,10 @@ public class IconAndTextDialogFragment extends DialogFragment {
     private static final String LOG_TAG = "IconAndTextDialogFragment";
 
     // params
-    public static final String ARG_ICONS_LIST_ID = "org.matrix.androidsdk.fragments.MembersInvitationDialogFragment.ARG_ICONS_LIST_ID";
-    public static final String ARG_TEXTS_LIST_ID = "org.matrix.androidsdk.fragments.MembersInvitationDialogFragment.ARG_TEXTS_LIST_ID";
+    public static final String ARG_ICONS_LIST_ID = "org.matrix.androidsdk.fragments.IconAndTextDialogFragment.ARG_ICONS_LIST_ID";
+    public static final String ARG_TEXTS_LIST_ID = "org.matrix.androidsdk.fragments.IconAndTextDialogFragment.ARG_TEXTS_LIST_ID";
+    public static final String ARG_BACKGROUND_COLOR = "org.matrix.androidsdk.fragments.IconAndTextDialogFragment.ARG_BACKGROUND_COLOR";
+
 
     /**
      * Interface definition for a callback to be invoked when an item in this
@@ -57,18 +59,28 @@ public class IconAndTextDialogFragment extends DialogFragment {
     private ListView mListView;
     private IconAndTextAdapter mAdapter;
 
+
     private ArrayList<Integer> mIconResourcesList;
     private ArrayList<Integer> mTextResourcesList;
+    private Integer mBackgroundColor = null;
 
     private OnItemClickListener mOnItemClickListener;
 
 
     public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList)  {
+        return IconAndTextDialogFragment.newInstance(iconResourcesList, textResourcesList, null);
+    }
+
+    public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList, Integer backgroundColor)  {
         IconAndTextDialogFragment f = new IconAndTextDialogFragment();
         Bundle args = new Bundle();
 
         args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(iconResourcesList)));
         args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(textResourcesList)));
+
+        if (null != backgroundColor) {
+            args.putInt(ARG_BACKGROUND_COLOR, backgroundColor);
+        }
 
         f.setArguments(args);
         return f;
@@ -80,6 +92,10 @@ public class IconAndTextDialogFragment extends DialogFragment {
 
         mIconResourcesList = getArguments().getIntegerArrayList(ARG_ICONS_LIST_ID);
         mTextResourcesList = getArguments().getIntegerArrayList(ARG_TEXTS_LIST_ID);
+
+        if (getArguments().containsKey(ARG_BACKGROUND_COLOR)) {
+            mBackgroundColor = getArguments().getInt(ARG_BACKGROUND_COLOR);
+        }
     }
 
     @Override
@@ -101,6 +117,7 @@ public class IconAndTextDialogFragment extends DialogFragment {
             }
         });
 
+
         return builder.create();
     }
 
@@ -114,6 +131,11 @@ public class IconAndTextDialogFragment extends DialogFragment {
 
         for(int index = 0; index < mIconResourcesList.size(); index++) {
             mAdapter.add(mIconResourcesList.get(index), mTextResourcesList.get(index));
+        }
+
+        if (null != mBackgroundColor) {
+            mListView.setBackgroundColor(mBackgroundColor);
+            mAdapter.setBackgroundColor(mBackgroundColor);
         }
 
         mListView.setAdapter(mAdapter);

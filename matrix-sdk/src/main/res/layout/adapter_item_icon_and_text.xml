@@ -27,6 +27,7 @@
         android:paddingRight="8dp"
         android:singleLine="true"
         android:text = "A text here"
+        android:textColor="#000"
         style="@style/Base.TextAppearance.AppCompat.Subhead"
         />
 
