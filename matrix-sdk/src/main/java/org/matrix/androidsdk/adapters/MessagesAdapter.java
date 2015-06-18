@@ -17,10 +17,12 @@
 package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -43,6 +45,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -608,10 +611,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-    public void onImageClick(ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
+    public void onImageClick(int position, ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
     }
 
-    private View getImageView(int position, View convertView, ViewGroup parent) {
+    public boolean onImageLongClick(int position, ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
+        return false;
+    }
+
+    private View getImageView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_IMAGE), parent, false);
         }
@@ -742,7 +749,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onImageClick(imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
+                    onImageClick(position, imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
+                }
+            });
+
+            imageView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return onImageLongClick(position, imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
                 }
             });
         }
@@ -879,13 +893,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-    public void onFileDownloaded(FileMessage fileMessage){
+    public void onFileDownloaded(int position, FileMessage fileMessage){
     }
 
-    public void onFileClick(FileMessage fileMessage) {
+    public void onFileClick(int position, FileMessage fileMessage) {
     }
 
-    private View getFileView(int position, View convertView, ViewGroup parent) {
+    public boolean onFileLongClick(int position, FileMessage fileMessage) {
+        return false;
+    }
+
+
+    private View getFileView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
         }
@@ -924,7 +943,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
 
-                    onFileDownloaded(fileMessage);
+                    onFileDownloaded(position, fileMessage);
                 }
             }
         };
@@ -947,6 +966,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if ((fileMessage != null) && (fileMessage.url != null)) {
+
+            fileTextView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return onFileLongClick(position, fileMessage);
+                }
+            });
+
             fileTextView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -955,7 +982,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     // is the file already saved
                     if (null != mediaFile) {
-                        onFileClick(fileMessage);
+                        onFileClick(position, fileMessage);
                     } else {
                         fileTypeView.setVisibility(View.GONE);
                         fileTextView.setVisibility(View.GONE);
