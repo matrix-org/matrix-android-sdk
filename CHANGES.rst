@@ -1,3 +1,39 @@
+Changes in Matrix Android SDK in 0.4.0 (2015-06-19)
+===================================================
+
+The SDK and the console application are now split into two git projects.
+
+https://github.com/matrix-org/matrix-android-sdk : The matrix SDK
+https://github.com/matrix-org/matrix-android-console : The console application.
+Thus, it would be easier to implement a new application.
+
+
+Improvements:
+ * Move AutoScrollDownListView from console to the SDK.
+ * Image resizing : use inSampleSize instead of decompressing the image in memory.
+ * The image cache should not stored large and very large images.
+ * Rotate image with exif if the device has enough memory.
+ * Enable largeHeap to be able to manage large images.
+ * Move ImageUtils from console to the SDK.
+ * Each account has its own medias directory (except the member thumbnails).
+ * Update the media file name computation to ensure its uniqueness.
+ * The media download & upload progress is more linear.
+ * Remove the presence and typing events while processing the first events request after application launch.
+ * Add onLiveEventsChunkProcessed callback : it is triggered when a bunch of events is managed.
+ * IconAndTextAdapter customization. 
+
+Features:
+ * Add MXFileStore : The data is now saved in a filesystem cache. It improves the application launching time.
+                     The sent messages are also stored when the device is offline.
+ * Add GCM registration to a third party server.
+
+
+Bug fixes:
+ * The media download could be stuck on bad/slow network connection.
+ * On kitkat or above, the image thumbnails were not properly retrieved.
+ * SYAND-80 : image uploading pie chart lies.
+
+
 Changes in Matrix Android SDK in 0.3.1 (2015-04-24)
 ===================================================
 
