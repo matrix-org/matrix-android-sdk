@@ -270,6 +270,7 @@ public class MXSession {
             mMyUser = new MyUser(store.getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
+            mMyUser.setDataHandler(mDataHandler);
 
             // assume the profile is not yet initialized
             if (null == store.displayName()) {
