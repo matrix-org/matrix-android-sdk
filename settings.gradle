@@ -1,1 +1,1 @@
-include ':app', ':sdk'
+include ':matrix-sdk'
