@@ -53,6 +53,10 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import retrofit.RetrofitError;
 
@@ -93,6 +97,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // avoid to catch up old content if the initial sync is in progress
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
+
+    private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -255,6 +261,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onDestroy() {
+        if (null != mPendingRelaunchTimersByEventId) {
+            for (Timer timer : mPendingRelaunchTimersByEventId.values()) {
+                timer.cancel();
+            }
+
+            mPendingRelaunchTimersByEventId = null;
+        }
+
         super.onDestroy();
     }
 
@@ -333,7 +347,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -357,11 +371,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         // warn the user that the media upload fails
                         if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                            if (serverReponseCode == 500) {
+                                Timer relaunchTimer = new Timer();
+                                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
+                                relaunchTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
+                                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
 
-                            Toast.makeText(getActivity(),
-                                    (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                                    Toast.LENGTH_LONG).show();
+                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
+                                                    new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            resend(messageRow.getEvent());
+                                                        }
+                                                    });
+                                        }
+                                    }
+                                }, 1000);
+                            } else {
+                                messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+
+                                Toast.makeText(getActivity(),
+                                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
+                                        Toast.LENGTH_LONG).show();
+                            }
                         } else {
                             // send the message
                             if (message.url != null) {
@@ -414,7 +449,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -441,11 +476,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         // warn the user that the media upload fails
                         if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            imageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                            if (serverReponseCode == 500) {
+                                Timer relaunchTimer = new Timer();
+                                mPendingRelaunchTimersByEventId.put(imageRow.getEvent().eventId, relaunchTimer);
+                                relaunchTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (mPendingRelaunchTimersByEventId.containsKey(imageRow.getEvent().eventId)) {
+                                            mPendingRelaunchTimersByEventId.remove(imageRow.getEvent().eventId);
 
-                            Toast.makeText(getActivity(),
-                                    (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                                    Toast.LENGTH_LONG).show();
+                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
+                                                    new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            resend(imageRow.getEvent());
+                                                        }
+                                                    });
+                                        }
+                                    }
+                                }, 1000);
+                            } else {
+                                imageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+
+                                Toast.makeText(getActivity(),
+                                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
+                                        Toast.LENGTH_LONG).show();
+                            }
                         } else {
                             // send the message
                             if (message.url != null) {
@@ -463,6 +519,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // remove the event
         mSession.getDataHandler().deleteRoomEvent(event);
         mAdapter.removeEventById(event.eventId);
+        mPendingRelaunchTimersByEventId.remove(event.eventId);
 
         // send it again
         final Message message = JsonUtils.toMessage(event.content);
@@ -709,6 +766,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
+                if (mPendingRelaunchTimersByEventId.containsKey(event.eventId)) {
+                    Timer timer = mPendingRelaunchTimersByEventId.get(event.eventId);
+                    timer.cancel();
+                    mPendingRelaunchTimersByEventId.remove(event.eventId);
+                }
+
                 mAdapter.removeEventById(event.eventId);
                 mAdapter.notifyDataSetChanged();
             }
