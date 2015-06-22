@@ -267,6 +267,7 @@ public class MXSession {
 
             IMXStore store = mDataHandler.getStore();
 
+            mMyUser = new MyUser(store.getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
             mMyUser.setDataHandler(mDataHandler);
