@@ -87,7 +87,9 @@ public class EventDisplay {
                         }
                     }
 
-                    if (mPrependAuthor) {
+                    if (msgtype.equals(Message.MSGTYPE_EMOTE)) {
+                        text = "* " + userDisplayName +  " " + text;
+                    } else if (mPrependAuthor) {
                         text = mContext.getString(R.string.summary_message, userDisplayName, text);
                     }
                 }

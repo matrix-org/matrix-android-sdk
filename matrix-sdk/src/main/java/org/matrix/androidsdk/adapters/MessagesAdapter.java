@@ -868,13 +868,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        String emote = "* " + getUserDisplayName(msg.userId, roomState) + " ";
-
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        emote += display.getTextualDisplay();
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
-        emoteTextView.setText(emote);
+        emoteTextView.setText(display.getTextualDisplay());
 
         int textColor;
 
