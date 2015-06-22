@@ -1064,7 +1064,7 @@ public class Room {
                                     }
 
                                     @Override
-                                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
+                                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode,  final String serverErrorMessage) {
                                         ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(newEvent.content);
 
                                         uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;

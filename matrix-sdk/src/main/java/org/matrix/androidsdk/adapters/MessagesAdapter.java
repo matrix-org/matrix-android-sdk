@@ -785,7 +785,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
@@ -868,13 +868,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        String emote = "* " + getUserDisplayName(msg.userId, roomState) + " ";
-
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        emote += display.getTextualDisplay();
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
-        emoteTextView.setText(emote);
+        emoteTextView.setText(display.getTextualDisplay());
 
         int textColor;
 
@@ -1021,7 +1018,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final String serverErrorMessage) {
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode,  final String serverErrorMessage) {
                         if (url.equals(anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {

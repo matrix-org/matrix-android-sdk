@@ -19,6 +19,7 @@ package org.matrix.androidsdk.fragments;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -34,6 +35,8 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+
+import java.util.List;
 
 /**
  * A non-UI fragment containing logic for extracting messages from a room, including handling
@@ -95,6 +98,27 @@ public class MatrixMessagesFragment extends Fragment {
         if (roomId == null) {
             throw new RuntimeException("Must have a room ID specified.");
         }
+
+        // in some low memory cases
+        // this fragment can be released so, trying to retrieve the parameters
+        if (null == mSession) {
+            List<Fragment> fragments = null;
+            FragmentManager fm = getActivity().getSupportFragmentManager();
+
+            if (null != fm) {
+                fragments = fm.getFragments();
+            }
+
+            if (null != fragments) {
+                for (Fragment fragment : fragments) {
+                    if (fragment instanceof MatrixMessageListFragment) {
+                        mMatrixMessagesListener = (MatrixMessageListFragment) fragment;
+                        mSession = ((MatrixMessageListFragment) fragment).getSession();
+                    }
+                }
+            }
+        }
+
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
@@ -161,6 +185,32 @@ public class MatrixMessagesFragment extends Fragment {
             requestInitialHistory();
         }
     }
+
+    @Override
+    public void onStart() {
+        Fragment parentFragment = this.getParentFragment();
+
+        super.onStart();
+
+    }
+
+    @Override
+    public void onResume() {
+        Fragment parentFragment = this.getParentFragment();
+
+        FragmentManager fm = getActivity().getSupportFragmentManager();
+        List<Fragment> fragements = fm.getFragments();
+
+        for(Fragment fg : fragements) {
+            if (fg instanceof MatrixMessageListFragment) {
+                mMatrixMessagesListener = (MatrixMessageListFragment)fg;
+            }
+        }
+
+        super.onResume();
+
+    }
+
 
     @Override
     public void onDestroy() {

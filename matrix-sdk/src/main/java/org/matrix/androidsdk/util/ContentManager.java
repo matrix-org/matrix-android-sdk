@@ -32,6 +32,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -91,7 +92,7 @@ public class ContentManager {
          * Called when the upload is complete or has failed.
          * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
          */
-        public void onUploadComplete(String uploadId, ContentResponse uploadResponse, String serverErrorMessage);
+        public void onUploadComplete(String uploadId, ContentResponse uploadResponse, int serverReponseCode,  String serverErrorMessage);
     }
 
     /**
@@ -199,7 +200,7 @@ public class ContentManager {
             new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             // cannot start the task
-            callback.onUploadComplete(uploadId, null, null);
+            callback.onUploadComplete(uploadId, null, -1, null);
         }
     }
 
@@ -255,7 +256,7 @@ public class ContentManager {
         private ApiCallback mApiCallback;
 
         // the upload server response code
-        private int mResponseCode;
+        private int mResponseCode = -1;
 
         /**
          * Public constructor
@@ -418,8 +419,13 @@ public class ContentManager {
                 dos.close();
                 publishProgress(mProgress = 96);
 
-                // Read the SERVER RESPONSE
-                mResponseCode = conn.getResponseCode();
+                try {
+                    // Read the SERVER RESPONSE
+                    mResponseCode = conn.getResponseCode();
+                }
+                catch (EOFException eofEx) {
+                    mResponseCode = 500;
+                }
 
                 publishProgress(mProgress = 98);
 
@@ -449,10 +455,9 @@ public class ContentManager {
                     } catch (JSONException e) {
                     }
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 mFailureException = e;
-                Log.e(LOG_TAG, "Error: " + e.getMessage());
+                Log.e(LOG_TAG, "Error: " + e.getClass() + " - " + e.getMessage());
             }
 
             return responseFromServer;
@@ -490,7 +495,7 @@ public class ContentManager {
 
             for (UploadCallback callback : mCallbacks) {
                 try {
-                    callback.onUploadComplete(mUploadId, uploadResponse, (mResponseCode != 200) ? s : null);
+                    callback.onUploadComplete(mUploadId, uploadResponse, mResponseCode, (mResponseCode != 200) ? s : null);
                 } catch (Exception e) {
                 }
             }
