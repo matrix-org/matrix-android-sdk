@@ -108,6 +108,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return null;
     }
 
+    public MXSession getSession() {
+        return mSession;
+    }
+
     public MessagesAdapter createMessagesAdapter() {
         return null;
     }
