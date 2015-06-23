@@ -32,6 +32,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
@@ -78,7 +79,6 @@ public class MXDataHandler implements IMXEventListener {
         return mInitialSyncComplete;
     }
 
-
     public void setDataRetriever(DataRetriever dataRetriever) {
         mDataRetriever = dataRetriever;
         mDataRetriever.setStore(mStore);
@@ -96,6 +96,14 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setContentManager(ContentManager contentManager) {
         mContentManager = contentManager;
+    }
+
+    public BingRuleSet pushRules() {
+        if (null != mBingRulesManager) {
+            return mBingRulesManager.pushRules();
+        }
+
+        return null;
     }
 
     public void refreshPushRules() {

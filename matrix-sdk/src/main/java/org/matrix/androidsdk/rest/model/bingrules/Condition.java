@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-import org.matrix.androidsdk.rest.model.Event;
 
 public class Condition {
     public static final String KIND_EVENT_MATCH = "event_match";
@@ -24,4 +23,11 @@ public class Condition {
     public static final String KIND_ROOM_MEMBER_COUNT = "room_member_count";
 
     public String kind;
+
+    public Condition deepCopy() {
+        Condition condition = new Condition();
+        condition.kind = kind;
+
+        return condition;
+    }
 }

@@ -45,7 +45,9 @@ public class BingRulesManager {
     private String mMyUserId;
     private MXDataHandler mDataHandler;
 
+    private BingRuleSet mRulesSet = null;
     private List<BingRule> mRules = new ArrayList<BingRule>();
+
     private BingRule mDefaultBingRule = new BingRule(true);
 
     private boolean isReady = false;
@@ -170,6 +172,10 @@ public class BingRulesManager {
         addRules(bingRulesResponse.global);
     }
 
+    public  BingRuleSet pushRules() {
+        return mRulesSet;
+    }
+
     private void addRules(BingRuleSet ruleSet) {
         if (ruleSet.override != null) {
             mRules.addAll(ruleSet.override);
@@ -186,6 +192,8 @@ public class BingRulesManager {
         if (ruleSet.underride != null) {
             mRules.addAll(ruleSet.underride);
         }
+
+        mRulesSet = ruleSet;
     }
 
     private void addContentRules(List<ContentRule> rules) {
