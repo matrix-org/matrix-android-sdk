@@ -53,4 +53,19 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     public BingRulesResponse getAllBingRules() {
         return mApi.getAllBingRules();
     }
+
+    public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
+        //mApi.getAllBingRules(new RestAdapterCallback<BingRulesResponse>(callback));
+        mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback < Void > () {
+            @Override
+            public void success (Void voidObject, Response response){
+                callback.onSuccess(voidObject);
+            }
+
+            @Override
+            public void failure (RetrofitError error){
+                callback.onUnexpectedError(error);
+            }
+        });
+    }
 }

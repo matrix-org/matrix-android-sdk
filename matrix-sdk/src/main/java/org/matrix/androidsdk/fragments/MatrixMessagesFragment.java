@@ -267,7 +267,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.error);
+                Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.getLocalizedMessage());
                 // The access token was not recognized: log out
                 if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
                     logout();
@@ -278,7 +278,7 @@ public class MatrixMessagesFragment extends Fragment {
                 MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                         MatrixMessagesFragment.this.dismissLoadingProgress();
                     }
                 });
@@ -314,7 +314,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Toast.makeText(getActivity(), e.error, Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                 MatrixMessagesFragment.this.dismissLoadingProgress();
             }
 

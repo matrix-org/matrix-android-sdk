@@ -585,7 +585,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                         }
                                     } else if (null != event.unsentMatrixError) {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.error + ".", Toast.LENGTH_LONG).show();
+                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                                     }
 
                                     mAdapter.notifyDataSetChanged();
@@ -679,7 +679,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 public void onMatrixError(MatrixError e) {
                     dismissLoadingProgress();
 
-                    Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.error);
+                    Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
                     // The access token was not recognized: log out
                     if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
                         logout();
@@ -690,7 +690,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.error, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                             MatrixMessageListFragment.this.dismissLoadingProgress();
                             mIsCatchingUp = false;
                         }

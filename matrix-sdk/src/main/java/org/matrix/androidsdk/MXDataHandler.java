@@ -117,6 +117,10 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    public BingRulesManager getBingRulesManager() {
+        return mBingRulesManager;
+    }
+
     public void addListener(IMXEventListener listener) {
         // avoid adding twice
         if (mEventListeners.indexOf(listener) == -1) {

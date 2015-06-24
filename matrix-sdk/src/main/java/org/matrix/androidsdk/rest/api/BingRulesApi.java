@@ -15,10 +15,14 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
 import retrofit.Callback;
+import retrofit.http.Body;
 import retrofit.http.GET;
+import retrofit.http.PUT;
+import retrofit.http.Path;
 
 public interface BingRulesApi {
 
@@ -27,4 +31,13 @@ public interface BingRulesApi {
 
     @GET("/pushrules/")
     public BingRulesResponse getAllBingRules();
+
+    /**
+     * Update the ruleID enable status
+     * @param ruleId the ruleId (sender/..., room/...)
+     * @param enable the new enable status
+     * @param callback the callback
+     */
+    @PUT("/pushrules/global/{kind}/{ruleId}/enabled")
+    public void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
 }

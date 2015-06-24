@@ -123,7 +123,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
             } catch (Exception exception) {
             }
         } else {
-            displayToast("Matrix Error : " + e.error);
+            displayToast("Matrix Error : " + e.getLocalizedMessage());
         }
     }
 

@@ -34,6 +34,19 @@ public class MatrixError {
     public String error;
     public Integer retry_after_ms;
 
+    public String getLocalizedMessage() {
+        String localizedMessage = "";
+
+        if (null != error) {
+            localizedMessage += error;
+        }
+
+        if (null != errcode) {
+            localizedMessage += "(" +  errcode + ")";
+        }
+
+        return localizedMessage;
+    }
 
     /**
      * @return true if the error code is a supported one

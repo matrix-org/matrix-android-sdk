@@ -53,6 +53,12 @@ public class BingRule {
     public static final String ACTION_VALUE_TRUE = "true";
     public static final String ACTION_VALUE_FALSE = "false";
 
+    public static final String KIND_OVERRIDE = "override";
+    public static final String KIND_CONTENT = "content";
+    public static final String KIND_ROOM = "room";
+    public static final String KIND_SENDER = "sender";
+    public static final String KIND_UNDERRIDE = "underride";
+
     public String ruleId = null;
     public List<Condition> conditions = null;
     public List<JsonElement> actions = null;
@@ -62,40 +68,14 @@ public class BingRule {
     @SerializedName("enabled")
     public boolean isEnabled = true;
 
+    public String kind = null;
+
     public BingRule(boolean isDefaultValue) {
         this.isDefault = isDefaultValue;
     }
 
     public BingRule() {
         this.isDefault = false;
-    }
-
-    public BingRule deepCopy() {
-        BingRule rule = new BingRule();
-        rule.ruleId = ruleId;
-
-        if (null != conditions) {
-            ArrayList<Condition> conditionsCopy = new ArrayList<Condition>();
-
-            for(Condition condition : conditions) {
-                conditionsCopy.add(condition.deepCopy());
-            }
-            rule.conditions = conditionsCopy;
-        }
-
-        if (null != actions) {
-            ArrayList<JsonElement> actionsCopy =  new ArrayList<JsonElement>();
-
-            for(JsonElement element : actions) {
-                actionsCopy.add(element);
-            }
-            rule.actions = actionsCopy;
-        }
-
-        rule.isDefault = isDefault;
-        rule.isEnabled = isEnabled;
-
-        return rule;
     }
 
     public void addCondition(Condition condition) {

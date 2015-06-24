@@ -19,13 +19,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BingRuleSet {
-
     public List<BingRule> override;
     public List<ContentRule> content;
     public List<BingRule> room;
     public List<BingRule> sender;
     public List<BingRule> underride;
 
+    /**
+     * Find a rule from its rule ID.
+     * @param rules the rules list.
+     * @param ruleID the rule ID.
+     * @return the bing rule if it exists, else null.
+     */
     private BingRule findRule(List<BingRule> rules, String ruleID) {
         for(BingRule rule : rules) {
             if (ruleID.equals(rule.ruleId)) {
@@ -35,6 +40,12 @@ public class BingRuleSet {
         return null;
     }
 
+    /**
+     * Find a rule from its rule ID.
+     * @param rules the rules list.
+     * @param ruleID the rule ID.
+     * @return the bing rule if it exists, else null.
+     */
     private BingRule findContentRule(List<ContentRule> rules, String ruleID) {
         for(BingRule rule : rules) {
             if (ruleID.equals(rule.ruleId)) {
@@ -49,7 +60,7 @@ public class BingRuleSet {
      * @param ruleId a RULE_ID_XX value
      * @return the matched bing rule or null it doesn't exist.
      */
-    public BingRule findRule(String ruleId) {
+    public BingRule findDefaultRule(String ruleId) {
         // sanity check
         if (null != ruleId) {
             if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(ruleId)) {
@@ -64,7 +75,11 @@ public class BingRuleSet {
         return null;
     }
 
-    public List<BingRule> getContent() {
+    /**
+     * Return the content rules list.
+     * @return the content rules list.
+     */
+    public List<BingRule> getContentRules() {
         ArrayList<BingRule> res = new ArrayList<BingRule>();
 
         if (null != content) {
@@ -78,7 +93,11 @@ public class BingRuleSet {
         return res;
     }
 
-    public List<BingRule> getRoom() {
+    /**
+     * Return the room rules list.
+     * @return the room rules list.
+     */
+    public List<BingRule> getRoomRules() {
         if (null == room) {
             return new ArrayList<BingRule>();
         } else {
@@ -86,12 +105,15 @@ public class BingRuleSet {
         }
     }
 
-    public List<BingRule> getSender() {
+    /**
+     * Return the room rules list.
+     * @return the sender rules list.
+     */
+    public List<BingRule> getSenderRules() {
         if (null == sender) {
             return new ArrayList<BingRule>();
         } else {
             return sender;
         }
     }
-
 }

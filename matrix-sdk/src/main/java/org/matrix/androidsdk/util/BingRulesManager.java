@@ -24,6 +24,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
@@ -40,6 +41,11 @@ import java.util.List;
  * Object that gets and processes bing rules from the server.
  */
 public class BingRulesManager {
+
+    public static interface onBingRuleUpdateListener {
+        public void onBingRuleUpdateSuccess();
+        public void onBingRuleUpdateFailure(String errorMessage);
+    }
 
     private BingRulesRestClient mApiClient;
     private String mMyUserId;
@@ -77,8 +83,15 @@ public class BingRulesManager {
                     callback.onSuccess(null);
                 }
             }
-            // FIXME: This needs a retry strategy in case of network error and something else for other errors
         });
+    }
+
+    /**
+     * Update the rule status
+     * @param callback an async callback called when the rules are loaded
+     */
+    public void updateEnableRuleStatus(String kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
+        mApiClient.updateEnableRuleStatus(kind, ruleId, status, callback);
     }
 
     /**
@@ -168,7 +181,6 @@ public class BingRulesManager {
 
     private void buildRules(BingRulesResponse bingRulesResponse) {
         mRules.clear();
-        // FIXME: Handle device rules
         addRules(bingRulesResponse.global);
     }
 
@@ -178,18 +190,33 @@ public class BingRulesManager {
 
     private void addRules(BingRuleSet ruleSet) {
         if (ruleSet.override != null) {
+            for(BingRule rule : ruleSet.override) {
+                rule.kind = BingRule.KIND_OVERRIDE;
+            }
             mRules.addAll(ruleSet.override);
         }
         if (ruleSet.content != null) {
+            for(BingRule rule : ruleSet.content) {
+                rule.kind = BingRule.KIND_CONTENT;
+            }
             addContentRules(ruleSet.content);
         }
         if (ruleSet.room != null) {
+            for(BingRule rule : ruleSet.room) {
+                rule.kind = BingRule.KIND_ROOM;
+            }
             addRoomRules(ruleSet.room);
         }
         if (ruleSet.sender != null) {
+            for(BingRule rule : ruleSet.sender) {
+                rule.kind = BingRule.KIND_SENDER;
+            }
             addSenderRules(ruleSet.sender);
         }
         if (ruleSet.underride != null) {
+            for(BingRule rule : ruleSet.underride) {
+                rule.kind = BingRule.KIND_UNDERRIDE;
+            }
             mRules.addAll(ruleSet.underride);
         }
 
@@ -233,5 +260,61 @@ public class BingRulesManager {
 
             mRules.add(rule);
         }
+    }
+
+    /**
+     * Toogle a rule.
+     * @param rule the bing rule to toggle.
+     * @return the matched bing rule or null it doesn't exist.
+     */
+    public BingRule toogleRule(final BingRule rule, final onBingRuleUpdateListener listener) {
+
+        if (null != rule) {
+            updateEnableRuleStatus(rule.kind, rule.ruleId, !rule.isEnabled, new SimpleApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    rule.isEnabled = !rule.isEnabled;
+                    if (listener != null) {
+                        listener.onBingRuleUpdateSuccess();
+                    }
+                }
+
+                private void onError(String message) {
+                    if (null != listener) {
+                        listener.onBingRuleUpdateFailure(message);
+                    }
+                }
+
+                /**
+                 * Called if there is a network error.
+                 * @param e the exception
+                 */
+                @Override
+                public void onNetworkError(Exception e) {
+                    onError(e.getLocalizedMessage());
+                }
+
+                /**
+                 * Called in case of a Matrix error.
+                 * @param e the Matrix error
+                 */
+                @Override
+                public void onMatrixError(MatrixError e)  {
+                    onError(e.getLocalizedMessage());
+                }
+
+                /**
+                 * Called for some other type of error.
+                 * @param e the exception
+                 */
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    onError(e.getLocalizedMessage());
+                }
+            });
+
+        }
+
+        return rule;
     }
 }

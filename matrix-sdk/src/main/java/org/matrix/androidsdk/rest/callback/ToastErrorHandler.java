@@ -44,7 +44,7 @@ public class ToastErrorHandler implements ApiFailureCallback {
 
     @Override
     public void onMatrixError(MatrixError e) {
-        Toast.makeText(context, appendPrefix(e.error), Toast.LENGTH_LONG).show();
+        Toast.makeText(context, appendPrefix(e.getLocalizedMessage()), Toast.LENGTH_LONG).show();
     }
 
     @Override

@@ -320,7 +320,7 @@ public class Event implements java.io.Serializable {
         }
 
         if (null != unsentMatrixError) {
-            text += "\n\n Matrix reason: " + unsentMatrixError.error + "\n";
+            text += "\n\n Matrix reason: " + unsentMatrixError.getLocalizedMessage() + "\n";
         }
 
         text += "}";

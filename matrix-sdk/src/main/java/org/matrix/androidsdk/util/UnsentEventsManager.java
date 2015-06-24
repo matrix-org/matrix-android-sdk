@@ -309,7 +309,7 @@ public class UnsentEventsManager {
 
                 // trace the matrix error.
                 if ((null != eventDescription) && (null != mxError)) {
-                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.error + " [" +  eventDescription + "]");
+                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getLocalizedMessage() + " [" +  eventDescription + "]");
                 }
 
                 int matrixRetryTimeout = -1;
