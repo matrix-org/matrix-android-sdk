@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
 import retrofit.Callback;
@@ -51,6 +52,17 @@ public interface BingRulesApi {
      */
     @DELETE("/pushrules/global/{kind}/{ruleId}")
     public void deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId, Callback<Void> callback);
+
+    /**
+     * Add the ruleID enable status
+     * @param kind the notification kind (sender, room...)
+     * @param ruleId the ruleId.
+     * @param rule the rule to add.
+     * @param callback the callback.
+     */
+    @PUT("/pushrules/global/{kind}/{ruleId}")
+    public void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
+
 
 
 }

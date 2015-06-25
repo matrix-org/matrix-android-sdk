@@ -185,71 +185,73 @@ public class BingRulesManager {
 
     private void buildRules(BingRulesResponse bingRulesResponse) {
         mRules.clear();
-        addRules(bingRulesResponse.global);
+        updateRules(bingRulesResponse.global);
     }
 
     public  BingRuleSet pushRules() {
         return mRulesSet;
     }
 
-    private void addRules(BingRuleSet ruleSet) {
-        // Replace the list by ArrayList to be able to add/remove rules
-        // Add the rule kind in each rule
-        // Ensure that the null pointers are replaced by an empty list
+    private void updateRules(BingRuleSet ruleSet) {
+        synchronized (this) {
+            // Replace the list by ArrayList to be able to add/remove rules
+            // Add the rule kind in each rule
+            // Ensure that the null pointers are replaced by an empty list
 
-        if (ruleSet.override != null) {
-            ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
-            for(BingRule rule : ruleSet.override) {
-                rule.kind = BingRule.KIND_OVERRIDE;
+            if (ruleSet.override != null) {
+                ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
+                for (BingRule rule : ruleSet.override) {
+                    rule.kind = BingRule.KIND_OVERRIDE;
+                }
+                mRules.addAll(ruleSet.override);
+            } else {
+                ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
             }
-            mRules.addAll(ruleSet.override);
-        } else {
-            ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
-        }
 
-        if (ruleSet.content != null) {
-            ruleSet.content = new ArrayList<ContentRule>(ruleSet.content);
-            for(BingRule rule : ruleSet.content) {
-                rule.kind = BingRule.KIND_CONTENT;
+            if (ruleSet.content != null) {
+                ruleSet.content = new ArrayList<ContentRule>(ruleSet.content);
+                for (BingRule rule : ruleSet.content) {
+                    rule.kind = BingRule.KIND_CONTENT;
+                }
+                addContentRules(ruleSet.content);
+            } else {
+                ruleSet.content = new ArrayList<ContentRule>();
             }
-            addContentRules(ruleSet.content);
-        } else {
-            ruleSet.content = new ArrayList<ContentRule>();
-        }
 
-        if (ruleSet.room != null) {
-            ruleSet.room = new ArrayList<BingRule>(ruleSet.room);
+            if (ruleSet.room != null) {
+                ruleSet.room = new ArrayList<BingRule>(ruleSet.room);
 
-            for(BingRule rule : ruleSet.room) {
-                rule.kind = BingRule.KIND_ROOM;
+                for (BingRule rule : ruleSet.room) {
+                    rule.kind = BingRule.KIND_ROOM;
+                }
+                addRoomRules(ruleSet.room);
+            } else {
+                ruleSet.room = new ArrayList<BingRule>();
             }
-            addRoomRules(ruleSet.room);
-        } else {
-            ruleSet.room = new ArrayList<BingRule>();
-        }
 
-        if (ruleSet.sender != null) {
-            ruleSet.sender = new ArrayList<BingRule>(ruleSet.sender);
+            if (ruleSet.sender != null) {
+                ruleSet.sender = new ArrayList<BingRule>(ruleSet.sender);
 
-            for(BingRule rule : ruleSet.sender) {
-                rule.kind = BingRule.KIND_SENDER;
+                for (BingRule rule : ruleSet.sender) {
+                    rule.kind = BingRule.KIND_SENDER;
+                }
+                addSenderRules(ruleSet.sender);
+            } else {
+                ruleSet.sender = new ArrayList<BingRule>();
             }
-            addSenderRules(ruleSet.sender);
-        } else {
-            ruleSet.sender = new ArrayList<BingRule>();
-        }
 
-        if (ruleSet.underride != null) {
-            ruleSet.underride = new ArrayList<BingRule>(ruleSet.underride);
-            for(BingRule rule : ruleSet.underride) {
-                rule.kind = BingRule.KIND_UNDERRIDE;
+            if (ruleSet.underride != null) {
+                ruleSet.underride = new ArrayList<BingRule>(ruleSet.underride);
+                for (BingRule rule : ruleSet.underride) {
+                    rule.kind = BingRule.KIND_UNDERRIDE;
+                }
+                mRules.addAll(ruleSet.underride);
+            } else {
+                ruleSet.underride = new ArrayList<BingRule>();
             }
-            mRules.addAll(ruleSet.underride);
-        } else {
-            ruleSet.underride = new ArrayList<BingRule>();
-        }
 
-        mRulesSet = ruleSet;
+            mRulesSet = ruleSet;
+        }
     }
 
     private void addContentRules(List<ContentRule> rules) {
@@ -297,21 +299,29 @@ public class BingRulesManager {
      * @param listener the rule update listener.
      * @return the matched bing rule or null it doesn't exist.
      */
-    public BingRule toogleRule(final BingRule rule, final onBingRuleUpdateListener listener) {
+    public BingRule toggleRule(final BingRule rule, final onBingRuleUpdateListener listener) {
 
         if (null != rule) {
             updateEnableRuleStatus(rule.kind, rule.ruleId, !rule.isEnabled, new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     rule.isEnabled = !rule.isEnabled;
+                    updateRules(mRulesSet);
                     if (listener != null) {
-                        listener.onBingRuleUpdateSuccess();
+                        try {
+                            listener.onBingRuleUpdateSuccess();
+                        } catch (Exception e) {
+
+                        }
                     }
                 }
 
                 private void onError(String message) {
                     if (null != listener) {
-                        listener.onBingRuleUpdateFailure(message);
+                        try {
+                            listener.onBingRuleUpdateFailure(message);
+                        } catch (Exception e) {
+                        }
                     }
                 }
 
@@ -342,7 +352,6 @@ public class BingRulesManager {
                     onError(e.getLocalizedMessage());
                 }
             });
-
         }
 
         return rule;
@@ -353,19 +362,27 @@ public class BingRulesManager {
      * @param rule the rule to delete.
      * @param listener the rule update listener.
      */
-    public void deleteRule(final BingRuleSet bingRuleSet, final BingRule rule, final onBingRuleUpdateListener listener)  {
+    public void deleteRule(final BingRule rule, final onBingRuleUpdateListener listener)  {
         mApiClient.deleteRule(rule.kind, rule.ruleId, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                bingRuleSet.remove(rule);
+                mRulesSet.remove(rule);
+                updateRules(mRulesSet);
                 if (listener != null) {
-                    listener.onBingRuleUpdateSuccess();
+                    try {
+                        listener.onBingRuleUpdateSuccess();
+                    } catch (Exception e) {
+
+                    }
                 }
             }
 
             private void onError(String message) {
                 if (null != listener) {
-                    listener.onBingRuleUpdateFailure(message);
+                    try {
+                        listener.onBingRuleUpdateFailure(message);
+                    } catch (Exception e) {
+                    }
                 }
             }
 
@@ -396,6 +413,63 @@ public class BingRulesManager {
                 onError(e.getLocalizedMessage());
             }
         });
+    }
 
+    /**
+     * Add a rule.
+     * @param rule the rule to delete.
+     * @param listener the rule update listener.
+     */
+    public void addRule(final BingRule rule, final onBingRuleUpdateListener listener)  {
+        mApiClient.addRule(rule, new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                mRulesSet.addAtTop(rule);
+                updateRules(mRulesSet);
+                if (listener != null) {
+                    try {
+                        listener.onBingRuleUpdateSuccess();
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+
+            private void onError(String message) {
+                if (null != listener) {
+                    try {
+                        listener.onBingRuleUpdateFailure(message);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+
+            /**
+             * Called if there is a network error.
+             * @param e the exception
+             */
+            @Override
+            public void onNetworkError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+
+            /**
+             * Called in case of a Matrix error.
+             * @param e the Matrix error
+             */
+            @Override
+            public void onMatrixError(MatrixError e)  {
+                onError(e.getLocalizedMessage());
+            }
+
+            /**
+             * Called for some other type of error.
+             * @param e the exception
+             */
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+        });
     }
 }

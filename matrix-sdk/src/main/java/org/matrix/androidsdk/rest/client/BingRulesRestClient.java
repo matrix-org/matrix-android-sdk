@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.client;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
@@ -69,16 +69,31 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     }
 
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-        mApi.deleteRule(Kind, ruleId, new Callback<Void> () {
+        mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
             @Override
-            public void success (Void voidObject, Response response){
+            public void success(Void voidObject, Response response) {
                 callback.onSuccess(voidObject);
             }
 
             @Override
-            public void failure (RetrofitError error){
+            public void failure(RetrofitError error) {
                 callback.onUnexpectedError(error);
             }
         });
     }
+
+    public void addRule(BingRule rule, final ApiCallback<Void> callback) {
+        mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
+            @Override
+            public void success(Void voidObject, Response response) {
+                callback.onSuccess(voidObject);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                callback.onUnexpectedError(error);
+            }
+        });
+    }
+
 }

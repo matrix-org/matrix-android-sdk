@@ -78,6 +78,36 @@ public class BingRule {
         this.isDefault = false;
     }
 
+
+    public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
+        //
+        ruleId = aPattern;
+        isEnabled = true;
+        isDefault = false;
+        kind = ruleKind;
+        conditions = null;
+
+        ArrayList<JsonElement> actionsList = new ArrayList<JsonElement>();
+
+        actionsList.add(new JsonPrimitive(notify ? ACTION_NOTIFY : ACTION_DONT_NOTIFY));
+
+        if (highlight) {
+            JsonObject highlightObject = new JsonObject();
+            highlightObject.add(ACTION_PARAMETER_SET_TWEAK, new JsonPrimitive(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE));
+            highlightObject.add(ACTION_PARAMETER_VALUE, new JsonPrimitive(ACTION_VALUE_TRUE));
+            actionsList.add(highlightObject);
+        }
+
+        if (sound) {
+            JsonObject soundObject = new JsonObject();
+            soundObject.add(ACTION_PARAMETER_SET_TWEAK, new JsonPrimitive(ACTION_SET_TWEAK_SOUND_VALUE));
+            soundObject.add(ACTION_PARAMETER_VALUE, new JsonPrimitive(ACTION_VALUE_DEFAULT));
+            actionsList.add(soundObject);
+        }
+
+        actions = actionsList;
+    }
+
     public void addCondition(Condition condition) {
         if (conditions == null) {
             conditions = new ArrayList<Condition>();

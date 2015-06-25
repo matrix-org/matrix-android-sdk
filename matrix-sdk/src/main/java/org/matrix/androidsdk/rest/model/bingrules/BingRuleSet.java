@@ -40,7 +40,6 @@ public class BingRuleSet {
         return null;
     }
 
-
     private List<BingRule> getBingRulesList(String kind) {
         List<BingRule> res = null;
 
@@ -55,6 +54,26 @@ public class BingRuleSet {
         }
 
         return res;
+    }
+
+    /**
+     * Add a rule from the bingRules
+     * @param rule the rule to add.
+     */
+    public void addAtTop(BingRule rule) {
+        if (BingRule.KIND_CONTENT.equals(rule.kind)) {
+            if (null != content) {
+                if (rule instanceof ContentRule) {
+                    content.add(0, (ContentRule) rule);
+                }
+            }
+        } else {
+            List<BingRule> rulesList = getBingRulesList(rule.kind);
+
+            if (null != rulesList) {
+                rulesList.add(0, rule);
+            }
+        }
     }
 
     /**
