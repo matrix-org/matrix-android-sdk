@@ -40,6 +40,46 @@ public class BingRuleSet {
         return null;
     }
 
+
+    private List<BingRule> getBingRulesList(String kind) {
+        List<BingRule> res = null;
+
+        if (BingRule.KIND_OVERRIDE.equals(kind)) {
+            res = override;
+        } else if (BingRule.KIND_ROOM.equals(kind)) {
+            res = room;
+        } else if (BingRule.KIND_SENDER.equals(kind)) {
+            res = sender;
+        } else if (BingRule.KIND_UNDERRIDE.equals(kind)) {
+            res = underride;
+        }
+
+        return res;
+    }
+
+    /**
+     * Remove a rule from the bingRules
+     * @param rule the rule to delete.
+     * @return true if the rule has been deleted
+     */
+    public Boolean remove(BingRule rule) {
+        Boolean res = false;
+
+        if (BingRule.KIND_CONTENT.equals(rule.kind)) {
+            if (null != content) {
+                res = content.remove(rule);
+            }
+        } else {
+            List<BingRule> rulesList = getBingRulesList(rule.kind);
+
+            if (null != rulesList) {
+                res = rulesList.remove(rule);
+            }
+        }
+
+        return res;
+    }
+
     /**
      * Find a rule from its rule ID.
      * @param rules the rules list.

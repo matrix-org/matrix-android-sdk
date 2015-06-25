@@ -20,6 +20,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
 import retrofit.Callback;
 import retrofit.http.Body;
+import retrofit.http.DELETE;
 import retrofit.http.GET;
 import retrofit.http.PUT;
 import retrofit.http.Path;
@@ -34,10 +35,22 @@ public interface BingRulesApi {
 
     /**
      * Update the ruleID enable status
-     * @param ruleId the ruleId (sender/..., room/...)
+     * @param kind the notification kind (sender, room...)
+     * @param ruleId the ruleId
      * @param enable the new enable status
      * @param callback the callback
      */
     @PUT("/pushrules/global/{kind}/{ruleId}/enabled")
     public void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
+
+    /**
+     * Update the ruleID enable status
+     * @param kind the notification kind (sender, room...)
+     * @param ruleId the ruleId
+     * @param callback the callback
+     */
+    @DELETE("/pushrules/global/{kind}/{ruleId}")
+    public void deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId, Callback<Void> callback);
+
+
 }
