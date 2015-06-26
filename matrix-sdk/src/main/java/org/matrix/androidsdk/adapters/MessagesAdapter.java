@@ -37,6 +37,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.JsonNull;
 
@@ -792,6 +793,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                                     uploadProgressLayout.setVisibility(View.GONE);
 
                                     if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        if (null != serverErrorMessage) {
+                                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                                    serverErrorMessage,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
                                         uploadFailedImage.setVisibility(View.VISIBLE);
                                     } else {
                                         uploadSpinner.setVisibility(View.VISIBLE);
@@ -1023,8 +1029,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
                                     uploadProgressLayout.setVisibility(View.GONE);
-
                                     if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        if (null != serverErrorMessage) {
+                                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                                    serverErrorMessage,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+
                                         uploadFailedImage.setVisibility(View.VISIBLE);
                                     } else {
                                         uploadSpinner.setVisibility(View.VISIBLE);
