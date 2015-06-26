@@ -67,12 +67,30 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     private MXMediasCache mMediasCache = null;
 
+    private HashMap<String, String> mMembersSortMemberNameByUserId = new HashMap<String, String>();
+
+    private String getCachedMemberName(String userId) {
+        // sanity check
+        if (null == userId) {
+            return null;
+        }
+
+        if (mMembersSortMemberNameByUserId.containsKey(userId)) {
+            return mMembersSortMemberNameByUserId.get(userId);
+        }
+
+        String memberName = mRoomState.getMemberName(userId);
+        mMembersSortMemberNameByUserId.put(userId, memberName);
+        return memberName;
+    }
+
+
     // Comparator to order members alphabetically
     private Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
         @Override
         public int compare(RoomMember member1, RoomMember member2) {
-            String lhs = mRoomState.getMemberName(member1.getUserId());
-            String rhs = mRoomState.getMemberName(member2.getUserId());
+            String lhs = getCachedMemberName(member1.getUserId());
+            String rhs = getCachedMemberName(member2.getUserId());
 
             if (member1.membership.equals(member2.membership)) {
                 if (lhs == null) {
@@ -156,8 +174,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                     return +1;
                 }
 
-                String lhs = mRoomState.getMemberName(member1.getUserId());
-                String rhs = mRoomState.getMemberName(member2.getUserId());
+                String lhs = getCachedMemberName(member1.getUserId());
+                String rhs = getCachedMemberName(member2.getUserId());
 
                 return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
             }
@@ -203,6 +221,10 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     }
 
     public void sortMembers() {
+        // create a dictionnary to avoid computing the member name at each sort step.
+        // mRoomState.getMemberName(userId) can be complex
+        mMembersSortMemberNameByUserId = new HashMap<String, String>();
+
         if (mSortByLastActive) {
             sort(lastActiveComparator);
         } else {
