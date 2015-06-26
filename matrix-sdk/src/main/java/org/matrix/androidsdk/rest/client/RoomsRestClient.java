@@ -212,14 +212,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void joinRoom(final String roomIdOrAlias, final ApiCallback<RoomResponse> callback) {
         final String description = "joinRoom : roomId " + roomIdOrAlias;
 
-        String urlEncodedAlias = roomIdOrAlias;
-        try {
-            urlEncodedAlias = java.net.URLEncoder.encode(urlEncodedAlias, "UTF-8");
-        }
-        catch (Exception e) {
-        }
-
-        mApi.joinRoomByAliasOrId(urlEncodedAlias, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.joinRoomByAliasOrId(roomIdOrAlias, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
