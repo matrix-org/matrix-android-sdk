@@ -56,19 +56,21 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mPublicHighlightColor;
 
     private ArrayList<ArrayList<RoomSummary>> mRecentsSummariesList;
-    private List<PublicRoom>mPublicRoomsList = null;
 
-    public int mPublicsGroupIndex = -1;
+    protected List<List<PublicRoom>> mPublicRoomsLists = null;
+    protected List<String> mPublicRoomsHomeServerLists = null;
+
+    public int mPublicsGroupStartIndex = -1;
 
     private  boolean mDisplayAllGroups = true;
 
     private ArrayList<ArrayList<RoomSummary>> mFilteredRecentsSummariesList;
-    private List<PublicRoom>mFilteredPublicRoomsList;
+    private ArrayList<ArrayList<PublicRoom>> mFilteredPublicRoomsList;
 
     private String mSearchedPattern = "";
 
     private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
-    private ArrayList<HashMap<String, RoomSummary>> mSummaryMapsBySection = new ArrayList<HashMap<String, RoomSummary>>();
+    protected ArrayList<HashMap<String, RoomSummary>> mSummaryMapsBySection = new ArrayList<HashMap<String, RoomSummary>>();
 
     // abstract methods
     public abstract int getUnreadMessageBackgroundColor();
@@ -76,7 +78,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public abstract int getPublicHighlightMessageBackgroundColor();
     public abstract boolean displayPublicRooms();
     public abstract String myRoomsTitle(int section);
-    public abstract String publicRoomsTitle();
+    public abstract String publicRoomsTitle(int section);
     public abstract Room roomFromRoomSummary(RoomSummary roomSummary);
     public abstract String memberDisplayName(String matrixId, String userId);
 
@@ -100,7 +102,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             mSummaryMapsBySection.add(new HashMap<String, RoomSummary>());
         }
 
-        mPublicRoomsList  = null;
+        mPublicRoomsLists  = null;
         mUnreadColor = getUnreadMessageBackgroundColor();
         mHighlightColor = getHighlightMessageBackgroundColor();
         mPublicHighlightColor = getPublicHighlightMessageBackgroundColor();
@@ -123,7 +125,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     @Override
     public void notifyDataSetChanged() {
         mFilteredRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
-        mFilteredPublicRoomsList = new ArrayList<PublicRoom>();
+        mFilteredPublicRoomsList = new ArrayList<ArrayList<PublicRoom>>();
 
         // there is a pattern to search
         if (mSearchedPattern.length() > 0) {
@@ -150,17 +152,24 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
             // set to null until it is initialized
-            if (null != mPublicRoomsList) {
-                for (PublicRoom publicRoom : mPublicRoomsList) {
-                    String roomName = publicRoom.name;
+            if (null != mPublicRoomsLists) {
+                for(List<PublicRoom> publicRoomslist : mPublicRoomsLists) {
 
-                    if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                        mFilteredPublicRoomsList.add(publicRoom);
-                    } else {
-                        String alias = publicRoom.roomAliasName;
+                    ArrayList<PublicRoom> fiteredList = new ArrayList<PublicRoom>();
+                    mFilteredPublicRoomsList.add(fiteredList);
 
-                        if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                            mFilteredPublicRoomsList.add(publicRoom);
+
+                    for (PublicRoom publicRoom : publicRoomslist) {
+                        String roomName = publicRoom.name;
+
+                        if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                            fiteredList.add(publicRoom);
+                        } else {
+                            String alias = publicRoom.roomAliasName;
+
+                            if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                                fiteredList.add(publicRoom);
+                            }
                         }
                     }
                 }
@@ -176,7 +185,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @return true if the recents group oone
      */
     public boolean isRecentsGroupIndex(int groupIndex) {
-        return groupIndex != mPublicsGroupIndex;
+        return (mPublicsGroupStartIndex < 0) || (groupIndex < mPublicsGroupStartIndex);
     }
 
     /**
@@ -185,7 +194,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @return true if the group is the publics one.
      */
     public boolean isPublicsGroupIndex(int groupIndex) {
-        return groupIndex == mPublicsGroupIndex;
+        return (mPublicsGroupStartIndex > 0)  && (groupIndex >= mPublicsGroupStartIndex);
     }
 
     /**
@@ -204,32 +213,54 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     /**
      * public rooms list management
      */
-    public void setPublicRoomsList(List<PublicRoom> aRoomsList) {
-        mPublicRoomsList = aRoomsList;
+    public void setPublicRoomsList(List<List<PublicRoom>> aRoomsListList, List<String> homeServerNamesList) {
+        mPublicRoomsLists = aRoomsListList;
+        mPublicRoomsHomeServerLists = homeServerNamesList;
 
-        if (null != aRoomsList) {
-            // the public rooms must only be sorted once
-            // sortSummaries is called at each new displayable event.
-            Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
-                @Override
-                public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
-                    return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
-                }
-            });
+        if (null != aRoomsListList) {
+            for(List<PublicRoom> publicRoomsList : mPublicRoomsLists) {
+                // the public rooms must only be sorted once
+                // sortSummaries is called at each new displayable event.
+                Collections.sort(publicRoomsList, new Comparator<PublicRoom>() {
+                    @Override
+                    public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
+                        return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
+                    }
+                });
+            }
         }
 
         this.notifyDataSetChanged();
     }
 
-    public PublicRoom getPublicRoomAt(int index) {
+    /**
+     * Returns the public Room at position (group, section)
+     * @param groupIndex the group index.
+     * @param section the section index.
+     * @return the matched PublicRoom if it exists, else null.
+     */
+    public PublicRoom getPublicRoomAt(int groupIndex, int section) {
         if (mSearchedPattern.length() > 0) {
-            return mFilteredPublicRoomsList.get(index);
+            return mFilteredPublicRoomsList.get(groupIndex - mPublicsGroupStartIndex).get(section);
         } else {
-            if (null != mPublicRoomsList) {
-                return mPublicRoomsList.get(index);
+            if (null != mPublicRoomsLists) {
+                return mPublicRoomsLists.get(groupIndex - mPublicsGroupStartIndex).get(section);
             } return null;
         }
     }
+
+    /**
+     * Returns the home server URL for the group index.
+     * @param groupIndex the group index.
+     * @return the home server URL.
+     */
+    public String getHomeServerURLAt(int groupIndex) {
+        if (null != mPublicRoomsHomeServerLists) {
+            return mPublicRoomsHomeServerLists.get(groupIndex - mPublicsGroupStartIndex);
+        } return null;
+
+    }
+
     /**
      * recent rooms list management
      */
@@ -403,7 +434,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
 
         // assume that some public rooms are defined
-        if ((groupPosition == mPublicsGroupIndex) && (null == mPublicRoomsList)) {
+        if (isPublicsGroupIndex(groupPosition) && (null == mPublicRoomsLists)) {
             if (null == spinner) {
                 convertView = mLayoutInflater.inflate(R.layout.adapter_item_waiting_room_members, parent, false);
             }
@@ -510,7 +541,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 deleteProgress.setVisibility(View.VISIBLE);
             }
         } else {
-            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
+            int index = groupPosition - mPublicsGroupStartIndex;
+            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.get(index) : mPublicRoomsLists.get(index);
             PublicRoom publicRoom = publicRoomsList.get(childPosition);
 
             String matrixId = null;
@@ -575,7 +607,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             heading.setText(header);
         } else {
-            heading.setText(publicRoomsTitle());
+            heading.setText(publicRoomsTitle(groupPosition));
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.heading_image);
@@ -610,13 +642,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 return list.get(groupPosition).size();
             }
         } else {
+            int index = groupPosition - mPublicsGroupStartIndex;
+
+            if (!displayPublicRooms()) {
+                return 0;
+            }
             // display a spinner until the public rooms are loaded
-            if (null == mPublicRoomsList) {
+            //
+            else if (null == mPublicRoomsLists) {
                 return 1;
-            } else if (mPublicRoomsList.size() == 0) {
+            } else if (mPublicRoomsLists.get(index).size() == 0) {
                 return 0;
             } else {
-                return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
+                return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.get(index).size() : mPublicRoomsLists.get(index).size();
             }
         }
     }
@@ -630,14 +668,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public int getGroupCount() {
         int count = 0;
 
-        mPublicsGroupIndex = -1;
+        mPublicsGroupStartIndex = -1;
 
         count += mRecentsSummariesList.size();
 
         // display the public rooms in the recents only if there is no dedicated room
         if ((mRecentsSummariesList.size() == 0) || mDisplayAllGroups) {
-            mPublicsGroupIndex = count;
-            count++;
+            mPublicsGroupStartIndex = count;
+
+            if (null == mPublicRoomsLists) {
+                count++;
+            } else {
+                count += mPublicRoomsLists.size();
+            }
         }
 
         return count;
