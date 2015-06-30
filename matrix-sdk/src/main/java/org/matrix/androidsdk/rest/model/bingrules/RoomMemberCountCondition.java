@@ -21,7 +21,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
 public class RoomMemberCountCondition extends Condition {
-    private static final String LOG_TAG = "RoomMemberCountCondition";
+    private static final String LOG_TAG = "RMCountCondition";
     // NB: Leave the strings in order of descending length
     private static final String[] PREFIX_ARR = new String[] {"==", "<=", ">=", "<", ">", ""};
 
@@ -104,7 +104,7 @@ public class RoomMemberCountCondition extends Condition {
         }
 
         if (parseError) {
-            Log.e(LOG_TAG, "Error parsing rule: " + is);
+            Log.e(LOG_TAG, "parsing error : " + is);
         }
     }
 }

@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 public class NetworkConnectivityReceiver extends BroadcastReceiver {
-    private static final String LOG_TAG = "NetworkConnectivityReceiver";
+    private static final String LOG_TAG = "NetworkReceiver";
 
     // any network state listener
     private List<IMXNetworkEventListener> mNetworkEventListeners = new ArrayList<IMXNetworkEventListener>();
@@ -55,7 +55,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to report connectivity: " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "Failed to report :" + e.getLocalizedMessage());
         }
     }
 
