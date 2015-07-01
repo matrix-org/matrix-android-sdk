@@ -38,7 +38,9 @@ import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -83,6 +85,8 @@ public class MXSession {
     private MXLatestChatMessageCache mLatestChatMessageCache;
     private MXMediasCache mMediasCache;
 
+    private BingRulesManager mBingRulesManager = null;
+
     /**
      * Create a basic session for direct API calls.
      * @param credentials the user credentials
@@ -113,7 +117,8 @@ public class MXSession {
         mDataRetriever = new DataRetriever();
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setDataRetriever(mDataRetriever);
-        mDataHandler.setPushRulesManager(new BingRulesManager(this));
+        mBingRulesManager = new BingRulesManager(this);
+        mDataHandler.setPushRulesManager(mBingRulesManager);
 
         // application context
         mAppContent = appContext;
@@ -442,4 +447,15 @@ public class MXSession {
     public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
         mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
+
+    /**
+     * Return the fulfilled active BingRule for the event.
+     * @param event the event
+     * @return the fulfilled bingRule
+     */
+    public BingRule fulfillRule(Event event) {
+       return mBingRulesManager.fulfilledBingRule(event);
+    }
+
+
 }

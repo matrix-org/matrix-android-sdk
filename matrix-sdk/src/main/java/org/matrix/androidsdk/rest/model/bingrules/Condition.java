@@ -17,10 +17,26 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 
 public class Condition {
+    // defined in the push rules spec
+    // http://matrix.org/docs/spec/#push-rules
+
+    /* 'key': The dot-separated field of the event to match, eg. content.body
+       'pattern': The glob-style pattern to match against. Patterns with no special glob characters should be treated as having asterisks prepended and appended when testing the condition.*/
     public static final String KIND_EVENT_MATCH = "event_match";
-    public static final String KIND_DEVICE = "device";
+
+    /* 'profile_tag': The profile_tag to match with.*/
+    public static final String KIND_PROFILE_TAG = "profile_tag";
+
+    /* no parameter */
     public static final String KIND_CONTAINS_DISPLAY_NAME = "contains_display_name";
+
+    /* 'is': A decimal integer optionally prefixed by one of, '==', '<', '>', '>=' or '<='.
+        A prefix of '<' matches rooms where the member count is strictly less than the given number and so forth. If no prefix is present, this matches rooms where the member count is exactly equal to the given number (ie. the same as '==').
+    */
     public static final String KIND_ROOM_MEMBER_COUNT = "room_member_count";
 
+    /* */
+    public static final String KIND_DEVICE = "device";
+        
     public String kind;
 }

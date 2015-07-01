@@ -383,7 +383,9 @@ public class MXDataHandler implements IMXEventListener {
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                    && (mBingRulesManager != null) && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))) {
+                    && (mBingRulesManager != null)
+                    && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
+                    && bingRule.shouldNotify()) {
                 onBingEvent(event, liveStateCopy, bingRule);
             }
         }

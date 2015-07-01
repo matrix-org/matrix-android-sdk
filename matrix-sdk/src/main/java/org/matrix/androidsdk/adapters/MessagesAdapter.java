@@ -107,6 +107,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // when a message is sent, the content is displayed until to get the echo from the server
     private HashMap<String, MessageRow> mWaitingEchoRowMap = new HashMap<String, MessageRow>();
 
+    // avoid searching bingrule at each refresh
+    private HashMap<String, Integer> mTextColorByEventId = new HashMap<String, Integer>();
+
     private int mOddColourResId;
     private int mEvenColourResId;
 
@@ -585,7 +588,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else if (row.getEvent().isUndeliverable()) {
             textColor = notSentColor;
         } else {
-            textColor = (EventUtils.shouldHighlight(mSession, mContext, msg) ? highlightColor : normalColor);
+            textColor = normalColor;
+
+            // sanity check
+            if (null != msg.eventId) {
+                synchronized (this) {
+                    if (!mTextColorByEventId.containsKey(msg.eventId)) {
+                        textColor = (EventUtils.shouldHighlight(mSession, msg) ? highlightColor : normalColor);
+                        mTextColorByEventId.put(msg.eventId, textColor);
+                    } else {
+                        textColor = mTextColorByEventId.get(msg.eventId);
+                    }
+                }
+            }
         }
 
         bodyTextView.setTextColor(textColor);
@@ -1120,5 +1135,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public int getMaxThumbnailHeight() {
         return mMaxImageHeight;
+    }
+
+
+    /**
+     * Notify the fragment that some bing rules could have been updated.
+     */
+    public void onBingRulesUpdate() {
+        synchronized (this) {
+            mTextColorByEventId = new HashMap<String, Integer>();
+        }
+        this.notifyDataSetChanged();
     }
 }

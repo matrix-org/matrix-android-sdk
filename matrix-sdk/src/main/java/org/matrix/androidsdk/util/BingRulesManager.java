@@ -15,16 +15,20 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
@@ -33,9 +37,11 @@ import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Object that gets and processes bing rules from the server.
@@ -48,6 +54,7 @@ public class BingRulesManager {
     }
 
     private BingRulesRestClient mApiClient;
+    private MXSession mSession = null;
     private String mMyUserId;
     private MXDataHandler mDataHandler;
 
@@ -59,6 +66,7 @@ public class BingRulesManager {
     private boolean isReady = false;
 
     public BingRulesManager(MXSession session) {
+        mSession = session;
         mApiClient = session.getBingRulesApiClient();
         mMyUserId = session.getCredentials().userId;
         mDataHandler = session.getDataHandler();
@@ -97,6 +105,16 @@ public class BingRulesManager {
         mApiClient.updateEnableRuleStatus(kind, ruleId, status, callback);
     }
 
+    /**
+     * Returns whether a string contains an occurrence of another, as a standalone word, regardless of case.
+     * @param subString the string to search for
+     * @param longString the string to search in
+     * @return whether a match was found
+     */
+    private static boolean caseInsensitiveFind(String subString, String longString) {
+        Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
+        return pattern.matcher(longString).find();
+    }
 
     /**
      * Returns the first notifiable bing rule which fulfills its condition with this event.
@@ -121,21 +139,38 @@ public class BingRulesManager {
         if (mRules != null) {
             // Go down the rule list until we find a match
             for (BingRule bingRule : mRules) {
-                if (bingRule.isEnabled && eventMatchesConditions(event, bingRule.conditions)) {
-                    for (JsonElement action : bingRule.actions) {
-                        if (action.isJsonPrimitive()) {
-                            String actionString = action.getAsString();
+                if (bingRule.isEnabled) {
+                    Boolean isFullfilled = false;
 
-                            if (BingRule.ACTION_NOTIFY.equals(actionString) || BingRule.ACTION_COALESCE.equals(actionString)) {
-                                return bingRule;
-                            } else if (BingRule.ACTION_DONT_NOTIFY.equals(actionString)) {
-                                return null;
+                    // some rules have no condition
+                    // so their ruleId defines the method
+                    if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
+                        if (event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+                            Message message = JsonUtils.toMessage(event.content);
+                            MyUser myUser =  mSession.getMyUser();
+                            String pattern = myUser.displayname;
+
+                            if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
+                                pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
+                            }
+
+                            if (!TextUtils.isEmpty(pattern)) {
+                                isFullfilled = caseInsensitiveFind(pattern, message.body);
                             }
                         }
-                        // FIXME: Support other actions
+                    }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
+                        isFullfilled = true;
+                    } else {
+                        // some default rules define conditions
+                        // so use them instead of doing a custom treatment
+                        // RULE_ID_ONE_TO_ONE_ROOM
+                        // RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS
+                        isFullfilled = eventMatchesConditions(event, bingRule.conditions);
                     }
-                    // No supported actions were found, just bing
-                    return mDefaultBingRule;
+
+                    if (isFullfilled) {
+                        return bingRule;
+                    }
                 }
             }
 
@@ -184,7 +219,6 @@ public class BingRulesManager {
     }
 
     private void buildRules(BingRulesResponse bingRulesResponse) {
-        mRules.clear();
         updateRules(bingRulesResponse.global);
     }
 
@@ -194,6 +228,10 @@ public class BingRulesManager {
 
     private void updateRules(BingRuleSet ruleSet) {
         synchronized (this) {
+            // clear the rules list
+            // it is
+            mRules.clear();
+
             // Replace the list by ArrayList to be able to add/remove rules
             // Add the rule kind in each rule
             // Ensure that the null pointers are replaced by an empty list

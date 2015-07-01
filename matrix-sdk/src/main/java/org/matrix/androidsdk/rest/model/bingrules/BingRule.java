@@ -38,6 +38,7 @@ public class BingRule {
     public static String RULE_ID_CALL = ".m.rule.call";
     public static String RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS = ".m.rule.suppress_notices";
     public static String RULE_ID_ALL_OTHER_MESSAGES_ROOMS = ".m.rule.message";
+    public static String RULE_ID_FALLBACK = ".m.rule.fallback";
 
     public static final String ACTION_NOTIFY = "notify";
     public static final String ACTION_DONT_NOTIFY = "dont_notify";
@@ -50,6 +51,7 @@ public class BingRule {
     public static final String ACTION_PARAMETER_VALUE = "value";
 
     public static final String ACTION_VALUE_DEFAULT = "default";
+    public static final String ACTION_VALUE_RING = "ring";
     public static final String ACTION_VALUE_TRUE = "true";
     public static final String ACTION_VALUE_FALSE = "false";
 
@@ -172,18 +174,35 @@ public class BingRule {
     }
 
     /**
-     * Return true if the rule should play sound .
-     * @return true if the rule should play sound
+     * Check if the sound type is the default notification sound.
+     * @param sound the sound name.
+     * @return true if the sound is the default notification sound.
      */
-    public boolean shouldPlaySound() {
-        boolean playSound = false;
+    public Boolean isDefaultNotificationSound(String sound) {
+        return ACTION_VALUE_DEFAULT.equals(sound);
+    }
+
+    /**
+     * Check if the sound type is the call ring.
+     * @param sound the sound name.
+     * @return true if the sound is the call ring.
+     */
+    public Boolean isCallRingNotificationSound(String sound) {
+        return ACTION_VALUE_RING.equals(sound);
+    }
+
+    /**
+     * @return the notification sound (null if it is not defined)
+     */
+    public String notificationSound() {
+        String sound = null;
         JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_SOUND_VALUE);
 
         if ((null != jsonObject) && jsonObject.has(ACTION_PARAMETER_VALUE)) {
-            playSound = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString().equals(ACTION_VALUE_DEFAULT);
+            sound = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString();
         }
 
-        return playSound;
+        return sound;
     }
 
     /**
@@ -194,8 +213,13 @@ public class BingRule {
         boolean highlight = false;
         JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
 
-        if ((null != jsonObject) && jsonObject.has(ACTION_PARAMETER_VALUE)) {
-            highlight = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString().equals(ACTION_VALUE_TRUE);
+        if (null != jsonObject) {
+            // default behaviour
+            highlight = true;
+
+            if (jsonObject.has(ACTION_PARAMETER_VALUE)) {
+                highlight = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString().equals(ACTION_VALUE_TRUE);
+            }
         }
 
         return highlight;

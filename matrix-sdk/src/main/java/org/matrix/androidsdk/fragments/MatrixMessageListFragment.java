@@ -896,4 +896,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public int getMaxThumbnailHeight() {
         return mAdapter.getMaxThumbnailHeight();
     }
+
+    /**
+     * Notify the fragment that some bing rules could have been updated.
+     */
+    public void onBingRulesUpdate() {
+        mAdapter.onBingRulesUpdate();
+    }
 }
