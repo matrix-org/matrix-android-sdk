@@ -90,6 +90,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public ListView mMessageListView;
     private Handler mUiHandler;
     protected MXSession mSession;
+    protected String mMatrixId;
     private Room mRoom;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
@@ -109,6 +110,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public MXSession getSession() {
+        // if the session has not been set
+        if (null == mSession) {
+            // find it out
+            mSession = getSession(mMatrixId);
+        }
+
         return mSession;
     }
 
@@ -128,26 +135,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-
-        Bundle args = getArguments();
-
-        // for dispatching data to add to the adapter we need to be on the main thread
-        mUiHandler = new Handler(Looper.getMainLooper());
-
-        String matrixId = args.getString(ARG_MATRIX_ID);
-        mSession = getSession(matrixId);
-
-        if (null == mSession) {
-            throw new RuntimeException("Must have valid default MXSession.");
-        }
-
-        if (null == getMXMediasCache()) {
-            throw new RuntimeException("Must have valid default MediasCache.");
-        }
-
-
-        String roomId = args.getString(ARG_ROOM_ID);
-        mRoom = mSession.getDataHandler().getRoom(roomId);
     }
 
     /**
@@ -162,6 +149,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
+
+        // for dispatching data to add to the adapter we need to be on the main thread
+        mUiHandler = new Handler(Looper.getMainLooper());
+
+        mMatrixId = args.getString(ARG_MATRIX_ID);
+        mSession = getSession(mMatrixId);
+
+        if (null == mSession) {
+            throw new RuntimeException("Must have valid default MXSession.");
+        }
+
+        if (null == getMXMediasCache()) {
+            throw new RuntimeException("Must have valid default MediasCache.");
+        }
+
+        String roomId = args.getString(ARG_ROOM_ID);
+        mRoom = mSession.getDataHandler().getRoom(roomId);
+
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
         if (mAdapter == null) {
@@ -209,7 +214,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @return the MatrixMessagesFragment
      */
     public MatrixMessagesFragment createMessagesFragmentInstance(String roomId) {
-        return MatrixMessagesFragment.newInstance(mSession, roomId, this);
+        return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
     }
 
     @Override
@@ -294,13 +299,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // return the created Message
     private MessageRow addMessageRow(Message message) {
         Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
-        mSession.getDataHandler().storeLiveRoomEvent(event);
+        getSession().getDataHandler().storeLiveRoomEvent(event);
 
         MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
         scrollToBottom();
 
-        mSession.getDataHandler().getStore().commit();
+        getSession().getDataHandler().getStore().commit();
         return messageRow;
     }
 
@@ -345,7 +350,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        mSession.getContentManager().uploadContent(fileStream, mimeType, mediaUrl, new ContentManager.UploadCallback() {
+        getSession().getContentManager().uploadContent(fileStream, mimeType, mediaUrl, new ContentManager.UploadCallback() {
             @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
@@ -447,7 +452,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        mSession.getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
+        getSession().getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
@@ -521,7 +526,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     protected void resend(Event event) {
         // remove the event
-        mSession.getDataHandler().deleteRoomEvent(event);
+        getSession().getDataHandler().deleteRoomEvent(event);
         mAdapter.removeEventById(event.eventId);
         mPendingRelaunchTimersByEventId.remove(event.eventId);
 
