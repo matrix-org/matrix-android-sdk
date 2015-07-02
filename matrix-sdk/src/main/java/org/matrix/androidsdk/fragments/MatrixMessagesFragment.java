@@ -54,6 +54,19 @@ public class MatrixMessagesFragment extends Fragment {
     public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
         Bundle args = new Bundle();
+
+        if (null == roomId) {
+            throw new RuntimeException("Must define a roomId.");
+        }
+
+        if (null == listener) {
+            throw new RuntimeException("Must define a listener.");
+        }
+
+        if (null == session) {
+            throw new RuntimeException("Must define a session.");
+        }
+
         args.putString(ARG_ROOM_ID, roomId);
         fragment.setArguments(args);
         fragment.setMatrixMessagesListener(listener);
@@ -99,8 +112,9 @@ public class MatrixMessagesFragment extends Fragment {
             throw new RuntimeException("Must have a room ID specified.");
         }
 
-        // in some low memory cases
-        // this fragment can be released so, trying to retrieve the parameters
+        // this code should never be called
+        // but we've got some crashes when the session was null
+        // so try to find it from the fragments call stack.
         if (null == mSession) {
             List<Fragment> fragments = null;
             FragmentManager fm = getActivity().getSupportFragmentManager();
@@ -185,32 +199,6 @@ public class MatrixMessagesFragment extends Fragment {
             requestInitialHistory();
         }
     }
-
-    @Override
-    public void onStart() {
-        Fragment parentFragment = this.getParentFragment();
-
-        super.onStart();
-
-    }
-
-    @Override
-    public void onResume() {
-        Fragment parentFragment = this.getParentFragment();
-
-        FragmentManager fm = getActivity().getSupportFragmentManager();
-        List<Fragment> fragements = fm.getFragments();
-
-        for(Fragment fg : fragements) {
-            if (fg instanceof MatrixMessageListFragment) {
-                mMatrixMessagesListener = (MatrixMessageListFragment)fg;
-            }
-        }
-
-        super.onResume();
-
-    }
-
 
     @Override
     public void onDestroy() {
