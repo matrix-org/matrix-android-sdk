@@ -45,6 +45,7 @@ import java.net.HttpURLConnection;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -379,8 +380,7 @@ public class ContentManager {
 
             if (null != mFilename) {
                 try {
-                    String utf8Filename = URLDecoder.decode(mFilename, "UTF-8");
-
+                    String utf8Filename =  URLEncoder.encode(mFilename, "utf-8");
                     urlString += "&filename=" + utf8Filename;
                 } catch (Exception e) {
                 }
