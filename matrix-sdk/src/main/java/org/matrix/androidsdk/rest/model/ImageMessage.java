@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.media.ExifInterface;
 import android.net.Uri;
 
 import java.io.File;
@@ -33,11 +34,36 @@ public class ImageMessage extends Message {
         return (null != url) && (url.startsWith("file://"));
     }
 
+    /**
+     * @return The image mimetype. null is not defined.
+     */
     public String getMimeType() {
         if (null != info) {
             return info.mimetype;
         } else {
             return null;
+        }
+    }
+
+    /**
+     * @return the rotation angle. Integer.MAX_VALUE if not defined.
+     */
+    public int getRotation() {
+        if ((null != info) && (null != info.rotation)) {
+            return info.rotation;
+        } else {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    /**
+     * @return the image orientation. ExifInterface.ORIENTATION_UNDEFINED if not defined.
+     */
+    public int getOrientation() {
+        if ((null != info) && (null != info.orientation)) {
+            return info.orientation;
+        } else {
+            return ExifInterface.ORIENTATION_UNDEFINED;
         }
     }
 
