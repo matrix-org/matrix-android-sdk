@@ -324,14 +324,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Upload a media content
      * @param mediaUrl the media Uurl
      * @param mimeType the media mime type
-     * @param messageBody the message body
+     * @param mediaFilename the mediafilename
      */
-    public void uploadMediaContent(final String mediaUrl, final String mimeType, final String messageBody) {
+    public void uploadMediaContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
         // create a tmp row
         final FileMessage tmpFileMessage = new FileMessage();
 
         tmpFileMessage.url = mediaUrl;
-        tmpFileMessage.body = messageBody;
+        tmpFileMessage.body = mediaFilename;
 
         FileInputStream fileStream = null;
 
@@ -342,6 +342,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             String filename = uri.getPath();
             fileStream = new FileInputStream (new File(filename));
 
+            if (null == tmpFileMessage.body) {
+                tmpFileMessage.body = uri.getLastPathSegment();
+            }
+
         } catch (Exception e) {
         }
 
@@ -350,7 +354,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(fileStream, mimeType, mediaUrl, new ContentManager.UploadCallback() {
+        getSession().getContentManager().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new ContentManager.UploadCallback() {
             @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
@@ -425,15 +429,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Or, it could have been called to resend an image.
      * @param thumbnailUrl the thumbnail Url
      * @param imageUrl the image Uri
+     * @param mediaFilename the mediaFilename
      * @param mimeType the image mine type
      */
-    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mimeType) {
+    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, final String mimeType) {
         // create a tmp row
         final ImageMessage tmpImageMessage = new ImageMessage();
 
         tmpImageMessage.url = imageUrl;
         tmpImageMessage.thumbnailUrl = thumbnailUrl;
-        tmpImageMessage.body = "Image";
+        tmpImageMessage.body = mediaFilename;
 
         FileInputStream imageStream = null;
 
@@ -444,6 +449,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             String filename = uri.getPath();
             imageStream = new FileInputStream (new File(filename));
 
+            if (null == tmpImageMessage.body) {
+                tmpImageMessage.body = uri.getLastPathSegment();
+            }
         } catch (Exception e) {
         }
 
@@ -452,7 +460,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(imageStream, mimeType, imageUrl, new ContentManager.UploadCallback() {
+        getSession().getContentManager().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
@@ -539,7 +547,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent()) {
-                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.getMimeType());
+                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.body, imageMessage.getMimeType());
                 return;
             }
         } else if (message instanceof FileMessage) {

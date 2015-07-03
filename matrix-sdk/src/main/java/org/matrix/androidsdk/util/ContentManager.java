@@ -20,6 +20,8 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -30,15 +32,19 @@ import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -195,9 +201,9 @@ public class ContentManager {
      * @param contentStream a stream with the content to upload
      * @param callback the async callback returning a mxc: URI to access the uploaded file
      */
-    public void uploadContent(InputStream contentStream, String mimeType, String uploadId, UploadCallback callback) {
+    public void uploadContent(InputStream contentStream, String filename, String mimeType, String uploadId, UploadCallback callback) {
         try {
-            new ContentUploadTask(contentStream, mimeType, callback, uploadId).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new ContentUploadTask(contentStream, mimeType, callback, uploadId, filename).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             // cannot start the task
             callback.onUploadComplete(uploadId, null, -1, null);
@@ -258,6 +264,9 @@ public class ContentManager {
         // the upload server response code
         private int mResponseCode = -1;
 
+        // the mediafile name
+        private String mFilename = null;
+
         /**
          * Public constructor
          * @param contentStream the stream to upload
@@ -265,7 +274,7 @@ public class ContentManager {
          * @param callback the upload callback
          * @param uploadId the upload Identifier
          */
-        public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId) {
+        public ContentUploadTask(InputStream contentStream, String mimeType, UploadCallback callback, String uploadId, String filename) {
 
             try {
                 contentStream.reset();
@@ -280,6 +289,7 @@ public class ContentManager {
             this.contentStream = contentStream;
             this.mUploadId = uploadId;
             this.mFailureException = null;
+            this.mFilename = filename;
 
             // dummy callback to be warned that the upload must be cancelled.
             mApiCallback = new ApiCallback() {
@@ -317,7 +327,7 @@ public class ContentManager {
          * @param uploadId the upload Identifier
          * @param apiCallback the dummy apicallback (it is used as identifier by the contentManager)
          */
-        private ContentUploadTask(InputStream contentStream, String mimeType, ArrayList<UploadCallback> someCallbacks, String uploadId, ApiCallback apiCallback) {
+        private ContentUploadTask(InputStream contentStream, String mimeType, ArrayList<UploadCallback> someCallbacks, String uploadId, String filename, ApiCallback apiCallback) {
 
             try {
                 contentStream.reset();
@@ -331,6 +341,7 @@ public class ContentManager {
             this.contentStream = contentStream;
             this.mUploadId = uploadId;
             this.mFailureException = null;
+            this.mFilename = filename;
 
             if (null != uploadId) {
                 mPendingUploadByUploadId.put(uploadId, this);
@@ -366,6 +377,15 @@ public class ContentManager {
             String responseFromServer = null;
             String urlString = mHsUri + URI_PREFIX_CONTENT_API + "/upload?access_token=" + mAccessToken;
 
+            if (null != mFilename) {
+                try {
+                    String utf8Filename = URLDecoder.decode(mFilename, "UTF-8");
+
+                    urlString += "&filename=" + utf8Filename;
+                } catch (Exception e) {
+                }
+            }
+
             try
             {
                 URL url = new URL(urlString);
@@ -378,7 +398,6 @@ public class ContentManager {
 
                 conn.setRequestProperty("Content-Type", mimeType);
                 conn.setRequestProperty("Content-Length", Integer.toString(contentStream.available()));
-
                 // avoid caching data before really sending them.
                 conn.setFixedLengthStreamingMode(contentStream.available());
 
@@ -513,7 +532,7 @@ public class ContentManager {
                         @Override
                         public void onRetry() {
                             try {
-                                ContentUploadTask task = new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId, mApiCallback);
+                                ContentUploadTask task = new ContentUploadTask(contentStream, mimeType, mCallbacks, mUploadId, mFilename, mApiCallback);
                                 mPendingUploadByUploadId.put(mUploadId, task);
                                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                             } catch (Exception e) {

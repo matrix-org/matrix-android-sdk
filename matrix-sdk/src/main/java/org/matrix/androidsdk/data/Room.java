@@ -1057,8 +1057,7 @@ public class Room {
                             hasPreviousTask = true;
 
                             if (null != fis) {
-                                mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, new ContentManager.UploadCallback() {
-
+                                mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, imageMessage.body, new ContentManager.UploadCallback() {
                                     @Override
                                     public void onUploadProgress(String anUploadId, int percentageProgress) {
                                     }
