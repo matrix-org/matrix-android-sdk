@@ -1,3 +1,36 @@
+Changes in Matrix Android SDK in 0.4.2 (2015-07-06)
+===================================================
+
+Improvements:
+ * Improve the room members listing (it used to be very slow on huge rooms like Matrix HQ).
+ * Display the server error messages when available.
+ * Multi servers management.
+ * Update to the latest robolectric.
+ * Add filename param into the media post request to have a valid name while saving with the web client.
+
+
+Features:
+ * Bing rules can now be updated on the client.
+
+Bug fixes:
+ * Some rooms were not joined because the roomIds were URL encoded.
+ * SYAND-91 : server is not federating - endless load of public room list.
+ * Back pagination was sometimes broken with “Invalid token” error. The client should clear the application cache (settings page).
+ * The application used to crash when there was an updated of room members meanwhile others members listing action.
+ * Thread issue in MXFileStore.
+
+Changes in Matrix Android SDK in 0.4.1 (2015-06-22)
+===================================================
+
+Improvements:
+ * Automatically resend failed medias.
+
+Bug fixes:
+ * The matrixMessagesFragment was not properly restarted after have been killed by a low memory.
+ * The emotes were not properly displayed.
+ * The dataHandler field was not set for "myUser" so displayName update was not properly managed.
+
+
 Changes in Matrix Android SDK in 0.4.0 (2015-06-19)
 ===================================================
 

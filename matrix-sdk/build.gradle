@@ -22,6 +22,7 @@ android {
         exclude 'META-INF/NOTICE'
     }
 
+
     defaultConfig {
         minSdkVersion 11
         targetSdkVersion 21
