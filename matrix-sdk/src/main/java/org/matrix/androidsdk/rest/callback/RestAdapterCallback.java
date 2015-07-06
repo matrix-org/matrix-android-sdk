@@ -91,7 +91,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
             Log.d(LOG_TAG, "Failed : [" + mEventDescription + "]");
         }
 
-        if (null != mUnsentEventsManager) {
+        Boolean retry = true;
+
+        if (null != error.getResponse()) {
+            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() >= 500);
+        }
+
+        if (retry && (null != mUnsentEventsManager)) {
             Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
             mUnsentEventsManager.onEventSendingFailed(mEventDescription, error, mApiCallback, mRequestRetryCallBack);
         } else {

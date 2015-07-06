@@ -90,6 +90,11 @@ public class Event implements java.io.Serializable {
     // so store the token from each event.
     public String mToken;
 
+    // The file cache uses the token as a pagination marker.
+    // When the user paginates, the file cache paginate until to find X events or an event with a token.
+    // This token must be used to perform a server catchup.
+    public Boolean mIsInternalPaginationToken;
+
     // store the linked matrix id
     private String mMatrixId;
 
@@ -106,6 +111,7 @@ public class Event implements java.io.Serializable {
     public Event() {
         type = null;
         content = null;
+        mIsInternalPaginationToken = false;
 
         userId = roomId = eventId = null;
         originServerTs = age = 0;
@@ -185,6 +191,19 @@ public class Event implements java.io.Serializable {
         return (roomId + "-" + originServerTs).equals(eventId);
     }
 
+    public void setIntenalPaginationToken(String token) {
+        mToken = token;
+        mIsInternalPaginationToken = true;
+    }
+
+    public Boolean isIntenalPaginationToken() {
+        return  mIsInternalPaginationToken;
+    }
+
+    public Boolean hasToken() {
+        return (null != mToken) && !mIsInternalPaginationToken;
+    }
+
     /**
      * Make a deep copy of this room state object.
      *
@@ -216,6 +235,7 @@ public class Event implements java.io.Serializable {
 
         copy.mMatrixId = mMatrixId;
         copy.mToken = mToken;
+        copy.mIsInternalPaginationToken = mIsInternalPaginationToken;
 
         return copy;
     }

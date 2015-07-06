@@ -298,8 +298,8 @@ public class EventsThread extends Thread {
                     if (!mKilling) {
                         // set the dedicated token when they are known.
                         if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
-                            eventsResponse.chunk.get(0).mToken = eventsResponse.start;
-                            eventsResponse.chunk.get(eventsResponse.chunk.size() - 1).mToken = eventsResponse.end;
+                            eventsResponse.chunk.get(0).setIntenalPaginationToken(eventsResponse.start);
+                            eventsResponse.chunk.get(eventsResponse.chunk.size() - 1).setIntenalPaginationToken(eventsResponse.end);
                         }
 
                         // remove presence events because they will be retrieved by a global request

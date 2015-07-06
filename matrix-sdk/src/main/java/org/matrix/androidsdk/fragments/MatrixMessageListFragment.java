@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -877,19 +878,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 }
 
+                private void onError(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MatrixMessageListFragment.this.getActivity(), message, Toast.LENGTH_SHORT).show();
+                    }
+
+                    dismissLoadingProgress();
+                }
+
                 @Override
                 public void onNetworkError(Exception e) {
-                    dismissLoadingProgress();
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    dismissLoadingProgress();
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    dismissLoadingProgress();
+                    onError(e.getLocalizedMessage());
                 }
             });
         }

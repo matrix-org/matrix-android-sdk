@@ -45,7 +45,7 @@ public class MXFileStore extends MXMemoryStore {
     // some constant values
     final int MXFILE_VERSION = 1;
 
-    final int MAX_STORED_MESSAGES_COUNT = 50;
+    final int MAX_STORED_MESSAGES_COUNT = 25;
 
     final String MXFILE_STORE_FOLDER = "MXFileStore";
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
@@ -595,7 +595,7 @@ public class MXFileStore extends MXMemoryStore {
                                                 startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
 
                                                 // search backward the first known token
-                                                for (; (eventsList.get(startIndex).mToken == null) && (startIndex > 0); startIndex--)
+                                                for (;!eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
                                                     ;
 
                                                 if (startIndex > 0) {
