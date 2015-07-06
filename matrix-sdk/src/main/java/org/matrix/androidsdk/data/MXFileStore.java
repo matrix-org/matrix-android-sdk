@@ -137,7 +137,7 @@ public class MXFileStore extends MXMemoryStore {
         mIsReady = false;
         mCredentials = credentials;
 
-        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread");
+        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + credentials.userId);
 
         createDirTree(credentials.userId);
 
@@ -159,6 +159,7 @@ public class MXFileStore extends MXMemoryStore {
 
         // create the medatata file if it does not exist
         if (null == mMetadata) {
+            mIsOpening = true;
             mHandlerThread.start();
             mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
 
@@ -170,6 +171,7 @@ public class MXFileStore extends MXMemoryStore {
             mMetaDataHasChanged = true;
             saveMetaData();
 
+            mIsOpening = false;
             // nothing to load so ready to work
             mIsReady = true;
         }
@@ -220,69 +222,80 @@ public class MXFileStore extends MXMemoryStore {
     public void open() {
         super.open();
 
-        if (!mIsReady && !mIsOpening && (mMetadata != null)) {
-            mIsOpening = true;
+        // avoid concurrency call.
+        synchronized (this) {
+            if (!mIsReady && !mIsOpening && (null != mMetadata) && (null != mHandlerThread)) {
+                mIsOpening = true;
 
-            Log.e(LOG_TAG, "Open the store.");
+                Log.e(LOG_TAG, "Open the store.");
 
-            // creation the background handler.
-            if (null == mFileStoreHandler) {
-                mHandlerThread.start();
-                mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
-            }
-
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            Log.e(LOG_TAG, "Open the store in the background thread.");
-
-                            boolean succeed = true;
-
-                            succeed &= loadRoomsMessages();
-
-                            if (succeed) {
-                                succeed &= loadRoomsState();
-                            }
-
-                            if (succeed) {
-                                succeed &= loadSummaries();
-                            }
-
-                            mIsReady = true;
-                            mIsOpening = false;
-
-                            // do not expect having empty list
-                            // assume that something is corrupted
-                            if (!succeed) {
-                                deleteAllData(true);
-
-                                mRoomsToCommitForMessages = new ArrayList<String>();
-                                mRoomsToCommitForStates = new ArrayList<String>();
-                                mRoomsToCommitForSummaries = new ArrayList<String>();
-
-                                mMetadata = new MXFileStoreMetaData();
-                                mMetadata.mHomeServer = mCredentials.homeServer;
-                                mMetadata.mUserId = mCredentials.userId;
-                                mMetadata.mAccessToken = mCredentials.accessToken;
-                                mMetadata.mVersion = MXFILE_VERSION;
-                                mMetaDataHasChanged = true;
-                                saveMetaData();
-                            }
-
-                            Log.e(LOG_TAG, "The store is opened.");
-
-                            if (null != mListener) {
-                                mListener.onStoreReady(mCredentials.userId);
-                            }
-                        }
-                    });
+                // creation the background handler.
+                if (null == mFileStoreHandler) {
+                    // avoid already started exception
+                    // never succeeded to reproduce but it was reported in GA.
+                    try {
+                        mHandlerThread.start();
+                    } catch (IllegalThreadStateException e) {
+                        Log.e(LOG_TAG, "mHandlerThread is already started.");
+                        // already started
+                        return;
+                    }
+                    mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
                 }
-            };
 
-            Thread t = new Thread(r);
-            t.start();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                Log.e(LOG_TAG, "Open the store in the background thread.");
+
+                                boolean succeed = true;
+
+                                succeed &= loadRoomsMessages();
+
+                                if (succeed) {
+                                    succeed &= loadRoomsState();
+                                }
+
+                                if (succeed) {
+                                    succeed &= loadSummaries();
+                                }
+
+                                mIsReady = true;
+                                mIsOpening = false;
+
+                                // do not expect having empty list
+                                // assume that something is corrupted
+                                if (!succeed) {
+                                    deleteAllData(true);
+
+                                    mRoomsToCommitForMessages = new ArrayList<String>();
+                                    mRoomsToCommitForStates = new ArrayList<String>();
+                                    mRoomsToCommitForSummaries = new ArrayList<String>();
+
+                                    mMetadata = new MXFileStoreMetaData();
+                                    mMetadata.mHomeServer = mCredentials.homeServer;
+                                    mMetadata.mUserId = mCredentials.userId;
+                                    mMetadata.mAccessToken = mCredentials.accessToken;
+                                    mMetadata.mVersion = MXFILE_VERSION;
+                                    mMetaDataHasChanged = true;
+                                    saveMetaData();
+                                }
+
+                                Log.e(LOG_TAG, "The store is opened.");
+
+                                if (null != mListener) {
+                                    mListener.onStoreReady(mCredentials.userId);
+                                }
+                            }
+                        });
+                    }
+                };
+
+                Thread t = new Thread(r);
+                t.start();
+            }
         }
     }
 
@@ -297,6 +310,7 @@ public class MXFileStore extends MXMemoryStore {
         super.close();
         setIsKilled(true);
         mHandlerThread.quit();
+        mHandlerThread = null;
     }
 
     /**
