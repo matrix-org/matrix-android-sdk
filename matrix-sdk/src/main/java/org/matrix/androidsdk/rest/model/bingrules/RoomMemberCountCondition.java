@@ -20,6 +20,8 @@ import android.util.Log;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
+import java.util.Collection;
+
 public class RoomMemberCountCondition extends Condition {
     private static final String LOG_TAG = "RMCountCondition";
     // NB: Leave the strings in order of descending length
@@ -71,8 +73,10 @@ public class RoomMemberCountCondition extends Condition {
      * @return the number of joined members
      */
     private int getNumberOfMembers(Room room) {
+        Collection<RoomMember> members = room.getMembers();
         int n = 0;
-        for (RoomMember member : room.getMembers()) {
+
+        for (RoomMember member : members) {
             if (RoomMember.MEMBERSHIP_JOIN.equals(member.membership)) {
                 n++;
             }
