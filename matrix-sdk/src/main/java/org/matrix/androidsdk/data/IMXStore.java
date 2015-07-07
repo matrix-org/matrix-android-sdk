@@ -34,6 +34,11 @@ public interface IMXStore {
          * Called when the store is initialized
          */
         public void onStoreReady(String accountId);
+
+        /**
+         * Called when the store initialization fails.
+         */
+        public void onStoreCorrupted(String accountId);
     }
 
     /**

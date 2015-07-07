@@ -18,25 +18,25 @@ package org.matrix.androidsdk.data;
 
 public class MXFileStoreMetaData implements java.io.Serializable {
     // The home server name.
-    public String mHomeServer;
+    public String mHomeServer = null;
 
     // The obtained user id.
-    public String mUserId;
+    public String mUserId = null;
 
     // The access token to create a MXRestClient.
-    public String mAccessToken;
+    public String mAccessToken = null;
 
     //  The token indicating from where to start listening event stream to get live events.
-    public String mEventStreamToken;
+    public String mEventStreamToken = null;
 
     //The current version of the store.
-    public int mVersion;
+    public int mVersion = -1;
 
     /**
      User information
      */
-    public String mUserDisplayName;
-    public String mUserAvatarUrl;
+    public String mUserDisplayName = null;
+    public String mUserAvatarUrl = null;
 
     public MXFileStoreMetaData deepCopy() {
         MXFileStoreMetaData copy = new MXFileStoreMetaData();

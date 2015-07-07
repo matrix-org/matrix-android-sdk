@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.data;
 
-import android.provider.CalendarContract;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -26,14 +25,12 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**

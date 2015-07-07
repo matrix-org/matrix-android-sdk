@@ -87,6 +87,8 @@ public class MXFileStore extends MXMemoryStore {
 
     private Boolean mIsKilled = false;
 
+    private Boolean mIsNewStorage = false;
+
     /**
      * Create the file store dirtrees
      */
@@ -159,6 +161,7 @@ public class MXFileStore extends MXMemoryStore {
 
         // create the medatata file if it does not exist
         if (null == mMetadata) {
+            mIsNewStorage = true;
             mIsOpening = true;
             mHandlerThread.start();
             mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
@@ -170,6 +173,8 @@ public class MXFileStore extends MXMemoryStore {
             mMetadata.mVersion = MXFILE_VERSION;
             mMetaDataHasChanged = true;
             saveMetaData();
+
+            mEventStreamToken = null;
 
             mIsOpening = false;
             // nothing to load so ready to work
@@ -281,12 +286,18 @@ public class MXFileStore extends MXMemoryStore {
                                     mMetadata.mVersion = MXFILE_VERSION;
                                     mMetaDataHasChanged = true;
                                     saveMetaData();
+
+                                    mEventStreamToken = null;
                                 }
 
-                                Log.e(LOG_TAG, "The store is opened.");
-
                                 if (null != mListener) {
-                                    mListener.onStoreReady(mCredentials.userId);
+                                    if (!succeed && mIsNewStorage) {
+                                        Log.e(LOG_TAG, "The store is corrupted.");
+                                        mListener.onStoreCorrupted(mCredentials.userId);
+                                    } else {
+                                        Log.e(LOG_TAG, "The store is opened.");
+                                        mListener.onStoreReady(mCredentials.userId);
+                                    }
                                 }
                             }
                         });
@@ -1056,6 +1067,10 @@ public class MXFileStore extends MXMemoryStore {
     private void loadMetaData() {
         long start = System.currentTimeMillis();
 
+        // init members
+        mEventStreamToken = null;
+        mMetadata = null;
+
         try {
             File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
@@ -1064,7 +1079,6 @@ public class MXFileStore extends MXMemoryStore {
                 ObjectInputStream out = new ObjectInputStream(fis);
 
                 mMetadata = (MXFileStoreMetaData)out.readObject();
-                out.close();
 
                 // extract the latest event stream token
                 mEventStreamToken = mMetadata.mEventStreamToken;
@@ -1073,6 +1087,7 @@ public class MXFileStore extends MXMemoryStore {
         } catch (Exception e) {
             Log.e(LOG_TAG, "loadMetaData failed : " + e.getMessage());
             mMetadata = null;
+            mEventStreamToken = null;
         }
 
         Log.d(LOG_TAG, "loadMetaData : " + (System.currentTimeMillis() - start) + " ms");
