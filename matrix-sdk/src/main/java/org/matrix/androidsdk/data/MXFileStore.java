@@ -314,7 +314,7 @@ public class MXFileStore extends MXMemoryStore {
                                 mIsOpening = false;
 
                                 if (null != mListener) {
-                                    if (!succeed && mIsNewStorage) {
+                                    if (!succeed && !mIsNewStorage) {
                                         Log.e(LOG_TAG, "The store is corrupted.");
                                         mListener.onStoreCorrupted(mCredentials.userId);
                                     } else {
