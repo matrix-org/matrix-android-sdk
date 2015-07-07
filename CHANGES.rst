@@ -1,3 +1,15 @@
+
+Changes in Matrix Android SDK in 0.4.3 (2015-07-07)
+===================================================
+
+Improvements:
+ * Display the members presence in the chat activity.
+
+
+Bug fixes:
+ * The 0.4.2 update used to display an empty history.
+
+
 Changes in Matrix Android SDK in 0.4.2 (2015-07-06)
 ===================================================
 
