@@ -122,22 +122,29 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void addListener(IMXEventListener listener) {
-        // avoid adding twice
-        if (mEventListeners.indexOf(listener) == -1) {
-            mEventListeners.add(listener);
+        synchronized (this) {
+            // avoid adding twice
+            if (mEventListeners.indexOf(listener) == -1) {
+                mEventListeners.add(listener);
+            }
         }
+
         if (mInitialSyncComplete) {
             listener.onInitialSyncComplete();
         }
     }
 
     public void removeListener(IMXEventListener listener) {
-        mEventListeners.remove(listener);
+        synchronized (this) {
+            mEventListeners.remove(listener);
+        }
     }
 
     public void clear() {
-        // remove any listener
-        mEventListeners.clear();
+        synchronized (this) {
+            // remove any listener
+            mEventListeners.clear();
+        }
 
         // clear the store
         mStore.close();
@@ -462,10 +469,21 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners
+    List<IMXEventListener> getListenersSnapshot() {
+        ArrayList<IMXEventListener> eventListeners;
+
+        synchronized (this) {
+            eventListeners = new ArrayList<IMXEventListener>(mEventListeners);
+        }
+
+        return eventListeners;
+    }
 
     @Override
     public void onPresenceUpdate(Event event, User user) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onPresenceUpdate(event, user);
             } catch (Exception e) {
@@ -475,7 +493,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEvent(Event event, RoomState roomState) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onLiveEvent(event, roomState);
             } catch (Exception e) {
@@ -485,7 +505,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed() {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onLiveEventsChunkProcessed();
             } catch (Exception e) {
@@ -495,7 +517,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBackEvent(Event event, RoomState roomState) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onBackEvent(event, roomState);
             } catch (Exception e) {
@@ -505,7 +529,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onBingEvent(event, roomState, bingRule);
             } catch (Exception e) {
@@ -515,7 +541,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onDeleteEvent(Event event) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onDeleteEvent(event);
             } catch (Exception e) {
@@ -525,7 +553,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onResentEvent(Event event) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onResentEvent(event);
             } catch (Exception e) {
@@ -534,8 +564,10 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-         public void onResendingEvent(Event event) {
-        for (IMXEventListener listener : mEventListeners) {
+    public void onResendingEvent(Event event) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onResendingEvent(event);
             } catch (Exception e) {
@@ -545,7 +577,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBingRulesUpdate() {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onBingRulesUpdate();
             } catch (Exception e) {
@@ -555,9 +589,11 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onInitialSyncComplete() {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
         mInitialSyncComplete = true;
 
-        for (IMXEventListener listener : mEventListeners) {
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onInitialSyncComplete();
             } catch (Exception e) {
@@ -567,7 +603,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onPresencesSyncComplete() {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onPresencesSyncComplete();
             } catch (Exception e) {
@@ -576,7 +614,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onRoomInitialSyncComplete(String roomId) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomInitialSyncComplete(roomId);
             } catch (Exception e) {
@@ -585,7 +625,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onRoomInternalUpdate(String roomId) {
-        for (IMXEventListener listener : mEventListeners) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomInternalUpdate(roomId);
             } catch (Exception e) {
