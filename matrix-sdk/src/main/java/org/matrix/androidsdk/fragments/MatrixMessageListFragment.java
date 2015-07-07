@@ -40,6 +40,8 @@ import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
@@ -49,6 +51,7 @@ import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -100,6 +103,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsInitialSyncing = true;
     private boolean mIsCatchingUp = false;
 
+    private Handler uiThreadHandler;
+
     private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
 
     public MXMediasCache getMXMediasCache() {
@@ -120,6 +125,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return mSession;
     }
 
+    private IMXEventListener mEventsListenener = new MXEventListener() {
+        @Override
+        public void onPresenceUpdate(Event event, final User user) {
+            // Someone's presence has changed, reprocess the whole list
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.onUserPresenceUpdate(user.userId);
+                }
+            });
+        }
+
+        /**
+         * User presences was synchronized..
+         */
+        @Override
+        public void onPresencesSyncComplete() {
+            mAdapter.notifyDataSetChanged();
+        }
+    };
+
     public MessagesAdapter createMessagesAdapter() {
         return null;
     }
@@ -135,6 +161,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        uiThreadHandler = new Handler();
         setRetainInstance(true);
     }
 
@@ -235,10 +262,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
         }
     }
+    @Override
+    public void onPause() {
+        super.onPause();
+        mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+
+    }
 
     @Override
     public void onResume() {
         super.onResume();
+        mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventsListenener);
+
         mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {

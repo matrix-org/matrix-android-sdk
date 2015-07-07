@@ -18,10 +18,13 @@ package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -43,10 +46,13 @@ import com.google.gson.JsonNull;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
+import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -54,6 +60,7 @@ import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
@@ -64,6 +71,7 @@ import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -110,6 +118,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // avoid searching bingrule at each refresh
     private HashMap<String, Integer> mTextColorByEventId = new HashMap<String, Integer>();
 
+    private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
+
     private int mOddColourResId;
     private int mEvenColourResId;
 
@@ -143,6 +153,45 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public int highlightMessageColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
+    }
+
+    protected User getUser(String userId) {
+        if (mUserByUserId.containsKey(userId)) {
+            return mUserByUserId.get(userId);
+        }
+
+        IMXStore store = mSession.getDataHandler().getStore();
+        User user = store.getUser(userId);
+
+        if (null != user) {
+            mUserByUserId.put(userId, user);
+        }
+
+        return user;
+    }
+
+    public abstract int presenceOfflineColor();
+    public abstract int presenceOnlineColor();
+    public abstract int presenceUnavailableColor();
+
+    private void updatePresenceRing(ImageView presenceView, String userId) {
+        String presence = null;
+
+        User user = getUser(userId);
+
+        if (null != user) {
+            presence = user.presence;
+        }
+
+        if (User.PRESENCE_ONLINE.equals(presence)) {
+            presenceView.setColorFilter(presenceOnlineColor());
+        } else if (User.PRESENCE_UNAVAILABLE.equals(presence)) {
+            presenceView.setColorFilter(presenceUnavailableColor());
+        } else if (User.PRESENCE_OFFLINE.equals(presence)) {
+            presenceView.setColorFilter(presenceOfflineColor());
+        } else {
+            presenceView.setColorFilter(android.R.color.transparent);
+        }
     }
 
     public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
@@ -492,6 +541,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
 
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
+
+            ImageView presenceView = (ImageView) avatarLayoutView.findViewById(R.id.imageView_presenceRing);
+            presenceView.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
+
+            final String userId = msg.userId;
+            updatePresenceRing(presenceView, userId);
 
             if (isMergedView) {
                 avatarLayoutView.setVisibility(View.GONE);
@@ -1146,5 +1201,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mTextColorByEventId = new HashMap<String, Integer>();
         }
         this.notifyDataSetChanged();
+    }
+
+    /**
+     * Warn the adapter that an user presence has been updated.
+     * @param userId the user userId.
+     */
+    public void onUserPresenceUpdate(String userId) {
+        // check if the user has been displayed in the room history
+        if ((null != userId) && mUserByUserId.containsKey(userId)) {
+            this.notifyDataSetChanged();
+        }
     }
 }

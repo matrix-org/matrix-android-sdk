@@ -17,6 +17,12 @@
         android:src="@drawable/avatar_mask"/>
 
     <ImageView
+        android:id="@+id/imageView_presenceRing"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/presence_ring"/>
+
+    <ImageView
         android:layout_width="@dimen/chat_avatar_keyboard_size"
         android:layout_height="@dimen/chat_avatar_keyboard_size"
         android:visibility="gone"
