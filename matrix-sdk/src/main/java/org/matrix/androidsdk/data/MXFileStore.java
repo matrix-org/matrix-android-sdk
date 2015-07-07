@@ -259,20 +259,38 @@ public class MXFileStore extends MXMemoryStore {
 
                                 succeed &= loadRoomsMessages();
 
+                                if (!succeed) {
+                                    Log.e(LOG_TAG, "loadRoomsMessages fails");
+                                } else {
+                                    Log.e(LOG_TAG, "loadRoomsMessages succeeds");
+                                }
+
                                 if (succeed) {
                                     succeed &= loadRoomsState();
+
+                                    if (!succeed) {
+                                        Log.e(LOG_TAG, "loadRoomsState fails");
+                                    } else {
+                                        Log.e(LOG_TAG, "loadRoomsState succeeds");
+                                    }
                                 }
 
                                 if (succeed) {
                                     succeed &= loadSummaries();
-                                }
 
-                                mIsReady = true;
-                                mIsOpening = false;
+                                    if (!succeed) {
+                                        Log.e(LOG_TAG, "loadSummaries fails");
+                                    } else {
+                                        Log.e(LOG_TAG, "loadSummaries succeeds");
+                                    }
+                                }
 
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
+
+                                    Log.e(LOG_TAG, "Fail to open the store in background");
+
                                     deleteAllData(true);
 
                                     mRoomsToCommitForMessages = new ArrayList<String>();
@@ -289,6 +307,11 @@ public class MXFileStore extends MXMemoryStore {
 
                                     mEventStreamToken = null;
                                 }
+
+                                synchronized (this) {
+                                    mIsReady = true;
+                                }
+                                mIsOpening = false;
 
                                 if (null != mListener) {
                                     if (!succeed && mIsNewStorage) {
@@ -373,7 +396,9 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public boolean isReady() {
-        return mIsReady;
+        synchronized (this) {
+            return mIsReady;
+        }
     }
 
     /**
