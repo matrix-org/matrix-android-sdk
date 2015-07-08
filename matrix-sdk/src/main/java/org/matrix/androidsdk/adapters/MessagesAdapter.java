@@ -418,6 +418,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     }
 
+    /**
+     * Define the action to perform when the user performs a long tap on an avatar
+     * @param roomId the room ID
+     * @param userId the user ID
+     * @return true if the long clik event is managed
+     */
+    public Boolean onAvatarLongClick(String roomId, String userId) {
+        return false;
+    }
+
+    /**
+     * Define the action to perform when the user taps on the message sender
+     * @param userId
+     * @param displayName
+     */
+    public void onSenderNameClick(String userId, String displayName) {
+    }
+
     // return true if convertView is merged with previous View
     private boolean manageSubView(int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
@@ -481,6 +499,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textView.setVisibility(View.VISIBLE);
                 textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
             }
+
+            final String fSenderId = msg.userId;
+            final String fDisplayName = textView.getText().toString();
+
+            textView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onSenderNameClick(fSenderId, fDisplayName);
+                }
+            });
         }
 
         TextView tsTextView;
@@ -531,6 +559,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 final String roomId = roomState.roomId;
 
                 avatarLeftView.setClickable(true);
+
+                avatarLeftView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return onAvatarLongClick(roomId, userId);
+                    }
+                });
 
                 // click on the avatar opens the details page
                 avatarLeftView.setOnClickListener(new View.OnClickListener() {
