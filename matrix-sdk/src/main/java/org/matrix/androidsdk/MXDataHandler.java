@@ -63,6 +63,8 @@ public class MXDataHandler implements IMXEventListener {
     private BingRulesManager mBingRulesManager;
     private ContentManager mContentManager;
 
+    private Boolean mIsActive = true;
+
     /**
      * Default constructor.
      * @param store the data storage implementation.
@@ -72,19 +74,36 @@ public class MXDataHandler implements IMXEventListener {
         mCredentials = credentials;
     }
 
+    private void checkIfActive() {
+        synchronized (this) {
+            if (!mIsActive) {
+                throw new AssertionError("Should not used a MXDataHandler");
+            }
+        }
+    }
+
+    private Boolean isActive() {
+        synchronized (this) {
+            return mIsActive;
+        }
+    }
+
     /**
      * @return true if the initial sync is completed.
      */
     public boolean isInitialSyncComplete() {
+        checkIfActive();
         return mInitialSyncComplete;
     }
 
     public void setDataRetriever(DataRetriever dataRetriever) {
+        checkIfActive();
         mDataRetriever = dataRetriever;
         mDataRetriever.setStore(mStore);
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
+        checkIfActive();
         mBingRulesManager = bingRulesManager;
         mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
             @Override
@@ -95,10 +114,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void setContentManager(ContentManager contentManager) {
+        checkIfActive();
         mContentManager = contentManager;
     }
 
     public BingRuleSet pushRules() {
+        checkIfActive();
         if (null != mBingRulesManager) {
             return mBingRulesManager.pushRules();
         }
@@ -107,6 +128,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void refreshPushRules() {
+        checkIfActive();
         if (null != mBingRulesManager) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
@@ -118,10 +140,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public BingRulesManager getBingRulesManager() {
+        checkIfActive();
         return mBingRulesManager;
     }
 
     public void addListener(IMXEventListener listener) {
+        checkIfActive();
         synchronized (this) {
             // avoid adding twice
             if (mEventListeners.indexOf(listener) == -1) {
@@ -135,6 +159,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void removeListener(IMXEventListener listener) {
+        checkIfActive();
         synchronized (this) {
             mEventListeners.remove(listener);
         }
@@ -142,6 +167,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void clear() {
         synchronized (this) {
+            mIsActive = false;
             // remove any listener
             mEventListeners.clear();
         }
@@ -156,6 +182,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param room the associated room
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
+        checkIfActive();
+
         // Handle state events
         if (roomResponse.state != null) {
             room.processLiveState(roomResponse.state);
@@ -196,6 +224,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomResponse the room response object
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse) {
+        checkIfActive();
         if (roomResponse.roomId != null) {
             Room room = getRoom(roomResponse.roomId);
             handleInitialRoomResponse(roomResponse, room);
@@ -206,6 +235,8 @@ public class MXDataHandler implements IMXEventListener {
      * Update the missing data fields loaded from a permanent storage.
      */
     public void checkPermanentStorageData() {
+        checkIfActive();
+
         if (mStore.isPermanent()) {
             // When the data are extracted from a persistent storage,
             // some fields are not retrieved :
@@ -231,10 +262,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public String getUserId() {
+        checkIfActive();
         return mCredentials.userId;
     }
 
     private void handleInitialSyncInvite(String roomId, String inviterUserId) {
+        checkIfActive();
+
         Room room = getRoom(roomId);
 
         // add yourself
@@ -266,6 +300,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public IMXStore getStore() {
+        checkIfActive();
+
         return mStore;
     }
 
@@ -274,6 +310,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param events the live events
      */
     public void handleLiveEvents(List<Event> events) {
+        checkIfActive();
+
         for (Event event : events) {
             handleLiveEvent(event);
         }
@@ -288,6 +326,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
+        checkIfActive();
+
         for (RoomMember member : members) {
             if (userID.equals(member.getUserId())) {
                 return member;
@@ -302,6 +342,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomState the current roomState
      */
     private void onSelfJoinEvent(final Event event, final RoomState roomState) {
+        checkIfActive();
+
         RoomMember member = JsonUtils.toRoomMember(event.content);
 
         // join event ?
@@ -337,6 +379,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event the live event
      */
     private void handleLiveEvent(Event event) {
+        checkIfActive();
+
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = JsonUtils.toUser(event.content);
@@ -407,6 +451,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId) {
+        checkIfActive();
+
         Room room = mStore.getRoom(roomId);
         if (room == null) {
             room = new Room();
@@ -425,6 +471,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void storeLiveRoomEvent(Event event) {
+        checkIfActive();
+
         Room room = getRoom(event.roomId);
 
         // sanity check
@@ -448,6 +496,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
+        checkIfActive();
+
         Room room = getRoom(event.roomId);
 
         if (null != room) {
@@ -465,6 +515,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user.
      */
     public User getUser(String userId) {
+        checkIfActive();
+
         return mStore.getUser(userId);
     }
 
