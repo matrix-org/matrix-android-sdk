@@ -245,6 +245,27 @@ public class MXMediasCache {
         }
     }
 
+    public File thumbnailCacheFile(String url, int size) {
+        // sanity check
+        if (null == url) {
+            return null;
+        }
+
+        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl(url, size, size), null);
+
+        try {
+            File file = new File(getThumbnailsFolderFile(), filename);
+
+            if (file.exists()) {
+                return file;
+            }
+
+        } catch (Exception e) {
+        }
+
+        return null;
+    }
+
     /**
      * Return the cache file name for a media
      *
