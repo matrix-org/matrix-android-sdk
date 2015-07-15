@@ -49,6 +49,7 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsCatchingUp = false;
     private boolean mKilling = false;
+    private boolean mIsGettingPresences = false;
     private int mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
@@ -176,7 +177,6 @@ public class EventsThread extends Thread {
         }
 
         mPaused = false;
-        Boolean removePresenceEvents = false;
 
         // a start token is provided ?
         if (null != mCurrentToken) {
@@ -184,25 +184,39 @@ public class EventsThread extends Thread {
             mInitialSyncDone = true;
 
             mListener.onInitialSyncComplete(null);
-            removePresenceEvents = true;
+            synchronized (mApiClient) {
+                mIsGettingPresences = true;
+            }
 
             // get the members presence
             mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     mListener.onMembersPresencesSyncComplete(initialSync.presence);
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
             }, 0);
         }
@@ -304,7 +318,13 @@ public class EventsThread extends Thread {
 
                         // remove presence events because they will be retrieved by a global request
                         // same behaviours for the typing events
-                        if (removePresenceEvents) {
+                        Boolean isGettingsPresence;
+
+                        synchronized (mApiClient) {
+                            isGettingsPresence = mIsGettingPresences;
+                        }
+
+                        if (isGettingsPresence) {
                             ArrayList<Event> events = new ArrayList<Event>();
 
                             for(Event event : eventsResponse.chunk) {
@@ -314,7 +334,6 @@ public class EventsThread extends Thread {
                             }
 
                             eventsResponse.chunk = events;
-                            removePresenceEvents = false;
                         }
 
                         // the catchup request is done once.
