@@ -600,7 +600,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void saveRoomsMessages() {
         // some updated rooms ?
-        if  (mRoomsToCommitForMessages.size() > 0) {
+        if  ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
             mRoomsToCommitForMessages = new ArrayList<String>();
@@ -840,8 +840,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the room state files.
      */
     private void saveRoomStates() {
-        if (mRoomsToCommitForStates.size() > 0) {
-
+        if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
             mRoomsToCommitForStates = new ArrayList<String>();
@@ -981,7 +980,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the pending summaries.
      */
     private void saveSummaries() {
-        if (mRoomsToCommitForSummaries.size() > 0) {
+        if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
             mRoomsToCommitForSummaries = new ArrayList<String>();
@@ -1122,7 +1121,7 @@ public class MXFileStore extends MXMemoryStore {
      * flush the metadata info from the file system.
      */
     private void saveMetaData() {
-        if (mMetaDataHasChanged) {
+        if ((mMetaDataHasChanged) && (null != mFileStoreHandler)) {
             mMetaDataHasChanged = false;
 
             final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();
