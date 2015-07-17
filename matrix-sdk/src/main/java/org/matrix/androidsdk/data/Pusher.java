@@ -27,4 +27,5 @@ public class Pusher {
     public String deviceDisplayName;
     public String lang;
     public Map<String, String> data;
+    public Boolean append;
 }
