@@ -15,9 +15,14 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.text.TextUtils;
+import android.util.EventLog;
+
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.util.regex.Pattern;
 
@@ -32,21 +37,11 @@ public class ContainsDisplayNameCondition extends Condition {
     public boolean isSatisfied(Event event, String myDisplayName) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Message msg = JsonUtils.toMessage(event.content);
-            if (msg.body != null) {
-                return caseInsensitiveFind(myDisplayName, msg.body);
+
+            if (null != msg) {
+                return EventUtils.caseInsensitiveFind(myDisplayName, msg.body);
             }
         }
         return false;
-    }
-
-    /**
-     * Returns whether a string contains an occurrence of another, as a standalone word, regardless of case.
-     * @param subString the string to search for
-     * @param longString the string to search in
-     * @return whether a match was found
-     */
-    private boolean caseInsensitiveFind(String subString, String longString) {
-        Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
-        return pattern.matcher(longString).find();
     }
 }

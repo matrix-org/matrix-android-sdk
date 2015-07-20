@@ -50,9 +50,6 @@ import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
-import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -71,7 +68,6 @@ import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -686,7 +682,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (null != msg.eventId) {
                 synchronized (this) {
                     if (!mTextColorByEventId.containsKey(msg.eventId)) {
-                        textColor = (EventUtils.shouldHighlight(mSession, msg) ? highlightColor : normalColor);
+                        String sBody = body.toString();
+                        String displayName = mSession.getMyUser().displayname;
+                        String userID =  mSession.getMyUser().userId;
+
+                        if (EventUtils.caseInsensitiveFind(displayName, sBody) || EventUtils.caseInsensitiveFind(userID, sBody)) {
+                            textColor = highlightColor;
+                        } else {
+                            textColor = normalColor;
+                        }
+
                         mTextColorByEventId.put(msg.eventId, textColor);
                     } else {
                         textColor = mTextColorByEventId.get(msg.eventId);

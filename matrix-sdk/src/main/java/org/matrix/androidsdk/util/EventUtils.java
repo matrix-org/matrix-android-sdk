@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.util;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -82,5 +83,21 @@ public class EventUtils {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Returns whether a string contains an occurrence of another, as a standalone word, regardless of case.
+     * @param subString the string to search for
+     * @param longString the string to search in
+     * @return whether a match was found
+     */
+    public static boolean caseInsensitiveFind(String subString, String longString) {
+        // add sanity checks
+        if (TextUtils.isEmpty(subString) || TextUtils.isEmpty(longString)) {
+            return false;
+        }
+
+        Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
+        return pattern.matcher(longString).find();
     }
 }
