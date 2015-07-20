@@ -385,6 +385,7 @@ public class MXDataHandler implements IMXEventListener {
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = JsonUtils.toUser(event.content);
             User user = mStore.getUser(userPresence.userId);
+
             if (user == null) {
                 user = userPresence;
                 user.lastActiveReceived();
@@ -396,6 +397,13 @@ public class MXDataHandler implements IMXEventListener {
                 user.lastActiveAgo = userPresence.lastActiveAgo;
                 user.lastActiveReceived();
             }
+
+            // check if the current user has been updated
+            if (mCredentials.userId.equals(user.userId)) {
+                mStore.setAvatarURL(user.avatarUrl);
+                mStore.setDisplayName(user.displayname);
+            }
+
             this.onPresenceUpdate(event, user);
         }
         // Room event

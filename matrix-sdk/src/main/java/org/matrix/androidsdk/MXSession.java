@@ -18,6 +18,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.data.DataRetriever;
@@ -309,12 +310,11 @@ public class MXSession {
     public MyUser getMyUser() {
         checkIfActive();
 
+        IMXStore store = mDataHandler.getStore();
+
         // MyUser is initialized as late as possible to have a better chance at having the info in storage,
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
-
-            IMXStore store = mDataHandler.getStore();
-
             mMyUser = new MyUser(store.getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
@@ -333,6 +333,16 @@ public class MXSession {
 
             // Handle the case where the user is null by loading the user information from the server
             mMyUser.userId = mCredentials.userId;
+        } else {
+            // assume the profile is not yet initialized
+            if ((null == store.displayName()) && (null != mMyUser.displayname)) {
+                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setDisplayName(mMyUser.displayname);
+                store.commit();
+            } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
+                mMyUser.displayname = store.displayName();
+                mMyUser.avatarUrl = store.avatarURL();
+            }
         }
         return mMyUser;
     }
