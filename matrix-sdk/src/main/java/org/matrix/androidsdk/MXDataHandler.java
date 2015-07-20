@@ -337,11 +337,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Perform an initial room sync (get the metadata + get the first bunch of messages)
-     * @param event the member event
-     * @param roomState the current roomState
+     * Check if the room should be joined
+     * @param event
+     * @param roomState
+     * @return true of the room should be self joined.
      */
-    private void onSelfJoinEvent(final Event event, final RoomState roomState) {
+    private Boolean shouldSelfJoin(final Event event, final RoomState roomState) {
         checkIfActive();
 
         RoomMember member = JsonUtils.toRoomMember(event.content);
@@ -351,27 +352,35 @@ public class MXDataHandler implements IMXEventListener {
             Collection<RoomMember> members = roomState.getMembers();
             RoomMember myMember = getMember(members, mCredentials.userId);
 
-            // either the user is not in the member list (join a public room for example)
-            // or the member is invited
-            if ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership)) {
-                // inviterUserId is only used when the user is invited to the room found during the initial sync
-                RoomSummary roomSummary = getStore().getSummary(event.roomId);
-                roomSummary.setInviterUserId(null);
+            return ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership));
+        }
 
-                final Room room = getStore().getRoom(event.roomId);
-                room.initialSync(new SimpleApiCallback<Void>() {
+        return false;
+    }
+
+    /**
+     * Perform an initial room sync (get the metadata + get the first bunch of messages)
+     * @param roomId the roomid of the room to join.
+     */
+    private void selfJoin(final String roomId) {
+        checkIfActive();
+
+        // inviterUserId is only used when the user is invited to the room found during the initial sync
+        RoomSummary roomSummary = getStore().getSummary(roomId);
+        roomSummary.setInviterUserId(null);
+
+        final Room room = getStore().getRoom(roomId);
+        room.initialSync(new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                room.requestHistory(new SimpleApiCallback<Integer>() {
                     @Override
-                    public void onSuccess(Void info) {
-                        room.requestHistory(new SimpleApiCallback<Integer>() {
-                            @Override
-                            public void onSuccess(Integer info) {
-                                onRoomInitialSyncComplete(event.roomId);
-                            }
-                        });
+                    public void onSuccess(Integer info) {
+                        onRoomInitialSyncComplete(roomId);
                     }
                 });
             }
-        }
+        });
     }
 
     /**
@@ -410,6 +419,15 @@ public class MXDataHandler implements IMXEventListener {
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
 
+            String selfJoinRoomId = null;
+
+            // check if the room has been joined
+            // the initial sync + the first requestHistory call is done here
+            // instead of being done in the application
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
+                selfJoinRoomId = event.roomId;
+            }
+
             if (event.stateKey != null) {
                 // check if the event has been processed
                 if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
@@ -431,14 +449,11 @@ public class MXDataHandler implements IMXEventListener {
             storeLiveRoomEvent(event);
             onLiveEvent(event, liveStateCopy);
 
-            BingRule bingRule;
-
-            // check if the room has been joined
-            // the initial sync + the first requestHistory call is done here
-            // instead of being done in the application
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId)) {
-                onSelfJoinEvent(event, liveStateCopy);
+            if (null != selfJoinRoomId) {
+                selfJoin(selfJoinRoomId);
             }
+
+            BingRule bingRule;
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
