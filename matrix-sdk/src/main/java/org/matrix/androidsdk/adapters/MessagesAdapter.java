@@ -87,18 +87,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // displayname changes, avatar url changes), and emotes!
     private static final int NUM_ROW_TYPES = 5;
 
-    private static final int ROW_TYPE_TEXT = 0;
-    private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_NOTICE = 2;
-    private static final int ROW_TYPE_EMOTE = 3;
-    private static final int ROW_TYPE_FILE = 4;
+    protected static final int ROW_TYPE_TEXT = 0;
+    protected static final int ROW_TYPE_IMAGE = 1;
+    protected static final int ROW_TYPE_NOTICE = 2;
+    protected static final int ROW_TYPE_EMOTE = 3;
+    protected static final int ROW_TYPE_FILE = 4;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
     public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
     public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
-    private ArrayList<String>mTypingUsers = new ArrayList<String>();
+    protected ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     protected Context mContext;
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
@@ -119,10 +119,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mOddColourResId;
     private int mEvenColourResId;
 
-    private int normalColor;
-    private int notSentColor;
-    private int sendingColor;
-    private int highlightColor;
+    protected int normalColor;
+    protected int notSentColor;
+    protected int sendingColor;
+    protected int highlightColor;
 
     private int mMaxImageWidth;
     private int mMaxImageHeight;
@@ -170,7 +170,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public abstract int presenceOnlineColor();
     public abstract int presenceUnavailableColor();
 
-    private void updatePresenceRing(ImageView presenceView, String userId) {
+    protected void updatePresenceRing(ImageView presenceView, String userId) {
         String presence = null;
 
         User user = getUser(userId);
@@ -401,7 +401,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
-    private String getUserDisplayName(String userId, RoomState roomState) {
+    protected String getUserDisplayName(String userId, RoomState roomState) {
         return roomState.getMemberName(userId);
     }
 
@@ -433,7 +433,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     // return true if convertView is merged with previous View
-    private boolean manageSubView(int position, View convertView, View subView, int msgType) {
+    protected boolean manageSubView(int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
@@ -972,7 +972,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-    private void loadAvatar(ImageView avatarView, String url) {
+    protected void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
         mMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
