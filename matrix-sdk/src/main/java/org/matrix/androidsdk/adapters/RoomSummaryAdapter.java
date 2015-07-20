@@ -64,8 +64,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private  boolean mDisplayAllGroups = true;
 
-    private ArrayList<ArrayList<RoomSummary>> mFilteredRecentsSummariesList;
-    private ArrayList<ArrayList<PublicRoom>> mFilteredPublicRoomsList;
+    private ArrayList<ArrayList<RoomSummary>> mFilteredRecentsSummariesList = null;
+    private ArrayList<ArrayList<PublicRoom>> mFilteredPublicRoomsList = null;
 
     private String mSearchedPattern = "";
 
@@ -542,39 +542,70 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
         } else {
             int index = groupPosition - mPublicsGroupStartIndex;
-            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.get(index) : mPublicRoomsLists.get(index);
-            PublicRoom publicRoom = publicRoomsList.get(childPosition);
+            List<PublicRoom> publicRoomsList = null;
 
-            String matrixId = null;
-
-            if ((mRecentsSummariesList.size() > 0) && (mRecentsSummariesList.get(0).size() > 0)) {
-                matrixId = mRecentsSummariesList.get(0).get(0).getMatrixId();
+            if (mSearchedPattern.length() > 0) {
+                // add sanity checks
+                // GA issue : could crash while rotating the screen
+                if ((null != mFilteredPublicRoomsList) && (index < mFilteredPublicRoomsList.size())) {
+                    publicRoomsList = mFilteredPublicRoomsList.get(index);
+                }
+            } else {
+                // add sanity checks
+                // GA issue : could crash while rotating the screen
+                if ((null != mPublicRoomsLists) && (index < mPublicRoomsLists.size())) {
+                    publicRoomsList = mPublicRoomsLists.get(index);
+                }
             }
 
-            String displayName = publicRoom.getDisplayName(matrixId);
+            // sanity checks failed.
+            if (null == publicRoomsList) {
+                TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
+                textView.setTypeface(null, Typeface.BOLD);
+                textView.setText("");
 
-            TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
-            textView.setTypeface(null, Typeface.BOLD);
-            textView.setText(displayName);
+                textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
+                textView.setText("");
 
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
-            textView.setText(publicRoom.topic);
+                textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
+                textView.setVisibility(View.VISIBLE);
+                textView.setText("");
 
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.VISIBLE);
-
-            if (publicRoom.numJoinedMembers > 1) {
-                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.users));
-            } else {
-                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
-            }
-
-            String alias = publicRoom.getFirstAlias();
-
-            if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
-                convertView.setBackgroundColor(mPublicHighlightColor);
-            } else {
                 convertView.setBackgroundColor(0);
+            } else {
+                PublicRoom publicRoom = publicRoomsList.get(childPosition);
+
+                String matrixId = null;
+
+                if ((mRecentsSummariesList.size() > 0) && (mRecentsSummariesList.get(0).size() > 0)) {
+                    matrixId = mRecentsSummariesList.get(0).get(0).getMatrixId();
+                }
+
+                String displayName = publicRoom.getDisplayName(matrixId);
+
+                TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
+                textView.setTypeface(null, Typeface.BOLD);
+                textView.setText(displayName);
+
+                textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
+                textView.setText(publicRoom.topic);
+
+                textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
+                textView.setVisibility(View.VISIBLE);
+
+                if (publicRoom.numJoinedMembers > 1) {
+                    textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.users));
+                } else {
+                    textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
+                }
+
+                String alias = publicRoom.getFirstAlias();
+
+                if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
+                    convertView.setBackgroundColor(mPublicHighlightColor);
+                } else {
+                    convertView.setBackgroundColor(0);
+                }
             }
         }
 
