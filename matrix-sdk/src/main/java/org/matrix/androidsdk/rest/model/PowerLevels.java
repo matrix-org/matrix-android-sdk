@@ -25,10 +25,10 @@ public class PowerLevels implements java.io.Serializable {
     public int redact;
 
     public int eventsDefault;
-    public Map<String, Integer> events;
+    public Map<String, Integer> events = new HashMap<String, Integer>();
 
     public int usersDefault;
-    public Map<String, Integer> users;
+    public Map<String, Integer> users = new HashMap<String, Integer>();
 
     public int stateDefault;
 
