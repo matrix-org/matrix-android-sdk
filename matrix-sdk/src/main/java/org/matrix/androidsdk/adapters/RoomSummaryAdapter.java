@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -55,6 +56,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mHighlightColor;
     private int mPublicHighlightColor;
 
+    private int mUnreadTextColor;
+    private int mHighlightTextColor;
+    private int mDefaultTextColor;
+    private int mSectionTitleColor;
+
     private ArrayList<ArrayList<RoomSummary>> mRecentsSummariesList;
 
     protected List<List<PublicRoom>> mPublicRoomsLists = null;
@@ -82,6 +88,22 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public abstract Room roomFromRoomSummary(RoomSummary roomSummary);
     public abstract String memberDisplayName(String matrixId, String userId);
 
+    protected int getUnreadMessageTextColor() {
+        return Color.BLACK;
+    }
+
+    protected int getHighlightMessageTextColor() {
+        return Color.BLACK;
+    }
+
+    protected int getDefaultTextColor() {
+        return Color.BLACK;
+    }
+
+    protected int getSectionTitleColor() {
+        return Color.BLACK;
+    }
+
     /**
      * Construct an adapter which will display a list of rooms.
      * @param context Activity context
@@ -106,6 +128,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mUnreadColor = getUnreadMessageBackgroundColor();
         mHighlightColor = getHighlightMessageBackgroundColor();
         mPublicHighlightColor = getPublicHighlightMessageBackgroundColor();
+
+        mUnreadTextColor = getUnreadMessageTextColor();
+        mHighlightTextColor = getHighlightMessageTextColor();
+        mDefaultTextColor = getDefaultTextColor();
+        mSectionTitleColor = getSectionTitleColor();
     }
 
     /**
@@ -456,6 +483,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         deleteProgress.setVisibility(View.GONE);
         convertView.setAlpha(1.0f);
 
+        int textColor = mDefaultTextColor;
+
         if (isRecentsGroupIndex(groupPosition)) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
@@ -464,6 +493,17 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             CharSequence message = summary.getRoomTopic();
             String timestamp = null;
+
+            // background color
+            if (summary.isHighlighted()) {
+                convertView.setBackgroundColor(mHighlightColor);
+                textColor = mHighlightTextColor;
+            } else if ((unreadCount == null) || (unreadCount == 0)) {
+                convertView.setBackgroundColor(0);
+            } else {
+                convertView.setBackgroundColor(mUnreadColor);
+                textColor = mUnreadTextColor;
+            }
 
             TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
 
@@ -484,6 +524,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             } else {
                 textView.setTypeface(null, Typeface.NORMAL);
             }
+
+            textView.setTextColor(textColor);
 
             // display the unread messages count
             String roomNameMessage = ((latestRoomState != null) && !summary.isInvited()) ? latestRoomState.getDisplayName(summary.getMatrixId()) : summary.getRoomName();
@@ -521,18 +563,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
             textView.setText(message);
+            textView.setTextColor(textColor);
             textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
             textView.setVisibility(View.VISIBLE);
             textView.setText(timestamp);
-
-            // background color
-            if (summary.isHighlighted()) {
-                convertView.setBackgroundColor(mHighlightColor);
-            } else if ((unreadCount == null) || (unreadCount == 0)) {
-                convertView.setBackgroundColor(0);
-            } else {
-                convertView.setBackgroundColor(mUnreadColor);
-            }
+            textView.setTextColor(textColor);
 
             Room room = roomFromRoomSummary(summary);
 
@@ -562,12 +597,15 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             if (null == publicRoomsList) {
                 TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
                 textView.setTypeface(null, Typeface.BOLD);
+                textView.setTextColor(textColor);
                 textView.setText("");
 
                 textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
+                textView.setTextColor(textColor);
                 textView.setText("");
 
                 textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
+                textView.setTextColor(textColor);
                 textView.setVisibility(View.VISIBLE);
                 textView.setText("");
 
@@ -585,13 +623,16 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
                 TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
                 textView.setTypeface(null, Typeface.BOLD);
+                textView.setTextColor(textColor);
                 textView.setText(displayName);
 
                 textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
                 textView.setText(publicRoom.topic);
+                textView.setTextColor(textColor);
 
                 textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
                 textView.setVisibility(View.VISIBLE);
+                textView.setTextColor(textColor);
 
                 if (publicRoom.numJoinedMembers > 1) {
                     textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.users));
@@ -640,6 +681,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         } else {
             heading.setText(publicRoomsTitle(groupPosition));
         }
+
+        heading.setTextColor(mSectionTitleColor);
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.heading_image);
 
