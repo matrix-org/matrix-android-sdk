@@ -3,20 +3,24 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:id="@+id/messagesAdapter_message_separator"
+    android:id="@+id/messagesAdapter_message_header"
     android:orientation="vertical">
 
-    <View
+    <TextView
+        android:id="@+id/messagesAdapter_message_header_text"
         android:layout_width="fill_parent"
-        android:layout_height="5dp" />
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text = "A message here"
+        />
 
     <View
+        android:id="@+id/messagesAdapter_message_header_separator"
         android:layout_width="fill_parent"
-        android:id="@+id/messagesAdapter_message_separator_line"
         android:background="#DDDDDD"
         android:layout_height="1dp" />
 
     <View
         android:layout_width="fill_parent"
-        android:layout_height="5dp" />
+        android:layout_height="15dp" />
 </LinearLayout>
