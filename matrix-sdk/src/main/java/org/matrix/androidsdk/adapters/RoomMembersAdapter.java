@@ -349,7 +349,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         // The power level disc
         PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.powerDisc);
-        if (mPowerLevels == null) {
+        if ((mPowerLevels == null) || (0 == maxPowerLevel)) {
             pieFractionView.setVisibility(View.GONE);
         }
         else {
