@@ -68,7 +68,8 @@ public class RoomState implements java.io.Serializable {
     }
 
     public Collection<RoomMember> getMembers() {
-        return mMembers.values();
+        // make a copy to avoid concurrency modifications
+        return new ArrayList<>(mMembers.values());
     }
 
     public void setMember(String userId, RoomMember member) {
@@ -88,7 +89,7 @@ public class RoomState implements java.io.Serializable {
     }
 
     public PowerLevels getPowerLevels() {
-        return powerLevels;
+        return powerLevels.deepCopy();
     }
 
     public void setPowerLevels(PowerLevels powerLevels) {
