@@ -702,6 +702,11 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 Room.this.mIsLeaving = false;
+
+                // delete references to the room
+                mDataHandler.getStore().deleteRoom(mRoomId);
+                mDataHandler.getStore().commit();
+
                 try {
                     callback.onSuccess(info);
                 } catch (Exception e) {
