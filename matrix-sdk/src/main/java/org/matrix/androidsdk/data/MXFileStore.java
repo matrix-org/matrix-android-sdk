@@ -447,6 +447,20 @@ public class MXFileStore extends MXMemoryStore {
         mMetaDataHasChanged = true;
     }
 
+    @Override
+    public void setDisplayName(String displayName) {
+        Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        mMetaDataHasChanged = true;
+        super.setDisplayName(displayName);
+    }
+
+    @Override
+    public void setAvatarURL(String avatarURL) {
+        Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        mMetaDataHasChanged = true;
+        super.setAvatarURL(avatarURL);
+    }
+
     /**
      * Define a MXStore listener.
      * @param listener
