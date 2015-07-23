@@ -469,15 +469,34 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Check a room exists with the dedicated roomId
+     * @param roomId the room ID
+     * @return true it exists.
+     */
+    public Boolean doesRoomExist(String roomId) {
+        return (null != roomId) && (null != mStore.getRoom(roomId));
+    }
+
+    /**
      * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
      * @param roomId the room id
      * @return the corresponding room
      */
     public Room getRoom(String roomId) {
+        return getRoom(roomId, true);
+    }
+
+    /**
+     * Get the room object for the corresponding room id.
+     * @param roomId the room id
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(String roomId, boolean create) {
         checkIfActive();
 
         Room room = mStore.getRoom(roomId);
-        if (room == null) {
+        if ((room == null) && create) {
             room = new Room();
             room.setRoomId(roomId);
             room.setDataHandler(this);
@@ -508,8 +527,27 @@ public class MXDataHandler implements IMXEventListener {
                     mStore.updateEventContent(event.roomId, event.redacts, event.content);
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                mStore.storeLiveRoomEvent(event);
-                mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
+                boolean store = true;
+
+                // thread issue
+                // if the user leaves a room,
+                // the server scho could try to delete the room file
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
+                    String membership = event.content.getAsJsonPrimitive("membership").getAsString();
+
+                    if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
+                        store = false;
+                        // check if the room still exists.
+                        if (null != this.getStore().getRoom(event.roomId)) {
+                            this.getStore().deleteRoom(event.roomId);
+                        }
+                    }
+                }
+
+                if (store) {
+                    mStore.storeLiveRoomEvent(event);
+                    mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
+                }
             }
         }
     }
