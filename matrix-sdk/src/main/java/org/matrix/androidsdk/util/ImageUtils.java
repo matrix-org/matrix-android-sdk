@@ -232,10 +232,10 @@ public class ImageUtils {
      * @param imageURL the genuine image URL.
      * @param rotationAngle angle in degrees
      * @param mediasCache the used media cache
-     * @return true if the operation succeeds
+     * @return the rotated bitmap
      */
-    public static boolean rotateImage(Context context,String imageURL , int rotationAngle, MXMediasCache mediasCache) {
-        boolean succeeds = false;
+    public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediasCache mediasCache) {
+        Bitmap rotatedBitmap = null;
 
         try
         {
@@ -270,7 +270,7 @@ public class ImageUtils {
                     mediasCache.saveBitmap(transformedBitmap, imageURL);
                 }
 
-                succeeds = true;
+                rotatedBitmap = transformedBitmap;
             }
 
         } catch (OutOfMemoryError e) {
@@ -279,7 +279,7 @@ public class ImageUtils {
             Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
         }
 
-        return succeeds;
+        return rotatedBitmap;
     }
 
     /**
@@ -288,22 +288,48 @@ public class ImageUtils {
      * @param context the application
      * @param imageURL the genuine image URL.
      * @param mediasCache the used media cache
-     * @return true if the operation succeeds
+     * @return the rotated bitmap if the operation succeeds.
      */
-    public static Boolean applyExifRotation(Context context,String imageURL , MXMediasCache mediasCache) {
-        Boolean succeeds = false;
+    public static Bitmap applyExifRotation(Context context, String imageURL, MXMediasCache mediasCache) {
+        Bitmap rotatedBitmap = null;
 
         try
         {
             Uri imageUri = Uri.parse(imageURL);
             // get the exif rotation angle
             final int rotationAngle = ImageUtils.getRotationAngleForBitmap(context, imageUri);
-            succeeds = rotateImage(context, imageURL, rotationAngle, mediasCache);
+
+            if (0 !=  rotationAngle) {
+                rotatedBitmap = rotateImage(context, imageURL, rotationAngle, mediasCache);
+            }
 
         } catch (Exception e) {
             Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
         }
 
-        return succeeds;
+        return rotatedBitmap;
+    }
+
+    /**
+     * Scale and apply exif rotation to an image defines by its stream.
+     * @param context the context.
+     * @param maxSide reduce the image to this square side.
+     * @param mediasCache the media cache.
+     * @return the media url
+     */
+    public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediasCache mediasCache) {
+        String url = null;
+
+        // sanity checks
+        if ((null != context) && (null != stream) && (null != mediasCache)) {
+            try {
+                InputStream scaledStream = ImageUtils.resizeImage(stream, maxSide, 0, 75);
+                url = mediasCache.saveMedia(scaledStream, null, mimeType);
+                rotateImage(context, url, rotationAngle, mediasCache);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "rotateAndScale " + e.getMessage());
+            }
+        }
+        return url;
     }
 }
