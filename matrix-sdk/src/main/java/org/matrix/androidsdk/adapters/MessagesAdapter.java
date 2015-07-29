@@ -360,7 +360,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 return ROW_TYPE_TEXT;
             }
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+        else if (
+                event.isCallEvent() ||
+                Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return ROW_TYPE_NOTICE;
@@ -1187,6 +1189,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            return true;
+        }
+        else if (event.isCallEvent()) {
             return true;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {

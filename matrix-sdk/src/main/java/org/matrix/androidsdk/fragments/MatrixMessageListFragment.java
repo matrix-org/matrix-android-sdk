@@ -775,7 +775,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                  Event.EVENT_TYPE_MESSAGE.equals(type)          ||
                  Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
                  Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type);
+                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
+                 (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
+                ;
     }
 
     @Override
