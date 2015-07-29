@@ -474,7 +474,12 @@ public class Room {
             };
 
         event.mSentState = Event.SentState.SENDING;
-        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, JsonUtils.toMessage(event.content), localCB);
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, JsonUtils.toMessage(event.content), localCB);
+        } else {
+            mDataRetriever.getRoomsRestClient().sendEvent(mRoomId, event.type, event.content, localCB);
+        }
     }
 
     /**
