@@ -47,6 +47,7 @@ public class EventsThread extends Thread {
 
     private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
+    private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
     private boolean mKilling = false;
     private boolean mIsGettingPresences = false;
@@ -68,8 +69,8 @@ public class EventsThread extends Thread {
             }
 
             // the thread has been suspended and there is an available network
-            if (isConnected && mPaused && !mKilling) {
-                unpause();
+            if (isConnected && !mKilling) {
+                onNetworkAvailable();
             }
         }
     };
@@ -112,6 +113,29 @@ public class EventsThread extends Thread {
         Log.i(LOG_TAG, "pause()");
         mPaused = true;
         mIsCatchingUp = false;
+    }
+
+    public void onNetworkAvailable() {
+        Log.i(LOG_TAG, "onNetWorkAvailable()");
+        if (mIsNetworkSuspended) {
+            mIsNetworkSuspended = false;
+
+            if (mPaused) {
+                Log.i(LOG_TAG, "the event thread is still suspended");
+            } else {
+                Log.i(LOG_TAG, "Resume the thread");
+                // request the latest events asap
+                mEventRequestTimeout = 0;
+                // cancel any catchup process.
+                mIsCatchingUp = false;
+
+                synchronized (this) {
+                    notify();
+                }
+            }
+        } else {
+            Log.i(LOG_TAG, "onNetWorkAvailable() : nothing to do");
+        }
     }
 
     /**
@@ -292,8 +316,13 @@ public class EventsThread extends Thread {
 
         // Then repeatedly long-poll for events
         while (!mKilling) {
-            if (mPaused) {
-                Log.d(LOG_TAG, "Event stream is paused. Waiting.");
+            if (mPaused || mIsNetworkSuspended) {
+                if (mIsNetworkSuspended) {
+                    Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
+                } else {
+                    Log.d(LOG_TAG, "Event stream is paused. Waiting.");
+                }
+
                 try {
                     synchronized (this) {
                         wait();
@@ -372,7 +401,7 @@ public class EventsThread extends Thread {
                         }
                     } else {
                         // no network -> wait that a network connection comes back.
-                        pause();
+                        mIsNetworkSuspended = true;
                     }
                 }
             }
