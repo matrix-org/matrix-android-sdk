@@ -2,17 +2,12 @@
 console.log("Loading call");
 var BASE_URL = "https://matrix.org";
 var TOKEN = "TOKEN";
-var USER_ID = "USER_ID";
 var ROOM_ID = "ROOM_ID";
 var mxCall;
 
 // debug tools
 function showToast(toast) {
      Android.showToast(toast);
-}
-
-function androidLog2(message) {
-    Android.wlog(message);
 }
 
 // initializers
@@ -25,8 +20,8 @@ function getRoomId() {
 }
 
 // call when the webview is loaded
-function onLoaded() {
-    return Android.wOnLoaded();
+function onLoaded(callId) {
+    return Android.wOnLoaded(callId);
 }
 
 // start call methods
@@ -77,5 +72,5 @@ window.onload = function() {
 	ROOM_ID = getRoomId();
 
 	mxCall = createNewMatrixCall(ROOM_ID);
-	onLoaded();
+	onLoaded(mxCall.callId);
 };

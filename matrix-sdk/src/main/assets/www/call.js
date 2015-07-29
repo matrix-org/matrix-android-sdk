@@ -25,6 +25,10 @@ function AndroidSendEvent(roomId, event, content) {
     Android.wSendEvent(roomId, event, content);
 }
 
+function AndroidOnStateUpdate(state) {
+    Android.wOnStateUpdate(state);
+}
+
 /**
  * Construct a new Matrix Call.
  * @constructor
@@ -36,8 +40,6 @@ function AndroidSendEvent(roomId, event, content) {
  * @param {MatrixClient} opts.client The Matrix Client instance to send events to.
  */
 function MatrixCall(opts) {
-        androidLog("MatrixCall(opts) 10");
-
     this.roomId = opts.roomId;
     /*this.client = opts.client;*/
     this.webRtc = opts.webRtc;
@@ -59,9 +61,8 @@ function MatrixCall(opts) {
     // possible
     this.candidateSendQueue = [];
     this.candidateSendTries = 0;
-
-        androidLog("MatrixCall(opts) 11");
 }
+
 /** The length of time a call can be ringing for. */
 MatrixCall.CALL_TIMEOUT_MS = 60000;
 /** The fallback server to use for STUN. */
@@ -79,6 +80,8 @@ MatrixCall.ERR_NO_USER_MEDIA = "no_user_media";
  */
 MatrixCall.prototype.updateState = function(state) {
     this.state = state;
+
+    AndroidOnStateUpdate(state);
 
     if (this.getRemoteVideoElement()) {
         if (this.state == 'connected') {
@@ -880,12 +883,11 @@ var forAllTracksOnStream = function(s, f) {
  */
 function createNewMatrixCall(/*client,*/ roomId) {
 
-    androidLog("createNewMatrixCall 1");
+    androidLog("createNewMatrixCall");
 
     var w = window;
     var doc = document;
     if (!w || !doc) {
-        androidLog("createNewMatrixCall 2");
         return null;
     }
     var webRtc = {};
@@ -922,8 +924,6 @@ function createNewMatrixCall(/*client,*/ roomId) {
         w.RTCIceCandidate || w.webkitRTCIceCandidate || w.mozRTCIceCandidate
     );
 
-    androidLog("createNewMatrixCall 10");
-
     webRtc.vendor = null;
     if (w.mozRTCPeerConnection) {
         webRtc.vendor = "mozilla";
@@ -944,8 +944,6 @@ function createNewMatrixCall(/*client,*/ roomId) {
         URL: w.URL,
         roomId: roomId
     };
-
-    androidLog("createNewMatrixCall 11");
 
     return new MatrixCall(opts);
 };

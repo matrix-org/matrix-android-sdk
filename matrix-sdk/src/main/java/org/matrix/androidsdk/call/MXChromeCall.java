@@ -16,12 +16,8 @@
 
 package org.matrix.androidsdk.call;
 
-
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
@@ -32,7 +28,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.google.gson.JsonArray;
@@ -47,7 +42,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 public class MXChromeCall implements IMXCall {
     private static final String LOG_TAG = "MXChromeCall";
@@ -63,6 +57,9 @@ public class MXChromeCall implements IMXCall {
 
     private Boolean mIsIncoming = false;
     private Boolean mIsIncomingPrepared = false;
+
+    // the current call id
+    private String mCallId = null;
 
     private ArrayList<JsonElement> mPendingCandidates = new ArrayList<JsonElement>();
 
@@ -174,6 +171,8 @@ public class MXChromeCall implements IMXCall {
             } else {
                 mWebView.loadUrl("javascript:placeVoiceCall()");
             }
+
+            mCallId = mCallWebAppInterface.mDefaultCallId;
         }
     }
 
@@ -182,8 +181,9 @@ public class MXChromeCall implements IMXCall {
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
      */
-    public void prepareIncomingCall(JsonObject callInviteParams, String callId) {
+    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
         mIsIncoming = true;
+        mCallId = callId;
         mWebView.loadUrl("javascript:initWithInvite('" + callId + "'," + callInviteParams.toString() + ")");
         mIsIncomingPrepared = true;
 
@@ -304,26 +304,32 @@ public class MXChromeCall implements IMXCall {
         }
     }
 
+    public void clearListeners() {
+        synchronized (LOG_TAG) {
+            mxCallListeners.clear();
+        }
+    }
+
     // getters / setters
     /**
      * @return the callId
      */
     public String callId() {
-        return null;
+        return mCallId;
     }
 
     /**
      * @return true if the call is an incoming call.
      */
     public Boolean isIncoming() {
-        return false;
+        return mIsIncoming;
     }
 
     /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
     public String callState() {
-        return null;
+        return mCallWebAppInterface.mCallState;
     }
 
     /**
@@ -334,6 +340,18 @@ public class MXChromeCall implements IMXCall {
     }
 
     // listener methods
+    private void onStateDidChange(String newState) {
+        synchronized (LOG_TAG) {
+            for (MXCallListener listener : mxCallListeners) {
+                try {
+                    listener.onStateDidChange(newState);
+                    ;
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
     // warn that the webview is loading
     private void onViewLoading() {
         synchronized (LOG_TAG) {
@@ -371,6 +389,8 @@ public class MXChromeCall implements IMXCall {
 
     // private class
     private class CallWebAppInterface {
+        public String mDefaultCallId = null;
+        public String mCallState = CALL_STATE_FLEDGLING;
 
         CallWebAppInterface()  {
         }
@@ -407,7 +427,48 @@ public class MXChromeCall implements IMXCall {
         }
 
         @JavascriptInterface
-        public void wOnLoaded() {
+        public void wOnStateUpdate(String jsstate)  {
+            String nextState = null;
+
+            if ("fledgling".equals(jsstate)) {
+                nextState = CALL_STATE_FLEDGLING;
+            } else if ("wait_local_media".equals(jsstate)) {
+                nextState = CALL_STATE_WAIT_LOCAL_MEDIA;
+            } else if ("create_offer".equals(jsstate)) {
+                nextState = CALL_STATE_WAIT_CREATE_OFFER;
+            } else if ("invite_sent".equals(jsstate)) {
+                nextState = CALL_STATE_INVITE_SENT;
+            } else if ("ringing".equals(jsstate)) {
+                nextState = CALL_STATE_RINGING;
+            } else if ("create_answer".equals(jsstate)) {
+                nextState = CALL_STATE_CREATE_ANSWER;
+            } else if ("connecting".equals(jsstate)) {
+                nextState = CALL_STATE_CONNECTING;
+            } else if ("connecting".equals(jsstate)) {
+                nextState = CALL_STATE_CONNECTING;
+            } else if ("connected".equals(jsstate)) {
+                nextState = CALL_STATE_CONNECTED;
+            } else if ("ended".equals(jsstate)) {
+                nextState = CALL_STATE_ENDED;
+            }
+
+            // is there any state update ?
+            if ((null != nextState) && !mCallState.equals(nextState)) {
+                mCallState = nextState;
+
+                // warn in the UI thread
+                mWebView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onStateDidChange(mCallState);
+                    }
+                });
+            }
+        }
+
+        @JavascriptInterface
+        public void wOnLoaded(String callId) {
+            mDefaultCallId = callId;
             mWebviewIsloaded = true;
 
             mWebView.post(new Runnable() {
