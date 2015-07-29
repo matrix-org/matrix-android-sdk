@@ -60,6 +60,12 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
 
+    // call events
+    public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";
+    public static final String EVENT_TYPE_CALL_CANDIDATES = "m.call.candidates";
+    public static final String EVENT_TYPE_CALL_ANSWER = "m.call.answer";
+    public static final String EVENT_TYPE_CALL_HANGUP = "m.call.hangup";
+
     public String type;
     public transient JsonObject content = null;
     private String contentAsString = null;
@@ -179,6 +185,24 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * Create an event from a content and a type.
+     *
+     * @param aType  the event type
+     * @param aContent the event content
+     * @param anUserId the event user Id
+     * @param aRoomId  the vent room Id
+     */
+    public Event(String aType, JsonObject aContent, String anUserId, String aRoomId) {
+        type = aType;
+        content = aContent;
+        originServerTs = System.currentTimeMillis();
+        userId = anUserId;
+        roomId = aRoomId;
+        mSentState = Event.SentState.SENDING;
+        createDummyEventId();
+    }
+
+    /**
      * Some events are not sent by the server.
      * They are temporary stored until to get the server response.
      */
@@ -202,6 +226,13 @@ public class Event implements java.io.Serializable {
 
     public Boolean hasToken() {
         return (null != mToken) && !mIsInternalPaginationToken;
+    }
+
+    public Boolean isCallEvent() {
+        return  EVENT_TYPE_CALL_INVITE.equals(type) ||
+                EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
+                EVENT_TYPE_CALL_ANSWER.equals(type) ||
+                EVENT_TYPE_CALL_HANGUP.equals(type);
     }
 
     /**
