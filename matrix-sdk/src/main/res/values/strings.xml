@@ -43,4 +43,9 @@
     <string name="last_seen_hours">%dh</string>
     <string name="last_seen_days">%dd</string>
 
+    <!-- call events -->
+    <string name="call_invitation">Call invitation.</string>
+    <string name="call_hungup">Call hung up.</string>
+    <string name="call_answered">Call answered.</string>
+
 </resources>
