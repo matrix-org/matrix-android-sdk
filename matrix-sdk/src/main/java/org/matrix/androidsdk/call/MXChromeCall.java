@@ -301,18 +301,32 @@ public class MXChromeCall implements IMXCall {
      * @param event the call event.
      */
     public void handleCallEvent(Event event){
-        if (event.isCallEvent() && !event.userId.equals(mSession.getMyUser().userId)) {
-            if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
-                onCallAnswer(event);
-            } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
-                JsonArray candidates = event.content.getAsJsonArray("candidates");
+        if (event.isCallEvent()) {
+            // event from other member
+            if (!event.userId.equals(mSession.getMyUser().userId)) {
+                if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
+                    onCallAnswer(event);
+                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
+                    JsonArray candidates = event.content.getAsJsonArray("candidates");
 
-                for (JsonElement candidate : candidates) {
-                    addCandidate(candidate);
+                    for (JsonElement candidate : candidates) {
+                        addCandidate(candidate);
+                    }
+                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
+                    onCallHangup(event);
                 }
-            }
-            else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
-                onCallHangup(event);
+            } else if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
+                // server echo : assume that the other device is ringing
+                mCallWebAppInterface.mCallState = IMXCall.CALL_STATE_RINGING;
+
+                // warn in the UI thread
+                mUIThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onStateDidChange(mCallWebAppInterface.mCallState);
+                    }
+                });
+
             }
         }
     }
@@ -501,12 +515,12 @@ public class MXChromeCall implements IMXCall {
 
         @JavascriptInterface
         public void wEmit(String title , String message) {
-            Toast.makeText(mContext, title + " : " + message, Toast.LENGTH_LONG).show();
+            //Toast.makeText(mContext, title + " : " + message, Toast.LENGTH_LONG).show();
         }
 
         @JavascriptInterface
         public void showToast(String toast)  {
-            Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show();
         }
 
         @JavascriptInterface
@@ -525,8 +539,6 @@ public class MXChromeCall implements IMXCall {
                 nextState = CALL_STATE_RINGING;
             } else if ("create_answer".equals(jsstate)) {
                 nextState = CALL_STATE_CREATE_ANSWER;
-            } else if ("connecting".equals(jsstate)) {
-                nextState = CALL_STATE_CONNECTING;
             } else if ("connecting".equals(jsstate)) {
                 nextState = CALL_STATE_CONNECTING;
             } else if ("connected".equals(jsstate)) {
@@ -566,7 +578,7 @@ public class MXChromeCall implements IMXCall {
             try {
                 JsonObject content = (JsonObject) new JsonParser().parse(jsonContent);
 
-                Toast.makeText(mContext, eventType, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(mContext, eventType, Toast.LENGTH_SHORT).show();
 
                 Event event = new Event(eventType, content, mSession.getCredentials().userId, mRoom.getRoomId());
                 mRoom.sendEvent(event, new ApiCallback<Void>() {

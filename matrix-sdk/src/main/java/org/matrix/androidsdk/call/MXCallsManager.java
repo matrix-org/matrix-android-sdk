@@ -66,9 +66,6 @@ public class MXCallsManager {
     // incoming calls
     private ArrayList<String> mxPendingIncomingCallId = new ArrayList<String>();
 
-    // ignored calls
-    private ArrayList<String> mxIgnoredCallId = new ArrayList<String>();
-
     public MXCallsManager(MXSession session, Context context) {
         mSession = session;
         mContext = context;
@@ -157,7 +154,7 @@ public class MXCallsManager {
 
         synchronized (this) {
             // sanity checks
-            if ((null == callId) || (mxIgnoredCallId.indexOf(callId) < 0)) {
+            if ((null == callId) || (mCallsByCallId.get(callId) != null)) {
                 if (null != callId) {
                     call = mCallsByCallId.get(callId);
                 }
@@ -193,13 +190,21 @@ public class MXCallsManager {
             if ((null != callId) && (null != room)) {
                 // receive an invitation
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
-                    if (!isMyEvent) {
-                        mxPendingIncomingCallId.add(callId);
-                        long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                    // TODO check lifetime
+                    long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
-                        // create it CALL_TIMEOUT_MS
-                        callWithCallId(callId, true);
+                    // create the call only it is triggered from someone else
+                    IMXCall call = callWithCallId(callId, !isMyEvent);
+
+                    // sanity check
+                    if (null != call) {
+                        if (!isMyEvent) {
+                            mxPendingIncomingCallId.add(callId);
+                        } else {
+                            call.handleCallEvent(event);
+                        }
                     }
+
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
                     if (!isMyEvent) {
                         IMXCall call = callWithCallId(callId);
@@ -217,7 +222,6 @@ public class MXCallsManager {
                         // the creation / candidates /
                         // the call has been answered on another device
                         if (IMXCall.CALL_STATE_CREATED.equals(call.callState())) {
-                            mxIgnoredCallId.add(callId);
                             mCallsByCallId.remove(callId);
                         } else if (!isMyEvent) {
                             call.setRoom(room);
@@ -230,9 +234,7 @@ public class MXCallsManager {
                     if (null != call) {
                         call.setRoom(room);
 
-                        if (IMXCall.CALL_STATE_CREATED.equals(call.callState())) {
-                            mxIgnoredCallId.add(callId);
-                        } else {
+                        if (!IMXCall.CALL_STATE_CREATED.equals(call.callState())) {
                             call.handleCallEvent(event);
                         }
 

@@ -48,9 +48,6 @@ function MatrixCall(opts) {
     this.turnServers = opts.turnServers || [{
         urls: [MatrixCall.FALLBACK_STUN_SERVER]
     }];
-    /*utils.forEach(this.turnServers, function(server) {
-        utils.checkObjectHasKeys(server, ["urls"]);
-    });*/
 
     this.callId = "c" + new Date().getTime();
     this.state = 'fledgling';
@@ -97,7 +94,7 @@ MatrixCall.prototype.updateState = function(state) {
  * @throws If you have not specified a listener for 'error' events.
  */
 MatrixCall.prototype.placeVoiceCall = function() {
-    checkForErrorListener(this);
+    androidLog("placeVoiceCall");
     _placeCallWithConstraints(this, _getUserMediaVideoContraints('voice'));
     this.type = 'voice';
 };
@@ -113,7 +110,6 @@ MatrixCall.prototype.placeVoiceCall = function() {
 MatrixCall.prototype.placeVideoCall = function(remoteVideoElement, localVideoElement) {
     androidLog("placeVideoCall");
 
-    //checkForErrorListener(this);
     this.localVideoElement = localVideoElement;
     this.remoteVideoElement = remoteVideoElement;
 
@@ -244,6 +240,8 @@ MatrixCall.prototype.hangup = function(reason, suppressEvent) {
  * @param {Object} stream
  */
 MatrixCall.prototype._gotUserMediaForInvite = function(stream) {
+    debuglog("_gotUserMediaForInvite");
+
     if (this.successor) {
         this.successor._gotUserMediaForAnswer(stream);
         return;
@@ -265,6 +263,7 @@ MatrixCall.prototype._gotUserMediaForInvite = function(stream) {
             }
         }, 0);
     }
+
 
     this.localAVStream = stream;
     var audioTracks = stream.getAudioTracks();
@@ -721,19 +720,8 @@ var _tryPlayRemoteStream = function(self) {
     }
 };
 
-var checkForErrorListener = function(self) {
-    if (self.listeners("error").length === 0) {
-        throw new Error(
-            "You MUST attach an error listener using call.on('error', function() {})"
-        );
-    }
-};
-
 var callError = function(code, msg) {
     AndroidCallError(code, msg);
-    var e = new Error(msg);
-    e.code = code;
-    return e;
 };
 
 var debuglog = function() {
