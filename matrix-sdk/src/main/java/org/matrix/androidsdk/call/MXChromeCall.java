@@ -166,7 +166,7 @@ public class MXChromeCall implements IMXCall {
         if (CALL_STATE_FLEDGLING.equals(callState())) {
             mIsIncoming = false;
 
-            mWebView.post(new Runnable() {
+            mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     mWebView.loadUrl(isVideo ? "javascript:placeVideoCall()" : "javascript:placeVoiceCall()");
@@ -186,7 +186,7 @@ public class MXChromeCall implements IMXCall {
         if (CALL_STATE_FLEDGLING.equals(callState())) {
             mIsIncoming = true;
 
-            mWebView.post(new Runnable() {
+            mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     mWebView.loadUrl("javascript:initWithInvite('" + callId + "'," + callInviteParams.toString() + ")");
@@ -220,12 +220,14 @@ public class MXChromeCall implements IMXCall {
      * @param event the event
      */
     private void onCallAnswer(final Event event) {
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                mWebView.loadUrl("javascript:receivedAnswer(" + event.content.toString() + ")");
-            }
-        });
+        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:receivedAnswer(" + event.content.toString() + ")");
+                }
+            });
+        }
     }
 
     /**
@@ -233,8 +235,8 @@ public class MXChromeCall implements IMXCall {
      * @param event the event
      */
     private void onCallHangup(final Event event) {
-        if (CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
-            mWebView.post(new Runnable() {
+        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     mWebView.loadUrl("javascript:onHangupReceived(" + event.content.toString() + ")");
@@ -255,12 +257,14 @@ public class MXChromeCall implements IMXCall {
      * @param candidate
      */
     public void onNewCandidate(final JsonElement candidate) {
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
-            }
-        });
+        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
+                }
+            });
+        }
     }
 
     /**
@@ -318,24 +322,28 @@ public class MXChromeCall implements IMXCall {
      * The call is accepted.
      */
     public void answer() {
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                mWebView.loadUrl("javascript:answerCall()");
-            }
-        });
+        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:answerCall()");
+                }
+            });
+        }
     }
 
     /**
      * The call is hung up.
      */
     public void hangup() {
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                mWebView.loadUrl("javascript:hangup()");
-            }
-        });
+        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:hangup()");
+                }
+            });
+        }
     }
 
     // listener managemenent
@@ -532,7 +540,7 @@ public class MXChromeCall implements IMXCall {
                 mCallState = nextState;
 
                 // warn in the UI thread
-                mWebView.post(new Runnable() {
+                mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         onStateDidChange(mCallState);
@@ -545,7 +553,7 @@ public class MXChromeCall implements IMXCall {
         public void wOnLoaded() {
             mCallState = CALL_STATE_FLEDGLING;
 
-            mWebView.post(new Runnable() {
+            mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     onViewReady();
@@ -565,7 +573,7 @@ public class MXChromeCall implements IMXCall {
                     @Override
                     public void onSuccess(Void info) {
                         if (eventType.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
-                            mWebView.post(new Runnable() {
+                            mUIThreadHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     onCallEnd();

@@ -465,14 +465,8 @@ MatrixCall.prototype._gotLocalOffer = function(description) {
             },
             lifetime: MatrixCall.CALL_TIMEOUT_MS
         };
+
         sendEvent(self, 'm.call.invite', content);
-
-        setTimeout(function() {
-            if (self.state == 'invite_sent') {
-                self.hangup('invite_timeout');
-            }
-        }, MatrixCall.CALL_TIMEOUT_MS);
-
         this.updateState('invite_sent');
     }, function() {
         debuglog("Error setting local description!");
@@ -652,11 +646,9 @@ MatrixCall.prototype._onAnsweredElsewhere = function(msg) {
  * @param {MatrixCall} self
  * @param {string} eventType
  * @param {Object} content
- * @return {Promise}
  */
 var sendEvent = function(self, eventType, content) {
     AndroidSendEvent(self.roomId, eventType, JSON.stringify(content));
-    //return self.client.sendEvent(self.roomId, eventType, content);
 };
 
 var sendCandidate = function(self, content) {
@@ -767,30 +759,7 @@ var _sendCandidateQueue = function(self) {
         candidates: cands
     };
     debuglog("Attempting to send " + cands.length + " candidates");
-    sendEvent(self, 'm.call.candidates', content).then(function() {
-        self.candidateSendTries = 0;
-        _sendCandidateQueue(self);
-    }, function(error) {
-        for (var i = 0; i < cands.length; i++) {
-            self.candidateSendQueue.push(cands[i]);
-        }
-
-        if (self.candidateSendTries > 5) {
-            debuglog(
-                "Failed to send candidates on attempt %s. Giving up for now.",
-                self.candidateSendTries
-            );
-            self.candidateSendTries = 0;
-            return;
-        }
-
-        var delayMs = 500 * Math.pow(2, self.candidateSendTries);
-        ++self.candidateSendTries;
-        debuglog("Failed to send candidates. Retrying in " + delayMs + "ms");
-        setTimeout(function() {
-            _sendCandidateQueue(self);
-        }, delayMs);
-    });
+    sendEvent(self, 'm.call.candidates', content);
 };
 
 var _placeCallWithConstraints = function(self, constraints) {

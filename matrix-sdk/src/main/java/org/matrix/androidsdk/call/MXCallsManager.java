@@ -195,7 +195,9 @@ public class MXCallsManager {
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
                     if (!isMyEvent) {
                         mxPendingIncomingCallId.add(callId);
-                        // create it
+                        long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+                        // create it CALL_TIMEOUT_MS
                         callWithCallId(callId, true);
                     }
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
