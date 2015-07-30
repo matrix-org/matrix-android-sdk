@@ -1,8 +1,6 @@
 "use strict";
 console.log("Loading call");
 var BASE_URL = "https://matrix.org";
-var TOKEN = "TOKEN";
-var ROOM_ID = "ROOM_ID";
 var mxCall;
 
 // debug tools
@@ -11,17 +9,18 @@ function showToast(toast) {
 }
 
 // initializers
-function getAccessToken() {
-    return Android.wgetAccessToken();
-}
 
 function getRoomId() {
     return Android.wgetRoomId();
 }
 
+function getCallId() {
+    return Android.wgetCallId();
+}
+
 // call when the webview is loaded
-function onLoaded(callId) {
-    return Android.wOnLoaded(callId);
+function onLoaded() {
+    return Android.wOnLoaded();
 }
 
 // start call methods
@@ -34,6 +33,10 @@ function placeVideoCall() {
 		document.getElementById("remote"),
 		document.getElementById("self")
 	);
+}
+
+function setCallId(callId) {
+	mxCall.callId = callId;
 }
 
 function initWithInvite(callId, msg) {
@@ -68,9 +71,7 @@ function hangup() {
 }
 
 window.onload = function() {
-	TOKEN = getAccessToken();
-	ROOM_ID = getRoomId();
-
-	mxCall = createNewMatrixCall(ROOM_ID);
-	onLoaded(mxCall.callId);
+	mxCall = createNewMatrixCall(getRoomId());
+	mxCall.callId = getCallId();
+	onLoaded();
 };

@@ -656,7 +656,7 @@ MatrixCall.prototype._onAnsweredElsewhere = function(msg) {
  */
 var sendEvent = function(self, eventType, content) {
     AndroidSendEvent(self.roomId, eventType, JSON.stringify(content));
-    return self.client.sendEvent(self.roomId, eventType, content);
+    //return self.client.sendEvent(self.roomId, eventType, content);
 };
 
 var sendCandidate = function(self, content) {

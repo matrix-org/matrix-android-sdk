@@ -21,6 +21,7 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
@@ -79,6 +80,8 @@ public class MXSession {
 
     private ContentManager mContentManager;
 
+    public MXCallsManager mCallsManager;
+
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private UnsentEventsManager mUnsentEventsManager;
@@ -130,9 +133,13 @@ public class MXSession {
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
 
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
         mDataHandler.setContentManager(mContentManager);
+
+        //
+        mCallsManager = new MXCallsManager(this, mAppContent);
+        mDataHandler.setCallsManager(mCallsManager);
 
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
@@ -531,5 +538,14 @@ public class MXSession {
         return mBingRulesManager.fulfilledBingRule(event);
     }
 
-
+    /**
+     * @return true if the calls are supported
+     */
+    public Boolean isVoipCallSupported() {
+        if (null != mCallsManager) {
+            return mCallsManager.isSupported();
+        } else {
+            return false;
+        }
+    }
 }

@@ -52,11 +52,12 @@ public class MXChromeCall implements IMXCall {
     private ArrayList<MXCallListener> mxCallListeners = new ArrayList<MXCallListener>();
 
     private WebView mWebView = null;
-    private Boolean mWebviewIsloaded = false;
-    private CallWebAppInterface mCallWebAppInterface;
+    private CallWebAppInterface mCallWebAppInterface = null;
 
     private Boolean mIsIncoming = false;
     private Boolean mIsIncomingPrepared = false;
+
+    private JsonObject mCallInviteParams = null;
 
     // the current call id
     private String mCallId = null;
@@ -72,8 +73,9 @@ public class MXChromeCall implements IMXCall {
     public static Boolean isSupported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     }
+
     // creator
-    public MXChromeCall(MXSession session, Context context, Room room) {
+    public MXChromeCall(MXSession session, Context context) {
         if (!isSupported()) {
             throw new AssertionError("MXChromeCall : not supported with the current android version");
         }
@@ -86,13 +88,9 @@ public class MXChromeCall implements IMXCall {
             throw new AssertionError("MXChromeCall : context cannot be null");
         }
 
-        if (null == room) {
-            throw new AssertionError("MXChromeCall : room cannot be null");
-        }
-
+        mCallId = "c" + System.currentTimeMillis();
         mSession = session;
         mContext = context;
-        mRoom = room;
     }
 
     @SuppressLint("NewApi")
@@ -158,21 +156,22 @@ public class MXChromeCall implements IMXCall {
         });
     }
 
+
     // actions (must be done after onViewReady()
     /**
      * Start a call.
      * @param isVideo true if it is a video call.
      */
-    public void placeCall(Boolean isVideo) {
-        if (mWebviewIsloaded) {
+    public void placeCall(final Boolean isVideo) {
+        if (CALL_STATE_FLEDGLING.equals(callState())) {
             mIsIncoming = false;
-            if (isVideo) {
-                mWebView.loadUrl("javascript:placeVideoCall()");
-            } else {
-                mWebView.loadUrl("javascript:placeVoiceCall()");
-            }
 
-            mCallId = mCallWebAppInterface.mDefaultCallId;
+            mWebView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl(isVideo ? "javascript:placeVideoCall()" : "javascript:placeVoiceCall()");
+                }
+            });
         }
     }
 
@@ -182,48 +181,86 @@ public class MXChromeCall implements IMXCall {
      * @param callId the call ID
      */
     public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
-        mIsIncoming = true;
         mCallId = callId;
-        mWebView.loadUrl("javascript:initWithInvite('" + callId + "'," + callInviteParams.toString() + ")");
-        mIsIncomingPrepared = true;
 
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                checkPendingCandidates();
-            }
-        });
+        if (CALL_STATE_FLEDGLING.equals(callState())) {
+            mIsIncoming = true;
+
+            mWebView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:initWithInvite('" + callId + "'," + callInviteParams.toString() + ")");
+                    mIsIncomingPrepared = true;
+
+                    mWebView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            checkPendingCandidates();
+                        }
+                    });
+                }
+            });
+        } else if (CALL_STATE_CREATED.equals(callState())) {
+            mCallInviteParams = callInviteParams;
+        }
+    }
+
+    /**
+     * The call has been detected as an incoming one.
+     * The application launched the dedicated activity and expects to launch the incoming call.
+     */
+    public void launchIncomingCall() {
+        if (CALL_STATE_FLEDGLING.equals(callState())) {
+            prepareIncomingCall(mCallInviteParams, mCallId);
+        }
     }
 
     /**
      * The callee accepts the call.
      * @param event the event
      */
-    private void onCallAnswer(Event event) {
-        mWebView.loadUrl("javascript:receivedAnswer(" + event.content.toString() + ")");
+    private void onCallAnswer(final Event event) {
+        mWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.loadUrl("javascript:receivedAnswer(" + event.content.toString() + ")");
+            }
+        });
     }
 
     /**
      * The other call member hangs up the call.
      * @param event the event
      */
-    private void onCallHangup(Event event) {
-        mWebView.loadUrl("javascript:onHangupReceived(" + event.content.toString() + ")");
+    private void onCallHangup(final Event event) {
+        if (CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+            mWebView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mWebView.loadUrl("javascript:onHangupReceived(" + event.content.toString() + ")");
 
-        mWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                onCallEnd();
-            }
-        });
+                    mWebView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onCallEnd();
+                        }
+                    });
+                }
+            });
+        }
     }
 
     /**
      * A new Ice candidate is received
      * @param candidate
      */
-    public void onNewCandidate(JsonElement candidate) {
-        mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
+    public void onNewCandidate(final JsonElement candidate) {
+        mWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
+            }
+        });
     }
 
     /**
@@ -281,14 +318,24 @@ public class MXChromeCall implements IMXCall {
      * The call is accepted.
      */
     public void answer() {
-        mWebView.loadUrl("javascript:answerCall()");
+        mWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.loadUrl("javascript:answerCall()");
+            }
+        });
     }
 
     /**
      * The call is hung up.
      */
     public void hangup() {
-        mWebView.loadUrl("javascript:hangup()");
+        mWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.loadUrl("javascript:hangup()");
+            }
+        });
     }
 
     // listener managemenent
@@ -319,6 +366,28 @@ public class MXChromeCall implements IMXCall {
     }
 
     /**
+     * Set the callId
+     */
+    public void setCallId(String callId) {
+        mCallId = callId;
+    }
+
+    /**
+     * @return the linked room
+     */
+    public Room room() {
+        return mRoom;
+    }
+
+    /**
+     * Set the linked room.
+     * @param room the room
+     */
+    public void setRoom(Room room) {
+        mRoom = room;
+    }
+
+    /**
      * @return true if the call is an incoming call.
      */
     public Boolean isIncoming() {
@@ -329,7 +398,11 @@ public class MXChromeCall implements IMXCall {
      * @return the callstate (must be a CALL_STATE_XX value)
      */
     public String callState() {
-        return mCallWebAppInterface.mCallState;
+        if (null != mCallWebAppInterface) {
+            return mCallWebAppInterface.mCallState;
+        } else {
+            return CALL_STATE_CREATED;
+        }
     }
 
     /**
@@ -389,16 +462,18 @@ public class MXChromeCall implements IMXCall {
 
     // private class
     private class CallWebAppInterface {
-        public String mDefaultCallId = null;
-        public String mCallState = CALL_STATE_FLEDGLING;
+        public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
 
         CallWebAppInterface()  {
+            if (null == mRoom) {
+                throw new AssertionError("MXChromeCall : room cannot be null");
+            }
         }
 
         // JS <-> android calls
         @JavascriptInterface
-        public String wgetAccessToken() {
-            return mSession.getCredentials().accessToken;
+        public String wgetCallId() {
+            return mCallId;
         }
 
         @JavascriptInterface
@@ -467,9 +542,8 @@ public class MXChromeCall implements IMXCall {
         }
 
         @JavascriptInterface
-        public void wOnLoaded(String callId) {
-            mDefaultCallId = callId;
-            mWebviewIsloaded = true;
+        public void wOnLoaded() {
+            mCallState = CALL_STATE_FLEDGLING;
 
             mWebView.post(new Runnable() {
                 @Override

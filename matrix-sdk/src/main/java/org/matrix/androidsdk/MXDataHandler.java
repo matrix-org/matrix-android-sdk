@@ -18,6 +18,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.util.Log;
 
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
@@ -62,6 +63,7 @@ public class MXDataHandler implements IMXEventListener {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private ContentManager mContentManager;
+    private MXCallsManager mCallsManager;
 
     private Boolean mIsActive = true;
 
@@ -116,6 +118,11 @@ public class MXDataHandler implements IMXEventListener {
     public void setContentManager(ContentManager contentManager) {
         checkIfActive();
         mContentManager = contentManager;
+    }
+
+    public void setCallsManager(MXCallsManager callsManager) {
+        checkIfActive();
+        mCallsManager = callsManager;
     }
 
     public BingRuleSet pushRules() {
@@ -317,6 +324,9 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         onLiveEventsChunkProcessed();
+
+        // check if an incoming call has been received
+        mCallsManager.checkPendingIncomingCalls();
     }
 
     /**
@@ -389,6 +399,11 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void handleLiveEvent(Event event) {
         checkIfActive();
+
+        // dispatch the call events to the calls manager
+        if (event.isCallEvent()) {
+            mCallsManager.handleCallEvent(event);
+        }
 
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {

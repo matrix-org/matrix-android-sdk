@@ -32,6 +32,8 @@ import java.util.Collection;
  */
 public interface IMXCall {
     // call state events
+    public static final String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
+    public static final String CALL_STATE_CREATING_CALL_VIEW = "IMXCall.CALL_STATE_CREATING_CALL_VIEW";
     public static final String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
     public static final String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
     public static final String CALL_STATE_WAIT_CREATE_OFFER = "IMXCall.CALL_STATE_WAIT_CREATE_OFFER";
@@ -99,6 +101,12 @@ public interface IMXCall {
      */
     public void prepareIncomingCall(JsonObject callInviteParams, String callId);
 
+    /**
+     * The call has been detected as an incoming one.
+     * The application launched the dedicated activity and expects to launch the incoming call.
+     */
+    public void launchIncomingCall();
+
     // events thread
     /**
      * Manage the call events.
@@ -126,6 +134,22 @@ public interface IMXCall {
      * @return the callId
      */
     public String callId();
+
+    /**
+     * Set the callId
+     */
+    public void setCallId(String callId);
+
+    /**
+     * @return the linked room
+     */
+    public Room room();
+
+    /**
+     * Set the linked room.
+     * @param room the room
+     */
+    public void setRoom(Room room);
 
     /**
      * @return true if the call is an incoming call.
