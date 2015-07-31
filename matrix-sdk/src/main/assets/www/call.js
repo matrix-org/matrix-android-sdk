@@ -483,7 +483,7 @@ MatrixCall.prototype._gotLocalOffer = function(description) {
         };
 
         sendEvent(self, 'm.call.invite', content);
-        this.updateState('invite_sent');
+        self.updateState('invite_sent');
     }, function() {
         debuglog("Error setting local description!");
     });
@@ -613,10 +613,6 @@ MatrixCall.prototype._onRemoteStreamStarted = function(event) {
  */
 MatrixCall.prototype._onRemoteStreamEnded = function(event) {
     debuglog("Remote stream ended");
-
-    if (self.getRemoteVideoElement()) {
-        self.getRemoteVideoElement().style.display = 'none';
-    }
 
     this.updateState('ended');
     this.hangupParty = 'remote';

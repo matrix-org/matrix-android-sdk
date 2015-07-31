@@ -260,7 +260,7 @@ public class MXChromeCall implements IMXCall {
      */
     public void onNewCandidate(final JsonElement candidate) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
-            mUIThreadHandler.post(new Runnable() {
+            mWebView.post(new Runnable() {
                 @Override
                 public void run() {
                     mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
@@ -274,7 +274,7 @@ public class MXChromeCall implements IMXCall {
      * @param candidate ic candidate
      */
     private void addCandidate(JsonElement candidate) {
-        if (mIsIncomingPrepared) {
+        if (mIsIncomingPrepared || !isIncoming()) {
             onNewCandidate(candidate);
         } else {
             synchronized (LOG_TAG) {
