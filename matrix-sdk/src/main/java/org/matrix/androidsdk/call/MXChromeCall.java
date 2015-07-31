@@ -290,7 +290,14 @@ public class MXChromeCall implements IMXCall {
     public void checkPendingCandidates() {
         synchronized (LOG_TAG) {
             for(JsonElement candidate : mPendingCandidates) {
-                onNewCandidate(candidate);
+                final JsonElement fcandidate = candidate;
+
+                mWebView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onNewCandidate(fcandidate);
+                    }
+                });
             }
 
             mPendingCandidates.clear();

@@ -410,6 +410,24 @@ MatrixCall.prototype._gotLocalIceCandidate = function(event) {
 /**
  * Used by MatrixClient.
  * @protected
+ * @param {Object} cand
+ */
+MatrixCall.prototype._gotRemoteIceCandidate = function(cand) {
+    if (this.state == 'ended') {
+        return;
+    }
+
+    debuglog("Got remote ICE " + cand.sdpMid + " candidate: " + cand.candidate);
+    this.peerConn.addIceCandidate(
+        new this.webRtc.RtcIceCandidate(cand),
+        function() {},
+        function(e) {}
+    );
+};
+
+/**
+ * Used by MatrixClient.
+ * @protected
  * @param {Object} msg
  */
 MatrixCall.prototype._receivedAnswer = function(msg) {
