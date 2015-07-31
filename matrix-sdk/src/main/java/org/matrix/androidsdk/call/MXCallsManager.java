@@ -206,11 +206,11 @@ public class MXCallsManager {
                                 // create the call only it is triggered from someone else
                                 IMXCall call = callWithCallId(callId, !isMyEvent);
 
-                                // init the information
-                                call.setRoom(room);
-
                                 // sanity check
                                 if (null != call) {
+                                    // init the information
+                                    call.setRoom(room);
+
                                     if (!isMyEvent) {
                                         call.prepareIncomingCall(event.content, callId);
                                         call.setIsIncoming(true);

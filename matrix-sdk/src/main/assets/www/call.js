@@ -177,16 +177,16 @@ MatrixCall.prototype._initWithInvite = function(msg) {
     // channel has been offered by ourselves.
     if (this.msg.offer.sdp.indexOf('m=video') > -1) {
         this.type = 'video';
-
-        this.webRtc.getUserMedia(
-            _getUserMediaVideoContraints(this.type),
-            hookCallback(self, self._gotUserMediaForIncomingCall),
-            hookCallback(self, self._getUserMediaFailed)
-        );
     }
     else {
         this.type = 'voice';
     }
+
+    this.webRtc.getUserMedia(
+        _getUserMediaVideoContraints(this.type),
+        hookCallback(self, self._gotUserMediaForIncomingCall),
+        hookCallback(self, self._getUserMediaFailed)
+    );
 };
 
 /**
@@ -210,9 +210,7 @@ MatrixCall.prototype.answer = function() {
     var self = this;
 
     // audio case : do not wait after local AV
-    if (this.type != 'video') {
-        self._create_answer();
-    } else if (!this.localAVStream && !this.waitForLocalAVStream) {
+    if (!this.localAVStream && !this.waitForLocalAVStream) {
         this.updateState('wait_local_media');
     } else if (this.localAVStream) {
         self._create_answer();
