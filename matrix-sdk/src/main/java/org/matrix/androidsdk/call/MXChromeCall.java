@@ -28,7 +28,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -66,6 +65,8 @@ public class MXChromeCall implements IMXCall {
 
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
+
+    private Boolean mIsVideoCall = false;
 
     /**
      * @return true if this stack can perform calls.
@@ -158,18 +159,18 @@ public class MXChromeCall implements IMXCall {
 
 
     // actions (must be done after onViewReady()
+
     /**
      * Start a call.
-     * @param isVideo true if it is a video call.
      */
-    public void placeCall(final Boolean isVideo) {
-        if (CALL_STATE_FLEDGLING.equals(callState())) {
+    public void placeCall() {
+        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             mIsIncoming = false;
 
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.loadUrl(isVideo ? "javascript:placeVideoCall()" : "javascript:placeVoiceCall()");
+                    mWebView.loadUrl(mIsVideoCall ? "javascript:placeVideoCall()" : "javascript:placeVoiceCall()");
                 }
             });
         }
@@ -183,7 +184,7 @@ public class MXChromeCall implements IMXCall {
     public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
         mCallId = callId;
 
-        if (CALL_STATE_FLEDGLING.equals(callState())) {
+        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             mIsIncoming = true;
 
             mUIThreadHandler.post(new Runnable() {
@@ -195,12 +196,13 @@ public class MXChromeCall implements IMXCall {
                     mWebView.post(new Runnable() {
                         @Override
                         public void run() {
+                            mWebView.loadUrl("javascript:getCallType()");
                             checkPendingCandidates();
                         }
                     });
                 }
             });
-        } else if (CALL_STATE_CREATED.equals(callState())) {
+        } else if (CALL_STATE_CREATED.equals(getCallState())) {
             mCallInviteParams = callInviteParams;
         }
     }
@@ -210,7 +212,7 @@ public class MXChromeCall implements IMXCall {
      * The application launched the dedicated activity and expects to launch the incoming call.
      */
     public void launchIncomingCall() {
-        if (CALL_STATE_FLEDGLING.equals(callState())) {
+        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId);
         }
     }
@@ -220,7 +222,7 @@ public class MXChromeCall implements IMXCall {
      * @param event the event
      */
     private void onCallAnswer(final Event event) {
-        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+        if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -235,7 +237,7 @@ public class MXChromeCall implements IMXCall {
      * @param event the event
      */
     private void onCallHangup(final Event event) {
-        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+        if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -257,7 +259,7 @@ public class MXChromeCall implements IMXCall {
      * @param candidate
      */
     public void onNewCandidate(final JsonElement candidate) {
-        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+        if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -336,7 +338,7 @@ public class MXChromeCall implements IMXCall {
      * The call is accepted.
      */
     public void answer() {
-        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+        if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -350,7 +352,7 @@ public class MXChromeCall implements IMXCall {
      * The call is hung up.
      */
     public void hangup() {
-        if (!CALL_STATE_CREATED.equals(callState()) && (null != mWebView)) {
+        if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -383,7 +385,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * @return the callId
      */
-    public String callId() {
+    public String getCallId() {
         return mCallId;
     }
 
@@ -397,7 +399,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * @return the linked room
      */
-    public Room room() {
+    public Room getRoom() {
         return mRoom;
     }
 
@@ -417,9 +419,30 @@ public class MXChromeCall implements IMXCall {
     }
 
     /**
+     * @param isIncoming true if the call is an incoming one.
+     */
+    public void setIsIncoming(Boolean isIncoming) {
+        mIsIncoming = isIncoming;
+    }
+
+    /**
+     * Defines the call type
+     */
+    public void setIsVideo(Boolean isVideo) {
+        mIsVideoCall = isVideo;
+    }
+
+    /**
+     * @return true if the call is a video call.
+     */
+    public Boolean isVideo() {
+        return mIsVideoCall;
+    }
+
+    /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
-    public String callState() {
+    public String getCallState() {
         if (null != mCallWebAppInterface) {
             return mCallWebAppInterface.mCallState;
         } else {
@@ -430,7 +453,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * @return the callView
      */
-    public View callView() {
+    public View getCallView() {
         return mWebView;
     }
 
@@ -521,6 +544,11 @@ public class MXChromeCall implements IMXCall {
         @JavascriptInterface
         public void showToast(String toast)  {
             //Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show();
+        }
+
+        @JavascriptInterface
+        public void onCallType(String type)  {
+            mIsVideoCall = "video".equals(type);
         }
 
         @JavascriptInterface

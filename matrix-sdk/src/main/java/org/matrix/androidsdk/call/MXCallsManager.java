@@ -57,6 +57,9 @@ public class MXCallsManager {
     private MXSession mSession = null;
     private Context mContext = null;
 
+    // UI thread handler
+    final Handler mUIThreadHandler = new Handler();
+
     // active calls
     private HashMap<String, IMXCall> mCallsByCallId = new HashMap<String, IMXCall>();
 
@@ -152,17 +155,18 @@ public class MXCallsManager {
     private IMXCall callWithCallId(String callId, Boolean create) {
         IMXCall call = null;
 
-        synchronized (this) {
-            // sanity checks
-            if ((null == callId) || (mCallsByCallId.get(callId) != null)) {
-                if (null != callId) {
-                    call = mCallsByCallId.get(callId);
-                }
+        // check if the call exists
+        if (null != callId) {
+            synchronized (this) {
+                call = mCallsByCallId.get(callId);
+            }
+        }
 
-                if ((null == call) && create) {
-                    call = createCall(callId);
-                    mCallsByCallId.put(call.callId(), call);
-                }
+        // the call does not exist but request to create it
+        if ((null == call) && create) {
+            call = createCall(callId);
+            synchronized (this) {
+                mCallsByCallId.put(call.getCallId(), call);
             }
         }
 
@@ -174,74 +178,92 @@ public class MXCallsManager {
      * Manage the call events.
      * @param event the call event.
      */
-    public void handleCallEvent(Event event) {
+    public void handleCallEvent(final Event event) {
         if (event.isCallEvent() && isSupported()) {
-            Boolean isMyEvent = event.userId.equals(mSession.getMyUser().userId);
-            Room room = mSession.getDataHandler().getRoom(event.roomId);
+            // always run the call event in the UI thread
+            // MXChromeCall does not work properly in other thread (because of the webview)
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Boolean isMyEvent = event.userId.equals(mSession.getMyUser().userId);
+                    Room room = mSession.getDataHandler().getRoom(event.roomId);
 
-            String callId = null;
+                    String callId = null;
 
-            try {
-                callId = event.content.getAsJsonPrimitive("call_id").getAsString();
-            } catch (Exception e) {
+                    try {
+                        callId = event.content.getAsJsonPrimitive("call_id").getAsString();
+                    } catch (Exception e) {
 
-            }
-            // sanity check
-            if ((null != callId) && (null != room)) {
-                // receive an invitation
-                if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
-                    // TODO check lifetime
-                    long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-
-                    // create the call only it is triggered from someone else
-                    IMXCall call = callWithCallId(callId, !isMyEvent);
-
+                    }
                     // sanity check
-                    if (null != call) {
-                        if (!isMyEvent) {
-                            mxPendingIncomingCallId.add(callId);
-                        } else {
-                            call.handleCallEvent(event);
+                    if ((null != callId) && (null != room)) {
+                        // receive an invitation
+                        if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
+                            long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+                            // ignore older call messages
+                            if (lifeTime < 30000) {
+                                // create the call only it is triggered from someone else
+                                IMXCall call = callWithCallId(callId, !isMyEvent);
+
+                                // init the information
+                                call.setRoom(room);
+
+                                // sanity check
+                                if (null != call) {
+                                    if (!isMyEvent) {
+                                        call.prepareIncomingCall(event.content, callId);
+                                        call.setIsIncoming(true);
+                                        mxPendingIncomingCallId.add(callId);
+                                    } else {
+                                        call.handleCallEvent(event);
+                                    }
+                                }
+                            }
+
+                        } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
+                            if (!isMyEvent) {
+                                IMXCall call = callWithCallId(callId);
+
+                                if (null != call) {
+                                    call.setRoom(room);
+                                    call.handleCallEvent(event);
+                                }
+                            }
+                        } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
+                            IMXCall call = callWithCallId(callId);
+
+                            if (null != call) {
+                                // assume it is a catch up call.
+                                // the creation / candidates /
+                                // the call has been answered on another device
+                                if (IMXCall.CALL_STATE_CREATED.equals(call.getCallState())) {
+                                    synchronized (this) {
+                                        mCallsByCallId.remove(callId);
+                                    }
+                                } else if (!isMyEvent) {
+                                    call.setRoom(room);
+                                    call.handleCallEvent(event);
+                                }
+                            }
+                        } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
+
+                            IMXCall call = callWithCallId(callId);
+                            if (null != call) {
+                                call.setRoom(room);
+
+                                if (!IMXCall.CALL_STATE_CREATED.equals(call.getCallState())) {
+                                    call.handleCallEvent(event);
+                                }
+
+                                synchronized (this) {
+                                    mCallsByCallId.remove(callId);
+                                }
+                            }
                         }
-                    }
-
-                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
-                    if (!isMyEvent) {
-                        IMXCall call = callWithCallId(callId);
-
-                        if (null != call) {
-                            call.setRoom(room);
-                            call.handleCallEvent(event);
-                        }
-                    }
-                } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
-                    IMXCall call = callWithCallId(callId);
-
-                    if (null != call) {
-                        // assume it is a catch up call.
-                        // the creation / candidates /
-                        // the call has been answered on another device
-                        if (IMXCall.CALL_STATE_CREATED.equals(call.callState())) {
-                            mCallsByCallId.remove(callId);
-                        } else if (!isMyEvent) {
-                            call.setRoom(room);
-                            call.handleCallEvent(event);
-                        }
-                    }
-                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
-
-                    IMXCall call = callWithCallId(callId);
-                    if (null != call) {
-                        call.setRoom(room);
-
-                        if (!IMXCall.CALL_STATE_CREATED.equals(call.callState())) {
-                            call.handleCallEvent(event);
-                        }
-
-                        mCallsByCallId.remove(callId);
                     }
                 }
-            }
+            });
         }
     }
 
@@ -249,16 +271,21 @@ public class MXCallsManager {
      * check if there is a pending incoming call
      */
     public void checkPendingIncomingCalls() {
-        if (mxPendingIncomingCallId.size() > 0) {
-            for (String callId : mxPendingIncomingCallId) {
-                IMXCall call = callWithCallId(callId);
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mxPendingIncomingCallId.size() > 0) {
+                    for (String callId : mxPendingIncomingCallId) {
+                        IMXCall call = callWithCallId(callId);
 
-                if (null != call) {
-                    onIncomingCall(call);
+                        if (null != call) {
+                            onIncomingCall(call);
+                        }
+                    }
+                    mxPendingIncomingCallId.clear();
                 }
             }
-            mxPendingIncomingCallId.clear();
-        }
+        });
     }
 
     /**

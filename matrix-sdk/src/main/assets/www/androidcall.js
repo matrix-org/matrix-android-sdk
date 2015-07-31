@@ -9,7 +9,6 @@ function showToast(toast) {
 }
 
 // initializers
-
 function getRoomId() {
     return Android.wgetRoomId();
 }
@@ -21,6 +20,10 @@ function getCallId() {
 // call when the webview is loaded
 function onLoaded() {
     return Android.wOnLoaded();
+}
+
+function getCallType() {
+    Android.onCallType(mxCall.type);
 }
 
 // start call methods

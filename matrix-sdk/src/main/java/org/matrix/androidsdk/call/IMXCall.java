@@ -48,10 +48,6 @@ public interface IMXCall {
     // chrome type
     public static final String CHROME_CALL =  "IMXCall.CHROME_CALL";
 
-    // call type
-    public static final String CALL_TYPE_VIDEO= "IMXCall.CALL_TYPE_VIDEO";
-    public static final String CALL_TYPE_AUDIO = "IMXCall.CALL_TYPE_AUDIO";
-
     public interface MXCallListener {
         /**
          * Called when the call state change
@@ -90,9 +86,8 @@ public interface IMXCall {
     // actions (must be done after onViewReady()
     /**
      * Start a call.
-     * @param isVideo true if it is a video call.
      */
-    public void placeCall(Boolean isVideo);
+    public void placeCall();
 
     /**
      * Prepare a call reception.
@@ -133,7 +128,7 @@ public interface IMXCall {
     /**
      * @return the callId
      */
-    public String callId();
+    public String getCallId();
 
     /**
      * Set the callId
@@ -143,7 +138,7 @@ public interface IMXCall {
     /**
      * @return the linked room
      */
-    public Room room();
+    public Room getRoom();
 
     /**
      * Set the linked room.
@@ -157,12 +152,27 @@ public interface IMXCall {
     public Boolean isIncoming();
 
     /**
+     * @param isIncoming true if the call is an incoming one.
+     */
+    public void setIsIncoming(Boolean isIncoming);
+
+    /**
+     * Defines the call type
+     */
+    public void setIsVideo(Boolean isVideo);
+
+    /**
+     * @return true if the call is a video call.
+     */
+    public Boolean isVideo();
+
+    /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
-    public String callState();
+    public String getCallState();
 
     /**
      * @return the callView
      */
-    public View callView();
+    public View getCallView();
 }

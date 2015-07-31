@@ -209,12 +209,13 @@ MatrixCall.prototype.answer = function() {
     debuglog("Answering call " + this.callId);
     var self = this;
 
-    if (!this.localAVStream && !this.waitForLocalAVStream) {
+    // audio case : do not wait after local AV
+    if (this.type != 'video') {
+        self._create_answer();
+    } else if (!this.localAVStream && !this.waitForLocalAVStream) {
         this.updateState('wait_local_media');
     } else if (this.localAVStream) {
         self._create_answer();
-    } else if (this.waitForLocalAVStream) {
-        this.updateState('wait_local_media');
     }
 };
 
