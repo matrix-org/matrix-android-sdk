@@ -403,7 +403,18 @@ MatrixCall.prototype._gotLocalIceCandidate = function(event) {
             sdpMid: event.candidate.sdpMid,
             sdpMLineIndex: event.candidate.sdpMLineIndex
         };
-        sendCandidate(this, c);
+
+        var cands = [];
+        cands.push(c);
+
+        var content = {
+            version: 0,
+            call_id: this.callId,
+            candidates: cands
+        };
+
+        debuglog("Attempting to send the candidate");
+        sendEvent(self, 'm.call.candidates', content);
     }
 };
 
@@ -663,17 +674,6 @@ var sendEvent = function(self, eventType, content) {
     AndroidSendEvent(self.roomId, eventType, JSON.stringify(content));
 };
 
-var sendCandidate = function(self, content) {
-    // Sends candidates with are sent in a special way because we try to amalgamate
-    // them into one message
-    self.candidateSendQueue.push(content);
-    if (self.candidateSendTries === 0) {
-        setTimeout(function() {
-            _sendCandidateQueue(self);
-        }, 100);
-    }
-};
-
 var terminate = function(self, hangupParty, hangupReason, shouldEmit) {
     if (self.getRemoteVideoElement() && self.getRemoteVideoElement().pause) {
         self.getRemoteVideoElement().pause();
@@ -744,23 +744,6 @@ var debuglog = function() {
     if (DEBUG) {
         console.log.apply(console, arguments);
     }
-};
-
-var _sendCandidateQueue = function(self) {
-    if (self.candidateSendQueue.length === 0) {
-        return;
-    }
-
-    var cands = self.candidateSendQueue;
-    self.candidateSendQueue = [];
-    ++self.candidateSendTries;
-    var content = {
-        version: 0,
-        call_id: self.callId,
-        candidates: cands
-    };
-    debuglog("Attempting to send " + cands.length + " candidates");
-    sendEvent(self, 'm.call.candidates', content);
 };
 
 var _placeCallWithConstraints = function(self, constraints) {

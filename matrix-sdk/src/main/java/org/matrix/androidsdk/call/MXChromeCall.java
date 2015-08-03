@@ -34,12 +34,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class MXChromeCall implements IMXCall {
@@ -516,6 +518,9 @@ public class MXChromeCall implements IMXCall {
     private class CallWebAppInterface {
         public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
 
+        private ArrayList<Event> mPendingEvents = new ArrayList<Event>();
+        private Event mPendingEvent = null;
+
         CallWebAppInterface()  {
             if (null == mRoom) {
                 throw new AssertionError("MXChromeCall : room cannot be null");
@@ -608,42 +613,101 @@ public class MXChromeCall implements IMXCall {
             });
         }
 
+        private void sendNextEvent() {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // ready to send
+                    if ((null == mPendingEvent) && (0 != mPendingEvents.size())) {
+                        mPendingEvent = mPendingEvents.get(0);
+                        mPendingEvents.remove(mPendingEvent);
+
+                        mRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                mUIThreadHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (mPendingEvent.type.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
+                                            mUIThreadHandler.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    onCallEnd();
+                                                }
+                                            });
+                                        } else {
+                                            mPendingEvent = null;
+                                            sendNextEvent();
+                                        }
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
         @JavascriptInterface
         public void wSendEvent(final String roomId, final String eventType, final String jsonContent) {
-            try {
-                JsonObject content = (JsonObject) new JsonParser().parse(jsonContent);
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Boolean addIt = true;
+                        JsonObject content = (JsonObject) new JsonParser().parse(jsonContent);
 
-                //Toast.makeText(mContext, eventType, Toast.LENGTH_SHORT).show();
+                        // merge candidates
+                        if (eventType.equals(Event.EVENT_TYPE_CALL_CANDIDATES) && (mPendingEvents.size() > 0)) {
+                            try {
+                                Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                Event event = new Event(eventType, content, mSession.getCredentials().userId, mRoom.getRoomId());
-                mRoom.sendEvent(event, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        if (eventType.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
-                            mUIThreadHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    onCallEnd();
+                                if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                    JsonObject lastContent = lastEvent.content;
+
+                                    JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
+                                    JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
+
+                                    Log.e(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+
+                                    lastContentCandidates.addAll(newContentCandidates);
+
+                                    lastEvent.content.remove("candidates");
+                                    lastEvent.content.add("candidates", lastContentCandidates);
+                                    addIt = false;
                                 }
-                            });
+                            } catch (Exception e) {
+                            }
                         }
-                    }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                    }
+                        if (addIt) {
+                            Event event = new Event(eventType, content, mSession.getCredentials().userId, mRoom.getRoomId());
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                    }
+                            if (null != event) {
+                                mPendingEvents.add(event);
+                            }
+                        }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                    }
-                });
+                        // send events
+                        sendNextEvent();
 
-            } catch (Exception e) {
-            }
+                    } catch (Exception e) {
+
+                    }
+                }
+            });
         }
     }
 }
