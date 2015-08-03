@@ -43,6 +43,8 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MXChromeCall implements IMXCall {
     private static final String LOG_TAG = "MXChromeCall";
@@ -338,6 +340,18 @@ public class MXChromeCall implements IMXCall {
                     }
                 });
 
+            } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
+                // check if the call has not been answer in another device
+                mUIThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // ring on this side
+                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING)) {
+                            onAnsweredElsewhere();
+                        }
+                    }
+                });
+
             }
         }
     }
@@ -514,12 +528,31 @@ public class MXChromeCall implements IMXCall {
         }
     }
 
+    public void onAnsweredElsewhere() {
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.loadUrl("javascript:onAnsweredElsewhere()");
+            }
+        });
+
+        synchronized (LOG_TAG) {
+            for (MXCallListener listener : mxCallListeners) {
+                try {
+                    listener.onCallAnsweredElsewhere();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
     // private class
     private class CallWebAppInterface {
         public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
 
         private ArrayList<Event> mPendingEvents = new ArrayList<Event>();
         private Event mPendingEvent = null;
+        private Timer mCallTimeoutTimer = null;
 
         CallWebAppInterface()  {
             if (null == mRoom) {
@@ -595,6 +628,14 @@ public class MXChromeCall implements IMXCall {
                 mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
+                        // call timeout management
+                        if (CALL_STATE_CONNECTING.equals(mCallState) || CALL_STATE_CONNECTING.equals(mCallState)) {
+                            if (null != mCallTimeoutTimer) {
+                                mCallTimeoutTimer.cancel();
+                                mCallTimeoutTimer = null;
+                            }
+                        }
+
                         onStateDidChange(mCallState);
                     }
                 });
@@ -628,17 +669,8 @@ public class MXChromeCall implements IMXCall {
                                 mUIThreadHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        if (mPendingEvent.type.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
-                                            mUIThreadHandler.post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    onCallEnd();
-                                                }
-                                            });
-                                        } else {
-                                            mPendingEvent = null;
-                                            sendNextEvent();
-                                        }
+                                        mPendingEvent = null;
+                                        sendNextEvent();
                                     }
                                 });
                             }
@@ -696,7 +728,63 @@ public class MXChromeCall implements IMXCall {
                             Event event = new Event(eventType, content, mSession.getCredentials().userId, mRoom.getRoomId());
 
                             if (null != event) {
-                                mPendingEvents.add(event);
+                                // receive an hangup -> close the window asap
+                                if (eventType.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
+                                    if (null != mCallTimeoutTimer) {
+                                        mCallTimeoutTimer.cancel();
+                                        mCallTimeoutTimer = null;
+                                    }
+
+                                    mUIThreadHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            onCallEnd();
+                                        }
+                                    });
+
+                                    mPendingEvents.clear();
+
+                                    mRoom.sendEvent(event, new ApiCallback<Void>() {
+                                        @Override
+                                        public void onSuccess(Void info) {
+                                        }
+
+                                        @Override
+                                        public void onNetworkError(Exception e) {
+                                        }
+
+                                        @Override
+                                        public void onMatrixError(MatrixError e) {
+                                        }
+
+                                        @Override
+                                        public void onUnexpectedError(Exception e) {
+                                        }
+                                    });
+                                } else {
+                                    mPendingEvents.add(event);
+                                }
+
+                                // the calleee has 30s to answer to call
+                                if (eventType.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+                                    mCallTimeoutTimer = new Timer();
+                                    mCallTimeoutTimer.schedule(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                                                    hangup();
+                                                }
+
+                                                // cancel the timer
+                                                mCallTimeoutTimer.cancel();
+                                                mCallTimeoutTimer = null;
+                                            } catch (Exception e) {
+
+                                            }
+                                        }
+                                    }, 30 * 1000);
+                                }
                             }
                         }
 

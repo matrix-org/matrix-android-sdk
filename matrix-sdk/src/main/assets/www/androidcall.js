@@ -73,6 +73,10 @@ function hangup() {
 	mxCall.hangup("", false);
 }
 
+function onAnsweredElsewhere() {
+	mxCall._onAnsweredElsewhere();
+}
+
 window.onload = function() {
 	mxCall = createNewMatrixCall(getRoomId());
 	mxCall.callId = getCallId();

@@ -115,6 +115,13 @@ public class EventsThread extends Thread {
         mIsCatchingUp = false;
     }
 
+    /**
+     * @return true if the thread is paused.
+     */
+    public Boolean isPaused() {
+        return mPaused;
+    }
+
     public void onNetworkAvailable() {
         Log.i(LOG_TAG, "onNetWorkAvailable()");
         if (mIsNetworkSuspended) {

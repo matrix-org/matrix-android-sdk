@@ -173,7 +173,6 @@ public class MXCallsManager {
         return call;
     }
 
-
     /**
      * Manage the call events.
      * @param event the call event.
@@ -241,7 +240,7 @@ public class MXCallsManager {
                                     synchronized (this) {
                                         mCallsByCallId.remove(callId);
                                     }
-                                } else if (!isMyEvent) {
+                                } else {
                                     call.setRoom(room);
                                     call.handleCallEvent(event);
                                 }

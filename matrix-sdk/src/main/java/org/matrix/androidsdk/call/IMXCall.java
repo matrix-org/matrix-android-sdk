@@ -71,6 +71,11 @@ public interface IMXCall {
         public void onViewReady();
 
         /**
+         * The call was answered on another device
+         */
+        public void onCallAnsweredElsewhere();
+
+        /**
          * Warn that the call isEnded
          */
         public void onCallEnd();
@@ -114,6 +119,11 @@ public interface IMXCall {
      * The call is accepted.
      */
     public void answer();
+
+    /**
+     * The call has been has answered on another device.
+     */
+    public void onAnsweredElsewhere();
 
     /**
      * The call is hung up.

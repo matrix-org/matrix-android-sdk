@@ -659,7 +659,7 @@ MatrixCall.prototype._onHangupReceived = function(msg) {
  * @protected
  * @param {Object} msg
  */
-MatrixCall.prototype._onAnsweredElsewhere = function(msg) {
+MatrixCall.prototype._onAnsweredElsewhere = function() {
     debuglog("Answered elsewhere");
     terminate(this, "remote", "answered_elsewhere", true);
 };
