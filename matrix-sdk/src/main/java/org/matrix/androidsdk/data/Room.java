@@ -655,7 +655,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 // invite the last user
-                if ((index+1) == userIds.size()) {
+                if ((index + 1) == userIds.size()) {
                     try {
                         callback.onSuccess(info);
                     } catch (Exception e) {
@@ -1186,5 +1186,26 @@ public class Room {
                 mDataHandler.onLiveEventsChunkProcessed();
             }
         }
+    }
+
+    /**
+     * Test if a call can be performed in this room.
+     * @return true if a call can be performed.
+     */
+    public Boolean canPerformCall() {
+        Collection<RoomMember> members = getMembers();
+        int count = members.size();
+
+        if (count >= 2) {
+            count = 0;
+
+            for(RoomMember m : members) {
+                if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership)) {
+                    count++;
+                }
+            }
+        }
+
+        return 2 == count;
     }
 }
