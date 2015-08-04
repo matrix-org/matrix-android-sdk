@@ -17,15 +17,10 @@
 package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
-import android.os.Handler;
-import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -1205,6 +1200,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void setTypingUsers(ArrayList<String> typingUsers) {
         boolean refresh = mTypingUsers.size() != typingUsers.size();
 
+        if (mTypingUsers.size() == 1) {
+            // avoid refreshing when the self user is alone
+            String userId = mTypingUsers.get(0);
+            MyUser myUser = mSession.getMyUser();
+
+            if (userId.equals(myUser.userId)) {
+                mTypingUsers = typingUsers;
+                return;
+            }
+        }
+
         // same length -> ensure that there is an update
         if (!refresh) {
             // do not refresh if the both lists empty
@@ -1239,7 +1245,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return mMaxImageHeight;
     }
 
-
     /**
      * Notify the fragment that some bing rules could have been updated.
      */
@@ -1251,13 +1256,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Warn the adapter that an user presence has been updated.
-     * @param userId the user userId.
+     * @return true if the user has sent some messages in this room history.
      */
-    public void onUserPresenceUpdate(String userId) {
+    public Boolean isDisplayedUser(String userId) {
         // check if the user has been displayed in the room history
-        if ((null != userId) && mUserByUserId.containsKey(userId)) {
-            this.notifyDataSetChanged();
-        }
+        return (null != userId) && mUserByUserId.containsKey(userId);
     }
 }

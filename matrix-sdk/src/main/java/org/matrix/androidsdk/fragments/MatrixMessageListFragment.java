@@ -132,7 +132,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             uiThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.onUserPresenceUpdate(user.userId);
+                    // check first if the userID has sent some messages in the room history
+                    Boolean refresh = mAdapter.isDisplayedUser(user.userId);
+
+                    if (refresh) {
+                        // check, if the avatar is currently displayed 
+                        int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
+                        int lastVisibleRow = mMessageListView.getLastVisiblePosition();
+
+                        refresh = false;
+
+                        for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
+                            MessageRow row = mAdapter.getItem(i);
+                            refresh |= user.userId.equals(row.getEvent().userId);
+                        }
+                    }
+
+                    if (refresh) {
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
             });
         }
