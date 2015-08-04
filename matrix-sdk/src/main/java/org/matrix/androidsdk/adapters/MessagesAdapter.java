@@ -708,9 +708,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // warn listener of click events if there is no selection
-                if (!bodyTextView.hasSelection() && (null != mMessagesAdapterClickListener)) {
-                    bodyTextView.requestFocus();
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
+
+        bodyTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterClickListener) {
                     mMessagesAdapterClickListener.onItemClick(position);
                 }
             }
