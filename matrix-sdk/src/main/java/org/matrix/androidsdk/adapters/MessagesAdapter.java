@@ -973,6 +973,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         });
 
+        noticeTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // warn listener of click events if there is no selection
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
+
         return convertView;
     }
 
