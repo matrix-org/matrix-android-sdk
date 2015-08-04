@@ -65,7 +65,7 @@ public class MXChromeCall implements IMXCall {
     // the current call id
     private String mCallId = null;
 
-    private ArrayList<JsonElement> mPendingCandidates = new ArrayList<JsonElement>();
+    private JsonArray mPendingCandidates = new JsonArray();
 
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
@@ -260,14 +260,14 @@ public class MXChromeCall implements IMXCall {
 
     /**
      * A new Ice candidate is received
-     * @param candidate
+     * @param candidates
      */
-    public void onNewCandidate(final JsonElement candidate) {
+    public void onNewCandidates(final JsonElement candidates) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mWebView.post(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.loadUrl("javascript:gotRemoteCandidate(" + candidate.toString() + ")");
+                    mWebView.loadUrl("javascript:gotRemoteCandidates(" + candidates.toString() + ")");
                 }
             });
         }
@@ -275,14 +275,14 @@ public class MXChromeCall implements IMXCall {
 
     /**
      * Add ice candidates
-     * @param candidate ic candidate
+     * @param candidates ic candidates
      */
-    private void addCandidate(JsonElement candidate) {
+    private void addCandidates(JsonArray candidates) {
         if (mIsIncomingPrepared || !isIncoming()) {
-            onNewCandidate(candidate);
+            onNewCandidates(candidates);
         } else {
             synchronized (LOG_TAG) {
-                mPendingCandidates.add(candidate);
+                mPendingCandidates.addAll(candidates);
             }
         }
     }
@@ -293,18 +293,8 @@ public class MXChromeCall implements IMXCall {
      */
     public void checkPendingCandidates() {
         synchronized (LOG_TAG) {
-            for(JsonElement candidate : mPendingCandidates) {
-                final JsonElement fcandidate = candidate;
-
-                mWebView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onNewCandidate(fcandidate);
-                    }
-                });
-            }
-
-            mPendingCandidates.clear();
+            onNewCandidates(mPendingCandidates);
+            mPendingCandidates = new JsonArray();
         }
     }
 
@@ -321,10 +311,7 @@ public class MXChromeCall implements IMXCall {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
                     JsonArray candidates = event.content.getAsJsonArray("candidates");
-
-                    for (JsonElement candidate : candidates) {
-                        addCandidate(candidate);
-                    }
+                    addCandidates(candidates);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
                     onCallHangup(event);
                 }

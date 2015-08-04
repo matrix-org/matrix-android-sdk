@@ -49,10 +49,18 @@ function initWithInvite(callId, msg) {
     mxCall._initWithInvite(msg);
 }
 
-// receive candidates
+// receive candidate
 function gotRemoteCandidate(candidate) {
     mxCall._gotRemoteIceCandidate(candidate);
 }
+
+// receive candidates
+function gotRemoteCandidates(candidates) {
+	for (var i = 0; i < candidates.length; i++) {
+		mxCall._gotRemoteIceCandidate(candidates[i]);
+	}
+}
+
 
 // the user accept the call
 function answerCall() {
