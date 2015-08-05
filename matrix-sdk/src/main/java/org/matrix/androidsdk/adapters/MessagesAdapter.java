@@ -436,7 +436,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         MyUser myUser = mSession.getMyUser();
-        Boolean isMyEvent = myUser.userId.equals(msg.userId);
+        Boolean isMyEvent = myUser.userId.equals(msg.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(msg.type);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
@@ -950,8 +950,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        CharSequence notice = display.getTextualDisplay();
+        CharSequence notice = null;
+
+        if (msg.type.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+            notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
+        } else {
+            EventDisplay display = new EventDisplay(mContext, msg, roomState);
+            notice = display.getTextualDisplay();
+        }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         noticeTextView.setText(notice);
@@ -1204,7 +1210,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return true;
         }
         else if (event.isCallEvent()) {
-            return true;
+            // display only the start call
+            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
