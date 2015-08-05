@@ -29,6 +29,10 @@ function AndroidOnStateUpdate(state) {
     Android.wOnStateUpdate(state);
 }
 
+function AndroidGetTurnServer() {
+    return Android.wgetTurnServer();
+}
+
 /**
  * Construct a new Matrix Call.
  * @constructor
@@ -760,22 +764,21 @@ var _placeCallWithConstraints = function(self, constraints) {
 
 var _createPeerConnection = function(self) {
     var servers = self.turnServers;
-    if (self.webRtc.vendor === "mozilla") {
-        // modify turnServers struct to match what mozilla expects.
-        servers = [];
-        for (var i = 0; i < self.turnServers.length; i++) {
-            for (var j = 0; j < self.turnServers[i].urls.length; j++) {
-                servers.push({
-                    url: self.turnServers[i].urls[j],
-                    username: self.turnServers[i].username,
-                    credential: self.turnServers[i].credential
-                });
-            }
-        }
+
+    var iceServers = [];
+
+    if (servers && servers.uris) {
+        iceServers.push({
+            'urls': servers.uris,
+            'username': servers.username,
+            'credential': servers.password,
+        });
+    } else {
+        iceServers = servers;
     }
 
     var pc = new self.webRtc.RtcPeerConnection({
-        iceServers: servers
+        iceServers: iceServers
     });
     pc.oniceconnectionstatechange = hookCallback(self, self._onIceConnectionStateChanged);
     pc.onsignalingstatechange = hookCallback(self, self._onSignallingStateChanged);
@@ -891,9 +894,17 @@ function createNewMatrixCall(/*client,*/ roomId) {
             !webRtc.RtcPeerConnection || !webRtc.getUserMedia) {
         return null; // Web RTC is not supported.
     }
+
+    var turnServersString = AndroidGetTurnServer();
+    var turnServs = null;
+
+    if (turnServersString) {
+        turnServs = JSON.parse(turnServersString);
+    }
+
     var opts = {
         webRtc: webRtc,
-        /*client: client,*/
+        turnServers:turnServs,
         URL: w.URL,
         roomId: roomId
     };

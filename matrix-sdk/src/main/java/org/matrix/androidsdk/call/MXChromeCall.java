@@ -51,6 +51,7 @@ public class MXChromeCall implements IMXCall {
 
     private MXSession mSession = null;
     private Context mContext = null;
+    private JsonElement mTurnServer = null;
     private Room mRoom = null;
     private ArrayList<MXCallListener> mxCallListeners = new ArrayList<MXCallListener>();
 
@@ -80,7 +81,7 @@ public class MXChromeCall implements IMXCall {
     }
 
     // creator
-    public MXChromeCall(MXSession session, Context context) {
+    public MXChromeCall(MXSession session, Context context, JsonElement turnServer) {
         if (!isSupported()) {
             throw new AssertionError("MXChromeCall : not supported with the current android version");
         }
@@ -96,6 +97,7 @@ public class MXChromeCall implements IMXCall {
         mCallId = "c" + System.currentTimeMillis();
         mSession = session;
         mContext = context;
+        mTurnServer = turnServer;
     }
 
     @SuppressLint("NewApi")
@@ -556,6 +558,15 @@ public class MXChromeCall implements IMXCall {
         @JavascriptInterface
         public String wgetRoomId() {
             return mRoom.getRoomId();
+        }
+
+        @JavascriptInterface
+        public String wgetTurnServer() {
+            if (null != mTurnServer) {
+                return mTurnServer.toString();
+            } else {
+                return null;
+            }
         }
 
         @JavascriptInterface

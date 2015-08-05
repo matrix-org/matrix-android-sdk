@@ -96,20 +96,26 @@ public class MXCallsManager {
 
     public void unpauseTurnServerRefresh() {
         mSuspendTurnServerRefresh = false;
-        mTurnServerTimer.cancel();
-        mTurnServerTimer = null;
+        if (null != mTurnServerTimer) {
+            mTurnServerTimer.cancel();
+            mTurnServerTimer = null;
+        }
         refreshTurnServer();
     }
 
     public void stopTurnServerRefresh() {
         mSuspendTurnServerRefresh = true;
+        if (null != mTurnServerTimer) {
+            mTurnServerTimer.cancel();
+            mTurnServerTimer = null;
+        }
     }
 
     /**
      * @return the turn server
      */
     public JsonElement getTurnServer() {
-        JsonElement res;
+        JsonElement res = null;
 
         synchronized (LOG_TAG) {
             res = mTurnServer;
@@ -188,29 +194,6 @@ public class MXCallsManager {
         });
     }
 
-    /*
-    mTurnServerTimer
-     */
-    /*
-                                    mPendingRelaunchTimersByEventId.put(imageRow.getEvent().eventId, relaunchTimer);
-                                relaunchTimer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        if (mPendingRelaunchTimersByEventId.containsKey(imageRow.getEvent().eventId)) {
-                                            mPendingRelaunchTimersByEventId.remove(imageRow.getEvent().eventId);
-
-                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
-                                                    new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            resend(imageRow.getEvent());
-                                                        }
-                                                    });
-                                        }
-                                    }
-                                }, 1000);
-     */
-
     /**
      * @return true if the call feature is supported
      */
@@ -264,7 +247,7 @@ public class MXCallsManager {
      */
     private IMXCall createCall(String callId) {
         // TODO switch IMXCall object
-        IMXCall call = new MXChromeCall(mSession, mContext);
+        IMXCall call = new MXChromeCall(mSession, mContext, getTurnServer());
 
         // a valid callid is provided
         if (null != callId) {
