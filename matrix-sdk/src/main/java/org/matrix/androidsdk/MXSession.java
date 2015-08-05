@@ -21,6 +21,8 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.squareup.okhttp.Call;
+
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -33,6 +35,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
+import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -75,6 +78,7 @@ public class MXSession {
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
+    private CallRestClient mCallRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -107,6 +111,7 @@ public class MXSession {
         mBingRulesRestClient = new BingRulesRestClient(credentials);
         mPushersRestClient = new PushersRestClient(credentials);
         mThirdPidRestClient = new ThirdPidRestClient(credentials);
+        mCallRestClient = new CallRestClient(credentials);
     }
 
     /**
@@ -148,6 +153,7 @@ public class MXSession {
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(credentials.userId);
@@ -215,6 +221,11 @@ public class MXSession {
     public BingRulesRestClient getBingRulesApiClient() {
         checkIfActive();
         return mBingRulesRestClient;
+    }
+
+    public CallRestClient getCallRestClient() {
+        checkIfActive();
+        return mCallRestClient;
     }
 
     public PushersRestClient getPushersRestClient() {
@@ -402,6 +413,10 @@ public class MXSession {
      * Gracefully stop the event stream.
      */
     public void stopEventStream() {
+        if (null != mCallsManager) {
+            mCallsManager.stopTurnServerRefresh();
+        }
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "stopEventStream");
 
@@ -415,6 +430,10 @@ public class MXSession {
     public void pauseEventStream() {
         checkIfActive();
 
+        if (null != mCallsManager) {
+            mCallsManager.pauseTurnServerRefresh();
+        }
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "pauseEventStream");
             mEventsThread.pause();
@@ -425,6 +444,10 @@ public class MXSession {
 
     public void resumeEventStream() {
         checkIfActive();
+
+        if (null != mCallsManager) {
+            mCallsManager.unpauseTurnServerRefresh();
+        }
 
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "unpause");

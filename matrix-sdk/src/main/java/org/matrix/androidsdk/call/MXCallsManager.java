@@ -32,17 +32,22 @@ import android.widget.Toast;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MXCallsManager {
     private static final String LOG_TAG = "MXCallsManager";
@@ -56,6 +61,11 @@ public class MXCallsManager {
 
     private MXSession mSession = null;
     private Context mContext = null;
+
+    private CallRestClient mCallResClient = null;
+    private JsonElement mTurnServer = null;
+    private Timer mTurnServerTimer = null;
+    private Boolean mSuspendTurnServerRefresh = false;
 
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
@@ -72,7 +82,134 @@ public class MXCallsManager {
     public MXCallsManager(MXSession session, Context context) {
         mSession = session;
         mContext = context;
+
+        mCallResClient = mSession.getCallRestClient();
+        refreshTurnServer();
     }
+
+    /**
+     * Turn timer management
+     */
+    public void pauseTurnServerRefresh() {
+        mSuspendTurnServerRefresh = true;
+    }
+
+    public void unpauseTurnServerRefresh() {
+        mSuspendTurnServerRefresh = false;
+        mTurnServerTimer.cancel();
+        mTurnServerTimer = null;
+        refreshTurnServer();
+    }
+
+    public void stopTurnServerRefresh() {
+        mSuspendTurnServerRefresh = true;
+    }
+
+    /**
+     * @return the turn server
+     */
+    public JsonElement getTurnServer() {
+        JsonElement res;
+
+        synchronized (LOG_TAG) {
+            res = mTurnServer;
+        }
+
+        return res;
+    }
+
+
+    public void refreshTurnServer() {
+        if (mSuspendTurnServerRefresh) {
+            return;
+        }
+
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
+                    private void restartAfter(int msDelay) {
+                        if (null != mTurnServerTimer) {
+                            mTurnServerTimer.cancel();
+                        }
+
+                        mTurnServerTimer = new Timer();
+                        mTurnServerTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                mTurnServerTimer.cancel();
+                                mTurnServerTimer = null;
+
+                                refreshTurnServer();
+                            }
+                        }, msDelay);
+                    }
+
+
+                    @Override
+                    public void onSuccess(JsonObject info) {
+                        if (info.has("uris")) {
+                            synchronized (LOG_TAG) {
+                                mTurnServer = info;
+                            }
+                        }
+
+                        if (info.has("ttl")) {
+                            int ttl = 60000;
+
+                            try {
+                                ttl = info.get("ttl").getAsInt();
+                                // restart a 90 % before ttl expires
+                                ttl = ttl * 9 / 10;
+                            } catch (Exception e) {
+
+                            }
+
+                            restartAfter(ttl);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        restartAfter(60000);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        restartAfter(60000);
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        restartAfter(60000);
+                    }
+                });
+            }
+        });
+    }
+
+    /*
+    mTurnServerTimer
+     */
+    /*
+                                    mPendingRelaunchTimersByEventId.put(imageRow.getEvent().eventId, relaunchTimer);
+                                relaunchTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (mPendingRelaunchTimersByEventId.containsKey(imageRow.getEvent().eventId)) {
+                                            mPendingRelaunchTimersByEventId.remove(imageRow.getEvent().eventId);
+
+                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
+                                                    new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            resend(imageRow.getEvent());
+                                                        }
+                                                    });
+                                        }
+                                    }
+                                }, 1000);
+     */
 
     /**
      * @return true if the call feature is supported
