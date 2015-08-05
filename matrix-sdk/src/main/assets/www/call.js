@@ -97,8 +97,13 @@ MatrixCall.prototype.updateState = function(state) {
  * Place a voice call to this room.
  * @throws If you have not specified a listener for 'error' events.
  */
-MatrixCall.prototype.placeVoiceCall = function() {
+MatrixCall.prototype.placeVoiceCall = function(remoteVideoElement, localVideoElement) {
     androidLog("placeVoiceCall");
+
+    // required to have the callee sound
+    // else the received stream is never started
+    this.remoteVideoElement = remoteVideoElement;
+
     _placeCallWithConstraints(this, _getUserMediaVideoContraints('voice'));
     this.type = 'voice';
 };

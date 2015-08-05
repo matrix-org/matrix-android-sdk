@@ -28,7 +28,10 @@ function getCallType() {
 
 // start call methods
 function placeVoiceCall() {
-	mxCall.placeVoiceCall();
+	mxCall.placeVoiceCall(
+		document.getElementById("remote"),
+		document.getElementById("self")
+	);
 }
 
 function placeVideoCall() {
