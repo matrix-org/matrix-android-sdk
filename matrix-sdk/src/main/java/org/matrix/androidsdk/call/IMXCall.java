@@ -128,7 +128,7 @@ public interface IMXCall {
     /**
      * The call is hung up.
      */
-    public void hangup();
+    public void hangup(String reason);
 
     // listener managemenent
     public void addListener(MXCallListener callListener);

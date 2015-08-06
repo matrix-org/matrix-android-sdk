@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -33,11 +34,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
@@ -373,7 +376,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * The call is hung up.
      */
-    public void hangup() {
+    public void hangup(String reason) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
@@ -381,6 +384,45 @@ public class MXChromeCall implements IMXCall {
                     mWebView.loadUrl("javascript:hangup()");
                 }
             });
+        } else {
+            JsonObject hangupContent = new JsonObject();
+
+            hangupContent.add("version", new JsonPrimitive(0));
+            hangupContent.add("call_id", new JsonPrimitive(this.mCallId));
+
+            if (!TextUtils.isEmpty(reason)) {
+                hangupContent.add("reason", new JsonPrimitive(reason));
+            }
+
+            Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mRoom.getRoomId());
+
+            if (null != event) {
+                mUIThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onCallEnd();
+                    }
+                });
+                
+                mRoom.sendEvent(event, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                    }
+                });
+
+            }
         }
     }
 
@@ -781,7 +823,7 @@ public class MXChromeCall implements IMXCall {
                                         public void run() {
                                             try {
                                                 if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
-                                                    hangup();
+                                                    hangup(null);
                                                 }
 
                                                 // cancel the timer
