@@ -57,6 +57,11 @@ public class MXCallsManager {
          * Called when there is an incoming call within the room.
          */
         public void onIncomingCall(IMXCall call);
+
+        /**
+         * Called when a called has been hung up
+         */
+        public void onCallHangUp(IMXCall call);
     }
 
     private MXSession mSession = null;
@@ -241,6 +246,21 @@ public class MXCallsManager {
     }
 
     /**
+     * dispatch the onCallHangUp event to the listeners
+     * @param call the call
+     */
+    private void onCallHangUp(IMXCall call) {
+        synchronized (this) {
+            for(MXCallsManagerListener l : mListeners) {
+                try {
+                    l.onCallHangUp(call);
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
+    /**
      * create a new call
      * @param callId the call Id (null to use a default value)
      * @return the IMXCall
@@ -366,8 +386,7 @@ public class MXCallsManager {
                                 }
                             }
                         } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
-
-                            IMXCall call = callWithCallId(callId);
+                            final IMXCall call = callWithCallId(callId);
                             if (null != call) {
                                 call.setRoom(room);
 
@@ -378,6 +397,15 @@ public class MXCallsManager {
                                 synchronized (this) {
                                     mCallsByCallId.remove(callId);
                                 }
+
+                                // warn that a call has been hung up
+                                mUIThreadHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        onCallHangUp(call);
+                                        onCallHangUp(call);
+                                    }
+                                });
                             }
                         }
                     }

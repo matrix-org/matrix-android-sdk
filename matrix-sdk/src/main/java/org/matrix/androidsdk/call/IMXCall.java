@@ -20,6 +20,7 @@ import android.view.View;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -155,6 +156,11 @@ public interface IMXCall {
      * @param room the room
      */
     public void setRoom(Room room);
+
+    /**
+     * @return the session
+     */
+    public MXSession getSession();
 
     /**
      * @return true if the call is an incoming call.

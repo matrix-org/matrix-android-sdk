@@ -476,6 +476,13 @@ public class MXChromeCall implements IMXCall {
     }
 
     /**
+     * @return the session
+     */
+    public MXSession getSession() {
+        return mSession;
+    }
+
+    /**
      * @return true if the call is an incoming call.
      */
     public Boolean isIncoming() {
