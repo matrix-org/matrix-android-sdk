@@ -210,6 +210,16 @@ public class MXChromeCall implements IMXCall {
             });
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
             mCallInviteParams = callInviteParams;
+
+            // detect call type from the sdp
+            try {
+                JsonObject offer = mCallInviteParams.get("offer").getAsJsonObject();
+                JsonElement sdp = offer.get("sdp");
+                String sdpValue = sdp.getAsString();
+                setIsVideo(sdpValue.indexOf("m=video") >= 0);
+            } catch (Exception e) {
+
+            }
         }
     }
 

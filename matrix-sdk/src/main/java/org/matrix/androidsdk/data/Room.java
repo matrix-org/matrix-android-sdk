@@ -1193,19 +1193,23 @@ public class Room {
      * @return true if a call can be performed.
      */
     public Boolean canPerformCall() {
+        return 1 == callees().size();
+    }
+
+    /**
+     * @return a list of callable members.
+     */
+    public ArrayList<RoomMember> callees() {
+        ArrayList<RoomMember> res = new ArrayList<RoomMember>();
+
         Collection<RoomMember> members = getMembers();
-        int count = members.size();
 
-        if (count >= 2) {
-            count = 0;
-
-            for(RoomMember m : members) {
-                if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership)) {
-                    count++;
-                }
+        for(RoomMember m : members) {
+            if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership) && !mMyUserId.equals(m.getUserId())) {
+                res.add(m);
             }
         }
 
-        return 2 == count;
+        return res;
     }
 }
