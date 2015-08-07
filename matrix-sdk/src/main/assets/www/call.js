@@ -84,6 +84,15 @@ MatrixCall.prototype.updateState = function(state) {
 
     AndroidOnStateUpdate(state);
 
+    if (this.state == 'connected') {
+        if (this.localAVStream) {
+            var audioTracks = this.localAVStream.getAudioTracks();
+            for (var i = 0; i < audioTracks.length; i++) {
+                audioTracks[i].enabled = true;
+            }
+        }
+    }
+
     if (this.getRemoteVideoElement()) {
         if (this.state == 'connected') {
            this.getRemoteVideoElement().style.display = 'block';
@@ -274,10 +283,13 @@ MatrixCall.prototype._gotUserMediaForInvite = function(stream) {
 
 
     this.localAVStream = stream;
+
+    // mute the sound until the call is connected
     var audioTracks = stream.getAudioTracks();
     for (var i = 0; i < audioTracks.length; i++) {
-        audioTracks[i].enabled = true;
+        audioTracks[i].enabled = false;
     }
+
     this.peerConn = _createPeerConnection(this);
     this.peerConn.addStream(stream);
     this.peerConn.createOffer(
@@ -318,9 +330,11 @@ MatrixCall.prototype._gotUserMediaForIncomingCall = function(stream) {
     }
 
     self.localAVStream = stream;
+
+    // mute the incoming sound until the connection is established
     var audioTracks = stream.getAudioTracks();
     for (var i = 0; i < audioTracks.length; i++) {
-        audioTracks[i].enabled = true;
+        audioTracks[i].enabled = false;
     }
     self.peerConn.addStream(stream);
 }
@@ -385,9 +399,11 @@ MatrixCall.prototype._gotUserMediaForAnswer = function(stream) {
     }
 
     self.localAVStream = stream;
+
+    // mute until the connection is established
     var audioTracks = stream.getAudioTracks();
     for (var i = 0; i < audioTracks.length; i++) {
-        audioTracks[i].enabled = true;
+        audioTracks[i].enabled = false;
     }
     self.peerConn.addStream(stream);
 
