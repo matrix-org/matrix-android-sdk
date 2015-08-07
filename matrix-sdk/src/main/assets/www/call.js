@@ -84,6 +84,7 @@ MatrixCall.prototype.updateState = function(state) {
 
     AndroidOnStateUpdate(state);
 
+    // the sound has been muted until the connection is established
     if (this.state == 'connected') {
         if (this.localAVStream) {
             var audioTracks = this.localAVStream.getAudioTracks();
@@ -91,6 +92,15 @@ MatrixCall.prototype.updateState = function(state) {
                 audioTracks[i].enabled = true;
             }
         }
+
+        if (this.remoteAVStream) {
+            var audioTracks = this.remoteAVStream.getAudioTracks();
+            for (var i = 0; i < audioTracks.length; i++) {
+                audioTracks[i].enabled = true;
+            }
+        }
+
+        _tryPlayRemoteStream(this);
     }
 
     if (this.getRemoteVideoElement()) {
@@ -133,7 +143,6 @@ MatrixCall.prototype.placeVideoCall = function(remoteVideoElement, localVideoEle
 
     _placeCallWithConstraints(this, _getUserMediaVideoContraints('video'));
     this.type = 'video';
-    _tryPlayRemoteStream(this);
 };
 
 /**
@@ -159,7 +168,6 @@ MatrixCall.prototype.getRemoteVideoElement = function() {
  */
 MatrixCall.prototype.setRemoteVideoElement = function(element) {
     this.remoteVideoElement = element;
-    _tryPlayRemoteStream(this);
 };
 
 /**
@@ -179,7 +187,8 @@ MatrixCall.prototype._initWithInvite = function(msg) {
             hookCallback(self, self._onSetRemoteDescriptionError)
         );
     }
-    this.updateState('ringing');
+
+    this.updateState('wait_local_media');
     this.direction = 'inbound';
 
     if (self.getLocalVideoElement()) {
@@ -337,6 +346,8 @@ MatrixCall.prototype._gotUserMediaForIncomingCall = function(stream) {
         audioTracks[i].enabled = false;
     }
     self.peerConn.addStream(stream);
+
+    this.updateState('ringing');
 }
 
 MatrixCall.prototype._create_answer = function() {
@@ -627,6 +638,12 @@ MatrixCall.prototype._onAddStream = function(event) {
     // not currently implemented in chrome
     event.stream.onstarted = hookCallback(self, self._onRemoteStreamStarted);
 
+    // disable the sound until the connection is established
+    var audioTracks = this.remoteAVStream.getAudioTracks();
+    for (var i = 0; i < audioTracks.length; i++) {
+        audioTracks[i].enabled = false;
+    }
+
     _tryPlayRemoteStream(this);
 };
 
@@ -741,7 +758,9 @@ var stopAllMedia = function(self) {
 };
 
 var _tryPlayRemoteStream = function(self) {
-    if (self.getRemoteVideoElement() && self.remoteAVStream) {
+    // play the remote stream only when the connection is established
+    // else it triggers buzzer sound while establishing the connection.
+    if (self.getRemoteVideoElement() && self.remoteAVStream && (self.state == 'connected')) {
         var player = self.getRemoteVideoElement();
         player.autoplay = true;
         player.src = self.URL.createObjectURL(self.remoteAVStream);
@@ -749,10 +768,6 @@ var _tryPlayRemoteStream = function(self) {
             var vel = self.getRemoteVideoElement();
             if (vel.play) {
                 vel.play();
-            }
-            // OpenWebRTC does not support oniceconnectionstatechange yet
-            if (self.webRtc.isOpenWebRTC()) {
-                self.updateState('connected');
             }
         }, 0);
     }

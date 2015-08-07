@@ -42,10 +42,10 @@ public interface IMXCall {
     // the call is preparing
     public static final String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
 
-    // outgoing calls : initializing the local audio / video
+    // incoming/outgoing calls : initializing the local audio / video
     public static final String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
 
-    // incoming calls : the device was ringing but it got the local media (audio/video)
+    // incoming calls : the local media is retrieved
     public static final String CALL_STATE_WAIT_CREATE_OFFER = "IMXCall.CALL_STATE_WAIT_CREATE_OFFER";
 
     // outgoing calls : the call invitation is sent
