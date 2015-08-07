@@ -33,18 +33,40 @@ import java.util.Collection;
  */
 public interface IMXCall {
     // call state events
+    // the call is an empty shell nothing has been initialized
     public static final String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
+
+    // the callview has been created
     public static final String CALL_STATE_CREATING_CALL_VIEW = "IMXCall.CALL_STATE_CREATING_CALL_VIEW";
+
+    // the call is preparing
     public static final String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
+
+    // outgoing calls : initializing the local audio / video
     public static final String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
+
+    // incoming calls : the device was ringing but it got the local media (audio/video)
     public static final String CALL_STATE_WAIT_CREATE_OFFER = "IMXCall.CALL_STATE_WAIT_CREATE_OFFER";
+
+    // outgoing calls : the call invitation is sent
     public static final String CALL_STATE_INVITE_SENT = "IMXCall.CALL_STATE_INVITE_SENT";
+
+    // the device is ringing
+    // incoming calls : after applying the incoming params
+    // outgoing calls : after getting the m.call.invite echo
     public static final String CALL_STATE_RINGING = "IMXCall.CALL_STATE_RINGING";
+
+    // incoming calls : create the call answer
     public static final String CALL_STATE_CREATE_ANSWER = "IMXCall.CALL_STATE_CREATE_ANSWER";
+
+    // the call connection is connecting
     public static final String CALL_STATE_CONNECTING = "IMXCall.CALL_STATE_CONNECTING";
+
+    //
     public static final String CALL_STATE_CONNECTED = "IMXCall.CALL_STATE_CONNECTED";
+
+    // call is ended
     public static final String CALL_STATE_ENDED = "IMXCall.CALL_STATE_ENDED";
-    public static final String CALL_STATE_INVITE_EXPIRED = "IMXCall.CALL_STATE_INVITE_EXPIRED";
 
     // chrome type
     public static final String CHROME_CALL =  "IMXCall.CHROME_CALL";
