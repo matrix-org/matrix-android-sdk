@@ -363,7 +363,7 @@ MatrixCall.prototype._create_answer = function() {
                 }
             };
             sendEvent(self, 'm.call.answer', content);
-            this.updateState('connecting');
+            self.updateState('connecting');
         }, function() {
             debuglog("Error setting local description!");
         }, constraints);
