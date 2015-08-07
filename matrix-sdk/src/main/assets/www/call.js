@@ -317,7 +317,7 @@ MatrixCall.prototype._gotUserMediaForIncomingCall = function(stream) {
 
     localVidEl.style.display = 'block';
 
-    if (localVidEl && self.type == 'video') {
+    if (localVidEl) {
         localVidEl.autoplay = true;
         localVidEl.src = self.URL.createObjectURL(stream);
         localVidEl.muted = self;
