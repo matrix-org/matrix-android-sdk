@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk;
 
-import android.content.Context;
 import android.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -25,10 +24,8 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -39,7 +36,6 @@ import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.lang.reflect.Member;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -542,7 +538,8 @@ public class MXDataHandler implements IMXEventListener {
                     mStore.updateEventContent(event.roomId, event.redacts, event.content);
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                boolean store = true;
+                // the candidate events are not stored.
+                boolean store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
 
                 // thread issue
                 // if the user leaves a room,
