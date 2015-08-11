@@ -595,6 +595,17 @@ public class MXChromeCall implements IMXCall {
         }
     }
 
+    private void onCallError(String error) {
+        synchronized (LOG_TAG) {
+            for (MXCallListener listener : mxCallListeners) {
+                try {
+                    listener.onCallError(error);
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
     // private class
     private class CallWebAppInterface {
         public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
@@ -638,14 +649,10 @@ public class MXChromeCall implements IMXCall {
         public void wCallError(String message) {
             Log.e(LOG_TAG, "WebView error Message : " + message);
             if ("ice_failed".equals(message)) {
-                showToast(mContext.getString(R.string.call_error_ice_failed));
+                onCallError(CALL_ERROR_ICE_FAILED);
             } else if ("user_media_failed".equals(message)) {
-                showToast(mContext.getString(R.string.call_error_user_media_failed));
+                onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
             }
-        }
-
-        private void showToast(String toast)  {
-            Toast.makeText(mContext, toast, Toast.LENGTH_LONG).show();
         }
 
         @JavascriptInterface
@@ -849,6 +856,7 @@ public class MXChromeCall implements IMXCall {
                                         public void run() {
                                             try {
                                                 if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                                                    onCallError(CALL_ERROR_USER_NOT_RESPONDING);
                                                     hangup(null);
                                                 }
 

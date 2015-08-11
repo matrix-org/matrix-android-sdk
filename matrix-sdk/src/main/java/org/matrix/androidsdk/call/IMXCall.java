@@ -71,6 +71,17 @@ public interface IMXCall {
     // chrome type
     public static final String CHROME_CALL =  "IMXCall.CHROME_CALL";
 
+    // error codes
+    // cannot initialize the camera
+    public static final String CALL_ERROR_CAMERA_INIT_FAILED = "IMXCall.CALL_ERROR_CAMERA_INIT_FAILED";
+
+    // ICE error
+    public static final String CALL_ERROR_ICE_FAILED = "IMXCall.CALL_ERROR_ICE_FAILED";
+
+    // the user did not respond to the call.
+    public static final String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
+
+
     public interface MXCallListener {
         /**
          * Called when the call state change
