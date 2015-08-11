@@ -52,5 +52,12 @@
     <string name="call_invitation">Call invitation.</string>
     <string name="call_hungup">Call hung up.</string>
     <string name="call_answered">Call answered.</string>
+    <string name="call_error_user_media_failed">Camera initialization error.</string>
+    <string name="call_error_ice_failed">Connection failed..</string>
+
+
+
+
+
 
 </resources>
