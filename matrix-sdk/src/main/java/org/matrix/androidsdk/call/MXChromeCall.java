@@ -29,6 +29,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -38,6 +39,7 @@ import com.google.gson.JsonPrimitive;
 
 import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
@@ -205,7 +207,6 @@ public class MXChromeCall implements IMXCall {
                     mWebView.post(new Runnable() {
                         @Override
                         public void run() {
-                            mWebView.loadUrl("javascript:getCallType()");
                             checkPendingCandidates();
                         }
                     });
@@ -634,23 +635,17 @@ public class MXChromeCall implements IMXCall {
         }
 
         @JavascriptInterface
-        public void wCallError(int code , String message) {
+        public void wCallError(String message) {
             Log.e(LOG_TAG, "WebView error Message : " + message);
+            if ("ice_failed".equals(message)) {
+                showToast(mContext.getString(R.string.call_error_ice_failed));
+            } else if ("user_media_failed".equals(message)) {
+                showToast(mContext.getString(R.string.call_error_user_media_failed));
+            }
         }
 
-        @JavascriptInterface
-        public void wEmit(String title , String message) {
-            //Toast.makeText(mContext, title + " : " + message, Toast.LENGTH_LONG).show();
-        }
-
-        @JavascriptInterface
-        public void showToast(String toast)  {
-            //Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show();
-        }
-
-        @JavascriptInterface
-        public void onCallType(String type)  {
-            mIsVideoCall = "video".equals(type);
+        private void showToast(String toast)  {
+            Toast.makeText(mContext, toast, Toast.LENGTH_LONG).show();
         }
 
         @JavascriptInterface
@@ -711,6 +706,42 @@ public class MXChromeCall implements IMXCall {
             });
         }
 
+        private void sendHangup(final Event event) {
+            if (null != mCallTimeoutTimer) {
+                mCallTimeoutTimer.cancel();
+                mCallTimeoutTimer = null;
+            }
+
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    onCallEnd();
+                }
+            });
+
+            mPendingEvents.clear();
+
+            mRoom.sendEvent(event, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    // try again
+                    sendHangup(event);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                }
+            });
+        }
+
         private void sendNextEvent() {
             mUIThreadHandler.post(new Runnable() {
                 @Override
@@ -732,16 +763,34 @@ public class MXChromeCall implements IMXCall {
                                 });
                             }
 
+                            private void commonFailure() {
+                                // let try next candidate event
+                                if (mPendingEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                    mUIThreadHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mPendingEvent = null;
+                                            sendNextEvent();
+                                        }
+                                    });
+                                } else {
+                                    hangup("");
+                                }
+                            }
+
                             @Override
                             public void onNetworkError(Exception e) {
+                                commonFailure();
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
+                                commonFailure();
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
+                                commonFailure();
                             }
                         });
                     }
@@ -787,37 +836,7 @@ public class MXChromeCall implements IMXCall {
                             if (null != event) {
                                 // receive an hangup -> close the window asap
                                 if (eventType.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
-                                    if (null != mCallTimeoutTimer) {
-                                        mCallTimeoutTimer.cancel();
-                                        mCallTimeoutTimer = null;
-                                    }
-
-                                    mUIThreadHandler.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            onCallEnd();
-                                        }
-                                    });
-
-                                    mPendingEvents.clear();
-
-                                    mRoom.sendEvent(event, new ApiCallback<Void>() {
-                                        @Override
-                                        public void onSuccess(Void info) {
-                                        }
-
-                                        @Override
-                                        public void onNetworkError(Exception e) {
-                                        }
-
-                                        @Override
-                                        public void onMatrixError(MatrixError e) {
-                                        }
-
-                                        @Override
-                                        public void onUnexpectedError(Exception e) {
-                                        }
-                                    });
+                                    sendHangup(event);
                                 } else {
                                     mPendingEvents.add(event);
                                 }

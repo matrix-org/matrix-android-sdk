@@ -22,10 +22,6 @@ function onLoaded() {
     return Android.wOnLoaded();
 }
 
-function getCallType() {
-    Android.onCallType(mxCall.type);
-}
-
 // start call methods
 function placeVoiceCall() {
 	mxCall.placeVoiceCall(

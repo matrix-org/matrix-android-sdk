@@ -3,9 +3,7 @@
  * This is an internal module. See {@link createNewMatrixCall} for the public API.
  * @module webrtc/call
  */
-//var utils = require("../utils");
-//var EventEmitter = require("events").EventEmitter;
-var DEBUG = true;  // set true to enable console logging.
+var DEBUG = false;  // set true to enable console logging.
 
 // events: hangup, error, replaced
 
@@ -13,12 +11,8 @@ function androidLog(message) {
     Android.wlog(message);
 }
 
-function AndroidCallError(code, message) {
-    Android.wCallError(code, message);
-}
-
-function AndroidEmit(title, message) {
-    Android.wEmit(title, message);
+function AndroidCallError(message) {
+    Android.wCallError(message);
 }
 
 function AndroidSendEvent(roomId, event, content) {
@@ -56,25 +50,12 @@ function MatrixCall(opts) {
     this.callId = "c" + new Date().getTime();
     this.state = 'fledgling';
     this.didConnect = false;
-
-    // A queue for candidates waiting to go out.
-    // We try to amalgamate candidates into a single candidate message where
-    // possible
-    this.candidateSendQueue = [];
-    this.candidateSendTries = 0;
 }
 
 /** The length of time a call can be ringing for. */
 MatrixCall.CALL_TIMEOUT_MS = 60000;
 /** The fallback server to use for STUN. */
 MatrixCall.FALLBACK_STUN_SERVER = 'stun:stun.l.google.com:19302';
-/** An error code when the local client failed to create an offer. */
-MatrixCall.ERR_LOCAL_OFFER_FAILED = "local_offer_failed";
-/**
- * An error code when there is no local mic/camera to use. This may be because
- * the hardware isn't plugged in, or the user has explicitly denied access.
- */
-MatrixCall.ERR_NO_USER_MEDIA = "no_user_media";
 
 /**
  * update the matrix call state
@@ -542,7 +523,8 @@ MatrixCall.prototype._gotLocalOffer = function(description) {
  * @param {Object} error
  */
 MatrixCall.prototype._getLocalOfferFailed = function(error) {
-    AndroidEmit(MatrixCall.ERR_LOCAL_OFFER_FAILED, "Failed to start audio for call!");
+    AndroidCallError("user_media_failed");
+    this.hangup("user_media_failed");
 };
 
 /**
@@ -550,10 +532,7 @@ MatrixCall.prototype._getLocalOfferFailed = function(error) {
  * @private
  */
 MatrixCall.prototype._getUserMediaFailed = function() {
-    debuglog("_getUserMediaFailed");
-
-    AndroidEmit(MatrixCall.ERR_NO_USER_MEDIA,  "Couldn't start capturing media! Is your microphone set up and " +
-                                                          "does this app have permission?");
+    AndroidCallError("user_media_failed");
     this.hangup("user_media_failed");
 };
 
@@ -576,6 +555,7 @@ MatrixCall.prototype._onIceConnectionStateChanged = function() {
         this.updateState('connected');
         this.didConnect = true;
     } else if (this.peerConn.iceConnectionState == 'failed') {
+        AndroidCallError("ice_failed");
         this.hangup('ice_failed');
     }
 };
@@ -673,8 +653,6 @@ MatrixCall.prototype._onRemoteStreamEnded = function(event) {
     if (this.peerConn.signalingState != 'closed') {
         this.peerConn.close();
     }
-
-    AndroidEmit("hangup", "hangup");
 };
 
 /**
@@ -773,9 +751,6 @@ var _tryPlayRemoteStream = function(self) {
     }
 };
 
-var callError = function(code, msg) {
-    AndroidCallError(code, msg);
-};
 
 var debuglog = function() {
     if (0 < arguments.length) {
@@ -864,8 +839,6 @@ var forAllTracksOnStream = function(s, f) {
     forAllAudioTracksOnStream(s, f);
 };
 
-/** The MatrixCall class. */
-//module.exports.MatrixCall = MatrixCall;
 
 /**
  * Create a new Matrix call for the browser.
