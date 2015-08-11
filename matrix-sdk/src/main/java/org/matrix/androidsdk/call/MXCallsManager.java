@@ -223,9 +223,7 @@ public class MXCallsManager {
     public void removeListener(MXCallsManagerListener listener) {
         synchronized (this) {
             if (null != listener) {
-                if (mListeners.indexOf(listener) < 0) {
-                    mListeners.add(listener);
-                }
+                mListeners.remove(listener);
             }
         }
     }
