@@ -403,7 +403,6 @@ public class MXCallsManager {
                                     @Override
                                     public void run() {
                                         onCallHangUp(call);
-                                        onCallHangUp(call);
                                     }
                                 });
                             }
