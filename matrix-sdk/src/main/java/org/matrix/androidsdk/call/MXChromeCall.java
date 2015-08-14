@@ -18,6 +18,7 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -29,54 +30,32 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-
-import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MXChromeCall implements IMXCall {
+public class MXChromeCall extends MXCall {
     private static final String LOG_TAG = "MXChromeCall";
-
-    private MXSession mSession = null;
-    private Context mContext = null;
-    private JsonElement mTurnServer = null;
-    private Room mRoom = null;
-    private ArrayList<MXCallListener> mxCallListeners = new ArrayList<MXCallListener>();
 
     private WebView mWebView = null;
     private CallWebAppInterface mCallWebAppInterface = null;
 
-    private Boolean mIsIncoming = false;
     private Boolean mIsIncomingPrepared = false;
 
     private JsonObject mCallInviteParams = null;
 
-    // the current call id
-    private String mCallId = null;
-
     private JsonArray mPendingCandidates = new JsonArray();
-
-    // UI thread handler
-    final Handler mUIThreadHandler = new Handler();
-
-    private Boolean mIsVideoCall = false;
 
     /**
      * @return true if this stack can perform calls.
@@ -106,6 +85,7 @@ public class MXChromeCall implements IMXCall {
     }
 
     @SuppressLint("NewApi")
+    @Override
     public void createCallView() {
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -113,7 +93,7 @@ public class MXChromeCall implements IMXCall {
                 mWebView = new WebView(mContext);
 
                 // warn that the webview must be added in an activity/fragment
-                onViewLoading();
+                onViewLoading(mWebView);
 
                 mUIThreadHandler.post(new Runnable() {
                     @Override
@@ -174,6 +154,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * Start a call.
      */
+    @Override
     public void placeCall() {
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             mIsIncoming = false;
@@ -192,6 +173,7 @@ public class MXChromeCall implements IMXCall {
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
      */
+    @Override
     public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
         mCallId = callId;
 
@@ -231,6 +213,7 @@ public class MXChromeCall implements IMXCall {
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
      */
+    @Override
     public void launchIncomingCall() {
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId);
@@ -319,6 +302,7 @@ public class MXChromeCall implements IMXCall {
      * Manage the call events.
      * @param event the call event.
      */
+    @Override
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
             // event from other member
@@ -363,6 +347,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * The call is accepted.
      */
+    @Override
     public void answer() {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
@@ -377,6 +362,7 @@ public class MXChromeCall implements IMXCall {
     /**
      * The call is hung up.
      */
+    @Override
     public void hangup(String reason) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
@@ -386,134 +372,16 @@ public class MXChromeCall implements IMXCall {
                 }
             });
         } else {
-            JsonObject hangupContent = new JsonObject();
-
-            hangupContent.add("version", new JsonPrimitive(0));
-            hangupContent.add("call_id", new JsonPrimitive(this.mCallId));
-
-            if (!TextUtils.isEmpty(reason)) {
-                hangupContent.add("reason", new JsonPrimitive(reason));
-            }
-
-            Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mRoom.getRoomId());
-
-            if (null != event) {
-                mUIThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onCallEnd();
-                    }
-                });
-                
-                mRoom.sendEvent(event, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                    }
-                });
-
-            }
-        }
-    }
-
-    // listener managemenent
-    public void addListener(MXCallListener callListener){
-        synchronized (LOG_TAG) {
-            mxCallListeners.add(callListener);
-        }
-    }
-
-    public void removeListener(MXCallListener callListener) {
-        synchronized (LOG_TAG) {
-            mxCallListeners.remove(callListener);
-        }
-    }
-
-    public void clearListeners() {
-        synchronized (LOG_TAG) {
-            mxCallListeners.clear();
+            sendHangup(reason);
         }
     }
 
     // getters / setters
-    /**
-     * @return the callId
-     */
-    public String getCallId() {
-        return mCallId;
-    }
-
-    /**
-     * Set the callId
-     */
-    public void setCallId(String callId) {
-        mCallId = callId;
-    }
-
-    /**
-     * @return the linked room
-     */
-    public Room getRoom() {
-        return mRoom;
-    }
-
-    /**
-     * Set the linked room.
-     * @param room the room
-     */
-    public void setRoom(Room room) {
-        mRoom = room;
-    }
-
-    /**
-     * @return the session
-     */
-    public MXSession getSession() {
-        return mSession;
-    }
-
-    /**
-     * @return true if the call is an incoming call.
-     */
-    public Boolean isIncoming() {
-        return mIsIncoming;
-    }
-
-    /**
-     * @param isIncoming true if the call is an incoming one.
-     */
-    public void setIsIncoming(Boolean isIncoming) {
-        mIsIncoming = isIncoming;
-    }
-
-    /**
-     * Defines the call type
-     */
-    public void setIsVideo(Boolean isVideo) {
-        mIsVideoCall = isVideo;
-    }
-
-    /**
-     * @return true if the call is a video call.
-     */
-    public Boolean isVideo() {
-        return mIsVideoCall;
-    }
 
     /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
+    @Override
     public String getCallState() {
         if (null != mCallWebAppInterface) {
             return mCallWebAppInterface.mCallState;
@@ -525,58 +393,33 @@ public class MXChromeCall implements IMXCall {
     /**
      * @return the callView
      */
+    @Override
     public View getCallView() {
         return mWebView;
     }
 
-    // listener methods
-    private void onStateDidChange(String newState) {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onStateDidChange(newState);
-                    ;
-                } catch (Exception e) {
-                }
-            }
+    /**
+     * @return the callView visibility
+     */
+    @Override
+    public int getVisibility() {
+        if (null != mWebView) {
+            return mWebView.getVisibility();
+        } else {
+            return View.GONE;
         }
     }
 
-    // warn that the webview is loading
-    private void onViewLoading() {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onViewLoading(mWebView);
-                    ;
-                } catch (Exception e) {
-                }
-            }
+    /**
+     * Set the callview visibility
+     */
+    public void setVisibility(int visibility) {
+        if (null != mWebView) {
+            mWebView.setVisibility(visibility);
         }
     }
 
-    private void onViewReady() {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onViewReady();
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    private void onCallEnd() {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallEnd();
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
+    @Override
     public void onAnsweredElsewhere() {
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -585,33 +428,12 @@ public class MXChromeCall implements IMXCall {
             }
         });
 
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallAnsweredElsewhere();
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    private void onCallError(String error) {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallError(error);
-                } catch (Exception e) {
-                }
-            }
-        }
+        dispatchAnsweredElsewhere();
     }
 
     // private class
     private class CallWebAppInterface {
         public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
-
-        private ArrayList<Event> mPendingEvents = new ArrayList<Event>();
-        private Event mPendingEvent = null;
         private Timer mCallTimeoutTimer = null;
 
         CallWebAppInterface()  {
@@ -745,62 +567,6 @@ public class MXChromeCall implements IMXCall {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                }
-            });
-        }
-
-        private void sendNextEvent() {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    // ready to send
-                    if ((null == mPendingEvent) && (0 != mPendingEvents.size())) {
-                        mPendingEvent = mPendingEvents.get(0);
-                        mPendingEvents.remove(mPendingEvent);
-
-                        mRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                mUIThreadHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mPendingEvent = null;
-                                        sendNextEvent();
-                                    }
-                                });
-                            }
-
-                            private void commonFailure() {
-                                // let try next candidate event
-                                if (mPendingEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                                    mUIThreadHandler.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mPendingEvent = null;
-                                            sendNextEvent();
-                                        }
-                                    });
-                                } else {
-                                    hangup("");
-                                }
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                commonFailure();
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                commonFailure();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                commonFailure();
-                            }
-                        });
-                    }
                 }
             });
         }

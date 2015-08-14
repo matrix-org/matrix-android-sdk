@@ -122,6 +122,16 @@ public interface IMXCall {
      */
     public void createCallView();
 
+    /**
+     * The activity is paused.
+     */
+    public void onPause();
+
+    /**
+     * The activity is resumed.
+     */
+    public void onResume();
+
     // actions (must be done after onViewReady()
     /**
      * Start a call.
@@ -224,4 +234,19 @@ public interface IMXCall {
      * @return the callView
      */
     public View getCallView();
+
+    /**
+     * @return the callView visibility
+     */
+    public int getVisibility();
+
+    /**
+     * Set the callview visibility
+     */
+    public void setVisibility(int visibility);
+
+    /**
+     * Toogle the speaker
+     */
+    public void toggleSpeaker();
 }

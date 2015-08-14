@@ -18,6 +18,7 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
@@ -120,7 +121,7 @@ public class MXCallsManager {
      * @return the turn server
      */
     public JsonElement getTurnServer() {
-        JsonElement res = null;
+        JsonElement res;
 
         synchronized (LOG_TAG) {
             res = mTurnServer;
@@ -128,7 +129,6 @@ public class MXCallsManager {
 
         return res;
     }
-
 
     public void refreshTurnServer() {
         if (mSuspendTurnServerRefresh) {
@@ -203,7 +203,7 @@ public class MXCallsManager {
      * @return true if the call feature is supported
      */
     public Boolean isSupported() {
-        return MXChromeCall.isSupported();
+        return MXChromeCall.isSupported() || MXJingleCall.isSupported();
     }
 
     /**
@@ -264,8 +264,9 @@ public class MXCallsManager {
      * @return the IMXCall
      */
     private IMXCall createCall(String callId) {
-        // TODO switch IMXCall object
-        IMXCall call = new MXChromeCall(mSession, mContext, getTurnServer());
+        // TODO switch IMXCall objec
+        //IMXCall call = new MXChromeCall(mSession, mContext, getTurnServer());
+        IMXCall call = new MXJingleCall(mSession, mContext, getTurnServer());
 
         // a valid callid is provided
         if (null != callId) {
@@ -450,5 +451,26 @@ public class MXCallsManager {
         }
 
         return call;
+    }
+
+    /**
+     * Sets the speakerphone on or off.
+     *
+     * @param isOn true to turn on speakerphone;
+     *           false to turn it off
+     */
+    public static void setSpeakerphoneOn(Context context, boolean isOn) {
+        AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+
+        // ignore speaker button if a bluetooth headset is connected
+        if (!audioManager.isBluetoothA2dpOn())
+        {
+            // do not update the mode in VOip mode (Chrome call)
+            if (audioManager.getMode() != AudioManager.MODE_IN_COMMUNICATION) {
+                audioManager.setMode(isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL);
+            }
+
+            audioManager.setSpeakerphoneOn(!audioManager.isSpeakerphoneOn());
+        }
     }
 }
