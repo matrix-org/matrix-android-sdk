@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
+import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
@@ -72,6 +73,7 @@ public class MXJingleCall extends MXCall {
 
     private GLSurfaceView mCallView = null;
 
+    private Boolean mIsVideoSourceStopped = false;
     private VideoSource mVideoSource = null;
     private VideoTrack  mLocalVideoTrack = null;
     private AudioSource mAudioSource = null;
@@ -84,8 +86,12 @@ public class MXJingleCall extends MXCall {
     // default value
     public String mCallState = CALL_STATE_CREATED;
 
-    private VideoRenderer remoteRenderer = null;
-    private VideoRenderer localRenderer = null;
+    private Boolean mUsingLargeLocalRenderer = true;
+    private VideoRenderer mLargeRemoteRenderer = null;
+    private VideoRenderer mSmallLocalRenderer = null;
+
+    private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
+    private VideoRenderer mLargeLocalRenderer = null;
 
     private static Boolean mIsInitialized = false;
 
@@ -160,6 +166,7 @@ public class MXJingleCall extends MXCall {
             public void run() {
                 mCallView = new GLSurfaceView(mContext);
                 mCallView.setVisibility(View.GONE);
+
                 onViewLoading(mCallView);
 
                 mUIThreadHandler.postDelayed(new Runnable() {
@@ -350,6 +357,23 @@ public class MXJingleCall extends MXCall {
                             @Override
                             public void run() {
                                 if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
+
+                                    if (mUsingLargeLocalRenderer) {
+                                        mLocalVideoTrack.setEnabled(false);
+                                        VideoRendererGui.remove(mLargeLocalRendererCallbacks);
+                                        mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
+                                        mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                        mLocalVideoTrack.setEnabled(true);
+                                        mUsingLargeLocalRenderer = false;
+
+                                        mCallView.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                mCallView.invalidate();
+                                            }
+                                        });
+                                    }
+
                                     onStateDidChange(IMXCall.CALL_STATE_CONNECTED);
                                 } else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
                                     // TODO warn the user ?
@@ -443,7 +467,7 @@ public class MXJingleCall extends MXCall {
                                 if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
                                     mRemoteVideoTrack = mediaStream.videoTracks.get(0);
                                     mRemoteVideoTrack.setEnabled(true);
-                                    mRemoteVideoTrack.addRenderer(remoteRenderer);
+                                    mRemoteVideoTrack.addRenderer(mLargeRemoteRenderer);
                                 }
                             }
                         });
@@ -586,9 +610,8 @@ public class MXJingleCall extends MXCall {
 
             mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
             mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
-
             mLocalVideoTrack.setEnabled(true);
-            mLocalVideoTrack.addRenderer(localRenderer);
+            mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
         }
 
         return mLocalVideoTrack;
@@ -632,14 +655,16 @@ public class MXJingleCall extends MXCall {
                     mUIThreadHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            mPeerConnectionFactory = new PeerConnectionFactory();
-                            createVideoTrack();
-                            createAudioTrack();
-                            createLocalStream();
+                            if (null == mPeerConnectionFactory) {
+                                mPeerConnectionFactory = new PeerConnectionFactory();
+                                createVideoTrack();
+                                createAudioTrack();
+                                createLocalStream();
 
-                            if (null != callInviteParams) {
-                                onStateDidChange(CALL_STATE_RINGING);
-                                setRemoteDescription(callInviteParams);
+                                if (null != callInviteParams) {
+                                    onStateDidChange(CALL_STATE_RINGING);
+                                    setRemoteDescription(callInviteParams);
+                                }
                             }
                         }
                     });
@@ -648,24 +673,31 @@ public class MXJingleCall extends MXCall {
 
             // create the renderers after the VideoRendererGui.setView
             try {
-                remoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
-                localRenderer = VideoRendererGui.createGui(0, 0, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+
+                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
+
+                mSmallLocalRenderer = VideoRendererGui.createGui(0, 0, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
             } catch (Exception e) {
             }
 
             mCallView.setVisibility(View.VISIBLE);
+
         } else {
             // audio call
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mPeerConnectionFactory = new PeerConnectionFactory();
-                    createAudioTrack();
-                    createLocalStream();
+                    if (null == mPeerConnectionFactory) {
+                        mPeerConnectionFactory = new PeerConnectionFactory();
+                        createAudioTrack();
+                        createLocalStream();
 
-                    if (null != callInviteParams) {
-                        onStateDidChange(CALL_STATE_RINGING);
-                        setRemoteDescription(callInviteParams);
+                        if (null != callInviteParams) {
+                            onStateDidChange(CALL_STATE_RINGING);
+                            setRemoteDescription(callInviteParams);
+                        }
                     }
                 }
             });
@@ -673,6 +705,41 @@ public class MXJingleCall extends MXCall {
     }
 
     // actions (must be done after onViewReady()
+
+    /**
+     * The activity is paused.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        if (null != mCallView) {
+            mCallView.onPause();
+        }
+
+        if (mVideoSource != null) {
+            mVideoSource.stop();
+            mIsVideoSourceStopped = true;
+        }
+    }
+
+    /**
+     * The activity is resumed.
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (null != mCallView) {
+            mCallView.onResume();
+        }
+
+        if (mVideoSource != null && mIsVideoSourceStopped) {
+            mVideoSource.restart();
+            mIsVideoSourceStopped = false;
+        }
+    }
+
     /**
      * Start a call.
      */
