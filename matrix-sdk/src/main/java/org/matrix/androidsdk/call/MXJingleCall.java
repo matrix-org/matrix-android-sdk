@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
-import android.media.AudioManager;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
@@ -58,8 +57,17 @@ public class MXJingleCall extends MXCall {
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
+    private static final String MAX_VIDEO_WIDTH_CONSTRAINT = "maxWidth";
+    private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
+    private static final String MAX_VIDEO_HEIGHT_CONSTRAINT = "maxHeight";
+    private static final String MIN_VIDEO_HEIGHT_CONSTRAINT = "minHeight";
+
+    private static final int DEFAULT_VIDEO_WIDTH = 1280;
+    private static final int DEFAULT_VIDEO_HEIGHT = 720;
+
     static PeerConnectionFactory mPeerConnectionFactory = null;
     static String mFrontCameraName = null;
+    static String mBackCameraName = null;
     static VideoCapturer mVideoCapturer = null;
 
     private GLSurfaceView mCallView = null;
@@ -94,7 +102,12 @@ public class MXJingleCall extends MXCall {
         return Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
     }
 
-    // creator
+    /**
+     * Class creator
+     * @param session the session
+     * @param context the context
+     * @param turnServer the turn server
+     */
     public MXJingleCall(MXSession session, Context context, JsonElement turnServer) {
         if (!isSupported()) {
             throw new AssertionError("MXJingleCall : not supported with the current android version");
@@ -114,7 +127,9 @@ public class MXJingleCall extends MXCall {
         mTurnServer = turnServer;
     }
 
-
+    /**
+     * Initialize the jingle globals
+     */
     private void initializeAndroidGlobals() {
         if (!mIsInitialized) {
             mIsInitialized = PeerConnectionFactory.initializeAndroidGlobals(
@@ -186,8 +201,16 @@ public class MXJingleCall extends MXCall {
         onStateDidChange(CALL_STATE_ENDED);
     }
 
-
+    /**
+     * Send the invite event
+     * @param sessionDescription the session description.
+     */
     private void sendInvite(final SessionDescription sessionDescription) {
+        // check if the call has not been killed
+        if (isCallEnded()) {
+            return;
+        }
+
         // build the invitation event
         JsonObject inviteContent = new JsonObject();
         inviteContent.addProperty("version", 0);
@@ -226,7 +249,16 @@ public class MXJingleCall extends MXCall {
         }
     }
 
+    /**
+     * Send the answer event
+     * @param sessionDescription
+     */
     private void sendAnswer(final SessionDescription sessionDescription) {
+        // check if the call has not been killed
+        if (isCallEnded()) {
+            return;
+        }
+
         // build the invitation event
         JsonObject answerContent = new JsonObject();
         answerContent.addProperty("version", 0);
@@ -247,7 +279,7 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
-     *
+     * create the local stream
      */
     private void createLocalStream() {
         mLocalMediaStream = mPeerConnectionFactory.createLocalMediaStream("ARDAMS");
@@ -350,50 +382,52 @@ public class MXJingleCall extends MXCall {
                         mUIThreadHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                JsonObject content = new JsonObject();
-                                content.addProperty("version", 0);
-                                content.addProperty("call_id", mCallId);
+                                if (!isCallEnded()) {
+                                    JsonObject content = new JsonObject();
+                                    content.addProperty("version", 0);
+                                    content.addProperty("call_id", mCallId);
 
-                                JsonArray candidates = new JsonArray();
-                                JsonObject cand = new JsonObject();
-                                cand.addProperty("sdpMLineIndex", iceCandidate.sdpMLineIndex);
-                                cand.addProperty("sdpMid", iceCandidate.sdpMid);
-                                cand.addProperty("candidate", iceCandidate.sdp);
-                                candidates.add(cand);
-                                content.add("candidates", candidates);
+                                    JsonArray candidates = new JsonArray();
+                                    JsonObject cand = new JsonObject();
+                                    cand.addProperty("sdpMLineIndex", iceCandidate.sdpMLineIndex);
+                                    cand.addProperty("sdpMid", iceCandidate.sdpMid);
+                                    cand.addProperty("candidate", iceCandidate.sdp);
+                                    candidates.add(cand);
+                                    content.add("candidates", candidates);
 
-                                boolean addIt = true;
+                                    boolean addIt = true;
 
-                                // merge candidates
-                                if (mPendingEvents.size() > 0) {
-                                    try {
-                                        Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
+                                    // merge candidates
+                                    if (mPendingEvents.size() > 0) {
+                                        try {
+                                            Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                        if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                                            JsonObject lastContent = lastEvent.content;
+                                            if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                                JsonObject lastContent = lastEvent.content;
 
-                                            JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
-                                            JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
+                                                JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
+                                                JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                            Log.e(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                                Log.e(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
-                                            lastContentCandidates.addAll(newContentCandidates);
+                                                lastContentCandidates.addAll(newContentCandidates);
 
-                                            lastEvent.content.remove("candidates");
-                                            lastEvent.content.add("candidates", lastContentCandidates);
-                                            addIt = false;
+                                                lastEvent.content.remove("candidates");
+                                                lastEvent.content.add("candidates", lastContentCandidates);
+                                                addIt = false;
+                                            }
+                                        } catch (Exception e) {
                                         }
-                                    } catch (Exception e) {
                                     }
-                                }
 
-                                if (addIt) {
-                                    Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mRoom.getRoomId());
+                                    if (addIt) {
+                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mRoom.getRoomId());
 
-                                    if (null != event) {
-                                        mPendingEvents.add(event);
+                                        if (null != event) {
+                                            mPendingEvents.add(event);
+                                        }
+                                        sendNextEvent();
                                     }
-                                    sendNextEvent();
                                 }
                             }
                         });
@@ -406,7 +440,7 @@ public class MXJingleCall extends MXCall {
                         mUIThreadHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (mediaStream.videoTracks.size() == 1) {
+                                if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
                                     mRemoteVideoTrack = mediaStream.videoTracks.get(0);
                                     mRemoteVideoTrack.setEnabled(true);
                                     mRemoteVideoTrack.addRenderer(remoteRenderer);
@@ -466,7 +500,6 @@ public class MXJingleCall extends MXCall {
                                     @Override
                                     public void onCreateSuccess(SessionDescription sessionDescription) {
                                         Log.e(LOG_TAG, "setLocalDescription onCreateSuccess");
-
                                     }
 
                                     @Override
@@ -503,12 +536,13 @@ public class MXJingleCall extends MXCall {
                 @Override
                 public void onCreateFailure(String s) {
                     Log.e(LOG_TAG, "createOffer onCreateFailure " + s);
-
+                    onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                 }
 
                 @Override
                 public void onSetFailure(String s) {
                     Log.e(LOG_TAG, "createOffer onSetFailure " + s);
+                    onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                 }
             }, constraints);
 
@@ -518,33 +552,51 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
+     * @return true if the device has a camera device
+     */
+    private boolean hasCameraDevice() {
+        try {
+            mFrontCameraName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+            mBackCameraName = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        } catch (Exception e) {
+        }
+
+        return (null != mFrontCameraName) || (null != mBackCameraName);
+    }
+
+    /**
      * Create the local video stack
      * @return the video track
      */
     private VideoTrack createVideoTrack() {
-        try {
-            mFrontCameraName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
-            mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
-        } catch (Exception e) {
+        // create the local renderer only if there is a camera on the device
+        if (hasCameraDevice()) {
+            mVideoCapturer = VideoCapturerAndroid.create((null != mFrontCameraName) ? mFrontCameraName : mBackCameraName);
+
+            MediaConstraints videoConstraints = new MediaConstraints();
+
+            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                    MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_WIDTH)));
+            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                    MAX_VIDEO_WIDTH_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_WIDTH)));
+            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                    MIN_VIDEO_HEIGHT_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_HEIGHT)));
+            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                    MAX_VIDEO_HEIGHT_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_HEIGHT)));
+
+            mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
+            mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
+
+            mLocalVideoTrack.setEnabled(true);
+            mLocalVideoTrack.addRenderer(localRenderer);
         }
-
-        if ((null == mFrontCameraName) || (null == mVideoCapturer)) {
-            throw new AssertionError("MXJingleCall : no front camera");
-        }
-
-        MediaConstraints videoConstraints = new MediaConstraints();
-        mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
-        mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
-
-        mLocalVideoTrack.setEnabled(true);
-        mLocalVideoTrack.addRenderer(localRenderer);
 
         return mLocalVideoTrack;
     }
 
     /**
      * Create the local video stack
-     * @return the video trakc
+     * @return the video track
      */
     private AudioTrack createAudioTrack() {
         try {
@@ -564,13 +616,14 @@ public class MXJingleCall extends MXCall {
         return mLocalAudioTrack;
     }
 
-    // actions (must be done after onViewReady()
     /**
-     * Start a call.
+     * Initialize the call UI
+     * @param callInviteParams the invite params
      */
-    @Override
-    public void placeCall() {
-        onStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
+    private void initCallUI(final JsonObject callInviteParams) {
+        if (isCallEnded()) {
+            return;
+        }
 
         if (isVideo()) {
             VideoRendererGui.setView(mCallView, new Runnable() {
@@ -583,6 +636,11 @@ public class MXJingleCall extends MXCall {
                             createVideoTrack();
                             createAudioTrack();
                             createLocalStream();
+
+                            if (null != callInviteParams) {
+                                onStateDidChange(CALL_STATE_RINGING);
+                                setRemoteDescription(callInviteParams);
+                            }
                         }
                     });
                 }
@@ -604,11 +662,30 @@ public class MXJingleCall extends MXCall {
                     mPeerConnectionFactory = new PeerConnectionFactory();
                     createAudioTrack();
                     createLocalStream();
+
+                    if (null != callInviteParams) {
+                        onStateDidChange(CALL_STATE_RINGING);
+                        setRemoteDescription(callInviteParams);
+                    }
                 }
             });
         }
     }
 
+    // actions (must be done after onViewReady()
+    /**
+     * Start a call.
+     */
+    @Override
+    public void placeCall() {
+        onStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
+        initCallUI(null);
+    }
+
+    /**
+     * Set the remote description
+     * @param callInviteParams the invitation params
+     */
     private void setRemoteDescription(final JsonObject callInviteParams) {
         SessionDescription aDescription = null;
         // extract the description
@@ -624,7 +701,6 @@ public class MXJingleCall extends MXCall {
             }
 
         } catch (Exception e) {
-
         }
 
         mPeerConnection.setRemoteDescription(new SdpObserver() {
@@ -637,7 +713,6 @@ public class MXJingleCall extends MXCall {
             public void onSetSuccess() {
                 Log.e(LOG_TAG, "setRemoteDescription onSetSuccess");
                 mIsIncomingPrepared = true;
-
                 mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -649,11 +724,13 @@ public class MXJingleCall extends MXCall {
             @Override
             public void onCreateFailure(String s) {
                 Log.e(LOG_TAG, "setRemoteDescription onCreateFailure " + s);
+                onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
             }
 
             @Override
             public void onSetFailure(String s) {
                 Log.e(LOG_TAG, "setRemoteDescription onSetFailure " + s);
+                onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
             }
         }, aDescription);
     }
@@ -671,49 +748,11 @@ public class MXJingleCall extends MXCall {
             mIsIncoming = true;
 
             onStateDidChange(CALL_STATE_WAIT_LOCAL_MEDIA);
+
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (isVideo()) {
-                        VideoRendererGui.setView(mCallView, new Runnable() {
-                            @Override
-                            public void run() {
-                                mUIThreadHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mPeerConnectionFactory = new PeerConnectionFactory();
-                                        createVideoTrack();
-                                        createAudioTrack();
-                                        createLocalStream();
-
-                                        onStateDidChange(CALL_STATE_RINGING);
-                                        setRemoteDescription(callInviteParams);
-                                    }
-                                });
-                            }
-                        });
-
-                        // create the renderers after the VideoRendererGui.setView
-                        try {
-                            remoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
-                            localRenderer = VideoRendererGui.createGui(0, 0, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                        } catch (Exception e) {
-                        }
-
-                        mCallView.setVisibility(View.VISIBLE);
-                    } else {
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mPeerConnectionFactory = new PeerConnectionFactory();
-                                createAudioTrack();
-                                createLocalStream();
-
-                                onStateDidChange(CALL_STATE_RINGING);
-                                setRemoteDescription(callInviteParams);
-                            }
-                        });
-                    }
+                    initCallUI(callInviteParams);
                 }
             });
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
@@ -783,11 +822,13 @@ public class MXJingleCall extends MXCall {
                         @Override
                         public void onCreateFailure(String s) {
                             Log.e(LOG_TAG, "setRemoteDescription onCreateFailure " + s);
+                            onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                         }
 
                         @Override
                         public void onSetFailure(String s) {
                             Log.e(LOG_TAG, "setRemoteDescription onSetFailure " + s);
+                            onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                         }
                     }, aDescription);
                 }
@@ -975,11 +1016,15 @@ public class MXJingleCall extends MXCall {
                         @Override
                         public void onCreateFailure(String s) {
                             Log.e(LOG_TAG, "createAnswer onCreateFailure " + s);
+                            onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                            hangup(null);
                         }
 
                         @Override
                         public void onSetFailure(String s) {
                             Log.e(LOG_TAG, "createAnswer onSetFailure " + s);
+                            onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                            hangup(null);
                         }
                     }, constraints);
 
@@ -994,7 +1039,7 @@ public class MXJingleCall extends MXCall {
      */
     @Override
     public void hangup(String reason) {
-        if (!getCallState().equals(IMXCall.CALL_STATE_ENDED) && (null != mPeerConnection)) {
+        if (!isCallEnded() && (null != mPeerConnection)) {
             terminate();
             sendHangup(reason);
         }
@@ -1025,13 +1070,6 @@ public class MXJingleCall extends MXCall {
         } else {
             return View.GONE;
         }
-    }
-
-    /**
-     * Set the callview visibility
-     */
-    public void setVisibility(int visibility) {
-       // cannot hidden the view else the opengl rendering does not work
     }
 
     /**

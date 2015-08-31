@@ -20,6 +20,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 
 import com.google.gson.JsonElement;
@@ -231,15 +232,19 @@ public class MXCall implements IMXCall {
 
     /**
      * Set the callview visibility
+     * @return true if the operation succeeds
      */
-    public void setVisibility(int visibility) {
+    public boolean setVisibility(int visibility) {
+        return false;
     }
 
-
-    protected boolean isUsingBluetoothHeadset() {
-        AudioManager am = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
-        return am.isBluetoothA2dpOn();
+    /**
+     * @return if the call is ended.
+     */
+    public Boolean isCallEnded() {
+        return TextUtils.equals(CALL_STATE_ENDED, getCallState());
     }
+
 
     /**
      * Toogle the speaker
@@ -252,7 +257,16 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * dispatch the onViewLoading callback
+     * @param callView the callview
+     */
     protected void onViewLoading(View callView) {
+        if (isCallEnded()) {
+            Log.e(LOG_TAG, "onCallError : the call is ended");
+            return;
+        }
+
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
                 try {
@@ -264,8 +278,15 @@ public class MXCall implements IMXCall {
         }
     }
 
-
+    /**
+     * dispatch the onViewReady event
+     */
     protected void onViewReady() {
+        if (isCallEnded()) {
+            Log.e(LOG_TAG, "onCallError : the call is ended");
+            return;
+        }
+
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
                 try {
@@ -276,7 +297,15 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * dispatch the onViewReady event
+     */
     protected void onCallError(String error) {
+        if (isCallEnded()) {
+            Log.e(LOG_TAG, "onCallError : the call is ended");
+            return;
+        }
+
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
                 try {
@@ -287,6 +316,9 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * dispatch the onViewReady event
+     */
     protected void onStateDidChange(String newState) {
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
@@ -299,6 +331,9 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * dispatch the onViewReady event
+     */
     protected void dispatchAnsweredElsewhere() {
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
@@ -310,6 +345,9 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * dispatch the onViewReady event
+     */
     protected void onCallEnd() {
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
@@ -321,10 +359,18 @@ public class MXCall implements IMXCall {
         }
     }
 
+    /**
+     * Send the next pending events
+     */
     protected void sendNextEvent() {
         mUIThreadHandler.post(new Runnable() {
             @Override
             public void run() {
+                // do not send any new message
+                if (isCallEnded() && (null != mPendingEvents)) {
+                    mPendingEvents.clear();
+                }
+
                 // ready to send
                 if ((null == mPendingEvent) && (0 != mPendingEvents.size())) {
                     mPendingEvent = mPendingEvents.get(0);
@@ -379,7 +425,7 @@ public class MXCall implements IMXCall {
 
     /**
      * send an hang up event
-     * @param reason
+     * @param reason the reason
      */
     protected void sendHangup(String reason) {
         JsonObject hangupContent = new JsonObject();

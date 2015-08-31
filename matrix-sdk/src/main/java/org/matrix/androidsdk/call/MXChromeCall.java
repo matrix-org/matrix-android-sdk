@@ -412,11 +412,14 @@ public class MXChromeCall extends MXCall {
 
     /**
      * Set the callview visibility
+     * @return true if the operation succeeds
      */
-    public void setVisibility(int visibility) {
+    public boolean setVisibility(int visibility) {
         if (null != mWebView) {
             mWebView.setVisibility(visibility);
+            return true;
         }
+        return false;
     }
 
     @Override

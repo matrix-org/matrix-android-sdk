@@ -16,28 +16,13 @@
 
 package org.matrix.androidsdk.call;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioManager;
-import android.os.Build;
 import android.os.Handler;
-import android.util.Log;
-import android.view.View;
-import android.webkit.JavascriptInterface;
-import android.webkit.PermissionRequest;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Toast;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -46,6 +31,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -65,6 +51,15 @@ public class MXCallsManager {
         public void onCallHangUp(IMXCall call);
     }
 
+    /**
+     * Defines the call classes.
+     */
+    public enum CallClass {
+        CHROME_CLASS,
+        JINGLE_CLASS,
+        DEFAULT_CLASS
+    }
+
     private MXSession mSession = null;
     private Context mContext = null;
 
@@ -72,6 +67,8 @@ public class MXCallsManager {
     private JsonElement mTurnServer = null;
     private Timer mTurnServerTimer = null;
     private Boolean mSuspendTurnServerRefresh = false;
+
+    private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
 
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
@@ -207,6 +204,42 @@ public class MXCallsManager {
     }
 
     /**
+     * @return the list of supported classes
+     */
+    public Collection<CallClass> supportedClass() {
+        ArrayList<CallClass> list = new ArrayList<CallClass>();
+
+        if (MXChromeCall.isSupported()) {
+            list.add(CallClass.CHROME_CLASS);
+        }
+
+        if (MXJingleCall.isSupported()) {
+            list.add(CallClass.JINGLE_CLASS);
+        }
+
+        return list;
+    }
+
+    /**
+     * @param callClass set the default callClass
+     */
+    public void setDefaultCallClass(CallClass callClass) {
+        Boolean isUpdatable = false;
+
+        if (callClass == CallClass.CHROME_CLASS) {
+            isUpdatable = MXChromeCall.isSupported();
+        }
+
+        if (callClass == CallClass.JINGLE_CLASS) {
+            isUpdatable = MXJingleCall.isSupported();
+        }
+
+        if (isUpdatable) {
+            mPreferredCallClass = callClass;
+        }
+    }
+
+    /**
      * listeners management
      **/
 
@@ -264,9 +297,17 @@ public class MXCallsManager {
      * @return the IMXCall
      */
     private IMXCall createCall(String callId) {
-        // TODO switch IMXCall objec
-        //IMXCall call = new MXChromeCall(mSession, mContext, getTurnServer());
-        IMXCall call = new MXJingleCall(mSession, mContext, getTurnServer());
+        IMXCall call = null;
+
+        // default
+        if (((CallClass.CHROME_CLASS == mPreferredCallClass) || (CallClass.DEFAULT_CLASS == mPreferredCallClass)) && MXChromeCall.isSupported()) {
+            call = new MXChromeCall(mSession, mContext, getTurnServer());
+        }
+
+        // Jingle
+        if (null == call) {
+            call = new MXJingleCall(mSession, mContext, getTurnServer());
+        }
 
         // a valid callid is provided
         if (null != callId) {

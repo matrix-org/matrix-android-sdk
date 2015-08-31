@@ -68,9 +68,6 @@ public interface IMXCall {
     // call is ended
     public static final String CALL_STATE_ENDED = "IMXCall.CALL_STATE_ENDED";
 
-    // chrome type
-    public static final String CHROME_CALL =  "IMXCall.CHROME_CALL";
-
     // error codes
     // cannot initialize the camera
     public static final String CALL_ERROR_CAMERA_INIT_FAILED = "IMXCall.CALL_ERROR_CAMERA_INIT_FAILED";
@@ -242,8 +239,9 @@ public interface IMXCall {
 
     /**
      * Set the callview visibility
+     * @return true if the operation succeeds
      */
-    public void setVisibility(int visibility);
+    public boolean setVisibility(int visibility);
 
     /**
      * Toogle the speaker
