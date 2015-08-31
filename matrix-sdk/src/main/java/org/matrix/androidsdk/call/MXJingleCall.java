@@ -375,13 +375,16 @@ public class MXJingleCall extends MXCall {
                                     }
 
                                     onStateDidChange(IMXCall.CALL_STATE_CONNECTED);
-                                } else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
+                                }
+                                // theses states are ignored
+                                // only the matrix hangup event is managed
+                                /*else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
                                     // TODO warn the user ?
                                     hangup(null);
                                 } else if (iceConnectionState == PeerConnection.IceConnectionState.CLOSED) {
                                     // TODO warn the user ?
                                     terminate();
-                                } else if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
+                                }*/ else if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
                                     onCallError(CALL_ERROR_ICE_FAILED);
                                     hangup("ice_failed");
                                 }
