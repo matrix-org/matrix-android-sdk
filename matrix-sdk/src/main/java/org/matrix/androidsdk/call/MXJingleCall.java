@@ -184,6 +184,10 @@ public class MXJingleCall extends MXCall {
      * The connection is terminated
      */
     private void terminate() {
+        if (isCallEnded()) {
+            return;
+        }
+
         if (null != mPeerConnection) {
             mPeerConnection.dispose();
             mPeerConnection = null;
@@ -206,6 +210,13 @@ public class MXJingleCall extends MXCall {
 
         mCallView.setVisibility(View.GONE);
         onStateDidChange(CALL_STATE_ENDED);
+
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                onCallEnd();
+            }
+        });
     }
 
     /**
@@ -357,8 +368,7 @@ public class MXJingleCall extends MXCall {
                             @Override
                             public void run() {
                                 if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
-
-                                    if (mUsingLargeLocalRenderer) {
+                                    if (mUsingLargeLocalRenderer && isVideo()) {
                                         mLocalVideoTrack.setEnabled(false);
                                         VideoRendererGui.remove(mLargeLocalRendererCallbacks);
                                         mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
@@ -1110,8 +1120,8 @@ public class MXJingleCall extends MXCall {
     @Override
     public void hangup(String reason) {
         if (!isCallEnded() && (null != mPeerConnection)) {
-            terminate();
             sendHangup(reason);
+            terminate();
         }
     }
     /**
@@ -1147,8 +1157,8 @@ public class MXJingleCall extends MXCall {
      */
     @Override
     public void onAnsweredElsewhere() {
-        terminate();
         dispatchAnsweredElsewhere();
+        terminate();
     }
 
     @Override

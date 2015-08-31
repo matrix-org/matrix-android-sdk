@@ -245,7 +245,6 @@ public class MXCall implements IMXCall {
         return TextUtils.equals(CALL_STATE_ENDED, getCallState());
     }
 
-
     /**
      * Toogle the speaker
      */

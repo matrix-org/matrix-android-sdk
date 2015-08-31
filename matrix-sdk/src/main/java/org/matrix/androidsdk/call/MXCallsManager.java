@@ -511,7 +511,7 @@ public class MXCallsManager {
                 audioManager.setMode(isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL);
             }
 
-            audioManager.setSpeakerphoneOn(!audioManager.isSpeakerphoneOn());
+            audioManager.setSpeakerphoneOn(isOn);
         }
     }
 }
