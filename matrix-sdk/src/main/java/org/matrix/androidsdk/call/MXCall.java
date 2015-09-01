@@ -262,7 +262,7 @@ public class MXCall implements IMXCall {
      */
     protected void onViewLoading(View callView) {
         if (isCallEnded()) {
-            Log.e(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "onCallError : the call is ended");
             return;
         }
 
@@ -282,7 +282,7 @@ public class MXCall implements IMXCall {
      */
     protected void onViewReady() {
         if (isCallEnded()) {
-            Log.e(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "onCallError : the call is ended");
             return;
         }
 
@@ -301,7 +301,7 @@ public class MXCall implements IMXCall {
      */
     protected void onCallError(String error) {
         if (isCallEnded()) {
-            Log.e(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "onCallError : the call is ended");
             return;
         }
 

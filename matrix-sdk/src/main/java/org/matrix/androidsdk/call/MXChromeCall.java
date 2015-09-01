@@ -18,10 +18,8 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.media.AudioManager;
+import android.graphics.Color;
 import android.os.Build;
-import android.os.Handler;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -35,13 +33,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -91,6 +87,7 @@ public class MXChromeCall extends MXCall {
             @Override
             public void run() {
                 mWebView = new WebView(mContext);
+                mWebView.setBackgroundColor(Color.TRANSPARENT);
 
                 // warn that the webview must be added in an activity/fragment
                 onViewLoading(mWebView);
@@ -467,7 +464,7 @@ public class MXChromeCall extends MXCall {
 
         @JavascriptInterface
         public void wlog(String message) {
-            Log.e(LOG_TAG, "WebView Message : " + message);
+            Log.d(LOG_TAG, "WebView Message : " + message);
         }
 
         @JavascriptInterface
@@ -594,7 +591,7 @@ public class MXChromeCall extends MXCall {
                                     JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                     JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                    Log.e(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                    Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
                                     lastContentCandidates.addAll(newContentCandidates);
 

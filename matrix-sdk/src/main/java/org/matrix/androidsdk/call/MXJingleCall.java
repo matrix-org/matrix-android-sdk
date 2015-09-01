@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
-import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
@@ -358,12 +357,12 @@ public class MXJingleCall extends MXCall {
                 new PeerConnection.Observer() {
                     @Override
                     public void onSignalingChange(PeerConnection.SignalingState signalingState) {
-                        Log.e(LOG_TAG, "mPeerConnection onSignalingChange " + signalingState);
+                        Log.d(LOG_TAG, "mPeerConnection onSignalingChange " + signalingState);
                     }
 
                     @Override
                     public void onIceConnectionChange(final PeerConnection.IceConnectionState iceConnectionState) {
-                        Log.e(LOG_TAG, "mPeerConnection onIceConnectionChange " + iceConnectionState);
+                        Log.d(LOG_TAG, "mPeerConnection onIceConnectionChange " + iceConnectionState);
                         mUIThreadHandler.post(new Runnable() {
                             @Override
                             public void run() {
@@ -404,17 +403,17 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onIceConnectionReceivingChange(boolean var1) {
-                        Log.e(LOG_TAG, "mPeerConnection onIceConnectionReceivingChange " + var1);
+                        Log.d(LOG_TAG, "mPeerConnection onIceConnectionReceivingChange " + var1);
                     }
 
                     @Override
                     public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
-                        Log.e(LOG_TAG, "mPeerConnection onIceGatheringChange " + iceGatheringState);
+                        Log.d(LOG_TAG, "mPeerConnection onIceGatheringChange " + iceGatheringState);
                     }
 
                     @Override
                     public void onIceCandidate(final IceCandidate iceCandidate) {
-                        Log.e(LOG_TAG, "mPeerConnection onIceCandidate " + iceCandidate);
+                        Log.d(LOG_TAG, "mPeerConnection onIceCandidate " + iceCandidate);
 
                         mUIThreadHandler.post(new Runnable() {
                             @Override
@@ -445,7 +444,7 @@ public class MXJingleCall extends MXCall {
                                                 JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                                 JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                                Log.e(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                                Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
                                                 lastContentCandidates.addAll(newContentCandidates);
 
@@ -472,7 +471,7 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onAddStream(final MediaStream mediaStream) {
-                        Log.e(LOG_TAG, "mPeerConnection onAddStream " + mediaStream);
+                        Log.d(LOG_TAG, "mPeerConnection onAddStream " + mediaStream);
 
                         mUIThreadHandler.post(new Runnable() {
                             @Override
@@ -488,7 +487,7 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onRemoveStream(final MediaStream mediaStream) {
-                        Log.e(LOG_TAG, "mPeerConnection  onRemoveStream " + mediaStream);
+                        Log.d(LOG_TAG, "mPeerConnection  onRemoveStream " + mediaStream);
 
                         mUIThreadHandler.post(new Runnable() {
                             @Override
@@ -505,12 +504,12 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onDataChannel(DataChannel dataChannel) {
-                        Log.e(LOG_TAG, "mPeerConnection onDataChannel " + dataChannel);
+                        Log.d(LOG_TAG, "mPeerConnection onDataChannel " + dataChannel);
                     }
 
                     @Override
                     public void onRenegotiationNeeded() {
-                        Log.e(LOG_TAG, "mPeerConnection onRenegotiationNeeded");
+                        Log.d(LOG_TAG, "mPeerConnection onRenegotiationNeeded");
                     }
                 });
 
@@ -524,7 +523,7 @@ public class MXJingleCall extends MXCall {
             mPeerConnection.createOffer(new SdpObserver() {
                 @Override
                 public void onCreateSuccess(SessionDescription sessionDescription) {
-                    Log.e(LOG_TAG, "createOffer onCreateSuccess");
+                    Log.d(LOG_TAG, "createOffer onCreateSuccess");
 
                     final SessionDescription sdp = new SessionDescription(sessionDescription.type, sessionDescription.description);
 
@@ -536,12 +535,12 @@ public class MXJingleCall extends MXCall {
                                 mPeerConnection.setLocalDescription(new SdpObserver() {
                                     @Override
                                     public void onCreateSuccess(SessionDescription sessionDescription) {
-                                        Log.e(LOG_TAG, "setLocalDescription onCreateSuccess");
+                                        Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
                                     }
 
                                     @Override
                                     public void onSetSuccess() {
-                                        Log.e(LOG_TAG, "setLocalDescription onSetSuccess");
+                                        Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
                                         sendInvite(sdp);
                                         onStateDidChange(IMXCall.CALL_STATE_INVITE_SENT);
                                     }
@@ -567,18 +566,18 @@ public class MXJingleCall extends MXCall {
 
                 @Override
                 public void onSetSuccess() {
-                    Log.e(LOG_TAG, "createOffer onSetSuccess");
+                    Log.d(LOG_TAG, "createOffer onSetSuccess");
                 }
 
                 @Override
                 public void onCreateFailure(String s) {
-                    Log.e(LOG_TAG, "createOffer onCreateFailure " + s);
+                    Log.d(LOG_TAG, "createOffer onCreateFailure " + s);
                     onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                 }
 
                 @Override
                 public void onSetFailure(String s) {
-                    Log.e(LOG_TAG, "createOffer onSetFailure " + s);
+                    Log.d(LOG_TAG, "createOffer onSetFailure " + s);
                     onCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                 }
             }, constraints);
@@ -691,7 +690,7 @@ public class MXJingleCall extends MXCall {
                 mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
 
-                mSmallLocalRenderer = VideoRendererGui.createGui(0, 0, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
             } catch (Exception e) {
             }
 
@@ -786,12 +785,12 @@ public class MXJingleCall extends MXCall {
         mPeerConnection.setRemoteDescription(new SdpObserver() {
             @Override
             public void onCreateSuccess(SessionDescription sessionDescription) {
-                Log.e(LOG_TAG, "setRemoteDescription onCreateSuccess");
+                Log.d(LOG_TAG, "setRemoteDescription onCreateSuccess");
             }
 
             @Override
             public void onSetSuccess() {
-                Log.e(LOG_TAG, "setRemoteDescription onSetSuccess");
+                Log.d(LOG_TAG, "setRemoteDescription onSetSuccess");
                 mIsIncomingPrepared = true;
                 mUIThreadHandler.post(new Runnable() {
                     @Override
@@ -891,12 +890,12 @@ public class MXJingleCall extends MXCall {
                     mPeerConnection.setRemoteDescription(new SdpObserver() {
                         @Override
                         public void onCreateSuccess(SessionDescription sessionDescription) {
-                            Log.e(LOG_TAG, "setRemoteDescription onCreateSuccess");
+                            Log.d(LOG_TAG, "setRemoteDescription onCreateSuccess");
                         }
 
                         @Override
                         public void onSetSuccess() {
-                            Log.e(LOG_TAG, "setRemoteDescription onSetSuccess");
+                            Log.d(LOG_TAG, "setRemoteDescription onSetSuccess");
                         }
 
                         @Override
@@ -1047,7 +1046,7 @@ public class MXJingleCall extends MXCall {
                     mPeerConnection.createAnswer(new SdpObserver() {
                         @Override
                         public void onCreateSuccess(SessionDescription sessionDescription) {
-                            Log.e(LOG_TAG, "createAnswer onCreateSuccess");
+                            Log.d(LOG_TAG, "createAnswer onCreateSuccess");
 
                             final SessionDescription sdp = new SessionDescription(sessionDescription.type, sessionDescription.description);
 
@@ -1059,12 +1058,12 @@ public class MXJingleCall extends MXCall {
                                         mPeerConnection.setLocalDescription(new SdpObserver() {
                                             @Override
                                             public void onCreateSuccess(SessionDescription sessionDescription) {
-                                                Log.e(LOG_TAG, "setLocalDescription onCreateSuccess");
+                                                Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
                                             }
 
                                             @Override
                                             public void onSetSuccess() {
-                                                Log.e(LOG_TAG, "setLocalDescription onSetSuccess");
+                                                Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
                                                 sendAnswer(sdp);
                                                 onStateDidChange(IMXCall.CALL_STATE_CONNECTING);
                                             }
@@ -1090,7 +1089,7 @@ public class MXJingleCall extends MXCall {
 
                         @Override
                         public void onSetSuccess() {
-                            Log.e(LOG_TAG, "createAnswer onSetSuccess");
+                            Log.d(LOG_TAG, "createAnswer onSetSuccess");
                         }
 
                         @Override

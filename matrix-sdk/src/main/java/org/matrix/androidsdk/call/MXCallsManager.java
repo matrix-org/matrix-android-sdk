@@ -504,14 +504,23 @@ public class MXCallsManager {
         AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
 
         // ignore speaker button if a bluetooth headset is connected
-        if (!audioManager.isBluetoothA2dpOn())
-        {
+        if (!audioManager.isBluetoothA2dpOn()) {
+            int audioMode = audioManager.getMode();
+
             // do not update the mode in VOip mode (Chrome call)
-            if (audioManager.getMode() != AudioManager.MODE_IN_COMMUNICATION) {
-                audioManager.setMode(isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL);
+            if (audioMode != AudioManager.MODE_IN_COMMUNICATION) {
+                audioMode = isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL;
             }
 
-            audioManager.setSpeakerphoneOn(isOn);
+            // update only if there is an update
+            // MXChromecall crashes if there is an update whereas nothing has been updated
+            if (audioManager.getMode() != audioMode) {
+                audioManager.setMode(audioMode);
+            }
+
+            if (isOn != audioManager.isSpeakerphoneOn()) {
+                audioManager.setSpeakerphoneOn(isOn);
+            }
         }
     }
 }
