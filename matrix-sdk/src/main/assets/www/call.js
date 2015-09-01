@@ -805,8 +805,8 @@ var _getUserMediaVideoContraints = function(callType) {
         case 'video':
             return ({audio: true, video: {
                 mandatory: {
-                    minWidth: 1280,
-                    maxWidth: 1280,
+                    minWidth: 640,
+                    //maxWidth: 640,
                     // the local preview is cropped when the height is defined
                     //minHeight: 360,
                     //maxHeight: 360,

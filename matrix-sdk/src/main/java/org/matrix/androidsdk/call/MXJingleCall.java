@@ -57,13 +57,9 @@ public class MXJingleCall extends MXCall {
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
-    private static final String MAX_VIDEO_WIDTH_CONSTRAINT = "maxWidth";
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
-    private static final String MAX_VIDEO_HEIGHT_CONSTRAINT = "maxHeight";
-    private static final String MIN_VIDEO_HEIGHT_CONSTRAINT = "minHeight";
 
-    private static final int DEFAULT_VIDEO_WIDTH = 1280;
-    private static final int DEFAULT_VIDEO_HEIGHT = 720;
+    private static final int MIN_VIDEO_WIDTH = 640;
 
     static PeerConnectionFactory mPeerConnectionFactory = null;
     static String mFrontCameraName = null;
@@ -612,13 +608,7 @@ public class MXJingleCall extends MXCall {
             MediaConstraints videoConstraints = new MediaConstraints();
 
             videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_WIDTH)));
-            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MAX_VIDEO_WIDTH_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_WIDTH)));
-            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MIN_VIDEO_HEIGHT_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_HEIGHT)));
-            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MAX_VIDEO_HEIGHT_CONSTRAINT, Integer.toString(DEFAULT_VIDEO_HEIGHT)));
+                    MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
 
             mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
             mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
