@@ -805,10 +805,11 @@ var _getUserMediaVideoContraints = function(callType) {
         case 'video':
             return ({audio: true, video: {
                 mandatory: {
-                    minWidth: 640,
-                    maxWidth: 640,
-                    minHeight: 360,
-                    maxHeight: 360,
+                    minWidth: 1280,
+                    maxWidth: 1280,
+                    // the local preview is cropped when the height is defined
+                    //minHeight: 360,
+                    //maxHeight: 360,
                 }
             }});
     }
