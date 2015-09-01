@@ -169,15 +169,15 @@ public class MXJingleCall extends MXCall {
 
                 onViewLoading(mCallView);
 
-                mUIThreadHandler.postDelayed(new Runnable() {
+                mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         onStateDidChange(CALL_STATE_FLEDGLING);
                         onViewReady();
                     }
-                }, 100);
+                });
             }
-        }, 100);
+        }, 10);
     }
 
     /**
