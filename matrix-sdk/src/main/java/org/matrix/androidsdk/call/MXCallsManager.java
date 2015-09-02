@@ -428,9 +428,12 @@ public class MXCallsManager {
                         } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
                             final IMXCall call = callWithCallId(callId);
                             if (null != call) {
+                                // trigger call events only if the call is active
+                                final Boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
+
                                 call.setRoom(room);
 
-                                if (!IMXCall.CALL_STATE_CREATED.equals(call.getCallState())) {
+                                if (isActiveCall) {
                                     call.handleCallEvent(event);
                                 }
 
@@ -442,7 +445,9 @@ public class MXCallsManager {
                                 mUIThreadHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        onCallHangUp(call);
+                                        if (isActiveCall) {
+                                            onCallHangUp(call);
+                                        }
                                     }
                                 });
                             }
