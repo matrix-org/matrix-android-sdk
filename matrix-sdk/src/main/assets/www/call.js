@@ -81,6 +81,12 @@ MatrixCall.prototype.updateState = function(state) {
             }
         }
 
+        // the local preview is displayed in fullscren until the connection is established
+        this.getLocalVideoElement().parentElement.style.top = "5%";
+        this.getLocalVideoElement().parentElement.style.left = "5%";
+        this.getLocalVideoElement().parentElement.style.width = "25%";
+        this.getLocalVideoElement().parentElement.style.height = "25%";
+
         _tryPlayRemoteStream(this);
     }
 

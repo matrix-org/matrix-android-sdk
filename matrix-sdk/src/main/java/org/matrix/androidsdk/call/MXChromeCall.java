@@ -87,7 +87,7 @@ public class MXChromeCall extends MXCall {
             @Override
             public void run() {
                 mWebView = new WebView(mContext);
-                mWebView.setBackgroundColor(Color.TRANSPARENT);
+                mWebView.setBackgroundColor(Color.BLACK);
 
                 // warn that the webview must be added in an activity/fragment
                 onViewLoading(mWebView);
