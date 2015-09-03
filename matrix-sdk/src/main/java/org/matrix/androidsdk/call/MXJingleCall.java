@@ -183,6 +183,8 @@ public class MXJingleCall extends MXCall {
             return;
         }
 
+        onStateDidChange(CALL_STATE_ENDED);
+
         if (null != mPeerConnection) {
             mPeerConnection.dispose();
             mPeerConnection = null;
@@ -204,7 +206,7 @@ public class MXJingleCall extends MXCall {
         }
 
         mCallView.setVisibility(View.GONE);
-        onStateDidChange(CALL_STATE_ENDED);
+        mCallView = null;
 
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -715,13 +717,15 @@ public class MXJingleCall extends MXCall {
     public void onPause() {
         super.onPause();
 
-        if (null != mCallView) {
-            mCallView.onPause();
-        }
+        if (!isCallEnded()) {
+            if (null != mCallView) {
+                mCallView.onPause();
+            }
 
-        if (mVideoSource != null) {
-            mVideoSource.stop();
-            mIsVideoSourceStopped = true;
+            if (mVideoSource != null) {
+                mVideoSource.stop();
+                mIsVideoSourceStopped = true;
+            }
         }
     }
 
@@ -732,13 +736,15 @@ public class MXJingleCall extends MXCall {
     public void onResume() {
         super.onResume();
 
-        if (null != mCallView) {
-            mCallView.onResume();
-        }
+        if (!isCallEnded()) {
+            if (null != mCallView) {
+                mCallView.onResume();
+            }
 
-        if (mVideoSource != null && mIsVideoSourceStopped) {
-            mVideoSource.restart();
-            mIsVideoSourceStopped = false;
+            if (mVideoSource != null && mIsVideoSourceStopped) {
+                mVideoSource.restart();
+                mIsVideoSourceStopped = false;
+            }
         }
     }
 
