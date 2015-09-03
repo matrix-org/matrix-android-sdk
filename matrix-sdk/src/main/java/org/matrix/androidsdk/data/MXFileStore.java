@@ -45,7 +45,8 @@ public class MXFileStore extends MXMemoryStore {
     // some constant values
     final int MXFILE_VERSION = 1;
 
-    final int MAX_STORED_MESSAGES_COUNT = 25;
+    // ensure that there is enough messages to fill a tablet screen
+    final int MAX_STORED_MESSAGES_COUNT = 100;
 
     final String MXFILE_STORE_FOLDER = "MXFileStore";
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
