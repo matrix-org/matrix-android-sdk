@@ -176,6 +176,18 @@ public class MXMemoryStore implements IMXStore {
     public void setDisplayName(String displayName) {
         if (!TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
             mMetadata.mUserDisplayName = displayName;
+
+            if (null != displayName) {
+                mMetadata.mUserDisplayName.trim();
+            }
+
+            // update the cached oneself User
+            User myUser = getUser(mMetadata.mUserId);
+
+            if (null != myUser) {
+                myUser.displayname = mMetadata.mUserDisplayName;
+            }
+
             commit();
         }
     }
@@ -187,6 +199,14 @@ public class MXMemoryStore implements IMXStore {
     public void setAvatarURL(String avatarURL) {
         if (!TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
             mMetadata.mUserAvatarUrl = avatarURL;
+
+            // update the cached oneself User
+            User myUser = getUser(mMetadata.mUserId);
+
+            if (null != myUser) {
+                myUser.avatarUrl = avatarURL;
+            }
+
             commit();
         }
     }

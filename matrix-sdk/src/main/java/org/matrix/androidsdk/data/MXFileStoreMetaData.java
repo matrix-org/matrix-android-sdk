@@ -47,6 +47,11 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mEventStreamToken = mEventStreamToken;
         copy.mVersion = mVersion;
         copy.mUserDisplayName = mUserDisplayName;
+
+        if (null != copy.mUserDisplayName) {
+            copy.mUserDisplayName.trim();
+        }
+
         copy.mUserAvatarUrl = mUserAvatarUrl;
 
         return copy;

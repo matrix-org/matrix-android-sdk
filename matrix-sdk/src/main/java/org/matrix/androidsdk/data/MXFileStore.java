@@ -1118,6 +1118,11 @@ public class MXFileStore extends MXMemoryStore {
 
                 mMetadata = (MXFileStoreMetaData)out.readObject();
 
+                // remove pending \n
+                if (null != mMetadata.mUserDisplayName) {
+                    mMetadata.mUserDisplayName.trim();
+                }
+
                 // extract the latest event stream token
                 mEventStreamToken = mMetadata.mEventStreamToken;
             }
