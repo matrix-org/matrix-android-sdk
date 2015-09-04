@@ -530,6 +530,11 @@ public class Room {
         }
         isPaginating = true;
 
+        // restart the pagination
+        if (null == mBackState.getToken()) {
+            mBufferedEvents.clear();
+        }
+
         // enough buffered data
         if (mBufferedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
             final android.os.Handler handler = new android.os.Handler();
