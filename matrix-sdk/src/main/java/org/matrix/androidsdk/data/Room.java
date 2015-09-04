@@ -558,17 +558,26 @@ public class Room {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 mBackState.setToken(response.end);
 
+                // the roomstate is copied to have a state snapshot
+                // but copy it only if there is a state update
+                RoomState stateCopy = mBackState.deepCopy();
+
                 for (Event event : response.chunk) {
                     Boolean processedEvent = true;
 
                     if (event.stateKey != null) {
                         processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+
+                        if (processedEvent) {
+                            // new state event -> copy the room state
+                            stateCopy = mBackState.deepCopy();
+                        }
                     }
 
                     // warn the listener only if the message is processed.
                     // it should avoid duplicated events.
                     if (processedEvent) {
-                        mBufferedEvents.add(new BufferedEvent(event, mBackState.deepCopy()));
+                        mBufferedEvents.add(new BufferedEvent(event, stateCopy));
                     }
                 }
 
