@@ -717,15 +717,20 @@ public class MXJingleCall extends MXCall {
     public void onPause() {
         super.onPause();
 
-        if (!isCallEnded()) {
-            if (null != mCallView) {
-                mCallView.onPause();
-            }
+        try {
+            if (!isCallEnded()) {
+                if (null != mCallView) {
+                    mCallView.onPause();
+                }
 
-            if (mVideoSource != null) {
-                mVideoSource.stop();
-                mIsVideoSourceStopped = true;
+                if (mVideoSource != null) {
+                    mVideoSource.stop();
+                    mIsVideoSourceStopped = true;
+                }
             }
+        } catch (Exception e) {
+            // race condition
+            Log.e(LOG_TAG, "onPause failed " + e.getLocalizedMessage());
         }
     }
 
@@ -736,15 +741,19 @@ public class MXJingleCall extends MXCall {
     public void onResume() {
         super.onResume();
 
-        if (!isCallEnded()) {
-            if (null != mCallView) {
-                mCallView.onResume();
-            }
+        try {
+            if (!isCallEnded()) {
+                if (null != mCallView) {
+                    mCallView.onResume();
+                }
 
-            if (mVideoSource != null && mIsVideoSourceStopped) {
-                mVideoSource.restart();
-                mIsVideoSourceStopped = false;
+                if (mVideoSource != null && mIsVideoSourceStopped) {
+                    mVideoSource.restart();
+                    mIsVideoSourceStopped = false;
+                }
             }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
         }
     }
 
