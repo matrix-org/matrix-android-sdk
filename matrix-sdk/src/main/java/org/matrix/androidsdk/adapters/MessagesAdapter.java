@@ -997,7 +997,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
 
-    private View getEmoteView(int position, View convertView, ViewGroup parent) {
+    private View getEmoteView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_EMOTE), parent, false);
         }
@@ -1022,6 +1022,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         emoteTextView.setTextColor(textColor);
+
+        emoteTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
