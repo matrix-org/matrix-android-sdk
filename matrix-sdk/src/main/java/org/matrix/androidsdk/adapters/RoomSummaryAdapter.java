@@ -488,6 +488,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         if (isRecentsGroupIndex(groupPosition)) {
             List<RoomSummary> summariesList = (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.get(groupPosition) : mRecentsSummariesList.get(groupPosition);
 
+            // should never happen but in some races conditions, it happened.
+            if (0 == summariesList.size()) {
+                return convertView;
+            }
+
             RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
             Integer unreadCount = summary.getUnreadMessagesCount();
 
