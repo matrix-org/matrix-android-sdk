@@ -1,4 +1,44 @@
 
+Changes in Matrix Android SDK in 0.4.4 (2015-09-07)
+===================================================
+
+Improvements:
+ * Add assert to avoid using released session
+ * The RespAdapter callbacks are called in try/catch block to avoid crashing the application.
+ * Get thumbnail bitmap file from URL.
+ * Share the lastactive delay to string method.
+ * Ignore presence events until the initial presences refresh is done.
+ * GCM registration : Add the append field management.
+ * Add a message header to the room items.
+ * The network events are not anymore managed with the pause/unpause commands.
+ * Reduce the number of messageAdapter refreshes.
+ * The text selection in a chat message is disabled to avoid flickering with long taps. 
+ * Allow click on any textual event to copy its content.
+ * Update the transaction id for unsent messages.
+ * Increase the max number of events stored by room to avoid trigger network requests.
+ * room::requestHistory provides 20 events per requests. Room class buffers the storage events to avoid having a huge bunch of events.
+ * Improve the storage events management.
+
+Features:
+ * Voice/Video call management.
+
+Bug fixes:
+ * The displayname was not initialized if the settings page was not opened once.
+ * Add mFileStoreHandler sanity check (GA issues).
+ * Highlight messages with displayname / userID in room instead of using the push rules.
+ * Fix a GA crash while listing the public rooms.
+ * Fix a GA crash while listing room members list.
+ * Fix a GA crash with caseInsensitiveFind use (empty string case).
+ * Fix a GA crash when maxPowerLevel is set to 0.
+ * The rooms deletion use to crash the application in some race conditions.
+ * The room joining was not properly dispatched when done from another device.
+ * The avatar and displayname udpates were not properly saved.
+ * The messages are sent with PUT instead of POST to avoid duplicated messages.
+ * In some race conditions, the user profile was not properly updated.
+ * SYAND-95 Tap on displayname to insert into textbox as poor's man autocomplete
+ * SYAND-102 Accepted room invites not properly resolved.
+
+
 Changes in Matrix Android SDK in 0.4.3 (2015-07-07)
 ===================================================
 
