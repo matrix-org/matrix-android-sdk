@@ -15,19 +15,17 @@
  */
 package org.matrix.androidsdk;
 
-import android.content.Context;
 import android.util.Log;
 
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -38,7 +36,6 @@ import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.lang.reflect.Member;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -62,6 +59,9 @@ public class MXDataHandler implements IMXEventListener {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private ContentManager mContentManager;
+    private MXCallsManager mCallsManager;
+
+    private Boolean mIsActive = true;
 
     /**
      * Default constructor.
@@ -72,19 +72,36 @@ public class MXDataHandler implements IMXEventListener {
         mCredentials = credentials;
     }
 
+    private void checkIfActive() {
+        synchronized (this) {
+            if (!mIsActive) {
+                throw new AssertionError("Should not used a MXDataHandler");
+            }
+        }
+    }
+
+    private Boolean isActive() {
+        synchronized (this) {
+            return mIsActive;
+        }
+    }
+
     /**
      * @return true if the initial sync is completed.
      */
     public boolean isInitialSyncComplete() {
+        checkIfActive();
         return mInitialSyncComplete;
     }
 
     public void setDataRetriever(DataRetriever dataRetriever) {
+        checkIfActive();
         mDataRetriever = dataRetriever;
         mDataRetriever.setStore(mStore);
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
+        checkIfActive();
         mBingRulesManager = bingRulesManager;
         mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
             @Override
@@ -95,10 +112,17 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void setContentManager(ContentManager contentManager) {
+        checkIfActive();
         mContentManager = contentManager;
     }
 
+    public void setCallsManager(MXCallsManager callsManager) {
+        checkIfActive();
+        mCallsManager = callsManager;
+    }
+
     public BingRuleSet pushRules() {
+        checkIfActive();
         if (null != mBingRulesManager) {
             return mBingRulesManager.pushRules();
         }
@@ -107,6 +131,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void refreshPushRules() {
+        checkIfActive();
         if (null != mBingRulesManager) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
@@ -118,10 +143,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public BingRulesManager getBingRulesManager() {
+        checkIfActive();
         return mBingRulesManager;
     }
 
     public void addListener(IMXEventListener listener) {
+        checkIfActive();
         synchronized (this) {
             // avoid adding twice
             if (mEventListeners.indexOf(listener) == -1) {
@@ -135,6 +162,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void removeListener(IMXEventListener listener) {
+        checkIfActive();
         synchronized (this) {
             mEventListeners.remove(listener);
         }
@@ -142,6 +170,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void clear() {
         synchronized (this) {
+            mIsActive = false;
             // remove any listener
             mEventListeners.clear();
         }
@@ -156,6 +185,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param room the associated room
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
+        checkIfActive();
+
         // Handle state events
         if (roomResponse.state != null) {
             room.processLiveState(roomResponse.state);
@@ -196,6 +227,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomResponse the room response object
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse) {
+        checkIfActive();
         if (roomResponse.roomId != null) {
             Room room = getRoom(roomResponse.roomId);
             handleInitialRoomResponse(roomResponse, room);
@@ -206,6 +238,8 @@ public class MXDataHandler implements IMXEventListener {
      * Update the missing data fields loaded from a permanent storage.
      */
     public void checkPermanentStorageData() {
+        checkIfActive();
+
         if (mStore.isPermanent()) {
             // When the data are extracted from a persistent storage,
             // some fields are not retrieved :
@@ -231,10 +265,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public String getUserId() {
+        checkIfActive();
         return mCredentials.userId;
     }
 
     private void handleInitialSyncInvite(String roomId, String inviterUserId) {
+        checkIfActive();
+
         Room room = getRoom(roomId);
 
         // add yourself
@@ -266,6 +303,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public IMXStore getStore() {
+        checkIfActive();
+
         return mStore;
     }
 
@@ -274,11 +313,16 @@ public class MXDataHandler implements IMXEventListener {
      * @param events the live events
      */
     public void handleLiveEvents(List<Event> events) {
+        checkIfActive();
+
         for (Event event : events) {
             handleLiveEvent(event);
         }
 
         onLiveEventsChunkProcessed();
+
+        // check if an incoming call has been received
+        mCallsManager.checkPendingIncomingCalls();
     }
 
     /**
@@ -288,6 +332,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
+        checkIfActive();
+
         for (RoomMember member : members) {
             if (userID.equals(member.getUserId())) {
                 return member;
@@ -297,11 +343,14 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Perform an initial room sync (get the metadata + get the first bunch of messages)
-     * @param event the member event
-     * @param roomState the current roomState
+     * Check if the room should be joined
+     * @param event
+     * @param roomState
+     * @return true of the room should be self joined.
      */
-    private void onSelfJoinEvent(final Event event, final RoomState roomState) {
+    private Boolean shouldSelfJoin(final Event event, final RoomState roomState) {
+        checkIfActive();
+
         RoomMember member = JsonUtils.toRoomMember(event.content);
 
         // join event ?
@@ -309,27 +358,35 @@ public class MXDataHandler implements IMXEventListener {
             Collection<RoomMember> members = roomState.getMembers();
             RoomMember myMember = getMember(members, mCredentials.userId);
 
-            // either the user is not in the member list (join a public room for example)
-            // or the member is invited
-            if ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership)) {
-                // inviterUserId is only used when the user is invited to the room found during the initial sync
-                RoomSummary roomSummary = getStore().getSummary(event.roomId);
-                roomSummary.setInviterUserId(null);
+            return ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership));
+        }
 
-                final Room room = getStore().getRoom(event.roomId);
-                room.initialSync(new SimpleApiCallback<Void>() {
+        return false;
+    }
+
+    /**
+     * Perform an initial room sync (get the metadata + get the first bunch of messages)
+     * @param roomId the roomid of the room to join.
+     */
+    private void selfJoin(final String roomId) {
+        checkIfActive();
+
+        // inviterUserId is only used when the user is invited to the room found during the initial sync
+        RoomSummary roomSummary = getStore().getSummary(roomId);
+        roomSummary.setInviterUserId(null);
+
+        final Room room = getStore().getRoom(roomId);
+        room.initialSync(new SimpleApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                room.requestHistory(new SimpleApiCallback<Integer>() {
                     @Override
-                    public void onSuccess(Void info) {
-                        room.requestHistory(new SimpleApiCallback<Integer>() {
-                            @Override
-                            public void onSuccess(Integer info) {
-                                onRoomInitialSyncComplete(event.roomId);
-                            }
-                        });
+                    public void onSuccess(Integer info) {
+                        onRoomInitialSyncComplete(roomId);
                     }
                 });
             }
-        }
+        });
     }
 
     /**
@@ -337,10 +394,18 @@ public class MXDataHandler implements IMXEventListener {
      * @param event the live event
      */
     private void handleLiveEvent(Event event) {
+        checkIfActive();
+
+        // dispatch the call events to the calls manager
+        if (event.isCallEvent()) {
+            mCallsManager.handleCallEvent(event);
+        }
+
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = JsonUtils.toUser(event.content);
             User user = mStore.getUser(userPresence.userId);
+
             if (user == null) {
                 user = userPresence;
                 user.lastActiveReceived();
@@ -352,11 +417,27 @@ public class MXDataHandler implements IMXEventListener {
                 user.lastActiveAgo = userPresence.lastActiveAgo;
                 user.lastActiveReceived();
             }
+
+            // check if the current user has been updated
+            if (mCredentials.userId.equals(user.userId)) {
+                mStore.setAvatarURL(user.avatarUrl);
+                mStore.setDisplayName(user.displayname);
+            }
+
             this.onPresenceUpdate(event, user);
         }
         // Room event
         else if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
+
+            String selfJoinRoomId = null;
+
+            // check if the room has been joined
+            // the initial sync + the first requestHistory call is done here
+            // instead of being done in the application
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
+                selfJoinRoomId = event.roomId;
+            }
 
             if (event.stateKey != null) {
                 // check if the event has been processed
@@ -379,14 +460,11 @@ public class MXDataHandler implements IMXEventListener {
             storeLiveRoomEvent(event);
             onLiveEvent(event, liveStateCopy);
 
-            BingRule bingRule;
-
-            // check if the room has been joined
-            // the initial sync + the first requestHistory call is done here
-            // instead of being done in the application
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId)) {
-                onSelfJoinEvent(event, liveStateCopy);
+            if (null != selfJoinRoomId) {
+                selfJoin(selfJoinRoomId);
             }
+
+            BingRule bingRule;
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
@@ -402,13 +480,34 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Check a room exists with the dedicated roomId
+     * @param roomId the room ID
+     * @return true it exists.
+     */
+    public Boolean doesRoomExist(String roomId) {
+        return (null != roomId) && (null != mStore.getRoom(roomId));
+    }
+
+    /**
      * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
      * @param roomId the room id
      * @return the corresponding room
      */
     public Room getRoom(String roomId) {
+        return getRoom(roomId, true);
+    }
+
+    /**
+     * Get the room object for the corresponding room id.
+     * @param roomId the room id
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(String roomId, boolean create) {
+        checkIfActive();
+
         Room room = mStore.getRoom(roomId);
-        if (room == null) {
+        if ((room == null) && create) {
             room = new Room();
             room.setRoomId(roomId);
             room.setDataHandler(this);
@@ -425,6 +524,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void storeLiveRoomEvent(Event event) {
+        checkIfActive();
+
         Room room = getRoom(event.roomId);
 
         // sanity check
@@ -437,8 +538,28 @@ public class MXDataHandler implements IMXEventListener {
                     mStore.updateEventContent(event.roomId, event.redacts, event.content);
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                mStore.storeLiveRoomEvent(event);
-                mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
+                // the candidate events are not stored.
+                boolean store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
+
+                // thread issue
+                // if the user leaves a room,
+                // the server scho could try to delete the room file
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
+                    String membership = event.content.getAsJsonPrimitive("membership").getAsString();
+
+                    if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
+                        store = false;
+                        // check if the room still exists.
+                        if (null != this.getStore().getRoom(event.roomId)) {
+                            this.getStore().deleteRoom(event.roomId);
+                        }
+                    }
+                }
+
+                if (store) {
+                    mStore.storeLiveRoomEvent(event);
+                    mStore.storeSummary(getUserId(), event.roomId, event, beforeState, mCredentials.userId);
+                }
             }
         }
     }
@@ -448,6 +569,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
+        checkIfActive();
+
         Room room = getRoom(event.roomId);
 
         if (null != room) {
@@ -465,6 +588,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user.
      */
     public User getUser(String userId) {
+        checkIfActive();
+
         return mStore.getUser(userId);
     }
 

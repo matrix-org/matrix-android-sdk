@@ -16,6 +16,8 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.net.Uri;
+import android.text.TextUtils;
+import android.webkit.MimeTypeMap;
 
 import java.io.File;
 
@@ -33,6 +35,18 @@ public class FileMessage extends Message {
 
     public String getMimeType() {
         if (null != info) {
+            // the mimetype was not provided
+            if (TextUtils.isEmpty(info.mimetype) && (body.indexOf('.') > 0)) {
+                // the body should contain the filename so try to extract the mimetype from the extension
+                String extension =  body.substring(body.lastIndexOf('.') + 1, body.length());
+
+                try {
+                    info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+                } catch (Exception e) {
+
+                }
+            }
+
             return info.mimetype;
         } else {
             return null;

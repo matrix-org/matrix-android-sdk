@@ -112,6 +112,11 @@ public class BingRulesManager {
      * @return whether a match was found
      */
     private static boolean caseInsensitiveFind(String subString, String longString) {
+        // sanity check
+        if (TextUtils.isEmpty(subString) || TextUtils.isEmpty(longString)) {
+            return false;
+        }
+
         Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
         return pattern.matcher(longString).find();
     }
@@ -151,7 +156,11 @@ public class BingRulesManager {
                             String pattern = myUser.displayname;
 
                             if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
-                                pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
+                                if (mMyUserId.indexOf(":") >= 0) {
+                                    pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
+                                } else {
+                                    pattern = mMyUserId;
+                                }
                             }
 
                             if (!TextUtils.isEmpty(pattern)) {

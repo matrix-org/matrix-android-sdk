@@ -69,8 +69,19 @@ public class EventDisplay {
         CharSequence text = null;
         try {
             String userDisplayName = getUserDisplayName(mEvent.userId, mRoomState);
-            if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
 
+            if (mEvent.isCallEvent()) {
+                if (Event.EVENT_TYPE_CALL_INVITE.equals(mEvent.type)) {
+                    return mContext.getString(R.string.call_invitation);
+                } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(mEvent.type)) {
+                    return mContext.getString(R.string.call_answered);
+                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(mEvent.type)) {
+                    return mContext.getString(R.string.call_hungup);
+                } else {
+                    return mEvent.type;
+                }
+            }
+            else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                 String msgtype = (null != mEvent.content.get("msgtype")) ? mEvent.content.get("msgtype").getAsString() : "";
 
                 if (msgtype.equals(Message.MSGTYPE_IMAGE)) {

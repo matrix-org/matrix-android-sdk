@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +35,7 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
     private Integer mBackgroundColor = null;
+    private Integer mTextColor = null;
 
     protected class Entry {
         protected Integer mIconResId;
@@ -72,6 +74,10 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
         mBackgroundColor = color;
     }
 
+    public void setTextColor(Integer color) {
+        mTextColor = color;
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
@@ -83,6 +89,10 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
         // text value
         TextView textView = (TextView) convertView.findViewById(R.id.textView_icon_and_text);
         textView.setText(mContext.getString(entry.mTextResId));
+
+        if (null != mTextColor) {
+            textView.setTextColor(mTextColor);
+        }
 
         ImageView imageView =  (ImageView) convertView.findViewById(R.id.imageView_icon_and_text);
         imageView.setImageResource(entry.mIconResId);

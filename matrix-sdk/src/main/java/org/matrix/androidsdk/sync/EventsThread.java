@@ -47,8 +47,10 @@ public class EventsThread extends Thread {
 
     private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
+    private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
     private boolean mKilling = false;
+    private boolean mIsGettingPresences = false;
     private int mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
@@ -67,8 +69,8 @@ public class EventsThread extends Thread {
             }
 
             // the thread has been suspended and there is an available network
-            if (isConnected && mPaused && !mKilling) {
-                unpause();
+            if (isConnected && !mKilling) {
+                onNetworkAvailable();
             }
         }
     };
@@ -111,6 +113,36 @@ public class EventsThread extends Thread {
         Log.i(LOG_TAG, "pause()");
         mPaused = true;
         mIsCatchingUp = false;
+    }
+
+    /**
+     * @return true if the thread is paused.
+     */
+    public Boolean isPaused() {
+        return mPaused;
+    }
+
+    public void onNetworkAvailable() {
+        Log.i(LOG_TAG, "onNetWorkAvailable()");
+        if (mIsNetworkSuspended) {
+            mIsNetworkSuspended = false;
+
+            if (mPaused) {
+                Log.i(LOG_TAG, "the event thread is still suspended");
+            } else {
+                Log.i(LOG_TAG, "Resume the thread");
+                // request the latest events asap
+                mEventRequestTimeout = 0;
+                // cancel any catchup process.
+                mIsCatchingUp = false;
+
+                synchronized (this) {
+                    notify();
+                }
+            }
+        } else {
+            Log.i(LOG_TAG, "onNetWorkAvailable() : nothing to do");
+        }
     }
 
     /**
@@ -176,7 +208,6 @@ public class EventsThread extends Thread {
         }
 
         mPaused = false;
-        Boolean removePresenceEvents = false;
 
         // a start token is provided ?
         if (null != mCurrentToken) {
@@ -184,25 +215,39 @@ public class EventsThread extends Thread {
             mInitialSyncDone = true;
 
             mListener.onInitialSyncComplete(null);
-            removePresenceEvents = true;
+            synchronized (mApiClient) {
+                mIsGettingPresences = true;
+            }
 
             // get the members presence
             mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     mListener.onMembersPresencesSyncComplete(initialSync.presence);
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    synchronized (mApiClient) {
+                        mIsGettingPresences = false;
+                    }
                 }
             }, 0);
         }
@@ -278,8 +323,13 @@ public class EventsThread extends Thread {
 
         // Then repeatedly long-poll for events
         while (!mKilling) {
-            if (mPaused) {
-                Log.d(LOG_TAG, "Event stream is paused. Waiting.");
+            if (mPaused || mIsNetworkSuspended) {
+                if (mIsNetworkSuspended) {
+                    Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
+                } else {
+                    Log.d(LOG_TAG, "Event stream is paused. Waiting.");
+                }
+
                 try {
                     synchronized (this) {
                         wait();
@@ -304,7 +354,13 @@ public class EventsThread extends Thread {
 
                         // remove presence events because they will be retrieved by a global request
                         // same behaviours for the typing events
-                        if (removePresenceEvents) {
+                        Boolean isGettingsPresence;
+
+                        synchronized (mApiClient) {
+                            isGettingsPresence = mIsGettingPresences;
+                        }
+
+                        if (isGettingsPresence) {
                             ArrayList<Event> events = new ArrayList<Event>();
 
                             for(Event event : eventsResponse.chunk) {
@@ -314,7 +370,6 @@ public class EventsThread extends Thread {
                             }
 
                             eventsResponse.chunk = events;
-                            removePresenceEvents = false;
                         }
 
                         // the catchup request is done once.
@@ -353,7 +408,7 @@ public class EventsThread extends Thread {
                         }
                     } else {
                         // no network -> wait that a network connection comes back.
-                        pause();
+                        mIsNetworkSuspended = true;
                     }
                 }
             }

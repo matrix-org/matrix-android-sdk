@@ -17,13 +17,9 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
-import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
-import android.media.Image;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -71,6 +67,8 @@ public class Room {
     // 3 mins
     private static final int MAX_MESSAGE_TIME_LIFE_MS = 180000;
 
+    private static final int MAX_EVENT_COUNT_PER_PAGINATION = 20;
+
     /**
      * The direction from which an incoming event is considered.
      * <ul>
@@ -90,6 +88,22 @@ public class Room {
         BACKWARDS
     }
 
+    // the storage events are buffered to provide a small bunch of events
+    // the storage can provide a big bunch which slows down the UI.
+    private class BufferedEvent {
+        public Event mEvent;
+        public RoomState mState;
+
+        public BufferedEvent(Event event, RoomState state) {
+            mEvent = event;
+            mState = state;
+        }
+    }
+
+    // avoid adding to many events
+    // the room history request can provide more than exxpected event.
+    private ArrayList<BufferedEvent> mBufferedEvents = new ArrayList<BufferedEvent>();
+
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
@@ -106,6 +120,7 @@ public class Room {
 
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
+    private int mLatestChunkSize = 0;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
 
@@ -137,14 +152,6 @@ public class Room {
 
     public void setLiveState(RoomState liveState) {
         mLiveState = liveState;
-    }
-
-    public RoomState getBackState() {
-        return mBackState;
-    }
-
-    public void setBackState(RoomState backState) {
-        mBackState = backState;
     }
 
     public boolean isLeaving() {
@@ -474,7 +481,40 @@ public class Room {
             };
 
         event.mSentState = Event.SentState.SENDING;
-        mDataRetriever.getRoomsRestClient().sendMessage(mRoomId, JsonUtils.toMessage(event.content), localCB);
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+            mDataRetriever.getRoomsRestClient().sendMessage(event.originServerTs + "", mRoomId, JsonUtils.toMessage(event.content), localCB);
+        } else {
+            mDataRetriever.getRoomsRestClient().sendEvent(mRoomId, event.type, event.content, localCB);
+        }
+    }
+
+    /**
+     * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
+     * @param callback the callback.
+     */
+    private void manageEvents(final ApiCallback<Integer> callback) {
+        int count = Math.min(mBufferedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
+
+        for(int i = 0; i < count; i++) {
+            BufferedEvent bufferedEvent = mBufferedEvents.get(0);
+            mBufferedEvents.remove(0);
+            mDataHandler.onBackEvent(bufferedEvent.mEvent, bufferedEvent.mState);
+        }
+
+        if ((mBufferedEvents.size() == 0) && (0 == mLatestChunkSize)) {
+            canStillPaginate = false;
+        }
+
+        if (callback != null) {
+            try {
+                callback.onSuccess(count);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
+            }
+        }
+        isPaginating = false;
+        mDataHandler.getStore().commit();
     }
 
     /**
@@ -489,35 +529,65 @@ public class Room {
             return false;
         }
         isPaginating = true;
+
+        // restart the pagination
+        if (null == mBackState.getToken()) {
+            mBufferedEvents.clear();
+        }
+
+        // enough buffered data
+        if (mBufferedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
+            final android.os.Handler handler = new android.os.Handler();
+
+            // call the callback with a delay (and on the UI thread).
+            // to reproduce the same behaviour as a network request.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            manageEvents(callback);
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+
+            return true;
+        }
+
         mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 mBackState.setToken(response.end);
+
+                // the roomstate is copied to have a state snapshot
+                // but copy it only if there is a state update
+                RoomState stateCopy = mBackState.deepCopy();
+
                 for (Event event : response.chunk) {
                     Boolean processedEvent = true;
 
                     if (event.stateKey != null) {
                         processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+
+                        if (processedEvent) {
+                            // new state event -> copy the room state
+                            stateCopy = mBackState.deepCopy();
+                        }
                     }
 
                     // warn the listener only if the message is processed.
                     // it should avoid duplicated events.
                     if (processedEvent) {
-                        mDataHandler.onBackEvent(event, mBackState.deepCopy());
+                        mBufferedEvents.add(new BufferedEvent(event, stateCopy));
                     }
                 }
-                if (response.chunk.size() == 0) {
-                    canStillPaginate = false;
-                }
-                if (callback != null) {
-                    try {
-                        callback.onSuccess(response.chunk.size());
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
-                    }
-                }
-                isPaginating = false;
-                mDataHandler.getStore().commit();
+
+                mLatestChunkSize = response.chunk.size();
+                manageEvents(callback);
             }
 
             @Override
@@ -650,7 +720,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 // invite the last user
-                if ((index+1) == userIds.size()) {
+                if ((index + 1) == userIds.size()) {
                     try {
                         callback.onSuccess(info);
                     } catch (Exception e) {
@@ -702,6 +772,11 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 Room.this.mIsLeaving = false;
+
+                // delete references to the room
+                mDataHandler.getStore().deleteRoom(mRoomId);
+                mDataHandler.getStore().commit();
+
                 try {
                     callback.onSuccess(info);
                 } catch (Exception e) {
@@ -1176,5 +1251,30 @@ public class Room {
                 mDataHandler.onLiveEventsChunkProcessed();
             }
         }
+    }
+
+    /**
+     * Test if a call can be performed in this room.
+     * @return true if a call can be performed.
+     */
+    public Boolean canPerformCall() {
+        return 1 == callees().size();
+    }
+
+    /**
+     * @return a list of callable members.
+     */
+    public ArrayList<RoomMember> callees() {
+        ArrayList<RoomMember> res = new ArrayList<RoomMember>();
+
+        Collection<RoomMember> members = getMembers();
+
+        for(RoomMember m : members) {
+            if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership) && !mMyUserId.equals(m.getUserId())) {
+                res.add(m);
+            }
+        }
+
+        return res;
     }
 }

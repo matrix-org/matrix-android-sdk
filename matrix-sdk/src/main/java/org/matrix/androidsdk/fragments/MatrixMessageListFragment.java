@@ -132,7 +132,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             uiThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.onUserPresenceUpdate(user.userId);
+                    // check first if the userID has sent some messages in the room history
+                    Boolean refresh = mAdapter.isDisplayedUser(user.userId);
+
+                    if (refresh) {
+                        // check, if the avatar is currently displayed 
+                        int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
+                        int lastVisibleRow = mMessageListView.getLastVisiblePosition();
+
+                        refresh = false;
+
+                        for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
+                            MessageRow row = mAdapter.getItem(i);
+                            refresh |= user.userId.equals(row.getEvent().userId);
+                        }
+                    }
+
+                    if (refresh) {
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
             });
         }
@@ -756,7 +774,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
 
-            if (isStarted) {
+            if (isStarted && (null != getActivity())) {
                 displayLoadingProgress();
             }
         }
@@ -775,7 +793,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                  Event.EVENT_TYPE_MESSAGE.equals(type)          ||
                  Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
                  Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type);
+                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
+                 (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
+                ;
     }
 
     @Override
@@ -883,6 +903,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Paginate the room until to fill the current page or there is no more item to display.
      */
     private void fillHistoryPage() {
+        // does nothing if the activity has been killed
+        if (null == getActivity()) {
+            return;
+        }
+
         if (mMessageListView.getFirstVisiblePosition() == 0) {
             displayLoadingProgress();
             mIsCatchingUp = true;

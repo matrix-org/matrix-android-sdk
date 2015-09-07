@@ -27,8 +27,8 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         versionCode 1
-        version "0.4.3"
-        versionName "0.4.3"
+        version "0.4.4"
+        versionName "0.4.4"
         testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
     }
 
@@ -74,6 +74,7 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
     compile 'com.squareup.okhttp:okhttp:2.0.0'
+    compile 'io.pristine:libjingle:9690@aar'
 
     // Robolectric
     testCompile 'com.android.support.test:runner:0.3'

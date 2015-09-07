@@ -297,7 +297,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
         else {
             String memberName = member.getName();
-            String lastActiveDisplay = "(" + buildLastActiveDisplay(user.getRealLastActiveAgo()) + ")";
+            String lastActiveDisplay = "(" + buildLastActiveDisplay(mContext, user.getRealLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
             int lastSeenTextColor = lastSeenTextColor();
@@ -349,7 +349,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         // The power level disc
         PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.powerDisc);
-        if (mPowerLevels == null) {
+        if ((mPowerLevels == null) || (0 == maxPowerLevel)) {
             pieFractionView.setVisibility(View.GONE);
         }
         else {
@@ -374,23 +374,23 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         return convertView;
     }
 
-    private String buildLastActiveDisplay(long lastActiveAgo) {
+    public static String buildLastActiveDisplay(Context context, long lastActiveAgo) {
         lastActiveAgo /= 1000; // In seconds
         if (lastActiveAgo < 60) {
-            return mContext.getString(R.string.last_seen_secs, lastActiveAgo);
+            return context.getString(R.string.last_seen_secs, lastActiveAgo);
         }
 
         lastActiveAgo /= 60; // In minutes
         if (lastActiveAgo < 60) {
-            return mContext.getString(R.string.last_seen_mins, lastActiveAgo);
+            return context.getString(R.string.last_seen_mins, lastActiveAgo);
         }
 
         lastActiveAgo /= 60; // In hours
         if (lastActiveAgo < 24) {
-            return mContext.getString(R.string.last_seen_hours, lastActiveAgo);
+            return context.getString(R.string.last_seen_hours, lastActiveAgo);
         }
 
         lastActiveAgo /= 24; // In days
-        return mContext.getString(R.string.last_seen_days, lastActiveAgo);
+        return context.getString(R.string.last_seen_days, lastActiveAgo);
     }
 }

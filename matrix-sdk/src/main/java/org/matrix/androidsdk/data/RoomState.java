@@ -68,7 +68,14 @@ public class RoomState implements java.io.Serializable {
     }
 
     public Collection<RoomMember> getMembers() {
-        return mMembers.values();
+        ArrayList<RoomMember> res;
+
+        synchronized (this) {
+            // make a copy to avoid concurrency modifications
+            res = new ArrayList<>(mMembers.values());
+        }
+
+        return res;
     }
 
     public void setMember(String userId, RoomMember member) {
@@ -76,19 +83,29 @@ public class RoomState implements java.io.Serializable {
         if (member.getUserId() == null) {
             member.setUserId(userId);
         }
-        mMembers.put(userId, member);
+        synchronized (this) {
+            mMembers.put(userId, member);
+        }
     }
 
     public RoomMember getMember(String userId) {
-        return mMembers.get(userId);
+        RoomMember member;
+
+        synchronized (this) {
+            member = mMembers.get(userId);
+        }
+
+        return member;
     }
 
     public void removeMember(String userId) {
-        mMembers.remove(userId);
+        synchronized (this) {
+            mMembers.remove(userId);
+        }
     }
 
     public PowerLevels getPowerLevels() {
-        return powerLevels;
+        return powerLevels.deepCopy();
     }
 
     public void setPowerLevels(PowerLevels powerLevels) {
@@ -115,10 +132,12 @@ public class RoomState implements java.io.Serializable {
         copy.mDataHandler = mDataHandler;
         copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
 
-        Iterator it = mMembers.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
-            copy.setMember(pair.getKey(), pair.getValue().deepCopy());
+        synchronized (this) {
+            Iterator it = mMembers.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+                copy.setMember(pair.getKey(), pair.getValue().deepCopy());
+            }
         }
 
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
@@ -146,67 +165,68 @@ public class RoomState implements java.io.Serializable {
     public String getDisplayName(String selfUserId) {
         String displayName = null, alias = null;
 
-        if ((aliases != null) && (aliases.size() != 0)) {
-            alias = aliases.get(0);
-        }
+        synchronized (this) {
+            if ((aliases != null) && (aliases.size() != 0)) {
+                alias = aliases.get(0);
+            }
 
-        if (name != null) {
-            displayName = name;
-        }
-        else if (alias != null) {
-            displayName = alias;
-        }
-        // compute a name
-        else if (mMembers.size() > 0) {
-            Iterator it = mMembers.entrySet().iterator();
-            Map.Entry<String, RoomMember> otherUserPair = null;
+            if (name != null) {
+                displayName = name;
+            } else if (alias != null) {
+                displayName = alias;
+            }
+            // compute a name
+            else if (mMembers.size() > 0) {
+                Iterator it = mMembers.entrySet().iterator();
+                Map.Entry<String, RoomMember> otherUserPair = null;
 
-            if ((mMembers.size() >= 3) && (selfUserId != null)) {
-                // this is a group chat and should have the names of participants
-                // according to "(<num> <name1>, <name2>, <name3> ..."
-                int count = 0;
+                if ((mMembers.size() >= 3) && (selfUserId != null)) {
+                    // this is a group chat and should have the names of participants
+                    // according to "(<num> <name1>, <name2>, <name3> ..."
+                    int count = 0;
 
-                displayName = "";
+                    displayName = "";
 
-                while (it.hasNext()) {
-                    Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
-
-                    if (!selfUserId.equals(pair.getKey())) {
-                        otherUserPair = pair;
-
-                        if (count > 0) {
-                            displayName += ", ";
-                        }
-
-                        if (otherUserPair.getValue().getName() != null) {
-                            displayName += getMemberName(otherUserPair.getValue().getUserId()); // The member name
-                        } else {
-                            displayName += getMemberName(otherUserPair.getKey()); // The user id
-                        }
-                        count++;
-                    }
-                }
-                displayName = "(" + count + ") " + displayName;
-            } else {
-                // by default, it is oneself name
-                displayName = getMemberName(selfUserId);
-
-                // A One2One private room can default to being called like the other guy
-                if (selfUserId != null) {
                     while (it.hasNext()) {
                         Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+
                         if (!selfUserId.equals(pair.getKey())) {
                             otherUserPair = pair;
-                            break;
+
+                            if (count > 0) {
+                                displayName += ", ";
+                            }
+
+                            if (otherUserPair.getValue().getName() != null) {
+                                displayName += getMemberName(otherUserPair.getValue().getUserId()); // The member name
+                            } else {
+                                displayName += getMemberName(otherUserPair.getKey()); // The user id
+                            }
+                            count++;
                         }
                     }
-                }
+                    displayName = "(" + count + ") " + displayName;
+                } else {
+                    // by default, it is oneself name
+                    displayName = getMemberName(selfUserId);
 
-                if (otherUserPair != null) {
-                    if (otherUserPair.getValue().getName() != null) {
-                        displayName = getMemberName(otherUserPair.getValue().getUserId()); // The member name
-                    } else {
-                        displayName = getMemberName(otherUserPair.getKey()); // The user id
+                    // A One2One private room can default to being called like the other guy
+                    if (selfUserId != null) {
+                        while (it.hasNext()) {
+                            Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
+                            if (!selfUserId.equals(pair.getKey())) {
+                                otherUserPair = pair;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (otherUserPair != null) {
+                        if (otherUserPair.getValue().getName() != null) {
+                            displayName = getMemberName(otherUserPair.getValue().getUserId()); // The member name
+                        } else {
+                            displayName = getMemberName(otherUserPair.getKey()); // The user id
+                        }
                     }
                 }
             }
@@ -316,11 +336,13 @@ public class RoomState implements java.io.Serializable {
         if ((null != member) &&  !TextUtils.isEmpty(member.displayname)) {
             displayName = member.displayname;
 
-            // Disambiguate users who have the same displayname in the room
-            for(RoomMember aMember : mMembers.values()) {
-                if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname)) {
-                    displayName += "(" + userId + ")";
-                    break;
+            synchronized (this) {
+                // Disambiguate users who have the same displayname in the room
+                for (RoomMember aMember : mMembers.values()) {
+                    if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname)) {
+                        displayName += "(" + userId + ")";
+                        break;
+                    }
                 }
             }
         }

@@ -186,7 +186,7 @@ public class RoomSummary implements java.io.Serializable {
             mIsInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
         }
         // when invited, the only received message should be the invitation one
-        if (isInvited()) {
+        if (mIsInvited) {
             mInviterName = null;
 
             if (null != mLatestEvent) {
@@ -197,6 +197,8 @@ public class RoomSummary implements java.io.Serializable {
                     mInviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
                 }
             }
+        } else {
+            mInviterUserId = mInviterName = null;
         }
 
         return this;

@@ -70,11 +70,19 @@ public class RestAdapterCallback<T> implements Callback<T> {
         // add try catch to prevent application crashes while managing destroyed object
         try {
             if (null != mUnsentEventsManager) {
-                mUnsentEventsManager.onEventSent(mApiCallback);
+                try {
+                    mUnsentEventsManager.onEventSent(mApiCallback);
+                } catch (Exception e) {
+                    Log.d(LOG_TAG, "Succeed onEventSent " + e.getLocalizedMessage());
+                }
             }
 
             if (null != mApiCallback) {
-                mApiCallback.onSuccess(t);
+                try {
+                    mApiCallback.onSuccess(t);
+                } catch (Exception e) {
+                    Log.d(LOG_TAG, "Succeed onSuccess " + e.getLocalizedMessage());
+                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
@@ -104,7 +112,11 @@ public class RestAdapterCallback<T> implements Callback<T> {
             if (error.isNetworkError()) {
                 try {
                     if (null != mApiCallback) {
-                        mApiCallback.onNetworkError(error);
+                        try {
+                            mApiCallback.onNetworkError(error);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "failure onNetworkError " + error.getLocalizedMessage());
+                        }
                     }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());

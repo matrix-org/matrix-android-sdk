@@ -38,6 +38,8 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import retrofit.client.Response;
 
@@ -57,20 +59,21 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Send a message to a room.
+     * Send a message to room
+     * @param transactionId the unique transaction id (it should avoid duplicated messages)
      * @param roomId the room id
      * @param message the message
      * @param callback the callback containing the created event if successful
      */
-    public void sendMessage(final String roomId, final Message message, final ApiCallback<Event> callback) {
+    public void sendMessage(final String transactionId, final String roomId, final Message message, final ApiCallback<Event> callback) {
         final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
 
         // the messages have their dedicated method in MXSession to be resent if there is no avaliable network
-        mApi.sendMessage(roomId, message, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sendMessage(transactionId, roomId, message, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    sendMessage(roomId, message, callback);
+                    sendMessage(transactionId, roomId, message, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend sendMessage : failed " + e.getMessage());
                 }

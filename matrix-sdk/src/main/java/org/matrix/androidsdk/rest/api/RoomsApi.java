@@ -71,12 +71,13 @@ public interface RoomsApi {
 
     /**
      * Send a message for the specified room.
+     * @param txId the transactionId
      * @param roomId the room id
      * @param message the message
      * @param callback the asynchronous callback called with the response
      */
-    @POST("/rooms/{roomId}/send/m.room.message")
-    public void sendMessage(@Path("roomId") String roomId, @Body Message message, Callback<Event> callback);
+    @PUT("/rooms/{roomId}/send/m.room.message/{txId}")
+    public void sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message, Callback<Event> callback);
 
     /**
      * Set the room topic.

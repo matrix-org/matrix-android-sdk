@@ -17,15 +17,10 @@
 package org.matrix.androidsdk.adapters;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
-import android.os.Handler;
-import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -50,9 +45,6 @@ import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.fragments.IconAndTextDialogFragment;
-import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -71,7 +63,6 @@ import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -91,18 +82,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // displayname changes, avatar url changes), and emotes!
     private static final int NUM_ROW_TYPES = 5;
 
-    private static final int ROW_TYPE_TEXT = 0;
-    private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_NOTICE = 2;
-    private static final int ROW_TYPE_EMOTE = 3;
-    private static final int ROW_TYPE_FILE = 4;
+    protected static final int ROW_TYPE_TEXT = 0;
+    protected static final int ROW_TYPE_IMAGE = 1;
+    protected static final int ROW_TYPE_NOTICE = 2;
+    protected static final int ROW_TYPE_EMOTE = 3;
+    protected static final int ROW_TYPE_FILE = 4;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
     public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
     public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
-    private ArrayList<String>mTypingUsers = new ArrayList<String>();
+    protected ArrayList<String>mTypingUsers = new ArrayList<String>();
 
     protected Context mContext;
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
@@ -123,10 +114,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private int mOddColourResId;
     private int mEvenColourResId;
 
-    private int normalColor;
-    private int notSentColor;
-    private int sendingColor;
-    private int highlightColor;
+    protected int normalColor;
+    protected int notSentColor;
+    protected int sendingColor;
+    protected int highlightColor;
 
     private int mMaxImageWidth;
     private int mMaxImageHeight;
@@ -174,7 +165,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public abstract int presenceOnlineColor();
     public abstract int presenceUnavailableColor();
 
-    private void updatePresenceRing(ImageView presenceView, String userId) {
+    protected void updatePresenceRing(ImageView presenceView, String userId) {
         String presence = null;
 
         User user = getUser(userId);
@@ -364,7 +355,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 return ROW_TYPE_TEXT;
             }
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+        else if (
+                event.isCallEvent() ||
+                Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return ROW_TYPE_NOTICE;
@@ -405,7 +398,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
-    private String getUserDisplayName(String userId, RoomState roomState) {
+    protected String getUserDisplayName(String userId, RoomState roomState) {
         return roomState.getMemberName(userId);
     }
 
@@ -418,14 +411,32 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     }
 
+    /**
+     * Define the action to perform when the user performs a long tap on an avatar
+     * @param roomId the room ID
+     * @param userId the user ID
+     * @return true if the long clik event is managed
+     */
+    public Boolean onAvatarLongClick(String roomId, String userId) {
+        return false;
+    }
+
+    /**
+     * Define the action to perform when the user taps on the message sender
+     * @param userId
+     * @param displayName
+     */
+    public void onSenderNameClick(String userId, String displayName) {
+    }
+
     // return true if convertView is merged with previous View
-    private boolean manageSubView(int position, View convertView, View subView, int msgType) {
+    protected boolean manageSubView(int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
         MyUser myUser = mSession.getMyUser();
-        Boolean isMyEvent = myUser.userId.equals(msg.userId);
+        Boolean isMyEvent = myUser.userId.equals(msg.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(msg.type);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
@@ -481,6 +492,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textView.setVisibility(View.VISIBLE);
                 textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
             }
+
+            final String fSenderId = msg.userId;
+            final String fDisplayName = textView.getText().toString();
+
+            textView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onSenderNameClick(fSenderId, fDisplayName);
+                }
+            });
         }
 
         TextView tsTextView;
@@ -531,6 +552,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 final String roomId = roomState.roomId;
 
                 avatarLeftView.setClickable(true);
+
+                avatarLeftView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return onAvatarLongClick(roomId, userId);
+                    }
+                });
 
                 // click on the avatar opens the details page
                 avatarLeftView.setOnClickListener(new View.OnClickListener() {
@@ -651,7 +679,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (null != msg.eventId) {
                 synchronized (this) {
                     if (!mTextColorByEventId.containsKey(msg.eventId)) {
-                        textColor = (EventUtils.shouldHighlight(mSession, msg) ? highlightColor : normalColor);
+                        String sBody = body.toString();
+                        String displayName = mSession.getMyUser().displayname;
+                        String userID =  mSession.getMyUser().userId;
+
+                        if (EventUtils.caseInsensitiveFind(displayName, sBody) || EventUtils.caseInsensitiveFind(userID, sBody)) {
+                            textColor = highlightColor;
+                        } else {
+                            textColor = normalColor;
+                        }
+
                         mTextColorByEventId.put(msg.eventId, textColor);
                     } else {
                         textColor = mTextColorByEventId.get(msg.eventId);
@@ -671,9 +708,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // warn listener of click events if there is no selection
-                if (!bodyTextView.hasSelection() && (null != mMessagesAdapterClickListener)) {
-                    bodyTextView.requestFocus();
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
+
+        bodyTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterClickListener) {
                     mMessagesAdapterClickListener.onItemClick(position);
                 }
             }
@@ -906,8 +950,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        CharSequence notice = display.getTextualDisplay();
+        CharSequence notice = null;
+
+        if (msg.type.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+            notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
+        } else {
+            EventDisplay display = new EventDisplay(mContext, msg, roomState);
+            notice = display.getTextualDisplay();
+        }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
         noticeTextView.setText(notice);
@@ -929,10 +979,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         });
 
+        noticeTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // warn listener of click events if there is no selection
+                if (null != mMessagesAdapterClickListener) {
+                    mMessagesAdapterClickListener.onItemClick(position);
+                }
+            }
+        });
+
         return convertView;
     }
 
-    private void loadAvatar(ImageView avatarView, String url) {
+    protected void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
         mMediasCache.loadAvatarThumbnail(avatarView, url, size);
     }
@@ -1149,6 +1209,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             return true;
         }
+        else if (event.isCallEvent()) {
+            // display only the start call
+            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+        }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
@@ -1159,6 +1223,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public void setTypingUsers(ArrayList<String> typingUsers) {
         boolean refresh = mTypingUsers.size() != typingUsers.size();
+
+        if (mTypingUsers.size() == 1) {
+            // avoid refreshing when the self user is alone
+            String userId = mTypingUsers.get(0);
+            MyUser myUser = mSession.getMyUser();
+
+            if (userId.equals(myUser.userId)) {
+                mTypingUsers = typingUsers;
+                return;
+            }
+        }
 
         // same length -> ensure that there is an update
         if (!refresh) {
@@ -1194,7 +1269,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return mMaxImageHeight;
     }
 
-
     /**
      * Notify the fragment that some bing rules could have been updated.
      */
@@ -1206,13 +1280,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Warn the adapter that an user presence has been updated.
-     * @param userId the user userId.
+     * @return true if the user has sent some messages in this room history.
      */
-    public void onUserPresenceUpdate(String userId) {
+    public Boolean isDisplayedUser(String userId) {
         // check if the user has been displayed in the room history
-        if ((null != userId) && mUserByUserId.containsKey(userId)) {
-            this.notifyDataSetChanged();
-        }
+        return (null != userId) && mUserByUserId.containsKey(userId);
     }
 }

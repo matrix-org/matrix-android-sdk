@@ -18,8 +18,12 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.squareup.okhttp.Call;
+
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
@@ -31,6 +35,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
+import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -73,10 +78,13 @@ public class MXSession {
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
+    private CallRestClient mCallRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
     private ContentManager mContentManager;
+
+    public MXCallsManager mCallsManager;
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -86,6 +94,8 @@ public class MXSession {
     private MXMediasCache mMediasCache;
 
     private BingRulesManager mBingRulesManager = null;
+
+    private Boolean mIsActiveSession = true;
 
     /**
      * Create a basic session for direct API calls.
@@ -101,6 +111,7 @@ public class MXSession {
         mBingRulesRestClient = new BingRulesRestClient(credentials);
         mPushersRestClient = new PushersRestClient(credentials);
         mThirdPidRestClient = new ThirdPidRestClient(credentials);
+        mCallRestClient = new CallRestClient(credentials);
     }
 
     /**
@@ -127,9 +138,13 @@ public class MXSession {
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
 
+        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
         mDataHandler.setContentManager(mContentManager);
+
+        //
+        mCallsManager = new MXCallsManager(this, mAppContent);
+        mDataHandler.setCallsManager(mCallsManager);
 
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
@@ -138,10 +153,20 @@ public class MXSession {
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(credentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, credentials.userId, appContext);
+    }
+
+
+    private void checkIfActive() {
+        synchronized (this) {
+            if (!mIsActiveSession) {
+                throw new AssertionError("Should not used a cleared mxsession ");
+            }
+        }
     }
 
     /**
@@ -149,6 +174,7 @@ public class MXSession {
      * @return the data handler.
      */
     public MXDataHandler getDataHandler() {
+        checkIfActive();
         return mDataHandler;
     }
 
@@ -157,6 +183,7 @@ public class MXSession {
      * @return the credentials
      */
     public Credentials getCredentials() {
+        checkIfActive();
         return mCredentials;
     }
 
@@ -165,6 +192,7 @@ public class MXSession {
      * @return the events API client
      */
     public EventsRestClient getEventsApiClient() {
+        checkIfActive();
         return mEventsRestClient;
     }
 
@@ -173,6 +201,7 @@ public class MXSession {
      * @return the profile API client
      */
     public ProfileRestClient getProfileApiClient() {
+        checkIfActive();
         return mProfileRestClient;
     }
 
@@ -181,6 +210,7 @@ public class MXSession {
      * @return the presence API client
      */
     public PresenceRestClient getPresenceApiClient() {
+        checkIfActive();
         return mPresenceRestClient;
     }
 
@@ -189,10 +219,17 @@ public class MXSession {
      * @return the bing rules API client
      */
     public BingRulesRestClient getBingRulesApiClient() {
+        checkIfActive();
         return mBingRulesRestClient;
     }
 
+    public CallRestClient getCallRestClient() {
+        checkIfActive();
+        return mCallRestClient;
+    }
+
     public PushersRestClient getPushersRestClient() {
+        checkIfActive();
         return mPushersRestClient;
     }
 
@@ -201,30 +238,37 @@ public class MXSession {
      * @return the rooms API client
      */
     public RoomsRestClient getRoomsApiClient() {
+        checkIfActive();
         return mRoomsRestClient;
     }
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
+        checkIfActive();
         this.mEventsRestClient = eventsRestClient;
     }
 
     protected void setProfileApiClient(ProfileRestClient profileRestClient) {
+        checkIfActive();
         this.mProfileRestClient = profileRestClient;
     }
 
     protected void setPresenceApiClient(PresenceRestClient presenceRestClient) {
+        checkIfActive();
         this.mPresenceRestClient = presenceRestClient;
     }
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
+        checkIfActive();
         this.mRoomsRestClient = roomsRestClient;
     }
 
     public MXLatestChatMessageCache getLatestChatMessageCache() {
+        checkIfActive();
         return mLatestChatMessageCache;
     }
 
     public MXMediasCache getMediasCache() {
+        checkIfActive();
         return mMediasCache;
     }
 
@@ -232,6 +276,12 @@ public class MXSession {
      * Clear the session data
      */
     public void clear(Context context) {
+        checkIfActive();
+
+        synchronized (this) {
+            mIsActiveSession = false;
+        }
+
         // stop events stream
         stopEventStream();
 
@@ -254,10 +304,20 @@ public class MXSession {
     }
 
     /**
+     * @return true if the session is active i.e. has not been cleared after a logout.
+     */
+    public Boolean isActive() {
+        synchronized (this) {
+            return mIsActiveSession;
+        }
+    }
+
+    /**
      * Get the content manager (for uploading and downloading content) associated with the session.
      * @return the content manager
      */
     public ContentManager getContentManager() {
+        checkIfActive();
         return mContentManager;
     }
 
@@ -266,12 +326,13 @@ public class MXSession {
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
+        checkIfActive();
+
+        IMXStore store = mDataHandler.getStore();
+
         // MyUser is initialized as late as possible to have a better chance at having the info in storage,
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
-
-            IMXStore store = mDataHandler.getStore();
-
             mMyUser = new MyUser(store.getUser(mCredentials.userId));
             mMyUser.setProfileRestClient(mProfileRestClient);
             mMyUser.setPresenceRestClient(mPresenceRestClient);
@@ -290,6 +351,16 @@ public class MXSession {
 
             // Handle the case where the user is null by loading the user information from the server
             mMyUser.userId = mCredentials.userId;
+        } else {
+            // assume the profile is not yet initialized
+            if ((null == store.displayName()) && (null != mMyUser.displayname)) {
+                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setDisplayName(mMyUser.displayname);
+                store.commit();
+            } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
+                mMyUser.displayname = store.displayName();
+                mMyUser.avatarUrl = store.avatarURL();
+            }
         }
         return mMyUser;
     }
@@ -301,6 +372,8 @@ public class MXSession {
      * @param initialToken the initial sync token (null to start from scratch)
      */
     public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver, String initialToken) {
+        checkIfActive();
+
         if (mEventsThread != null) {
             Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
@@ -332,6 +405,7 @@ public class MXSession {
      * @param initialToken the initial sync token (null to sync from scratch).
      */
     public void startEventStream(String initialToken) {
+        checkIfActive();
         startEventStream(null, this.mNetworkConnectivityReceiver, initialToken);
     }
 
@@ -339,6 +413,10 @@ public class MXSession {
      * Gracefully stop the event stream.
      */
     public void stopEventStream() {
+        if (null != mCallsManager) {
+            mCallsManager.stopTurnServerRefresh();
+        }
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "stopEventStream");
 
@@ -350,6 +428,12 @@ public class MXSession {
     }
 
     public void pauseEventStream() {
+        checkIfActive();
+
+        if (null != mCallsManager) {
+            mCallsManager.pauseTurnServerRefresh();
+        }
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "pauseEventStream");
             mEventsThread.pause();
@@ -359,6 +443,12 @@ public class MXSession {
     }
 
     public void resumeEventStream() {
+        checkIfActive();
+
+        if (null != mCallsManager) {
+            mCallsManager.unpauseTurnServerRefresh();
+        }
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "unpause");
             mEventsThread.unpause();
@@ -368,6 +458,8 @@ public class MXSession {
     }
 
     public void catchupEventStream() {
+        checkIfActive();
+
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "catchupEventStream");
             mEventsThread.catchup();
@@ -381,6 +473,8 @@ public class MXSession {
      * @param failureCallback the failure callback
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
+        checkIfActive();
+
         mFailureCallback = failureCallback;
         if (mEventsThread != null) {
             mEventsThread.setFailureCallback(failureCallback);
@@ -396,6 +490,8 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
+        checkIfActive();
+
         mRoomsRestClient.createRoom(name, topic, visibility, alias, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
@@ -417,6 +513,8 @@ public class MXSession {
      * @param callback the async callback once the room is joined. The RoomId is provided.
      */
     public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
+        checkIfActive();
+
         // sanity check
         if ((null != mDataHandler) && (null != roomIdOrAlias)) {
             mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
@@ -435,6 +533,8 @@ public class MXSession {
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
+        checkIfActive();
+
         mThirdPidRestClient.lookup3Pid(address, media, callback);
     }
 
@@ -445,6 +545,8 @@ public class MXSession {
      * @param callback the 3rd parties callback
      */
     public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
+        checkIfActive();
+
         mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
 
@@ -454,8 +556,19 @@ public class MXSession {
      * @return the fulfilled bingRule
      */
     public BingRule fulfillRule(Event event) {
-       return mBingRulesManager.fulfilledBingRule(event);
+        checkIfActive();
+
+        return mBingRulesManager.fulfilledBingRule(event);
     }
 
-
+    /**
+     * @return true if the calls are supported
+     */
+    public Boolean isVoipCallSupported() {
+        if (null != mCallsManager) {
+            return mCallsManager.isSupported();
+        } else {
+            return false;
+        }
+    }
 }

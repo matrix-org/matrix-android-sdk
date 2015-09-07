@@ -45,7 +45,8 @@ public class MXFileStore extends MXMemoryStore {
     // some constant values
     final int MXFILE_VERSION = 1;
 
-    final int MAX_STORED_MESSAGES_COUNT = 25;
+    // ensure that there is enough messages to fill a tablet screen
+    final int MAX_STORED_MESSAGES_COUNT = 100;
 
     final String MXFILE_STORE_FOLDER = "MXFileStore";
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
@@ -447,6 +448,20 @@ public class MXFileStore extends MXMemoryStore {
         mMetaDataHasChanged = true;
     }
 
+    @Override
+    public void setDisplayName(String displayName) {
+        Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        mMetaDataHasChanged = true;
+        super.setDisplayName(displayName);
+    }
+
+    @Override
+    public void setAvatarURL(String avatarURL) {
+        Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        mMetaDataHasChanged = true;
+        super.setAvatarURL(avatarURL);
+    }
+
     /**
      * Define a MXStore listener.
      * @param listener
@@ -600,7 +615,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void saveRoomsMessages() {
         // some updated rooms ?
-        if  (mRoomsToCommitForMessages.size() > 0) {
+        if  ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
             mRoomsToCommitForMessages = new ArrayList<String>();
@@ -840,8 +855,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the room state files.
      */
     private void saveRoomStates() {
-        if (mRoomsToCommitForStates.size() > 0) {
-
+        if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
             mRoomsToCommitForStates = new ArrayList<String>();
@@ -981,7 +995,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the pending summaries.
      */
     private void saveSummaries() {
-        if (mRoomsToCommitForSummaries.size() > 0) {
+        if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
             mRoomsToCommitForSummaries = new ArrayList<String>();
@@ -1105,6 +1119,11 @@ public class MXFileStore extends MXMemoryStore {
 
                 mMetadata = (MXFileStoreMetaData)out.readObject();
 
+                // remove pending \n
+                if (null != mMetadata.mUserDisplayName) {
+                    mMetadata.mUserDisplayName.trim();
+                }
+
                 // extract the latest event stream token
                 mEventStreamToken = mMetadata.mEventStreamToken;
             }
@@ -1122,7 +1141,7 @@ public class MXFileStore extends MXMemoryStore {
      * flush the metadata info from the file system.
      */
     private void saveMetaData() {
-        if (mMetaDataHasChanged) {
+        if ((mMetaDataHasChanged) && (null != mFileStoreHandler)) {
             mMetaDataHasChanged = false;
 
             final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();

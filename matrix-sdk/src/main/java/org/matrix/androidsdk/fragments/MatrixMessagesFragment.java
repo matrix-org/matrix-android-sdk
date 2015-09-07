@@ -189,8 +189,6 @@ public class MatrixMessagesFragment extends Fragment {
 
         mRoom.addEventListener(mEventListener);
 
-        //joinedRoom = false;
-
         if (!joinedRoom) {
             Log.i(LOG_TAG, "Joining room >> " + roomId);
             joinRoom();
@@ -226,12 +224,6 @@ public class MatrixMessagesFragment extends Fragment {
 
     private void joinRoom() {
         displayLoadingProgress();
-
-        RoomSummary roomSummary = mSession.getDataHandler().getStore().getSummary(mRoom.getRoomId());
-
-        if (null != roomSummary) {
-            roomSummary.setInviterUserId(null);
-        }
 
         mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
