@@ -774,7 +774,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
 
-            if (isStarted) {
+            if (isStarted && (null != getActivity())) {
                 displayLoadingProgress();
             }
         }
@@ -903,6 +903,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Paginate the room until to fill the current page or there is no more item to display.
      */
     private void fillHistoryPage() {
+        // does nothing if the activity has been killed
+        if (null == getActivity()) {
+            return;
+        }
+
         if (mMessageListView.getFirstVisiblePosition() == 0) {
             displayLoadingProgress();
             mIsCatchingUp = true;
