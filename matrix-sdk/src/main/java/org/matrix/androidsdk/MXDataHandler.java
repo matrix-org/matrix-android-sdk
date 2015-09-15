@@ -23,6 +23,7 @@ import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -60,6 +61,7 @@ public class MXDataHandler implements IMXEventListener {
     private BingRulesManager mBingRulesManager;
     private ContentManager mContentManager;
     private MXCallsManager mCallsManager;
+    private MXMediasCache mMediasCache;
 
     private Boolean mIsActive = true;
 
@@ -119,6 +121,11 @@ public class MXDataHandler implements IMXEventListener {
     public void setCallsManager(MXCallsManager callsManager) {
         checkIfActive();
         mCallsManager = callsManager;
+    }
+
+    public void setMediasCache(MXMediasCache mediasCache) {
+        checkIfActive();
+        mMediasCache = mediasCache;
     }
 
     public BingRuleSet pushRules() {

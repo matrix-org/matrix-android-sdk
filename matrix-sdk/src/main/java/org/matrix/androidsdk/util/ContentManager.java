@@ -89,6 +89,12 @@ public class ContentManager {
      */
     public static interface UploadCallback {
         /**
+         * Warn of the upload starts
+         * @param uploadId the upload Identifier
+         */
+        public void onUploadStart(String uploadId);
+
+        /**
          * Warn of the progress upload
          * @param uploadId the upload Identifier
          * @param percentageProgress the progress value
@@ -416,6 +422,13 @@ public class ContentManager {
 
                 // read file and write it into form...
                 bytesRead = contentStream.read(buffer, 0, bufferSize);
+
+                for (UploadCallback callback : mCallbacks) {
+                    try {
+                        callback.onUploadStart(mUploadId);
+                    } catch (Exception e) {
+                    }
+                }
 
                 while (bytesRead > 0) {
                     dos.write(buffer, 0, bufferSize);

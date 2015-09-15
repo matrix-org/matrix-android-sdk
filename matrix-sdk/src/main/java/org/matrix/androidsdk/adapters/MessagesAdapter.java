@@ -53,6 +53,8 @@ import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoInfo;
+import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
@@ -78,15 +80,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         public void onItemClick(int position);
     }
 
-    // text, images, notices(topics, room names, membership changes,
-    // displayname changes, avatar url changes), and emotes!
-    private static final int NUM_ROW_TYPES = 5;
-
     protected static final int ROW_TYPE_TEXT = 0;
     protected static final int ROW_TYPE_IMAGE = 1;
     protected static final int ROW_TYPE_NOTICE = 2;
     protected static final int ROW_TYPE_EMOTE = 3;
     protected static final int ROW_TYPE_FILE = 4;
+    protected static final int ROW_TYPE_VIDEO = 5;
+    private static final int NUM_ROW_TYPES = 6;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -192,11 +192,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 org.matrix.androidsdk.R.layout.adapter_item_message_notice,
                 org.matrix.androidsdk.R.layout.adapter_item_message_emote,
                 org.matrix.androidsdk.R.layout.adapter_item_message_file,
+                org.matrix.androidsdk.R.layout.adapter_item_message_video,
                 mediasCache);
     }
 
     public MessagesAdapter(MXSession session, Context context, int textResLayoutId, int imageResLayoutId,
-                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, MXMediasCache mediasCache) {
+                           int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, int videoResLayoutId, MXMediasCache mediasCache) {
         super(context, 0);
         mContext = context;
         mRowTypeToLayoutId.put(ROW_TYPE_TEXT, textResLayoutId);
@@ -204,6 +205,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mRowTypeToLayoutId.put(ROW_TYPE_NOTICE, noticeResLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_EMOTE, emoteRestLayoutId);
         mRowTypeToLayoutId.put(ROW_TYPE_FILE, fileResLayoutId);
+        mRowTypeToLayoutId.put(ROW_TYPE_VIDEO, videoResLayoutId);
         mMediasCache = mediasCache;
         mLayoutInflater = LayoutInflater.from(mContext);
         // the refresh will be triggered only when it is required
@@ -340,17 +342,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
                 return ROW_TYPE_TEXT;
-            }
-            else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
                 return ROW_TYPE_IMAGE;
-            }
-            else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
                 return ROW_TYPE_EMOTE;
-            }
-            else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
                 return ROW_TYPE_FILE;
-            }
-            else {
+            } else if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
+                return ROW_TYPE_VIDEO;
+            } else {
                 // Default is to display the body as text
                 return ROW_TYPE_TEXT;
             }
@@ -388,6 +388,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     return getEmoteView(position, convertView, parent);
                 case ROW_TYPE_FILE:
                     return getFileView(position, convertView, parent);
+                case ROW_TYPE_VIDEO:
+                    return getVideoView(position, convertView, parent);
                 default:
                     throw new RuntimeException("Unknown item view type for position " + position);
             }
@@ -830,6 +832,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                     @Override
+                    public void onDownloadStart(String downloadId) {
+                    }
+
+                    @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                         if (aDownloadId.equals(fDownloadId)) {
                             downloadPieFractionView.setFraction(percentageProgress);
@@ -894,6 +900,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 final String url = imageMessage.url;
 
                 mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadStart(String uploadId) {
+                    }
+
                     @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
                         if (url.equals(anUploadId)) {
@@ -1073,6 +1083,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final View fileTypeView = convertView.findViewById(R.id.messagesAdapter_file_type);
 
         final MXMediasCache.DownloadCallback downloadCallback = new MXMediasCache.DownloadCallback() {
+
+            @Override
+            public void onDownloadStart(String downloadId) {
+            }
+
             @Override
             public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                 if (aDownloadId.equals(downloadId)) {
@@ -1158,6 +1173,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
                     @Override
+                    public void onUploadStart(String uploadId) {
+                    }
+
+                    @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
                         if (url.equals(anUploadId)) {
                             uploadFractionView.setFraction(percentageProgress);
@@ -1197,6 +1216,222 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
+
+        setBackgroundColour(convertView, position);
+        return convertView;
+    }
+
+    public void onVideoClick(int position, VideoMessage videoMessage) {
+    }
+
+    public boolean onVideoLongClick(int position, VideoMessage videoMessage) {
+        return false;
+    }
+
+    private View getVideoView(final int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_VIDEO), parent, false);
+        }
+
+        MessageRow row = getItem(position);
+        Event msg = row.getEvent();
+
+        final VideoMessage videoMessage = JsonUtils.toVideoMessage(msg.content);
+
+        // sanity check
+        if (null == videoMessage) {
+            return convertView;
+        }
+
+        videoMessage.checkMediaUrls();
+        VideoInfo videoinfo = videoMessage.info;
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
+        final int maxImageWidth = mMaxImageWidth;
+        final int maxImageHeight = mMaxImageHeight;
+        String thumbUrl = null;
+
+        if ((null == videoinfo) || (null == videoinfo.thumbnail_url)) {
+            imageView.setBackgroundColor(Color.RED);
+        } else {
+            thumbUrl = videoinfo.thumbnail_url;
+
+            // reset the bitmap to ensure that it is not reused from older cells
+            imageView.setImageBitmap(null);
+            // the thumbnails are always prerotated
+            String curDownloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, 0, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+
+            // the thumbnail is not downloading
+            // check if the media is downloading
+            if (null == curDownloadId) {
+                curDownloadId = mMediasCache.downloadIdFromUrl(videoMessage.url);
+            }
+
+            final String downloadId = curDownloadId;
+
+            // display a pie char
+            final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
+            final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+
+            if (null != downloadProgressLayout) {
+                if ((null != downloadId) && (mMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
+                    downloadProgressLayout.setVisibility(View.VISIBLE);
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
+
+                    int frameHeight = -1;
+
+                    // if the image size is known
+                    // compute the expected thumbnail height
+                    if ((null != videoMessage.info.thumbnail_info) && (null != videoMessage.info.thumbnail_info.w) && (null != videoMessage.info.thumbnail_info.h)) {
+                        int imageW = videoMessage.info.thumbnail_info.w;
+                        int imageH = videoMessage.info.thumbnail_info.h;
+
+                        if ((imageW > 0) && (imageH > 0)) {
+                            frameHeight = Math.min(maxImageWidth * imageH / imageW, maxImageHeight);
+                        }
+                    }
+
+                    // if no defined height
+                    // use the pie chart one.
+                    if (frameHeight < 0) {
+                        frameHeight = downloadPieFractionView.getHeight();
+                    }
+
+                    // apply it the layout
+                    // it avoid row jumping when the image is downloaded
+                    lp.height = frameHeight;
+
+                    final String fDownloadId = downloadId;
+
+                    mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+                        @Override
+                        public void onDownloadStart(String downloadId) {
+                        }
+
+                        @Override
+                        public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                            if (aDownloadId.equals(fDownloadId)) {
+                                downloadPieFractionView.setFraction(percentageProgress);
+                            }
+                        }
+
+                        @Override
+                        public void onDownloadComplete(String aDownloadId) {
+                            if (aDownloadId.equals(fDownloadId)) {
+                                downloadProgressLayout.setVisibility(View.GONE);
+                            }
+                        }
+                    });
+
+                    downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+
+                } else {
+                    downloadProgressLayout.setVisibility(View.GONE);
+                }
+            }
+
+            imageView.setBackgroundColor(Color.TRANSPARENT);
+        }
+
+        // The API doesn't make any strong guarantees about the thumbnail size, so also scale
+        // locally if needed.
+        imageView.setMaxWidth(maxImageWidth);
+        imageView.setMaxHeight(maxImageHeight);
+
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onVideoClick(position, videoMessage);
+            }
+        });
+
+        imageView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return onVideoLongClick(position, videoMessage);
+            }
+        });
+
+        // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
+        int progress = -1;
+
+        if (mSession.getMyUser().userId.equals(msg.userId)) {
+            String uploadingUrl = thumbUrl;
+
+            progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+
+            // the thumbnail has been uploaded -> check if
+            if (progress < 0) {
+                uploadingUrl = videoMessage.url;
+                progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+            }
+
+            if (progress >= 0) {
+                final String url = uploadingUrl;
+                final boolean isContentUpload = uploadingUrl.equals(videoMessage.url);
+
+                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadStart(String uploadId) {
+
+                    }
+
+                    @Override
+                    public void onUploadProgress(String anUploadId, int percentageProgress) {
+                        if (url.equals(anUploadId)) {
+                            int progress;
+
+                            if (isContentUpload) {
+                                progress = 10 + (percentageProgress * 90 / 100);
+                            } else {
+                                progress = (percentageProgress * 10 / 100);
+                            }
+
+                            uploadFractionView.setFraction(progress);
+                        }
+                    }
+
+                    @Override
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+                        if (url.equals(anUploadId)) {
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        if (null != serverErrorMessage) {
+                                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                                    serverErrorMessage,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+
+        uploadFractionView.setFraction(progress);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+
+        View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
+        imageLayout.setAlpha(row.getEvent().isSent() ? 1.0f : 0.5f);
+
+        this.manageSubView(position, convertView, imageLayout, ROW_TYPE_VIDEO);
 
         setBackgroundColour(convertView, position);
         return convertView;

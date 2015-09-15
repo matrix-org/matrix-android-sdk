@@ -92,6 +92,13 @@
                                 android:id="@+id/messagesAdapter_image"
                                 android:adjustViewBounds="true" />
 
+                            <ImageView
+                                android:layout_alignLeft = "@+id/messagesAdapter_image"
+                                android:layout_alignTop="@+id/messagesAdapter_image"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/filetype_video"/>
+
                             <FrameLayout
                                 android:layout_alignLeft = "@+id/messagesAdapter_image"
                                 android:layout_alignRight="@+id/messagesAdapter_image"

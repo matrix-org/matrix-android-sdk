@@ -18,4 +18,15 @@ package org.matrix.androidsdk.rest.model;
 public class FileInfo {
     public String mimetype;
     public Long size;
+
+    /**
+     * Make a deep copy.
+     * @return the copy
+     */
+    public FileInfo deepCopy() {
+        FileInfo copy = new FileInfo();
+        copy.mimetype = mimetype;
+        copy.size = size;
+        return copy;
+    }
 }

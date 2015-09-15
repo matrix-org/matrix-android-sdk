@@ -26,10 +26,12 @@ import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 
 import java.lang.reflect.Modifier;
@@ -83,6 +85,14 @@ public class JsonUtils {
             return toImageMessage(jsonObject);
         }
 
+        if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
+            return toVideoMessage(jsonObject);
+        }
+
+        if (Message.MSGTYPE_LOCATION.equals(message.msgtype)) {
+            return toLocationMessage(jsonObject);
+        }
+
         // Try to return the right subclass
         if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
             return toFileMessage(jsonObject);
@@ -102,6 +112,14 @@ public class JsonUtils {
 
     public static FileMessage toFileMessage(JsonObject jsonObject) {
         return gson.fromJson(jsonObject, FileMessage.class);
+    }
+
+    public static VideoMessage toVideoMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, VideoMessage.class);
+    }
+
+    public static LocationMessage toLocationMessage(JsonObject jsonObject) {
+        return gson.fromJson(jsonObject, LocationMessage.class);
     }
 
     public static ContentResponse toContentResponse(String jsonString) {

@@ -15,78 +15,49 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import android.media.ExifInterface;
 import android.net.Uri;
 
 import java.io.File;
-
-public class ImageMessage extends Message {
-    public ImageInfo info;
-    public ImageInfo thumbnailInfo;
+public class VideoMessage extends Message {
+    public VideoInfo info;
     public String url;
-    public String thumbnailUrl;
 
-    public ImageMessage() {
-        msgtype = MSGTYPE_IMAGE;
+    public VideoMessage() {
+        msgtype = MSGTYPE_VIDEO;
     }
 
     /**
      * Make a deep copy of this VideoMessage.
      * @return the copy
      */
-    public ImageMessage deepCopy() {
-        ImageMessage copy = new ImageMessage();
+    public VideoMessage deepCopy() {
+        VideoMessage copy = new VideoMessage();
+        copy.url = url;
         copy.msgtype = msgtype;
         copy.body = body;
-        copy.url = url;
-        copy.thumbnailUrl = thumbnailUrl;
 
         if (null != info) {
             copy.info = info.deepCopy();
         }
-
-        if (null != thumbnailInfo) {
-            copy.thumbnailInfo = thumbnailInfo.deepCopy();
-        }
-
         return copy;
     }
 
+    public boolean isThumbnailLocalContent() {
+        return (null != info) && (null != info.thumbnail_url) && (info.thumbnail_url.startsWith("file://"));
+    }
 
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
     }
 
     /**
-     * @return The image mimetype. null is not defined.
+     * @return The video mimetype. null is not defined.
      */
-    public String getMimeType() {
+    public String getVideoMimeType() {
         if (null != info) {
             return info.mimetype;
         } else {
             return null;
-        }
-    }
-
-    /**
-     * @return the rotation angle. Integer.MAX_VALUE if not defined.
-     */
-    public int getRotation() {
-        if ((null != info) && (null != info.rotation)) {
-            return info.rotation;
-        } else {
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    /**
-     * @return the image orientation. ExifInterface.ORIENTATION_UNDEFINED if not defined.
-     */
-    public int getOrientation() {
-        if ((null != info) && (null != info.orientation)) {
-            return info.orientation;
-        } else {
-            return ExifInterface.ORIENTATION_UNDEFINED;
         }
     }
 
@@ -96,12 +67,12 @@ public class ImageMessage extends Message {
      * They could have been deleted after a media cache cleaning.
      */
     public void checkMediaUrls() {
-        if ((thumbnailUrl != null) && thumbnailUrl.startsWith("file://")) {
+        if ((null != info) && (info.thumbnail_url != null) && info.thumbnail_url.startsWith("file://")) {
             try {
-                File file = new File(Uri.parse(thumbnailUrl).getPath());
+                File file = new File(Uri.parse(info.thumbnail_url).getPath());
 
                 if (!file.exists()) {
-                    thumbnailUrl = null;
+                    info.thumbnail_url = null;
                 }
             } catch (Exception e) {
 

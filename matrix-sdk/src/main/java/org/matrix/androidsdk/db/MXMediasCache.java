@@ -42,6 +42,13 @@ public class MXMediasCache {
      */
     public interface DownloadCallback {
         /**
+         * The download start
+         *
+         * @param downloadId the download Identifier
+         */
+        public void onDownloadStart(String downloadId);
+
+        /**
          * Warn of the progress download
          *
          * @param downloadId         the download Identifier
@@ -501,7 +508,7 @@ public class MXMediasCache {
     ArrayList<MXMediaWorkerTask> mSuspendedTasks = new ArrayList<MXMediaWorkerTask>();
 
     /**
-     * Retuns the download ID from the media URL.
+     * Returns the download ID from the media URL.
      *
      * @param url      the media url
      * @return the download ID
@@ -668,6 +675,10 @@ public class MXMediasCache {
 
                 // check at the end of the download, if a suspended task can be launched again.
                 task.addCallback(new DownloadCallback() {
+                    @Override
+                    public void onDownloadStart(String downloadId) {
+                    }
+
                     @Override
                     public void onDownloadProgress(String downloadId, int percentageProgress) {
                     }

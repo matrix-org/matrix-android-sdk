@@ -29,6 +29,23 @@ public class FileMessage extends Message {
         msgtype = MSGTYPE_FILE;
     }
 
+    /**
+     * Make a deep copy of this VideoMessage.
+     * @return the copy
+     */
+    public FileMessage deepCopy() {
+        FileMessage copy = new FileMessage();
+        copy.msgtype = msgtype;
+        copy.body = body;
+        copy.url = url;
+
+        if (null != info) {
+            copy.info = info.deepCopy();
+        }
+
+        return copy;
+    }
+
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
     }

@@ -386,6 +386,8 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 }
             }
 
+            sendStart();
+
             String filename = MXMediaWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
             FileOutputStream fos = new FileOutputStream(new File(mDirectoryFile, filename));
 
@@ -474,6 +476,18 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             }
             Log.e(LOG_TAG, "Unable to load bitmap: "+e);
             return null;
+        }
+    }
+
+    /**
+     * Dispatch start event to the callbacks.
+     */
+    private void sendStart() {
+        for(MXMediasCache.DownloadCallback callback : mCallbacks) {
+            try {
+                callback.onDownloadStart(mUrl);
+            } catch (Exception e) {
+            }
         }
     }
 

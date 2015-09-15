@@ -158,6 +158,7 @@ public class MXSession {
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(credentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, credentials.userId, appContext);
+        mDataHandler.setMediasCache(mMediasCache);
     }
 
 

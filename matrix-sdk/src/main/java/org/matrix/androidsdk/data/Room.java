@@ -17,9 +17,15 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
+import android.media.MediaScannerConnection;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -27,6 +33,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -38,13 +45,17 @@ import org.matrix.androidsdk.rest.model.FileInfo;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoInfo;
+import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -928,6 +939,102 @@ public class Room {
         }
     }
 
+    /**
+     * Fill the locationInfo
+     * @param context the context
+     * @param locationMessage the location message
+     * @param thumbnailUri the thumbnail uri
+     * @param thumbMimeType the thumbnail mime type
+     */
+    public static void fillLocationInfo(Context context, LocationMessage locationMessage, Uri thumbnailUri, String thumbMimeType) {
+        if (null != thumbnailUri) {
+            try {
+                locationMessage.thumbnail_url = thumbnailUri.toString();
+
+                ThumbnailInfo thumbInfo = new ThumbnailInfo();
+                File thumbnailFile = new File(thumbnailUri.getPath());
+
+                ExifInterface exifMedia = new ExifInterface(thumbnailUri.getPath());
+                String sWidth = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+                String sHeight = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+
+                if (null != sWidth) {
+                    thumbInfo.w = Integer.parseInt(sWidth);
+                }
+
+                if (null != sHeight) {
+                    thumbInfo.h = Integer.parseInt(sHeight);
+                }
+
+                thumbInfo.size = new Long(thumbnailFile.length());
+                thumbInfo.mimetype = thumbMimeType;
+                locationMessage.thumbnail_info = thumbInfo;
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    /**
+     * Fills the VideoMessage info.
+     * @param context Application context for the content resolver.
+     * @param videoMessage The VideoMessage to fill.
+     * @param fileUri The file uri.
+     * @param videoMimeType The mimeType
+     * @param thumbnailUri the thumbnail uri
+     * @param thumbMimeType the thumbnail mime type
+     */
+    public static void fillVideoInfo(Context context, VideoMessage videoMessage, Uri fileUri, String videoMimeType, Uri thumbnailUri, String thumbMimeType) {
+        try {
+            VideoInfo videoInfo = new VideoInfo();
+
+            File file = new File(fileUri.getPath());
+
+            MediaMetadataRetriever retriever = new  MediaMetadataRetriever();
+            Bitmap bmp = null;
+            retriever.setDataSource(file.getAbsolutePath());
+            bmp = retriever.getFrameAtTime();
+            videoInfo.h = bmp.getHeight();
+            videoInfo.w = bmp.getWidth();
+            videoInfo.mimetype = videoMimeType;
+
+            try {
+                MediaPlayer mp = MediaPlayer.create(context, fileUri);
+                if (null != mp) {
+                    videoInfo.duration = new Long(mp.getDuration());
+                    mp.release();
+                }
+            } catch (Exception e) {
+            }
+            videoInfo.size = file.length();
+
+            // thumbnail
+            if (null != thumbnailUri) {
+                videoInfo.thumbnail_url = thumbnailUri.toString();
+
+                ThumbnailInfo thumbInfo = new ThumbnailInfo();
+                File thumbnailFile = new File(thumbnailUri.getPath());
+
+                ExifInterface exifMedia = new ExifInterface(thumbnailUri.getPath());
+                String sWidth = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+                String sHeight = exifMedia.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+
+                if (null != sWidth) {
+                    thumbInfo.w = Integer.parseInt(sWidth);
+                }
+
+                if (null != sHeight) {
+                    thumbInfo.h = Integer.parseInt(sHeight);
+                }
+
+                thumbInfo.size = new Long(thumbnailFile.length());
+                thumbInfo.mimetype = thumbMimeType;
+                videoInfo.thumbnail_info = thumbInfo;
+            }
+
+            videoMessage.info = videoInfo;
+        } catch (Exception e) {
+        }
+    }
 
     /**
      * Fills the fileMessage fileInfo.
@@ -1133,6 +1240,10 @@ public class Room {
 
                             if (null != fis) {
                                 mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, imageMessage.body, new ContentManager.UploadCallback() {
+                                    @Override
+                                    public void onUploadStart(String uploadId) {
+                                    }
+
                                     @Override
                                     public void onUploadProgress(String anUploadId, int percentageProgress) {
                                     }

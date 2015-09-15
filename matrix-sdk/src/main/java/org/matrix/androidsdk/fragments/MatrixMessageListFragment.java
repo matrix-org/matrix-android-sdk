@@ -16,10 +16,13 @@
 
 package org.matrix.androidsdk.fragments;
 
+import android.graphics.Bitmap;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
@@ -49,11 +52,15 @@ import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoInfo;
+import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -374,13 +381,47 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
+    private void commonMediaUpload(ContentResponse uploadResponse, int serverReponseCode, final String serverErrorMessage, final MessageRow messageRow) {
+        // warn the user that the media upload fails
+        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+            if (serverReponseCode == 500) {
+                Timer relaunchTimer = new Timer();
+                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
+                relaunchTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
+                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
+
+                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            resend(messageRow.getEvent());
+                                        }
+                                    });
+                        }
+                    }
+                }, 1000);
+            } else {
+                messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+
+                Toast.makeText(getActivity(),
+                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
+                        Toast.LENGTH_LONG).show();
+            }
+        } else {
+            send(messageRow);
+        }
+    }
+
     /**
-     * Upload a media content
+     * Upload a file content
      * @param mediaUrl the media Uurl
      * @param mimeType the media mime type
      * @param mediaFilename the mediafilename
      */
-    public void uploadMediaContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
+    public void uploadFileContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
         // create a tmp row
         final FileMessage tmpFileMessage = new FileMessage();
 
@@ -409,6 +450,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
         getSession().getContentManager().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new ContentManager.UploadCallback() {
+
+            @Override
+            public void onUploadStart(String uploadId) {
+            }
+
             @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
@@ -418,17 +464,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        FileMessage message = tmpFileMessage;
-
                         if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
                             // Build the image message
-                            message = new FileMessage();
+                            FileMessage message = tmpFileMessage.deepCopy();
 
                             // replace the thumbnail and the media contents by the computed ones
                             getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
                             message.url = uploadResponse.contentUri;
-                            message.info = tmpFileMessage.info;
-                            message.body = tmpFileMessage.body;
 
                             // update the event content with the new message info
                             messageRow.getEvent().content = JsonUtils.toJson(message);
@@ -436,40 +478,145 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
 
-                        // warn the user that the media upload fails
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (serverReponseCode == 500) {
-                                Timer relaunchTimer = new Timer();
-                                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
-                                relaunchTimer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
-                                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
+                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, messageRow);
+                    }
+                });
+            }
+        });
+    }
 
-                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
-                                                    new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            resend(messageRow.getEvent());
-                                                        }
-                                                    });
-                                        }
-                                    }
-                                }, 1000);
+    /**
+     * Upload a video message
+     * The video thumbnail will be computed
+     * @param message the video message, null to create a new one
+     * @param videoUrl the video url
+     * @param body the message body
+     * @param videoMimeType the video mime type
+     */
+    public void uploadVideoContent(final String videoUrl, final String body, final String videoMimeType) {
+        String thumbUrl = null;
+        try {
+            Uri uri = Uri.parse(videoUrl);
+            Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
+            thumbUrl = getMXMediasCache().saveBitmap(thumb, null);
+        } catch (Exception e) {
+
+        }
+        this.uploadVideoContent(null, null, thumbUrl, "image/jpeg", videoUrl, body, videoMimeType);
+    }
+
+    /**
+     * Upload a video message
+     * @param message the video message, null to create a new one
+     * @param thumbnailUrl the thumbnail Url
+     * @param thumbnailMimeType the thumbnail mime type
+     * @param videoUrl the video url
+     * @param body the message body
+     * @param videoMimeType the video mime type
+     */
+    public void uploadVideoContent(final VideoMessage sourceVideoMessage, final MessageRow aVideoRow, final String thumbnailUrl, final String thumbnailMimeType, final String videoUrl, final String body, final String videoMimeType) {
+        // create a tmp row
+        VideoMessage tmpVideoMessage = sourceVideoMessage;
+        Uri uri = null;
+        Uri thumbUri = null;
+
+        try {
+            uri = Uri.parse(videoUrl);
+            thumbUri = Uri.parse(thumbnailUrl);
+        } catch (Exception e) {
+        }
+
+        // the video message is not defined
+        if (null == tmpVideoMessage) {
+            tmpVideoMessage = new VideoMessage();
+            tmpVideoMessage.url = videoUrl;
+            tmpVideoMessage.body = body;
+
+            try {
+                Room.fillVideoInfo(getActivity(), tmpVideoMessage, uri, videoMimeType, thumbUri, thumbnailMimeType);
+                if (null == tmpVideoMessage.body) {
+                    tmpVideoMessage.body = uri.getLastPathSegment();
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "uploadVideoContent : fillVideoInfo failed " + e.getLocalizedMessage());
+            }
+        }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow videoRow = (null == aVideoRow) ? addMessageRow(tmpVideoMessage) : aVideoRow;
+        videoRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        FileInputStream imageStream = null;
+        String filename = "";
+        String uploadId = "";
+        String mimeType = "";
+
+        try {
+            // the thumbnail has been uploaded ?
+            if (tmpVideoMessage.isThumbnailLocalContent()) {
+                uploadId = thumbnailUrl;
+                imageStream = new FileInputStream(new File(thumbUri.getPath()));
+                mimeType = thumbnailMimeType;
+            } else {
+                uploadId = videoUrl;
+                imageStream = new FileInputStream(new File(uri.getPath()));
+                filename = tmpVideoMessage.body;
+                mimeType = videoMimeType;
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
+        }
+
+        final Boolean isContentUpload = uploadId.equals(videoUrl);
+        final VideoMessage fVideoMessage = tmpVideoMessage;
+
+        getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadStart(String uploadId) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+            }
+
+            @Override
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                            // the video content has been uploaded
+                            if (isContentUpload) {
+                                // Build the image message
+                                VideoMessage message = fVideoMessage.deepCopy();
+
+                                // replace the thumbnail and the media contents by the computed ones
+                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, videoUrl, videoMimeType);
+                                message.url = uploadResponse.contentUri;
+
+                                // update the event content with the new message info
+                                videoRow.getEvent().content = JsonUtils.toJson(message);
+
+                                Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                             } else {
-                                messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                                // ony upload the thumbnail
+                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType);
+                                fVideoMessage.info.thumbnail_url = uploadResponse.contentUri;
 
-                                Toast.makeText(getActivity(),
-                                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        } else {
-                            // send the message
-                            if (message.url != null) {
-                                send(messageRow);
+                                // upload the video
+                                uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
+                                return;
                             }
                         }
+
+                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, videoRow);
                     }
                 });
 
@@ -516,6 +663,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         getSession().getContentManager().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new ContentManager.UploadCallback() {
             @Override
+            public void onUploadStart(String uploadId) {
+            }
+
+            @Override
             public void onUploadProgress(String anUploadId, int percentageProgress) {
             }
 
@@ -524,11 +675,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        ImageMessage message = tmpImageMessage;
-
                         if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
                             // Build the image message
-                            message = new ImageMessage();
+                            ImageMessage message = tmpImageMessage.deepCopy();
 
                             // replace the thumbnail and the media contents by the computed ones
                             getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
@@ -537,48 +686,91 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             message.thumbnailUrl = null;
                             message.url = uploadResponse.contentUri;
                             message.info = tmpImageMessage.info;
-                            message.body = "Image";
+
+                            if (TextUtils.isEmpty(message.body)) {
+                                message.body = "Image";
+                            }
 
                             // update the event content with the new message info
                             imageRow.getEvent().content = JsonUtils.toJson(message);
 
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
+                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, imageRow);
+                    }
+                });
 
-                        // warn the user that the media upload fails
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (serverReponseCode == 500) {
-                                Timer relaunchTimer = new Timer();
-                                mPendingRelaunchTimersByEventId.put(imageRow.getEvent().eventId, relaunchTimer);
-                                relaunchTimer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        if (mPendingRelaunchTimersByEventId.containsKey(imageRow.getEvent().eventId)) {
-                                            mPendingRelaunchTimersByEventId.remove(imageRow.getEvent().eventId);
+            }
+        });
+    }
 
-                                            MatrixMessageListFragment.this.getActivity().runOnUiThread(
-                                                    new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            resend(imageRow.getEvent());
-                                                        }
-                                                    });
-                                        }
-                                    }
-                                }, 1000);
-                            } else {
-                                imageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+    /**
+     * upload an image content.
+     * It might be triggered from a media selection : imageUri is used to compute thumbnails.
+     * Or, it could have been called to resend an image.
+     * @param thumbnailUrl the thumbnail Url
+     * @param thumbnailMimeType the thumbnail mimetype
+     * @param geo_uri the geo_uri
+     * @param body the message body
+     */
+    public void uploadLocationContent(final String thumbnailUrl, final String thumbnailMimeType, final String geo_uri, final String body) {
+        // create a tmp row
+        final LocationMessage tmpLocationMessage = new LocationMessage();
 
-                                Toast.makeText(getActivity(),
-                                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        } else {
-                            // send the message
-                            if (message.url != null) {
-                                send(imageRow);
-                            }
+        tmpLocationMessage.thumbnail_url = thumbnailUrl;
+        tmpLocationMessage.body = body;
+        tmpLocationMessage.geo_uri = geo_uri;
+
+        FileInputStream imageStream = null;
+
+        try {
+            Uri uri = Uri.parse(thumbnailUrl);
+            Room.fillLocationInfo(getActivity(), tmpLocationMessage, uri, thumbnailMimeType);
+
+            String filename = uri.getPath();
+            imageStream = new FileInputStream (new File(filename));
+
+            if (TextUtils.isEmpty(tmpLocationMessage.body)) {
+                tmpLocationMessage.body = "Location";
+            }
+        } catch (Exception e) {
+        }
+
+        // remove any displayed MessageRow with this URL
+        // to avoid duplicate
+        final MessageRow locationRow = addMessageRow(tmpLocationMessage);
+        locationRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        getSession().getContentManager().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new ContentManager.UploadCallback() {
+            @Override
+            public void onUploadStart(String uploadId) {
+            }
+
+            @Override
+            public void onUploadProgress(String anUploadId, int percentageProgress) {
+            }
+
+            @Override
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
+                            // Build the location message
+                            LocationMessage message = tmpLocationMessage.deepCopy();
+
+                            // replace the thumbnail and the media contents by the computed ones
+                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+
+                            message.thumbnail_url = uploadResponse.contentUri;
+
+                            // update the event content with the new message info
+                            locationRow.getEvent().content = JsonUtils.toJson(message);
+
+                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
+
+                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, locationRow);
                     }
                 });
 
@@ -609,8 +801,41 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (fileMessage.isLocalContent()) {
-                uploadMediaContent(fileMessage.url, fileMessage.getMimeType(), fileMessage.body);
+                uploadFileContent(fileMessage.url, fileMessage.getMimeType(), fileMessage.body);
                 return;
+            }
+        } else if (message instanceof VideoMessage) {
+            VideoMessage videoMessage = (VideoMessage)message;
+
+            // media has not been uploaded
+            if (videoMessage.isLocalContent() || videoMessage.isThumbnailLocalContent()) {
+                String thumbnailUrl = null;
+                String thumbnailMimeType = null;
+
+                if (null != videoMessage.info) {
+                    thumbnailUrl = videoMessage.info.thumbnail_url;
+
+                    if (null != videoMessage.info.thumbnail_info) {
+                        thumbnailMimeType = videoMessage.info.thumbnail_info.mimetype;
+                    }
+                }
+
+                uploadVideoContent(videoMessage, null, thumbnailUrl, thumbnailMimeType, videoMessage.url, videoMessage.body, videoMessage.getVideoMimeType());
+                return;
+            } else if (message instanceof LocationMessage) {
+                LocationMessage locationMessage = (LocationMessage)message;
+
+                // media has not been uploaded
+                if (locationMessage.isLocalThumbnailContent()) {
+                    String thumbMimeType = null;
+
+                    if (null != locationMessage.thumbnail_info) {
+                        thumbMimeType = locationMessage.thumbnail_info.mimetype;
+                    }
+
+                    uploadLocationContent(locationMessage.thumbnail_url, thumbMimeType, locationMessage.geo_uri, locationMessage.body);
+                    return;
+                }
             }
         }
 

@@ -15,30 +15,31 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-public class ImageInfo {
-    public String mimetype;
-    public Integer w;
+public class VideoInfo {
     public Integer h;
+    public Integer w;
+    public String mimetype;
+    public Long duration;
     public Long size;
-    public Integer rotation;
-    // ExifInterface.ORIENTATION_XX values
-    public Integer orientation;
+    public String thumbnail_url;
+    public ThumbnailInfo thumbnail_info;
 
     /**
      * Make a deep copy.
      * @return the copy
      */
-    public ImageInfo deepCopy() {
-        ImageInfo copy = new ImageInfo();
-        copy.mimetype = mimetype;
-        copy.w = w;
+    public VideoInfo deepCopy() {
+        VideoInfo copy = new VideoInfo();
         copy.h = h;
-        copy.size = size;
-        copy.rotation = rotation;
-        copy.orientation = orientation;
+        copy.w = w;
+        copy.mimetype = mimetype;
+        copy.duration = duration;
+        copy.thumbnail_url = thumbnail_url;
+
+        if (null != thumbnail_info) {
+            copy.thumbnail_info = thumbnail_info.deepCopy();
+        }
+
         return copy;
     }
 }
-
-
-
