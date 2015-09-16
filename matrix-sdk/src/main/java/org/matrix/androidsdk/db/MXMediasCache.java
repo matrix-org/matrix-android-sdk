@@ -290,7 +290,7 @@ public class MXMediasCache {
             return null;
         }
 
-        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
+        String filename = (url.startsWith("file:")) ? url : MXMediaWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
 
         try {
             // already a local file
