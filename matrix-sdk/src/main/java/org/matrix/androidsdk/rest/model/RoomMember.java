@@ -15,6 +15,11 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
+import java.util.Comparator;
+import java.util.regex.Pattern;
+
 /**
  * Class representing a room member: a user with membership information.
  */
@@ -45,6 +50,54 @@ public class RoomMember implements java.io.Serializable {
         } else {
             return s1.equals(s2);
         }
+    }
+
+    // Comparator to order members alphabetically
+    public static Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
+        @Override
+        public int compare(RoomMember member1, RoomMember member2) {
+            String lhs = member1.getName();
+            String rhs = member2.getName();
+
+            if (lhs == null) {
+                return -1;
+            }
+            else if (rhs == null) {
+                return 1;
+            }
+            if (lhs.startsWith("@")) {
+                lhs = lhs.substring(1);
+            }
+            if (rhs.startsWith("@")) {
+                rhs = rhs.substring(1);
+            }
+            return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+        }
+    };
+
+    /**
+     * Test if a room memmber matches with a pattern.
+     * The check is done with the displayname and the userId.
+     * @param aPattern the pattern to search.
+     * @return true if it matches.
+     */
+    public boolean matchWith(String aPattern) {
+        if (TextUtils.isEmpty(aPattern) || TextUtils.isEmpty(aPattern.trim())) {
+            return false;
+        }
+
+        String regEx = "(?i:.*" + aPattern.trim() + ".*)";
+        boolean res = false;
+
+        if (!TextUtils.isEmpty(displayname)) {
+            res = displayname.matches(regEx);
+        }
+
+        if (!res && !TextUtils.isEmpty(userId)) {
+            res = userId.matches(regEx);
+        }
+
+        return res;
     }
 
     /**
