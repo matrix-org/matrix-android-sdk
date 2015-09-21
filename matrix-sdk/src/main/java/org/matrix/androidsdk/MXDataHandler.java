@@ -472,12 +472,21 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             BingRule bingRule;
+            boolean outOfTimeEvent = false;
+
+            if (event.content.has("lifetime")) {
+                long maxlifetime = event.content.get("lifetime").getAsLong();
+                long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+                outOfTimeEvent = eventLifeTime > maxlifetime;
+            }
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
                     && (mBingRulesManager != null)
                     && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
-                    && bingRule.shouldNotify()) {
+                    && bingRule.shouldNotify()
+                    && !outOfTimeEvent) {
                 onBingEvent(event, liveStateCopy, bingRule);
             }
         }
