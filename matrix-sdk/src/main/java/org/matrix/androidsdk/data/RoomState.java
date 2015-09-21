@@ -105,7 +105,11 @@ public class RoomState implements java.io.Serializable {
     }
 
     public PowerLevels getPowerLevels() {
-        return powerLevels.deepCopy();
+        if (null != powerLevels) {
+            return powerLevels.deepCopy();
+        } else {
+            return null;
+        }
     }
 
     public void setPowerLevels(PowerLevels powerLevels) {
