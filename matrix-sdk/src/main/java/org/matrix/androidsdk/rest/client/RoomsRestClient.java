@@ -55,8 +55,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * {@inheritDoc}
      */
-    public RoomsRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
-        super(hsConfig, credentials, RoomsApi.class, RestClient.URI_API_PREFIX, false);
+    public RoomsRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

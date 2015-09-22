@@ -45,8 +45,8 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String PUSHER_KIND_HTTP = "http";
     private static final String DATA_KEY_HTTP_URL = "url";
 
-    public PushersRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
-        super(hsConfig, credentials, PushersApi.class, RestClient.URI_API_PREFIX, true);
+    public PushersRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, PushersApi.class, RestClient.URI_API_PREFIX, true);
     }
 
     /** Add a new HTTP pusher.

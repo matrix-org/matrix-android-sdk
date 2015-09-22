@@ -107,14 +107,14 @@ public class MXSession {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
-        mEventsRestClient = new EventsRestClient(hsConfig, mCredentials);
-        mProfileRestClient = new ProfileRestClient(hsConfig, mCredentials);
-        mPresenceRestClient = new PresenceRestClient(hsConfig, mCredentials);
-        mRoomsRestClient = new RoomsRestClient(hsConfig, mCredentials);
-        mBingRulesRestClient = new BingRulesRestClient(hsConfig, mCredentials);
-        mPushersRestClient = new PushersRestClient(hsConfig, mCredentials);
-        mThirdPidRestClient = new ThirdPidRestClient(hsConfig, mCredentials);
-        mCallRestClient = new CallRestClient(hsConfig, mCredentials);
+        mEventsRestClient = new EventsRestClient(hsConfig);
+        mProfileRestClient = new ProfileRestClient(hsConfig);
+        mPresenceRestClient = new PresenceRestClient(hsConfig);
+        mRoomsRestClient = new RoomsRestClient(hsConfig);
+        mBingRulesRestClient = new BingRulesRestClient(hsConfig);
+        mPushersRestClient = new PushersRestClient(hsConfig);
+        mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
+        mCallRestClient = new CallRestClient(hsConfig);
     }
 
     /**

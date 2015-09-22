@@ -33,8 +33,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * {@inheritDoc}
      */
-    public ProfileRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
-        super(hsConfig, credentials, ProfileApi.class, RestClient.URI_API_PREFIX, false);
+    public ProfileRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, ProfileApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

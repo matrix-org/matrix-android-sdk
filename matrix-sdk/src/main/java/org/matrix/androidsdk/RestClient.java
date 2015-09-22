@@ -69,6 +69,8 @@ public class RestClient<T> {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
+        mCredentials = hsConfig.getCredentials();
+
         OkHttpClient okHttpClient = new OkHttpClient();
 
         byte[][] trusted_fingerprints = hsConfig.getAllowedFingerprints();
@@ -137,15 +139,6 @@ public class RestClient<T> {
         restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = restAdapter.create(type);
-    }
-
-    /**
-     * Constructor providing the full user credentials. To use to avoid having to log the user in.
-     * @param credentials the user credentials
-     */
-    public RestClient(HomeserverConnectionConfig hsConfig, Credentials credentials, Class<T> type, String uriPrefix, boolean withNullSerialization) {
-        this(hsConfig, type, uriPrefix, withNullSerialization);
-        mCredentials = credentials;
     }
 
     /**

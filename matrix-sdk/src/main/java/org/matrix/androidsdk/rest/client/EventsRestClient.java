@@ -46,8 +46,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * {@inheritDoc}
      */
-    public EventsRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
-        super(hsConfig, credentials, EventsApi.class, RestClient.URI_API_PREFIX, false);
+    public EventsRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, EventsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     protected EventsRestClient(EventsApi api) {
