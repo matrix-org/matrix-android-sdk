@@ -23,7 +23,7 @@ import org.json.JSONObject;
  */
 public class Credentials {
     public String userId;
-    public String homeServer;
+    public String homeServer;  // This is the server name and not a URI, e.g. "matrix.org"
     public String accessToken;
 
     public JSONObject toJson() throws JSONException {
