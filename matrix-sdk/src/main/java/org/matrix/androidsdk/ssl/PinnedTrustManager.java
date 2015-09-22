@@ -33,7 +33,7 @@ public class PinnedTrustManager implements X509TrustManager {
                 );
             }
         } catch (CertificateException e) {
-            // If there is an exception we full back to checking fingerprints
+            // If there is an exception we fall back to checking fingerprints
             if (mFingerprints == null || mFingerprints.length == 0) {
                 byte[] fingerprint = CertUtil.generateSha256Fingerprint(chain[0]);
                 throw new UnrecognizedCertificateException(chain[0], fingerprint, e.getCause());
@@ -51,7 +51,7 @@ public class PinnedTrustManager implements X509TrustManager {
                 );
             }
         } catch (CertificateException e) {
-            // If there is an exception we full back to checking fingerprints
+            // If there is an exception we fall back to checking fingerprints
             if (mFingerprints == null || mFingerprints.length == 0) {
                 byte[] fingerprint = CertUtil.generateSha256Fingerprint(chain[0]);
                 throw new UnrecognizedCertificateException(chain[0], fingerprint, e.getCause());
