@@ -2,7 +2,6 @@ package org.matrix.androidsdk.ssl;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 
 import javax.net.ssl.X509TrustManager;
 
@@ -11,7 +10,7 @@ import javax.net.ssl.X509TrustManager;
  * fingerprints.
  */
 public class PinnedTrustManager implements X509TrustManager {
-    private byte[][] mFingerprints;
+    private Fingerprint[] mFingerprints;
     private X509TrustManager mDefaultTrustManager;
 
     /**
@@ -19,7 +18,7 @@ public class PinnedTrustManager implements X509TrustManager {
      * @param defaultTrustManager Optional trust manager to fall back on if cert does not match
      *                            any of the fingerprints. Can be null.
      */
-    public PinnedTrustManager(byte[][] fingerprints, X509TrustManager defaultTrustManager) {
+    public PinnedTrustManager(Fingerprint[] fingerprints, X509TrustManager defaultTrustManager) {
         mFingerprints = fingerprints;
         mDefaultTrustManager = defaultTrustManager;
     }
@@ -35,8 +34,7 @@ public class PinnedTrustManager implements X509TrustManager {
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
             if (mFingerprints == null || mFingerprints.length == 0) {
-                byte[] fingerprint = CertUtil.generateSha256Fingerprint(chain[0]);
-                throw new UnrecognizedCertificateException(chain[0], fingerprint, e.getCause());
+                throw new UnrecognizedCertificateException(chain[0], Fingerprint.newSha256Fingerprint(chain[0]), e.getCause());
             }
         }
         checkTrusted("client", chain);
@@ -53,8 +51,7 @@ public class PinnedTrustManager implements X509TrustManager {
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
             if (mFingerprints == null || mFingerprints.length == 0) {
-                byte[] fingerprint = CertUtil.generateSha256Fingerprint(chain[0]);
-                throw new UnrecognizedCertificateException(chain[0], fingerprint, e.getCause());
+                throw new UnrecognizedCertificateException(chain[0], Fingerprint.newSha256Fingerprint(chain[0]), e.getCause());
             }
         }
         checkTrusted("server", chain);
@@ -63,18 +60,16 @@ public class PinnedTrustManager implements X509TrustManager {
     private void checkTrusted(String type, X509Certificate[] chain) throws CertificateException {
         X509Certificate cert = chain[0];
 
-        byte[] fingerprint = CertUtil.generateSha256Fingerprint(cert);
-
         boolean found = false;
-        for (byte[] allowedFingerprint: mFingerprints) {
-            if (Arrays.equals(fingerprint, allowedFingerprint)) {
+        for (Fingerprint allowedFingerprint: mFingerprints) {
+            if (allowedFingerprint.matchesCert(cert)) {
                 found = true;
                 break;
             }
         }
 
         if (!found) {
-            throw new UnrecognizedCertificateException(cert, fingerprint, null);
+            throw new UnrecognizedCertificateException(cert, Fingerprint.newSha256Fingerprint(cert), null);
         }
     }
 

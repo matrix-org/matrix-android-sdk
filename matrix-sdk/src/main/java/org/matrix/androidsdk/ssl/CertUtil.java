@@ -15,12 +15,25 @@ public class CertUtil {
      * @return
      */
     public static byte[] generateSha256Fingerprint(X509Certificate cert) throws CertificateException {
+        return generateFingerprint(cert, "SHA-256");
+    }
+
+    /**
+     * Generates the SHA-1 fingerprint of the given certificate
+     * @param cert
+     * @return
+     */
+    public static byte[] generateSha1Fingerprint(X509Certificate cert) throws CertificateException {
+        return generateFingerprint(cert, "SHA-1");
+    }
+
+    private static byte[] generateFingerprint(X509Certificate cert, String type) throws CertificateException {
         final byte[] fingerprint;
         final MessageDigest md;
         try {
-            md = MessageDigest.getInstance("SHA-256");
+            md = MessageDigest.getInstance(type);
         } catch(Exception e) {
-            // This really *really* shouldn't throw, as java should always have a SHA-256 impl.
+            // This really *really* shouldn't throw, as java should always have a SHA-256 and SHA-1 impl.
             throw new CertificateException(e);
         }
 
@@ -31,15 +44,20 @@ public class CertUtil {
 
     final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
     public static String fingerprintToHexString(byte[] fingerprint) {
+        return fingerprintToHexString(fingerprint, ' ');
+    }
+
+    public static String fingerprintToHexString(byte[] fingerprint, char sep) {
         char[] hexChars = new char[fingerprint.length * 3];
         for ( int j = 0; j < fingerprint.length; j++ ) {
             int v = fingerprint[j] & 0xFF;
             hexChars[j * 3] = hexArray[v >>> 4];
             hexChars[j * 3 + 1] = hexArray[v & 0x0F];
-            hexChars[j * 3 + 2] = ' ';
+            hexChars[j * 3 + 2] = sep;
         }
-        return new String(hexChars).trim();
+        return new String(hexChars, 0, hexChars.length - 1);
     }
+
 
     /**
      * Recursively checks the exception to see if it was caused by an

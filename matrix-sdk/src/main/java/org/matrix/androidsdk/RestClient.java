@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.Fingerprint;
 import org.matrix.androidsdk.ssl.PinnedTrustManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
@@ -73,7 +74,7 @@ public class RestClient<T> {
 
         OkHttpClient okHttpClient = new OkHttpClient();
 
-        byte[][] trusted_fingerprints = hsConfig.getAllowedFingerprints();
+        Fingerprint[] trusted_fingerprints = hsConfig.getAllowedFingerprints();
 
         // If we have trusted fingerprints, we *only* trust those fingerprints.
         // Otherwise we fall back on the default X509 cert validation.
