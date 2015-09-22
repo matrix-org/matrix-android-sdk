@@ -1,6 +1,7 @@
 package org.matrix.androidsdk.ssl;
 
 import java.security.MessageDigest;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
@@ -13,14 +14,17 @@ public class CertUtil {
      * @param cert
      * @return
      */
-    public static byte[] generateSha256Fingerprint(X509Certificate cert) {
+    public static byte[] generateSha256Fingerprint(X509Certificate cert) throws CertificateException {
         final byte[] fingerprint;
+        final MessageDigest md;
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA256");
-            fingerprint = md.digest(cert.getEncoded());
+            md = MessageDigest.getInstance("SHA-256");
         } catch(Exception e) {
-            throw new RuntimeException(e);
+            // This really *really* shouldn't throw, as java should always have a SHA-256 impl.
+            throw new CertificateException(e);
         }
+
+        fingerprint = md.digest(cert.getEncoded());
 
         return fingerprint;
     }

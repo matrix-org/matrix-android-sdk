@@ -77,37 +77,35 @@ public class RestClient<T> {
 
         // If we have trusted fingerprints, we *only* trust those fingerprints.
         // Otherwise we fall back on the default X509 cert validation.
-        if (trusted_fingerprints != null && trusted_fingerprints.length > 0) {
-            try {
-                X509TrustManager defaultTrustManager = null;
+        try {
+            X509TrustManager defaultTrustManager = null;
 
-                // If we haven't specified that we wanted to pin the certs, fallback to standard
-                // X509 checks if fingerprints don't match.
-                if (!hsConfig.shouldPin()) {
-                    TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
-                    tf.init((KeyStore) null);
-                    TrustManager[] trustManagers = tf.getTrustManagers();
+            // If we haven't specified that we wanted to pin the certs, fallback to standard
+            // X509 checks if fingerprints don't match.
+            if (!hsConfig.shouldPin()) {
+                TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
+                tf.init((KeyStore) null);
+                TrustManager[] trustManagers = tf.getTrustManagers();
 
-                    for (int i = 0; i < trustManagers.length; i++) {
-                        if (trustManagers[i] instanceof X509TrustManager) {
-                            defaultTrustManager = (X509TrustManager) trustManagers[i];
-                            break;
-                        }
+                for (int i = 0; i < trustManagers.length; i++) {
+                    if (trustManagers[i] instanceof X509TrustManager) {
+                        defaultTrustManager = (X509TrustManager) trustManagers[i];
+                        break;
                     }
                 }
-
-                final TrustManager[] trustPinned = new TrustManager[]{
-                        new PinnedTrustManager(trusted_fingerprints, defaultTrustManager)
-                };
-
-                final SSLContext sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(null, trustPinned, new java.security.SecureRandom());
-                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-                okHttpClient.setSslSocketFactory(sslSocketFactory);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+
+            final TrustManager[] trustPinned = new TrustManager[]{
+                    new PinnedTrustManager(trusted_fingerprints, defaultTrustManager)
+            };
+
+            final SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustPinned, new java.security.SecureRandom());
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            okHttpClient.setSslSocketFactory(sslSocketFactory);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
