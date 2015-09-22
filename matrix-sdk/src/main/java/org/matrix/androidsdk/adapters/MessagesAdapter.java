@@ -431,6 +431,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void onSenderNameClick(String userId, String displayName) {
     }
 
+    /**
+     * Provides the formatted timestamp to display.
+     * null means that the timestamp text must be hidden.
+     * @param event the event.
+     * @return  the formatted timestamp to display.
+     */
+    protected String getFormattedTimestamp(Event event) {
+        return event.formattedOriginServerTs();
+    }
+
     // return true if convertView is merged with previous View
     protected boolean manageSubView(int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
@@ -523,8 +533,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        tsTextView.setVisibility(View.VISIBLE);
-        tsTextView.setText(msg.formattedOriginServerTs());
+        String timeStamp = getFormattedTimestamp(msg);
+
+        if (TextUtils.isEmpty(timeStamp)) {
+            tsTextView.setVisibility(View.GONE);
+        } else {
+            tsTextView.setVisibility(View.VISIBLE);
+            tsTextView.setText(timeStamp);
+        }
 
         if (row.getEvent().isUndeliverable()) {
             tsTextView.setTextColor(notSentColor);

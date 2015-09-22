@@ -447,6 +447,16 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         }
     }
 
+    /**
+     * Provides the formatted timestamp to display.
+     * null means that the timestamp text must be hidden.
+     * @param event the event.
+     * @return  the formatted timestamp to display.
+     */
+    protected String getFormattedTimestamp(Event event) {
+        return event.formattedOriginServerTs();
+    }
+
     @Override
     public View getChildView(int groupPosition, final int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
 
@@ -545,7 +555,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     EventDisplay display = new EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
                     display.setPrependMessagesWithAuthor(true);
                     message = display.getTextualDisplay();
-                    timestamp = summary.getLatestEvent().formattedOriginServerTs();
+                    timestamp = getFormattedTimestamp(summary.getLatestEvent());
                 }
 
                 // check if this is an invite
