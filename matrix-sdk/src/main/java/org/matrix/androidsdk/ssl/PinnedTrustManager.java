@@ -30,6 +30,7 @@ public class PinnedTrustManager implements X509TrustManager {
                 mDefaultTrustManager.checkClientTrusted(
                         chain, s
                 );
+                return;
             }
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
@@ -47,6 +48,7 @@ public class PinnedTrustManager implements X509TrustManager {
                 mDefaultTrustManager.checkServerTrusted(
                         chain, s
                 );
+                return;
             }
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
@@ -61,10 +63,12 @@ public class PinnedTrustManager implements X509TrustManager {
         X509Certificate cert = chain[0];
 
         boolean found = false;
-        for (Fingerprint allowedFingerprint: mFingerprints) {
-            if (allowedFingerprint.matchesCert(cert)) {
-                found = true;
-                break;
+        if (mFingerprints != null) {
+            for (Fingerprint allowedFingerprint : mFingerprints) {
+                if (allowedFingerprint != null && allowedFingerprint.matchesCert(cert)) {
+                    found = true;
+                    break;
+                }
             }
         }
 
