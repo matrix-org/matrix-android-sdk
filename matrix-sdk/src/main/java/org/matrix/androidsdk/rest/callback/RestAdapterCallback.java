@@ -20,7 +20,10 @@ import android.util.Log;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.UnsentEventsManager;
+
+import java.security.cert.CertPathValidatorException;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
