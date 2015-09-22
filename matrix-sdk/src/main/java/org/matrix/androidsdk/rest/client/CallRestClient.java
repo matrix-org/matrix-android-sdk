@@ -19,6 +19,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
@@ -34,8 +35,8 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     /**
      * {@inheritDoc}
      */
-    public CallRestClient(Credentials credentials) {
-        super(credentials, CallRulesApi.class, RestClient.URI_API_PREFIX, false);
+    public CallRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
+        super(hsConfig, credentials, CallRulesApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {

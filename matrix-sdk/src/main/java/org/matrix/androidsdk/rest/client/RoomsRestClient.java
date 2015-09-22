@@ -20,6 +20,7 @@ import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
@@ -54,8 +55,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * {@inheritDoc}
      */
-    public RoomsRestClient(Credentials credentials) {
-        super(credentials, RoomsApi.class, RestClient.URI_API_PREFIX, false);
+    public RoomsRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
+        super(hsConfig, credentials, RoomsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

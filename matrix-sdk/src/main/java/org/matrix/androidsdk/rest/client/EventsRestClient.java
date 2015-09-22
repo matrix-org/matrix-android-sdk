@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.client;
 import android.net.Uri;
 import android.util.Log;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -45,8 +46,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * {@inheritDoc}
      */
-    public EventsRestClient(Credentials credentials) {
-        super(credentials, EventsApi.class, RestClient.URI_API_PREFIX, false);
+    public EventsRestClient(HomeserverConnectionConfig hsConfig, Credentials credentials) {
+        super(hsConfig, credentials, EventsApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     protected EventsRestClient(EventsApi api) {

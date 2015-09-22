@@ -19,6 +19,7 @@ import android.net.Uri;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -37,11 +38,11 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
 
     /**
      * Public constructor.
-     * @param hsUri the home server URI
+     * @param hsConfig the home server connection config
      */
-    public RegistrationRestClient(Uri hsUri) {
-        super(hsUri, RegistrationApi.class, RestClient.URI_API_PREFIX, false);
-        mHsUri = hsUri;
+    public RegistrationRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX, false);
+        mHsUri = hsConfig.getHomeserverUri();
     }
 
     /**
@@ -61,8 +62,6 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                // Override the home server
-                mCredentials.homeServer = mHsUri.toString();
                 callback.onSuccess(mCredentials);
             }
         });

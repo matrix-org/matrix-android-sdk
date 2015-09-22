@@ -97,31 +97,34 @@ public class MXSession {
 
     private Boolean mIsActiveSession = true;
 
+    private HomeserverConnectionConfig mHsConfig;
+
     /**
      * Create a basic session for direct API calls.
-     * @param credentials the user credentials
+     * @param hsConfig the home server connection config
      */
-    public MXSession(Credentials credentials) {
-        mCredentials = credentials;
+    public MXSession(HomeserverConnectionConfig hsConfig) {
+        mCredentials = hsConfig.getCredentials();
+        mHsConfig = hsConfig;
 
-        mEventsRestClient = new EventsRestClient(credentials);
-        mProfileRestClient = new ProfileRestClient(credentials);
-        mPresenceRestClient = new PresenceRestClient(credentials);
-        mRoomsRestClient = new RoomsRestClient(credentials);
-        mBingRulesRestClient = new BingRulesRestClient(credentials);
-        mPushersRestClient = new PushersRestClient(credentials);
-        mThirdPidRestClient = new ThirdPidRestClient(credentials);
-        mCallRestClient = new CallRestClient(credentials);
+        mEventsRestClient = new EventsRestClient(hsConfig, mCredentials);
+        mProfileRestClient = new ProfileRestClient(hsConfig, mCredentials);
+        mPresenceRestClient = new PresenceRestClient(hsConfig, mCredentials);
+        mRoomsRestClient = new RoomsRestClient(hsConfig, mCredentials);
+        mBingRulesRestClient = new BingRulesRestClient(hsConfig, mCredentials);
+        mPushersRestClient = new PushersRestClient(hsConfig, mCredentials);
+        mThirdPidRestClient = new ThirdPidRestClient(hsConfig, mCredentials);
+        mCallRestClient = new CallRestClient(hsConfig, mCredentials);
     }
 
     /**
      * Create a user session with a data handler.
+     * @param hsConfig the home server connection config
      * @param dataHandler the data handler
-     * @param credentials the user credentials
      * @param appContext the application context
      */
-    public MXSession(MXDataHandler dataHandler, Credentials credentials, Context appContext) {
-        this(credentials);
+    public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
+        this(hsConfig);
         mDataHandler = dataHandler;
 
         // Initialize a data retriever with rest clients
@@ -139,7 +142,11 @@ public class MXSession {
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
 
-        mContentManager = new ContentManager(credentials.homeServer, credentials.accessToken, mUnsentEventsManager);
+        mContentManager = new ContentManager(
+                hsConfig.getHomeserverUri().toString(),
+                mCredentials.accessToken,
+                mUnsentEventsManager
+        );
         mDataHandler.setContentManager(mContentManager);
 
         //
@@ -156,8 +163,8 @@ public class MXSession {
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
-        mLatestChatMessageCache = new MXLatestChatMessageCache(credentials.userId);
-        mMediasCache = new MXMediasCache(mContentManager, credentials.userId, appContext);
+        mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
+        mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
     }
 
@@ -232,6 +239,11 @@ public class MXSession {
     public PushersRestClient getPushersRestClient() {
         checkIfActive();
         return mPushersRestClient;
+    }
+
+    public HomeserverConnectionConfig getHomeserverConfig() {
+        checkIfActive();
+        return mHsConfig;
     }
 
     /**
