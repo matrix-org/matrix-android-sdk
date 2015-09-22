@@ -31,7 +31,7 @@ public class HomeserverConnectionConfig {
      * @param hsUri The URI to use to connect to the homeserver
      * @param credentials The credentials to use, if needed. Can be null.
      */
-    public HomeserverConnectionConfig(Uri hsUri,Credentials credentials) {
+    public HomeserverConnectionConfig(Uri hsUri, Credentials credentials) {
         this(hsUri, credentials, null, false);
     }
 
@@ -59,7 +59,12 @@ public class HomeserverConnectionConfig {
     public Credentials getCredentials() { return mCredentials; }
     public void setCredentials(Credentials credentials) { this.mCredentials = credentials; }
 
-    public boolean getPinned() {
+
+    /**
+     * @return whether we should reject X509 certs that were issued by trusts CAs and only trust
+     * certs with matching fingerprints.
+     */
+    public boolean shouldPin() {
         return mPin;
     }
 

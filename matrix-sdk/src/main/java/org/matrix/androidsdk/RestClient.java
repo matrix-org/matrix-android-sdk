@@ -83,7 +83,7 @@ public class RestClient<T> {
 
                 // If we haven't specified that we wanted to pin the certs, fallback to standard
                 // X509 checks if fingerprints don't match.
-                if (!hsConfig.getPinned()) {
+                if (!hsConfig.shouldPin()) {
                     TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
                     tf.init((KeyStore) null);
                     TrustManager[] trustManagers = tf.getTrustManagers();
