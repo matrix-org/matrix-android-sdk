@@ -18,6 +18,8 @@ public class PinnedTrustManager implements X509TrustManager {
 
     /**
      * @param fingerprints An array of SHA256 cert fingerprints
+     * @param defaultTrustManager Optional trust manager to fall back on if cert does not match
+     *                            any of the fingerprints. Can be null.
      */
     public PinnedTrustManager(byte[][] fingerprints, X509TrustManager defaultTrustManager) {
         mFingerprints = fingerprints;
