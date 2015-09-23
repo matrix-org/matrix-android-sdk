@@ -1,7 +1,6 @@
 package org.matrix.androidsdk;
 
 import android.net.Uri;
-import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -10,7 +9,6 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.Fingerprint;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 
 /**
@@ -18,7 +16,7 @@ import java.util.HashMap;
  */
 public class HomeserverConnectionConfig {
     private Uri mHsUri;
-    private Fingerprint[] mAllowedFingerprints;
+    private ArrayList<Fingerprint> mAllowedFingerprints;
     private Credentials mCredentials;
     private boolean mPin;
 
@@ -44,7 +42,7 @@ public class HomeserverConnectionConfig {
      * @param pin If true only allow certs matching given fingerprints, otherwise fallback to
      *            standard X509 checks.
      */
-    public HomeserverConnectionConfig(Uri hsUri, Credentials credentials, Fingerprint[] allowedFingerprints, boolean pin) {
+    public HomeserverConnectionConfig(Uri hsUri, Credentials credentials, ArrayList<Fingerprint> allowedFingerprints, boolean pin) {
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
         }
@@ -56,7 +54,7 @@ public class HomeserverConnectionConfig {
     }
 
     public Uri getHomeserverUri() { return mHsUri; }
-    public Fingerprint[] getAllowedFingerprints() { return mAllowedFingerprints; }
+    public ArrayList<Fingerprint> getAllowedFingerprints() { return mAllowedFingerprints; }
 
     public Credentials getCredentials() { return mCredentials; }
     public void setCredentials(Credentials credentials) { this.mCredentials = credentials; }
@@ -77,7 +75,7 @@ public class HomeserverConnectionConfig {
         json.put("pin", mPin);
         if (mCredentials != null) json.put("credentials", mCredentials.toJson());
         if (mAllowedFingerprints != null) {
-            ArrayList<JSONObject> fingerprints = new ArrayList<JSONObject>(mAllowedFingerprints.length);
+            ArrayList<JSONObject> fingerprints = new ArrayList<JSONObject>(mAllowedFingerprints.size());
 
             for (Fingerprint fingerprint : mAllowedFingerprints) {
                 fingerprints.add(fingerprint.toJson());
@@ -91,12 +89,10 @@ public class HomeserverConnectionConfig {
 
     public static HomeserverConnectionConfig fromJson(JSONObject obj) throws JSONException {
         JSONArray fingerprintArray = obj.optJSONArray("fingerprints");
-        Fingerprint[] fingerprints = null;
+        ArrayList<Fingerprint> fingerprints = new ArrayList<Fingerprint>();
         if (fingerprintArray != null) {
-            fingerprints = new Fingerprint[fingerprintArray.length()];
-
             for (int i = 0; i < fingerprintArray.length(); i++) {
-                fingerprints[i] = Fingerprint.fromJson(fingerprintArray.getJSONObject(i));
+                fingerprints.add(Fingerprint.fromJson(fingerprintArray.getJSONObject(i)));
             }
         }
 

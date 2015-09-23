@@ -25,6 +25,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.security.KeyStore;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
@@ -74,7 +75,7 @@ public class RestClient<T> {
 
         OkHttpClient okHttpClient = new OkHttpClient();
 
-        Fingerprint[] trusted_fingerprints = hsConfig.getAllowedFingerprints();
+        List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
 
         // If we have trusted fingerprints, we *only* trust those fingerprints.
         // Otherwise we fall back on the default X509 cert validation.

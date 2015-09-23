@@ -2,6 +2,7 @@ package org.matrix.androidsdk.ssl;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.List;
 
 import javax.net.ssl.X509TrustManager;
 
@@ -10,7 +11,7 @@ import javax.net.ssl.X509TrustManager;
  * fingerprints.
  */
 public class PinnedTrustManager implements X509TrustManager {
-    private Fingerprint[] mFingerprints;
+    private List<Fingerprint> mFingerprints;
     private X509TrustManager mDefaultTrustManager;
 
     /**
@@ -18,7 +19,7 @@ public class PinnedTrustManager implements X509TrustManager {
      * @param defaultTrustManager Optional trust manager to fall back on if cert does not match
      *                            any of the fingerprints. Can be null.
      */
-    public PinnedTrustManager(Fingerprint[] fingerprints, X509TrustManager defaultTrustManager) {
+    public PinnedTrustManager(List<Fingerprint> fingerprints, X509TrustManager defaultTrustManager) {
         mFingerprints = fingerprints;
         mDefaultTrustManager = defaultTrustManager;
     }
@@ -34,7 +35,7 @@ public class PinnedTrustManager implements X509TrustManager {
             }
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
-            if (mFingerprints == null || mFingerprints.length == 0) {
+            if (mFingerprints == null || mFingerprints.size() == 0) {
                 throw new UnrecognizedCertificateException(chain[0], Fingerprint.newSha256Fingerprint(chain[0]), e.getCause());
             }
         }
@@ -52,7 +53,7 @@ public class PinnedTrustManager implements X509TrustManager {
             }
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
-            if (mFingerprints == null || mFingerprints.length == 0) {
+            if (mFingerprints == null || mFingerprints.size() == 0) {
                 throw new UnrecognizedCertificateException(chain[0], Fingerprint.newSha256Fingerprint(chain[0]), e.getCause());
             }
         }

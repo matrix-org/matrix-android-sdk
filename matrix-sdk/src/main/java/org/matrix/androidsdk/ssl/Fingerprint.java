@@ -48,7 +48,7 @@ public class Fingerprint {
     }
 
     public String getBytesAsHexString() {
-        if (mDisplayableHexRepr != null) {
+        if (mDisplayableHexRepr == null) {
             mDisplayableHexRepr = CertUtil.fingerprintToHexString(mBytes);
         }
 
