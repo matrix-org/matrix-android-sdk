@@ -914,7 +914,7 @@ public class Room {
      * @return the userIds list
      */
     public ArrayList<String> getTypingUsers() {
-        return (null == mTypingUsers) ? new ArrayList<String>() : mTypingUsers;
+        return (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<String>(mTypingUsers);
     }
 
     /**
