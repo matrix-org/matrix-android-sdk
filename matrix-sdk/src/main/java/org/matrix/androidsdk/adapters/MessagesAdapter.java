@@ -21,6 +21,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
@@ -71,13 +72,59 @@ import java.util.HashMap;
  * can include topic changes (m.room.topic) and room member changes (m.room.member).
  */
 public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
-    public static interface MessagesAdapterClickListener {
+
+    public static interface MessagesAdapterEventsListener {
         /**
-         * Called when the body item is clicked.
-         * Some views like textView don't dispatch the click event
-         * to their parent view.
+         * Call when the row is clicked.
+         * @param position the cell position.
          */
-        public void onItemClick(int position);
+        public void onRowClick(int position);
+
+        /**
+         * Call when the row is long clicked.
+         * @param position the cell position.
+         * @return true if managed
+         */
+        public Boolean onRowLongClick(int position);
+
+        /**
+         * Called when a click is performed on the message content
+         * @param position the cell position
+         */
+        public void onContentClick(int position);
+
+        /**
+         * Called when a long click is performed on the message content
+         * @param position the cell position
+         * @return true if managed
+         */
+        public Boolean onContentLongClick(int position);
+
+        /**
+         * Define the action to perform when the user tap on an avatar
+         * @param userId the user ID
+         */
+        public void onAvatarClick(String userId);
+
+        /**
+         * Define the action to perform when the user performs a long tap on an avatar
+         * @param userId the user ID
+         * @return true if the long clik event is managed
+         */
+        public Boolean onAvatarLongClick(String userId);
+
+        /**
+         * Define the action to perform when the user taps on the message sender
+         * @param userId
+         * @param displayName
+         */
+        public void onSenderNameClick(String userId, String displayName);
+
+        /**
+         * A media download is done
+         * @param position
+         */
+        public void onMediaDownloaded(int position);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -86,12 +133,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected static final int ROW_TYPE_EMOTE = 3;
     protected static final int ROW_TYPE_FILE = 4;
     protected static final int ROW_TYPE_VIDEO = 5;
-    private static final int NUM_ROW_TYPES = 6;
+    protected static final int NUM_ROW_TYPES = 6;
 
     private static final String LOG_TAG = "MessagesAdapter";
-
-    public static final float MAX_IMAGE_WIDTH_SCREEN_RATIO = 0.45F;
-    public static final float MAX_IMAGE_HEIGHT_SCREEN_RATIO = 0.45F;
 
     protected ArrayList<String>mTypingUsers = new ArrayList<String>();
 
@@ -111,25 +155,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
 
-    private int mOddColourResId;
-    private int mEvenColourResId;
-
     protected int normalColor;
     protected int notSentColor;
     protected int sendingColor;
     protected int highlightColor;
 
-    private int mMaxImageWidth;
-    private int mMaxImageHeight;
+    protected int mMaxImageWidth;
+    protected int mMaxImageHeight;
 
+    // media cache
     protected MXMediasCache mMediasCache;
 
-    private MessagesAdapterClickListener mMessagesAdapterClickListener = null;
-
-    private DateFormat mDateFormat;
-
+    // events listener
+    private MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
 
+    // customization methods
     public int normalMesageColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);
     }
@@ -146,6 +187,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
+    /**
+     * Find the user from his user ID
+     * @param userId the user ID
+     * @return the linked User
+     */
     protected User getUser(String userId) {
         if (mUserByUserId.containsKey(userId)) {
             return mUserByUserId.get(userId);
@@ -161,11 +207,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return user;
     }
 
+    // must be implemented by base class
     public abstract int presenceOfflineColor();
     public abstract int presenceOnlineColor();
     public abstract int presenceUnavailableColor();
 
-    protected void updatePresenceRing(ImageView presenceView, String userId) {
+    /**
+     * Refresh the presence ring of an user.
+     * @param presenceView the presence ring view.
+     * @param userId the user userID.
+     */
+    protected void refreshPresenceRing(ImageView presenceView, String userId) {
         String presence = null;
 
         User user = getUser(userId);
@@ -185,6 +237,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Default constructor.
+     * @param session the dedicated MXSession
+     * @param context the context
+     * @param mediasCache the medias cache
+     */
     public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
         this(session, context,
                 org.matrix.androidsdk.R.layout.adapter_item_message_text,
@@ -196,6 +254,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mediasCache);
     }
 
+    /**
+     * Expanded constructor.
+     * each message type has its own layout.
+     * @param session the dedicated layout.
+     * @param context the context
+     * @param textResLayoutId the text message layout.
+     * @param imageResLayoutId the image message layout.
+     * @param noticeResLayoutId the notice message layout.
+     * @param emoteRestLayoutId the emote message layout
+     * @param fileResLayoutId the file message layout
+     * @param videoResLayoutId the video message layout
+     * @param mediasCache the medias cache.
+     */
     public MessagesAdapter(MXSession session, Context context, int textResLayoutId, int imageResLayoutId,
                            int noticeResLayoutId, int emoteRestLayoutId, int fileResLayoutId, int videoResLayoutId, MXMediasCache mediasCache) {
         super(context, 0);
@@ -227,16 +298,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mSession = session;
     }
 
-    public void setAlternatingColours(int oddResId, int evenResId) {
-        mOddColourResId = oddResId;
-        mEvenColourResId = evenResId;
-    }
-
     @Override
     public int getViewTypeCount() {
         return NUM_ROW_TYPES;
     }
 
+    /**
+     * Add an event to the top of the events list.
+     * @param event the event to add
+     * @param roomState the event roomstate
+     */
     public void addToFront(Event event, RoomState roomState) {
         MessageRow row = new MessageRow(event, roomState);
         if (shouldSave(row)) {
@@ -250,10 +321,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Append an event.
+     * @param event  the event to append.
+     * @param roomState the event roomstate
+     */
     public void add(Event event, RoomState roomState) {
         add(new MessageRow(event, roomState));
     }
 
+    /**
+     * Check if the event is echoed by the server.
+     * Or if the event is waiting after the server echo.
+     * @param row the row event to check.
+     */
     public void waitForEcho(MessageRow row) {
         String eventId = row.getEvent().eventId;
 
@@ -292,6 +373,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Remove an event by an eventId
+     * @param eventId
+     */
     public void removeEventById(String eventId) {
         // ensure that notifyDataSetChanged is not called
         // it seems that setNotifyOnChange is reinitialized to true;
@@ -304,7 +389,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
-    private boolean shouldSave(MessageRow row) {
+    /**
+     * Check if the row must be added to the list.
+     * @param row the row to check.
+     * @return true if should be added
+     */
+    protected boolean shouldSave(MessageRow row) {
         boolean shouldSave = isDisplayableEvent(row.getEvent(), row.getRoomState());
 
         if (shouldSave) {
@@ -336,6 +426,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return shouldSave;
     }
 
+    /**
+     * Event to view type.
+     * @param event the event to convert
+     * @return the view type.
+     */
     private int getItemViewType(Event event) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Message message = JsonUtils.toMessage(event.content);
@@ -400,35 +495,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Returns an user display name for an user Id.
+     * @param userId the user id.
+     * @param roomState the room state
+     * @return teh user display name.
+     */
     protected String getUserDisplayName(String userId, RoomState roomState) {
         return roomState.getMemberName(userId);
-    }
-
-    /**
-     * Define the action to perform when the user tap on an avatar
-     * @param roomId the room ID
-     * @param userId the user ID
-     */
-    public void onAvatarClick(String roomId, String userId) {
-
-    }
-
-    /**
-     * Define the action to perform when the user performs a long tap on an avatar
-     * @param roomId the room ID
-     * @param userId the user ID
-     * @return true if the long clik event is managed
-     */
-    public Boolean onAvatarLongClick(String roomId, String userId) {
-        return false;
-    }
-
-    /**
-     * Define the action to perform when the user taps on the message sender
-     * @param userId
-     * @param displayName
-     */
-    public void onSenderNameClick(String userId, String displayName) {
     }
 
     /**
@@ -441,8 +515,26 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return event.formattedOriginServerTs();
     }
 
-    // return true if convertView is merged with previous View
-    protected boolean manageSubView(int position, View convertView, View subView, int msgType) {
+
+    /**
+     * Load avatar thumbnail
+     * @param avatarView
+     * @param url
+     */
+    protected void loadAvatar(ImageView avatarView, String url) {
+        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
+        mMediasCache.loadAvatarThumbnail(avatarView, url, size);
+    }
+
+    /**
+     * Common view management.
+     * @param position the item position.
+     * @param convertView the row view
+     * @param subView the message content view
+     * @param msgType the message type
+     * @return true if the view is merged.
+     */
+    protected boolean manageSubView(final int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
@@ -452,8 +544,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
-        boolean isMergedView = false;
-        boolean willBeMerged = false;
+        boolean isMergedView;
+        boolean willBeMerged;
 
         convertView.setClickable(false);
 
@@ -511,7 +603,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onSenderNameClick(fSenderId, fDisplayName);
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onSenderNameClick(fSenderId, fDisplayName);
+                    }
                 }
             });
         }
@@ -567,14 +661,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 avatarRightView.setVisibility(View.GONE);
 
                 final String userId = msg.userId;
-                final String roomId = roomState.roomId;
 
                 avatarLeftView.setClickable(true);
 
                 avatarLeftView.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override
                     public boolean onLongClick(View v) {
-                        return onAvatarLongClick(roomId, userId);
+                        if (null != mMessagesAdapterEventsListener) {
+                            return mMessagesAdapterEventsListener.onAvatarLongClick(userId);
+                        } else {
+                            return false;
+                        }
                     }
                 });
 
@@ -582,11 +679,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 avatarLeftView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        onAvatarClick(roomId, userId);
+                        if (null != mMessagesAdapterEventsListener) {
+                            mMessagesAdapterEventsListener.onAvatarClick(userId);
+                        }
                     }
                 });
             }
-
 
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
 
@@ -594,7 +692,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             presenceView.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
 
             final String userId = msg.userId;
-            updatePresenceRing(presenceView, userId);
+            refreshPresenceRing(presenceView, userId);
 
             if (isMergedView) {
                 avatarLayoutView.setVisibility(View.GONE);
@@ -667,10 +765,68 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
+        convertView.setClickable(true);
+
+        // click on the avatar opens the details page
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterEventsListener) {
+                    mMessagesAdapterEventsListener.onRowClick(position);
+                }
+            }
+        });
+
+        // click on the avatar opens the details page
+        convertView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (null != mMessagesAdapterEventsListener) {
+                    return mMessagesAdapterEventsListener.onRowLongClick(position);
+                }
+
+                return false;
+            }
+        });
+
+
         return isMergedView;
     }
 
-    private View getTextView(final int position, View convertView, ViewGroup parent) {
+    /**
+     * Add click and long click listener on the content view
+     * @param contentView
+     */
+    protected void addContentViewListeners(View contentView, final int position) {
+        contentView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mMessagesAdapterEventsListener) {
+                    mMessagesAdapterEventsListener.onContentClick(position);
+                }
+            }
+        });
+
+        contentView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (null != mMessagesAdapterEventsListener) {
+                    return mMessagesAdapterEventsListener.onContentLongClick(position);
+                }
+
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Text message management
+     * @param position the message position
+     * @param convertView the text message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
@@ -719,56 +875,102 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
-        // add a click listener because the text view gains the focus.
-        //  mMessageListView.setOnItemClickListener is never called.
-        convertView.setClickable(true);
-        // click on the avatar opens the details page
-        convertView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
-                }
-            }
-        });
-
-        bodyTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
-                }
-            }
-        });
-
-        setBackgroundColour(convertView, position);
+        addContentViewListeners(bodyTextView, position);
 
         return convertView;
     }
 
-    public void onImageClick(int position, ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
-    }
 
-    public boolean onImageLongClick(int position, ImageMessage imageMessage, int maxImageWidth, int maxImageHeight, int rotationAngle) {
-        return false;
-    }
+    /**
+     * manage the upload piechart
+     * @param convertView the media view
+     * @param event teh related event
+     * @param mediaUrl the media url
+     */
+    void manageUploadView(View convertView, Event event, String mediaUrl) {
+        // manage the upload progress
+        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
 
-    private View getImageView(final int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_IMAGE), parent, false);
+        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
+        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
+        // the dedicated UI items are not found
+        if ((null == uploadProgressLayout) || (null == uploadFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+            return;
         }
 
-        MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        int progress = -1;
 
-        final ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
+        if (mSession.getMyUser().userId.equals(event.userId)) {
+            progress = mSession.getContentManager().getUploadProgress(mediaUrl);
 
-        String thumbUrl = null;
+            if (progress >= 0) {
+                final String url = mediaUrl;
+
+                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                    @Override
+                    public void onUploadStart(String uploadId) {
+                    }
+
+                    @Override
+                    public void onUploadProgress(String anUploadId, int percentageProgress) {
+                        if (url.equals(anUploadId)) {
+                            uploadFractionView.setFraction(percentageProgress);
+                        }
+                    }
+
+                    @Override
+                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+                        if (url.equals(anUploadId)) {
+                            uploadProgressLayout.post(new Runnable() {
+                                public void run() {
+                                    uploadProgressLayout.setVisibility(View.GONE);
+
+                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                                        if (null != serverErrorMessage) {
+                                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                                    serverErrorMessage,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                        uploadFailedImage.setVisibility(View.VISIBLE);
+                                    } else {
+                                        uploadSpinner.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        uploadSpinner.setVisibility(((progress < 0) && event.isSending()) ? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+
+        uploadFractionView.setFraction(progress);
+        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Manage the image download.
+     * It displays the pie chart when it is required.
+     * @param convertView the parent view.
+     * @param imageMessage the image message
+     * @param position the message position
+     */
+    protected void manageImageDownload(final View convertView, final ImageMessage imageMessage, final int position) {
+        final int maxImageWidth = mMaxImageWidth;
+        final int maxImageHeight = mMaxImageHeight;
+        final int rotationAngle = imageMessage.getRotation();
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
         ImageInfo imageInfo = null;
 
+        String thumbUrl = null;
         if (imageMessage != null) {
 
-           imageMessage.checkMediaUrls();
+            imageMessage.checkMediaUrls();
 
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.thumbnailUrl != null) {
@@ -780,27 +982,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageInfo = imageMessage.info;
         }
 
-        // display a type watermark
-        final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
-        imageTypeView.setBackgroundColor(Color.TRANSPARENT);
-
-        final boolean displayTypeIcon = "image/gif".equals(imageMessage.getMimeType());
-
-        if (displayTypeIcon) {
-            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
-            imageTypeView.setVisibility(View.VISIBLE);
-        } else {
-            imageTypeView.setVisibility(View.GONE);
-        }
-
-        ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
-
-        final int maxImageWidth = mMaxImageWidth;
-        final int maxImageHeight = mMaxImageHeight;
-        final int rotationAngle = ((null != imageInfo) && (imageInfo.rotation != null)) ? imageInfo.rotation : Integer.MAX_VALUE;
-
-        // reset the bitmap to ensure that it is not reused from older cells
-        imageView.setImageBitmap(null);
         // the thumbnails are always prerotated
         final String downloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
@@ -810,7 +991,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         if (null != downloadProgressLayout) {
             if (null != downloadId) {
-                imageTypeView.setVisibility(View.GONE);
                 downloadProgressLayout.setVisibility(View.VISIBLE);
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
 
@@ -860,13 +1040,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
-
-                        if (displayTypeIcon) {
-                            imageTypeView.setVisibility(View.VISIBLE);
-                        }
-
                         if (aDownloadId.equals(fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
+
+                            if (null != mMessagesAdapterEventsListener) {
+                                mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                            }
                         }
                     }
                 });
@@ -877,97 +1056,70 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 downloadProgressLayout.setVisibility(View.GONE);
             }
         }
+    }
+
+    /**
+     * Image message management
+     * @param position the message position
+     * @param convertView the message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected View getImageView(final int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_IMAGE), parent, false);
+        }
+
+        MessageRow row = getItem(position);
+        Event msg = row.getEvent();
+
+        final ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
+
+        // display a type watermark
+        final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+        imageTypeView.setBackgroundColor(Color.TRANSPARENT);
+
+        final boolean displayTypeIcon = "image/gif".equals(imageMessage.getMimeType());
+
+        if (displayTypeIcon) {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
+            imageTypeView.setVisibility(View.VISIBLE);
+        } else {
+            imageTypeView.setVisibility(View.GONE);
+        }
+
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
+        // reset the bitmap to ensure that it is not reused from older cells
+        imageView.setImageBitmap(null);
+
+        manageImageDownload(convertView, imageMessage, position);
 
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale
         // locally if needed.
-        imageView.setMaxWidth(maxImageWidth);
-        imageView.setMaxHeight(maxImageHeight);
+        imageView.setMaxWidth(mMaxImageWidth);
+        imageView.setMaxHeight(mMaxImageHeight);
         imageView.setBackgroundColor(Color.TRANSPARENT);
 
-        if ((imageMessage != null) && (imageMessage.url != null)) {
-            imageView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onImageClick(position, imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
-                }
-            });
-
-            imageView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    return onImageLongClick(position, imageMessage, maxImageWidth, maxImageHeight, rotationAngle);
-                }
-            });
-        }
-
-        // manage the upload progress
-        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
-        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
-
-        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
-
-        int progress = -1;
-
-        if (mSession.getMyUser().userId.equals(msg.userId)) {
-            progress = mSession.getContentManager().getUploadProgress(imageMessage.url);
-
-            if (progress >= 0) {
-                final String url = imageMessage.url;
-
-                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
-                    @Override
-                    public void onUploadStart(String uploadId) {
-                    }
-
-                    @Override
-                    public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
-                            uploadFractionView.setFraction(percentageProgress);
-                        }
-                    }
-
-                    @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
-                            uploadProgressLayout.post(new Runnable() {
-                                public void run() {
-                                    uploadProgressLayout.setVisibility(View.GONE);
-
-                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                                        if (null != serverErrorMessage) {
-                                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                                    serverErrorMessage,
-                                                    Toast.LENGTH_LONG).show();
-                                        }
-                                        uploadFailedImage.setVisibility(View.VISIBLE);
-                                    } else {
-                                        uploadSpinner.setVisibility(View.VISIBLE);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        }
-
-        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
-        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
-
-        uploadFractionView.setFraction(progress);
-        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+        manageUploadView(convertView, msg, imageMessage.url);
 
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
-        imageLayout.setAlpha(row.getEvent().isSent() ? 1.0f : 0.5f);
+        imageLayout.setAlpha(msg.isSent() ? 1.0f : 0.5f);
 
         this.manageSubView(position, convertView, imageLayout, ROW_TYPE_IMAGE);
 
-        setBackgroundColour(convertView, position);
+        addContentViewListeners(imageView, position);
+
         return convertView;
     }
 
-    private View getNoticeView(final int position, View convertView, ViewGroup parent) {
+    /**
+     * Notice message management
+     * @param position the message position
+     * @param convertView the message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected View getNoticeView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
@@ -976,7 +1128,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        CharSequence notice = null;
+        CharSequence notice;
 
         if (msg.type.equals(Event.EVENT_TYPE_CALL_INVITE)) {
             notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
@@ -991,39 +1143,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
-        // add a click listener because the text view gains the focus.
-        //  mMessageListView.setOnItemClickListener is never called.
-        convertView.setClickable(true);
-        // click on the avatar opens the details page
-        convertView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // warn listener of click events if there is no selection
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
-                }
-            }
-        });
-
-        noticeTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // warn listener of click events if there is no selection
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
-                }
-            }
-        });
+        addContentViewListeners(noticeTextView, position);
 
         return convertView;
     }
 
-    protected void loadAvatar(ImageView avatarView, String url) {
-        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        mMediasCache.loadAvatarThumbnail(avatarView, url, size);
-    }
-
-    private View getEmoteView(final int position, View convertView, ViewGroup parent) {
+    /**
+     * Emote message management
+     * @param position the message position
+     * @param convertView the message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected View getEmoteView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_EMOTE), parent, false);
         }
@@ -1049,45 +1181,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         emoteTextView.setTextColor(textColor);
 
-        emoteTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != mMessagesAdapterClickListener) {
-                    mMessagesAdapterClickListener.onItemClick(position);
-                }
-            }
-        });
-
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
+
+        addContentViewListeners(emoteTextView, position);
 
         return convertView;
     }
 
-    public void onFileDownloaded(int position, FileMessage fileMessage){
-    }
-
-    public void onFileClick(int position, FileMessage fileMessage) {
-    }
-
-    public boolean onFileLongClick(int position, FileMessage fileMessage) {
-        return false;
-    }
-
-
-    private View getFileView(final int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
-        }
-
-        MessageRow row = getItem(position);
-        Event msg = row.getEvent();
-
-        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
-
+    /**
+     * Manage the file download items.
+     * i.e. the piechart while downloading the file
+     * @param convertView
+     * @param fileMessage
+     * @param position
+     */
+    protected void manageFileDonload(View convertView, FileMessage fileMessage, final int position) {
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
-        fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        fileTextView.setText("\n" +fileMessage.body + "\n");
-
         final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
 
         // if the content downloading ?
@@ -1118,7 +1227,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
 
-                    onFileDownloaded(position, fileMessage);
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                    }
                 }
             }
         };
@@ -1139,133 +1250,54 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 downloadProgressLayout.setVisibility(View.GONE);
             }
         }
-
-        if ((fileMessage != null) && (fileMessage.url != null)) {
-
-            fileTextView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    return onFileLongClick(position, fileMessage);
-                }
-            });
-
-            fileTextView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                if (null != fileMessage.url) {
-                    File mediaFile =  mMediasCache.mediaCacheFile(fileMessage.url, fileMessage.getMimeType());
-
-                    // is the file already saved
-                    if (null != mediaFile) {
-                        onFileClick(position, fileMessage);
-                    } else {
-                        fileTypeView.setVisibility(View.GONE);
-                        fileTextView.setVisibility(View.GONE);
-                        // display the pie chart
-                        downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
-                        downloadProgressLayout.setVisibility(View.VISIBLE);
-                        mMediasCache.downloadMedia(MessagesAdapter.this.mContext, fileMessage.url, fileMessage.getMimeType());
-                        mMediasCache.addDownloadListener(downloadId, downloadCallback);
-                    }
-                }
-                }
-            });
-        }
-
-        // manage the upload progress
-        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
-        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
-
-        final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
-
-        int progress = -1;
-
-        if (mSession.getMyUser().userId.equals(msg.userId)) {
-            progress = mSession.getContentManager().getUploadProgress(fileMessage.url);
-
-            if (progress >= 0) {
-                final String url = fileMessage.url;
-
-                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
-                    @Override
-                    public void onUploadStart(String uploadId) {
-                    }
-
-                    @Override
-                    public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
-                            uploadFractionView.setFraction(percentageProgress);
-                        }
-                    }
-
-                    @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode,  final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
-                            uploadProgressLayout.post(new Runnable() {
-                                public void run() {
-                                    uploadProgressLayout.setVisibility(View.GONE);
-                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                                        if (null != serverErrorMessage) {
-                                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                                    serverErrorMessage,
-                                                    Toast.LENGTH_LONG).show();
-                                        }
-
-                                        uploadFailedImage.setVisibility(View.VISIBLE);
-                                    } else {
-                                        uploadSpinner.setVisibility(View.VISIBLE);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        }
-
-        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
-        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
-
-        uploadFractionView.setFraction(progress);
-        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
-
-        View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
-        this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
-
-        setBackgroundColour(convertView, position);
-        return convertView;
     }
 
-    public void onVideoClick(int position, VideoMessage videoMessage) {
-    }
-
-    public boolean onVideoLongClick(int position, VideoMessage videoMessage) {
-        return false;
-    }
-
-    private View getVideoView(final int position, View convertView, ViewGroup parent) {
+    /**
+     * File message management
+     * @param position the message position
+     * @param convertView the message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected View getFileView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_VIDEO), parent, false);
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
         }
 
         MessageRow row = getItem(position);
         Event msg = row.getEvent();
 
-        final VideoMessage videoMessage = JsonUtils.toVideoMessage(msg.content);
+        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
 
-        // sanity check
-        if (null == videoMessage) {
-            return convertView;
-        }
+        final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+        fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        fileTextView.setText("\n" + fileMessage.body + "\n");
 
+        manageFileDonload(convertView, fileMessage, position);
+        manageUploadView(convertView, msg, fileMessage.url);
+
+        View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
+        this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
+
+        addContentViewListeners(fileTextView, position);
+
+        return convertView;
+    }
+
+    /**
+     * Manage the video download.
+     * @param convertView teh base view.
+     * @param videoMessage the video message.
+     * @param position the position
+     */
+    protected void manageVideoDownload(View convertView, VideoMessage videoMessage, final int position) {
         videoMessage.checkMediaUrls();
         VideoInfo videoinfo = videoMessage.info;
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
         final int maxImageWidth = mMaxImageWidth;
         final int maxImageHeight = mMaxImageHeight;
-        String thumbUrl = null;
+        String thumbUrl;
 
         if ((null == videoinfo) || (null == videoinfo.thumbnail_url)) {
             imageView.setBackgroundColor(Color.RED);
@@ -1336,6 +1368,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             if (aDownloadId.equals(fDownloadId)) {
                                 downloadProgressLayout.setVisibility(View.GONE);
                             }
+
+                            if (null != mMessagesAdapterEventsListener) {
+                                mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                            }
                         }
                     });
 
@@ -1353,21 +1389,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // locally if needed.
         imageView.setMaxWidth(maxImageWidth);
         imageView.setMaxHeight(maxImageHeight);
+    }
 
-        imageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onVideoClick(position, videoMessage);
-            }
-        });
-
-        imageView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                return onVideoLongClick(position, videoMessage);
-            }
-        });
-
+    /**
+     * Manage the video upload
+     * @param convertView the base view
+     * @param videoEvent the video event
+     * @param videoMessage the video message
+     */
+    protected void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
         // manage the upload progress
         final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
         final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
@@ -1377,8 +1407,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int progress = -1;
 
-        if (mSession.getMyUser().userId.equals(msg.userId)) {
-            String uploadingUrl = thumbUrl;
+        if (mSession.getMyUser().userId.equals(videoEvent.userId)) {
+            String uploadingUrl = videoMessage.info.thumbnail_url;
 
             progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
 
@@ -1438,28 +1468,56 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        uploadSpinner.setVisibility(((progress < 0) && row.getEvent().isSending())? View.VISIBLE : View.GONE);
-        uploadFailedImage.setVisibility(row.getEvent().isUndeliverable() ? View.VISIBLE : View.GONE);
+        uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
+        uploadFailedImage.setVisibility(videoEvent.isUndeliverable() ? View.VISIBLE : View.GONE);
 
         uploadFractionView.setFraction(progress);
         uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
+    }
 
-        View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
+    /**
+     * Video message management
+     * @param position the message position
+     * @param convertView the message view
+     * @param parent the parent view
+     * @return the updated text view.
+     */
+    protected  View getVideoView(final int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_VIDEO), parent, false);
+        }
+
+        MessageRow row = getItem(position);
+        Event msg = row.getEvent();
+
+        final VideoMessage videoMessage = JsonUtils.toVideoMessage(msg.content);
+
+        // sanity check
+        if (null == videoMessage) {
+            return convertView;
+        }
+
+        manageVideoDownload(convertView, videoMessage, position);
+        manageVideoUpload(convertView, msg, videoMessage);
+
+        View imageLayout = convertView.findViewById(R.id.messagesAdapter_image_layout);
         imageLayout.setAlpha(row.getEvent().isSent() ? 1.0f : 0.5f);
 
         this.manageSubView(position, convertView, imageLayout, ROW_TYPE_VIDEO);
 
-        setBackgroundColour(convertView, position);
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
+        addContentViewListeners(imageView, position);
+
         return convertView;
     }
 
-    private void setBackgroundColour(View view, int position) {
-        if (mOddColourResId != 0 && mEvenColourResId != 0) {
-            view.setBackgroundColor(position%2 == 0 ? mEvenColourResId : mOddColourResId);
-        }
-    }
-
-    private boolean isDisplayableEvent(Event event, RoomState roomState) {
+    /**
+     * Check if an event should be added to the events list.
+     * @param event the event to check.
+     * @param roomState the rooms state
+     * @return true if the event is managed.
+     */
+    protected boolean isDisplayableEvent(Event event, RoomState roomState) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             // A message is displayable as long as it has a body
             Message message = JsonUtils.toMessage(event.content);
@@ -1481,6 +1539,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return false;
     }
 
+    /**
+     * Update the typing users list
+     * @param typingUsers
+     */
     public void setTypingUsers(ArrayList<String> typingUsers) {
         boolean refresh = mTypingUsers.size() != typingUsers.size();
 
@@ -1516,15 +1578,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
-    public void setMessagesAdapterClickListener(MessagesAdapterClickListener messagesAdapterClickListener) {
-        mMessagesAdapterClickListener = messagesAdapterClickListener;
+    /**
+     * Define the events listener
+     * @param listener teh events listener
+     */
+    public void setMessagesAdapterEventsListener(MessagesAdapterEventsListener listener) {
+        mMessagesAdapterEventsListener = listener;
     }
 
-    // thumbnails management
+    /**
+     * @return the max thumbnail width
+     */
     public int getMaxThumbnailWith() {
         return mMaxImageWidth;
     }
 
+    /**
+     * @return the max thumbnail height
+     */
     public int getMaxThumbnailHeight() {
         return mMaxImageHeight;
     }

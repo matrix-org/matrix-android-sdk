@@ -75,7 +75,7 @@ import retrofit.RetrofitError;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterClickListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
@@ -102,7 +102,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     protected MXSession mSession;
     protected String mMatrixId;
-    private Room mRoom;
+    protected Room mRoom;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
 
@@ -236,7 +236,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MatrixMessageListFragment.this.onItemClick(position);
+                MatrixMessageListFragment.this.onRowClick(position);
             }
         });
 
@@ -248,12 +248,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
-        mAdapter.setMessagesAdapterClickListener(new MessagesAdapter.MessagesAdapterClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                MatrixMessageListFragment.this.onItemClick(position);
-            }
-        });
+        mAdapter.setMessagesAdapterEventsListener(this);
 
         mDisplayAllEvents = isDisplayAllEvents();
 
@@ -488,7 +483,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Upload a video message
      * The video thumbnail will be computed
-     * @param message the video message, null to create a new one
      * @param videoUrl the video url
      * @param body the message body
      * @param videoMimeType the video mime type
@@ -507,7 +501,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Upload a video message
-     * @param message the video message, null to create a new one
      * @param thumbnailUrl the thumbnail Url
      * @param thumbnailMimeType the thumbnail mime type
      * @param videoUrl the video url
@@ -1189,10 +1182,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    /**
-     * User actions when the user click on message row.
-     */
-    public void onItemClick(int position) {
+    /***  MessageAdapter listener  ***/
+    public void onRowClick(int position) {
+    }
+
+    public Boolean onRowLongClick(int position) {
+        return false;
+    }
+
+    public void onContentClick(int position) {
+    }
+
+    public Boolean onContentLongClick(int position) {
+        return false;
+    }
+
+    public void onAvatarClick(String userId) {
+    }
+
+    public Boolean onAvatarLongClick(String userId) {
+        return false;
+    }
+
+    public void onSenderNameClick(String userId, String displayName) {
+    }
+
+    public void onMediaDownloaded(int position) {
     }
 
     // thumbnails management
