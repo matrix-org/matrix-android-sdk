@@ -527,6 +527,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * update the typing view visibility
+     * @param avatarLayoutView the avatar layout
+     * @param status view.GONE / View.VISIBLE
+     */
+    protected void setTypingVisibility(View avatarLayoutView, int status) {
+        // display the typing icon when required
+        ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
+        typingImage.setVisibility(status);
+    }
+
+    /**
      * Common view management.
      * @param position the item position.
      * @param convertView the row view
@@ -687,9 +698,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
-
             ImageView presenceView = (ImageView) avatarLayoutView.findViewById(R.id.imageView_presenceRing);
-            presenceView.setColorFilter(mContext.getResources().getColor(android.R.color.transparent));
 
             final String userId = msg.userId;
             refreshPresenceRing(presenceView, userId);
@@ -721,8 +730,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 // display the typing icon when required
-                ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
-                typingImage.setVisibility((!isMyEvent && (mTypingUsers.indexOf(msg.userId) >= 0)) ? View.VISIBLE : View.GONE);
+                setTypingVisibility(avatarLayoutView, (!isMyEvent && (mTypingUsers.indexOf(msg.userId) >= 0)) ? View.VISIBLE : View.GONE);
             }
 
             // if the messages are merged
