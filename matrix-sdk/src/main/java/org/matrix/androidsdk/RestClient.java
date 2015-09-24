@@ -25,11 +25,16 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -75,7 +80,7 @@ public class RestClient<T> {
 
         OkHttpClient okHttpClient = new OkHttpClient();
 
-        List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
+        final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
 
         // If we have trusted fingerprints, we *only* trust those fingerprints.
         // Otherwise we fall back on the default X509 cert validation.
@@ -113,10 +118,31 @@ public class RestClient<T> {
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
+        final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
+
         okHttpClient.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(String hostname, SSLSession session) {
-                return true;
+                if (defaultVerifier.verify(hostname, session)) return true;
+                if (trusted_fingerprints == null || trusted_fingerprints.size() == 0) return false;
+
+                // If remote cert matches an allowed fingerprint, just accept it.
+                try {
+                    boolean found = false;
+                    for (Certificate cert : session.getPeerCertificates()) {
+                        for (Fingerprint allowedFingerprint : trusted_fingerprints) {
+                            if (allowedFingerprint != null && cert instanceof X509Certificate && allowedFingerprint.matchesCert((X509Certificate) cert)) {
+                                return true;
+                            }
+                        }
+                    }
+                } catch (SSLPeerUnverifiedException e) {
+                    return false;
+                } catch (CertificateException e) {
+                    return false;
+                }
+
+                return false;
             }
         });
 
