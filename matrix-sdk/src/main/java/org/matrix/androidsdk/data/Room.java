@@ -101,11 +101,11 @@ public class Room {
 
     // the storage events are buffered to provide a small bunch of events
     // the storage can provide a big bunch which slows down the UI.
-    private class BufferedEvent {
+    public class SnapshotedEvent {
         public Event mEvent;
         public RoomState mState;
 
-        public BufferedEvent(Event event, RoomState state) {
+        public SnapshotedEvent(Event event, RoomState state) {
             mEvent = event;
             mState = state;
         }
@@ -113,7 +113,7 @@ public class Room {
 
     // avoid adding to many events
     // the room history request can provide more than exxpected event.
-    private ArrayList<BufferedEvent> mBufferedEvents = new ArrayList<BufferedEvent>();
+    private ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<SnapshotedEvent>();
 
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
@@ -505,15 +505,15 @@ public class Room {
      * @param callback the callback.
      */
     private void manageEvents(final ApiCallback<Integer> callback) {
-        int count = Math.min(mBufferedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
+        int count = Math.min(mSnapshotedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
 
         for(int i = 0; i < count; i++) {
-            BufferedEvent bufferedEvent = mBufferedEvents.get(0);
-            mBufferedEvents.remove(0);
-            mDataHandler.onBackEvent(bufferedEvent.mEvent, bufferedEvent.mState);
+            SnapshotedEvent snapshotedEvent = mSnapshotedEvents.get(0);
+            mSnapshotedEvents.remove(0);
+            mDataHandler.onBackEvent(snapshotedEvent.mEvent, snapshotedEvent.mState);
         }
 
-        if ((mBufferedEvents.size() == 0) && (0 == mLatestChunkSize)) {
+        if ((mSnapshotedEvents.size() == 0) && (0 == mLatestChunkSize)) {
             canStillPaginate = false;
         }
 
@@ -526,6 +526,79 @@ public class Room {
         }
         isPaginating = false;
         mDataHandler.getStore().commit();
+    }
+
+    /**
+     * Check if pattern is contained in string.
+     * @param string the string
+     * @param pattern the pattern to find.
+     * @return true if the pattern is found.
+     */
+    private static boolean contains(String string, String pattern) {
+        // empty pattern -> cannot match
+        if (TextUtils.isEmpty(string) || TextUtils.isEmpty(pattern) || TextUtils.isEmpty(pattern.trim())) {
+            return false;
+        }
+
+        return string.matches("(?i:.*" + pattern.trim() + ".*)");
+    }
+
+    /**
+     * Search the room messages which contains the pattern pattern.
+     * @param pattern the pattern to search
+     * @param callback the matched events list in the chronological order.
+     */
+    public void getMessagesWithPattern(final String pattern, final ApiCallback<ArrayList<SnapshotedEvent>> callback) {
+        final RoomState startState = mLiveState.deepCopy();
+        final android.os.Handler handler = new android.os.Handler();
+        final ArrayList<Event> eventsList = new ArrayList<Event>(mDataRetriever.getCachedRoomMessages(mRoomId));
+
+        // call the callback with a delay (and on the UI thread).
+        // to reproduce the same behaviour as a network request.
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    public void run() {
+                        ArrayList<SnapshotedEvent> matchedEventsList = new ArrayList<SnapshotedEvent>();
+
+                        if (null != eventsList) {
+                            Boolean includeAll = TextUtils.isEmpty(pattern);
+                            RoomState currentRoomState = startState;
+
+                            for (int index = (eventsList.size() - 1); index >= 0; index--) {
+                                Event event = eventsList.get(index);
+                                Boolean processedEvent = true;
+
+                                if (event.stateKey != null) {
+                                    processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+
+                                    if (processedEvent) {
+                                        // new state event -> copy the room state
+                                        currentRoomState = mBackState.deepCopy();
+                                    }
+                                }
+
+                                if (processedEvent) {
+                                    if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+                                        Message message = JsonUtils.toMessage(event.content);
+
+                                        if (includeAll || contains(message.body, pattern)) {
+                                            matchedEventsList.add(new SnapshotedEvent(event, currentRoomState));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        callback.onSuccess(matchedEventsList);
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
     }
 
     /**
@@ -543,11 +616,11 @@ public class Room {
 
         // restart the pagination
         if (null == mBackState.getToken()) {
-            mBufferedEvents.clear();
+            mSnapshotedEvents.clear();
         }
 
         // enough buffered data
-        if (mBufferedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
+        if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
             final android.os.Handler handler = new android.os.Handler();
 
             // call the callback with a delay (and on the UI thread).
@@ -593,7 +666,7 @@ public class Room {
                     // warn the listener only if the message is processed.
                     // it should avoid duplicated events.
                     if (processedEvent) {
-                        mBufferedEvents.add(new BufferedEvent(event, stateCopy));
+                        mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
                     }
                 }
 

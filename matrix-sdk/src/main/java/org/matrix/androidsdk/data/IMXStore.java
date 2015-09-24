@@ -148,6 +148,13 @@ public interface IMXStore {
     /**
      * Retrieve all non-state room events for this room.
      * @param roomId The room ID
+     * @return A collection of events. null if there is no cached event.
+     */
+    public Collection<Event> getRoomMessages(final String roomId);
+
+    /**
+     * Retrieve all non-state room events for this room.
+     * @param roomId The room ID
      * @param fromToken the token
      * @param limit the maximum number of messages to retrieve.
      * @return A collection of events. null if there is no cached event.

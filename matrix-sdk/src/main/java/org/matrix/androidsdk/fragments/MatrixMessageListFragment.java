@@ -56,11 +56,9 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -103,6 +101,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected MXSession mSession;
     protected String mMatrixId;
     protected Room mRoom;
+    protected String mPattern = null;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
 
@@ -256,6 +255,70 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Update the searched pattern.
+     * @param pattern the pattern to find out. null to disable the search mode
+     */
+    public void searchPattern(final String pattern) {
+        if (!TextUtils.equals(mPattern, pattern)) {
+            mPattern = pattern;
+            mAdapter.setSearchPattern(mPattern);
+
+            // something to search
+            if (!TextUtils.isEmpty(mPattern)) {
+                mRoom.getMessagesWithPattern(mPattern, new SimpleApiCallback<ArrayList<Room.SnapshotedEvent>>(getActivity()) {
+                    @Override
+                    public void onSuccess(final ArrayList<Room.SnapshotedEvent> snapshotedEvents) {
+                        MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                // check that the pattern was not modified before the end of the search
+                                if (TextUtils.equals(mPattern, pattern)) {
+                                    ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(snapshotedEvents.size());
+
+                                    for(Room.SnapshotedEvent snapshotedEvent : snapshotedEvents) {
+                                        messageRows.add(new MessageRow(snapshotedEvent.mEvent, snapshotedEvent.mState));
+                                    }
+
+                                    mAdapter.clear();
+                                    mAdapter.addAll(messageRows);
+                                }
+                            }
+                        });
+                    }
+
+                    // the request will be auto restarted when a valid network will be found
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Refresh the search results list
+     */
+    private void refreshSearch() {
+        // is there a search in progress
+        if (!TextUtils.isEmpty(mPattern))  {
+            String tmp = mPattern;
+            mPattern = null;
+            searchPattern(tmp);
+        }
+    }
+
+    /**
      * Create the messageFragment.
      * Should be inherited.
      * @param roomId the roomID
@@ -286,7 +349,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
         mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
-
     }
 
     @Override
@@ -359,6 +421,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
+        refreshSearch();
+
         scrollToBottom();
 
         getSession().getDataHandler().getStore().commit();
@@ -921,7 +985,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     public void requestHistory() {
         // avoid launching catchup if there is already one in progress
-        if (!mIsCatchingUp) {
+        // or during a search
+        if (!mIsCatchingUp && (null == mPattern)) {
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
 
@@ -1024,11 +1089,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
+                    refreshSearch();
                 } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     mAdapter.setTypingUsers(mRoom.getTypingUsers());
                 } else {
                     if (canAddEvent(event)) {
                         mAdapter.add(event, roomState);
+                        refreshSearch();
                     }
                 }
             }
@@ -1047,6 +1114,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 if (canAddEvent(event)) {
                     mAdapter.addToFront(event, roomState);
+                    refreshSearch();
                 }
             }
         });
@@ -1065,6 +1133,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 mAdapter.removeEventById(event.eventId);
                 mAdapter.notifyDataSetChanged();
+                refreshSearch();
             }
         });
     }

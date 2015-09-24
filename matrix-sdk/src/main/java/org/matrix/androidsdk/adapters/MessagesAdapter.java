@@ -22,7 +22,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.TextUtils;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -61,6 +65,7 @@ import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.text.DateFormat;
@@ -169,6 +174,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // events listener
     private MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
+
+    private Boolean mIsSearchMode = false;
+    private String mPattern = null;
+    private ArrayList<MessageRow>  mLiveMessagesRowList = null;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -304,6 +313,34 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Defines the search pattern.
+     * @param pattern the pattern to search.
+     */
+    public void setSearchPattern(String pattern) {
+        if (!TextUtils.equals(pattern, mPattern)) {
+            mPattern = pattern;
+            mIsSearchMode = !TextUtils.isEmpty(mPattern);
+
+            // in search mode, the live row are backuped to store the live events
+            if (mIsSearchMode) {
+                // save once
+                if (null == mLiveMessagesRowList) {
+                    // backup live events
+                    mLiveMessagesRowList = new ArrayList<MessageRow>();
+                    for (int pos = 0; pos < this.getCount(); pos++) {
+                        mLiveMessagesRowList.add(this.getItem(pos));
+                    }
+                }
+            } else if (null != mLiveMessagesRowList) {
+                // clear and restore the backuped list
+                this.clear();
+                this.addAll(mLiveMessagesRowList);
+                mLiveMessagesRowList = null;
+            }
+        }
+    }
+
+    /**
      * Add an event to the top of the events list.
      * @param event the event to add
      * @param roomState the event roomstate
@@ -314,7 +351,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // ensure that notifyDataSetChanged is not called
             // it seems that setNotifyOnChange is reinitialized to true;
             setNotifyOnChange(false);
-            insert(row, 0);
+
+            if (mIsSearchMode) {
+                mLiveMessagesRowList.add(0, row);
+            } else {
+                insert(row, 0);
+            }
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
@@ -350,7 +392,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public void remove(MessageRow row) {
-        super.remove(row);
+        if (mIsSearchMode) {
+            mLiveMessagesRowList.remove(row);
+        } else {
+            super.remove(row);
+        }
     }
 
     @Override
@@ -360,7 +406,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         setNotifyOnChange(false);
 
         if (shouldSave(row)) {
-            super.add(row);
+            if (mIsSearchMode) {
+                mLiveMessagesRowList.add(row);
+            } else {
+                super.add(row);
+            }
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
@@ -369,7 +419,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mWaitingEchoRowMap.put(row.getEvent().eventId, row);
             }
 
-            this.notifyDataSetChanged();
+            if (!mIsSearchMode) {
+                this.notifyDataSetChanged();
+            }
         }
     }
 
@@ -418,7 +470,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         mWaitingEchoRowMap.remove(eventId);
                     }
                 } else {
-                    super.remove(currentRow);
+                    if (mIsSearchMode) {
+                        mLiveMessagesRowList.remove(currentRow);
+                    } else {
+                        super.remove(currentRow);
+                    }
                 }
             }
         }
@@ -828,6 +884,35 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Highlight the pattern in the text.
+     * @param textView the textView in which the text is displayed.
+     * @param text the text to display.
+     * @param pattern the pattern to highlight.
+     */
+    protected void highlightPattern(TextView textView, CharSequence text, String pattern) {
+        // no pattern or too small
+        if (TextUtils.isEmpty(pattern) || (text.length() < pattern.length())) {
+            textView.setText(text);
+        } else {
+            Spannable WordtoSpan = new SpannableString(text);
+
+            String lowerText = text.toString().toLowerCase();
+            String lowerPattern = pattern.toLowerCase();
+
+            int start = 0;
+            int pos = lowerText.indexOf(lowerPattern, start);
+
+            while (pos >= 0) {
+                start = pos + lowerPattern.length();
+                WordtoSpan.setSpan(new BackgroundColorSpan(Color.GREEN), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                pos = lowerText.indexOf(lowerPattern, start);
+            }
+
+            textView.setText(WordtoSpan);
+        }
+    }
+
+    /**
      * Text message management
      * @param position the message position
      * @param convertView the text message view
@@ -846,7 +931,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
         final CharSequence body = display.getTextualDisplay();
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
-        bodyTextView.setText(body);
+
+        highlightPattern(bodyTextView, body, mPattern);
 
         int textColor;
 
