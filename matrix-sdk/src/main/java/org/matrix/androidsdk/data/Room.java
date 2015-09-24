@@ -593,7 +593,7 @@ public class Room {
                             }
 
                             mSearchBackState = stateCopy.deepCopy();
-
+                            mSearchBackState.setDataHandler(mDataHandler);
                             if (eventsList.size() > 0) {
                                 mSearchBackState.setToken(eventsList.get(0).mToken);
                             }
@@ -610,8 +610,15 @@ public class Room {
     }
 
     /**
+     * replace the backState by the SearchBack.
+     */
+    public void flushSearchBackState() {
+        mBackState = mSearchBackState;
+    }
+
+    /**
      * Request older messages to perform a search on it.
-     * @param pattern the pattern to search.
+     * @param pattern the pattern to search. null to list the cached messages.
      * @param callback callback to send matched events stored in application cache.
      * @return true if request starts
      */
