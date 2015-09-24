@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -22,9 +23,13 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -45,6 +50,15 @@ public class DataRetriever {
 
     public void setRoomsRestClient(RoomsRestClient client) {
         mRestClient = client;
+    }
+
+    /**
+     * Provides the cached messages for a dedicated roomId
+     * @param roomId the roomId
+     * @return the events list, null if the room does not exist
+     */
+    public Collection<Event> getCachedRoomMessages(final String roomId) {
+        return mStore.getRoomMessages(roomId);
     }
 
     /**

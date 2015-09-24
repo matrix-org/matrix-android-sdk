@@ -56,11 +56,9 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -75,7 +73,7 @@ import retrofit.RetrofitError;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterClickListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
@@ -102,7 +100,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private Handler mUiHandler;
     protected MXSession mSession;
     protected String mMatrixId;
-    private Room mRoom;
+    protected Room mRoom;
+    protected String mPattern = null;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
 
@@ -236,7 +235,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MatrixMessageListFragment.this.onItemClick(position);
+                MatrixMessageListFragment.this.onRowClick(position);
             }
         });
 
@@ -248,16 +247,75 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
-        mAdapter.setMessagesAdapterClickListener(new MessagesAdapter.MessagesAdapterClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                MatrixMessageListFragment.this.onItemClick(position);
-            }
-        });
+        mAdapter.setMessagesAdapterEventsListener(this);
 
         mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
+    }
+
+    /**
+     * Update the searched pattern.
+     * @param pattern the pattern to find out. null to disable the search mode
+     */
+    public void searchPattern(final String pattern) {
+        if (!TextUtils.equals(mPattern, pattern)) {
+            mPattern = pattern;
+            mAdapter.setSearchPattern(mPattern);
+
+            // something to search
+            if (!TextUtils.isEmpty(mPattern)) {
+                mRoom.getMessagesWithPattern(mPattern, new SimpleApiCallback<ArrayList<Room.SnapshotedEvent>>(getActivity()) {
+                    @Override
+                    public void onSuccess(final ArrayList<Room.SnapshotedEvent> snapshotedEvents) {
+                        MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                // check that the pattern was not modified before the end of the search
+                                if (TextUtils.equals(mPattern, pattern)) {
+                                    ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(snapshotedEvents.size());
+
+                                    for(Room.SnapshotedEvent snapshotedEvent : snapshotedEvents) {
+                                        messageRows.add(new MessageRow(snapshotedEvent.mEvent, snapshotedEvent.mState));
+                                    }
+
+                                    mAdapter.clear();
+                                    mAdapter.addAll(messageRows);
+                                }
+                            }
+                        });
+                    }
+
+                    // the request will be auto restarted when a valid network will be found
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Refresh the search results list
+     */
+    private void refreshSearch() {
+        // is there a search in progress
+        if (!TextUtils.isEmpty(mPattern))  {
+            String tmp = mPattern;
+            mPattern = null;
+            searchPattern(tmp);
+        }
     }
 
     /**
@@ -291,7 +349,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
         mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
-
     }
 
     @Override
@@ -364,6 +421,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
         mAdapter.add(messageRow);
+        refreshSearch();
+
         scrollToBottom();
 
         getSession().getDataHandler().getStore().commit();
@@ -488,7 +547,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Upload a video message
      * The video thumbnail will be computed
-     * @param message the video message, null to create a new one
      * @param videoUrl the video url
      * @param body the message body
      * @param videoMimeType the video mime type
@@ -507,7 +565,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Upload a video message
-     * @param message the video message, null to create a new one
      * @param thumbnailUrl the thumbnail Url
      * @param thumbnailMimeType the thumbnail mime type
      * @param videoUrl the video url
@@ -928,7 +985,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     public void requestHistory() {
         // avoid launching catchup if there is already one in progress
-        if (!mIsCatchingUp) {
+        // or during a search
+        if (!mIsCatchingUp && (null == mPattern)) {
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
 
@@ -1031,11 +1089,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
+                    refreshSearch();
                 } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     mAdapter.setTypingUsers(mRoom.getTypingUsers());
                 } else {
                     if (canAddEvent(event)) {
                         mAdapter.add(event, roomState);
+                        refreshSearch();
                     }
                 }
             }
@@ -1054,6 +1114,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 if (canAddEvent(event)) {
                     mAdapter.addToFront(event, roomState);
+                    refreshSearch();
                 }
             }
         });
@@ -1072,6 +1133,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 mAdapter.removeEventById(event.eventId);
                 mAdapter.notifyDataSetChanged();
+                refreshSearch();
             }
         });
     }
@@ -1189,10 +1251,32 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    /**
-     * User actions when the user click on message row.
-     */
-    public void onItemClick(int position) {
+    /***  MessageAdapter listener  ***/
+    public void onRowClick(int position) {
+    }
+
+    public Boolean onRowLongClick(int position) {
+        return false;
+    }
+
+    public void onContentClick(int position) {
+    }
+
+    public Boolean onContentLongClick(int position) {
+        return false;
+    }
+
+    public void onAvatarClick(String userId) {
+    }
+
+    public Boolean onAvatarLongClick(String userId) {
+        return false;
+    }
+
+    public void onSenderNameClick(String userId, String displayName) {
+    }
+
+    public void onMediaDownloaded(int position) {
     }
 
     // thumbnails management

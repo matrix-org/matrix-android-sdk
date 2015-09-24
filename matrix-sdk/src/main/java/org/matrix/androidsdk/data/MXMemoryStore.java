@@ -424,6 +424,27 @@ public class MXMemoryStore implements IMXStore {
     public void storeLiveStateForRoom(String roomId) {
     }
 
+    /**
+     * Retrieve all non-state room events for this room.
+     * @param roomId The room ID
+     * @return A collection of events. null if there is no cached event.
+     */
+    public Collection<Event> getRoomMessages(final String roomId) {
+        // sanity check
+        if (null == roomId) {
+            return null;
+        }
+
+        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+        // unknown room ?
+        if (null == events) {
+            return null;
+        }
+
+        return new ArrayList<Event>(events.values());
+    }
+
     @Override
     public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit)  {
         // For now, we return everything we have for the original null token request
