@@ -58,7 +58,7 @@ public class Fingerprint {
     public JSONObject toJson() throws JSONException {
         JSONObject obj = new JSONObject();
         obj.put("bytes", Base64.encodeToString(getBytes(), Base64.DEFAULT));
-        obj.put("hash_ type", mHashType.toString());
+        obj.put("hash_type", mHashType.toString());
         return obj;
     }
 
@@ -66,10 +66,12 @@ public class Fingerprint {
         String hashTypeStr = obj.getString("hash_type");
         byte[] fingerprintBytes = Base64.decode(obj.getString("bytes"), Base64.DEFAULT);
 
-        HashType hashType;
-        try {
-            hashType = HashType.valueOf(hashTypeStr);
-        } catch (Exception e) {
+        final HashType hashType;
+        if ("SHA256".equalsIgnoreCase(hashTypeStr)) {
+            hashType = HashType.SHA256;
+        } else if ("SHA1".equalsIgnoreCase(hashTypeStr)) {
+            hashType = HashType.SHA1;
+        } else {
             throw new JSONException("Unrecognized hash type: " + hashTypeStr);
         }
 
@@ -88,6 +90,10 @@ public class Fingerprint {
         }
 
         return equals(o);
+    }
+
+    public String toString() {
+        return String.format("Fingerprint{type: '%s', fingeprint: '%s'}", mHashType.toString(), getBytesAsHexString());
     }
 
     @Override

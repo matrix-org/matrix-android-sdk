@@ -43,4 +43,13 @@ public class Credentials {
         creds.accessToken = obj.getString("access_token");
         return creds;
     }
+
+    @Override
+    public String toString() {
+        return "Credentials{" +
+                "userId='" + userId + '\'' +
+                ", homeServer='" + homeServer + '\'' +
+                ", accessToken.length='" + accessToken.length() + '\'' +
+                '}';
+    }
 }

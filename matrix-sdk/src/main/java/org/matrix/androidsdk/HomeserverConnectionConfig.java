@@ -24,7 +24,7 @@ public class HomeserverConnectionConfig {
      * @param hsUri The URI to use to connect to the homeserver
      */
     public HomeserverConnectionConfig(Uri hsUri) {
-        this(hsUri, null, null, false);
+        this(hsUri, null);
     }
 
     /**
@@ -32,7 +32,7 @@ public class HomeserverConnectionConfig {
      * @param credentials The credentials to use, if needed. Can be null.
      */
     public HomeserverConnectionConfig(Uri hsUri, Credentials credentials) {
-        this(hsUri, credentials, null, false);
+        this(hsUri, credentials, new ArrayList<Fingerprint>(), false);
     }
 
     /**
@@ -68,6 +68,16 @@ public class HomeserverConnectionConfig {
         return mPin;
     }
 
+    @Override
+    public String toString() {
+        return "HomeserverConnectionConfig{" +
+                "mHsUri=" + mHsUri +
+                ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
+                ", mCredentials=" + mCredentials +
+                ", mPin=" + mPin +
+                '}';
+    }
+
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
 
@@ -81,7 +91,7 @@ public class HomeserverConnectionConfig {
                 fingerprints.add(fingerprint.toJson());
             }
 
-            json.put("fingerprints", fingerprints);
+            json.put("fingerprints", new JSONArray(fingerprints));
         }
 
         return json;
