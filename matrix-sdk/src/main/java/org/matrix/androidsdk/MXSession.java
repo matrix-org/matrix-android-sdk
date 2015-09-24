@@ -142,11 +142,7 @@ public class MXSession {
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
 
-        mContentManager = new ContentManager(
-                hsConfig.getHomeserverUri().toString(),
-                mCredentials.accessToken,
-                mUnsentEventsManager
-        );
+        mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
         mDataHandler.setContentManager(mContentManager);
 
         //

@@ -24,6 +24,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -31,6 +32,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.ssl.CertUtil;
 
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
@@ -55,6 +57,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLException;
 
 /**
@@ -71,11 +74,7 @@ public class ContentManager {
 
     private static final String LOG_TAG = "ContentManager";
 
-    // home server Uri
-    private String mHsUri;
-
-    // user access token
-    private String mAccessToken;
+    private HomeserverConnectionConfig mHsConfig;
 
     // unsent events manager
     // it will restart the the upload if it fails
@@ -110,12 +109,10 @@ public class ContentManager {
 
     /**
      * Default constructor.
-     * @param hsUri the home server URL
-     * @param accessToken the user's access token
+     * @param hsConfig the HomeserverConnectionConfig to use
      */
-    public ContentManager(String hsUri, String accessToken, UnsentEventsManager unsentEventsManager) {
-        mHsUri = hsUri;
-        mAccessToken = accessToken;
+    public ContentManager(HomeserverConnectionConfig hsConfig, UnsentEventsManager unsentEventsManager) {
+        mHsConfig = hsConfig;
         mUnsentEventsManager = unsentEventsManager;
     }
 
@@ -160,7 +157,7 @@ public class ContentManager {
         if (contentUrl == null) return null;
         if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
             String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            return mHsUri + URI_PREFIX_CONTENT_API + "/download/" + mediaServerAndId;
+            return mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/download/" + mediaServerAndId;
         }
         else {
             return contentUrl;
@@ -185,7 +182,7 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
-            String url = mHsUri + URI_PREFIX_CONTENT_API + "/";
+            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/";
 
             // identicon server has no thumbnail path
             if (mediaServerAndId.indexOf("identicon") < 0) {
@@ -382,7 +379,7 @@ public class ContentManager {
             int maxBufferSize = 1024 * 32;
 
             String responseFromServer = null;
-            String urlString = mHsUri + URI_PREFIX_CONTENT_API + "/upload?access_token=" + mAccessToken;
+            String urlString = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/upload?access_token=" + mHsConfig.getCredentials().accessToken;
 
             if (null != mFilename) {
                 try {
@@ -401,6 +398,13 @@ public class ContentManager {
                 conn.setDoOutput(true);
                 conn.setUseCaches(false);
                 conn.setRequestMethod("POST");
+
+                if (conn instanceof HttpsURLConnection) {
+                    // Add SSL Socket factory.
+                    HttpsURLConnection sslConn = (HttpsURLConnection) conn;
+                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                    sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                }
 
                 conn.setRequestProperty("Content-Type", mimeType);
                 conn.setRequestProperty("Content-Length", Integer.toString(contentStream.available()));
@@ -497,7 +501,7 @@ public class ContentManager {
         @Override
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
-            Log.d(LOG_TAG, "UI Upload " + mHsUri + " : " + mProgress);
+            Log.d(LOG_TAG, "UI Upload " + mHsConfig.getHomeserverUri().toString() + " : " + mProgress);
 
             for (UploadCallback callback : mCallbacks) {
                 try {

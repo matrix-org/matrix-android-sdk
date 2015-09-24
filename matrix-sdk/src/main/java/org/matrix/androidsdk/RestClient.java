@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.ssl.Fingerprint;
 import org.matrix.androidsdk.ssl.PinnedTrustManager;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -80,71 +81,11 @@ public class RestClient<T> {
 
         OkHttpClient okHttpClient = new OkHttpClient();
 
-        final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
-
-        // If we have trusted fingerprints, we *only* trust those fingerprints.
-        // Otherwise we fall back on the default X509 cert validation.
-        try {
-            X509TrustManager defaultTrustManager = null;
-
-            // If we haven't specified that we wanted to pin the certs, fallback to standard
-            // X509 checks if fingerprints don't match.
-            if (!hsConfig.shouldPin()) {
-                TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
-                tf.init((KeyStore) null);
-                TrustManager[] trustManagers = tf.getTrustManagers();
-
-                for (int i = 0; i < trustManagers.length; i++) {
-                    if (trustManagers[i] instanceof X509TrustManager) {
-                        defaultTrustManager = (X509TrustManager) trustManagers[i];
-                        break;
-                    }
-                }
-            }
-
-            final TrustManager[] trustPinned = new TrustManager[]{
-                    new PinnedTrustManager(trusted_fingerprints, defaultTrustManager)
-            };
-
-            final SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustPinned, new java.security.SecureRandom());
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-            okHttpClient.setSslSocketFactory(sslSocketFactory);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-        final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
-
-        okHttpClient.setHostnameVerifier(new HostnameVerifier() {
-            @Override
-            public boolean verify(String hostname, SSLSession session) {
-                if (defaultVerifier.verify(hostname, session)) return true;
-                if (trusted_fingerprints == null || trusted_fingerprints.size() == 0) return false;
-
-                // If remote cert matches an allowed fingerprint, just accept it.
-                try {
-                    boolean found = false;
-                    for (Certificate cert : session.getPeerCertificates()) {
-                        for (Fingerprint allowedFingerprint : trusted_fingerprints) {
-                            if (allowedFingerprint != null && cert instanceof X509Certificate && allowedFingerprint.matchesCert((X509Certificate) cert)) {
-                                return true;
-                            }
-                        }
-                    }
-                } catch (SSLPeerUnverifiedException e) {
-                    return false;
-                } catch (CertificateException e) {
-                    return false;
-                }
-
-                return false;
-            }
-        });
+        okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
+        okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()

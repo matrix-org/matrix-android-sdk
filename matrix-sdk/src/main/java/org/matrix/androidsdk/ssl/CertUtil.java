@@ -1,8 +1,23 @@
 package org.matrix.androidsdk.ssl;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
+
+import java.security.KeyStore;
 import java.security.MessageDigest;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.List;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Various utility classes for dealing with X509Certificates
@@ -76,5 +91,69 @@ public class CertUtil {
         }
 
         return null;
+    }
+
+    public static SSLSocketFactory newPinnedSSLSocketFactory(HomeserverConnectionConfig hsConfig) {
+        try {
+            X509TrustManager defaultTrustManager = null;
+
+            // If we haven't specified that we wanted to pin the certs, fallback to standard
+            // X509 checks if fingerprints don't match.
+            if (!hsConfig.shouldPin()) {
+                TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
+                tf.init((KeyStore) null);
+                TrustManager[] trustManagers = tf.getTrustManagers();
+
+                for (int i = 0; i < trustManagers.length; i++) {
+                    if (trustManagers[i] instanceof X509TrustManager) {
+                        defaultTrustManager = (X509TrustManager) trustManagers[i];
+                        break;
+                    }
+                }
+            }
+
+            TrustManager[] trustPinned = new TrustManager[]{
+                    new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager)
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustPinned, new java.security.SecureRandom());
+            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            return sslSocketFactory;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static HostnameVerifier newHostnameVerifier(HomeserverConnectionConfig hsConfig) {
+        final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
+        final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
+
+        return new HostnameVerifier() {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                if (defaultVerifier.verify(hostname, session)) return true;
+                if (trusted_fingerprints == null || trusted_fingerprints.size() == 0) return false;
+
+                // If remote cert matches an allowed fingerprint, just accept it.
+                try {
+                    boolean found = false;
+                    for (Certificate cert : session.getPeerCertificates()) {
+                        for (Fingerprint allowedFingerprint : trusted_fingerprints) {
+                            if (allowedFingerprint != null && cert instanceof X509Certificate && allowedFingerprint.matchesCert((X509Certificate) cert)) {
+                                return true;
+                            }
+                        }
+                    }
+                } catch (SSLPeerUnverifiedException e) {
+                    return false;
+                } catch (CertificateException e) {
+                    return false;
+                }
+
+                return false;
+            }
+        };
     }
 }
