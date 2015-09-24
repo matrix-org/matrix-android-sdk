@@ -118,6 +118,7 @@ public class Room {
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
+    private RoomState mSearchBackState = new RoomState();
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
@@ -565,17 +566,18 @@ public class Room {
                         if (null != eventsList) {
                             Boolean includeAll = TextUtils.isEmpty(pattern);
                             RoomState currentRoomState = startState;
+                            RoomState stateCopy = startState.deepCopy();
 
                             for (int index = (eventsList.size() - 1); index >= 0; index--) {
                                 Event event = eventsList.get(index);
                                 Boolean processedEvent = true;
 
                                 if (event.stateKey != null) {
-                                    processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+                                    processedEvent = currentRoomState.applyState(event, EventDirection.BACKWARDS);
 
                                     if (processedEvent) {
                                         // new state event -> copy the room state
-                                        currentRoomState = mBackState.deepCopy();
+                                        stateCopy = currentRoomState.deepCopy();
                                     }
                                 }
 
@@ -584,10 +586,16 @@ public class Room {
                                         Message message = JsonUtils.toMessage(event.content);
 
                                         if (includeAll || contains(message.body, pattern)) {
-                                            matchedEventsList.add(new SnapshotedEvent(event, currentRoomState));
+                                            matchedEventsList.add(0, new SnapshotedEvent(event, stateCopy));
                                         }
                                     }
                                 }
+                            }
+
+                            mSearchBackState = stateCopy.deepCopy();
+
+                            if (eventsList.size() > 0) {
+                                mSearchBackState.setToken(eventsList.get(0).mToken);
                             }
                         }
 
@@ -600,6 +608,60 @@ public class Room {
         Thread t = new Thread(r);
         t.start();
     }
+
+    /**
+     * Request older messages to perform a search on it.
+     * @param pattern the pattern to search.
+     * @param callback callback to send matched events stored in application cache.
+     * @return true if request starts
+     */
+    public boolean requestSearchHistory(final String pattern, final ApiCallback<ArrayList<SnapshotedEvent>> callback) {
+        if (isPaginating // One at a time please
+                || !canStillPaginate // If we have already reached the end of history
+                || !mIsReady) { // If the room is not finished being set up
+            return false;
+        }
+        isPaginating = true;
+
+        final RoomState startState = mSearchBackState.deepCopy();
+
+        mDataRetriever.requestRoomHistory(mRoomId, startState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> response) {
+                // check if the state is the same as expected
+                if ((null != mSearchBackState) && TextUtils.equals(startState.getToken(), mSearchBackState.getToken())) {
+                    getMessagesWithPattern(pattern, callback);
+                }
+                isPaginating = false;
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                // When we've retrieved all the messages from a room, the pagination token is some invalid value
+                if (MatrixError.UNKNOWN.equals(e.errcode)) {
+                    canStillPaginate = false;
+                }
+                isPaginating = false;
+
+                super.onMatrixError(e);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                isPaginating = false;
+                super.onNetworkError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                isPaginating = false;
+                super.onUnexpectedError(e);
+            }
+        });
+
+        return true;
+    }
+
 
     /**
      * Request older messages. They will come down the onBackEvent callback.
