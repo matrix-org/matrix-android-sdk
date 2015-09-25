@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
 
 import retrofit.client.Response;
 
@@ -73,6 +74,37 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 // Override the home server
                 mCredentials.homeServer = mHsUri.toString();
+                callback.onSuccess(mCredentials);
+            }
+        });
+    }
+
+    /**
+     * Attempt a user/password log in.
+     * @param user the user name
+     * @param token the password
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPassword user : " + user;
+
+        TokenLoginParams params = new TokenLoginParams();
+        params.user = user;
+        params.token = token;
+
+        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        loginWithToken(user, token, callback);
+                    }
+                }
+
+        ) {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
         });
