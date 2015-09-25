@@ -253,8 +253,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 });
             }
         }
-
-        this.notifyDataSetChanged();
     }
 
     /**
