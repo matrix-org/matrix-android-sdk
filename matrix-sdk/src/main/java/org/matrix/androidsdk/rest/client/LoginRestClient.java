@@ -28,6 +28,8 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
 
+import java.util.UUID;
+
 import retrofit.client.Response;
 
 /**
@@ -86,18 +88,30 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
+         loginWithToken(user, token, UUID.randomUUID().toString(), callback);
+    }
+
+    /**
+     * Attempt a user/password log in.
+     * @param user the user name
+     * @param token the password
+     * @param clientNonce the client nonce to include in the request
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final String clientNonce, final ApiCallback<Credentials> callback) {
         final String description = "loginWithPassword user : " + user;
 
         TokenLoginParams params = new TokenLoginParams();
         params.user = user;
         params.token = token;
+        params.client_nonce = clientNonce;
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        loginWithToken(user, token, callback);
+                        loginWithToken(user, token, clientNonce, callback);
                     }
                 }
 
