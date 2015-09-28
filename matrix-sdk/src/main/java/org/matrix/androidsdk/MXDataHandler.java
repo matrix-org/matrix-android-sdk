@@ -322,14 +322,21 @@ public class MXDataHandler implements IMXEventListener {
     public void handleLiveEvents(List<Event> events) {
         checkIfActive();
 
-        for (Event event : events) {
-            handleLiveEvent(event);
+        // check if there is something to do
+        if (0 != events.size()) {
+            Log.e(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
+
+            for (Event event : events) {
+                handleLiveEvent(event);
+            }
+
+            Log.e(LOG_TAG, "-- handleLiveEvents : events are processed.");
+
+            onLiveEventsChunkProcessed();
+
+            // check if an incoming call has been received
+            mCallsManager.checkPendingIncomingCalls();
         }
-
-        onLiveEventsChunkProcessed();
-
-        // check if an incoming call has been received
-        mCallsManager.checkPendingIncomingCalls();
     }
 
     /**
