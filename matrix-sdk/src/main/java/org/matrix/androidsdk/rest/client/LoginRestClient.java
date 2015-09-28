@@ -93,23 +93,23 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Attempt a user/password log in.
      * @param user the user name
      * @param token the password
-     * @param nonce the client nonce to include in the request
+     * @param txn_id the client transactio id to include in the request
      * @param callback the callback success and failure callback
      */
-    public void loginWithToken(final String user, final String token, final String nonce, final ApiCallback<Credentials> callback) {
+    public void loginWithToken(final String user, final String token, final String txn_id, final ApiCallback<Credentials> callback) {
         final String description = "loginWithPassword user : " + user;
 
         TokenLoginParams params = new TokenLoginParams();
         params.user = user;
         params.token = token;
-        params.nonce = nonce;
+        params.txn_id = txn_id;
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        loginWithToken(user, token, nonce, callback);
+                        loginWithToken(user, token, txn_id, callback);
                     }
                 }
 
