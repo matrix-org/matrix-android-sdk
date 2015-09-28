@@ -48,7 +48,7 @@ public class MXFileStore extends MXMemoryStore {
     final int MXFILE_VERSION = 1;
 
     // ensure that there is enough messages to fill a tablet screen
-    final int MAX_STORED_MESSAGES_COUNT = 100;
+    final int MAX_STORED_MESSAGES_COUNT = 50;
 
     final String MXFILE_STORE_FOLDER = "MXFileStore";
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
@@ -616,6 +616,81 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
+    private void saveRoomMessages(String roomId) {
+        try {
+            deleteRoomMessagesFiles(roomId);
+
+            // messages list
+            File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+            File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
+
+            LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
+            String token = mRoomTokens.get(roomId);
+
+            // the list exists ?
+            if ((null != eventsHash) && (null != token)) {
+                FileOutputStream fos = new FileOutputStream(messagesListFile);
+                ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
+                ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
+
+                int startIndex = 0;
+
+                // try to reduce the number of stored messages
+                // it does not make sense to keep the full history.
+
+                // the method consists in saving messages until finding the oldest known token.
+                // At initial sync, it is not saved so keep the whole history.
+                // if the user back paginates, the token is stored in the event.
+                // if some messages are received, the token is stored in the event.
+                if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
+                    startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
+
+                    // search backward the first known token
+                    for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
+                        ;
+
+                    // avoid saving huge messages count
+                    // with a very verbosed room, the messages token
+                    if ((eventsList.size() - startIndex) > (2 * MAX_STORED_MESSAGES_COUNT)) {
+                        Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : too many messages, try reducing more");
+
+                        // start from 10 messages
+                        startIndex = eventsList.size() - 10;
+
+                        // search backward the first known token
+                        for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
+                            ;
+                    }
+
+                    if (startIndex > 0) {
+                        Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
+                    }
+                }
+
+                long t0 = System.currentTimeMillis();
+
+                for (int index = startIndex; index < eventsList.size(); index++) {
+                    Event event = eventsList.get(index);
+                    event.prepareSerialization();
+                    hashCopy.put(event.eventId, event);
+                }
+
+                out.writeObject(hashCopy);
+                out.close();
+
+                fos = new FileOutputStream(tokenFile);
+                out = new ObjectOutputStream(fos);
+                out.writeObject(token);
+                out.close();
+
+                Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
+            }
+        } catch (Exception e) {
+        }
+    }
+
     /**
      * Flush updates rooms messages list files.
      */
@@ -635,61 +710,7 @@ public class MXFileStore extends MXMemoryStore {
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForMessages) {
-                                    try {
-                                        deleteRoomMessagesFiles(roomId);
-
-                                        // messages list
-                                        File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
-                                        File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
-
-                                        LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
-                                        String token = mRoomTokens.get(roomId);
-
-                                        // the list exists ?
-                                        if ((null != eventsHash) && (null != token)) {
-                                            FileOutputStream fos = new FileOutputStream(messagesListFile);
-                                            ObjectOutputStream out = new ObjectOutputStream(fos);
-
-                                            LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
-                                            ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
-
-                                            int startIndex = 0;
-
-                                            // try to reduce the number of stored messages
-                                            // it does not make sense to keep the full history.
-
-                                            // the method consists in saving messages until finding the oldest known token.
-                                            // At initial sync, it is not saved so keep the whole history.
-                                            // if the user back paginates, the token is stored in the event.
-                                            // if some messages are received, the token is stored in the event.
-                                            if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
-                                                startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
-
-                                                // search backward the first known token
-                                                for (;!eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                                                    ;
-
-                                                if (startIndex > 0) {
-                                                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " +  eventsList.size() + " -> " + (eventsList.size() - startIndex));
-                                                }
-                                            }
-
-                                            for (int index = startIndex; index < eventsList.size(); index++) {
-                                                Event event = eventsList.get(index);
-                                                event.prepareSerialization();
-                                                hashCopy.put(event.eventId, event);
-                                            }
-
-                                            out.writeObject(hashCopy);
-                                            out.close();
-
-                                            fos = new FileOutputStream(tokenFile);
-                                            out = new ObjectOutputStream(fos);
-                                            out.writeObject(token);
-                                            out.close();
-                                        }
-                                    } catch (Exception e) {
-                                    }
+                                    saveRoomMessages(roomId);
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
