@@ -35,6 +35,8 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * An in-file IMXStore.
@@ -54,6 +56,7 @@ public class MXFileStore extends MXMemoryStore {
     final String MXFILE_STORE_ROOMS_MESSAGES_FOLDER = "messages";
     final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
     final String MXFILE_STORE_ROOMS_STATE_FOLDER = "state";
+    final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
     final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
 
     private Context mContext = null;
@@ -79,7 +82,8 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreFolderFile = null;
     private File mStoreRoomsMessagesFolderFile = null;
     private File mStoreRoomsTokensFolderFile = null;
-    private File mStoreRoomsStateFolderFile = null;
+    private File mOldStoreRoomsStateFolderFile = null;
+    private File mGzStoreRoomsStateFolderFile = null;
     private File mStoreRoomsSummaryFolderFile = null;
 
     // the background thread
@@ -119,9 +123,11 @@ public class MXFileStore extends MXMemoryStore {
             mStoreRoomsTokensFolderFile.mkdirs();
         }
 
-        mStoreRoomsStateFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_STATE_FOLDER);
-        if (!mStoreRoomsStateFolderFile.exists()) {
-            mStoreRoomsStateFolderFile.mkdirs();
+        mOldStoreRoomsStateFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_STATE_FOLDER);
+
+        mGzStoreRoomsStateFolderFile = new File(mStoreFolderFile, MXFILE_STORE_GZ_ROOMS_STATE_FOLDER);
+        if (!mGzStoreRoomsStateFolderFile.exists()) {
+            mGzStoreRoomsStateFolderFile.mkdirs();
         }
 
         mStoreRoomsSummaryFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_SUMMARY_FOLDER);
@@ -153,10 +159,10 @@ public class MXFileStore extends MXMemoryStore {
         loadMetaData();
 
         if ( (null == mMetadata) ||
-             (mMetadata.mVersion != MXFILE_VERSION) ||
-             !mMetadata.mHomeServer.equals(credentials.homeServer) ||
-             !mMetadata.mUserId.equals(credentials.userId) ||
-             !mMetadata.mAccessToken.equals(credentials.accessToken)) {
+                (mMetadata.mVersion != MXFILE_VERSION) ||
+                !mMetadata.mHomeServer.equals(credentials.homeServer) ||
+                !mMetadata.mUserId.equals(credentials.userId) ||
+                !mMetadata.mAccessToken.equals(credentials.accessToken)) {
             deleteAllData(true);
         }
 
@@ -840,14 +846,50 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void deleteRoomStateFile(String roomId) {
         // states list
-        File statesFile = new File(mStoreRoomsStateFolderFile, roomId);
+        File statesFile = new File(mOldStoreRoomsStateFolderFile, roomId);
 
-        // remove the files
         if (statesFile.exists()) {
             try {
                 statesFile.delete();
             } catch (Exception e) {
             }
+        }
+
+        statesFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+
+        if (statesFile.exists()) {
+            try {
+                statesFile.delete();
+            } catch (Exception e) {
+            }
+        }
+
+    }
+
+    /**
+     * Save the room state.
+     * @param roomId the room id.
+     */
+    private void saveRoomState(String roomId) {
+        try {
+            deleteRoomStateFile(roomId);
+
+            File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+            Room room = mRooms.get(roomId);
+
+            if (null != room) {
+                long start1 = System.currentTimeMillis();
+                FileOutputStream fos = new FileOutputStream(roomStateFile);
+                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                ObjectOutputStream out = new ObjectOutputStream(gz);
+
+                out.writeObject(room.getLiveState());
+                out.close();
+                Log.d(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+            }
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
         }
     }
 
@@ -869,25 +911,7 @@ public class MXFileStore extends MXMemoryStore {
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForStates) {
-                                    try {
-                                        deleteRoomStateFile(roomId);
-
-                                        File roomStateFile = new File(mStoreRoomsStateFolderFile, roomId);
-                                        Room room = mRooms.get(roomId);
-
-                                        if (null != room) {
-                                            long start1 = System.currentTimeMillis();
-                                            FileOutputStream fos = new FileOutputStream(roomStateFile);
-                                            ObjectOutputStream out = new ObjectOutputStream(fos);
-
-                                            out.writeObject(room.getLiveState());
-                                            out.close();
-                                            Log.d(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
-                                        }
-
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
-                                    }
+                                    saveRoomState(roomId);
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
@@ -909,21 +933,41 @@ public class MXFileStore extends MXMemoryStore {
      */
     private boolean loadRoomState(final String roomId) {
         Boolean succeed = true;
+
         Room room = getRoom(roomId);
 
         // should always be true
         if (null != room) {
             RoomState liveState = null;
+            boolean shouldSave = false;
 
             try {
-                File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
+                // the room state is not zipped
+                File messagesListFile = new File(mGzStoreRoomsStateFolderFile, roomId);
 
-                FileInputStream fis = new FileInputStream(messagesListFile);
-                ObjectInputStream ois = new ObjectInputStream(fis);
+                // new format
+                if (messagesListFile.exists()) {
+                    FileInputStream fis = new FileInputStream(messagesListFile);
+                    GZIPInputStream gz = new GZIPInputStream(fis);
+                    ObjectInputStream ois = new ObjectInputStream(gz);
+                    liveState = (RoomState) ois.readObject();
+                    ois.close();
 
-                liveState = (RoomState) ois.readObject();
+                    // delete old file
+                    messagesListFile = new File(mOldStoreRoomsStateFolderFile, roomId);
+                    if (messagesListFile.exists()) {
+                        messagesListFile.delete();
+                    }
 
-                ois.close();
+                } else {
+                    messagesListFile = new File(mOldStoreRoomsStateFolderFile, roomId);
+                    FileInputStream fis = new FileInputStream(messagesListFile);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    liveState = (RoomState) ois.readObject();
+                    ois.close();
+
+                    shouldSave = true;
+                }
             } catch (Exception e) {
                 succeed = false;
                 Log.e(LOG_TAG, "loadRoomState failed : " + e.getMessage());
@@ -931,13 +975,22 @@ public class MXFileStore extends MXMemoryStore {
 
             if (null != liveState) {
                 room.setLiveState(liveState);
+
+                // force to use the new format
+                if (shouldSave) {
+                    saveRoomState(roomId);
+                }
             } else {
                 deleteRoom(roomId);
             }
         } else {
             try {
-                File messagesListFile = new File(mStoreRoomsStateFolderFile, roomId);
+                File messagesListFile = new File(mOldStoreRoomsStateFolderFile, roomId);
                 messagesListFile.delete();
+
+                messagesListFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+                messagesListFile.delete();
+
             } catch (Exception e) {
                 Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getMessage());
             }
@@ -954,13 +1007,23 @@ public class MXFileStore extends MXMemoryStore {
         Boolean succeed = true;
 
         try {
-            // extract the room states
-            String[] filenames = mStoreRoomsStateFolderFile.list();
-
             long start = System.currentTimeMillis();
+
+            String[] filenames = null;
+
+            filenames = mGzStoreRoomsStateFolderFile.list();
 
             for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadRoomState(filenames[index]);
+            }
+
+            // convert old format to the new one.
+            if (mOldStoreRoomsStateFolderFile.exists()) {
+                filenames = mOldStoreRoomsStateFolderFile.list();
+
+                for(int index = 0; succeed && (index < filenames.length); index++) {
+                    succeed &= loadRoomState(filenames[index]);
+                }
             }
 
             Log.d(LOG_TAG, "loadRoomsState " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
