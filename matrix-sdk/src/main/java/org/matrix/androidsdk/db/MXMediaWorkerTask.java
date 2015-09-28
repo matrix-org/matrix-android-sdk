@@ -26,6 +26,8 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
 
 import java.io.File;
@@ -40,6 +42,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import javax.net.ssl.HttpsURLConnection;
 
 class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
@@ -57,6 +61,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private File mDirectoryFile = null;
     private int mRotation = 0;
     private int mProgress = 0;
+    private final HomeserverConnectionConfig mHsConfig;
 
     public static void clearBitmapsCache() {
         // sMemoryCache can be null if no bitmap have been downloaded.
@@ -290,29 +295,33 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
+     * @param hsConfig
      * @param directoryFile the directry in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
      */
-    public MXMediaWorkerTask(Context appContext, File directoryFile, String url, String mimeType) {
+    public MXMediaWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType) {
         commonInit(appContext, url, mimeType);
         mDirectoryFile = directoryFile;
         mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        mHsConfig = hsConfig;
     }
 
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
+     * @param hsConfig
      * @param directoryFile the directry in which the media must be stored
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
      */
-    public MXMediaWorkerTask(Context appContext, File directoryFile, String url, int rotation, String mimeType) {
+    public MXMediaWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType) {
         commonInit(appContext, url, mimeType);
         mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
         mDirectoryFile = directoryFile;
         mRotation = rotation;
+        mHsConfig = hsConfig;
     }
 
     /**
@@ -328,6 +337,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         }
         mMimeType = task.mMimeType;
         mImageViewReferences = task.mImageViewReferences;
+        mHsConfig = task.mHsConfig;
     }
 
     /**
@@ -375,6 +385,14 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
             try {
                 URLConnection connection = url.openConnection();
+
+                if (mHsConfig != null && connection instanceof HttpsURLConnection) {
+                    // Add SSL Socket factory.
+                    HttpsURLConnection sslConn = (HttpsURLConnection) connection;
+                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                    sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                }
+
                 // add a timeout to avoid infinite loading display.
                 connection.setReadTimeout(10 * 1000);
                 filelen = connection.getContentLength();

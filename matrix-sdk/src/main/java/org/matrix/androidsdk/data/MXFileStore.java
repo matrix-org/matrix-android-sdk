@@ -22,6 +22,7 @@ import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -138,17 +139,17 @@ public class MXFileStore extends MXMemoryStore {
 
     /**
      * Default constructor
-     * @param credentials the expected credentials
+     * @param hsConfig the expected credentials
      */
-    public MXFileStore(Credentials credentials, Context context) {
+    public MXFileStore(HomeserverConnectionConfig hsConfig, Context context) {
         initCommon();
         mContext = context;
         mIsReady = false;
-        mCredentials = credentials;
+        mCredentials = hsConfig.getCredentials();
 
-        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + credentials.userId);
+        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + mCredentials.userId);
 
-        createDirTree(credentials.userId);
+        createDirTree(mCredentials.userId);
 
         // updated data
         mRoomsToCommitForMessages = new ArrayList<String>();
@@ -160,9 +161,8 @@ public class MXFileStore extends MXMemoryStore {
 
         if ( (null == mMetadata) ||
                 (mMetadata.mVersion != MXFILE_VERSION) ||
-                !mMetadata.mHomeServer.equals(credentials.homeServer) ||
-                !mMetadata.mUserId.equals(credentials.userId) ||
-                !mMetadata.mAccessToken.equals(credentials.accessToken)) {
+                !mMetadata.mUserId.equals(mCredentials.userId) ||
+                !mMetadata.mAccessToken.equals(mCredentials.accessToken)) {
             deleteAllData(true);
         }
 
@@ -174,9 +174,8 @@ public class MXFileStore extends MXMemoryStore {
             mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
 
             mMetadata = new MXFileStoreMetaData();
-            mMetadata.mHomeServer = credentials.homeServer;
-            mMetadata.mUserId = credentials.userId;
-            mMetadata.mAccessToken = credentials.accessToken;
+            mMetadata.mUserId = mCredentials.userId;
+            mMetadata.mAccessToken = mCredentials.accessToken;
             mMetadata.mVersion = MXFILE_VERSION;
             mMetaDataHasChanged = true;
             saveMetaData();
@@ -305,7 +304,6 @@ public class MXFileStore extends MXMemoryStore {
                                     mRoomsToCommitForSummaries = new ArrayList<String>();
 
                                     mMetadata = new MXFileStoreMetaData();
-                                    mMetadata.mHomeServer = mCredentials.homeServer;
                                     mMetadata.mUserId = mCredentials.userId;
                                     mMetadata.mAccessToken = mCredentials.accessToken;
                                     mMetadata.mVersion = MXFILE_VERSION;

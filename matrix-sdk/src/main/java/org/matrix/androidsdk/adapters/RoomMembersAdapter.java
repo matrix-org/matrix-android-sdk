@@ -29,6 +29,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.R;
 
 import org.matrix.androidsdk.data.RoomState;
@@ -68,6 +69,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     private MXMediasCache mMediasCache = null;
 
     private HashMap<String, String> mMembersSortMemberNameByUserId = new HashMap<String, String>();
+
+    private final HomeserverConnectionConfig mHsConfig;
 
     private String getCachedMemberName(String userId) {
         // sanity check
@@ -191,6 +194,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     /**
      * Construct an adapter which will display a list of room members.
      * @param context Activity context
+     * @param hsConfig
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
@@ -198,7 +202,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
      * @param mediasCache the media cache
      * @param membershipStrings  the membership strings by RoomMember.MEMBERSHIP_XX value
      */
-    public RoomMembersAdapter(Context context, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
+    public RoomMembersAdapter(Context context, HomeserverConnectionConfig hsConfig, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
         super(context, layoutResourceId);
         mContext = context;
         mLayoutResourceId = layoutResourceId;
@@ -210,6 +214,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         mMembershipStrings = membershipStrings;
         mMediasCache = mediasCache;
+
+        mHsConfig = hsConfig;
     }
 
     public void sortByLastActivePresence(boolean useLastActive) {
@@ -331,7 +337,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         if (!TextUtils.isEmpty(url)) {
             int size = getContext().getResources().getDimensionPixelSize(R.dimen.member_list_avatar_size);
-            mMediasCache.loadAvatarThumbnail(imageView, url, size);
+            mMediasCache.loadAvatarThumbnail(mHsConfig, imageView, url, size);
         }
 
         // The presence ring

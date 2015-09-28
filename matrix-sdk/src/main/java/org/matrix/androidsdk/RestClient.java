@@ -15,23 +15,32 @@
  */
 package org.matrix.androidsdk;
 
-import android.net.Uri;
-import android.util.Log;
-
-import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.OkHttpClient;
 
-import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.api.ProfileApi;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.CertUtil;
+import org.matrix.androidsdk.ssl.Fingerprint;
+import org.matrix.androidsdk.ssl.PinnedTrustManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
-import java.lang.reflect.Modifier;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
@@ -62,26 +71,25 @@ public class RestClient<T> {
 
     /**
      * Public constructor.
-     * @param hsUri The http[s] URI to the home server.
+     * @param hsConfig The homeserver connection config.
      */
-    public RestClient(Uri hsUri, Class<T> type, String uriPrefix, boolean withNullSerialization) {
-        // sanity check
-        if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
-            throw new RuntimeException("Invalid home server URI: "+hsUri);
-        }
-
+    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
-        // HTTP client
+        mCredentials = hsConfig.getCredentials();
+
         OkHttpClient okHttpClient = new OkHttpClient();
 
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
+        okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
+        okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(hsUri.toString() + uriPrefix)
+                .setEndpoint(hsConfig.getHomeserverUri().toString() + uriPrefix)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
@@ -98,15 +106,6 @@ public class RestClient<T> {
         restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = restAdapter.create(type);
-    }
-
-    /**
-     * Constructor providing the full user credentials. To use to avoid having to log the user in.
-     * @param credentials the user credentials
-     */
-    public RestClient(Credentials credentials, Class<T> type, String uriPrefix, boolean withNullSerialization) {
-        this(Uri.parse(credentials.homeServer), type, uriPrefix, withNullSerialization);
-        mCredentials = credentials;
     }
 
     /**
