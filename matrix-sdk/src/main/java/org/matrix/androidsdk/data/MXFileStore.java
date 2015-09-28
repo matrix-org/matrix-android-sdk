@@ -55,6 +55,7 @@ public class MXFileStore extends MXMemoryStore {
     final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
     final String MXFILE_STORE_ROOMS_MESSAGES_FOLDER = "messages";
+    final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
     final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
     final String MXFILE_STORE_ROOMS_STATE_FOLDER = "state";
     final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
@@ -81,7 +82,8 @@ public class MXFileStore extends MXMemoryStore {
 
     // The path of the MXFileStore folders
     private File mStoreFolderFile = null;
-    private File mStoreRoomsMessagesFolderFile = null;
+    private File mOldStoreRoomsMessagesFolderFile = null;
+    private File mGzStoreRoomsMessagesFolderFile = null;
     private File mStoreRoomsTokensFolderFile = null;
     private File mOldStoreRoomsStateFolderFile = null;
     private File mGzStoreRoomsStateFolderFile = null;
@@ -114,9 +116,11 @@ public class MXFileStore extends MXMemoryStore {
             mStoreFolderFile.mkdirs();
         }
 
-        mStoreRoomsMessagesFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_MESSAGES_FOLDER);
-        if (!mStoreRoomsMessagesFolderFile.exists()) {
-            mStoreRoomsMessagesFolderFile.mkdirs();
+        mOldStoreRoomsMessagesFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_MESSAGES_FOLDER);
+
+        mGzStoreRoomsMessagesFolderFile = new File(mStoreFolderFile, MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER);
+        if (!mGzStoreRoomsMessagesFolderFile.exists()) {
+            mGzStoreRoomsMessagesFolderFile.mkdirs();
         }
 
         mStoreRoomsTokensFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_TOKENS_FOLDER);
@@ -541,8 +545,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void deleteRoomMessagesFiles(String roomId) {
         // messages list
-        File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
-        File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
+        File messagesListFile = new File(mOldStoreRoomsMessagesFolderFile, roomId);
 
         // remove the files
         if (messagesListFile.exists()) {
@@ -552,6 +555,17 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
+        messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
+
+        // remove the files
+        if (messagesListFile.exists()) {
+            try {
+                messagesListFile.delete();
+            } catch (Exception e) {
+            }
+        }
+
+        File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
         if (tokenFile.exists()) {
             try {
                 tokenFile.delete();
@@ -619,7 +633,8 @@ public class MXFileStore extends MXMemoryStore {
             deleteRoomMessagesFiles(roomId);
 
             // messages list
-            File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+            File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
+
             File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
 
             LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
@@ -628,7 +643,8 @@ public class MXFileStore extends MXMemoryStore {
             // the list exists ?
             if ((null != eventsHash) && (null != token)) {
                 FileOutputStream fos = new FileOutputStream(messagesListFile);
-                ObjectOutputStream out = new ObjectOutputStream(fos);
+                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                ObjectOutputStream out = new ObjectOutputStream(gz);
 
                 LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
                 ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
@@ -730,21 +746,46 @@ public class MXFileStore extends MXMemoryStore {
      */
     private boolean loadRoomMessages(final String roomId) {
         Boolean succeeded = true;
-
+        Boolean shouldSave = false;
         LinkedHashMap<String, Event> events = null;
 
         try {
-            File messagesListFile = new File(mStoreRoomsMessagesFolderFile, roomId);
+            File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
 
-            FileInputStream fis = new FileInputStream(messagesListFile);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            events = (LinkedHashMap<String, Event>) ois.readObject();
+            if (messagesListFile.exists()) {
+                FileInputStream fis = new FileInputStream(messagesListFile);
+                GZIPInputStream gz = new GZIPInputStream(fis);
+                ObjectInputStream ois = new ObjectInputStream(gz);
+                events = (LinkedHashMap<String, Event>) ois.readObject();
 
-            for (Event event : events.values()) {
-                event.finalizeDeserialization();
+                for (Event event : events.values()) {
+                    event.finalizeDeserialization();
+                }
+
+                ois.close();
+
+                messagesListFile = new File(mOldStoreRoomsMessagesFolderFile, roomId);
+                if (messagesListFile.exists()) {
+                    messagesListFile.delete();
+                }
+            } else {
+                messagesListFile = new File(mOldStoreRoomsMessagesFolderFile, roomId);
+
+                if (messagesListFile.exists()) {
+
+                    FileInputStream fis = new FileInputStream(messagesListFile);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    events = (LinkedHashMap<String, Event>) ois.readObject();
+
+                    for (Event event : events.values()) {
+                        event.finalizeDeserialization();
+                    }
+
+                    ois.close();
+
+                    shouldSave = true;
+                }
             }
-
-            ois.close();
         } catch (Exception e){
             succeeded = false;
             Log.e(LOG_TAG, "loadRoomMessages failed : " + e.getMessage());
@@ -760,6 +801,10 @@ public class MXFileStore extends MXMemoryStore {
             storeRoom(room);
 
             mRoomEvents.put(roomId, events);
+        }
+
+        if (shouldSave) {
+            saveRoomMessages(roomId);
         }
 
         return succeeded;
@@ -830,12 +875,21 @@ public class MXFileStore extends MXMemoryStore {
 
         try {
             // extract the messages list
-            String[] filenames = mStoreRoomsMessagesFolderFile.list();
+            String[] filenames = mGzStoreRoomsMessagesFolderFile.list();
 
             long start = System.currentTimeMillis();
 
             for(int index = 0; succeed && (index < filenames.length); index++) {
                 succeed &= loadRoomMessages(filenames[index]);
+            }
+
+            // convert old format to the new one.
+            if (mOldStoreRoomsMessagesFolderFile.exists()) {
+                filenames = mOldStoreRoomsMessagesFolderFile.list();
+
+                for(int index = 0; succeed && (index < filenames.length); index++) {
+                    succeed &= loadRoomMessages(filenames[index]);
+                }
             }
 
             Log.d(LOG_TAG, "loadRoomMessages : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
