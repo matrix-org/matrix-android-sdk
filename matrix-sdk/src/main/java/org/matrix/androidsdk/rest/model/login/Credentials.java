@@ -49,7 +49,7 @@ public class Credentials {
         return "Credentials{" +
                 "userId='" + userId + '\'' +
                 ", homeServer='" + homeServer + '\'' +
-                ", accessToken.length='" + accessToken.length() + '\'' +
+                ", accessToken.length='" + (accessToken != null ? accessToken.length() : "null") + '\'' +
                 '}';
     }
 }
