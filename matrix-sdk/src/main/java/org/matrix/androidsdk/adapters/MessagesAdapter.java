@@ -312,6 +312,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return NUM_ROW_TYPES;
     }
 
+
+    /**
+     * Cancel any pending search and replace the adapter content.
+     * @param rows the new adapter content.
+     */
+    public void cancelSearchWith(ArrayList<MessageRow> rows) {
+        mPattern = null;
+        mIsSearchMode = false;
+        this.clear();
+        this.addAll(rows);
+        mLiveMessagesRowList = null;
+    }
+
     /**
      * Defines the search pattern.
      * @param pattern the pattern to search.

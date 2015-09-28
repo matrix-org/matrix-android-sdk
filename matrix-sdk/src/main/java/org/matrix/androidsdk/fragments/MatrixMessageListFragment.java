@@ -983,10 +983,117 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.notifyDataSetChanged();
     }
 
+    /**
+     * Manage the request history error cases.
+     * @param error the error object.
+     */
+    private void onRequestError(Object error) {
+        if (error instanceof Exception) {
+            Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
+            MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else if (error instanceof MatrixError) {
+            final MatrixError matrixError = (MatrixError)error;
+
+            Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getLocalizedMessage());
+            // The access token was not recognized: log out
+            if (MatrixError.UNKNOWN_TOKEN.equals(matrixError.errcode)) {
+                logout();
+            }
+
+            MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                MatrixMessageListFragment.this.dismissLoadingProgress();
+                mIsCatchingUp = false;
+            }
+        });
+    }
+
+    /**
+     * Search the pattern on a pagination server side.
+     */
+    public void requestSearchHistory() {
+        mIsCatchingUp = true;
+        final int firstPos = mMessageListView.getFirstVisiblePosition();
+        final int fCount = mMessageListView.getCount();
+
+        final String fPattern = mPattern;
+
+        boolean isStarted = mRoom.requestSearchHistory(fPattern, new SimpleApiCallback<ArrayList<Room.SnapshotedEvent>>(getActivity()) {
+            @Override
+            public void onSuccess(ArrayList<Room.SnapshotedEvent> snapshotedEvents) {
+                final ArrayList<Room.SnapshotedEvent> fsnapshotedEvents = snapshotedEvents;
+
+                MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // check that the pattern was not modified before the end of the search
+                        if (TextUtils.equals(mPattern, fPattern)) {
+                            ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(fsnapshotedEvents.size());
+
+                            for (Room.SnapshotedEvent snapshotedEvent : fsnapshotedEvents) {
+                                messageRows.add(new MessageRow(snapshotedEvent.mEvent, snapshotedEvent.mState));
+                            }
+
+                            mAdapter.clear();
+                            mAdapter.addAll(messageRows);
+                        }
+
+                        mMessageListView.setSelection(firstPos + (fsnapshotedEvents.size() - fCount));
+
+                        MatrixMessageListFragment.this.dismissLoadingProgress();
+                        mIsCatchingUp = false;
+                    }
+                });
+            }
+
+            // the request will be auto restarted when a valid network will be found
+            @Override
+            public void onNetworkError(Exception e) {
+                onRequestError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onRequestError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onRequestError(e);
+            }
+        });
+
+        if (isStarted && (null != getActivity())) {
+            displayLoadingProgress();
+        }
+    }
+
+
     public void requestHistory() {
         // avoid launching catchup if there is already one in progress
         // or during a search
-        if (!mIsCatchingUp && (null == mPattern)) {
+        if (!mIsCatchingUp) {
+
+            // in search mode,
+            if (null != mPattern) {
+                requestSearchHistory();
+                return;
+            }
+
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
 
@@ -1012,48 +1119,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // the request will be auto restarted when a valid network will be found
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "Network error: " + e.getMessage());
-                    dismissLoadingProgress();
-
-                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
-                            MatrixMessageListFragment.this.dismissLoadingProgress();
-                            mIsCatchingUp = false;
-                        }
-                    });
+                    onRequestError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    dismissLoadingProgress();
-
-                    Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
-                    // The access token was not recognized: log out
-                    if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
-                        logout();
-                    }
-
-                    final MatrixError matrixError = e;
-
-                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                            MatrixMessageListFragment.this.dismissLoadingProgress();
-                            mIsCatchingUp = false;
-                        }
-                    });
+                    onRequestError(e);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    dismissLoadingProgress();
-
-                    Log.e(LOG_TAG, getActivity().getString(R.string.unexpected_error) + " : " + e.getMessage());
-                    MatrixMessageListFragment.this.dismissLoadingProgress();
-                    mIsCatchingUp = false;
+                    onRequestError(e);
                 }
             });
 

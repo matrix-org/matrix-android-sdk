@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
+
+    private static final String LOG_TAG = "RoomSumAdapt";
 
     protected Context mContext;
     private LayoutInflater mLayoutInflater;
@@ -148,6 +151,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public void notifyDataSetChanged() {
+        Log.d(LOG_TAG, "notifyDataSetChanged ");
+
         mFilteredRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
         mFilteredPublicRoomsList = new ArrayList<ArrayList<PublicRoom>>();
 
@@ -253,8 +258,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 });
             }
         }
-
-        this.notifyDataSetChanged();
     }
 
     /**
@@ -347,14 +350,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * Set the latest event for a room summary.
      * @param event The latest event
      * @param roomState the roomState
+     * @param refresh true to refresh the UI
      */
-    public void setLatestEvent(int section, Event event, RoomState roomState) {
+    public void setLatestEvent(int section, Event event, RoomState roomState, Boolean refresh) {
         RoomSummary summary = getSummaryByRoomId(section, event.roomId);
         if (summary != null) {
             summary.setLatestEvent(event);
             summary.setLatestRoomState(roomState);
-            sortSummaries();
-            notifyDataSetChanged();
+
+            // refresh on demand
+            if (refresh) {
+                sortSummaries();
+                notifyDataSetChanged();
+            }
         }
     }
 

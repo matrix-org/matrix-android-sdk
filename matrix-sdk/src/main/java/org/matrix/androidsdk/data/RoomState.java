@@ -134,6 +134,7 @@ public class RoomState implements java.io.Serializable {
         copy.creator = creator;
         copy.joinRule = joinRule;
         copy.mDataHandler = mDataHandler;
+        copy.token = token;
         copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
 
         synchronized (this) {
