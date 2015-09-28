@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.PresenceApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -30,8 +31,8 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
     /**
      * {@inheritDoc}
      */
-    public PresenceRestClient(Credentials credentials) {
-        super(credentials, PresenceApi.class, RestClient.URI_API_PREFIX, false);
+    public PresenceRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, PresenceApi.class, RestClient.URI_API_PREFIX, false);
     }
 
     /**

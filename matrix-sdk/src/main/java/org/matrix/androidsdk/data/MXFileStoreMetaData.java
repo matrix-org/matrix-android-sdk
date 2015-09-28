@@ -17,9 +17,6 @@
 package org.matrix.androidsdk.data;
 
 public class MXFileStoreMetaData implements java.io.Serializable {
-    // The home server name.
-    public String mHomeServer = null;
-
     // The obtained user id.
     public String mUserId = null;
 
@@ -41,7 +38,6 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public MXFileStoreMetaData deepCopy() {
         MXFileStoreMetaData copy = new MXFileStoreMetaData();
 
-        copy.mHomeServer = mHomeServer;
         copy.mUserId = mUserId;
         copy.mAccessToken = mAccessToken;
         copy.mEventStreamToken = mEventStreamToken;

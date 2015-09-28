@@ -16,10 +16,10 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.net.Uri;
-import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -41,11 +41,11 @@ public class LoginRestClient extends RestClient<LoginApi> {
 
     /**
      * Public constructor.
-     * @param hsUri the home server URI
+     * @param hsConfig the home server connection config
      */
-    public LoginRestClient(Uri hsUri) {
-        super(hsUri, LoginApi.class, RestClient.URI_API_PREFIX, false);
-        mHsUri = hsUri;
+    public LoginRestClient(HomeserverConnectionConfig hsConfig) {
+        super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX, false);
+        mHsUri = hsConfig.getHomeserverUri();
     }
 
     /**
@@ -74,8 +74,6 @@ public class LoginRestClient extends RestClient<LoginApi> {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                // Override the home server
-                mCredentials.homeServer = mHsUri.toString();
                 callback.onSuccess(mCredentials);
             }
         });

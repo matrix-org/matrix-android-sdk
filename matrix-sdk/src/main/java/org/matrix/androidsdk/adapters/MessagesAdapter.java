@@ -592,7 +592,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     protected void loadAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        mMediasCache.loadAvatarThumbnail(avatarView, url, size);
+        mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
     }
 
     /**
@@ -1090,7 +1090,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         // the thumbnails are always prerotated
-        final String downloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+        final String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
         // display a pie char
         final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
@@ -1414,7 +1414,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // reset the bitmap to ensure that it is not reused from older cells
             imageView.setImageBitmap(null);
             // the thumbnails are always prerotated
-            String curDownloadId = mMediasCache.loadBitmap(imageView, thumbUrl, maxImageWidth, maxImageHeight, 0, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+            String curDownloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, 0, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
             // the thumbnail is not downloading
             // check if the media is downloading

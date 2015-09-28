@@ -219,11 +219,15 @@ public class EventsThread extends Thread {
                 mIsGettingPresences = true;
             }
 
+            Log.d(LOG_TAG, "Requesting presences update");
+
             // get the members presence
             mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
+                    Log.d(LOG_TAG, "presence update is received");
                     mListener.onMembersPresencesSyncComplete(initialSync.presence);
+                    Log.d(LOG_TAG, "presence update is managed");
                     synchronized (mApiClient) {
                         mIsGettingPresences = false;
                     }
@@ -344,6 +348,11 @@ public class EventsThread extends Thread {
             if (!mKilling) {
                 try {
                     TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
+                    if (null != eventsResponse.chunk) {
+                        Log.d(LOG_TAG, "Got eventsResponse.chunk with " + eventsResponse.chunk.size() + " items");
+                    } else {
+                        Log.d(LOG_TAG, "Got eventsResponse with no chunk");
+                    }
 
                     if (!mKilling) {
                         // set the dedicated token when they are known.

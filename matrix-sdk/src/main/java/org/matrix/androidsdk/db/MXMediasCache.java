@@ -26,6 +26,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
+import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -446,19 +447,21 @@ public class MXMediasCache {
      * Load an avatar thumbnail.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
+     * @param hsConfig
      * @param imageView Ihe imageView to update with the image.
      * @param url       the image url
      * @param side      the avatar thumbnail side
      * @return a download identifier if the image is not cached.
      */
-    public String loadAvatarThumbnail(ImageView imageView, String url, int side) {
-        return loadBitmap(imageView.getContext(), imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,  null, getThumbnailsFolderFile());
+    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side) {
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,  null, getThumbnailsFolderFile());
     }
 
     /**
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
+     * @param hsConfig
      * @param imageView     Ihe imageView to update with the image.
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
@@ -466,14 +469,15 @@ public class MXMediasCache {
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(ImageView imageView, String url, int rotationAngle, int orientation, String mimeType) {
-        return loadBitmap(imageView, url, -1, -1, rotationAngle, orientation, mimeType);
+    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType) {
+        return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType);
     }
 
     /**
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
+     * @param hsConfig
      * @param context       The context
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
@@ -481,8 +485,8 @@ public class MXMediasCache {
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(Context context, String url, int rotationAngle, int orientation, String mimeType) {
-        return loadBitmap(context, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType) {
+        return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
     }
 
     /**
@@ -491,6 +495,7 @@ public class MXMediasCache {
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
+     * @param hsConfig
      * @param imageView     the imageView to fill when the image is downloaded
      * @param url           the image url
      * @param width         the expected image width
@@ -500,8 +505,8 @@ public class MXMediasCache {
      * @param mimeType      the mimeType.
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType) {
-        return loadBitmap(imageView.getContext(), imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType) {
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
     }
 
     // some tasks have been stacked because there are too many running ones.
@@ -519,11 +524,12 @@ public class MXMediasCache {
 
     /**
      * @param context  the application context
+     * @param hsConfig
      * @param url      the media url
      * @param mimeType the media mimetype
      * @return
      */
-    public String downloadMedia(Context context, String url, String mimeType) {
+    public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType) {
         // sanity checks
         if ((null == mimeType) || (null == url) || (null == context)) {
             return null;
@@ -542,7 +548,7 @@ public class MXMediasCache {
         }
 
         // download it in background
-        MXMediaWorkerTask task = new MXMediaWorkerTask(context, getFolderFile(mimeType), downloadableUrl, mimeType);
+        MXMediaWorkerTask task = new MXMediaWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType);
 
         // avoid crash if there are too many running task
         try {
@@ -610,6 +616,7 @@ public class MXMediasCache {
      *
      *
      * @param context the context
+     * @param hsConfig
      * @param imageView the imageView to fill when the image is downloaded
      * @param url the image url
      * @param width the expected image width
@@ -620,7 +627,7 @@ public class MXMediasCache {
      * @param folderFile tye folder where the media should be stored
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
         if (null == url) {
             return null;
         }
@@ -667,7 +674,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaWorkerTask task = new MXMediaWorkerTask(context, folderFile, downloadableUrl, rotationAngle, mimeType);
+                MXMediaWorkerTask task = new MXMediaWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType);
 
                 if (null != imageView) {
                     task.addImageView(imageView);
