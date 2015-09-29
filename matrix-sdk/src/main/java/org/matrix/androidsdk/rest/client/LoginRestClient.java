@@ -80,9 +80,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Attempt a user/password log in.
+     * Attempt a user/token log in.
      * @param user the user name
-     * @param token the password
+     * @param token the token
      * @param callback the callback success and failure callback
      */
     public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
@@ -90,9 +90,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Attempt a user/password log in.
+     * Attempt a user/token log in.
      * @param user the user name
-     * @param token the password
+     * @param token the token
      * @param txn_id the client transactio id to include in the request
      * @param callback the callback success and failure callback
      */
