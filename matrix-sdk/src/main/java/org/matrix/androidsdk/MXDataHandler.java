@@ -353,7 +353,7 @@ public class MXDataHandler implements IMXEventListener {
                 handleLiveEvent(event);
             }
 
-            Log.e(LOG_TAG, "-- handleLiveEvents : events are processed.");
+            Log.e(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
 
             onLiveEventsChunkProcessed();
 
