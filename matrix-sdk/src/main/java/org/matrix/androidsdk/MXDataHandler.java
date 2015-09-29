@@ -454,6 +454,8 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             if (event.stateKey != null) {
+                Log.d(LOG_TAG, "handleLiveEvent : Process a state event");
+
                 // copy the live state before applying any update
                 room.setLiveState(room.getLiveState().deepCopy());
                 // check if the event has been processed
@@ -487,6 +489,7 @@ public class MXDataHandler implements IMXEventListener {
                     && (mBingRulesManager != null)
                     && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
                     && bingRule.shouldNotify()) {
+                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
                 onBingEvent(event, room.getLiveState(), bingRule);
             }
         }
