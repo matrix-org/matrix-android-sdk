@@ -1,4 +1,25 @@
 
+Changes in Matrix Android SDK in 0.5.2 (2015-09-30)
+===================================================
+
+Improvements:
+ * Add support of file:// in mediaCacheFile.
+ * Many UI classes are more customisable (click management, UI fields…).
+ * The catchup time should be shorter.
+ * The room catchup can be performed while search a pattern.
+ * MXFileStore : some files are zipped to reduce the used storage space and to reduce saving time.
+ * MXFileStore : Saving thread is now a low priority thread.
+
+Features:
+ * Add video and location messages support
+ * Add self signed cert support.
+
+
+Bug fixes:
+ * The event lifetime parameter was not checked.
+ * The application used to crash while starting a voice/video with a device with no camera or no front camera.
+ * Many crashes while logging out.
+
 Changes in Matrix Android SDK in 0.4.4 (2015-09-07)
 ===================================================
 
