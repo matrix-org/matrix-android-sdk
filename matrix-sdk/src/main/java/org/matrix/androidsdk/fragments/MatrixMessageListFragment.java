@@ -425,6 +425,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         scrollToBottom();
 
+        Log.d(LOG_TAG, "AddMessage Row : commit");
         getSession().getDataHandler().getStore().commit();
         return messageRow;
     }

@@ -526,6 +526,7 @@ public class Room {
             }
         }
         isPaginating = false;
+        Log.d(LOG_TAG, "manageEvents : commit");
         mDataHandler.getStore().commit();
     }
 
@@ -821,6 +822,7 @@ public class Room {
             public void onSuccess(RoomResponse roomInfo) {
                 mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
 
+                Log.d(LOG_TAG, "initialSync : commit");
                 mDataHandler.getStore().commit();
                 if (callback != null) {
                     try {
@@ -928,6 +930,7 @@ public class Room {
 
                 // delete references to the room
                 mDataHandler.getStore().deleteRoom(mRoomId);
+                Log.d(LOG_TAG, "leave : commit");
                 mDataHandler.getStore().commit();
 
                 try {

@@ -363,9 +363,9 @@ public class MXSession {
         } else {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
+                // setAvatarURL && setDisplayName perform a commit if it is required.
                 store.setAvatarURL(mMyUser.avatarUrl);
                 store.setDisplayName(mMyUser.displayname);
-                store.commit();
             } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
                 mMyUser.displayname = store.displayName();
                 mMyUser.avatarUrl = store.avatarURL();

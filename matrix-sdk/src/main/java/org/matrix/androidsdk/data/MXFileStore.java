@@ -224,10 +224,12 @@ public class MXFileStore extends MXMemoryStore {
     public void commit() {
         // Save data only if metaData exists
         if ((null != mMetadata) && !isKilled()) {
+            Log.d(LOG_TAG, "++ Commit");
             saveRoomsMessages();
             saveRoomStates();
             saveMetaData();
             saveSummaries();
+            Log.d(LOG_TAG, "-- Commit");
         }
     }
 

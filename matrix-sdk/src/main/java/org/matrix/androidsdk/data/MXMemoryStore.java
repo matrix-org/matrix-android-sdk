@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -37,6 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * An in-memory IMXStore.
  */
 public class MXMemoryStore implements IMXStore {
+
+    private static final String LOG_TAG = "MXMemoryStore";
 
     protected Map<String, Room> mRooms;
     protected Map<String, User> mUsers;
@@ -188,6 +191,7 @@ public class MXMemoryStore implements IMXStore {
                 myUser.displayname = mMetadata.mUserDisplayName;
             }
 
+            Log.d(LOG_TAG, "setDisplayName : commit");
             commit();
         }
     }
@@ -207,6 +211,7 @@ public class MXMemoryStore implements IMXStore {
                 myUser.avatarUrl = avatarURL;
             }
 
+            Log.d(LOG_TAG, "setAvatarURL : commit");
             commit();
         }
     }

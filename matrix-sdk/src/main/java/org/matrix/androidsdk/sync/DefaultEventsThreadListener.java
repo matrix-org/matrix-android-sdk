@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.sync;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
@@ -27,6 +29,8 @@ import java.util.List;
  * Listener for the events thread that sends data back to a data handler.
  */
 public class DefaultEventsThreadListener implements EventsThreadListener {
+    private static final String LOG_TAG = "DfltEventsThread";
+
     private MXDataHandler mData;
 
     public DefaultEventsThreadListener(MXDataHandler data) {
@@ -47,6 +51,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
 
             // save the latest token
             mData.getStore().setEventStreamToken(response.end);
+            Log.d(LOG_TAG, "onInitialSyncComplete : commit");
             mData.getStore().commit();
         }
 
@@ -86,6 +91,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
             // it should save some ms avoiding useless file writings.
             if (!presencesEvent) {
                 mData.getStore().setEventStreamToken(latestToken);
+                Log.d(LOG_TAG, "onEventsReceived : commit");
                 mData.getStore().commit();
             }
         }
