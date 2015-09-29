@@ -26,6 +26,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
+
+import java.util.UUID;
 
 import retrofit.client.Response;
 
@@ -68,6 +71,49 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 }
 
                 ) {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
+            }
+        });
+    }
+
+    /**
+     * Attempt a user/token log in.
+     * @param user the user name
+     * @param token the token
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
+         loginWithToken(user, token, UUID.randomUUID().toString(), callback);
+    }
+
+    /**
+     * Attempt a user/token log in.
+     * @param user the user name
+     * @param token the token
+     * @param txn_id the client transactio id to include in the request
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final String txn_id, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPassword user : " + user;
+
+        TokenLoginParams params = new TokenLoginParams();
+        params.user = user;
+        params.token = token;
+        params.txn_id = txn_id;
+
+        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        loginWithToken(user, token, txn_id, callback);
+                    }
+                }
+
+        ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
