@@ -1,5 +1,5 @@
 
-Changes in Matrix Android SDK in 0.5.2 (2015-09-30)
+Changes in Matrix Android SDK in 0.5.1 (2015-09-30)
 ===================================================
 
 Improvements:
