@@ -154,23 +154,25 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void addListener(IMXEventListener listener) {
-        checkIfActive();
-        synchronized (this) {
-            // avoid adding twice
-            if (mEventListeners.indexOf(listener) == -1) {
-                mEventListeners.add(listener);
+        if (mIsActive) {
+            synchronized (this) {
+                // avoid adding twice
+                if (mEventListeners.indexOf(listener) == -1) {
+                    mEventListeners.add(listener);
+                }
             }
-        }
 
-        if (mInitialSyncComplete) {
-            listener.onInitialSyncComplete();
+            if (mInitialSyncComplete) {
+                listener.onInitialSyncComplete();
+            }
         }
     }
 
     public void removeListener(IMXEventListener listener) {
-        checkIfActive();
-        synchronized (this) {
-            mEventListeners.remove(listener);
+        if (mIsActive) {
+            synchronized (this) {
+                mEventListeners.remove(listener);
+            }
         }
     }
 
