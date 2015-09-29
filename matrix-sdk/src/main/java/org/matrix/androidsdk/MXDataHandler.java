@@ -103,14 +103,15 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
-        checkIfActive();
-        mBingRulesManager = bingRulesManager;
-        mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                MXDataHandler.this.onBingRulesUpdate();
-            }
-        });
+        if (isActive()) {
+            mBingRulesManager = bingRulesManager;
+            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    MXDataHandler.this.onBingRulesUpdate();
+                }
+            });
+        }
     }
 
     public void setContentManager(ContentManager contentManager) {
@@ -129,8 +130,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public BingRuleSet pushRules() {
-        checkIfActive();
-        if (null != mBingRulesManager) {
+        if (isActive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
         }
 
@@ -138,8 +138,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void refreshPushRules() {
-        checkIfActive();
-        if (null != mBingRulesManager) {
+        if (isActive() && (null != mBingRulesManager)) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -192,7 +191,10 @@ public class MXDataHandler implements IMXEventListener {
      * @param room the associated room
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
+            return;
+        }
 
         // Handle state events
         if (roomResponse.state != null) {
@@ -234,7 +236,11 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomResponse the room response object
      */
     public void handleInitialRoomResponse(RoomResponse roomResponse) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
+            return;
+        }
+
         if (roomResponse.roomId != null) {
             Room room = getRoom(roomResponse.roomId);
             handleInitialRoomResponse(roomResponse, room);
@@ -245,7 +251,10 @@ public class MXDataHandler implements IMXEventListener {
      * Update the missing data fields loaded from a permanent storage.
      */
     public void checkPermanentStorageData() {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");        
+            return;
+        }
 
         if (mStore.isPermanent()) {
             // When the data are extracted from a persistent storage,
@@ -272,12 +281,18 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public String getUserId() {
-        checkIfActive();
-        return mCredentials.userId;
+        if (isActive()) {
+            return mCredentials.userId;
+        } else {
+            return "dummy";
+        }
     }
 
     private void handleInitialSyncInvite(String roomId, String inviterUserId) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "handleInitialSyncInvite : the session is not anymore active");
+            return;
+        }
 
         Room room = getRoom(roomId);
 
@@ -310,9 +325,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public IMXStore getStore() {
-        checkIfActive();
-
-        return mStore;
+        if (isActive()) {
+            return mStore;
+        } else {
+            Log.e(LOG_TAG, "getStore : the session is not anymore active");
+            return null;
+        }
     }
 
     /**
@@ -320,7 +338,10 @@ public class MXDataHandler implements IMXEventListener {
      * @param events the live events
      */
     public void handleLiveEvents(List<Event> events) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "handleLiveEvents : the session is not anymore active");
+            return;
+        }
 
         // check if there is something to do
         if (0 != events.size()) {
@@ -346,12 +367,14 @@ public class MXDataHandler implements IMXEventListener {
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
-        checkIfActive();
-
-        for (RoomMember member : members) {
-            if (userID.equals(member.getUserId())) {
-                return member;
+        if (isActive()) {
+            for (RoomMember member : members) {
+                if (userID.equals(member.getUserId())) {
+                    return member;
+                }
             }
+        } else {
+            Log.e(LOG_TAG, "getMember : the session is not anymore active");
         }
         return null;
     }
@@ -363,18 +386,19 @@ public class MXDataHandler implements IMXEventListener {
      * @return true of the room should be self joined.
      */
     private Boolean shouldSelfJoin(final Event event, final RoomState roomState) {
-        checkIfActive();
+        if (isActive()) {
+            RoomMember member = JsonUtils.toRoomMember(event.content);
 
-        RoomMember member = JsonUtils.toRoomMember(event.content);
+            // join event ?
+            if (RoomMember.MEMBERSHIP_JOIN.equals(member.membership)) {
+                Collection<RoomMember> members = roomState.getMembers();
+                RoomMember myMember = getMember(members, mCredentials.userId);
 
-        // join event ?
-        if (RoomMember.MEMBERSHIP_JOIN.equals(member.membership)) {
-            Collection<RoomMember> members = roomState.getMembers();
-            RoomMember myMember = getMember(members, mCredentials.userId);
-
-            return ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership));
+                return ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership));
+            }
+        } else {
+            Log.e(LOG_TAG, "shouldSelfJoin : the session is not anymore active");
         }
-
         return false;
     }
 
@@ -383,24 +407,26 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomId the roomid of the room to join.
      */
     private void selfJoin(final String roomId) {
-        checkIfActive();
+        if (isActive()) {
+            // inviterUserId is only used when the user is invited to the room found during the initial sync
+            RoomSummary roomSummary = getStore().getSummary(roomId);
+            roomSummary.setInviterUserId(null);
 
-        // inviterUserId is only used when the user is invited to the room found during the initial sync
-        RoomSummary roomSummary = getStore().getSummary(roomId);
-        roomSummary.setInviterUserId(null);
-
-        final Room room = getStore().getRoom(roomId);
-        room.initialSync(new SimpleApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                room.requestHistory(new SimpleApiCallback<Integer>() {
-                    @Override
-                    public void onSuccess(Integer info) {
-                        onRoomInitialSyncComplete(roomId);
-                    }
-                });
-            }
-        });
+            final Room room = getStore().getRoom(roomId);
+            room.initialSync(new SimpleApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    room.requestHistory(new SimpleApiCallback<Integer>() {
+                        @Override
+                        public void onSuccess(Integer info) {
+                            onRoomInitialSyncComplete(roomId);
+                        }
+                    });
+                }
+            });
+        } else {
+            Log.e(LOG_TAG, "selfJoin : the session is not anymore active");
+        }
     }
 
     /**
@@ -408,7 +434,10 @@ public class MXDataHandler implements IMXEventListener {
      * @param event the live event
      */
     private void handleLiveEvent(Event event) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "handleLiveEvent : the session is not anymore active");
+            return;
+        }
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
@@ -523,7 +552,10 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "getRoom : the session is not anymore active");
+            return null;
+        }
 
         Room room = mStore.getRoom(roomId);
         if ((room == null) && create) {
@@ -543,7 +575,10 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void storeLiveRoomEvent(Event event) {
-        checkIfActive();
+        if (!isActive()) {
+            Log.e(LOG_TAG, "storeLiveRoomEvent : the session is not anymore active");
+            return;
+        }
 
         Room room = getRoom(event.roomId);
 
@@ -585,16 +620,18 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
-        checkIfActive();
+        if (isActive()) {
+            Room room = getRoom(event.roomId);
 
-        Room room = getRoom(event.roomId);
+            if (null != room) {
+                mStore.deleteEvent(event);
+                Event lastEvent = mStore.getLatestEvent(event.roomId);
+                RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
 
-        if (null != room) {
-            mStore.deleteEvent(event);
-            Event lastEvent = mStore.getLatestEvent(event.roomId);
-            RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
-
-            mStore.storeSummary(getUserId(), event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+                mStore.storeSummary(getUserId(), event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+            }
+        } else {
+            Log.e(LOG_TAG, "deleteRoomEvent : the session is not anymore active");
         }
     }
 
@@ -604,9 +641,12 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user.
      */
     public User getUser(String userId) {
-        checkIfActive();
-
-        return mStore.getUser(userId);
+        if (!isActive()) {
+            Log.e(LOG_TAG, "getUser : the session is not anymore active");
+            return null;
+        } else {
+            return mStore.getUser(userId);
+        }
     }
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners
