@@ -25,7 +25,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
 
 import java.io.File;
@@ -151,7 +150,7 @@ public class MXFileStore extends MXMemoryStore {
         mIsReady = false;
         mCredentials = hsConfig.getCredentials();
 
-        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + mCredentials.userId);
+        mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + mCredentials.userId, Thread.MIN_PRIORITY);
 
         createDirTree(mCredentials.userId);
 
