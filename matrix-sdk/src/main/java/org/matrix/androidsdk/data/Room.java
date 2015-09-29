@@ -413,11 +413,12 @@ public class Room {
      * @param stateEvents the state events describing the state of the room
      */
     public void processLiveState(List<Event> stateEvents) {
-        for (Event event : stateEvents) {
-            processStateEvent(event, EventDirection.FORWARDS);
+        if (mDataHandler.isActive()) {
+            for (Event event : stateEvents) {
+                processStateEvent(event, EventDirection.FORWARDS);
+            }
+            mIsReady = true;
         }
-        mIsReady = true;
-
         // check if they are some pending events
         //resendUnsentEvents();
     }
@@ -506,6 +507,11 @@ public class Room {
      * @param callback the callback.
      */
     private void manageEvents(final ApiCallback<Integer> callback) {
+        // check if the SDK was not logged out
+        if (!mDataHandler.isActive()) {
+            return;
+        }
+
         int count = Math.min(mSnapshotedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
 
         for(int i = 0; i < count; i++) {
@@ -715,33 +721,35 @@ public class Room {
         mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
-                mBackState.setToken(response.end);
+                if (mDataHandler.isActive()) {
+                    mBackState.setToken(response.end);
 
-                // the roomstate is copied to have a state snapshot
-                // but copy it only if there is a state update
-                RoomState stateCopy = mBackState.deepCopy();
+                    // the roomstate is copied to have a state snapshot
+                    // but copy it only if there is a state update
+                    RoomState stateCopy = mBackState.deepCopy();
 
-                for (Event event : response.chunk) {
-                    Boolean processedEvent = true;
+                    for (Event event : response.chunk) {
+                        Boolean processedEvent = true;
 
-                    if (event.stateKey != null) {
-                        processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+                        if (event.stateKey != null) {
+                            processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
 
+                            if (processedEvent) {
+                                // new state event -> copy the room state
+                                stateCopy = mBackState.deepCopy();
+                            }
+                        }
+
+                        // warn the listener only if the message is processed.
+                        // it should avoid duplicated events.
                         if (processedEvent) {
-                            // new state event -> copy the room state
-                            stateCopy = mBackState.deepCopy();
+                            mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
                         }
                     }
 
-                    // warn the listener only if the message is processed.
-                    // it should avoid duplicated events.
-                    if (processedEvent) {
-                        mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
-                    }
+                    mLatestChunkSize = response.chunk.size();
+                    manageEvents(callback);
                 }
-
-                mLatestChunkSize = response.chunk.size();
-                manageEvents(callback);
             }
 
             @Override
@@ -820,15 +828,18 @@ public class Room {
         mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(RoomResponse roomInfo) {
-                mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+                // check if the SDK was not logged out
+                if (mDataHandler.isActive()) {
+                    mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
 
-                Log.d(LOG_TAG, "initialSync : commit");
-                mDataHandler.getStore().commit();
-                if (callback != null) {
-                    try {
-                        callback.onSuccess(null);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                    Log.d(LOG_TAG, "initialSync : commit");
+                    mDataHandler.getStore().commit();
+                    if (callback != null) {
+                        try {
+                            callback.onSuccess(null);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                        }
                     }
                 }
             }
@@ -926,17 +937,19 @@ public class Room {
         mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                Room.this.mIsLeaving = false;
+                if (mDataHandler.isActive()) {
+                    Room.this.mIsLeaving = false;
 
-                // delete references to the room
-                mDataHandler.getStore().deleteRoom(mRoomId);
-                Log.d(LOG_TAG, "leave : commit");
-                mDataHandler.getStore().commit();
+                    // delete references to the room
+                    mDataHandler.getStore().deleteRoom(mRoomId);
+                    Log.d(LOG_TAG, "leave : commit");
+                    mDataHandler.getStore().commit();
 
-                try {
-                    callback.onSuccess(info);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "leave exception " + e.getMessage());
+                    try {
+                        callback.onSuccess(info);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "leave exception " + e.getMessage());
+                    }
                 }
             }
 

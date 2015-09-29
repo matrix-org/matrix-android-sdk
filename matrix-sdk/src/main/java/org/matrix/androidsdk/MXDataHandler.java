@@ -82,7 +82,7 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    private Boolean isActive() {
+    public Boolean isActive() {
         synchronized (this) {
             return mIsActive;
         }
