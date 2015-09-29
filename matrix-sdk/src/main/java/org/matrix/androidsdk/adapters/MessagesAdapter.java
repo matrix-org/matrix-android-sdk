@@ -1651,37 +1651,45 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param typingUsers
      */
     public void setTypingUsers(ArrayList<String> typingUsers) {
-        boolean refresh = mTypingUsers.size() != typingUsers.size();
-
-        if (mTypingUsers.size() == 1) {
-            // avoid refreshing when the self user is alone
-            String userId = mTypingUsers.get(0);
-            MyUser myUser = mSession.getMyUser();
-
-            if (userId.equals(myUser.userId)) {
-                mTypingUsers = typingUsers;
-                return;
+        // sanity checks
+        if (null != mTypingUsers) {
+            // avoid null case.
+            if (null == typingUsers) {
+                typingUsers = new ArrayList<String>();
             }
-        }
 
-        // same length -> ensure that there is an update
-        if (!refresh) {
-            // do not refresh if the both lists empty
-            if (mTypingUsers.size() != 0) {
-                for(String userId : mTypingUsers) {
-                    // one userID is defined in one list not in the other one
-                    if (typingUsers.indexOf(userId) < 0) {
-                        refresh = true;
-                        break;
+            boolean refresh = mTypingUsers.size() != typingUsers.size();
+
+            if (mTypingUsers.size() == 1) {
+                // avoid refreshing when the self user is alone
+                String userId = mTypingUsers.get(0);
+                MyUser myUser = mSession.getMyUser();
+
+                if (userId.equals(myUser.userId)) {
+                    mTypingUsers = typingUsers;
+                    return;
+                }
+            }
+
+            // same length -> ensure that there is an update
+            if (!refresh) {
+                // do not refresh if the both lists empty
+                if (mTypingUsers.size() != 0) {
+                    for (String userId : mTypingUsers) {
+                        // one userID is defined in one list not in the other one
+                        if (typingUsers.indexOf(userId) < 0) {
+                            refresh = true;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-         mTypingUsers = typingUsers;
+            mTypingUsers = typingUsers;
 
-        if (refresh) {
-            notifyDataSetChanged();
+            if (refresh) {
+                notifyDataSetChanged();
+            }
         }
     }
 
