@@ -837,6 +837,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     protected void resend(Event event) {
+        // sanity check
+        // should never happen but got it in a GA issue
+        if (null == event.eventId) {
+            Log.e(LOG_TAG, "resend : got an event with a null eventId");
+            return;
+        }
+
         // remove the event
         getSession().getDataHandler().deleteRoomEvent(event);
         mAdapter.removeEventById(event.eventId);
