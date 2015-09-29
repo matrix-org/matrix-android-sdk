@@ -72,6 +72,9 @@ public interface IMXCall {
     // cannot initialize the camera
     public static final String CALL_ERROR_CAMERA_INIT_FAILED = "IMXCall.CALL_ERROR_CAMERA_INIT_FAILED";
 
+    // cannot initialize the call.
+    public static final String CALL_ERROR_CALL_INIT_FAILED = "IMXCall.CALL_ERROR_CALL_INIT_FAILED";
+
     // ICE error
     public static final String CALL_ERROR_ICE_FAILED = "IMXCall.CALL_ERROR_ICE_FAILED";
 

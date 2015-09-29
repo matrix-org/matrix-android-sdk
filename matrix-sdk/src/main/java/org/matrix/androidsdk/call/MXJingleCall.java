@@ -297,6 +297,15 @@ public class MXJingleCall extends MXCall {
      * create the local stream
      */
     private void createLocalStream() {
+
+        // check there is at least one stream to start a call
+        if ((null == mLocalVideoTrack) && (null == mLocalAudioTrack)) {
+            onCallError(CALL_ERROR_CALL_INIT_FAILED);
+            hangup("no_stream");
+            terminate();
+            return;
+        }
+
         mLocalMediaStream = mPeerConnectionFactory.createLocalMediaStream("ARDAMS");
 
         // add the tracks
