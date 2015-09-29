@@ -626,16 +626,6 @@ public class MXJingleCall extends MXCall {
      * @return the video track
      */
     private AudioTrack createAudioTrack() {
-        try {
-            mFrontCameraName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
-            mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
-        } catch (Exception e) {
-        }
-
-        if ((null == mFrontCameraName) || (null == mVideoCapturer)) {
-            throw new AssertionError("MXJingleCall : no front camera");
-        }
-
         MediaConstraints audioConstraints = new MediaConstraints();
         mAudioSource = mPeerConnectionFactory.createAudioSource(audioConstraints);
         mLocalAudioTrack = mPeerConnectionFactory.createAudioTrack(AUDIO_TRACK_ID, mAudioSource);
