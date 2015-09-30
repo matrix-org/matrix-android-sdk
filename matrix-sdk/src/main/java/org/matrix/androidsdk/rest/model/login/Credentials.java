@@ -15,8 +15,13 @@
  */
 package org.matrix.androidsdk.rest.model.login;
 
+import android.text.TextUtils;
+
+import com.google.gson.JsonObject;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONStringer;
 
 /**
  * The user's credentials.
@@ -25,6 +30,7 @@ public class Credentials {
     public String userId;
     public String homeServer;  // This is the server name and not a URI, e.g. "matrix.org"
     public String accessToken;
+    public String refreshToken;
 
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
@@ -32,7 +38,7 @@ public class Credentials {
         json.put("user_id", userId);
         json.put("home_server", homeServer);
         json.put("access_token", accessToken);
-
+        json.put("refresh_token", TextUtils.isEmpty(refreshToken) ? JSONObject.NULL : refreshToken);
         return json;
     }
 
@@ -41,6 +47,18 @@ public class Credentials {
         creds.userId = obj.getString("user_id");
         creds.homeServer = obj.getString("home_server");
         creds.accessToken = obj.getString("access_token");
+
+        // refresh_token is mandatory
+        if (obj.has("refresh_token")) {
+            try {
+                creds.refreshToken = obj.getString("refresh_token");
+            } catch (Exception e) {
+                creds.refreshToken = null;
+            }
+        } else {
+            throw new RuntimeException("refresh_token is required.");
+        }
+
         return creds;
     }
 
@@ -49,6 +67,7 @@ public class Credentials {
         return "Credentials{" +
                 "userId='" + userId + '\'' +
                 ", homeServer='" + homeServer + '\'' +
+                ", accessToken.length='" + (refreshToken != null ? refreshToken.length() : "null") + '\'' +
                 ", accessToken.length='" + (accessToken != null ? accessToken.length() : "null") + '\'' +
                 '}';
     }
