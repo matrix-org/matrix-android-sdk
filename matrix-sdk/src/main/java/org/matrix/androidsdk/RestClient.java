@@ -54,6 +54,7 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
+    public static final String URI_API_PREFIX_V2 = "/_matrix/client/v2_alpha";
     public static final String URI_API_PREFIX = "/_matrix/client/api/v1";
     public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";

@@ -37,7 +37,7 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * {@inheritDoc}
      */
     public RegistrationRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX_V2, false);
     }
 
     /**
