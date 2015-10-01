@@ -31,6 +31,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -40,10 +41,12 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
+import org.matrix.androidsdk.rest.client.RegistrationRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -79,6 +82,7 @@ public class MXSession {
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
+    private RegistrationRestClient mRegistrationRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -115,6 +119,7 @@ public class MXSession {
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
+        mRegistrationRestClient = new RegistrationRestClient(hsConfig);
     }
 
     /**
@@ -157,6 +162,7 @@ public class MXSession {
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mRegistrationRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
@@ -406,6 +412,35 @@ public class MXSession {
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
         }
+    }
+
+    /**
+     * Refresh the access token
+     */
+    public void refreshToken() {
+        checkIfActive();
+
+        mRegistrationRestClient.refreshTokens(new ApiCallback<Credentials>() {
+            @Override
+            public void onSuccess(Credentials info) {
+                Log.d(LOG_TAG, "refreshToken : succeeds.");
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getLocalizedMessage());
+            }
+        });
     }
 
     /**

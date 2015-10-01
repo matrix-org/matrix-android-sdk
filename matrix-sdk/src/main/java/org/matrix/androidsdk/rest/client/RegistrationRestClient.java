@@ -15,17 +15,16 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.net.Uri;
-
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
-import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.client.Response;
 
@@ -34,35 +33,61 @@ import retrofit.client.Response;
  */
 public class RegistrationRestClient extends RestClient<RegistrationApi> {
 
-    private Uri mHsUri;
-
     /**
-     * Public constructor.
-     * @param hsConfig the home server connection config
+     * {@inheritDoc}
      */
     public RegistrationRestClient(HomeserverConnectionConfig hsConfig) {
         super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX, false);
-        mHsUri = hsConfig.getHomeserverUri();
     }
 
     /**
      * Attempt a user/password registration.
-     * @param user the user name
-     * @param password the password
      * @param callback the callback success and failure callback
      */
-    public void registerWithPassword(String user, String password, final ApiCallback<Credentials> callback) {
-        final String description = "registerWithPassword user : " + user;
+    public void refreshTokens( final ApiCallback<Credentials> callback) {
+        final String description = "refreshTokens";
 
-        PasswordLoginParams params = new PasswordLoginParams();
-        params.user = user;
-        params.password = password;
+        TokenRefreshParams params = new TokenRefreshParams();
+        params.refresh_token = mCredentials.refreshToken;
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback, null) {
+        mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
-            public void success(JsonObject jsonObject, Response response) {
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
+            public void success(TokenRefreshResponse tokenreponse, Response response) {
+                mCredentials.refreshToken = tokenreponse.refresh_token;
+                mCredentials.accessToken = tokenreponse.access_token;
+                if (null != callback) {
+                    callback.onSuccess(mCredentials);
+                }
+            }
+            
+            /**
+             * Called if there is a network error.
+             * @param e the exception
+             */
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            /**
+             * Called in case of a Matrix error.
+             * @param e the Matrix error
+             */
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            /**
+             * Called for some other type of error.
+             * @param e the exception
+             */
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
             }
         });
     }

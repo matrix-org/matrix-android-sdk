@@ -15,14 +15,11 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import com.google.gson.JsonObject;
-
-import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
-import org.matrix.androidsdk.rest.model.login.LoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.Callback;
 import retrofit.http.Body;
-import retrofit.http.GET;
 import retrofit.http.POST;
 
 /**
@@ -31,17 +28,11 @@ import retrofit.http.POST;
 public interface RegistrationApi {
 
     /**
-     * Get the different registration flows supported by the server.
+     * Pass params to the server for the token refresh phase.
+     * @param refreshParams the refresh token parameters
      * @param callback the asynchronous callback called with the response
      */
-    @GET("/register")
-    public void register(Callback<LoginFlowResponse> callback);
+    @POST("/tokenrefresh")
+    public void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
 
-    /**
-     * Pass params to the server for the current registration phase.
-     * @param loginParams the registration parameters
-     * @param callback the asynchronous callback called with the response
-     */
-    @POST("/register")
-    public void register(@Body LoginParams loginParams, Callback<JsonObject> callback);
 }
