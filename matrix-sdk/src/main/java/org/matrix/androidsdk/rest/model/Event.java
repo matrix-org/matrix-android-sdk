@@ -60,6 +60,7 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
+    public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
 
     // call events
     public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";

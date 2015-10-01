@@ -684,6 +684,7 @@ public class Room {
      */
     public boolean requestHistory(final ApiCallback<Integer> callback) {
         if (isPaginating // One at a time please
+                || !mLiveState.canBackPaginated(mMyUserId) // history_visibility flag management
                 || !canStillPaginate // If we have already reached the end of history
                 || !mIsReady) { // If the room is not finished being set up
             return false;
@@ -1065,6 +1066,15 @@ public class Room {
      */
     public void updateCanonicalAlias(String canonicalAlias, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, callback);
+    }
+
+    /**
+     * Update the room's visibility
+     * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
+     * @param callback the async callback
+     */
+    public void updateHistoryVisibility(String visibility, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, callback);
     }
 
     /**

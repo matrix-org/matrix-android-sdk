@@ -39,7 +39,11 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.List;
 
+import retrofit.Callback;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.PUT;
+import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.
@@ -383,9 +387,33 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             @Override
             public void onRetry() {
                 try {
-                    updateCanonicalAlias(canonicalAlias, canonicalAlias, callback);
+                    updateCanonicalAlias(roomId, canonicalAlias, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Update the room name.
+     * @param roomId the room id
+     * @param visibility the visibility
+     * @param callback the async callback
+     */
+    public void updateHistoryVisibility(final String roomId, final String visibility, final ApiCallback<Void> callback) {
+        final String description = "updateHistoryVisibility : roomId " + roomId + " visibility " + visibility;
+
+        RoomState roomState = new RoomState();
+        roomState.history_visibility = visibility;
+
+        mApi.historyVisibility(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateHistoryVisibility(roomId, visibility, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getMessage());
                 }
             }
         }));

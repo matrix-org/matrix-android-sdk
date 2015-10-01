@@ -115,11 +115,20 @@ public interface RoomsApi {
     /**
      * Set the canonical alias name.
      * @param roomId the room id
-     * @param state state object containing the new room name in the name field
+     * @param state state object containing the new canonical alias in the name field
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.canonical_alias")
     public void canonicalAlias(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
+     * Set the history visibility.
+     * @param roomId the room id
+     * @param state state object containing the new history visibility in the name field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.history_visibility")
+    public void historyVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Update the power levels

@@ -46,6 +46,10 @@ public class RoomState implements java.io.Serializable {
     public static final String VISIBILITY_PRIVATE = "private";
     public static final String VISIBILITY_PUBLIC = "public";
 
+    public static final String HISTORY_VISIBILITY_SHARED = "shared";
+    public static final String HISTORY_VISIBILITY_INVITED = "invited";
+    public static final String HISTORY_VISIBILITY_JOINED = "joined";
+
     // Public members used for JSON mapping
     public String roomId;
     public String name;
@@ -55,6 +59,7 @@ public class RoomState implements java.io.Serializable {
     public String visibility;
     public String creator;
     public String joinRule;
+    public String history_visibility;
     public List<String> aliases;
 
     private String token;
@@ -125,6 +130,22 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * Check if the user userId can back paginate.
+     * @param userId the user Id.
+     * @return true if the user can backpaginate.
+     */
+    public Boolean canBackPaginated(String userId) {
+        RoomMember member = getMember(userId);
+        String membership = (null != member) ? member.membership : "";
+        String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
+
+        return visibility.equals(HISTORY_VISIBILITY_SHARED) ||
+                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
+                (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
+                ;
+    }
+
+    /**
      * Make a deep copy of this room state object.
      * @return the copy
      */
@@ -159,6 +180,7 @@ public class RoomState implements java.io.Serializable {
      * @return the room alias
      */
     public String getAlias() {
+        // SPEC-125
         if (!TextUtils.isEmpty(alias)) {
             return alias;
         } else if(!TextUtils.isEmpty(getFirstAlias())) {
@@ -186,12 +208,13 @@ public class RoomState implements java.io.Serializable {
      * @return the display name
      */
     public String getDisplayName(String selfUserId) {
-        String displayName = null, alias = null;
+        String displayName = null;
+        String alias = getAlias();
 
         synchronized (this) {
             if (name != null) {
                 displayName = name;
-            } else if (!TextUtils.isEmpty(getAlias())) {
+            } else if (!TextUtils.isEmpty(alias)) {
                 displayName = getAlias();
             }
             // compute a name
@@ -295,6 +318,10 @@ public class RoomState implements java.io.Serializable {
                 // SPEC-125
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 alias = (roomState == null) ? null : roomState.alias;
+            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+                // SPEC-134
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                history_visibility = (roomState == null) ? null : roomState.history_visibility;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
