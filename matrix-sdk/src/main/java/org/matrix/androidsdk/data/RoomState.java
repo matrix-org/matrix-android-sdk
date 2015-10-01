@@ -31,7 +31,9 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -354,11 +356,24 @@ public class RoomState implements java.io.Serializable {
             displayName = member.displayname;
 
             synchronized (this) {
+                ArrayList<String> matrixIds = new ArrayList<String>();
+
                 // Disambiguate users who have the same displayname in the room
                 for (RoomMember aMember : mMembers.values()) {
-                    if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname)) {
-                        displayName += "(" + userId + ")";
-                        break;
+                    if (displayName.equals(aMember.displayname)) {
+                        matrixIds.add(aMember.getUserId());
+                    }
+                }
+
+                // if several users have the same displayname
+                // index it i.e bob (1)
+                if (matrixIds.size() > 1) {
+                    Collections.sort(matrixIds);
+
+                    int pos = matrixIds.indexOf(userId);
+
+                    if (pos >= 0) {
+                        displayName += " (" + (pos+1)+ ")";
                     }
                 }
             }
