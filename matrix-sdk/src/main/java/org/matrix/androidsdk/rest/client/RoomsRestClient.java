@@ -36,11 +36,8 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import retrofit.client.Response;
 
@@ -365,6 +362,30 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateName(roomId, name, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend updateName failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Update the room name.
+     * @param roomId the room id
+     * @param canonicalAlias the canonical alias
+     * @param callback the async callback
+     */
+    public void updateCanonicalAlias(final String roomId, final String canonicalAlias, final ApiCallback<Void> callback) {
+        final String description = "updateCanonicalAlias : roomId " + roomId + " canonicalAlias " + canonicalAlias;
+
+        RoomState roomState = new RoomState();
+        roomState.alias = canonicalAlias;
+
+        mApi.canonicalAlias(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateCanonicalAlias(canonicalAlias, canonicalAlias, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getMessage());
                 }
             }
         }));

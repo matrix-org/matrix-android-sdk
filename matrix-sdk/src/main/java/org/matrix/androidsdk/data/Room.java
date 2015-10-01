@@ -1059,6 +1059,15 @@ public class Room {
     }
 
     /**
+     * Update the room's main alias.
+     * @param canonicalAlias the canonical alias
+     * @param callback the async callback
+     */
+    public void updateCanonicalAlias(String canonicalAlias, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, callback);
+    }
+
+    /**
      * Redact an event from the room.
      * @param eventId the event's id
      * @param callback the callback with the created event

@@ -49,6 +49,7 @@ public class RoomState implements java.io.Serializable {
     public String name;
     public String topic;
     public String roomAliasName;
+    public String alias;
     public String visibility;
     public String creator;
     public String joinRule;
@@ -156,8 +157,8 @@ public class RoomState implements java.io.Serializable {
      * @return the room alias
      */
     public String getAlias() {
-        if (!TextUtils.isEmpty(roomAliasName)) {
-            return roomAliasName;
+        if (!TextUtils.isEmpty(alias)) {
+            return alias;
         } else if(!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
         }
@@ -272,69 +273,61 @@ public class RoomState implements java.io.Serializable {
 
         JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.content : event.prevContent;
 
-        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            name = (roomState == null) ? null : roomState.name;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            topic = (roomState == null) ? null : roomState.topic;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            creator = (roomState == null) ? null : roomState.creator;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            joinRule = (roomState == null) ? null : roomState.joinRule;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            aliases = (roomState == null) ? null : roomState.aliases;
-        }
-        else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
-            // SPEC-125
-            if (contentToConsider.has("alias")) {
-                try {
-                    roomAliasName = contentToConsider.get("alias").getAsString();
-                } catch (Exception e) {
-                }
-            }
-        } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
-            String userId = event.stateKey;
-            if (member == null) {
-                // the member has already been removed
-                if (null == getMember(userId)) {
-                    return false;
-                }
-                removeMember(userId);
-            }
-            else {
-                member.setUserId(userId);
+        try {
+            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                name = (roomState == null) ? null : roomState.name;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                topic = (roomState == null) ? null : roomState.topic;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                creator = (roomState == null) ? null : roomState.creator;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                joinRule = (roomState == null) ? null : roomState.joinRule;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                aliases = (roomState == null) ? null : roomState.aliases;
+            } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
+                // SPEC-125
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                alias = (roomState == null) ? null : roomState.alias;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                RoomMember member = JsonUtils.toRoomMember(contentToConsider);
+                String userId = event.stateKey;
+                if (member == null) {
+                    // the member has already been removed
+                    if (null == getMember(userId)) {
+                        return false;
+                    }
+                    removeMember(userId);
+                } else {
+                    member.setUserId(userId);
 
-                RoomMember currentMember = getMember(userId);
+                    RoomMember currentMember = getMember(userId);
 
-                // check if the member is the same
-                // duplicated message ?
-                if (member.equals(currentMember)) {
-                    return false;
-                }
+                    // check if the member is the same
+                    // duplicated message ?
+                    if (member.equals(currentMember)) {
+                        return false;
+                    }
 
-                // when a member leaves a room, his avatar is not anymore provided
-                if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
-                    if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                        if (null == member.avatarUrl) {
-                            member.avatarUrl = currentMember.avatarUrl;
+                    // when a member leaves a room, his avatar is not anymore provided
+                    if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
+                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                            if (null == member.avatarUrl) {
+                                member.avatarUrl = currentMember.avatarUrl;
+                            }
                         }
                     }
-                }
 
-                setMember(userId, member);
+                    setMember(userId, member);
+                }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+                powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             }
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
-            powerLevels = JsonUtils.toPowerLevels(contentToConsider);
+        } catch (Exception e) {
         }
 
         return true;

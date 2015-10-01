@@ -34,7 +34,6 @@ import java.util.List;
 
 import retrofit.Callback;
 import retrofit.http.Body;
-import retrofit.http.Field;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
@@ -112,6 +111,15 @@ public interface RoomsApi {
      */
     @GET("/rooms/{roomId}/state/m.room.name")
     public void roomName(@Path("roomId") String roomId, Callback<RoomState> callback);
+
+    /**
+     * Set the canonical alias name.
+     * @param roomId the room id
+     * @param state state object containing the new room name in the name field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.canonical_alias")
+    public void canonicalAlias(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Update the power levels
