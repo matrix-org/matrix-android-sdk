@@ -661,7 +661,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                         textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
                     }
 
-                    String alias = publicRoom.getFirstAlias();
+                    String alias = publicRoom.getAlias();
 
                     if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
                         convertView.setBackgroundColor(mPublicHighlightColor);

@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -150,11 +151,25 @@ public class RoomState implements java.io.Serializable {
         return copy;
     }
 
+
+    /**
+     * @return the room alias
+     */
+    public String getAlias() {
+        if (!TextUtils.isEmpty(roomAliasName)) {
+            return roomAliasName;
+        } else if(!TextUtils.isEmpty(getFirstAlias())) {
+            return getFirstAlias();
+        }
+
+        return null;
+    }
+
     /**
      * Returns the first room alias.
      * @return the first room alias
      */
-    public String getFirstAlias() {
+    private String getFirstAlias() {
         if ((aliases != null) && (aliases.size() != 0)) {
             return aliases.get(0);
         }
@@ -171,14 +186,10 @@ public class RoomState implements java.io.Serializable {
         String displayName = null, alias = null;
 
         synchronized (this) {
-            if ((aliases != null) && (aliases.size() != 0)) {
-                alias = aliases.get(0);
-            }
-
             if (name != null) {
                 displayName = name;
-            } else if (alias != null) {
-                displayName = alias;
+            } else if (!TextUtils.isEmpty(getAlias())) {
+                displayName = getAlias();
             }
             // compute a name
             else if (mMembers.size() > 0) {
@@ -281,7 +292,15 @@ public class RoomState implements java.io.Serializable {
             RoomState roomState = JsonUtils.toRoomState(contentToConsider);
             aliases = (roomState == null) ? null : roomState.aliases;
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+        else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
+            // SPEC-125
+            if (contentToConsider.has("alias")) {
+                try {
+                    roomAliasName = contentToConsider.get("alias").getAsString();
+                } catch (Exception e) {
+                }
+            }
+        } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             RoomMember member = JsonUtils.toRoomMember(contentToConsider);
             String userId = event.stateKey;
             if (member == null) {
