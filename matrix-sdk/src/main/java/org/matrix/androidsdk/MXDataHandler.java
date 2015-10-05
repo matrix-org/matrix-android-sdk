@@ -502,7 +502,7 @@ public class MXDataHandler implements IMXEventListener {
 
                                 if (null != room) {
                                     if (room.setReadReceiptToken(eventId)) {
-                                        onReceiptEvent(eventId);
+                                        onReceiptEvent(event.roomId);
                                     }
                                 }
                             } else {
@@ -524,6 +524,8 @@ public class MXDataHandler implements IMXEventListener {
 
                                 nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
                                 mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
+
+                                onReceiptEvent(event.roomId);
                             }
                         }
                     }

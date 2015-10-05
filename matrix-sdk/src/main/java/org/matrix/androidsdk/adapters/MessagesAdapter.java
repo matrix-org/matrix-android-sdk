@@ -56,6 +56,7 @@ import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
@@ -70,6 +71,7 @@ import org.w3c.dom.Text;
 import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -596,6 +598,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Load avatar thumbnail
+     * @param avatarView
+     * @param url
+     */
+    protected void loadSmallAvatar(ImageView avatarView, String url) {
+        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_small_avatar_size);
+        mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
+    }
+
+    /**
      * update the typing view visibility
      * @param avatarLayoutView the avatar layout
      * @param status view.GONE / View.VISIBLE
@@ -604,6 +616,47 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // display the typing icon when required
         ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
         typingImage.setVisibility(status);
+    }
+
+    /**
+     * Refresh the receiver thumbnails
+     * @param receiversLayout the receiver layout
+     * @param eventId the event Id
+     * @param roomState the roomstate.
+     */
+    protected void refreshReceiverLayout(LinearLayout receiversLayout, String eventId, RoomState roomState) {
+        IMXStore store = mSession.getDataHandler().getStore();
+
+        Collection<Receipt> receipts = store.getEventReceipts(roomState.roomId, eventId);
+        ArrayList<View> imageViews = new ArrayList<View>();
+
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar3).findViewById(R.id.avatar_img));
+
+        int index = 0;
+
+        if (null != receipts) {
+            ArrayList<Receipt> rlist = new ArrayList<Receipt>(receipts);
+            int bound = Math.min(receipts.size(), imageViews.size());
+
+            for (; index < bound; index++) {
+                RoomMember member = roomState.getMember(rlist.get(index).userId);
+                ImageView imageView = (ImageView) imageViews.get(index);
+
+                imageView.setVisibility(View.VISIBLE);
+                imageView.setTag(null);
+                imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+
+                if (null != member.avatarUrl) {
+                    loadSmallAvatar(imageView, member.avatarUrl);
+                }
+            }
+        }
+
+        for(; index < imageViews.size(); index++) {
+            imageViews.get(index).setVisibility(View.INVISIBLE);
+        }
     }
 
     /**
@@ -692,10 +745,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         TextView tsTextView;
 
+
         if (null == rightTsTextLayout) {
             tsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
         } else {
             TextView leftTsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+
             TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
 
             if (isMyEvent) {
@@ -703,6 +758,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 rightTsTextView.setVisibility(View.GONE);
             } else {
                 leftTsTextView.setVisibility(View.GONE);
+
                 tsTextView = rightTsTextView;
             }
         }
@@ -720,6 +776,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             tsTextView.setTextColor(notSentColor);
         } else {
             tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
+        }
+
+        // read receipts
+        LinearLayout leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+        LinearLayout rightReceiversLayout = (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+        rightReceiversLayout.setVisibility(View.GONE);
+
+        if ((msgType == ROW_TYPE_NOTICE) || !isMyEvent) {
+            leftReceiversLayout.setVisibility(View.GONE);
+        } else {
+            leftReceiversLayout.setVisibility(View.VISIBLE);
+            refreshReceiverLayout(leftReceiversLayout, msg.eventId, roomState);
         }
 
         // Sender avatar
