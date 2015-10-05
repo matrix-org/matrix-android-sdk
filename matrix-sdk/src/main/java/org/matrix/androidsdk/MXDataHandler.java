@@ -32,6 +32,7 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -504,6 +505,25 @@ public class MXDataHandler implements IMXEventListener {
                                         onReceiptEvent(eventId);
                                     }
                                 }
+                            } else {
+                                long ts = System.currentTimeMillis();
+                                JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
+
+                                if (tsObject.has("ts")) {
+                                    ts = tsObject.get("ts").getAsLong();
+                                }
+
+                                Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
+                                ArrayList<Receipt> nextReceipts;
+
+                                if (null == readReceipts) {
+                                    nextReceipts = new ArrayList<>();
+                                } else {
+                                    nextReceipts = new ArrayList<>(readReceipts);
+                                }
+
+                                nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
+                                mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
                             }
                         }
                     }

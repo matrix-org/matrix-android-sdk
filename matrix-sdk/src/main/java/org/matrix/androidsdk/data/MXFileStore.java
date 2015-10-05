@@ -19,11 +19,13 @@ package org.matrix.androidsdk.data;
 import android.content.Context;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.util.Pair;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -35,6 +37,8 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -59,6 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     final String MXFILE_STORE_ROOMS_STATE_FOLDER = "state";
     final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
     final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+    final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
 
     private Context mContext = null;
 
@@ -76,6 +81,9 @@ public class MXFileStore extends MXMemoryStore {
     private ArrayList<String> mRoomsToCommitForStates;
     private ArrayList<String> mRoomsToCommitForSummaries;
 
+    // <room id, event Id>
+    private ArrayList<Pair<String, String>> mRoomsToCommitForReceipt;
+
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
 
@@ -87,6 +95,7 @@ public class MXFileStore extends MXMemoryStore {
     private File mOldStoreRoomsStateFolderFile = null;
     private File mGzStoreRoomsStateFolderFile = null;
     private File mStoreRoomsSummaryFolderFile = null;
+    private File mStoreRoomsMessagesReceiptsFolderFile = null;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -107,6 +116,7 @@ public class MXFileStore extends MXMemoryStore {
         // MXFileStore/userID/Tokens/
         // MXFileStore/userID/States/
         // MXFileStore/userID/Summaries/
+        // MXFileStore/userID/receipt/<room Id>/receipts
 
         // create the dirtree
         mStoreFolderFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_STORE_FOLDER), userId);
@@ -138,6 +148,11 @@ public class MXFileStore extends MXMemoryStore {
         if (!mStoreRoomsSummaryFolderFile.exists()) {
             mStoreRoomsSummaryFolderFile.mkdirs();
         }
+
+        mStoreRoomsMessagesReceiptsFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_RECEIPT_FOLDER);
+        if (!mStoreRoomsMessagesReceiptsFolderFile.exists()) {
+            mStoreRoomsMessagesReceiptsFolderFile.mkdirs();
+        }
     }
 
     /**
@@ -158,6 +173,7 @@ public class MXFileStore extends MXMemoryStore {
         mRoomsToCommitForMessages = new ArrayList<String>();
         mRoomsToCommitForStates = new ArrayList<String>();
         mRoomsToCommitForSummaries = new ArrayList<String>();
+        mRoomsToCommitForReceipt = new ArrayList<Pair<String, String>>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -228,6 +244,7 @@ public class MXFileStore extends MXMemoryStore {
             saveRoomStates();
             saveMetaData();
             saveSummaries();
+            saveEventReceipts();
             Log.d(LOG_TAG, "-- Commit");
         }
     }
@@ -296,6 +313,17 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
+                                if (succeed) {
+                                    succeed &= loadEventsReceipts();
+
+                                    if (!succeed) {
+                                        Log.e(LOG_TAG, "loadEventsReceipts fails");
+                                    } else {
+                                        Log.e(LOG_TAG, "loadEventsReceipts succeeds");
+                                    }
+                                }
+
+
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
@@ -307,6 +335,7 @@ public class MXFileStore extends MXMemoryStore {
                                     mRoomsToCommitForMessages = new ArrayList<String>();
                                     mRoomsToCommitForStates = new ArrayList<String>();
                                     mRoomsToCommitForSummaries = new ArrayList<String>();
+                                    mRoomsToCommitForReceipt = new ArrayList<Pair<String, String>>();
 
                                     mMetadata = new MXFileStoreMetaData();
                                     mMetadata.mUserId = mCredentials.userId;
@@ -573,6 +602,15 @@ public class MXFileStore extends MXMemoryStore {
             } catch (Exception e) {
             }
         }
+
+        File receiptsFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+        if (tokenFile.exists()) {
+            try {
+                tokenFile.delete();
+            } catch (Exception e) {
+            }
+        }
+
     }
 
     @Override
@@ -1211,6 +1249,7 @@ public class MXFileStore extends MXMemoryStore {
 
         return succeed;
     }
+
     /**
      * Load room summaries from the file system.
      * @return true if the operation succeeds.
@@ -1317,5 +1356,151 @@ public class MXFileStore extends MXMemoryStore {
             Thread t = new Thread(r);
             t.start();
         }
+    }
+
+    /***
+     * Load the events receipts.
+     * @param roomId the room Id
+     * @return true if the operation succeeds.
+     */
+    private Boolean loadEventsReceipts(String roomId) {
+        try {
+            File roomFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+            String[] filenames = roomFile.list();
+
+            for (int index = 0; index < filenames.length; index++) {
+                // if the user is invited to a room, the room object is not created until it is joined.
+                Collection<Receipt> list = null;
+
+                try {
+                    File file = new File(roomFile, filenames[index]);
+
+                    FileInputStream fis = new FileInputStream(file);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+
+                    list = (Collection<Receipt>) ois.readObject();
+                    ois.close();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "loadEventsReceipts failed : " + e.getMessage());
+                    return false;
+                }
+
+                if (null != list) {
+                    Map<String, Collection<Receipt>> roomsReceipts = getRoomReceipts(roomId);
+                    roomsReceipts.put(filenames[index], list);
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Load room summaries from the file system.
+     * @return true if the operation succeeds.
+     */
+    private Boolean loadEventsReceipts() {
+        Boolean succeed = true;
+        try {
+            // extract the room states
+            String[] filenames = mStoreRoomsMessagesReceiptsFolderFile.list();
+
+            long start = System.currentTimeMillis();
+
+            for(int index = 0; succeed && (index < filenames.length); index++) {
+
+                succeed &= loadEventsReceipts(filenames[index]);
+            }
+
+            Log.d(LOG_TAG, "loadEventsReceipts " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+        }
+        catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadEventsReceipts failed : " + e.getMessage());
+        }
+
+        return succeed;
+    }
+
+    /**
+     * Update the receipts list of an event.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @param receipts The receipts list.
+     */
+    @Override
+    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
+        super.storeEventReceipts(roomId, eventId, receipts);
+
+        Pair<String, String> pair = new Pair<>(roomId, eventId);
+        if (mRoomsToCommitForReceipt.indexOf(pair) < 0) {
+            mRoomsToCommitForReceipt.add(pair);
+        }
+    }
+
+    /**
+     * Flush the events receipts
+     * @param roomId the roomId.
+     * @param eventId the eventId.
+     */
+    public void saveReceipts(final String roomId, final String eventId) {
+        final Collection<Receipt> savedReceipts = getEventReceipts(roomId, eventId);
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mFileStoreHandler.post(new Runnable() {
+                    public void run() {
+                        if (!mIsKilled) {
+
+                            File roomFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+
+                            if (!roomFile.exists()) {
+                                roomFile.mkdir();
+                            }
+
+                            File receiptFile = new File(roomFile, eventId);
+                            if (receiptFile.exists()) {
+                                receiptFile.delete();
+                            }
+
+                            if (null != savedReceipts) {
+                                long start = System.currentTimeMillis();
+
+                                try {
+                                    FileOutputStream fos = new FileOutputStream(receiptFile);
+                                    ObjectOutputStream out = new ObjectOutputStream(fos);
+                                    out.writeObject(savedReceipts);
+                                    out.close();
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "flushReceipts failed : " + e.getMessage());
+                                }
+
+                                Log.d(LOG_TAG, "flushReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
+    }
+
+    /**
+     * Flush the events receipts
+     */
+    public void saveEventReceipts() {
+        super.flushEventReceipts();
+        ArrayList<Pair<String, String>> receiptPairs = mRoomsToCommitForReceipt;
+
+        for(Pair<String, String>pair : receiptPairs) {
+            saveReceipts(pair.first, pair.second);
+        }
+
+        mRoomsToCommitForReceipt.clear();
     }
 }

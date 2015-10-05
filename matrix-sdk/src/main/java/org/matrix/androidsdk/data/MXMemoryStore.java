@@ -22,6 +22,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -49,6 +50,9 @@ public class MXMemoryStore implements IMXStore {
 
     protected Map<String, RoomSummary> mRoomSummaries;
 
+    // by room and by event id
+    protected Map<String, Map<String, Collection<Receipt>>> mMessagesReceipts;
+
     protected Credentials mCredentials;
 
     protected String mEventStreamToken = null;
@@ -63,7 +67,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
         mRoomTokens = new ConcurrentHashMap<String, String>();
         mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
-
+        mMessagesReceipts = new ConcurrentHashMap<String, Map<String, Collection<Receipt>>>();
         mEventStreamToken = null;
     }
 
@@ -397,6 +401,7 @@ public class MXMemoryStore implements IMXStore {
             mRoomEvents.remove(roomId);
             mRoomTokens.remove(roomId);
             mRoomSummaries.remove(roomId);
+            mMessagesReceipts.remove(roomId);
         }
     }
 
@@ -633,5 +638,58 @@ public class MXMemoryStore implements IMXStore {
         }
 
         return unsentRoomEvents;
+    }
+
+    /**
+     * Get the room receipts list.
+     * @param roomId the room Id.
+     * @return the room receipts list.
+     */
+    protected  Map<String, Collection<Receipt>> getRoomReceipts(String roomId) {
+        Map<String, Collection<Receipt>> roomsReceipts;
+
+        if (mMessagesReceipts.containsKey(roomId)) {
+            roomsReceipts = mMessagesReceipts.get(roomId);
+        } else {
+            roomsReceipts = new ConcurrentHashMap<String, Collection<Receipt>>();
+            mMessagesReceipts.put(roomId, roomsReceipts);
+        }
+
+        return roomsReceipts;
+    }
+
+    /**
+     * Returns the receipts for an event in a dedicated room.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @return the receipts for an event in a dedicated room.
+     */
+    public Collection<Receipt> getEventReceipts(String roomId, String eventId) {
+        return getRoomReceipts(roomId).get(eventId);
+    }
+
+    /**
+     * Update the receipts list of an event.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @param receipts The receipts list.
+     */
+    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
+        Map<String, Collection<Receipt>> roomsReceipts = getRoomReceipts(roomId);
+        roomsReceipts.put(eventId, receipts);
+    }
+
+    /**
+     * Delete the room receips.
+     * @param roomId
+     */
+    protected void deleteRoomReceips(String roomId) {
+        mMessagesReceipts.remove(roomId);
+    }
+
+    /**
+     * Flush the receipt events
+     */
+    public void flushEventReceipts() {
     }
 }

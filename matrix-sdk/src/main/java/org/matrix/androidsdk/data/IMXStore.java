@@ -19,6 +19,7 @@ package org.matrix.androidsdk.data;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -251,4 +252,25 @@ public interface IMXStore {
      * @return list of unsent events
      */
     public Collection<Event> getLatestUnsentEvents(String roomId);
+
+    /**
+     * Returns the receipts for an event in a dedicated room.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @return the receipts for an event in a dedicated room.
+     */
+    public Collection<Receipt> getEventReceipts(String roomId, String eventId);
+
+    /**
+     * Update the receipts list of an event.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @param receipts The receipts list.
+     */
+    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts);
+
+    /**
+     * Flush the receipt events
+     */
+    public void flushEventReceipts();
 }
