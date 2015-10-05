@@ -249,6 +249,10 @@ public class RoomSummary implements java.io.Serializable {
 
     public void setUnreadMessagesCount(int count) {
         mUnreadMessagesCount = count;
+
+        if (0 == mUnreadMessagesCount) {
+            setHighlighted(false);
+        }
     }
 
     public int getUnreadMessagesCount() {
