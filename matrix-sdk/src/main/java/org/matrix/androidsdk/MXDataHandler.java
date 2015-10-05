@@ -515,7 +515,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             // If the bing rules apply, bing
-            if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+            if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
                     && !outOfTimeEvent
                     && (mBingRulesManager != null)
                     && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
@@ -590,7 +590,7 @@ public class MXDataHandler implements IMXEventListener {
                 if (event.redacts != null) {
                     mStore.updateEventContent(event.roomId, event.redacts, event.content);
                 }
-            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
                 // the candidate events are not stored.
                 boolean store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
 
