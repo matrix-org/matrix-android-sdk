@@ -111,4 +111,12 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     public void onRoomInternalUpdate(String roomId);
+
+    /**
+     * A receipt event has been received.
+     * It could be triggered when a request failed.
+     *
+     * @param roomId the roomID
+     */
+    public void onReceiptEvent(String roomId);
 }

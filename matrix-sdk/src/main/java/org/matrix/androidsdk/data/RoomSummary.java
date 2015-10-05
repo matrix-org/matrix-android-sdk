@@ -40,6 +40,11 @@ public class RoomSummary implements java.io.Serializable {
     // 2- the members display name
     private transient RoomState mLatestRoomState = null;
 
+    // save the latest read receipt token
+    // null if there is no known one
+    private String mReadReceiptToken;
+    private int mUnreadMessagesCount;
+
     // invitation status
     // retrieved at initial sync
     // the roomstate is not always known
@@ -51,7 +56,6 @@ public class RoomSummary implements java.io.Serializable {
     private String mMatrixId = null;
 
     private boolean mIsHighlighted = false;
-    private int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}
 
@@ -225,33 +229,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * reset the unread messages counter.
-     * @return true if there is an update
-     */
-    public boolean resetUnreadMessagesCount() {
-        if (0 != mUnreadMessagesCount) {
-            mUnreadMessagesCount = 0;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * increment the unread messages counter.
-     */
-    public void incrementUnreadMessagesCount() {
-        mUnreadMessagesCount++;
-    }
-
-    /**
-     * @return the unread messages counter.
-     */
-    public int getUnreadMessagesCount() {
-        return mUnreadMessagesCount;
-    }
-
-    /**
      * Set the user ID of the person who invited the user to this room.
      * @param inviterUserId The user ID of the inviter
      * @return This summary for chaining calls.
@@ -259,5 +236,22 @@ public class RoomSummary implements java.io.Serializable {
     public RoomSummary setInviterUserId(String inviterUserId) {
         mInviterUserId = inviterUserId;
         return this;
+    }
+
+
+    public void setReadReceiptToken(String token) {
+        mReadReceiptToken = token;
+    }
+
+    public String getReadReceiptToken() {
+        return mReadReceiptToken;
+    }
+
+    public void setUnreadMessagesCount(int count) {
+        mUnreadMessagesCount = count;
+    }
+
+    public int getUnreadMessagesCount() {
+        return mUnreadMessagesCount;
     }
 }

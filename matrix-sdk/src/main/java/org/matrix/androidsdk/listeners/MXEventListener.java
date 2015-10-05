@@ -82,4 +82,8 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onRoomInternalUpdate(String roomId) {
     }
+
+    @Override
+    public void onReceiptEvent(String roomId) {
+    }
 }

@@ -22,10 +22,7 @@ import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
-import android.media.MediaScannerConnection;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,7 +30,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -368,6 +364,18 @@ public class Room {
                     }
                 }
             }
+
+            @Override
+            public void onReceiptEvent(String roomId) {
+                // Filter out events for other rooms
+                if (mRoomId.equals(roomId)) {
+                    try {
+                        eventListener.onReceiptEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
+                    }
+                }
+            }
         };
         mEventListeners.put(eventListener, globalListener);
         mDataHandler.addListener(globalListener);
@@ -691,6 +699,8 @@ public class Room {
         }
         isPaginating = true;
 
+
+
         // restart the pagination
         if (null == mBackState.getToken()) {
             mSnapshotedEvents.clear();
@@ -820,6 +830,8 @@ public class Room {
             }
         });
     }
+
+
 
     /**
      * Perform a room-level initial sync to get latest messages and pagination token.
@@ -1084,6 +1096,85 @@ public class Room {
      */
     public void redact(String eventId, ApiCallback<Event> callback) {
         mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
+    }
+
+    /**
+     * Send the read receipt to the latest room message id.
+     */
+    public void sendReadReceipt() {
+        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        Event event = mDataHandler.getStore().getLatestMessageEvent(getRoomId());
+
+        if ((null != event) && (null != summary)) {
+            // any update
+            if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
+                mDataRetriever.getRoomsRestClientV2().sendReadReceipt(getRoomId(), event.eventId, null);
+                setReadReceiptToken(event.eventId);
+            }
+        }
+    }
+
+    /**
+     * Init the read receipt token
+     */
+    public void initReadReceiptToken() {
+        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        Event event = mDataHandler.getStore().getLatestMessageEvent(getRoomId());
+
+        if ((null != summary) && (null != event)){
+            if (null == summary.getReadReceiptToken()) {
+                setReadReceiptToken(event.eventId);
+            }
+        }
+    }
+
+    /**
+     * Update the read receipt token.
+     * @param token the new token
+     * @return true if the token is refreshed
+     */
+    public boolean setReadReceiptToken(String token) {
+        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+
+        if ((null != summary) && !TextUtils.equals(summary.getReadReceiptToken(), token)) {
+            summary.setReadReceiptToken(token);
+            mDataHandler.getStore().flushSummary(summary);
+            mDataHandler.getStore().commit();
+            refreshUnreadCounter();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     *  refresh the unread messages counts.
+     */
+    public void refreshUnreadCounter() {
+        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+
+        if (null != summary) {
+            int prevValue = summary.getUnreadMessagesCount();
+            int newValue = mDataHandler.getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
+
+            if (prevValue != newValue) {
+                summary.setUnreadMessagesCount(newValue);
+                mDataHandler.getStore().flushSummary(summary);
+                mDataHandler.getStore().commit();
+            }
+        }
+    }
+
+    /**
+     * @return the unread messages count.
+     */
+    public int getUnreadMessagesCount() {
+        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+
+        if (null != summary) {
+            return summary.getUnreadMessagesCount();
+        }
+        return 0;
     }
 
     /**

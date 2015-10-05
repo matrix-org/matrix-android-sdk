@@ -1244,6 +1244,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
+    @Override
+    public void onReceiptEvent() {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
     public void onInitialMessagesLoaded() {
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {

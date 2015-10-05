@@ -80,8 +80,10 @@ public class EventDisplay {
                 } else {
                     return mEvent.type;
                 }
-            }
-            else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_RECEIPT.equals(mEvent.type)) {
+                // the read receipt should not be displayed
+                text = "Read Receipt";
+            } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                 String msgtype = (null != mEvent.content.get("msgtype")) ? mEvent.content.get("msgtype").getAsString() : "";
 
                 if (msgtype.equals(Message.MSGTYPE_IMAGE)) {

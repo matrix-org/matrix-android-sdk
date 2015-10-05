@@ -297,6 +297,76 @@ public class MXMemoryStore implements IMXStore {
         return null;
     }
 
+    /**
+     * Get the latest message event from the given room
+     * @param roomId the room id
+     * @return the message event
+     */
+    public Event getLatestMessageEvent(String roomId) {
+        if (null != roomId) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            if (events != null) {
+                Event latest= null;
+                Iterator<Event> it = events.values().iterator();
+                if (it.hasNext()) {
+                    Event lastEvent = null;
+
+                    while (it.hasNext()) {
+                        lastEvent = it.next();
+
+                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, lastEvent.type)) {
+                            latest = lastEvent;
+                        }
+                    }
+
+                    return latest;
+                }
+            }
+        }
+        return null;
+
+    }
+
+    /**
+     * Count the number of events after the provided events id
+     * @param roomId the room id.
+     * @param eventId the event id to find.
+     * @return the events count after this event if
+     */
+    public int eventsCountAfter(String roomId, String eventId) {
+        int count = 0;
+
+        // sanity check
+        if ((null != roomId) && (null != eventId)) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            if (events != null) {
+                Boolean gotIt = false;
+                Iterator<Event> it = events.values().iterator();
+                if (it.hasNext()) {
+                    Event lastEvent = null;
+
+                    while (it.hasNext()) {
+                        lastEvent = it.next();
+
+                        if (gotIt) {
+                            // count only the other members message
+                            if (lastEvent.type.equals(Event.EVENT_TYPE_MESSAGE) && !lastEvent.userId.equals(mCredentials.userId)) {
+                                count++;
+                            }
+                        } else {
+                            gotIt = TextUtils.equals(lastEvent.eventId, eventId);
+                        }
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
+
+
     @Override
     public void storeLiveRoomEvent(Event event) {
         if ((null != event) && (null != event.roomId)) {

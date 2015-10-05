@@ -15,8 +15,13 @@
  */
 package org.matrix.androidsdk;
 
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import org.json.JSONObject;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -39,7 +44,10 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -470,6 +478,38 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             this.onPresenceUpdate(event, user);
+        } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+            try {
+                Set<Map.Entry<String, JsonElement>> entrySet = event.content.entrySet();
+                Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
+                String myUserId = mCredentials.userId;
+
+                while (it.hasNext()) {
+                    Map.Entry<String, JsonElement> entry = it.next();
+                    String eventId = entry.getKey();
+                    JsonObject jsonObject = entry.getValue().getAsJsonObject();
+
+                    if (jsonObject.has("read")) {
+                        Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("read").getAsJsonObject().entrySet();
+                        Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
+
+                        while (readerIt.hasNext()) {
+                            Map.Entry<String, JsonElement> readerEntry = readerIt.next();
+
+                            if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
+                                Room room = mStore.getRoom(event.roomId);
+
+                                if (null != room) {
+                                    if (room.setReadReceiptToken(eventId)) {
+                                        onReceiptEvent(eventId);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
         }
         // Room event
         else if (event.roomId != null) {
@@ -516,6 +556,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // If the bing rules apply, bing
             if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                    && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
                     && !outOfTimeEvent
                     && (mBingRulesManager != null)
                     && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
@@ -590,7 +631,7 @@ public class MXDataHandler implements IMXEventListener {
                 if (event.redacts != null) {
                     mStore.updateEventContent(event.roomId, event.redacts, event.content);
                 }
-            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type)) {
+            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
                 // the candidate events are not stored.
                 boolean store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
 
@@ -674,8 +715,17 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    private ArrayList<String> mUpdatedRoomIdList = new ArrayList<String>();
+
     @Override
     public void onLiveEvent(Event event, RoomState roomState) {
+        //
+        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.type)) {
+            if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
+                mUpdatedRoomIdList.add(roomState.roomId);
+            }
+        }
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -688,6 +738,15 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed() {
+        for(String roomId : mUpdatedRoomIdList) {
+            Room room = mStore.getRoom(roomId);
+
+            if (null != room) {
+                room.refreshUnreadCounter();
+            }
+        }
+        mUpdatedRoomIdList.clear();
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -773,8 +832,13 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
-
         mInitialSyncComplete = true;
+
+        // initialized
+        Collection<Room> rooms = getStore().getRooms();
+        for(Room room : rooms) {
+            room.initReadReceiptToken();
+        }
 
         for (IMXEventListener listener : eventListeners) {
             try {
@@ -797,6 +861,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onRoomInitialSyncComplete(String roomId) {
+        // initialized
+        Room room = getStore().getRoom(roomId);
+
+        if (null != room) {
+            room.initReadReceiptToken();
+        }
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -813,6 +884,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomInternalUpdate(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onReceiptEvent(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onReceiptEvent(roomId);
             } catch (Exception e) {
             }
         }

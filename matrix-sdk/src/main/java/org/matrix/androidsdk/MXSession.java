@@ -43,6 +43,7 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RegistrationRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.RoomsRestClientV2;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
@@ -78,6 +79,7 @@ public class MXSession {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
+    private RoomsRestClientV2 mRoomsRestClientV2;
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
@@ -115,6 +117,7 @@ public class MXSession {
         mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
+        mRoomsRestClientV2 = new RoomsRestClientV2(hsConfig);
         mBingRulesRestClient = new BingRulesRestClient(hsConfig);
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
@@ -135,6 +138,7 @@ public class MXSession {
         // Initialize a data retriever with rest clients
         mDataRetriever = new DataRetriever();
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
+        mDataRetriever.setRoomsRestClientV2(mRoomsRestClientV2);
         mDataHandler.setDataRetriever(mDataRetriever);
         mBingRulesManager = new BingRulesManager(this);
         mDataHandler.setPushRulesManager(mBingRulesManager);
@@ -159,6 +163,7 @@ public class MXSession {
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mRoomsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
