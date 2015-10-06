@@ -255,6 +255,7 @@ public interface IMXStore {
 
     /**
      * Returns the receipts for an event in a dedicated room.
+     * They are sorted from the latest to the oldest ones.
      * @param roomId The room Id.
      * @param eventId The event Id.
      * @return the receipts for an event in a dedicated room.

@@ -24,4 +24,5 @@ public class InitialSyncResponse {
     public String end;
     public List<Event> presence;
     public List<RoomResponse> rooms;
+    public List<Event> receipts;
 }

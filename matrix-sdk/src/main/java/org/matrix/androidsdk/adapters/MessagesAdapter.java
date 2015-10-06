@@ -65,7 +65,9 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 
 /**
@@ -318,6 +320,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         HashMap<String, ArrayList<String>> UpToReaderIds = new HashMap<String, ArrayList<String>>();
 
         if (this.getCount() > 0) {
+            String myUserId = mSession.getMyUser().userId;
+
             IMXStore store = mSession.getDataHandler().getStore();
             ArrayList<String> knownUserIds = new ArrayList<String>();
 
@@ -325,24 +329,27 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             Collection<Receipt> receipts;
 
             for(int index = this.getCount() - 1 ; index >= 0; index--) {
-                String eventId  = this.getItem(index).getEvent().eventId;
+                Event event = this.getItem(index).getEvent();
 
-                receipts = store.getEventReceipts(roomId, eventId);
+                if (myUserId.equals(event.userId)) {
+                    String eventId = event.eventId;
+                    receipts = store.getEventReceipts(roomId, eventId);
 
-                if ((null != receipts) && (receipts.size() > 0)) {
-                    // copy the list to avoid crashing while looping
-                    ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
-                    ArrayList<String> userIds = new ArrayList<String>();
+                    if ((null != receipts) && (receipts.size() > 0)) {
+                        // copy the list to avoid crashing while looping
+                        ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
+                        ArrayList<String> userIds = new ArrayList<String>();
 
-                    for(Receipt r : receiptsLists) {
-                        if (knownUserIds.indexOf(r.userId) < 0) {
-                            userIds.add(r.userId);
-                            knownUserIds.add(r.userId);
+                        for (Receipt r : receiptsLists) {
+                            if (knownUserIds.indexOf(r.userId) < 0) {
+                                userIds.add(r.userId);
+                                knownUserIds.add(r.userId);
+                            }
                         }
-                    }
 
-                    if (userIds.size() > 0) {
-                        UpToReaderIds.put(eventId, userIds);
+                        if (userIds.size() > 0) {
+                            UpToReaderIds.put(eventId, userIds);
+                        }
                     }
                 }
             }

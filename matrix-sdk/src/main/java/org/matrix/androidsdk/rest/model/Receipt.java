@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.util.Comparator;
+
 public class Receipt implements java.io.Serializable {
     public String userId;
     public long originServerTs;
@@ -23,4 +25,23 @@ public class Receipt implements java.io.Serializable {
         userId = anUserId;
         originServerTs = aTs;
     }
+
+    // comparator to sort from the oldest to the latest.
+    public static final Comparator<Receipt> ascComparator = new Comparator<Receipt>() {
+        @Override
+        public int compare(Receipt receipt1, Receipt receipt2) {
+            return (int)(receipt1.originServerTs - receipt2.originServerTs);
+        }
+    };
+
+    // comparator to sort from the latest to the oldest.
+    public static final Comparator<Receipt> descComparator = new Comparator<Receipt>() {
+        @Override
+        public int compare(Receipt receipt1, Receipt receipt2) {
+            return (int)(receipt2.originServerTs - receipt1.originServerTs);
+        }
+    };
+
+
+
 }

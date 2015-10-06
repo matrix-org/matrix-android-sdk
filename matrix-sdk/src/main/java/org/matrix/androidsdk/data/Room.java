@@ -699,8 +699,6 @@ public class Room {
         }
         isPaginating = true;
 
-
-
         // restart the pagination
         if (null == mBackState.getToken()) {
             mSnapshotedEvents.clear();

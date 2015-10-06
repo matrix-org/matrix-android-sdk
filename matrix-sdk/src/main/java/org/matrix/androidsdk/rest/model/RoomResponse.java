@@ -25,6 +25,7 @@ public class RoomResponse {
     public TokensChunkResponse<Event> messages;
     public List<Event> state;
     public List<Event> presence;
+    public List<Event> receipts;
     public String membership;
     public String visibility;
     public String inviter;

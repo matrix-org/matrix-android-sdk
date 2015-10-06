@@ -45,6 +45,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -232,6 +233,11 @@ public class MXDataHandler implements IMXEventListener {
         // Handle presence
         if (roomResponse.presence != null) {
             handleLiveEvents(roomResponse.presence);
+        }
+
+        // receipts
+        if (roomResponse.receipts != null) {
+            handleLiveEvents(roomResponse.receipts);
         }
 
         // Handle the special case where the room is an invite
@@ -523,6 +529,7 @@ public class MXDataHandler implements IMXEventListener {
                                 }
 
                                 nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
+                                Collections.sort(nextReceipts, Receipt.descComparator);
                                 mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
 
                                 onReceiptEvent(event.roomId);
