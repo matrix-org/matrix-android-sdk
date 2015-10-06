@@ -22,6 +22,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.w3c.dom.Text;
 
 import java.util.Collection;
 
@@ -43,6 +44,8 @@ public class RoomSummary implements java.io.Serializable {
     // save the latest read receipt token
     // null if there is no known one
     private String mReadReceiptToken;
+    private long mReadReceiptTs;
+
     private int mUnreadMessagesCount;
 
     // invitation status
@@ -65,6 +68,9 @@ public class RoomSummary implements java.io.Serializable {
         mRoomId = roomId;
         mName = name;
         mTopic = topic;
+
+        mReadReceiptToken = null;
+        mReadReceiptTs = -1;
     }
 
     public String getMatrixId() {
@@ -238,9 +244,20 @@ public class RoomSummary implements java.io.Serializable {
         return this;
     }
 
+    /**
+     * Tries to update the read receipts
+     * @param token the latest token
+     * @param ts the ts
+     * @return true if the update succeeds
+     */
+    public Boolean setReadReceiptToken(String token, long ts) {
+        if ((ts > mReadReceiptTs) && !TextUtils.equals(token, mReadReceiptToken)) {
+            mReadReceiptToken = token;
+            mReadReceiptTs = ts;
+            return true;
+        }
 
-    public void setReadReceiptToken(String token) {
-        mReadReceiptToken = token;
+        return false;
     }
 
     public String getReadReceiptToken() {

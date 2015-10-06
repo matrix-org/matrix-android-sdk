@@ -65,9 +65,7 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 
 /**
@@ -128,6 +126,36 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param position
          */
         public void onMediaDownloaded(int position);
+
+        /**
+         * Define the action to perform when the user taps on the read receipt.
+         * @param eventId the eventID
+         * @param userId the userId.
+         * @param receipt the receipt.
+         */
+        public void onReadReceiptClick(String eventId, String userId, Receipt receipt);
+
+        /**
+         * Define the action to perform when the user performs a long tap on the read receipt.
+         * @param eventId the eventID
+         * @param userId the userId.
+         * @param receipt the receipt.
+         * @return true if the long click event is managed
+         */
+        public boolean onReadReceiptLongClick(String eventId, String userId, Receipt receipt);
+
+        /**
+         * Define the action to perform when the user taps on the more read receipts button.
+         * @param eventId the eventID
+         */
+        public void onMoreReadReceiptClick(String eventId);
+
+        /**
+         * Define the action to perform when the user performs a long tap  on the more read receipts button.
+         * @param eventId the eventID
+         * @return true if the long clik event is managed
+         */
+        public boolean onMoreReadReceiptLongClick(String eventId);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -177,7 +205,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
 
-    private HashMap<String, ArrayList<String>> mUpToReaderIdsByMsgIds;
+    private HashMap<String, ArrayList<Receipt>> mUpToReaderIdsByMsgIds;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -317,7 +345,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * So, the receipst must be filtered to only keep the latest known ones.
      */
     protected void refreshUpToReaders() {
-        HashMap<String, ArrayList<String>> UpToReaderIds = new HashMap<String, ArrayList<String>>();
+        HashMap<String, ArrayList<Receipt>> UpToReaderIds = new HashMap<String, ArrayList<Receipt>>();
 
         if (this.getCount() > 0) {
             String myUserId = mSession.getMyUser().userId;
@@ -338,17 +366,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if ((null != receipts) && (receipts.size() > 0)) {
                         // copy the list to avoid crashing while looping
                         ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
-                        ArrayList<String> userIds = new ArrayList<String>();
+                        ArrayList<Receipt> filteredReceipts = new ArrayList<Receipt>();
 
                         for (Receipt r : receiptsLists) {
                             if (knownUserIds.indexOf(r.userId) < 0) {
-                                userIds.add(r.userId);
+                                filteredReceipts.add(r);
                                 knownUserIds.add(r.userId);
                             }
                         }
 
-                        if (userIds.size() > 0) {
-                            UpToReaderIds.put(eventId, userIds);
+                        if (filteredReceipts.size() > 0) {
+                            UpToReaderIds.put(eventId, filteredReceipts);
                         }
                     }
                 }
@@ -673,15 +701,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param eventId the event Id
      * @param roomState the roomstate.
      */
-    protected void refreshReceiverLayout(LinearLayout receiversLayout, String eventId, RoomState roomState) {
-        IMXStore store = mSession.getDataHandler().getStore();
-
-        ArrayList<String> receipts = mUpToReaderIdsByMsgIds.get(eventId);
+    protected void refreshReceiverLayout(final LinearLayout receiversLayout, final String eventId, final RoomState roomState) {
+        ArrayList<Receipt> receipts = mUpToReaderIdsByMsgIds.get(eventId);
         ArrayList<View> imageViews = new ArrayList<View>();
 
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar3).findViewById(R.id.avatar_img));
+
+        View moreView = receiversLayout.findViewById(R.id.messagesAdapter_more_than_three);
 
         int index = 0;
 
@@ -689,7 +717,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             int bound = Math.min(receipts.size(), imageViews.size());
 
             for (; index < bound; index++) {
-                RoomMember member = roomState.getMember(receipts.get(index));
+                final Receipt r = receipts.get(index);
+                RoomMember member = roomState.getMember(r.userId);
                 ImageView imageView = (ImageView) imageViews.get(index);
 
                 imageView.setVisibility(View.VISIBLE);
@@ -699,7 +728,41 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 if (null != member.avatarUrl) {
                     loadSmallAvatar(imageView, member.avatarUrl);
                 }
+
+                final String userId = member.getUserId();
+
+                imageView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mMessagesAdapterEventsListener.onReadReceiptClick(eventId, userId, r);
+                    }
+                });
+
+                imageView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return mMessagesAdapterEventsListener.onReadReceiptLongClick(eventId, userId, r);
+                    }
+                });
             }
+
+            moreView.setVisibility((receipts.size() > imageViews.size()) ? View.VISIBLE : View.GONE);
+
+            moreView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mMessagesAdapterEventsListener.onMoreReadReceiptClick(eventId);
+                }
+            });
+
+            moreView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return mMessagesAdapterEventsListener.onMoreReadReceiptLongClick(eventId);
+                }
+            });
+        } else {
+            moreView.setVisibility(View.GONE);
         }
 
         for(; index < imageViews.size(); index++) {
@@ -981,7 +1044,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 return false;
             }
         });
-
 
         return isMergedView;
     }

@@ -1107,7 +1107,7 @@ public class Room {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
                 mDataRetriever.getRoomsRestClientV2().sendReadReceipt(getRoomId(), event.eventId, null);
-                setReadReceiptToken(event.eventId);
+                setReadReceiptToken(event.eventId, System.currentTimeMillis());
             }
         }
     }
@@ -1121,7 +1121,7 @@ public class Room {
 
         if ((null != summary) && (null != event)){
             if (null == summary.getReadReceiptToken()) {
-                setReadReceiptToken(event.eventId);
+                setReadReceiptToken(event.eventId, event.originServerTs);
             }
         }
     }
@@ -1129,13 +1129,13 @@ public class Room {
     /**
      * Update the read receipt token.
      * @param token the new token
+     * @param ts the token ts
      * @return true if the token is refreshed
      */
-    public boolean setReadReceiptToken(String token) {
+    public boolean setReadReceiptToken(String token, long ts) {
         RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
 
-        if ((null != summary) && !TextUtils.equals(summary.getReadReceiptToken(), token)) {
-            summary.setReadReceiptToken(token);
+        if (summary.setReadReceiptToken(token, ts)) {
             mDataHandler.getStore().flushSummary(summary);
             mDataHandler.getStore().commit();
             refreshUnreadCounter();

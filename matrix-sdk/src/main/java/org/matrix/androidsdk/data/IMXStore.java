@@ -80,6 +80,11 @@ public interface IMXStore {
     public boolean isReady();
 
     /**
+     * @return true if the store is corrupted.
+     */
+    public boolean isCorrupted();
+
+    /**
      * Returns to disk usage size in bytes.
      * @return disk usage size
      */

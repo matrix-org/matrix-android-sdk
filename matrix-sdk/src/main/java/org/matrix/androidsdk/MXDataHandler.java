@@ -503,22 +503,22 @@ public class MXDataHandler implements IMXEventListener {
                         while (readerIt.hasNext()) {
                             Map.Entry<String, JsonElement> readerEntry = readerIt.next();
 
+                            long ts = System.currentTimeMillis();
+                            JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
+
+                            if (tsObject.has("ts")) {
+                                ts = tsObject.get("ts").getAsLong();
+                            }
+
                             if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
                                 Room room = mStore.getRoom(event.roomId);
 
                                 if (null != room) {
-                                    if (room.setReadReceiptToken(eventId)) {
+                                    if (room.setReadReceiptToken(eventId, ts)) {
                                         onReceiptEvent(event.roomId);
                                     }
                                 }
                             } else {
-                                long ts = System.currentTimeMillis();
-                                JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
-
-                                if (tsObject.has("ts")) {
-                                    ts = tsObject.get("ts").getAsLong();
-                                }
-
                                 Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
                                 ArrayList<Receipt> nextReceipts;
 

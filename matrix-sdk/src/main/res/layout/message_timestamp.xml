@@ -28,5 +28,12 @@
         <include layout="@layout/receipt_round_avatar"
             android:id="@+id/messagesAdapter_avatar3"/>
 
+        <TextView
+            android:layout_width="15dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:id="@+id/messagesAdapter_more_than_three"
+            android:text="..." />
+
     </LinearLayout>
 </LinearLayout>

@@ -138,6 +138,14 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * @return true if the store is corrupted.
+     */
+    @Override
+    public boolean isCorrupted() {
+        return false;
+    }
+
+    /**
      * Returns to disk usage size in bytes.
      * @return disk usage size
      */

@@ -55,6 +55,7 @@ import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
@@ -1371,6 +1372,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void onMediaDownloaded(int position) {
+    }
+
+    public void onReadReceiptClick(String eventId, String userId, Receipt receipt) {
+    }
+
+    public boolean onReadReceiptLongClick(String eventId, String userId, Receipt receipt) {
+        return false;
+    }
+
+    public void onMoreReadReceiptClick(String eventId) {
+    }
+
+    public boolean onMoreReadReceiptLongClick(String eventId) {
+        return false;
     }
 
     // thumbnails management

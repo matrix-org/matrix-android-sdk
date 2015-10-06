@@ -70,6 +70,8 @@ public class MXFileStore extends MXMemoryStore {
     // the data is read from the file system
     private boolean mIsReady = false;
 
+    private boolean mIsCorrupted = false;
+
     // the store is currently opening
     private boolean mIsOpening = false;
 
@@ -354,6 +356,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                 if (null != mListener) {
                                     if (!succeed && !mIsNewStorage) {
+                                        mIsCorrupted = true;
                                         Log.e(LOG_TAG, "The store is corrupted.");
                                         mListener.onStoreCorrupted(mCredentials.userId);
                                     } else {
@@ -437,6 +440,16 @@ public class MXFileStore extends MXMemoryStore {
     public boolean isReady() {
         synchronized (this) {
             return mIsReady;
+        }
+    }
+
+    /**
+     * @return true if the store is corrupted.
+     */
+    @Override
+    public boolean isCorrupted() {
+        synchronized (this) {
+            return mIsCorrupted;
         }
     }
 
