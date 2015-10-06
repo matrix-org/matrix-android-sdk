@@ -21,12 +21,10 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
-import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -66,10 +64,6 @@ import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
-import org.w3c.dom.Text;
-
-import java.io.File;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -180,6 +174,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private Boolean mIsSearchMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+
+    private HashMap<String, ArrayList<String>> mUpToReaderIdsByMsgIds;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -314,6 +310,52 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return NUM_ROW_TYPES;
     }
 
+    /**
+     * The read receipst are displayed to the latest received read receipts.
+     * So, the receipst must be filtered to only keep the latest known ones.
+     */
+    protected void refreshUpToReaders() {
+        HashMap<String, ArrayList<String>> UpToReaderIds = new HashMap<String, ArrayList<String>>();
+
+        if (this.getCount() > 0) {
+            IMXStore store = mSession.getDataHandler().getStore();
+            ArrayList<String> knownUserIds = new ArrayList<String>();
+
+            String roomId = this.getItem(this.getCount() - 1).getRoomState().roomId;
+            Collection<Receipt> receipts;
+
+            for(int index = this.getCount() - 1 ; index >= 0; index--) {
+                String eventId  = this.getItem(index).getEvent().eventId;
+
+                receipts = store.getEventReceipts(roomId, eventId);
+
+                if ((null != receipts) && (receipts.size() > 0)) {
+                    // copy the list to avoid crashing while looping
+                    ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
+                    ArrayList<String> userIds = new ArrayList<String>();
+
+                    for(Receipt r : receiptsLists) {
+                        if (knownUserIds.indexOf(r.userId) < 0) {
+                            userIds.add(r.userId);
+                            knownUserIds.add(r.userId);
+                        }
+                    }
+
+                    if (userIds.size() > 0) {
+                        UpToReaderIds.put(eventId, userIds);
+                    }
+                }
+            }
+        }
+
+        mUpToReaderIdsByMsgIds = UpToReaderIds;
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+        refreshUpToReaders();
+    }
 
     /**
      * Cancel any pending search and replace the adapter content.
@@ -627,7 +669,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected void refreshReceiverLayout(LinearLayout receiversLayout, String eventId, RoomState roomState) {
         IMXStore store = mSession.getDataHandler().getStore();
 
-        Collection<Receipt> receipts = store.getEventReceipts(roomState.roomId, eventId);
+        ArrayList<String> receipts = mUpToReaderIdsByMsgIds.get(eventId);
         ArrayList<View> imageViews = new ArrayList<View>();
 
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
@@ -637,11 +679,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int index = 0;
 
         if (null != receipts) {
-            ArrayList<Receipt> rlist = new ArrayList<Receipt>(receipts);
             int bound = Math.min(receipts.size(), imageViews.size());
 
             for (; index < bound; index++) {
-                RoomMember member = roomState.getMember(rlist.get(index).userId);
+                RoomMember member = roomState.getMember(receipts.get(index));
                 ImageView imageView = (ImageView) imageViews.get(index);
 
                 imageView.setVisibility(View.VISIBLE);
