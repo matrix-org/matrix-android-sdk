@@ -649,8 +649,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the room state
      * @return teh user display name.
      */
-    protected String getUserDisplayName(String userId, RoomState roomState) {
-        return roomState.getMemberName(userId);
+    protected Spannable getUserDisplayName(String userId, RoomState roomState) {
+        return roomState.getMemberName(userId, Color.GRAY);
     }
 
     /**
@@ -1120,7 +1120,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        final CharSequence body = display.getTextualDisplay();
+        final CharSequence body = display.getTextualDisplay(true);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
         highlightPattern(bodyTextView, body, mPattern);
@@ -1419,7 +1419,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
         } else {
             EventDisplay display = new EventDisplay(mContext, msg, roomState);
-            notice = display.getTextualDisplay();
+            notice = display.getTextualDisplay(true);
         }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
@@ -1452,7 +1452,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
-        emoteTextView.setText(display.getTextualDisplay());
+        emoteTextView.setText(display.getTextualDisplay(true));
 
         int textColor;
 
@@ -1819,7 +1819,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
-            return display.getTextualDisplay() != null;
+            return display.getTextualDisplay(true) != null;
         }
         return false;
     }

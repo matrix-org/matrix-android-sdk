@@ -16,7 +16,11 @@
 
 package org.matrix.androidsdk.data;
 
+import android.graphics.Color;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 
 import com.google.gson.JsonObject;
 
@@ -368,12 +372,30 @@ public class RoomState implements java.io.Serializable {
      * @return unique display name
      */
     public String getMemberName(String userId) {
+        SpannableStringBuilder span = getMemberName(userId, null);
+
+        // sanity check
+        if (null != span) {
+            return span.toString();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Return an unique display name of the member userId.
+     * @param userId
+     * @param disambiguationColor the color to disambiguous name.
+     * @return unique display name
+     */
+    public SpannableStringBuilder getMemberName(String userId, Integer disambiguationColor) {
         // sanity check
         if (null == userId) {
             return null;
         }
 
         String displayName = null;
+        String colorPart = null;
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
@@ -395,12 +417,17 @@ public class RoomState implements java.io.Serializable {
                 // if several users have the same displayname
                 // index it i.e bob (1)
                 if (matrixIds.size() > 1) {
-                    Collections.sort(matrixIds);
+                    if (null != disambiguationColor){
+                        Collections.sort(matrixIds);
 
-                    int pos = matrixIds.indexOf(userId);
+                        int pos = matrixIds.indexOf(userId);
 
-                    if (pos >= 0) {
-                        displayName += " (" + (pos+1)+ ")";
+                        if (pos >= 0) {
+                            colorPart = " (" + (pos + 1) + ")";
+                            displayName += colorPart;
+                        }
+                    } else {
+                        displayName += " (" + userId + ")";
                     }
                 }
             }
@@ -421,6 +448,12 @@ public class RoomState implements java.io.Serializable {
             displayName = userId;
         }
 
-        return displayName;
+        SpannableStringBuilder spannableString = new SpannableStringBuilder(displayName);
+
+        if ((null != disambiguationColor) && !TextUtils.isEmpty(colorPart)) {
+            spannableString.setSpan(new ForegroundColorSpan(disambiguationColor), displayName.length() - colorPart.length(), displayName.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        return spannableString;
     }
 }
