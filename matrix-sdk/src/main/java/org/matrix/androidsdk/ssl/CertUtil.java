@@ -100,7 +100,22 @@ public class CertUtil {
             // If we haven't specified that we wanted to pin the certs, fallback to standard
             // X509 checks if fingerprints don't match.
             if (!hsConfig.shouldPin()) {
-                TrustManagerFactory tf = TrustManagerFactory.getInstance("PKIX");
+                TrustManagerFactory tf = null;
+
+                // get the PKIX instance
+                try {
+                    tf = TrustManagerFactory.getInstance("PKIX");
+                } catch (Exception e) {
+                }
+
+                // it doesn't exist, use the default one.
+                if (null == tf) {
+                    try {
+                        tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    } catch (Exception e) {
+                    }
+                }
+
                 tf.init((KeyStore) null);
                 TrustManager[] trustManagers = tf.getTrustManagers();
 
