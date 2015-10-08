@@ -389,8 +389,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 if (mHsConfig != null && connection instanceof HttpsURLConnection) {
                     // Add SSL Socket factory.
                     HttpsURLConnection sslConn = (HttpsURLConnection) connection;
-                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
-                    sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    try {
+                        sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                        sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    } catch (Exception e) {
+                    }
                 }
 
                 // add a timeout to avoid infinite loading display.

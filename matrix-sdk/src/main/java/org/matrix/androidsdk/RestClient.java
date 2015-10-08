@@ -18,6 +18,7 @@ package org.matrix.androidsdk;
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.ssl.Fingerprint;
@@ -85,8 +86,11 @@ public class RestClient<T> {
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-        okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
-        okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+        try {
+            okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
+            okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+        } catch (Exception e) {
+        }
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()

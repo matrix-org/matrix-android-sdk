@@ -402,8 +402,11 @@ public class ContentManager {
                 if (conn instanceof HttpsURLConnection) {
                     // Add SSL Socket factory.
                     HttpsURLConnection sslConn = (HttpsURLConnection) conn;
-                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
-                    sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    try {
+                        sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                        sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    } catch (Exception e) {
+                    }
                 }
 
                 conn.setRequestProperty("Content-Type", mimeType);
