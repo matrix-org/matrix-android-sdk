@@ -52,7 +52,7 @@ public interface RoomsApiV2 {
      * @param content the event content
      * @param callback the asynchronous callback called with the response
      */
-    @POST("/rooms/{roomId}/receipt/read/{eventId}")
+    @POST("/rooms/{roomId}/receipt/m.read/{eventId}")
     public void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
                      Callback<Void> callback);
 

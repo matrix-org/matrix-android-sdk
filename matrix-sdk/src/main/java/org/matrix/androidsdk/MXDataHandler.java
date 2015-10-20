@@ -496,8 +496,8 @@ public class MXDataHandler implements IMXEventListener {
                     String eventId = entry.getKey();
                     JsonObject jsonObject = entry.getValue().getAsJsonObject();
 
-                    if (jsonObject.has("read")) {
-                        Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("read").getAsJsonObject().entrySet();
+                    if (jsonObject.has("m.read")) {
+                        Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("m.read").getAsJsonObject().entrySet();
                         Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
 
                         while (readerIt.hasNext()) {
