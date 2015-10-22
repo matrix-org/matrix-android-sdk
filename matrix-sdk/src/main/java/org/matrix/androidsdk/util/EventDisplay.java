@@ -80,6 +80,8 @@ public class EventDisplay {
     public CharSequence getTextualDisplay(boolean desambigious) {
         CharSequence text = null;
         try {
+            JsonObject eventContent = mEvent.getContentAsJsonObject();
+
             String userDisplayName = getUserDisplayName(mEvent.userId, mRoomState, desambigious);
 
             if (mEvent.isCallEvent()) {
@@ -96,19 +98,19 @@ public class EventDisplay {
                 // the read receipt should not be displayed
                 text = "Read Receipt";
             } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
-                String msgtype = (null != mEvent.content.get("msgtype")) ? mEvent.content.get("msgtype").getAsString() : "";
+                String msgtype = (null != eventContent.get("msgtype")) ? eventContent.get("msgtype").getAsString() : "";
 
                 if (msgtype.equals(Message.MSGTYPE_IMAGE)) {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else {
                     // all m.room.message events should support the 'body' key fallback, so use it.
-                    text = mEvent.content.get("body") == null ? null : mEvent.content.get("body").getAsString();
+                    text = eventContent.get("body") == null ? null : eventContent.get("body").getAsString();
 
                     // check for html formatting
-                    if (mEvent.content.has("formatted_body") && mEvent.content.has("format")) {
-                        String format = mEvent.content.getAsJsonPrimitive("format").getAsString();
+                    if (eventContent.has("formatted_body") && eventContent.has("format")) {
+                        String format = eventContent.getAsJsonPrimitive("format").getAsString();
                         if ("org.matrix.custom.html".equals(format)) {
-                            text = Html.fromHtml(mEvent.content.getAsJsonPrimitive("formatted_body").getAsString());
+                            text = Html.fromHtml(eventContent.getAsJsonPrimitive("formatted_body").getAsString());
                         }
                     }
 
@@ -122,18 +124,19 @@ public class EventDisplay {
             else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                 // pretty print 'XXX changed the topic to YYYY'
                 text = mContext.getString(R.string.notice_topic_changed,
-                        userDisplayName, mEvent.content.getAsJsonPrimitive("topic").getAsString());
+                        userDisplayName, eventContent.getAsJsonPrimitive("topic").getAsString());
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
                 // pretty print 'XXX changed the room name to YYYY'
                 text = mContext.getString(R.string.notice_room_name_changed,
-                        userDisplayName, mEvent.content.getAsJsonPrimitive("name").getAsString());
+                        userDisplayName, eventContent.getAsJsonPrimitive("name").getAsString());
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
                 // m.room.member is used to represent at least 3 different changes in state: membership,
                 // avatar pic url and display name. We need to figure out which thing changed to display
                 // the right text.
-                JsonObject prevState = mEvent.prevContent;
+                JsonObject prevState = mEvent.getPrevContentAsJsonObject();
+
                 if (prevState == null) {
                     // if there is no previous state, it has to be an invite or a join as they are the first
                     // m.room.member events for a user.
@@ -172,20 +175,21 @@ public class EventDisplay {
     }
 
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState, boolean desambigious) {
-        String membership = msg.content.getAsJsonPrimitive("membership").getAsString();
+        JsonObject eventContent = (JsonObject)msg.content;
+        String membership = eventContent.getAsJsonPrimitive("membership").getAsString();
         String userDisplayName = null;
 
         String prevMembership = null;
 
         if (null != msg.prevContent) {
-            prevMembership = msg.prevContent.getAsJsonPrimitive("membership").getAsString();
+            prevMembership = msg.getPrevContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
         }
 
         // the displayname could be defined in the event
         // use it instead of the getUserDisplayName result
         // the user could have joined the before his roomMember has been created.
-        if (msg.content.has("displayname")) {
-            userDisplayName =  msg.content.get("displayname") == JsonNull.INSTANCE ? null : msg.content.get("displayname").getAsString();
+        if (eventContent.has("displayname")) {
+            userDisplayName =  eventContent.get("displayname") == JsonNull.INSTANCE ? null : eventContent.get("displayname").getAsString();
         }
 
         // cannot retrieve the display name from the event
@@ -231,15 +235,17 @@ public class EventDisplay {
     private String getDisplayNameChangeNotice(Event msg) {
         return mContext.getString(R.string.notice_display_name_changed,
                 msg.userId,
-                msg.content.getAsJsonPrimitive("displayname").getAsString()
+                ((JsonObject)msg.content).getAsJsonPrimitive("displayname").getAsString()
         );
     }
 
     private boolean hasStringValueChanged(Event msg, String key) {
-        JsonObject prevContent = msg.prevContent;
-        if (prevContent.has(key) && msg.content.has(key)) {
+        JsonObject prevContent = msg.getPrevContentAsJsonObject();
+        JsonObject eventContent = msg.getContentAsJsonObject();
+
+        if (prevContent.has(key) && eventContent.has(key)) {
             String old = prevContent.get(key) == JsonNull.INSTANCE ? null : prevContent.get(key).getAsString();
-            String current = msg.content.get(key) == JsonNull.INSTANCE ? null : msg.content.get(key).getAsString();
+            String current = eventContent.get(key) == JsonNull.INSTANCE ? null : eventContent.get(key).getAsString();
             if (old == null && current == null) {
                 return false;
             }
@@ -250,7 +256,7 @@ public class EventDisplay {
                 return !current.equals(old);
             }
         }
-        else if (!prevContent.has(key) && !msg.content.has(key)) {
+        else if (!prevContent.has(key) && !eventContent.has(key)) {
             return false; // this key isn't in either prev or current
         }
         else {

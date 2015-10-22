@@ -319,38 +319,6 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Get the latest message event from the given room
-     * @param roomId the room id
-     * @return the message event
-     */
-    public Event getLatestMessageEvent(String roomId) {
-        Event event = null;
-
-        if (null != roomId) {
-            synchronized (mRoomEvents) {
-                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-
-                if (events != null) {
-                    Iterator<Event> it = events.values().iterator();
-                    if (it.hasNext()) {
-                        Event lastEvent;
-
-                        while (it.hasNext()) {
-                            lastEvent = it.next();
-
-                            if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, lastEvent.type)) {
-                                event = lastEvent;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return event;
-
-    }
-
-    /**
      * Count the number of events after the provided events id
      * @param roomId the room id.
      * @param eventId the event id to find.
@@ -375,7 +343,7 @@ public class MXMemoryStore implements IMXStore {
 
                             if (gotIt) {
                                 // count only the other members message
-                                if (lastEvent.type.equals(Event.EVENT_TYPE_MESSAGE) && !lastEvent.userId.equals(mCredentials.userId)) {
+                                if (!lastEvent.userId.equals(mCredentials.userId)) {
                                     count++;
                                 }
                             } else {

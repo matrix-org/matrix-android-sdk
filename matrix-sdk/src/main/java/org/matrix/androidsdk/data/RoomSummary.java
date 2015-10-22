@@ -46,7 +46,7 @@ public class RoomSummary implements java.io.Serializable {
     private String mReadReceiptToken;
     private long mReadReceiptTs;
 
-    private int mUnreadMessagesCount;
+    private int mUnreadEventsCount;
 
     // invitation status
     // retrieved at initial sync
@@ -264,15 +264,15 @@ public class RoomSummary implements java.io.Serializable {
         return mReadReceiptToken;
     }
 
-    public void setUnreadMessagesCount(int count) {
-        mUnreadMessagesCount = count;
+    public void setUnreadEventsCount(int count) {
+        mUnreadEventsCount = count;
 
-        if (0 == mUnreadMessagesCount) {
+        if (0 == mUnreadEventsCount) {
             setHighlighted(false);
         }
     }
 
-    public int getUnreadMessagesCount() {
-        return mUnreadMessagesCount;
+    public int getUnreadEventsCount() {
+        return mUnreadEventsCount;
     }
 }

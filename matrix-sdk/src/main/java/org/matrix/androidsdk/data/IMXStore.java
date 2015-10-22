@@ -181,13 +181,6 @@ public interface IMXStore {
     public Event getLatestEvent(String roomId);
 
     /**
-     * Get the latest message event from the given room
-     * @param roomId the room id
-     * @return the message event
-     */
-    public Event getLatestMessageEvent(String roomId);
-
-    /**
      * Count the number of events after the provided events id
      * @param roomId the room id.
      * @param eventId the event id to find.

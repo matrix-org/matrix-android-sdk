@@ -507,7 +507,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 }
 
                 RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
-                Integer unreadCount = summary.getUnreadMessagesCount();
+                Integer unreadCount = summary.getUnreadEventsCount();
 
                 CharSequence message = summary.getRoomTopic();
                 String timestamp = null;
@@ -689,7 +689,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             Collection<RoomSummary> summaries = mSummaryMapsBySection.get(groupPosition).values();
 
             for(RoomSummary summary : summaries) {
-                unreadCount += summary.getUnreadMessagesCount();
+                unreadCount += summary.getUnreadEventsCount();
             }
 
             String header = myRoomsTitle(groupPosition);

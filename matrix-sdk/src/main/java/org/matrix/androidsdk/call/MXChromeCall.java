@@ -307,7 +307,7 @@ public class MXChromeCall extends MXCall {
                 if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
-                    JsonArray candidates = event.content.getAsJsonArray("candidates");
+                    JsonArray candidates = event.getContentAsJsonObject().getAsJsonArray("candidates");
                     addCandidates(candidates);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
                     onCallHangup(event);
@@ -586,7 +586,7 @@ public class MXChromeCall extends MXCall {
                                 Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
                                 if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                                    JsonObject lastContent = lastEvent.content;
+                                    JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                     JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                     JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
@@ -595,8 +595,8 @@ public class MXChromeCall extends MXCall {
 
                                     lastContentCandidates.addAll(newContentCandidates);
 
-                                    lastEvent.content.remove("candidates");
-                                    lastEvent.content.add("candidates", lastContentCandidates);
+                                    lastContent.remove("candidates");
+                                    lastContent.add("candidates", lastContentCandidates);
                                     addIt = false;
                                 }
                             } catch (Exception e) {

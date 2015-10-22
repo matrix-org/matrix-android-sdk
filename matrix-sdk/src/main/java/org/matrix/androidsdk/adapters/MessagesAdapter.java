@@ -41,6 +41,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
@@ -961,8 +962,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 String url = null;
 
                 // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
-                if (msg.content.has("avatar_url")) {
-                    url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
+                JsonObject msgContent = msg.getContentAsJsonObject();
+
+                if (msgContent.has("avatar_url")) {
+                    url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
                 if ((sender != null) && (null == url)) {

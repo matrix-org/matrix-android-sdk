@@ -18,9 +18,11 @@ package org.matrix.androidsdk;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
@@ -487,52 +489,68 @@ public class MXDataHandler implements IMXEventListener {
             this.onPresenceUpdate(event, user);
         } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
             try {
-                Set<Map.Entry<String, JsonElement>> entrySet = event.content.entrySet();
-                Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
-                String myUserId = mCredentials.userId;
+                ArrayList<JsonObject> receiptsList = new ArrayList<JsonObject>();
 
-                while (it.hasNext()) {
-                    Map.Entry<String, JsonElement> entry = it.next();
-                    String eventId = entry.getKey();
-                    JsonObject jsonObject = entry.getValue().getAsJsonObject();
+                // check the content type
+                if (event.content instanceof JsonArray) {
+                    JsonArray jsonElements = event.content.getAsJsonArray();
 
-                    if (jsonObject.has("m.read")) {
-                        Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("m.read").getAsJsonObject().entrySet();
-                        Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
+                    for(int index = 0; index < jsonElements.size(); index++) {
+                        receiptsList.add((JsonObject)jsonElements.get(index));
+                    }
 
-                        while (readerIt.hasNext()) {
-                            Map.Entry<String, JsonElement> readerEntry = readerIt.next();
+                } else {
+                    receiptsList.add(event.getContentAsJsonObject());
+                }
 
-                            long ts = System.currentTimeMillis();
-                            JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
+                for(JsonObject object : receiptsList) {
+                    Set<Map.Entry<String, JsonElement>> entrySet = object.entrySet();
+                    Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
+                    String myUserId = mCredentials.userId;
 
-                            if (tsObject.has("ts")) {
-                                ts = tsObject.get("ts").getAsLong();
-                            }
+                    while (it.hasNext()) {
+                        Map.Entry<String, JsonElement> entry = it.next();
+                        String eventId = entry.getKey();
+                        JsonObject jsonObject = entry.getValue().getAsJsonObject();
 
-                            if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
-                                Room room = mStore.getRoom(event.roomId);
+                        if (jsonObject.has("m.read")) {
+                            Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("m.read").getAsJsonObject().entrySet();
+                            Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
 
-                                if (null != room) {
-                                    if (room.setReadReceiptToken(eventId, ts)) {
-                                        onReceiptEvent(event.roomId);
+                            while (readerIt.hasNext()) {
+                                Map.Entry<String, JsonElement> readerEntry = readerIt.next();
+
+                                long ts = System.currentTimeMillis();
+                                JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
+
+                                if (tsObject.has("ts")) {
+                                    ts = tsObject.get("ts").getAsLong();
+                                }
+
+                                if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
+                                    Room room = mStore.getRoom(event.roomId);
+
+                                    if (null != room) {
+                                        if (room.setReadReceiptToken(eventId, ts)) {
+                                            onReceiptEvent(event.roomId);
+                                        }
                                     }
-                                }
-                            } else {
-                                Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
-                                ArrayList<Receipt> nextReceipts;
-
-                                if (null == readReceipts) {
-                                    nextReceipts = new ArrayList<>();
                                 } else {
-                                    nextReceipts = new ArrayList<>(readReceipts);
+                                    Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
+                                    ArrayList<Receipt> nextReceipts;
+
+                                    if (null == readReceipts) {
+                                        nextReceipts = new ArrayList<>();
+                                    } else {
+                                        nextReceipts = new ArrayList<>(readReceipts);
+                                    }
+
+                                    nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
+                                    Collections.sort(nextReceipts, Receipt.descComparator);
+                                    mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
+
+                                    onReceiptEvent(event.roomId);
                                 }
-
-                                nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
-                                Collections.sort(nextReceipts, Receipt.descComparator);
-                                mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
-
-                                onReceiptEvent(event.roomId);
                             }
                         }
                     }
@@ -575,9 +593,10 @@ public class MXDataHandler implements IMXEventListener {
 
             BingRule bingRule;
             boolean outOfTimeEvent = false;
+            JsonObject eventContent = event.getContentAsJsonObject();
 
-            if (event.content.has("lifetime")) {
-                long maxlifetime = event.content.get("lifetime").getAsLong();
+            if (eventContent.has("lifetime")) {
+                long maxlifetime = eventContent.get("lifetime").getAsLong();
                 long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
                 outOfTimeEvent = eventLifeTime > maxlifetime;
@@ -658,7 +677,7 @@ public class MXDataHandler implements IMXEventListener {
         if (null != room) {
             if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                 if (event.redacts != null) {
-                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
+                    mStore.updateEventContent(event.roomId, event.redacts, event.getContentAsJsonObject());
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
                 // the candidate events are not stored.
@@ -668,7 +687,7 @@ public class MXDataHandler implements IMXEventListener {
                 // if the user leaves a room,
                 // the server scho could try to delete the room file
                 if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
-                    String membership = event.content.getAsJsonPrimitive("membership").getAsString();
+                    String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                     if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                         store = false;
@@ -749,7 +768,7 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onLiveEvent(Event event, RoomState roomState) {
         //
-        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.type)) {
+        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, event.type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type)) {
             if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
                 mUpdatedRoomIdList.add(roomState.roomId);
             }

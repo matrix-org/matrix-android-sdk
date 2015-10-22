@@ -27,8 +27,10 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
+import org.json.JSONObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -259,11 +261,13 @@ public class Room {
                         // Typing notifications events are not room messages nor room state events
                         // They are just volatile information
 
-                        if (event.content.has("user_ids")) {
+                        JsonObject eventContent = event.getContentAsJsonObject();
+
+                        if (eventContent.has("user_ids")) {
                             mTypingUsers = null;
 
                             try {
-                                mTypingUsers =  (new Gson()).fromJson(event.content.get("user_ids"), new TypeToken<List<String>>(){}.getType());
+                                mTypingUsers =  (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>(){}.getType());
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
                             }
@@ -506,7 +510,7 @@ public class Room {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             mDataRetriever.getRoomsRestClient().sendMessage(event.originServerTs + "", mRoomId, JsonUtils.toMessage(event.content), localCB);
         } else {
-            mDataRetriever.getRoomsRestClient().sendEvent(mRoomId, event.type, event.content, localCB);
+            mDataRetriever.getRoomsRestClient().sendEvent(mRoomId, event.type, event.content.getAsJsonObject(), localCB);
         }
     }
 
@@ -1101,7 +1105,7 @@ public class Room {
      */
     public void sendReadReceipt() {
         RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
-        Event event = mDataHandler.getStore().getLatestMessageEvent(getRoomId());
+        Event event = mDataHandler.getStore().getLatestEvent(getRoomId());
 
         if ((null != event) && (null != summary)) {
             // any update
@@ -1117,7 +1121,7 @@ public class Room {
      */
     public void initReadReceiptToken() {
         RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
-        Event event = mDataHandler.getStore().getLatestMessageEvent(getRoomId());
+        Event event = mDataHandler.getStore().getLatestEvent(getRoomId());
 
         if ((null != summary) && (null != event)){
             if (null == summary.getReadReceiptToken()) {
@@ -1146,17 +1150,17 @@ public class Room {
     }
 
     /**
-     *  refresh the unread messages counts.
+     *  refresh the unread events counts.
      */
     public void refreshUnreadCounter() {
         RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
 
         if (null != summary) {
-            int prevValue = summary.getUnreadMessagesCount();
+            int prevValue = summary.getUnreadEventsCount();
             int newValue = mDataHandler.getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
 
             if (prevValue != newValue) {
-                summary.setUnreadMessagesCount(newValue);
+                summary.setUnreadEventsCount(newValue);
                 mDataHandler.getStore().flushSummary(summary);
                 mDataHandler.getStore().commit();
             }
@@ -1166,11 +1170,11 @@ public class Room {
     /**
      * @return the unread messages count.
      */
-    public int getUnreadMessagesCount() {
+    public int getUnreadEventsCount() {
         RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
 
         if (null != summary) {
-            return summary.getUnreadMessagesCount();
+            return summary.getUnreadEventsCount();
         }
         return 0;
     }

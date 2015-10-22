@@ -300,7 +300,7 @@ public class RoomState implements java.io.Serializable {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.content : event.prevContent;
+        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {

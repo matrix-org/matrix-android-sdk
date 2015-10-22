@@ -67,7 +67,7 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_CALL_HANGUP = "m.call.hangup";
 
     public String type;
-    public transient JsonObject content = null;
+    public transient JsonElement content = null;
     private String contentAsString = null;
 
     public String eventId;
@@ -78,7 +78,7 @@ public class Event implements java.io.Serializable {
 
     // Specific to state events
     public String stateKey;
-    public transient JsonObject prevContent = null;
+    public transient JsonElement prevContent = null;
     private String prevContentAsString = null;
 
     // Specific to redactions
@@ -165,6 +165,20 @@ public class Event implements java.io.Serializable {
 
     public void setOriginServerTs(long anOriginServer) {
         originServerTs = anOriginServer;
+    }
+
+    public JsonObject getContentAsJsonObject() {
+        if ((null != content) && content.isJsonObject()) {
+            return content.getAsJsonObject();
+        }
+        return null;
+    }
+
+    public JsonObject getPrevContentAsJsonObject() {
+        if ((null != prevContent) && prevContent.isJsonObject()) {
+            return prevContent.getAsJsonObject();
+        }
+        return null;
     }
 
     /**
