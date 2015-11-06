@@ -93,7 +93,7 @@ public class DataRetriever {
                         public void run() {
                             callback.onSuccess(storageResponse);
                         }
-                    }, (null == token) ? 0 : 100);
+                    }, (null == token) ? 0 : 300);
                 }
             };
 

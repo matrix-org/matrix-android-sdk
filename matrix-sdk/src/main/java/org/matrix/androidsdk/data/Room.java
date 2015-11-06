@@ -721,7 +721,7 @@ public class Room {
                         public void run() {
                             manageEvents(callback);
                         }
-                    }, 100);
+                    }, 300);
                 }
             };
 
