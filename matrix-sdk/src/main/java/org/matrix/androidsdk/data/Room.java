@@ -712,16 +712,16 @@ public class Room {
         if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
             final android.os.Handler handler = new android.os.Handler();
 
-            // call the callback with a delay (and on the UI thread).
+            // call the callback with a delay
             // to reproduce the same behaviour as a network request.
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    handler.post(new Runnable() {
+                    handler.postDelayed(new Runnable() {
                         public void run() {
                             manageEvents(callback);
                         }
-                    });
+                    }, 100);
                 }
             };
 

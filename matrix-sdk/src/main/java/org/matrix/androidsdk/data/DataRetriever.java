@@ -77,22 +77,23 @@ public class DataRetriever {
      * @param token the token to go back from. Null to start from live.
      * @param callback the onComplete callback
      */
-    public void requestRoomHistory(final String roomId, String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void requestRoomHistory(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler();
 
-            // call the callback with a delay (and on the UI thread).
-            // to reproduce the same behaviour as a network request. 
+            // call the callback with a delay
+            // to reproduce the same behaviour as a network request.
+            // except for the initial request.
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    handler.post(new Runnable() {
+                    handler.postDelayed(new Runnable() {
                         public void run() {
                             callback.onSuccess(storageResponse);
                         }
-                    });
+                    }, (null == token) ? 0 : 100);
                 }
             };
 
