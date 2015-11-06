@@ -164,7 +164,7 @@ public class EventDisplay {
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "getTextualDisplay() "+e);
+            Log.e(LOG_TAG, "getTextualDisplay() " + e);
         }
 
         return text;

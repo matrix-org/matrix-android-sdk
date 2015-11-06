@@ -224,12 +224,23 @@ public class MXDataHandler implements IMXEventListener {
         if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
             mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
 
-            // To store the summary, we need the last event and the room state from just before
-            Event lastEvent = roomResponse.messages.chunk.get(roomResponse.messages.chunk.size() - 1);
-            RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
-            beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+            int index = roomResponse.messages.chunk.size() - 1;
 
-            mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+            while (index >= 0) {
+                // To store the summary, we need the last event and the room state from just before
+                Event lastEvent = roomResponse.messages.chunk.get(index);
+
+                if (RoomSummary.isSupportedEvent(lastEvent)) {
+                    RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+
+                    mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+
+                    index = -1;
+                } else {
+                    index--;
+                }
+            }
         }
 
         // Handle presence
@@ -685,7 +696,7 @@ public class MXDataHandler implements IMXEventListener {
 
                 // thread issue
                 // if the user leaves a room,
-                // the server scho could try to delete the room file
+                // the server echo could try to delete the room file
                 if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
                     String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
@@ -700,7 +711,12 @@ public class MXDataHandler implements IMXEventListener {
 
                 if (store) {
                     mStore.storeLiveRoomEvent(event);
-                    mStore.storeSummary(getUserId(), event.roomId, event, room.getLiveState(), mCredentials.userId);
+
+                    if (RoomSummary.isSupportedEvent(event)) {
+                        mStore.storeSummary(getUserId(), event.roomId, event, room.getLiveState(), mCredentials.userId);
+                    } else {
+                        Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
+                    }
                 }
             }
         }

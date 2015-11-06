@@ -16,8 +16,13 @@
 
 package org.matrix.androidsdk.data;
 
+import android.text.Html;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.google.gson.JsonObject;
+
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PublicRoom;
@@ -71,6 +76,22 @@ public class RoomSummary implements java.io.Serializable {
 
         mReadReceiptToken = null;
         mReadReceiptTs = -1;
+    }
+
+    /**
+     * Test if the event can be summarized.
+     * Some event types are not yet supported.
+     * @param event the event to test.
+     * @return true if the event can be summarized
+     */
+    public static boolean isSupportedEvent(Event event) {
+        String type = event.type;
+
+        return  TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
+                (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
     }
 
     public String getMatrixId() {
