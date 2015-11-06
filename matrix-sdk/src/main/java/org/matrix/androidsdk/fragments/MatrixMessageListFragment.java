@@ -1105,6 +1105,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
+            final int countBeforeUpdate = mAdapter.getCount();
 
             boolean isStarted = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
@@ -1119,7 +1120,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // else the one by one message refresh gives a weird UX
                             // The application is almost frozen during the
                             mAdapter.notifyDataSetChanged();
-                            mMessageListView.setSelection(firstPos + count);
+                            
+                            // do not use count because some messages are not displayed
+                            // so we compute the new pos
+                            mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
                             mIsCatchingUp = false;
                         }
                     });
