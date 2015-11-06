@@ -355,6 +355,19 @@ public class MXCallsManager {
     }
 
     /**
+     * @return true if there are some active calls.
+     */
+    public boolean hasActiveCalls() {
+        Boolean res;
+
+        synchronized (this) {
+            res = (0 != mCallsByCallId.size());
+        }
+
+        return res;
+    }
+
+    /**
      * Manage the call events.
      * @param event the call event.
      */
