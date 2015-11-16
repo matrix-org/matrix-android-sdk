@@ -614,17 +614,47 @@ public class MXJingleCall extends MXCall {
     private VideoTrack createVideoTrack() {
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
-            mVideoCapturer = VideoCapturerAndroid.create((null != mFrontCameraName) ? mFrontCameraName : mBackCameraName);
 
-            MediaConstraints videoConstraints = new MediaConstraints();
+            if (null != mFrontCameraName) {
+                mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
 
-            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
+                if (null == mVideoCapturer) {
+                    Log.e(LOG_TAG, "Cannot create Video Capturer from front camera");
+                }
+            }
 
-            mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
-            mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
-            mLocalVideoTrack.setEnabled(true);
-            mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
+            if ((null == mVideoCapturer) && (null != mBackCameraName)) {
+                mVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
+
+                if (null == mVideoCapturer) {
+                    Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
+                }
+            }
+
+            if (null != mVideoCapturer) {
+                try {
+                    MediaConstraints videoConstraints = new MediaConstraints();
+
+                    videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                            MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
+
+                    mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
+                    mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
+                    mLocalVideoTrack.setEnabled(true);
+                    mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getLocalizedMessage());
+
+                    mLocalVideoTrack = null;
+
+                    if (null != mVideoSource) {
+                        mVideoSource.dispose();
+                        mVideoSource = null;
+                    }
+                }
+            } else {
+                Log.e(LOG_TAG, "Cannot create Video Capturer");
+            }
         }
 
         return mLocalVideoTrack;
