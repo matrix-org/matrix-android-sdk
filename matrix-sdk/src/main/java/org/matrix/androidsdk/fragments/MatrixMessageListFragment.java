@@ -222,6 +222,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
+
+        int selectionIndex = 0;
+
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = createMessagesAdapter();
@@ -229,10 +232,26 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
+        } else {
+            if (savedInstanceState.containsKey("FIRST_VISIBLE_ROW")) {
+                selectionIndex = savedInstanceState.getInt("FIRST_VISIBLE_ROW");
+            }
         }
+
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
-        mMessageListView.setSelection(0);
+
+        final int fselectionIndex = selectionIndex;
+
+        // fill the page
+        mMessageListView.post(new Runnable() {
+            @Override
+            public void run() {
+                mMessageListView.setSelection(fselectionIndex);
+            }
+        });
+
+
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -253,6 +272,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (null != mMessageListView) {
+            int selected = mMessageListView.getFirstVisiblePosition();
+
+            // ListView always returns the previous index while filling from bottom
+            if (selected > 0) {
+                selected++;
+            }
+
+            outState.putInt("FIRST_VISIBLE_ROW", selected);
+        }
     }
 
     /**
