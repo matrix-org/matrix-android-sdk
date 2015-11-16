@@ -91,6 +91,7 @@ public class RoomSummary implements java.io.Serializable {
                 TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                 TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                 TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
                 (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
     }
 
