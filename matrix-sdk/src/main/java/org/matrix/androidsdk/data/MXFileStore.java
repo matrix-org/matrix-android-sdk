@@ -1375,10 +1375,12 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
         super.storeEventReceipts(roomId, eventId, receipts);
-
         Pair<String, String> pair = new Pair<>(roomId, eventId);
-        if (mRoomsToCommitForReceipt.indexOf(pair) < 0) {
-            mRoomsToCommitForReceipt.add(pair);
+
+        synchronized (MXFileStore.this) {
+            if (mRoomsToCommitForReceipt.indexOf(pair) < 0) {
+                mRoomsToCommitForReceipt.add(pair);
+            }
         }
     }
 
@@ -1437,12 +1439,15 @@ public class MXFileStore extends MXMemoryStore {
      */
     public void saveEventReceipts() {
         super.flushEventReceipts();
-        ArrayList<Pair<String, String>> receiptPairs = mRoomsToCommitForReceipt;
 
-        for(Pair<String, String>pair : receiptPairs) {
-            saveReceipts(pair.first, pair.second);
+        synchronized (this) {
+            ArrayList<Pair<String, String>> receiptPairs = mRoomsToCommitForReceipt;
+
+            for (Pair<String, String> pair : receiptPairs) {
+                saveReceipts(pair.first, pair.second);
+            }
+
+            mRoomsToCommitForReceipt.clear();
         }
-
-        mRoomsToCommitForReceipt.clear();
     }
 }
