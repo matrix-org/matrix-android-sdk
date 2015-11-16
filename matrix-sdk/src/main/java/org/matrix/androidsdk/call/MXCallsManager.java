@@ -19,6 +19,7 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Handler;
+import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -378,7 +379,7 @@ public class MXCallsManager {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Boolean isMyEvent = event.userId.equals(mSession.getMyUser().userId);
+                    Boolean isMyEvent = TextUtils.equals(event.userId, mSession.getMyUser().userId);
                     Room room = mSession.getDataHandler().getRoom(event.roomId);
 
                     String callId = null;

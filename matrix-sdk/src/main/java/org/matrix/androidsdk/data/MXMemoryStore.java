@@ -343,7 +343,7 @@ public class MXMemoryStore implements IMXStore {
 
                             if (gotIt) {
                                 // count only the other members message
-                                if (!lastEvent.userId.equals(mCredentials.userId)) {
+                                if (!TextUtils.equals(lastEvent.userId, mCredentials.userId)) {
                                     count++;
                                 }
                             } else {
@@ -553,7 +553,7 @@ public class MXMemoryStore implements IMXStore {
 
                 if (null != fromToken) {
                     // search if token is one of the stored events
-                    for (; (index < eventsList.size()) && (!fromToken.equals(eventsList.get(index).mToken)); index++)
+                    for (; (index < eventsList.size()) && (!TextUtils.equals(fromToken,eventsList.get(index).mToken)); index++)
                         ;
 
                     index++;

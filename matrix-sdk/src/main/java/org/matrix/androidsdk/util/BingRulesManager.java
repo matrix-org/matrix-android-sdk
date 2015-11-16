@@ -137,7 +137,7 @@ public class BingRulesManager {
         }
 
         // do not trigger notification for oneself messages
-        if ((null != event.userId) && (event.userId.equals(mMyUserId))) {
+        if ((null != event.userId) && TextUtils.equals(event.userId, mMyUserId)) {
             return null;
         }
 

@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
@@ -174,8 +175,8 @@ public class MXFileStore extends MXMemoryStore {
 
         if ( (null == mMetadata) ||
                 (mMetadata.mVersion != MXFILE_VERSION) ||
-                !mMetadata.mUserId.equals(mCredentials.userId) ||
-                !mMetadata.mAccessToken.equals(mCredentials.accessToken)) {
+                !TextUtils.equals(mMetadata.mUserId, mCredentials.userId) ||
+                !TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken)) {
             deleteAllData(true);
         }
 
@@ -236,9 +237,9 @@ public class MXFileStore extends MXMemoryStore {
             Log.d(LOG_TAG, "++ Commit");
             saveRoomsMessages();
             saveRoomStates();
-            saveMetaData();
             saveSummaries();
             saveEventReceipts();
+            saveMetaData();
             Log.d(LOG_TAG, "-- Commit");
         }
     }

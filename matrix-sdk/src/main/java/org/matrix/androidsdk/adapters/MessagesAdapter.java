@@ -816,8 +816,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
-            willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
+            isMergedView = TextUtils.equals(prevUserId, msg.userId);
+            willBeMerged = TextUtils.equals(nextUserId, msg.userId);
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
@@ -1203,14 +1203,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadFractionView.setFraction(percentageProgress);
                         }
                     }
 
                     @Override
                     public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
                                     uploadProgressLayout.setVisibility(View.GONE);
@@ -1321,14 +1321,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                        if (aDownloadId.equals(fDownloadId)) {
+                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
                             downloadPieFractionView.setFraction(percentageProgress);
                         }
                     }
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
-                        if (aDownloadId.equals(fDownloadId)) {
+                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
 
                             if (null != mMessagesAdapterEventsListener) {
@@ -1418,7 +1418,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         CharSequence notice;
 
-        if (msg.type.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+        if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
             notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
         } else {
             EventDisplay display = new EventDisplay(mContext, msg, roomState);
@@ -1503,14 +1503,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             @Override
             public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                if (aDownloadId.equals(downloadId)) {
+                if (TextUtils.equals(aDownloadId, downloadId)) {
                     downloadPieFractionView.setFraction(percentageProgress);
                 }
             }
 
             @Override
             public void onDownloadComplete(String aDownloadId) {
-                if (aDownloadId.equals(downloadId)) {
+                if (TextUtils.equals(aDownloadId, downloadId)) {
                     fileTextView.setVisibility(View.VISIBLE);
                     fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
@@ -1646,14 +1646,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                         @Override
                         public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                            if (aDownloadId.equals(fDownloadId)) {
+                            if (TextUtils.equals(aDownloadId, fDownloadId)) {
                                 downloadPieFractionView.setFraction(percentageProgress);
                             }
                         }
 
                         @Override
                         public void onDownloadComplete(String aDownloadId) {
-                            if (aDownloadId.equals(fDownloadId)) {
+                            if (TextUtils.equals(aDownloadId, fDownloadId)) {
                                 downloadProgressLayout.setVisibility(View.GONE);
                             }
 
@@ -1708,7 +1708,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             if (progress >= 0) {
                 final String url = uploadingUrl;
-                final boolean isContentUpload = uploadingUrl.equals(videoMessage.url);
+                final boolean isContentUpload = TextUtils.equals(uploadingUrl, videoMessage.url);
 
                 mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
                     @Override
@@ -1718,7 +1718,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             int progress;
 
                             if (isContentUpload) {
@@ -1733,7 +1733,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
                                     uploadProgressLayout.setVisibility(View.GONE);
@@ -1846,7 +1846,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 String userId = mTypingUsers.get(0);
                 MyUser myUser = mSession.getMyUser();
 
-                if (userId.equals(myUser.userId)) {
+                if (TextUtils.equals(userId, myUser.userId)) {
                     mTypingUsers = typingUsers;
                     return;
                 }

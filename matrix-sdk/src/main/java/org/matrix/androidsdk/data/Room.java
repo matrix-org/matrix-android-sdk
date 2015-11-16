@@ -255,9 +255,9 @@ public class Room {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
-                if (mRoomId.equals(event.roomId) && mIsReady) {
+                if (TextUtils.equals(mRoomId, event.roomId) && mIsReady) {
 
-                    if (event.type.equals(Event.EVENT_TYPE_TYPING)) {
+                    if (TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)) {
                         // Typing notifications events are not room messages nor room state events
                         // They are just volatile information
 
@@ -302,7 +302,7 @@ public class Room {
             @Override
             public void onBackEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(event.roomId)) {
+                if (TextUtils.equals(mRoomId, event.roomId)) {
                     try {
                         eventListener.onBackEvent(event, roomState);
                     } catch (Exception e) {
@@ -314,7 +314,7 @@ public class Room {
             @Override
             public void onDeleteEvent(Event event) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(event.roomId)) {
+                if (TextUtils.equals(mRoomId, event.roomId)) {
                     try {
                         eventListener.onDeleteEvent(event);
                     } catch (Exception e) {
@@ -326,7 +326,7 @@ public class Room {
             @Override
             public void onResendingEvent(Event event) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(event.roomId)) {
+                if (TextUtils.equals(mRoomId, event.roomId)) {
                     try {
                         eventListener.onResendingEvent(event);
                     } catch (Exception e) {
@@ -351,7 +351,7 @@ public class Room {
             @Override
             public void onRoomInitialSyncComplete(String roomId) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(roomId)) {
+                if (TextUtils.equals(mRoomId, roomId)) {
                     try {
                         eventListener.onRoomInitialSyncComplete(roomId);
                     } catch (Exception e) {
@@ -363,7 +363,7 @@ public class Room {
             @Override
             public void onRoomInternalUpdate(String roomId) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(roomId)) {
+                if (TextUtils.equals(mRoomId, roomId)) {
                     try {
                         eventListener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
@@ -375,7 +375,7 @@ public class Room {
             @Override
             public void onReceiptEvent(String roomId) {
                 // Filter out events for other rooms
-                if (mRoomId.equals(roomId)) {
+                if (TextUtils.equals(mRoomId, roomId)) {
                     try {
                         eventListener.onReceiptEvent(roomId);
                     } catch (Exception e) {

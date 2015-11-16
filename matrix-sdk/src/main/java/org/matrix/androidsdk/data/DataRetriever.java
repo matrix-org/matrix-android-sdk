@@ -113,7 +113,7 @@ public class DataRetriever {
 
                         Event firstReturnedEvent = info.chunk.get(0);
                         if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                && oldestEvent.eventId.equals(firstReturnedEvent.eventId)) {
+                                && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
                             info.chunk.remove(0);
                         }
                     }

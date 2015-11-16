@@ -69,7 +69,7 @@ public class EventUtils {
         }
 
         // No notification if the user is currently viewing the room
-        if (event.roomId.equals(activeRoomID)) {
+        if (TextUtils.equals(event.roomId, activeRoomID)) {
             return false;
         }
 
@@ -79,7 +79,7 @@ public class EventUtils {
 
         Room room = session.getDataHandler().getRoom(event.roomId);
         if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
-                && !event.userId.equals(session.getCredentials().userId)) {
+                && !TextUtils.equals(event.userId, session.getCredentials().userId)) {
             return true;
         }
         return false;

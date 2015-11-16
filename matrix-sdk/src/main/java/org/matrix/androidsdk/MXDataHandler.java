@@ -399,7 +399,7 @@ public class MXDataHandler implements IMXEventListener {
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
         if (isActive()) {
             for (RoomMember member : members) {
-                if (userID.equals(member.getUserId())) {
+                if (TextUtils.equals(userID, member.getUserId())) {
                     return member;
                 }
             }

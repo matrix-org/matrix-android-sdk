@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -303,7 +304,7 @@ public class MXChromeCall extends MXCall {
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
             // event from other member
-            if (!event.userId.equals(mSession.getMyUser().userId)) {
+            if (!TextUtils.equals(event.userId, mSession.getMyUser().userId)) {
                 if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
@@ -581,11 +582,11 @@ public class MXChromeCall extends MXCall {
                         JsonObject content = (JsonObject) new JsonParser().parse(jsonContent);
 
                         // merge candidates
-                        if (eventType.equals(Event.EVENT_TYPE_CALL_CANDIDATES) && (mPendingEvents.size() > 0)) {
+                        if (TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_CANDIDATES) && (mPendingEvents.size() > 0)) {
                             try {
                                 Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                     JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                     JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
@@ -608,14 +609,14 @@ public class MXChromeCall extends MXCall {
 
                             if (null != event) {
                                 // receive an hangup -> close the window asap
-                                if (eventType.equals(Event.EVENT_TYPE_CALL_HANGUP)) {
+                                if (TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_HANGUP)) {
                                     sendHangup(event);
                                 } else {
                                     mPendingEvents.add(event);
                                 }
 
                                 // the calleee has 30s to answer to call
-                                if (eventType.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+                                if (TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_INVITE)) {
                                     mCallTimeoutTimer = new Timer();
                                     mCallTimeoutTimer.schedule(new TimerTask() {
                                         @Override

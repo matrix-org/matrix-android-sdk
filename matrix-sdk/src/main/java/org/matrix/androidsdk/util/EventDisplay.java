@@ -19,6 +19,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonNull;
@@ -100,7 +101,7 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                 String msgtype = (null != eventContent.get("msgtype")) ? eventContent.get("msgtype").getAsString() : "";
 
-                if (msgtype.equals(Message.MSGTYPE_IMAGE)) {
+                if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE)) {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else {
                     // all m.room.message events should support the 'body' key fallback, so use it.
@@ -114,7 +115,7 @@ public class EventDisplay {
                         }
                     }
 
-                    if (msgtype.equals(Message.MSGTYPE_EMOTE)) {
+                    if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
                         text = "* " + userDisplayName +  " " + text;
                     } else if (mPrependAuthor) {
                         text = mContext.getString(R.string.summary_message, userDisplayName, text);
@@ -206,7 +207,7 @@ public class EventDisplay {
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
-            if (msg.userId.equals(msg.stateKey)) {
+            if (TextUtils.equals(msg.userId, msg.stateKey)) {
                 return context.getString(R.string.notice_room_leave, userDisplayName);
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
@@ -246,15 +247,8 @@ public class EventDisplay {
         if (prevContent.has(key) && eventContent.has(key)) {
             String old = prevContent.get(key) == JsonNull.INSTANCE ? null : prevContent.get(key).getAsString();
             String current = eventContent.get(key) == JsonNull.INSTANCE ? null : eventContent.get(key).getAsString();
-            if (old == null && current == null) {
-                return false;
-            }
-            else if (old != null) {
-                return !old.equals(current);
-            }
-            else {
-                return !current.equals(old);
-            }
+
+            return !TextUtils.equals(old, current);
         }
         else if (!prevContent.has(key) && !eventContent.has(key)) {
             return false; // this key isn't in either prev or current

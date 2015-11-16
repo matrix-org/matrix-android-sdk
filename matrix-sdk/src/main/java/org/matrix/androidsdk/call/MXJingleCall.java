@@ -445,7 +445,7 @@ public class MXJingleCall extends MXCall {
                                         try {
                                             Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                            if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                            if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                                 JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                                 JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
@@ -1028,7 +1028,7 @@ public class MXJingleCall extends MXCall {
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
             // event from other member
-            if (!event.userId.equals(mSession.getMyUser().userId)) {
+            if (!TextUtils.equals(event.userId, mSession.getMyUser().userId)) {
                 if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
@@ -1054,7 +1054,7 @@ public class MXJingleCall extends MXCall {
                     @Override
                     public void run() {
                         // ring on this side
-                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING)) {
+                        if (TextUtils.equals(getCallState(), IMXCall.CALL_STATE_RINGING)) {
                             onAnsweredElsewhere();
                         }
                     }

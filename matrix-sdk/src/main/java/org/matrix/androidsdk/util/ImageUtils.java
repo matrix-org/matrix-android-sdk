@@ -74,7 +74,7 @@ public class ImageUtils {
             return orientation;
         }
 
-        if (uri.getScheme().equals("content")) {
+        if (TextUtils.equals(uri.getScheme(), "content")) {
             String [] proj= {MediaStore.Images.Media.DATA};
             Cursor cursor = null;
             try {
@@ -102,7 +102,7 @@ public class ImageUtils {
                 }
             }
         }
-        else if (uri.getScheme().equals("file")) {
+        else if (TextUtils.equals(uri.getScheme(), "file")) {
             try {
                 ExifInterface exif = new ExifInterface(uri.getPath());
                 orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);

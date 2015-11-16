@@ -151,7 +151,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
                             MessageRow row = mAdapter.getItem(i);
-                            refresh |= user.userId.equals(row.getEvent().userId);
+                            refresh |= TextUtils.equals(user.userId, row.getEvent().userId);
                         }
                     }
 
@@ -631,7 +631,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
         }
 
-        final Boolean isContentUpload = uploadId.equals(videoUrl);
+        final Boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
 
         getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {
