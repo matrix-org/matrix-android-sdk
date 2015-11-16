@@ -392,7 +392,7 @@ public class EventsThread extends Thread {
                         }
 
                         mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
-                        Log.d(LOG_TAG, "mCurrentToken is not set to " + eventsResponse.end);
+                        Log.d(LOG_TAG, "mCurrentToken is now set to " + eventsResponse.end);
                         mCurrentToken = eventsResponse.end;
                     }
 

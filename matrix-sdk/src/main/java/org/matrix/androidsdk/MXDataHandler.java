@@ -375,18 +375,30 @@ public class MXDataHandler implements IMXEventListener {
 
         // check if there is something to do
         if (0 != events.size()) {
-            Log.e(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
+            Log.d(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
 
             for (Event event : events) {
-                handleLiveEvent(event);
+                try {
+                    handleLiveEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "handleLiveEvent cannot process event " + e + " " + e.getStackTrace());
+                }
             }
 
-            Log.e(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
+            Log.d(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
 
-            onLiveEventsChunkProcessed();
+            try {
+                onLiveEventsChunkProcessed();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+            }
 
-            // check if an incoming call has been received
-            mCallsManager.checkPendingIncomingCalls();
+            try {
+                // check if an incoming call has been received
+                mCallsManager.checkPendingIncomingCalls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+            }
         }
     }
 

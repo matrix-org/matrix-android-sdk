@@ -336,12 +336,14 @@ public class MXMemoryStore implements IMXStore {
                     Boolean gotIt = false;
                     Iterator<Event> it = events.values().iterator();
                     if (it.hasNext()) {
-                        Event lastEvent = null;
+                        Event lastEvent;
 
                         while (it.hasNext()) {
                             lastEvent = it.next();
 
-                            if (gotIt) {
+                            if (null == lastEvent.userId) {
+                              Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
+                            } else if (gotIt) {
                                 // count only the other members message
                                 if (!TextUtils.equals(lastEvent.userId, mCredentials.userId)) {
                                     count++;
