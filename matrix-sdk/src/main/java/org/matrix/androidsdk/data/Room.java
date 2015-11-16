@@ -264,17 +264,20 @@ public class Room {
                         JsonObject eventContent = event.getContentAsJsonObject();
 
                         if (eventContent.has("user_ids")) {
-                            mTypingUsers = null;
+                            synchronized (Room.this) {
+                                mTypingUsers = null;
 
-                            try {
-                                mTypingUsers =  (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>(){}.getType());
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
-                            }
+                                try {
+                                    mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                    }.getType());
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
+                                }
 
-                            // avoid null list
-                            if (null == mTypingUsers) {
-                                mTypingUsers = new ArrayList<String>();
+                                // avoid null list
+                                if (null == mTypingUsers) {
+                                    mTypingUsers = new ArrayList<String>();
+                                }
                             }
                         }
                     }
@@ -1184,7 +1187,14 @@ public class Room {
      * @return the userIds list
      */
     public ArrayList<String> getTypingUsers() {
-        return (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<String>(mTypingUsers);
+
+        ArrayList<String> typingUsers;
+
+        synchronized (Room.this) {
+            typingUsers = (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<String>(mTypingUsers);
+        }
+
+        return typingUsers;
     }
 
     /**
