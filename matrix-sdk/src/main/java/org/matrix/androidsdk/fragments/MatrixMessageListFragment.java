@@ -845,6 +845,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        if (null == mPendingRelaunchTimersByEventId) {
+            Log.e(LOG_TAG, "resend : with a destroyed list fragment");
+            return;
+        }
+
         // remove the event
         getSession().getDataHandler().deleteRoomEvent(event);
         mAdapter.removeEventById(event.eventId);
