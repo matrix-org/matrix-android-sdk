@@ -349,7 +349,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onPause() {
         super.onPause();
-        mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+
+        // check if the session has not been logged out
+        if (mSession.isActive()) {
+            mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+        }
     }
 
     @Override
