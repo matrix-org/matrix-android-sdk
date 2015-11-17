@@ -223,7 +223,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
-        int selectionIndex = 0;
+        int selectionIndex = -1;
 
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
@@ -241,16 +241,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
 
-        final int fselectionIndex = selectionIndex;
+        if (-1 != selectionIndex) {
+            final int fselectionIndex = selectionIndex;
 
-        // fill the page
-        mMessageListView.post(new Runnable() {
-            @Override
-            public void run() {
-                mMessageListView.setSelection(fselectionIndex);
-            }
-        });
-
+            // fill the page
+            mMessageListView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mMessageListView.setSelection(fselectionIndex);
+                }
+            });
+        }
 
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
