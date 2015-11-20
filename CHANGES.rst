@@ -1,3 +1,20 @@
+Changes to Matrix Android SDK in 0.5.2 (2015-11-20)
+===================================================
+
+Improvements:
+ * Now supports setting a default alias for rooms
+ * Rooms can now clear or set ACLs for scrollback 
+ * Better SSL support for older devices
+ * Improved the recent events display
+ * Improved scrolling and update after screen rotation
+
+Features:
+ * Read receipts!
+ * Added refresh_token support
+
+Bug fixes:
+ * Fixed a case where the user got randomly logged out
+ * Fixed echo during Android<->Android VOIP calls 
 
 Changes in Matrix Android SDK in 0.5.1 (2015-09-30)
 ===================================================
