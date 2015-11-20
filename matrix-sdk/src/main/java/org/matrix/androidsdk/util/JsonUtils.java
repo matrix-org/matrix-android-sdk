@@ -18,6 +18,7 @@ package org.matrix.androidsdk.util;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
@@ -61,23 +62,23 @@ public class JsonUtils {
         return withNullSerialization ? gsonWithNullSerialization : gson;
     }
 
-    public static RoomState toRoomState(JsonObject jsonObject) {
+    public static RoomState toRoomState(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomState.class);
     }
 
-    public static User toUser(JsonObject jsonObject) {
+    public static User toUser(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, User.class);
     }
 
-    public static RoomMember toRoomMember(JsonObject jsonObject) {
+    public static RoomMember toRoomMember(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomMember.class);
     }
 
-    public static JsonObject toJson(RoomMember roomMember) {
-        return (JsonObject) gson.toJsonTree(roomMember);
+    public static JsonElement toJson(RoomMember roomMember) {
+        return gson.toJsonTree(roomMember);
     }
 
-    public static Message toMessage(JsonObject jsonObject) {
+    public static Message toMessage(JsonElement jsonObject) {
         Message message = gson.fromJson(jsonObject, Message.class);
 
         // Try to return the right subclass
@@ -106,19 +107,19 @@ public class JsonUtils {
         return (JsonObject) gson.toJsonTree(message);
     }
 
-    public static ImageMessage toImageMessage(JsonObject jsonObject) {
+    public static ImageMessage toImageMessage(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, ImageMessage.class);
     }
 
-    public static FileMessage toFileMessage(JsonObject jsonObject) {
+    public static FileMessage toFileMessage(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, FileMessage.class);
     }
 
-    public static VideoMessage toVideoMessage(JsonObject jsonObject) {
+    public static VideoMessage toVideoMessage(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, VideoMessage.class);
     }
 
-    public static LocationMessage toLocationMessage(JsonObject jsonObject) {
+    public static LocationMessage toLocationMessage(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, LocationMessage.class);
     }
 
@@ -126,7 +127,7 @@ public class JsonUtils {
         return gson.fromJson(jsonString, ContentResponse.class);
     }
 
-    public static PowerLevels toPowerLevels(JsonObject jsonObject) {
+    public static PowerLevels toPowerLevels(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, PowerLevels.class);
     }
 

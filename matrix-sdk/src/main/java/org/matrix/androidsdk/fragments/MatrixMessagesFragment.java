@@ -81,6 +81,7 @@ public class MatrixMessagesFragment extends Fragment {
         public void onDeleteEvent(Event event);
         public void onResendingEvent(Event event);
         public void onResentEvent(Event event);
+        public void onReceiptEvent();
 
         /**
          * Called when the first batch of messages is loaded.
@@ -184,6 +185,11 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onResentEvent(Event event)  {
                 mMatrixMessagesListener.onResentEvent(event);
+            }
+
+            @Override
+            public void onReceiptEvent(String roomId) {
+                mMatrixMessagesListener.onReceiptEvent();
             }
         };
 

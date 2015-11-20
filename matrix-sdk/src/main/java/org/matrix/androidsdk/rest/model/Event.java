@@ -19,11 +19,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.io.IOException;
-import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -60,6 +57,8 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_JOIN_RULES = "m.room.join_rules";
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
+    public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
+    public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
 
     // call events
     public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";
@@ -68,7 +67,7 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_CALL_HANGUP = "m.call.hangup";
 
     public String type;
-    public transient JsonObject content = null;
+    public transient JsonElement content = null;
     private String contentAsString = null;
 
     public String eventId;
@@ -79,7 +78,7 @@ public class Event implements java.io.Serializable {
 
     // Specific to state events
     public String stateKey;
-    public transient JsonObject prevContent = null;
+    public transient JsonElement prevContent = null;
     private String prevContentAsString = null;
 
     // Specific to redactions
@@ -166,6 +165,20 @@ public class Event implements java.io.Serializable {
 
     public void setOriginServerTs(long anOriginServer) {
         originServerTs = anOriginServer;
+    }
+
+    public JsonObject getContentAsJsonObject() {
+        if ((null != content) && content.isJsonObject()) {
+            return content.getAsJsonObject();
+        }
+        return null;
+    }
+
+    public JsonObject getPrevContentAsJsonObject() {
+        if ((null != prevContent) && prevContent.isJsonObject()) {
+            return prevContent.getAsJsonObject();
+        }
+        return null;
     }
 
     /**

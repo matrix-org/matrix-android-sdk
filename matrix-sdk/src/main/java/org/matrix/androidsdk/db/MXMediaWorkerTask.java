@@ -22,6 +22,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -389,8 +390,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 if (mHsConfig != null && connection instanceof HttpsURLConnection) {
                     // Add SSL Socket factory.
                     HttpsURLConnection sslConn = (HttpsURLConnection) connection;
-                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
-                    sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    try {
+                        sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                        sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
+                    } catch (Exception e) {
+                    }
                 }
 
                 // add a timeout to avoid infinite loading display.
@@ -551,7 +555,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             for(WeakReference<ImageView> weakRef : mImageViewReferences) {
                 final ImageView imageView = weakRef.get();
 
-                if (imageView != null && mUrl.equals(imageView.getTag())) {
+                if (imageView != null && TextUtils.equals(mUrl, (String)imageView.getTag())) {
                     imageView.setImageBitmap(bitmap);
                 }
             }

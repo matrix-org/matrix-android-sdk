@@ -17,6 +17,7 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -32,6 +33,7 @@ import java.util.regex.Pattern;
  * Utility methods for events.
  */
 public class EventUtils {
+    private static final String LOG_TAG = "EventUtils";
 
     /**
      * Whether the given event should be highlighted in its chat room.
@@ -63,13 +65,24 @@ public class EventUtils {
      * @return true if the event should trigger a notification
      */
     public static boolean shouldNotify(MXSession session, Event event, String activeRoomID) {
+        if ((null == event) || (null == session)) {
+            Log.e(LOG_TAG, "shouldNotify invalid params");
+            return false;
+        }
+
         // Only room events trigger notifications
-        if (event.roomId == null) {
+        if (null == event.roomId) {
+            Log.e(LOG_TAG, "shouldNotify null room ID");
+            return false;
+        }
+
+        if (null == event.userId) {
+            Log.e(LOG_TAG, "shouldNotify null room ID");
             return false;
         }
 
         // No notification if the user is currently viewing the room
-        if (event.roomId.equals(activeRoomID)) {
+        if (TextUtils.equals(event.roomId, activeRoomID)) {
             return false;
         }
 
@@ -79,7 +92,7 @@ public class EventUtils {
 
         Room room = session.getDataHandler().getRoom(event.roomId);
         if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
-                && !event.userId.equals(session.getCredentials().userId)) {
+                && !TextUtils.equals(event.userId, session.getCredentials().userId)) {
             return true;
         }
         return false;

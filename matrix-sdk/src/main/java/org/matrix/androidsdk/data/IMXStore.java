@@ -19,6 +19,7 @@ package org.matrix.androidsdk.data;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -38,7 +39,7 @@ public interface IMXStore {
         /**
          * Called when the store initialization fails.
          */
-        public void onStoreCorrupted(String accountId);
+        public void onStoreCorrupted(String accountId, String description);
     }
 
     /**
@@ -77,6 +78,11 @@ public interface IMXStore {
      * @return true if it is ready.
      */
     public boolean isReady();
+
+    /**
+     * @return true if the store is corrupted.
+     */
+    public boolean isCorrupted();
 
     /**
      * Returns to disk usage size in bytes.
@@ -175,6 +181,14 @@ public interface IMXStore {
     public Event getLatestEvent(String roomId);
 
     /**
+     * Count the number of events after the provided events id
+     * @param roomId the room id.
+     * @param eventId the event id to find.
+     * @return the events count after this event if
+     */
+    public int eventsCountAfter(String roomId, String eventId);
+
+    /**
      * Update an existing event. If the event is not stored, nothing is done.
      * @param roomId the event's room id
      * @param eventId the event's event id
@@ -236,4 +250,26 @@ public interface IMXStore {
      * @return list of unsent events
      */
     public Collection<Event> getLatestUnsentEvents(String roomId);
+
+    /**
+     * Returns the receipts for an event in a dedicated room.
+     * They are sorted from the latest to the oldest ones.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @return the receipts for an event in a dedicated room.
+     */
+    public Collection<Receipt> getEventReceipts(String roomId, String eventId);
+
+    /**
+     * Update the receipts list of an event.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @param receipts The receipts list.
+     */
+    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts);
+
+    /**
+     * Flush the receipt events
+     */
+    public void flushEventReceipts();
 }

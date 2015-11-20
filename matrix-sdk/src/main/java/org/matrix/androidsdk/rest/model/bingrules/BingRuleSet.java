@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.text.TextUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +35,7 @@ public class BingRuleSet {
      */
     private BingRule findRule(List<BingRule> rules, String ruleID) {
         for(BingRule rule : rules) {
-            if (ruleID.equals(rule.ruleId)) {
+            if (TextUtils.equals(ruleID, rule.ruleId)) {
                 return rule;
             }
         }
@@ -61,7 +63,7 @@ public class BingRuleSet {
      * @param rule the rule to add.
      */
     public void addAtTop(BingRule rule) {
-        if (BingRule.KIND_CONTENT.equals(rule.kind)) {
+        if (TextUtils.equals(BingRule.KIND_CONTENT, rule.kind)) {
             if (null != content) {
                 if (rule instanceof ContentRule) {
                     content.add(0, (ContentRule) rule);
@@ -107,7 +109,7 @@ public class BingRuleSet {
      */
     private BingRule findContentRule(List<ContentRule> rules, String ruleID) {
         for(BingRule rule : rules) {
-            if (ruleID.equals(rule.ruleId)) {
+            if (TextUtils.equals(ruleID, rule.ruleId)) {
                 return rule;
             }
         }
@@ -122,9 +124,9 @@ public class BingRuleSet {
     public BingRule findDefaultRule(String ruleId) {
         // sanity check
         if (null != ruleId) {
-            if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(ruleId)) {
+            if (TextUtils.equals(BingRule.RULE_ID_CONTAIN_USER_NAME, ruleId)) {
                 return findContentRule(content, ruleId);
-            } else if (BingRule.RULE_ID_DISABLE_ALL.equals(ruleId) || (BingRule.RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS.equals(ruleId))) {
+            } else if (TextUtils.equals(BingRule.RULE_ID_DISABLE_ALL, ruleId) || TextUtils.equals(BingRule.RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS, ruleId)) {
                 return findRule(override, ruleId);
             } else {
                 return findRule(underride, ruleId);

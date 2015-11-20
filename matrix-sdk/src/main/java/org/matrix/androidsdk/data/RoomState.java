@@ -16,7 +16,11 @@
 
 package org.matrix.androidsdk.data;
 
+import android.graphics.Color;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 
 import com.google.gson.JsonObject;
 
@@ -28,9 +32,12 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,14 +50,20 @@ public class RoomState implements java.io.Serializable {
     public static final String VISIBILITY_PRIVATE = "private";
     public static final String VISIBILITY_PUBLIC = "public";
 
+    public static final String HISTORY_VISIBILITY_SHARED = "shared";
+    public static final String HISTORY_VISIBILITY_INVITED = "invited";
+    public static final String HISTORY_VISIBILITY_JOINED = "joined";
+
     // Public members used for JSON mapping
     public String roomId;
     public String name;
     public String topic;
     public String roomAliasName;
+    public String alias;
     public String visibility;
     public String creator;
     public String joinRule;
+    public String history_visibility;
     public List<String> aliases;
 
     private String token;
@@ -121,6 +134,22 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * Check if the user userId can back paginate.
+     * @param userId the user Id.
+     * @return true if the user can backpaginate.
+     */
+    public Boolean canBackPaginated(String userId) {
+        RoomMember member = getMember(userId);
+        String membership = (null != member) ? member.membership : "";
+        String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
+
+        return visibility.equals(HISTORY_VISIBILITY_SHARED) ||
+                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
+                (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
+                ;
+    }
+
+    /**
      * Make a deep copy of this room state object.
      * @return the copy
      */
@@ -150,11 +179,26 @@ public class RoomState implements java.io.Serializable {
         return copy;
     }
 
+
+    /**
+     * @return the room alias
+     */
+    public String getAlias() {
+        // SPEC-125
+        if (!TextUtils.isEmpty(alias)) {
+            return alias;
+        } else if(!TextUtils.isEmpty(getFirstAlias())) {
+            return getFirstAlias();
+        }
+
+        return null;
+    }
+
     /**
      * Returns the first room alias.
      * @return the first room alias
      */
-    public String getFirstAlias() {
+    private String getFirstAlias() {
         if ((aliases != null) && (aliases.size() != 0)) {
             return aliases.get(0);
         }
@@ -168,17 +212,14 @@ public class RoomState implements java.io.Serializable {
      * @return the display name
      */
     public String getDisplayName(String selfUserId) {
-        String displayName = null, alias = null;
+        String displayName = null;
+        String alias = getAlias();
 
         synchronized (this) {
-            if ((aliases != null) && (aliases.size() != 0)) {
-                alias = aliases.get(0);
-            }
-
             if (name != null) {
                 displayName = name;
-            } else if (alias != null) {
-                displayName = alias;
+            } else if (!TextUtils.isEmpty(alias)) {
+                displayName = getAlias();
             }
             // compute a name
             else if (mMembers.size() > 0) {
@@ -259,63 +300,67 @@ public class RoomState implements java.io.Serializable {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.content : event.prevContent;
+        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
 
-        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            name = (roomState == null) ? null : roomState.name;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            topic = (roomState == null) ? null : roomState.topic;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            creator = (roomState == null) ? null : roomState.creator;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            joinRule = (roomState == null) ? null : roomState.joinRule;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-            RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-            aliases = (roomState == null) ? null : roomState.aliases;
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-            RoomMember member = JsonUtils.toRoomMember(contentToConsider);
-            String userId = event.stateKey;
-            if (member == null) {
-                // the member has already been removed
-                if (null == getMember(userId)) {
-                    return false;
-                }
-                removeMember(userId);
-            }
-            else {
-                member.setUserId(userId);
+        try {
+            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                name = (roomState == null) ? null : roomState.name;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                topic = (roomState == null) ? null : roomState.topic;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                creator = (roomState == null) ? null : roomState.creator;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                joinRule = (roomState == null) ? null : roomState.joinRule;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                aliases = (roomState == null) ? null : roomState.aliases;
+            } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
+                // SPEC-125
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                alias = (roomState == null) ? null : roomState.alias;
+            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+                // SPEC-134
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                history_visibility = (roomState == null) ? null : roomState.history_visibility;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                RoomMember member = JsonUtils.toRoomMember(contentToConsider);
+                String userId = event.stateKey;
+                if (member == null) {
+                    // the member has already been removed
+                    if (null == getMember(userId)) {
+                        return false;
+                    }
+                    removeMember(userId);
+                } else {
+                    member.setUserId(userId);
 
-                RoomMember currentMember = getMember(userId);
+                    RoomMember currentMember = getMember(userId);
 
-                // check if the member is the same
-                // duplicated message ?
-                if (member.equals(currentMember)) {
-                    return false;
-                }
+                    // check if the member is the same
+                    // duplicated message ?
+                    if (member.equals(currentMember)) {
+                        return false;
+                    }
 
-                // when a member leaves a room, his avatar is not anymore provided
-                if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
-                    if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                        if (null == member.avatarUrl) {
-                            member.avatarUrl = currentMember.avatarUrl;
+                    // when a member leaves a room, his avatar is not anymore provided
+                    if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
+                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                            if (null == member.avatarUrl) {
+                                member.avatarUrl = currentMember.avatarUrl;
+                            }
                         }
                     }
-                }
 
-                setMember(userId, member);
+                    setMember(userId, member);
+                }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+                powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             }
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
-            powerLevels = JsonUtils.toPowerLevels(contentToConsider);
+        } catch (Exception e) {
         }
 
         return true;
@@ -327,12 +372,30 @@ public class RoomState implements java.io.Serializable {
      * @return unique display name
      */
     public String getMemberName(String userId) {
+        SpannableStringBuilder span = getMemberName(userId, null);
+
+        // sanity check
+        if (null != span) {
+            return span.toString();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Return an unique display name of the member userId.
+     * @param userId
+     * @param disambiguationColor the color to disambiguous name.
+     * @return unique display name
+     */
+    public SpannableStringBuilder getMemberName(String userId, Integer disambiguationColor) {
         // sanity check
         if (null == userId) {
             return null;
         }
 
         String displayName = null;
+        String colorPart = null;
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
@@ -342,11 +405,29 @@ public class RoomState implements java.io.Serializable {
             displayName = member.displayname;
 
             synchronized (this) {
+                ArrayList<String> matrixIds = new ArrayList<String>();
+
                 // Disambiguate users who have the same displayname in the room
                 for (RoomMember aMember : mMembers.values()) {
-                    if (!aMember.getUserId().equals(userId) && displayName.equals(aMember.displayname)) {
-                        displayName += "(" + userId + ")";
-                        break;
+                    if (displayName.equals(aMember.displayname)) {
+                        matrixIds.add(aMember.getUserId());
+                    }
+                }
+
+                // if several users have the same displayname
+                // index it i.e bob (1)
+                if (matrixIds.size() > 1) {
+                    if (null != disambiguationColor){
+                        Collections.sort(matrixIds);
+
+                        int pos = matrixIds.indexOf(userId);
+
+                        if (pos >= 0) {
+                            colorPart = " (" + (pos + 1) + ")";
+                            displayName += colorPart;
+                        }
+                    } else {
+                        displayName += " (" + userId + ")";
                     }
                 }
             }
@@ -367,6 +448,12 @@ public class RoomState implements java.io.Serializable {
             displayName = userId;
         }
 
-        return displayName;
+        SpannableStringBuilder spannableString = new SpannableStringBuilder(displayName);
+
+        if ((null != disambiguationColor) && !TextUtils.isEmpty(colorPart)) {
+            spannableString.setSpan(new ForegroundColorSpan(disambiguationColor), displayName.length() - colorPart.length(), displayName.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        return spannableString;
     }
 }

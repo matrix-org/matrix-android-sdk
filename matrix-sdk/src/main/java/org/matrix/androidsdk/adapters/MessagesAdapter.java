@@ -21,12 +21,10 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
-import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -43,6 +41,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
@@ -56,6 +55,7 @@ import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
@@ -65,11 +65,8 @@ import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
-import org.w3c.dom.Text;
-
-import java.io.File;
-import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -130,6 +127,36 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param position
          */
         public void onMediaDownloaded(int position);
+
+        /**
+         * Define the action to perform when the user taps on the read receipt.
+         * @param eventId the eventID
+         * @param userId the userId.
+         * @param receipt the receipt.
+         */
+        public void onReadReceiptClick(String eventId, String userId, Receipt receipt);
+
+        /**
+         * Define the action to perform when the user performs a long tap on the read receipt.
+         * @param eventId the eventID
+         * @param userId the userId.
+         * @param receipt the receipt.
+         * @return true if the long click event is managed
+         */
+        public boolean onReadReceiptLongClick(String eventId, String userId, Receipt receipt);
+
+        /**
+         * Define the action to perform when the user taps on the more read receipts button.
+         * @param eventId the eventID
+         */
+        public void onMoreReadReceiptClick(String eventId);
+
+        /**
+         * Define the action to perform when the user performs a long tap  on the more read receipts button.
+         * @param eventId the eventID
+         * @return true if the long clik event is managed
+         */
+        public boolean onMoreReadReceiptLongClick(String eventId);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -178,6 +205,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private Boolean mIsSearchMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+
+    private HashMap<String, ArrayList<Receipt>> mUpToReaderIdsByMsgIds;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -312,6 +341,57 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return NUM_ROW_TYPES;
     }
 
+    /**
+     * The read receipst are displayed to the latest received read receipts.
+     * So, the receipst must be filtered to only keep the latest known ones.
+     */
+    protected void refreshUpToReaders() {
+        HashMap<String, ArrayList<Receipt>> UpToReaderIds = new HashMap<String, ArrayList<Receipt>>();
+
+        if (this.getCount() > 0) {
+            String myUserId = mSession.getMyUser().userId;
+
+            IMXStore store = mSession.getDataHandler().getStore();
+            ArrayList<String> knownUserIds = new ArrayList<String>();
+
+            String roomId = this.getItem(this.getCount() - 1).getRoomState().roomId;
+            Collection<Receipt> receipts;
+
+            for(int index = this.getCount() - 1 ; index >= 0; index--) {
+                Event event = this.getItem(index).getEvent();
+
+                if (myUserId.equals(event.userId)) {
+                    String eventId = event.eventId;
+                    receipts = store.getEventReceipts(roomId, eventId);
+
+                    if ((null != receipts) && (receipts.size() > 0)) {
+                        // copy the list to avoid crashing while looping
+                        ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
+                        ArrayList<Receipt> filteredReceipts = new ArrayList<Receipt>();
+
+                        for (Receipt r : receiptsLists) {
+                            if (knownUserIds.indexOf(r.userId) < 0) {
+                                filteredReceipts.add(r);
+                                knownUserIds.add(r.userId);
+                            }
+                        }
+
+                        if (filteredReceipts.size() > 0) {
+                            UpToReaderIds.put(eventId, filteredReceipts);
+                        }
+                    }
+                }
+            }
+        }
+
+        mUpToReaderIdsByMsgIds = UpToReaderIds;
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+        refreshUpToReaders();
+    }
 
     /**
      * Cancel any pending search and replace the adapter content.
@@ -570,8 +650,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the room state
      * @return teh user display name.
      */
-    protected String getUserDisplayName(String userId, RoomState roomState) {
-        return roomState.getMemberName(userId);
+    protected Spannable getUserDisplayName(String userId, RoomState roomState) {
+        return roomState.getMemberName(userId, Color.GRAY);
     }
 
     /**
@@ -596,6 +676,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Load avatar thumbnail
+     * @param avatarView
+     * @param url
+     */
+    protected void loadSmallAvatar(ImageView avatarView, String url) {
+        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_small_avatar_size);
+        mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
+    }
+
+    /**
      * update the typing view visibility
      * @param avatarLayoutView the avatar layout
      * @param status view.GONE / View.VISIBLE
@@ -604,6 +694,81 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // display the typing icon when required
         ImageView typingImage = (ImageView) avatarLayoutView.findViewById(R.id.avatar_typing_img);
         typingImage.setVisibility(status);
+    }
+
+    /**
+     * Refresh the receiver thumbnails
+     * @param receiversLayout the receiver layout
+     * @param eventId the event Id
+     * @param roomState the roomstate.
+     */
+    protected void refreshReceiverLayout(final LinearLayout receiversLayout, final String eventId, final RoomState roomState) {
+        ArrayList<Receipt> receipts = mUpToReaderIdsByMsgIds.get(eventId);
+        ArrayList<View> imageViews = new ArrayList<View>();
+
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
+        imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar3).findViewById(R.id.avatar_img));
+
+        View moreView = receiversLayout.findViewById(R.id.messagesAdapter_more_than_three);
+
+        int index = 0;
+
+        if (null != receipts) {
+            int bound = Math.min(receipts.size(), imageViews.size());
+
+            for (; index < bound; index++) {
+                final Receipt r = receipts.get(index);
+                RoomMember member = roomState.getMember(r.userId);
+                ImageView imageView = (ImageView) imageViews.get(index);
+
+                imageView.setVisibility(View.VISIBLE);
+                imageView.setTag(null);
+                imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+
+                if (null != member.avatarUrl) {
+                    loadSmallAvatar(imageView, member.avatarUrl);
+                }
+
+                final String userId = member.getUserId();
+
+                imageView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mMessagesAdapterEventsListener.onReadReceiptClick(eventId, userId, r);
+                    }
+                });
+
+                imageView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return mMessagesAdapterEventsListener.onReadReceiptLongClick(eventId, userId, r);
+                    }
+                });
+            }
+
+            moreView.setVisibility((receipts.size() > imageViews.size()) ? View.VISIBLE : View.GONE);
+
+            moreView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mMessagesAdapterEventsListener.onMoreReadReceiptClick(eventId);
+                }
+            });
+
+            moreView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return mMessagesAdapterEventsListener.onMoreReadReceiptLongClick(eventId);
+                }
+            });
+        } else {
+            moreView.setVisibility(View.GONE);
+        }
+
+        for(; index < imageViews.size(); index++) {
+            imageViews.get(index).setVisibility(View.INVISIBLE);
+        }
     }
 
     /**
@@ -651,8 +816,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            isMergedView = (null != prevUserId) && (prevUserId.equals(msg.userId));
-            willBeMerged = (null != nextUserId) && (nextUserId.equals(msg.userId));
+            isMergedView = TextUtils.equals(prevUserId, msg.userId);
+            willBeMerged = TextUtils.equals(nextUserId, msg.userId);
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
@@ -692,10 +857,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         TextView tsTextView;
 
+
         if (null == rightTsTextLayout) {
             tsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
         } else {
             TextView leftTsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+
             TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
 
             if (isMyEvent) {
@@ -703,6 +870,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 rightTsTextView.setVisibility(View.GONE);
             } else {
                 leftTsTextView.setVisibility(View.GONE);
+
                 tsTextView = rightTsTextView;
             }
         }
@@ -720,6 +888,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             tsTextView.setTextColor(notSentColor);
         } else {
             tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
+        }
+
+        // read receipts
+        LinearLayout leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+        LinearLayout rightReceiversLayout = (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+        rightReceiversLayout.setVisibility(View.GONE);
+
+        if ((msgType == ROW_TYPE_NOTICE) || !isMyEvent) {
+            leftReceiversLayout.setVisibility(View.GONE);
+        } else {
+            leftReceiversLayout.setVisibility(View.VISIBLE);
+            refreshReceiverLayout(leftReceiversLayout, msg.eventId, roomState);
         }
 
         // Sender avatar
@@ -782,8 +962,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 String url = null;
 
                 // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
-                if (msg.content.has("avatar_url")) {
-                    url = msg.content.get("avatar_url") == JsonNull.INSTANCE ? null : msg.content.get("avatar_url").getAsString();
+                JsonObject msgContent = msg.getContentAsJsonObject();
+
+                if (msgContent.has("avatar_url")) {
+                    url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
                 if ((sender != null) && (null == url)) {
@@ -866,7 +1048,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         });
 
-
         return isMergedView;
     }
 
@@ -942,7 +1123,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        final CharSequence body = display.getTextualDisplay();
+        final CharSequence body = display.getTextualDisplay(true);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
         highlightPattern(bodyTextView, body, mPattern);
@@ -1022,14 +1203,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadFractionView.setFraction(percentageProgress);
                         }
                     }
 
                     @Override
                     public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
                                     uploadProgressLayout.setVisibility(View.GONE);
@@ -1140,14 +1321,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                        if (aDownloadId.equals(fDownloadId)) {
+                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
                             downloadPieFractionView.setFraction(percentageProgress);
                         }
                     }
 
                     @Override
                     public void onDownloadComplete(String aDownloadId) {
-                        if (aDownloadId.equals(fDownloadId)) {
+                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
                             downloadProgressLayout.setVisibility(View.GONE);
 
                             if (null != mMessagesAdapterEventsListener) {
@@ -1237,11 +1418,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         CharSequence notice;
 
-        if (msg.type.equals(Event.EVENT_TYPE_CALL_INVITE)) {
+        if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
             notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
         } else {
             EventDisplay display = new EventDisplay(mContext, msg, roomState);
-            notice = display.getTextualDisplay();
+            notice = display.getTextualDisplay(true);
         }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
@@ -1274,7 +1455,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
-        emoteTextView.setText(display.getTextualDisplay());
+        emoteTextView.setText(display.getTextualDisplay(true));
 
         int textColor;
 
@@ -1322,14 +1503,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             @Override
             public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                if (aDownloadId.equals(downloadId)) {
+                if (TextUtils.equals(aDownloadId, downloadId)) {
                     downloadPieFractionView.setFraction(percentageProgress);
                 }
             }
 
             @Override
             public void onDownloadComplete(String aDownloadId) {
-                if (aDownloadId.equals(downloadId)) {
+                if (TextUtils.equals(aDownloadId, downloadId)) {
                     fileTextView.setVisibility(View.VISIBLE);
                     fileTypeView.setVisibility(View.VISIBLE);
                     downloadProgressLayout.setVisibility(View.GONE);
@@ -1465,14 +1646,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                         @Override
                         public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                            if (aDownloadId.equals(fDownloadId)) {
+                            if (TextUtils.equals(aDownloadId, fDownloadId)) {
                                 downloadPieFractionView.setFraction(percentageProgress);
                             }
                         }
 
                         @Override
                         public void onDownloadComplete(String aDownloadId) {
-                            if (aDownloadId.equals(fDownloadId)) {
+                            if (TextUtils.equals(aDownloadId, fDownloadId)) {
                                 downloadProgressLayout.setVisibility(View.GONE);
                             }
 
@@ -1527,7 +1708,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             if (progress >= 0) {
                 final String url = uploadingUrl;
-                final boolean isContentUpload = uploadingUrl.equals(videoMessage.url);
+                final boolean isContentUpload = TextUtils.equals(uploadingUrl, videoMessage.url);
 
                 mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
                     @Override
@@ -1537,7 +1718,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             int progress;
 
                             if (isContentUpload) {
@@ -1552,7 +1733,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                     @Override
                     public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (url.equals(anUploadId)) {
+                        if (TextUtils.equals(url, anUploadId)) {
                             uploadProgressLayout.post(new Runnable() {
                                 public void run() {
                                     uploadProgressLayout.setVisibility(View.GONE);
@@ -1641,7 +1822,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
-            return display.getTextualDisplay() != null;
+            return display.getTextualDisplay(true) != null;
         }
         return false;
     }
@@ -1665,7 +1846,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 String userId = mTypingUsers.get(0);
                 MyUser myUser = mSession.getMyUser();
 
-                if (userId.equals(myUser.userId)) {
+                if (TextUtils.equals(userId, myUser.userId)) {
                     mTypingUsers = typingUsers;
                     return;
                 }

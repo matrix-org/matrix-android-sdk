@@ -15,8 +15,15 @@
  */
 package org.matrix.androidsdk;
 
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -27,6 +34,7 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -39,7 +47,11 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -212,17 +224,33 @@ public class MXDataHandler implements IMXEventListener {
         if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
             mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
 
-            // To store the summary, we need the last event and the room state from just before
-            Event lastEvent = roomResponse.messages.chunk.get(roomResponse.messages.chunk.size() - 1);
-            RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
-            beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+            int index = roomResponse.messages.chunk.size() - 1;
 
-            mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+            while (index >= 0) {
+                // To store the summary, we need the last event and the room state from just before
+                Event lastEvent = roomResponse.messages.chunk.get(index);
+
+                if (RoomSummary.isSupportedEvent(lastEvent)) {
+                    RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+
+                    mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+
+                    index = -1;
+                } else {
+                    index--;
+                }
+            }
         }
 
         // Handle presence
         if (roomResponse.presence != null) {
             handleLiveEvents(roomResponse.presence);
+        }
+
+        // receipts
+        if (roomResponse.receipts != null) {
+            handleLiveEvents(roomResponse.receipts);
         }
 
         // Handle the special case where the room is an invite
@@ -347,18 +375,30 @@ public class MXDataHandler implements IMXEventListener {
 
         // check if there is something to do
         if (0 != events.size()) {
-            Log.e(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
+            Log.d(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
 
             for (Event event : events) {
-                handleLiveEvent(event);
+                try {
+                    handleLiveEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "handleLiveEvent cannot process event " + e + " " + e.getStackTrace());
+                }
             }
 
-            Log.e(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
+            Log.d(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
 
-            onLiveEventsChunkProcessed();
+            try {
+                onLiveEventsChunkProcessed();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+            }
 
-            // check if an incoming call has been received
-            mCallsManager.checkPendingIncomingCalls();
+            try {
+                // check if an incoming call has been received
+                mCallsManager.checkPendingIncomingCalls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+            }
         }
     }
 
@@ -371,7 +411,7 @@ public class MXDataHandler implements IMXEventListener {
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
         if (isActive()) {
             for (RoomMember member : members) {
-                if (userID.equals(member.getUserId())) {
+                if (TextUtils.equals(userID, member.getUserId())) {
                     return member;
                 }
             }
@@ -470,6 +510,76 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             this.onPresenceUpdate(event, user);
+        } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+            try {
+                ArrayList<JsonObject> receiptsList = new ArrayList<JsonObject>();
+
+                // check the content type
+                if (event.content instanceof JsonArray) {
+                    JsonArray jsonElements = event.content.getAsJsonArray();
+
+                    for(int index = 0; index < jsonElements.size(); index++) {
+                        receiptsList.add((JsonObject)jsonElements.get(index));
+                    }
+
+                } else {
+                    receiptsList.add(event.getContentAsJsonObject());
+                }
+
+                for(JsonObject object : receiptsList) {
+                    Set<Map.Entry<String, JsonElement>> entrySet = object.entrySet();
+                    Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
+                    String myUserId = mCredentials.userId;
+
+                    while (it.hasNext()) {
+                        Map.Entry<String, JsonElement> entry = it.next();
+                        String eventId = entry.getKey();
+                        JsonObject jsonObject = entry.getValue().getAsJsonObject();
+
+                        if (jsonObject.has("m.read")) {
+                            Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("m.read").getAsJsonObject().entrySet();
+                            Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
+
+                            while (readerIt.hasNext()) {
+                                Map.Entry<String, JsonElement> readerEntry = readerIt.next();
+
+                                long ts = System.currentTimeMillis();
+                                JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
+
+                                if (tsObject.has("ts")) {
+                                    ts = tsObject.get("ts").getAsLong();
+                                }
+
+                                if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
+                                    Room room = mStore.getRoom(event.roomId);
+
+                                    if (null != room) {
+                                        if (room.setReadReceiptToken(eventId, ts)) {
+                                            onReceiptEvent(event.roomId);
+                                        }
+                                    }
+                                } else {
+                                    Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
+                                    ArrayList<Receipt> nextReceipts;
+
+                                    if (null == readReceipts) {
+                                        nextReceipts = new ArrayList<>();
+                                    } else {
+                                        nextReceipts = new ArrayList<>(readReceipts);
+                                    }
+
+                                    nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
+                                    Collections.sort(nextReceipts, Receipt.descComparator);
+                                    mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
+
+                                    onReceiptEvent(event.roomId);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
         }
         // Room event
         else if (event.roomId != null) {
@@ -506,16 +616,18 @@ public class MXDataHandler implements IMXEventListener {
 
             BingRule bingRule;
             boolean outOfTimeEvent = false;
+            JsonObject eventContent = event.getContentAsJsonObject();
 
-            if (event.content.has("lifetime")) {
-                long maxlifetime = event.content.get("lifetime").getAsLong();
+            if (eventContent.has("lifetime")) {
+                long maxlifetime = eventContent.get("lifetime").getAsLong();
                 long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
                 outOfTimeEvent = eventLifeTime > maxlifetime;
             }
 
             // If the bing rules apply, bing
-            if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
+            if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                    && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
                     && !outOfTimeEvent
                     && (mBingRulesManager != null)
                     && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
@@ -588,7 +700,7 @@ public class MXDataHandler implements IMXEventListener {
         if (null != room) {
             if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                 if (event.redacts != null) {
-                    mStore.updateEventContent(event.roomId, event.redacts, event.content);
+                    mStore.updateEventContent(event.roomId, event.redacts, event.getContentAsJsonObject());
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
                 // the candidate events are not stored.
@@ -596,9 +708,9 @@ public class MXDataHandler implements IMXEventListener {
 
                 // thread issue
                 // if the user leaves a room,
-                // the server scho could try to delete the room file
+                // the server echo could try to delete the room file
                 if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
-                    String membership = event.content.getAsJsonPrimitive("membership").getAsString();
+                    String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                     if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                         store = false;
@@ -611,7 +723,12 @@ public class MXDataHandler implements IMXEventListener {
 
                 if (store) {
                     mStore.storeLiveRoomEvent(event);
-                    mStore.storeSummary(getUserId(), event.roomId, event, room.getLiveState(), mCredentials.userId);
+
+                    if (RoomSummary.isSupportedEvent(event)) {
+                        mStore.storeSummary(getUserId(), event.roomId, event, room.getLiveState(), mCredentials.userId);
+                    } else {
+                        Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
+                    }
                 }
             }
         }
@@ -674,8 +791,17 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    private ArrayList<String> mUpdatedRoomIdList = new ArrayList<String>();
+
     @Override
     public void onLiveEvent(Event event, RoomState roomState) {
+        //
+        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, event.type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type)) {
+            if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
+                mUpdatedRoomIdList.add(roomState.roomId);
+            }
+        }
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -688,6 +814,15 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed() {
+        for(String roomId : mUpdatedRoomIdList) {
+            Room room = mStore.getRoom(roomId);
+
+            if (null != room) {
+                room.refreshUnreadCounter();
+            }
+        }
+        mUpdatedRoomIdList.clear();
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -773,8 +908,13 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onInitialSyncComplete() {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
-
         mInitialSyncComplete = true;
+
+        // initialized
+        Collection<Room> rooms = getStore().getRooms();
+        for(Room room : rooms) {
+            room.initReadReceiptToken();
+        }
 
         for (IMXEventListener listener : eventListeners) {
             try {
@@ -797,6 +937,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onRoomInitialSyncComplete(String roomId) {
+        // initialized
+        Room room = getStore().getRoom(roomId);
+
+        if (null != room) {
+            room.initReadReceiptToken();
+        }
+
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
@@ -813,6 +960,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomInternalUpdate(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onReceiptEvent(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onReceiptEvent(roomId);
             } catch (Exception e) {
             }
         }

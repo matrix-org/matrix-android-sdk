@@ -367,18 +367,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     }
 
     /**
-     * Increments the unread message counters for a dedicated room.
-     * @param roomId The room identifier
-     */
-    public void incrementUnreadCount(int section, String roomId) {
-        RoomSummary roomSummary  = mSummaryMapsBySection.get(section).get(roomId);
-
-        if (null != roomSummary) {
-            roomSummary.incrementUnreadMessagesCount();
-        }
-    }
-
-    /**
      * Defines that the room must be highlighted in the rooms list
      * @param roomId The room ID of the room to highlight.
      */
@@ -401,7 +389,12 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
         // sanity check
         if (null != roomSummary) {
-            res |= roomSummary.resetUnreadMessagesCount();
+
+            Room room = roomFromRoomSummary(roomSummary);
+            if (null != room) {
+                room.sendReadReceipt();
+            }
+
             res |= roomSummary.setHighlighted(false);
         }
 
@@ -419,7 +412,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         Collection<RoomSummary> summaries = mSummaryMapsBySection.get(section).values();
 
         for(RoomSummary summary : summaries) {
-            res |= summary.resetUnreadMessagesCount();
+            Room room = roomFromRoomSummary(summary);
+            if (null != room) {
+                room.sendReadReceipt();
+            }
+
             res |= summary.setHighlighted(false);
         }
 
@@ -510,7 +507,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 }
 
                 RoomSummary summary = (childPosition < summariesList.size()) ? summariesList.get(childPosition) : summariesList.get(summariesList.size() - 1);
-                Integer unreadCount = summary.getUnreadMessagesCount();
+                Integer unreadCount = summary.getUnreadEventsCount();
 
                 CharSequence message = summary.getRoomTopic();
                 String timestamp = null;
@@ -661,7 +658,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                         textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
                     }
 
-                    String alias = publicRoom.getFirstAlias();
+                    String alias = publicRoom.getAlias();
 
                     if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
                         convertView.setBackgroundColor(mPublicHighlightColor);
@@ -692,7 +689,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             Collection<RoomSummary> summaries = mSummaryMapsBySection.get(groupPosition).values();
 
             for(RoomSummary summary : summaries) {
-                unreadCount += summary.getUnreadMessagesCount();
+                unreadCount += summary.getUnreadEventsCount();
             }
 
             String header = myRoomsTitle(groupPosition);

@@ -347,7 +347,9 @@ public class EventsThread extends Thread {
             // the service could have been killed while being paused.
             if (!mKilling) {
                 try {
+                    Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
                     TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
+
                     if (null != eventsResponse.chunk) {
                         Log.d(LOG_TAG, "Got eventsResponse.chunk with " + eventsResponse.chunk.size() + " items");
                     } else {
@@ -390,6 +392,7 @@ public class EventsThread extends Thread {
                         }
 
                         mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
+                        Log.d(LOG_TAG, "mCurrentToken is now set to " + eventsResponse.end);
                         mCurrentToken = eventsResponse.end;
                     }
 
@@ -397,7 +400,7 @@ public class EventsThread extends Thread {
                     mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage());
+                    Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage() + " " + e.getStackTrace());
 
                     if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
                         mEventsFailureCallback.failure((RetrofitError) e);

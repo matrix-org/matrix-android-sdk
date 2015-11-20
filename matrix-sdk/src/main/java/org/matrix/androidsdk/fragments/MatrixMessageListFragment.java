@@ -55,6 +55,7 @@ import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
@@ -150,7 +151,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
                             MessageRow row = mAdapter.getItem(i);
-                            refresh |= user.userId.equals(row.getEvent().userId);
+                            refresh |= TextUtils.equals(user.userId, row.getEvent().userId);
                         }
                     }
 
@@ -221,6 +222,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
+
+        int selectionIndex = -1;
+
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = createMessagesAdapter();
@@ -228,10 +232,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
+        } else {
+            if (savedInstanceState.containsKey("FIRST_VISIBLE_ROW")) {
+                selectionIndex = savedInstanceState.getInt("FIRST_VISIBLE_ROW");
+            }
         }
+
         mAdapter.setTypingUsers(mRoom.getTypingUsers());
         mMessageListView.setAdapter(mAdapter);
-        mMessageListView.setSelection(0);
+
+        if (-1 != selectionIndex) {
+            final int fselectionIndex = selectionIndex;
+
+            // fill the page
+            mMessageListView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mMessageListView.setSelection(fselectionIndex);
+                }
+            });
+        }
+
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -252,6 +273,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (null != mMessageListView) {
+            int selected = mMessageListView.getFirstVisiblePosition();
+
+            // ListView always returns the previous index while filling from bottom
+            if (selected > 0) {
+                selected++;
+            }
+
+            outState.putInt("FIRST_VISIBLE_ROW", selected);
+        }
     }
 
     /**
@@ -348,7 +385,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onPause() {
         super.onPause();
-        mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+
+        // check if the session has not been logged out
+        if (mSession.isActive()) {
+            mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+        }
     }
 
     @Override
@@ -379,7 +420,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // If we scroll to the top, load more history
                 // so not load history if there is an initial sync progress
                 // or the whole room content fits in a single page
-                if ((firstVisibleItem == 0) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount)) {
+                if ((firstVisibleItem == 0) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                     requestHistory();
                 }
             }
@@ -626,7 +667,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
         }
 
-        final Boolean isContentUpload = uploadId.equals(videoUrl);
+        final Boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
 
         getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {
@@ -841,6 +882,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // should never happen but got it in a GA issue
         if (null == event.eventId) {
             Log.e(LOG_TAG, "resend : got an event with a null eventId");
+            return;
+        }
+
+        if (null == mPendingRelaunchTimersByEventId) {
+            Log.e(LOG_TAG, "resend : with a destroyed list fragment");
             return;
         }
 
@@ -1104,6 +1150,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
+            final int countBeforeUpdate = mAdapter.getCount();
 
             boolean isStarted = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
@@ -1118,7 +1165,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // else the one by one message refresh gives a weird UX
                             // The application is almost frozen during the
                             mAdapter.notifyDataSetChanged();
-                            mMessageListView.setSelection(firstPos + count);
+                            
+                            // do not use count because some messages are not displayed
+                            // so we compute the new pos
+                            mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
                             mIsCatchingUp = false;
                         }
                     });
@@ -1244,6 +1294,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
+    @Override
+    public void onReceiptEvent() {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
     public void onInitialMessagesLoaded() {
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {
@@ -1361,6 +1421,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void onMediaDownloaded(int position) {
+    }
+
+    public void onReadReceiptClick(String eventId, String userId, Receipt receipt) {
+    }
+
+    public boolean onReadReceiptLongClick(String eventId, String userId, Receipt receipt) {
+        return false;
+    }
+
+    public void onMoreReadReceiptClick(String eventId) {
+    }
+
+    public boolean onMoreReadReceiptLongClick(String eventId) {
+        return false;
     }
 
     // thumbnails management

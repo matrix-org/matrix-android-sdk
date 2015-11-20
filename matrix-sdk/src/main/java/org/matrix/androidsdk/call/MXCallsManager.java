@@ -19,10 +19,12 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Handler;
+import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -354,6 +356,19 @@ public class MXCallsManager {
     }
 
     /**
+     * @return true if there are some active calls.
+     */
+    public boolean hasActiveCalls() {
+        Boolean res;
+
+        synchronized (this) {
+            res = (0 != mCallsByCallId.size());
+        }
+
+        return res;
+    }
+
+    /**
      * Manage the call events.
      * @param event the call event.
      */
@@ -364,13 +379,15 @@ public class MXCallsManager {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Boolean isMyEvent = event.userId.equals(mSession.getMyUser().userId);
+                    Boolean isMyEvent = TextUtils.equals(event.userId, mSession.getMyUser().userId);
                     Room room = mSession.getDataHandler().getRoom(event.roomId);
 
                     String callId = null;
+                    JsonObject eventContent = null;
 
                     try {
-                        callId = event.content.getAsJsonPrimitive("call_id").getAsString();
+                        eventContent = event.getContentAsJsonObject();
+                        callId = eventContent.getAsJsonPrimitive("call_id").getAsString();
                     } catch (Exception e) {
 
                     }
@@ -391,7 +408,7 @@ public class MXCallsManager {
                                     call.setRoom(room);
 
                                     if (!isMyEvent) {
-                                        call.prepareIncomingCall(event.content, callId);
+                                        call.prepareIncomingCall(eventContent, callId);
                                         call.setIsIncoming(true);
                                         mxPendingIncomingCallId.add(callId);
                                     } else {

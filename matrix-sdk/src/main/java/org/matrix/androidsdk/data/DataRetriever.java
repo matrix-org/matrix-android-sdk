@@ -21,6 +21,7 @@ import android.util.Log;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.RoomsRestClientV2;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
@@ -39,6 +40,7 @@ public class DataRetriever {
 
     private IMXStore mStore;
     private RoomsRestClient mRestClient;
+    private RoomsRestClientV2 mRestClientV2;
 
     public void setStore(IMXStore store) {
         mStore = store;
@@ -50,6 +52,14 @@ public class DataRetriever {
 
     public void setRoomsRestClient(RoomsRestClient client) {
         mRestClient = client;
+    }
+
+    public RoomsRestClientV2 getRoomsRestClientV2() {
+        return mRestClientV2;
+    }
+
+    public void setRoomsRestClientV2(RoomsRestClientV2 client) {
+        mRestClientV2 = client;
     }
 
     /**
@@ -67,22 +77,23 @@ public class DataRetriever {
      * @param token the token to go back from. Null to start from live.
      * @param callback the onComplete callback
      */
-    public void requestRoomHistory(final String roomId, String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void requestRoomHistory(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler();
 
-            // call the callback with a delay (and on the UI thread).
-            // to reproduce the same behaviour as a network request. 
+            // call the callback with a delay
+            // to reproduce the same behaviour as a network request.
+            // except for the initial request.
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    handler.post(new Runnable() {
+                    handler.postDelayed(new Runnable() {
                         public void run() {
                             callback.onSuccess(storageResponse);
                         }
-                    });
+                    }, (null == token) ? 0 : 300);
                 }
             };
 
@@ -102,7 +113,7 @@ public class DataRetriever {
 
                         Event firstReturnedEvent = info.chunk.get(0);
                         if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                && oldestEvent.eventId.equals(firstReturnedEvent.eventId)) {
+                                && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
                             info.chunk.remove(0);
                         }
                     }

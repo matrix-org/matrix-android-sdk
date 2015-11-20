@@ -445,8 +445,8 @@ public class MXJingleCall extends MXCall {
                                         try {
                                             Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                            if (lastEvent.type.equals(Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                                                JsonObject lastContent = lastEvent.content;
+                                            if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                                JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                                 JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                                 JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
@@ -455,8 +455,8 @@ public class MXJingleCall extends MXCall {
 
                                                 lastContentCandidates.addAll(newContentCandidates);
 
-                                                lastEvent.content.remove("candidates");
-                                                lastEvent.content.add("candidates", lastContentCandidates);
+                                                lastContent.remove("candidates");
+                                                lastContent.add("candidates", lastContentCandidates);
                                                 addIt = false;
                                             }
                                         } catch (Exception e) {
@@ -614,17 +614,47 @@ public class MXJingleCall extends MXCall {
     private VideoTrack createVideoTrack() {
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
-            mVideoCapturer = VideoCapturerAndroid.create((null != mFrontCameraName) ? mFrontCameraName : mBackCameraName);
 
-            MediaConstraints videoConstraints = new MediaConstraints();
+            if (null != mFrontCameraName) {
+                mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
 
-            videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                    MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
+                if (null == mVideoCapturer) {
+                    Log.e(LOG_TAG, "Cannot create Video Capturer from front camera");
+                }
+            }
 
-            mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
-            mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
-            mLocalVideoTrack.setEnabled(true);
-            mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
+            if ((null == mVideoCapturer) && (null != mBackCameraName)) {
+                mVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
+
+                if (null == mVideoCapturer) {
+                    Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
+                }
+            }
+
+            if (null != mVideoCapturer) {
+                try {
+                    MediaConstraints videoConstraints = new MediaConstraints();
+
+                    videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                            MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
+
+                    mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
+                    mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
+                    mLocalVideoTrack.setEnabled(true);
+                    mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getLocalizedMessage());
+
+                    mLocalVideoTrack = null;
+
+                    if (null != mVideoSource) {
+                        mVideoSource.dispose();
+                        mVideoSource = null;
+                    }
+                }
+            } else {
+                Log.e(LOG_TAG, "Cannot create Video Capturer");
+            }
         }
 
         return mLocalVideoTrack;
@@ -636,6 +666,23 @@ public class MXJingleCall extends MXCall {
      */
     private AudioTrack createAudioTrack() {
         MediaConstraints audioConstraints = new MediaConstraints();
+
+        // add all existing audio filters to avoid having echos
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googEchoCancellation", "true"));
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googEchoCancellation2", "true"));
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googDAEchoCancellation", "true"));
+
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"));
+
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googAutoGainControl", "true"));
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googAutoGainControl2", "true"));
+
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googNoiseSuppression", "true"));
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googNoiseSuppression2", "true"));
+
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googAudioMirroring", "false"));
+        audioConstraints.mandatory.add(new MediaConstraints.KeyValuePair("googHighpassFilter", "true"));
+
         mAudioSource = mPeerConnectionFactory.createAudioSource(audioConstraints);
         mLocalAudioTrack = mPeerConnectionFactory.createAudioTrack(AUDIO_TRACK_ID, mAudioSource);
 
@@ -877,8 +924,10 @@ public class MXJingleCall extends MXCall {
 
                     // extract the description
                     try {
-                        if (event.content.has("answer")) {
-                            JsonObject answer = event.content.getAsJsonObject("answer");
+                        JsonObject eventContent = event.getContentAsJsonObject();
+
+                        if (eventContent.has("answer")) {
+                            JsonObject answer = eventContent.getAsJsonObject("answer");
                             String type = answer.get("type").getAsString();
                             String sdp = answer.get("sdp").getAsString();
 
@@ -996,11 +1045,13 @@ public class MXJingleCall extends MXCall {
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
             // event from other member
-            if (!event.userId.equals(mSession.getMyUser().userId)) {
+            if (!TextUtils.equals(event.userId, mSession.getMyUser().userId)) {
                 if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
-                    JsonArray candidates = event.content.getAsJsonArray("candidates");
+                    JsonObject eventContent = event.getContentAsJsonObject();
+
+                    JsonArray candidates = eventContent.getAsJsonArray("candidates");
                     addCandidates(candidates);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
                     onCallHangup(event);
@@ -1020,7 +1071,7 @@ public class MXJingleCall extends MXCall {
                     @Override
                     public void run() {
                         // ring on this side
-                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING)) {
+                        if (TextUtils.equals(getCallState(), IMXCall.CALL_STATE_RINGING)) {
                             onAnsweredElsewhere();
                         }
                     }

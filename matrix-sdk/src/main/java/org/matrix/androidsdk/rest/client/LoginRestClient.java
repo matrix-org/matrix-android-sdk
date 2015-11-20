@@ -25,7 +25,13 @@ import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.LoginFlow;
+import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
+
+import java.util.List;
+import java.util.UUID;
 
 import retrofit.client.Response;
 
@@ -43,6 +49,29 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public LoginRestClient(HomeserverConnectionConfig hsConfig) {
         super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX, false);
         mHsUri = hsConfig.getHomeserverUri();
+    }
+
+    /**
+     * Retrieve the supported flows.
+     * It should be done to check before displaying a default login form.
+     * @param callback the callback success and failure callback
+     */
+    public void getSupportedFlows(final ApiCallback<List<LoginFlow>> callback) {
+        final String description = "getSupportedFlows";
+
+        mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        getSupportedFlows(callback);
+                    }
+                }
+        ) {
+            @Override
+            public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                callback.onSuccess(loginFlowResponse.flows);
+            }
+        });
     }
 
     /**
@@ -68,6 +97,49 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 }
 
                 ) {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
+            }
+        });
+    }
+
+    /**
+     * Attempt a user/token log in.
+     * @param user the user name
+     * @param token the token
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
+         loginWithToken(user, token, UUID.randomUUID().toString(), callback);
+    }
+
+    /**
+     * Attempt a user/token log in.
+     * @param user the user name
+     * @param token the token
+     * @param txn_id the client transactio id to include in the request
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithToken(final String user, final String token, final String txn_id, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPassword user : " + user;
+
+        TokenLoginParams params = new TokenLoginParams();
+        params.user = user;
+        params.token = token;
+        params.txn_id = txn_id;
+
+        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        loginWithToken(user, token, txn_id, callback);
+                    }
+                }
+
+        ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);

@@ -16,12 +16,18 @@
 
 package org.matrix.androidsdk.data;
 
+import android.text.Html;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.google.gson.JsonObject;
+
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.w3c.dom.Text;
 
 import java.util.Collection;
 
@@ -40,6 +46,13 @@ public class RoomSummary implements java.io.Serializable {
     // 2- the members display name
     private transient RoomState mLatestRoomState = null;
 
+    // save the latest read receipt token
+    // null if there is no known one
+    private String mReadReceiptToken;
+    private long mReadReceiptTs;
+
+    private int mUnreadEventsCount;
+
     // invitation status
     // retrieved at initial sync
     // the roomstate is not always known
@@ -51,7 +64,6 @@ public class RoomSummary implements java.io.Serializable {
     private String mMatrixId = null;
 
     private boolean mIsHighlighted = false;
-    private int mUnreadMessagesCount = 0;
 
     public RoomSummary() {}
 
@@ -61,6 +73,26 @@ public class RoomSummary implements java.io.Serializable {
         mRoomId = roomId;
         mName = name;
         mTopic = topic;
+
+        mReadReceiptToken = null;
+        mReadReceiptTs = -1;
+    }
+
+    /**
+     * Test if the event can be summarized.
+     * Some event types are not yet supported.
+     * @param event the event to test.
+     * @return true if the event can be summarized
+     */
+    public static boolean isSupportedEvent(Event event) {
+        String type = event.type;
+
+        return  TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
+                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
+                (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
     }
 
     public String getMatrixId() {
@@ -225,33 +257,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * reset the unread messages counter.
-     * @return true if there is an update
-     */
-    public boolean resetUnreadMessagesCount() {
-        if (0 != mUnreadMessagesCount) {
-            mUnreadMessagesCount = 0;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * increment the unread messages counter.
-     */
-    public void incrementUnreadMessagesCount() {
-        mUnreadMessagesCount++;
-    }
-
-    /**
-     * @return the unread messages counter.
-     */
-    public int getUnreadMessagesCount() {
-        return mUnreadMessagesCount;
-    }
-
-    /**
      * Set the user ID of the person who invited the user to this room.
      * @param inviterUserId The user ID of the inviter
      * @return This summary for chaining calls.
@@ -259,5 +264,37 @@ public class RoomSummary implements java.io.Serializable {
     public RoomSummary setInviterUserId(String inviterUserId) {
         mInviterUserId = inviterUserId;
         return this;
+    }
+
+    /**
+     * Tries to update the read receipts
+     * @param token the latest token
+     * @param ts the ts
+     * @return true if the update succeeds
+     */
+    public Boolean setReadReceiptToken(String token, long ts) {
+        if ((ts > mReadReceiptTs) && !TextUtils.equals(token, mReadReceiptToken)) {
+            mReadReceiptToken = token;
+            mReadReceiptTs = ts;
+            return true;
+        }
+
+        return false;
+    }
+
+    public String getReadReceiptToken() {
+        return mReadReceiptToken;
+    }
+
+    public void setUnreadEventsCount(int count) {
+        mUnreadEventsCount = count;
+
+        if (0 == mUnreadEventsCount) {
+            setHighlighted(false);
+        }
+    }
+
+    public int getUnreadEventsCount() {
+        return mUnreadEventsCount;
     }
 }

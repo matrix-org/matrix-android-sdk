@@ -552,7 +552,7 @@ public class MXMediasCache {
 
         // avoid crash if there are too many running task
         try {
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
         } catch (RejectedExecutionException e) {
             // too many tasks have been launched
             synchronized (mSuspendedTasks) {
@@ -586,7 +586,7 @@ public class MXMediasCache {
 
                     // avoid crash if there are too many running task
                     try {
-                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
                         mSuspendedTasks.remove(task);
                     } catch (RejectedExecutionException e) {
                         task.cancel(true);
@@ -698,7 +698,7 @@ public class MXMediasCache {
 
                 // avoid crash if there are too many running task
                 try {
-                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
                 } catch (RejectedExecutionException e) {
                     // too many tasks have been launched
                     synchronized (mSuspendedTasks) {

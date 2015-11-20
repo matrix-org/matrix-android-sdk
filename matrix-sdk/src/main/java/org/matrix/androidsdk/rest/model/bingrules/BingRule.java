@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -131,7 +133,7 @@ public class BingRule {
                     JsonObject object = json.getAsJsonObject();
                     try {
                         if (object.has(ACTION_PARAMETER_SET_TWEAK)) {
-                            if (object.get(ACTION_PARAMETER_SET_TWEAK).getAsString().equals(tweak)) {
+                            if (TextUtils.equals(object.get(ACTION_PARAMETER_SET_TWEAK).getAsString(), tweak)) {
                                 jsonObject = object;
                                 break;
                             }
@@ -218,7 +220,7 @@ public class BingRule {
             highlight = true;
 
             if (jsonObject.has(ACTION_PARAMETER_VALUE)) {
-                highlight = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString().equals(ACTION_VALUE_TRUE);
+                highlight = TextUtils.equals(jsonObject.get(ACTION_PARAMETER_VALUE).getAsString(), ACTION_VALUE_TRUE);
             }
         }
 

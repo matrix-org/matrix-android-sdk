@@ -22,6 +22,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -49,6 +50,9 @@ public class MXMemoryStore implements IMXStore {
 
     protected Map<String, RoomSummary> mRoomSummaries;
 
+    // by room and by event id
+    protected Map<String, Map<String, Collection<Receipt>>> mMessagesReceipts;
+
     protected Credentials mCredentials;
 
     protected String mEventStreamToken = null;
@@ -63,7 +67,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
         mRoomTokens = new ConcurrentHashMap<String, String>();
         mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
-
+        mMessagesReceipts = new ConcurrentHashMap<String, Map<String, Collection<Receipt>>>();
         mEventStreamToken = null;
     }
 
@@ -131,6 +135,14 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public boolean isReady() {
         return true;
+    }
+
+    /**
+     * @return true if the store is corrupted.
+     */
+    @Override
+    public boolean isCorrupted() {
+        return false;
     }
 
     /**
@@ -259,17 +271,22 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Event getOldestEvent(String roomId) {
-        if (null != roomId) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        Event event = null;
 
-            if (events != null) {
-                Iterator<Event> it = events.values().iterator();
-                if (it.hasNext()) {
-                    return it.next();
+        if (null != roomId) {
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+                if (events != null) {
+                    Iterator<Event> it = events.values().iterator();
+                    if (it.hasNext()) {
+                        event = it.next();
+                    }
                 }
             }
         }
-        return null;
+
+        return event;
     }
 
     /**
@@ -278,33 +295,82 @@ public class MXMemoryStore implements IMXStore {
      * @return the event
      */
     public Event getLatestEvent(String roomId) {
+        Event event = null;
+
         if (null != roomId) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-            if (events != null) {
-                Iterator<Event> it = events.values().iterator();
-                if (it.hasNext()) {
-                    Event lastEvent = null;
+                if (events != null) {
+                    Iterator<Event> it = events.values().iterator();
+                    if (it.hasNext()) {
+                        Event lastEvent = null;
 
-                    while (it.hasNext()) {
-                        lastEvent = it.next();
+                        while (it.hasNext()) {
+                            lastEvent = it.next();
+                        }
+
+                        event = lastEvent;
                     }
-
-                    return lastEvent;
                 }
             }
         }
-        return null;
+        return event;
     }
+
+    /**
+     * Count the number of events after the provided events id
+     * @param roomId the room id.
+     * @param eventId the event id to find.
+     * @return the events count after this event if
+     */
+    public int eventsCountAfter(String roomId, String eventId) {
+        int count = 0;
+
+        // sanity check
+        if ((null != roomId) && (null != eventId)) {
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+                if (events != null) {
+                    Boolean gotIt = false;
+                    Iterator<Event> it = events.values().iterator();
+                    if (it.hasNext()) {
+                        Event lastEvent;
+
+                        while (it.hasNext()) {
+                            lastEvent = it.next();
+
+                            if (null == lastEvent.userId) {
+                              Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
+                            } else if (gotIt) {
+                                // count only the other members message
+                                if (!TextUtils.equals(lastEvent.userId, mCredentials.userId)) {
+                                    count++;
+                                }
+                            } else {
+                                gotIt = TextUtils.equals(lastEvent.eventId, eventId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
+
 
     @Override
     public void storeLiveRoomEvent(Event event) {
         if ((null != event) && (null != event.roomId)) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-            if (events != null) {
-                // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
-                // wait for the first pagination request to set things right
-                events.put(event.eventId, event);
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+                if (events != null) {
+                    // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
+                    // wait for the first pagination request to set things right
+                    events.put(event.eventId, event);
+                }
             }
         }
     }
@@ -312,9 +378,11 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void deleteEvent(Event event) {
         if ((null != event) && (null != event.roomId)) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-            if ((events != null) && (event.eventId != null)) {
-                events.remove(event.eventId);
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+                if ((events != null) && (event.eventId != null)) {
+                    events.remove(event.eventId);
+                }
             }
         }
     }
@@ -323,58 +391,63 @@ public class MXMemoryStore implements IMXStore {
     public void deleteRoom(String roomId) {
     	// sanity check
         if (null != roomId) {
-            mRooms.remove(roomId);
-            mRoomEvents.remove(roomId);
-            mRoomTokens.remove(roomId);
-            mRoomSummaries.remove(roomId);
+            synchronized (mRoomEvents) {
+                mRooms.remove(roomId);
+                mRoomEvents.remove(roomId);
+                mRoomTokens.remove(roomId);
+                mRoomSummaries.remove(roomId);
+                mMessagesReceipts.remove(roomId);
+            }
         }
     }
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
         if (null != roomId) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-            if (events == null) {
-                events = new LinkedHashMap<String, Event>();
-                mRoomEvents.put(roomId, events);
-            }
-
-            if (direction == Room.EventDirection.FORWARDS) {
-                mRoomTokens.put(roomId, eventsResponse.start);
-
-                for (Event event : eventsResponse.chunk) {
-                    events.put(event.eventId, event);
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+                if (events == null) {
+                    events = new LinkedHashMap<String, Event>();
+                    mRoomEvents.put(roomId, events);
                 }
 
-            } else { // BACKWARD
-                Collection<Event> eventsList = events.values();
-
-                // no stored events
-                if (events.size() == 0) {
-                    // insert the catchup events in reverse order
-                    for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                        Event backEvent = eventsResponse.chunk.get(index);
-                        events.put(backEvent.eventId, backEvent);
-                    }
-
-                    // define a token
+                if (direction == Room.EventDirection.FORWARDS) {
                     mRoomTokens.put(roomId, eventsResponse.start);
-                } else {
-                    LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
 
-                    // insert the catchup events in reverse order
-                    for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                        Event backEvent = eventsResponse.chunk.get(index);
-                        events2.put(backEvent.eventId, backEvent);
+                    for (Event event : eventsResponse.chunk) {
+                        events.put(event.eventId, event);
                     }
 
-                    // add the previous added Events
-                    for (Event event : eventsList) {
-                        events2.put(event.eventId, event);
-                    }
+                } else { // BACKWARD
+                    Collection<Event> eventsList = events.values();
 
-                    // store the new list
-                    mRoomEvents.put(roomId, events2);
+                    // no stored events
+                    if (events.size() == 0) {
+                        // insert the catchup events in reverse order
+                        for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                            Event backEvent = eventsResponse.chunk.get(index);
+                            events.put(backEvent.eventId, backEvent);
+                        }
+
+                        // define a token
+                        mRoomTokens.put(roomId, eventsResponse.start);
+                    } else {
+                        LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
+
+                        // insert the catchup events in reverse order
+                        for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
+                            Event backEvent = eventsResponse.chunk.get(index);
+                            events2.put(backEvent.eventId, backEvent);
+                        }
+
+                        // add the previous added Events
+                        for (Event event : eventsList) {
+                            events2.put(event.eventId, event);
+                        }
+
+                        // store the new list
+                        mRoomEvents.put(roomId, events2);
+                    }
                 }
             }
         }
@@ -385,7 +458,12 @@ public class MXMemoryStore implements IMXStore {
         if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events != null) {
-                Event event = events.get(eventId);
+                Event event = null;
+
+                synchronized (mRoomEvents) {
+                    event = events.get(eventId);
+                }
+
                 if (event != null) {
                     event.content = newContent;
                     return true;
@@ -477,7 +555,7 @@ public class MXMemoryStore implements IMXStore {
 
                 if (null != fromToken) {
                     // search if token is one of the stored events
-                    for (; (index < eventsList.size()) && (!fromToken.equals(eventsList.get(index).mToken)); index++)
+                    for (; (index < eventsList.size()) && (!TextUtils.equals(fromToken,eventsList.get(index).mToken)); index++)
                         ;
 
                     index++;
@@ -543,25 +621,81 @@ public class MXMemoryStore implements IMXStore {
         }
 
         ArrayList<Event> unsentRoomEvents = new ArrayList<Event>();
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-        // contain some events
-        if ((null != events) && (events.size() > 0)) {
-            ArrayList<Event>eventsList = new ArrayList(events.values());
+        synchronized (mRoomEvents) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-            for(int index = events.size()-1; index >= 0; index--) {
-                Event event = eventsList.get(index);
+            // contain some events
+            if ((null != events) && (events.size() > 0)) {
+                ArrayList<Event> eventsList = new ArrayList(events.values());
 
-                if (event.mSentState == Event.SentState.WAITING_RETRY) {
-                    unsentRoomEvents.add(event);
-                } else {
-                    //break;
+                for (int index = events.size() - 1; index >= 0; index--) {
+                    Event event = eventsList.get(index);
+
+                    if (event.mSentState == Event.SentState.WAITING_RETRY) {
+                        unsentRoomEvents.add(event);
+                    } else {
+                        //break;
+                    }
                 }
-            }
 
-            Collections.reverse(unsentRoomEvents);
+                Collections.reverse(unsentRoomEvents);
+            }
         }
 
         return unsentRoomEvents;
+    }
+
+    /**
+     * Get the room receipts list.
+     * @param roomId the room Id.
+     * @return the room receipts list.
+     */
+    protected  Map<String, Collection<Receipt>> getRoomReceipts(String roomId) {
+        Map<String, Collection<Receipt>> roomsReceipts;
+
+        if (mMessagesReceipts.containsKey(roomId)) {
+            roomsReceipts = mMessagesReceipts.get(roomId);
+        } else {
+            roomsReceipts = new ConcurrentHashMap<String, Collection<Receipt>>();
+            mMessagesReceipts.put(roomId, roomsReceipts);
+        }
+
+        return roomsReceipts;
+    }
+
+    /**
+     * Returns the receipts for an event in a dedicated room.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @return the receipts for an event in a dedicated room.
+     */
+    public Collection<Receipt> getEventReceipts(String roomId, String eventId) {
+        return getRoomReceipts(roomId).get(eventId);
+    }
+
+    /**
+     * Update the receipts list of an event.
+     * @param roomId The room Id.
+     * @param eventId The event Id.
+     * @param receipts The receipts list.
+     */
+    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
+        Map<String, Collection<Receipt>> roomsReceipts = getRoomReceipts(roomId);
+        roomsReceipts.put(eventId, receipts);
+    }
+
+    /**
+     * Delete the room receips.
+     * @param roomId
+     */
+    protected void deleteRoomReceips(String roomId) {
+        mMessagesReceipts.remove(roomId);
+    }
+
+    /**
+     * Flush the receipt events
+     */
+    public void flushEventReceipts() {
     }
 }
