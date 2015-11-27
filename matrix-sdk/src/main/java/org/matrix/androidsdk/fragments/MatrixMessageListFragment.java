@@ -143,9 +143,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     Boolean refresh = mAdapter.isDisplayedUser(user.userId);
 
                     if (refresh) {
-                        // check, if the avatar is currently displayed 
-                        int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
-                        int lastVisibleRow = mMessageListView.getLastVisiblePosition();
+                        // check, if the avatar is currently displayed
+
+                        // The Math.min is required because the adapter and mMessageListView could be unsynchronized.
+                        // ensure there is no IndexOfOutBound exception.
+                        int firstVisibleRow = Math.min(mMessageListView.getFirstVisiblePosition(), mAdapter.getCount());
+                        int lastVisibleRow = Math.min(mMessageListView.getLastVisiblePosition(), mAdapter.getCount());
 
                         refresh = false;
 
