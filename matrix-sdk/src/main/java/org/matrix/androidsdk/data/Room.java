@@ -23,6 +23,7 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.support.v4.app.NotificationCompatSideChannelService;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -1703,5 +1704,87 @@ public class Room {
         }
 
         mDataHandler.getStore().storeAccountData(mRoomId, mAccountData);
+    }
+
+    /**
+     * Add a tag to a room.
+     * Use this method to update the order of an existing tag.
+     *
+     * @param tag the new tag to add to the room.
+     * @param order the order.
+     * @param callback the operation callback
+     */
+    public void addTag(String tag, Double order, final ApiCallback<Void> callback) {
+        // sanity check
+        if ((null != tag) && (null != order)) {
+            mDataRetriever.getRoomsRestClientV2().addTag(mRoomId, tag, order, callback);
+        } else {
+            if (null != callback) {
+                // warn that something was wrong
+                callback.onUnexpectedError(null);
+            }
+        }
+    }
+
+    /**
+     * Remove a tag to a room.
+     *
+     * @param tag the new tag to add to the room.
+     * @param callback the operation callback.
+     */
+    public void removeTag(String tag, final ApiCallback<Void> callback) {
+        // sanity check
+        if (null != tag) {
+            mDataRetriever.getRoomsRestClientV2().removeTag(mRoomId, tag, callback);
+        } else {
+            if (null != callback) {
+                // warn that something was wrong
+                callback.onUnexpectedError(null);
+            }
+        }
+    }
+
+    /**
+     * Remove a tag and add another one.
+     *
+     * @param oldTag the tag to remove.
+     * @param newTag the new tag to add. Nil can be used. Then, no new tag will be added.
+     * @param newTagOrder the order of the new tag.
+     * @param callback the operation callback.
+     */
+    public void replaceTag(final String oldTag, final String newTag, final Double newTagOrder, final ApiCallback<Void> callback) {
+
+        // remove tag
+        if ((null != oldTag) && (null == newTag)) {
+            removeTag(oldTag, callback);
+        }
+        // define a tag or define a new order
+        else if (((null == oldTag) && (null != newTag)) || TextUtils.equals(oldTag, newTag)) {
+            addTag(newTag, newTagOrder, callback);
+        }
+        else {
+            removeTag(oldTag, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    addTag(newTag, newTagOrder, callback);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+
+        }
     }
 }

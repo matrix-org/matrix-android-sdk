@@ -21,17 +21,15 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.squareup.okhttp.Call;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -58,7 +56,13 @@ import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -619,5 +623,135 @@ public class MXSession {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Get the list of rooms where the user has a pending invitation.
+     * @return an array where rooms are ordered.
+     */
+    public List<Room>invitedRooms() {
+        return null;
+    }
+
+    /**
+     * Get the list of rooms that are tagged the specified tag.
+     * The returned array is ordered according to the room tag order.
+     * @param tag  RoomTag.ROOM_TAG_XXX values
+     */
+    public List<Room>roomsWithTag(final String tag) {
+        ArrayList<Room> taggedRooms = new ArrayList<Room>();
+
+        if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
+            Collection<Room> rooms = mDataHandler.getStore().getRooms();
+
+            for (Room room : rooms) {
+                if (null != room.getAccountData().roomTag(tag)) {
+                    taggedRooms.add(room);
+                }
+            }
+
+            if (taggedRooms.size() > 0) {
+                Collections.sort(taggedRooms, new Comparator<Room>() {
+                    @Override
+                    public int compare(Room r1, Room r2) {
+                        int res = 0;
+
+                        RoomTag tag1 = r1.getAccountData().roomTag(tag);
+                        RoomTag tag2 = r2.getAccountData().roomTag(tag);
+
+                        if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
+                            res = (int)(tag2.mOrder - tag1.mOrder);
+                        }
+                        else if (null != tag1.mOrder) {
+                            res = +1;
+                        }
+                        else if (null != tag2.mOrder) {
+                            res = -1;
+                        }
+
+                        // In case of same order, order rooms by their last event
+                        if (0 == res) {
+                            IMXStore store = mDataHandler.getStore();
+
+                            Event latestEvent1 = store.getLatestEvent(r1.getRoomId());
+                            Event latestEvent2 = store.getLatestEvent(r2.getRoomId());
+
+                            // sanity check
+                            if ((null != latestEvent2) && (null != latestEvent1)) {
+                                res = (int) (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
+                            }
+                        }
+
+                        return res;
+                    }
+                });
+
+            }
+        } else {
+            Collection<Room> rooms = mDataHandler.getStore().getRooms();
+
+            for(Room room : rooms) {
+                if (!room.getAccountData().hasTags()) {
+                    taggedRooms.add(room);
+                }
+            }
+        }
+
+        return taggedRooms;
+    }
+
+    /**
+     * Compute the tag order to use for a room tag so that the room will appear in the expected position
+     * in the list of rooms stamped with this tag.
+     * @param index the targeted index of the room in the list of rooms with the tag `tag`.
+     * @param originIndex the origin index. Integer.MAX_VALUE if there is none.
+     * @param tag the tag
+     * @return the tag order to apply to get the expected position.
+     */
+    public Double tagOrderToBeAtIndex(int index, int originIndex, String tag) {
+        // Algo (and the [0.0, 1.0] assumption) inspired from matrix-react-sdk:
+        // We sort rooms by the lexicographic ordering of the 'order' metadata on their tags.
+        // For convenience, we calculate this for now a floating point number between 0.0 and 1.0.
+
+        Double orderA = 0.0; // by default we're next to the beginning of the list
+        Double orderB = 1.0; // by default we're next to the end of the list too
+
+        List<Room> roomsWithTag = roomsWithTag(tag);
+
+        if (roomsWithTag.size() > 0) {
+            // when an object is moved down, the index must be incremented
+            // because the object will be removed from the list to be inserted after its destination
+            if ((originIndex != Integer.MAX_VALUE) && (originIndex < index)) {
+                index++;
+            }
+
+            if (index > 0) {
+                // Bound max index to the array size
+                int prevIndex = (index < roomsWithTag.size()) ? index : roomsWithTag.size();
+
+                RoomTag prevTag = roomsWithTag.get(prevIndex - 1).getAccountData().roomTag(tag);
+
+                if (null == prevTag.mOrder) {
+                    Log.e(LOG_TAG, "computeTagOrderForRoom: Previous room in sublist has no ordering metadata. This should never happen.");
+                }
+                else {
+                    orderA = prevTag.mOrder;
+                }
+            }
+
+            if (index <= roomsWithTag.size() - 1)
+            {
+                RoomTag nextTag = roomsWithTag.get(index).getAccountData().roomTag(tag);
+
+                if (null == nextTag.mOrder) {
+                    Log.e(LOG_TAG, "computeTagOrderForRoom: Next room in sublist has no ordering metadata. This should never happen.");
+                }
+                else {
+                    orderB = nextTag.mOrder;
+                }
+            }
+        }
+
+        return (orderA + orderB) / 2.0;
     }
 }

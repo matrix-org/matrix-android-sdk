@@ -37,4 +37,22 @@ public class RoomAccountData implements java.io.Serializable{
             tags = RoomTag.roomTagsWithTagEvent(event);
         }
     }
+
+    /**
+     * Provide a RoomTag for a key.
+     * @param key the key.
+     * @return the roomTag if it is found else null
+     */
+    public RoomTag roomTag(String key) {
+
+        if (tags.containsKey(key)) {
+            return tags.get(key);
+        }
+
+        return null;
+    }
+
+    public Boolean hasTags() {
+        return tags.size() > 0;
+    }
 }
