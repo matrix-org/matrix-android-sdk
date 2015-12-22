@@ -48,10 +48,12 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
+    public static final String EVENT_TYPE_TAGS = "m.tag";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
     public static final String EVENT_TYPE_STATE_ROOM_TOPIC = "m.room.topic";
+    public static final String EVENT_TYPE_STATE_ROOM_AVATAR = "m.room.avatar";
     public static final String EVENT_TYPE_STATE_ROOM_MEMBER = "m.room.member";
     public static final String EVENT_TYPE_STATE_ROOM_CREATE = "m.room.create";
     public static final String EVENT_TYPE_STATE_ROOM_JOIN_RULES = "m.room.join_rules";

@@ -60,6 +60,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -117,6 +118,7 @@ public class Room {
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
     private RoomState mSearchBackState = new RoomState();
+    private RoomAccountData mAccountData = new RoomAccountData();
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
@@ -150,6 +152,14 @@ public class Room {
         mRoomId = roomId;
         mLiveState.roomId = roomId;
         mBackState.roomId = roomId;
+    }
+
+    public void setAccountData(RoomAccountData accountData) {
+        this.mAccountData = accountData;
+    }
+
+    public RoomAccountData getAccountData() {
+        return this.mAccountData;
     }
 
     public void setReadyState(Boolean isReady) {
@@ -380,6 +390,18 @@ public class Room {
                         eventListener.onReceiptEvent(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomTagEvent(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, roomId)) {
+                    try {
+                        eventListener.onRoomTagEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage());
                     }
                 }
             }
@@ -1667,5 +1689,19 @@ public class Room {
         }
 
         return res;
+    }
+
+
+    /**
+     * Handle private user data events.
+     * @param accountDataEvents the account events.
+     */
+    public void handleAccountDataEvents(List<Event> accountDataEvents) {
+        // manage the account events
+        for(Event accountDataEvent : accountDataEvents) {
+            mAccountData.handleEvent(accountDataEvent);
+        }
+
+        mDataHandler.getStore().storeAccountData(mRoomId, mAccountData);
     }
 }

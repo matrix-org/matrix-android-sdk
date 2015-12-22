@@ -228,13 +228,12 @@ public interface IMXStore {
 
     /**
      * Store the summary for the given room id.
-     * @param matrixId the matrix id
      * @param roomId the room id
      * @param event the latest event of the room
      * @param roomState the room state - used to display the event
      * @param selfUserId our own user id - used to display the room name
      */
-    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId);
+    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
 
     /**
      * Store the room liveState.
@@ -267,6 +266,14 @@ public interface IMXStore {
      * @param receipts The receipts list.
      */
     public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts);
+
+    /**
+     * Store the user data for a room.
+     *
+     * @param roomId The room Id.
+     * @param accountData the account data.
+     */
+    public void storeAccountData(String roomId, RoomAccountData accountData);
 
     /**
      * Flush the receipt events

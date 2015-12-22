@@ -63,6 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
     final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
     final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
+    final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
 
     private Context mContext = null;
 
@@ -81,6 +82,7 @@ public class MXFileStore extends MXMemoryStore {
 
     private ArrayList<String> mRoomsToCommitForStates;
     private ArrayList<String> mRoomsToCommitForSummaries;
+    private ArrayList<String> mRoomsToCommitForAccountData;
 
     // <room id, event Id>
     private ArrayList<Pair<String, String>> mRoomsToCommitForReceipt;
@@ -95,6 +97,7 @@ public class MXFileStore extends MXMemoryStore {
     private File mGzStoreRoomsStateFolderFile = null;
     private File mStoreRoomsSummaryFolderFile = null;
     private File mStoreRoomsMessagesReceiptsFolderFile = null;
+    private File mStoreRoomsAccountDataFolderFile = null;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -116,6 +119,7 @@ public class MXFileStore extends MXMemoryStore {
         // MXFileStore/userID/States/
         // MXFileStore/userID/Summaries/
         // MXFileStore/userID/receipt/<room Id>/receipts
+        // MXFileStore/userID/accountData/
 
         // create the dirtree
         mStoreFolderFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_STORE_FOLDER), userId);
@@ -148,6 +152,11 @@ public class MXFileStore extends MXMemoryStore {
         if (!mStoreRoomsMessagesReceiptsFolderFile.exists()) {
             mStoreRoomsMessagesReceiptsFolderFile.mkdirs();
         }
+
+        mStoreRoomsAccountDataFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER);
+        if (!mStoreRoomsAccountDataFolderFile.exists()) {
+            mStoreRoomsAccountDataFolderFile.mkdirs();
+        }
     }
 
     /**
@@ -168,6 +177,7 @@ public class MXFileStore extends MXMemoryStore {
         mRoomsToCommitForMessages = new ArrayList<String>();
         mRoomsToCommitForStates = new ArrayList<String>();
         mRoomsToCommitForSummaries = new ArrayList<String>();
+        mRoomsToCommitForAccountData = new ArrayList<String>();
         mRoomsToCommitForReceipt = new ArrayList<Pair<String, String>>();
 
         // check if the metadata file exists and if it is valid
@@ -238,6 +248,7 @@ public class MXFileStore extends MXMemoryStore {
             saveRoomsMessages();
             saveRoomStates();
             saveSummaries();
+            saveRoomsAccountData();
             saveEventReceipts();
             saveMetaData();
             Log.d(LOG_TAG, "-- Commit");
@@ -323,6 +334,17 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
+                                if (succeed) {
+                                    succeed &= loadRoomsAccountData();
+
+                                    if (!succeed) {
+                                        errorDescription = "loadRoomsAccountData fails";
+                                        Log.e(LOG_TAG, errorDescription);
+                                    } else {
+                                        Log.e(LOG_TAG, "loadRoomsAccountData succeeds");
+                                    }
+                                }
+
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
@@ -402,8 +424,7 @@ public class MXFileStore extends MXMemoryStore {
      * Clear the filesystem storage.
      * @param init true to init the filesystem dirtree
      */
-    private void deleteAllData(boolean init)
-    {
+    private void deleteAllData(boolean init) {
         // delete the dedicated directories
         try {
             ContentUtils.deleteDirectory(mStoreFolderFile);
@@ -615,6 +636,15 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
+        File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
+        if (accountDataFile.exists()) {
+            try {
+                accountDataFile.delete();
+            } catch (Exception e) {
+                Log.d(LOG_TAG,"deleteRoomMessagesFiles - accountDataFile failed " + e.getLocalizedMessage());
+            }
+        }
+
     }
 
     @Override
@@ -625,6 +655,7 @@ public class MXFileStore extends MXMemoryStore {
         deleteRoomMessagesFiles(roomId);
         deleteRoomStateFile(roomId);
         deleteRoomSummaryFile(roomId);
+        deleteRoomAccountDataFile(roomId);
     }
 
     @Override
@@ -635,6 +666,10 @@ public class MXFileStore extends MXMemoryStore {
             mRoomsToCommitForStates.add(roomId);
         }
     }
+
+    //================================================================================
+    // Summary management
+    //================================================================================
 
     @Override
     public void flushSummary(RoomSummary summary) {
@@ -663,13 +698,17 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
-        super.storeSummary(matrixId, roomId, event, roomState, selfUserId);
+    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
+        super.storeSummary(roomId, event, roomState, selfUserId);
 
         if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
             mRoomsToCommitForSummaries.add(roomId);
         }
     }
+
+    //================================================================================
+    // Room messages management
+    //================================================================================
 
     private void saveRoomMessages(String roomId) {
         try {
@@ -930,6 +969,10 @@ public class MXFileStore extends MXMemoryStore {
         return succeed;
     }
 
+    //================================================================================
+    // Room states management
+    //================================================================================
+
     /**
      * Delete the room state file.
      * @param roomId the room id.
@@ -1091,6 +1134,160 @@ public class MXFileStore extends MXMemoryStore {
         return succeed;
     }
 
+    //================================================================================
+    // AccountData management
+    //================================================================================
+
+    /**
+     * Delete the room account data file.
+     * @param roomId the room id.
+     */
+    private void deleteRoomAccountDataFile(String roomId) {
+        File file = new File(mStoreRoomsAccountDataFolderFile, roomId);
+
+        // remove the files
+        if (file.exists()) {
+            try {
+                file.delete();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Flush the pending account data.
+     */
+    private void saveRoomsAccountData() {
+        if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
+            // get the list
+            final ArrayList<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
+            mRoomsToCommitForAccountData = new ArrayList<String>();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            if (!isKilled()) {
+                                long start = System.currentTimeMillis();
+
+                                for (String roomId : fRoomsToCommitForAccountData) {
+                                    try {
+                                        deleteRoomAccountDataFile(roomId);
+
+                                        RoomAccountData accountData = mRoomAccountData.get(roomId);
+
+                                        if (null != accountData) {
+                                            File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
+                                            FileOutputStream fos = new FileOutputStream(accountDataFile);
+                                            ObjectOutputStream out = new ObjectOutputStream(fos);
+                                            out.writeObject(accountData);
+                                            out.close();
+                                        }
+
+                                    } catch (Exception e) {
+                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getMessage());
+                                    }
+                                }
+
+                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForAccountData.size() + " account data in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+    /***
+     * Load the account Data of a dedicated room.
+     * @param roomId the room Id
+     * @return true if the operation succeeds.
+     */
+    private Boolean loadRoomAccountData(final String roomId) {
+        Boolean succeeded = true;
+        RoomAccountData roomAccountData = null;
+
+        try {
+            File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
+
+            if (accountDataFile.exists()) {
+                FileInputStream fis = new FileInputStream(accountDataFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                roomAccountData = (RoomAccountData) ois.readObject();
+
+                ois.close();
+            }
+        } catch (Exception e){
+            succeeded = false;
+            Log.e(LOG_TAG, "loadRoomAccountData failed : " + e.toString());
+        }
+
+        // succeeds to extract the message list
+        if (null != roomAccountData) {
+            Room room = getRoom(roomId);
+
+            if (null != room) {
+                room.setAccountData(roomAccountData);
+            }
+        }
+
+        return succeeded;
+    }
+
+    /**
+     * Load room accountData from the filesystem.
+     * @return true if the operation succeeds.
+     */
+    private boolean loadRoomsAccountData() {
+        Boolean succeed = true;
+
+        try {
+            // extract the messages list
+            String[] filenames = mStoreRoomsAccountDataFolderFile.list();
+
+            long start = System.currentTimeMillis();
+
+            for(int index = 0; succeed && (index < filenames.length); index++) {
+                succeed &= loadRoomAccountData(filenames[index]);
+            }
+
+            if (succeed) {
+                Log.d(LOG_TAG, "loadRoomsAccountData : " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            }
+
+        } catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getMessage());
+        }
+
+        return succeed;
+    }
+
+    @Override
+    public void storeAccountData(String roomId, RoomAccountData accountData) {
+        super.storeAccountData(roomId, accountData);
+
+        if (null != roomId) {
+            Room room = mRooms.get(roomId);
+
+            // sanity checks
+            if ((room != null) && (null != accountData)) {
+                if (mRoomsToCommitForAccountData.indexOf(roomId) < 0) {
+                    mRoomsToCommitForAccountData.add(roomId);
+                }
+            }
+        }
+    }
+
+    //================================================================================
+    // Summary management
+    //================================================================================
+
     /**
      * Delete the room summary file.
      * @param roomId the room id.
@@ -1219,6 +1416,10 @@ public class MXFileStore extends MXMemoryStore {
         return succeed;
     }
 
+    //================================================================================
+    // Metadata management
+    //================================================================================
+
     /**
      * Load the metadata info from the file system.
      */
@@ -1301,6 +1502,10 @@ public class MXFileStore extends MXMemoryStore {
         }
     }
 
+    //================================================================================
+    // Event receipts management
+    //================================================================================
+
     /***
      * Load the events receipts.
      * @param roomId the room Id
@@ -1313,7 +1518,7 @@ public class MXFileStore extends MXMemoryStore {
 
             for (int index = 0; index < filenames.length; index++) {
                 // if the user is invited to a room, the room object is not created until it is joined.
-                Collection<Receipt> list = null;
+                Collection<Receipt> list;
 
                 try {
                     File file = new File(roomFile, filenames[index]);

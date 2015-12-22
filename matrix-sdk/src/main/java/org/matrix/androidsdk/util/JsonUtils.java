@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -72,6 +73,10 @@ public class JsonUtils {
 
     public static RoomMember toRoomMember(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomMember.class);
+    }
+
+    public static RoomTags toRoomTags(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, RoomTags.class);
     }
 
     public static JsonElement toJson(RoomMember roomMember) {

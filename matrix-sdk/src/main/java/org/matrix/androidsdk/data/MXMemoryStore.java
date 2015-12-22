@@ -49,6 +49,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, String> mRoomTokens;
 
     protected Map<String, RoomSummary> mRoomSummaries;
+    protected Map<String, RoomAccountData> mRoomAccountData;
 
     // by room and by event id
     protected Map<String, Map<String, Collection<Receipt>>> mMessagesReceipts;
@@ -68,6 +69,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomTokens = new ConcurrentHashMap<String, String>();
         mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
         mMessagesReceipts = new ConcurrentHashMap<String, Map<String, Collection<Receipt>>>();
+        mRoomAccountData = new ConcurrentHashMap<String, RoomAccountData>();
         mEventStreamToken = null;
     }
 
@@ -396,6 +398,7 @@ public class MXMemoryStore implements IMXStore {
                 mRoomEvents.remove(roomId);
                 mRoomTokens.remove(roomId);
                 mRoomSummaries.remove(roomId);
+                mRoomAccountData.remove(roomId);
                 mMessagesReceipts.remove(roomId);
             }
         }
@@ -483,7 +486,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeSummary(String matrixId, String roomId, Event event, RoomState roomState, String selfUserId) {
+    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
         if (null != roomId) {
             Room room = mRooms.get(roomId);
             if ((room != null) && (event != null)) { // Should always be true
@@ -491,7 +494,7 @@ public class MXMemoryStore implements IMXStore {
                 if (summary == null) {
                     summary = new RoomSummary();
                 }
-                summary.setMatrixId(matrixId);
+                summary.setMatrixId(mCredentials.userId);
                 summary.setLatestEvent(event);
                 summary.setLatestRoomState(roomState);
                 summary.setName(room.getName(selfUserId));
@@ -499,6 +502,18 @@ public class MXMemoryStore implements IMXStore {
                 summary.setTopic(room.getTopic());
 
                 mRoomSummaries.put(roomId, summary);
+            }
+        }
+    }
+
+    @Override
+    public void storeAccountData(String roomId, RoomAccountData accountData) {
+        if (null != roomId) {
+            Room room = mRooms.get(roomId);
+
+            // sanity checks
+            if ((room != null) && (null != accountData)) {
+                mRoomAccountData.put(roomId, accountData);
             }
         }
     }

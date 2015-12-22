@@ -119,4 +119,11 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     public void onReceiptEvent(String roomId);
+
+    /**
+     * A Room Tag event has been received.
+     *
+     * @param roomId the roomID
+     */
+    public void onRoomTagEvent(String roomId);
 }

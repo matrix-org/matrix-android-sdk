@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -46,6 +47,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -234,7 +236,7 @@ public class MXDataHandler implements IMXEventListener {
                     RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
                     beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-                    mStore.storeSummary(getUserId(), room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
+                    mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
 
                     index = -1;
                 } else {
@@ -244,13 +246,20 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         // Handle presence
-        if (roomResponse.presence != null) {
+        if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
             handleLiveEvents(roomResponse.presence);
         }
 
         // receipts
-        if (roomResponse.receipts != null) {
+        if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
             handleLiveEvents(roomResponse.receipts);
+        }
+
+        // account data
+        if ((roomResponse.accountData != null) && (roomResponse.accountData.size() > 0)) {
+            // the room id is not defined in the events
+            // so as the room is defined here, avoid calling handleLiveEvents
+            room.handleAccountDataEvents(roomResponse.accountData);
         }
 
         // Handle the special case where the room is an invite
@@ -345,7 +354,7 @@ public class MXDataHandler implements IMXEventListener {
         inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mStore.storeSummary(getUserId(), roomId, inviteEvent, null, mCredentials.userId);
+        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
 
         // Set the inviter ID
         RoomSummary roomSummary = mStore.getSummary(roomId);
@@ -518,15 +527,15 @@ public class MXDataHandler implements IMXEventListener {
                 if (event.content instanceof JsonArray) {
                     JsonArray jsonElements = event.content.getAsJsonArray();
 
-                    for(int index = 0; index < jsonElements.size(); index++) {
-                        receiptsList.add((JsonObject)jsonElements.get(index));
+                    for (int index = 0; index < jsonElements.size(); index++) {
+                        receiptsList.add((JsonObject) jsonElements.get(index));
                     }
 
                 } else {
                     receiptsList.add(event.getContentAsJsonObject());
                 }
 
-                for(JsonObject object : receiptsList) {
+                for (JsonObject object : receiptsList) {
                     Set<Map.Entry<String, JsonElement>> entrySet = object.entrySet();
                     Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
                     String myUserId = mCredentials.userId;
@@ -579,6 +588,19 @@ public class MXDataHandler implements IMXEventListener {
                     }
                 }
             } catch (Exception e) {
+            }
+        }
+        // room tags
+        else if (Event.EVENT_TYPE_TAGS.equals(event.type)) {
+
+            if (event.roomId != null) {
+                final Room room = getRoom(event.roomId);
+
+                // sanity check
+                if (null != room) {
+                    room.handleAccountDataEvents(Arrays.asList(event));
+                    onRoomTagEvent(event.roomId);
+                }
             }
         }
         // Room event
@@ -725,7 +747,7 @@ public class MXDataHandler implements IMXEventListener {
                     mStore.storeLiveRoomEvent(event);
 
                     if (RoomSummary.isSupportedEvent(event)) {
-                        mStore.storeSummary(getUserId(), event.roomId, event, room.getLiveState(), mCredentials.userId);
+                        mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
                     } else {
                         Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
                     }
@@ -747,7 +769,7 @@ public class MXDataHandler implements IMXEventListener {
                 Event lastEvent = mStore.getLatestEvent(event.roomId);
                 RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
 
-                mStore.storeSummary(getUserId(), event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+                mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
             }
         } else {
             Log.e(LOG_TAG, "deleteRoomEvent : the session is not anymore active");
@@ -971,6 +993,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onReceiptEvent(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onRoomTagEvent(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onRoomTagEvent(roomId);
             } catch (Exception e) {
             }
         }
