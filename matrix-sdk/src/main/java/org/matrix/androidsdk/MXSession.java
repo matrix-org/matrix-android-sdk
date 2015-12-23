@@ -622,15 +622,7 @@ public class MXSession {
             return false;
         }
     }
-
-    /**
-     * Get the list of rooms where the user has a pending invitation.
-     * @return an array where rooms are ordered.
-     */
-    public List<Room>invitedRooms() {
-        return null;
-    }
-
+    
     /**
      * Get the list of rooms that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
