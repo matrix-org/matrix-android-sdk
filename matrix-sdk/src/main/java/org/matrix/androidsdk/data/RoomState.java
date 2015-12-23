@@ -55,20 +55,49 @@ public class RoomState implements java.io.Serializable {
     public static final String HISTORY_VISIBILITY_JOINED = "joined";
 
     // Public members used for JSON mapping
+
+    // The room ID
     public String roomId;
-    public String name;
-    public String topic;
-    public String roomAliasName;
-    public String alias;
-    public String visibility;
-    public String creator;
-    public String joinRule;
-    public String history_visibility;
+
+    // The power level of room members
+    private PowerLevels powerLevels;
+
+    // The aliases of this room.
     public List<String> aliases;
 
+    // Informs which alias is the canonical one.
+    public String alias;
+
+    // The name of the room as provided by the home server.
+    public String name;
+
+    // The topic of the room.
+    public String topic;
+
+    // The avatar url of the room.
+    public String url;
+
+    // the room creator (user id)
+    public String creator;
+
+    // the join rule
+    public String join_rule;
+
+    // SPEC-134
+    public String history_visibility;
+
+    // the public room alias / name
+    public String roomAliasName;
+
+    // the room visibility (i.e. public, private...)
+    public String visibility;
+
+    // the associated token
     private String token;
+
+    // the room members
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
-    private PowerLevels powerLevels;
+
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
 
@@ -78,6 +107,11 @@ public class RoomState implements java.io.Serializable {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    // avatar Url makes more sense than url.
+    public String getAvatarUrl() {
+        return url;
     }
 
     public Collection<RoomMember> getMembers() {
@@ -154,17 +188,21 @@ public class RoomState implements java.io.Serializable {
      * @return the copy
      */
     public RoomState deepCopy() {
+
         RoomState copy = new RoomState();
         copy.roomId = roomId;
+        copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
+        copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
+        copy.alias = this.alias;
         copy.name = name;
         copy.topic = topic;
-        copy.roomAliasName = roomAliasName;
-        copy.visibility = visibility;
+        copy.url = url;
         copy.creator = creator;
-        copy.joinRule = joinRule;
-        copy.mDataHandler = mDataHandler;
+        copy.join_rule = join_rule;
+        copy.visibility = visibility;
+        copy.roomAliasName = roomAliasName;
         copy.token = token;
-        copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
+        copy.mDataHandler = mDataHandler;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -173,8 +211,6 @@ public class RoomState implements java.io.Serializable {
                 copy.setMember(pair.getKey(), pair.getValue().deepCopy());
             }
         }
-
-        copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
 
         return copy;
     }
@@ -314,7 +350,7 @@ public class RoomState implements java.io.Serializable {
                 creator = (roomState == null) ? null : roomState.creator;
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                joinRule = (roomState == null) ? null : roomState.joinRule;
+                join_rule = (roomState == null) ? null : roomState.join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 aliases = (roomState == null) ? null : roomState.aliases;
@@ -326,6 +362,9 @@ public class RoomState implements java.io.Serializable {
                 // SPEC-134
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 history_visibility = (roomState == null) ? null : roomState.history_visibility;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                url = (roomState == null) ? null : roomState.url;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
@@ -364,6 +403,13 @@ public class RoomState implements java.io.Serializable {
         }
 
         return true;
+    }
+
+    /**
+     * @return true if the room is a public one
+     */
+    public Boolean sPublic() {
+        return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
     }
 
     /**
