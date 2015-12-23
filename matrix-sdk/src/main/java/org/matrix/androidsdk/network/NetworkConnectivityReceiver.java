@@ -21,15 +21,10 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.util.Log;
 
-import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class NetworkConnectivityReceiver extends BroadcastReceiver {
     private static final String LOG_TAG = "NetworkReceiver";

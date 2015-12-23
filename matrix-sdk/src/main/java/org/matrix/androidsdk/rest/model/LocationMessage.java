@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import android.media.ExifInterface;
 import android.net.Uri;
 
 import java.io.File;

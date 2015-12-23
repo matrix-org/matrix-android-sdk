@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.db;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.ExifInterface;

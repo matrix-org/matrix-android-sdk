@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 

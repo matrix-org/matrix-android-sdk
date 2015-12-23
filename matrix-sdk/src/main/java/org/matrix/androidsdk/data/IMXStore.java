@@ -19,11 +19,12 @@ package org.matrix.androidsdk.data;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Receipt;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -251,21 +252,31 @@ public interface IMXStore {
     public Collection<Event> getLatestUnsentEvents(String roomId);
 
     /**
-     * Returns the receipts for an event in a dedicated room.
-     * They are sorted from the latest to the oldest ones.
+     * Returns the receipts list for an event in a dedicated room.
+     * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.
      * @param eventId The event Id.
+     * @param excludeSelf exclude the oneself read receipts.
+     * @param sort to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
      */
-    public Collection<Receipt> getEventReceipts(String roomId, String eventId);
+    public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort);
 
     /**
-     * Update the receipts list of an event.
-     * @param roomId The room Id.
-     * @param eventId The event Id.
-     * @param receipts The receipts list.
+     * Store the receipt for an user in a room
+     * @param receipt The event
+     * @param roomId The roomId
+     * @return true if the receipt has been stored
      */
-    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts);
+    public boolean storeReceipt(ReceiptData receipt, String roomId);
+
+    /**
+     * Provides the unread events list.
+     * @param roomId the room id.
+     * @param types an array of event types strings (Event.EVENT_TYPE_XXX).
+     * @return the unread events list.
+     */
+    public List<Event> unreadEvents(String roomId, List<String> types);
 
     /**
      * Store the user data for a room.
@@ -274,9 +285,4 @@ public interface IMXStore {
      * @param accountData the account data.
      */
     public void storeAccountData(String roomId, RoomAccountData accountData);
-
-    /**
-     * Flush the receipt events
-     */
-    public void flushEventReceipts();
 }

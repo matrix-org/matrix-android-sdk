@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.util;
 
-import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -23,8 +22,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
 import java.util.regex.Pattern;

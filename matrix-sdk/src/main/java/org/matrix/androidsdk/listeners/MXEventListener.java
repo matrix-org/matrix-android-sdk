@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;

@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.data;
 
-import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -26,16 +25,12 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
