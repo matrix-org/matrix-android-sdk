@@ -28,6 +28,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -48,6 +50,7 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
@@ -58,10 +61,11 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.lang.reflect.Array;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -141,6 +145,8 @@ public class Room {
     private boolean checkUnsentMessages = false;
 
     private boolean mIsLeaving = false;
+
+    private Gson gson = new GsonBuilder().create();
 
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
@@ -1166,6 +1172,65 @@ public class Room {
     //================================================================================
     // Read receipts events
     //================================================================================
+
+    /**
+     * Handle receipt event.
+     * @param event the event receipts.
+     * @return true if there were some udpates.
+     */
+    public Boolean handleReceiptEvent(Event event) {
+        Boolean hasUpdatedReceipts = false;
+        Boolean selfReceipt = false;
+
+        try {
+            // the receipts dicts
+            // key   : $EventId
+            // value : dict key $UserId
+            //              value dict key ts
+            //                    dict value ts value
+            Type type = new TypeToken<HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>>>(){}.getType();
+            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.content, type);
+
+            for (String eventId : receiptsDict.keySet() ) {
+                HashMap<String, HashMap<String, HashMap<String, Object>>> receiptDict = receiptsDict.get(eventId);
+
+                for (String receiptType : receiptDict.keySet()) {
+                    // only the read receipts are managed
+                    if (TextUtils.equals(receiptType, "m.read")) {
+                        HashMap<String, HashMap<String, Object>> userIdsDict = receiptDict.get(receiptType);
+
+                        for(String userID : userIdsDict.keySet()) {
+                            HashMap<String, Object> paramsDict = userIdsDict.get(userID);
+
+                            for(String paramName : paramsDict.keySet()) {
+                                if (TextUtils.equals("ts", paramName)) {
+                                    Double value = (Double)paramsDict.get(paramName);
+                                    long ts = value.longValue();
+                                    Boolean isUpdated = mDataHandler.getStore().storeReceipt(new ReceiptData(userID, eventId, ts), event.roomId);
+
+                                    hasUpdatedReceipts |= isUpdated;
+
+                                    // check oneself receipts
+                                    // if there is an update, it means that the messages have been read from andother client
+                                    // it requires to update the summary to display valid information.
+                                    if (isUpdated && TextUtils.equals(mMyUserId, userID)) {
+                                        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+                                        if (null != summary) {
+                                            summary.setReadReceiptToken(eventId, ts);
+                                        }
+                                        refreshUnreadCounter();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+        }
+
+        return hasUpdatedReceipts;
+    }
 
     /**
      * Send the read receipt to the latest room message id.

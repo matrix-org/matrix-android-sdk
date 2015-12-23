@@ -20,13 +20,12 @@ import android.content.Context;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.Pair;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Receipt;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -39,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -78,14 +76,12 @@ public class MXFileStore extends MXMemoryStore {
     private MXStoreListener mListener = null;
 
     // List of rooms to save on [MXStore commit]
+    // filled with roomId
     private ArrayList<String> mRoomsToCommitForMessages;
-
     private ArrayList<String> mRoomsToCommitForStates;
     private ArrayList<String> mRoomsToCommitForSummaries;
     private ArrayList<String> mRoomsToCommitForAccountData;
-
-    // <room id, event Id>
-    private ArrayList<Pair<String, String>> mRoomsToCommitForReceipt;
+    private ArrayList<String> mRoomsToCommitForReceipts;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -178,7 +174,7 @@ public class MXFileStore extends MXMemoryStore {
         mRoomsToCommitForStates = new ArrayList<String>();
         mRoomsToCommitForSummaries = new ArrayList<String>();
         mRoomsToCommitForAccountData = new ArrayList<String>();
-        mRoomsToCommitForReceipt = new ArrayList<Pair<String, String>>();
+        mRoomsToCommitForReceipts = new ArrayList<String>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -249,7 +245,7 @@ public class MXFileStore extends MXMemoryStore {
             saveRoomStates();
             saveSummaries();
             saveRoomsAccountData();
-            saveEventReceipts();
+            saveReceipts();
             saveMetaData();
             Log.d(LOG_TAG, "-- Commit");
         }
@@ -324,7 +320,7 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 if (succeed) {
-                                    succeed &= loadEventsReceipts();
+                                    succeed &= loadReceipts();
 
                                     if (!succeed) {
                                         errorDescription = "loadEventsReceipts fails";
@@ -361,7 +357,7 @@ public class MXFileStore extends MXMemoryStore {
                                     mRoomsToCommitForMessages = new ArrayList<String>();
                                     mRoomsToCommitForStates = new ArrayList<String>();
                                     mRoomsToCommitForSummaries = new ArrayList<String>();
-                                    mRoomsToCommitForReceipt = new ArrayList<Pair<String, String>>();
+                                    mRoomsToCommitForReceipts = new ArrayList<String>();
 
                                     mMetadata = tmpMetadata;
                                     mMetadata.mEventStreamToken = null;
@@ -644,7 +640,6 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG,"deleteRoomMessagesFiles - accountDataFile failed " + e.getLocalizedMessage());
             }
         }
-
     }
 
     @Override
@@ -655,6 +650,7 @@ public class MXFileStore extends MXMemoryStore {
         deleteRoomMessagesFiles(roomId);
         deleteRoomStateFile(roomId);
         deleteRoomSummaryFile(roomId);
+        deleteRoomReceiptsFile(roomId);
         deleteRoomAccountDataFile(roomId);
     }
 
@@ -1506,50 +1502,57 @@ public class MXFileStore extends MXMemoryStore {
     // Event receipts management
     //================================================================================
 
+    /**
+     * Store the receipt for an user in a room
+     * @param receipt The event
+     * @param roomId The roomId
+     * @return true if the receipt has been stored
+     */
+    @Override
+    public boolean storeReceipt(ReceiptData receipt, String roomId) {
+        Boolean res = super.storeReceipt(receipt, roomId);
+
+        if (res) {
+            if (mRoomsToCommitForReceipts.indexOf(roomId) < 0) {
+                mRoomsToCommitForReceipts.add(roomId);
+            }
+        }
+
+        return res;
+    }
+
     /***
      * Load the events receipts.
      * @param roomId the room Id
      * @return true if the operation succeeds.
      */
-    private Boolean loadEventsReceipts(String roomId) {
+    private Boolean loadReceipts(String roomId) {
+        Map<String, ReceiptData> receipts = null;
         try {
-            File roomFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-            String[] filenames = roomFile.list();
+            File file = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
-            for (int index = 0; index < filenames.length; index++) {
-                // if the user is invited to a room, the room object is not created until it is joined.
-                Collection<Receipt> list;
+            FileInputStream fis = new FileInputStream(file);
+            ObjectInputStream ois = new ObjectInputStream(fis);
 
-                try {
-                    File file = new File(roomFile, filenames[index]);
-
-                    FileInputStream fis = new FileInputStream(file);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-
-                    list = (Collection<Receipt>) ois.readObject();
-                    ois.close();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadEventsReceipts failed : " + e.getMessage());
-                    return false;
-                }
-
-                if (null != list) {
-                    Map<String, Collection<Receipt>> roomsReceipts = getRoomReceipts(roomId);
-                    roomsReceipts.put(filenames[index], list);
-                }
-            }
+            receipts = (Map<String, ReceiptData>) ois.readObject();
+            ois.close();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
             return false;
+        }
+
+        if (null != receipts) {
+            mReceiptsByRoomId.put(roomId, receipts);
         }
 
         return true;
     }
 
     /**
-     * Load room summaries from the file system.
+     * Load event receipts from the file system.
      * @return true if the operation succeeds.
      */
-    private Boolean loadEventsReceipts() {
+    private Boolean loadReceipts() {
         Boolean succeed = true;
         try {
             // extract the room states
@@ -1559,44 +1562,25 @@ public class MXFileStore extends MXMemoryStore {
 
             for(int index = 0; succeed && (index < filenames.length); index++) {
 
-                succeed &= loadEventsReceipts(filenames[index]);
+                succeed &= loadReceipts(filenames[index]);
             }
 
-            Log.d(LOG_TAG, "loadEventsReceipts " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            Log.d(LOG_TAG, "loadReceipts " + filenames.length + " rooms in " + (System.currentTimeMillis() - start) + " ms");
         }
         catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadEventsReceipts failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
         }
 
         return succeed;
     }
 
     /**
-     * Update the receipts list of an event.
-     * @param roomId The room Id.
-     * @param eventId The event Id.
-     * @param receipts The receipts list.
-     */
-    @Override
-    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
-        super.storeEventReceipts(roomId, eventId, receipts);
-        Pair<String, String> pair = new Pair<>(roomId, eventId);
-
-        synchronized (MXFileStore.this) {
-            if (mRoomsToCommitForReceipt.indexOf(pair) < 0) {
-                mRoomsToCommitForReceipt.add(pair);
-            }
-        }
-    }
-
-    /**
      * Flush the events receipts
      * @param roomId the roomId.
-     * @param eventId the eventId.
      */
-    public void saveReceipts(final String roomId, final String eventId) {
-        final Collection<Receipt> savedReceipts = getEventReceipts(roomId, eventId);
+    public void saveReceipts(final String roomId) {
+        final Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
 
         Runnable r = new Runnable() {
             @Override
@@ -1605,30 +1589,25 @@ public class MXFileStore extends MXMemoryStore {
                     public void run() {
                         if (!mIsKilled) {
 
-                            File roomFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+                            File receiptFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
-                            if (!roomFile.exists()) {
-                                roomFile.mkdir();
-                            }
-
-                            File receiptFile = new File(roomFile, eventId);
                             if (receiptFile.exists()) {
                                 receiptFile.delete();
                             }
 
-                            if (null != savedReceipts) {
+                            if (null != receipts) {
                                 long start = System.currentTimeMillis();
 
                                 try {
                                     FileOutputStream fos = new FileOutputStream(receiptFile);
                                     ObjectOutputStream out = new ObjectOutputStream(fos);
-                                    out.writeObject(savedReceipts);
+                                    out.writeObject(receipts);
                                     out.close();
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "flushReceipts failed : " + e.getMessage());
+                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getMessage());
                                 }
 
-                                Log.d(LOG_TAG, "flushReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     }
@@ -1641,19 +1620,34 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
-     * Flush the events receipts
+     * Save the events receipts.
      */
-    public void saveEventReceipts() {
-        super.flushEventReceipts();
+    public void saveReceipts() {
 
         synchronized (this) {
-            ArrayList<Pair<String, String>> receiptPairs = mRoomsToCommitForReceipt;
+            ArrayList<String> roomsToCommit = mRoomsToCommitForReceipts;
+            mRoomsToCommitForReceipts.clear();
 
-            for (Pair<String, String> pair : receiptPairs) {
-                saveReceipts(pair.first, pair.second);
+            for (String roomId : roomsToCommit) {
+                saveReceipts(roomId);
             }
+        }
+    }
 
-            mRoomsToCommitForReceipt.clear();
+    /**
+     * Delete the room receipts
+     * @param roomId the room id.
+     */
+    private void deleteRoomReceiptsFile(String roomId) {
+        File receiptsFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+
+        // remove the files
+        if (receiptsFile.exists()) {
+            try {
+                receiptsFile.delete();
+            } catch (Exception e) {
+                Log.d(LOG_TAG,"deleteReceiptsFile - failed " + e.getLocalizedMessage());
+            }
         }
     }
 }

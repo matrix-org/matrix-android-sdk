@@ -55,7 +55,7 @@ import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.Receipt;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
@@ -66,8 +66,8 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -134,7 +134,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param userId the userId.
          * @param receipt the receipt.
          */
-        public void onReadReceiptClick(String eventId, String userId, Receipt receipt);
+        public void onReadReceiptClick(String eventId, String userId, ReceiptData receipt);
 
         /**
          * Define the action to perform when the user performs a long tap on the read receipt.
@@ -143,7 +143,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param receipt the receipt.
          * @return true if the long click event is managed
          */
-        public boolean onReadReceiptLongClick(String eventId, String userId, Receipt receipt);
+        public boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt);
 
         /**
          * Define the action to perform when the user taps on the more read receipts button.
@@ -205,8 +205,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private Boolean mIsSearchMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
-
-    private HashMap<String, ArrayList<Receipt>> mUpToReaderIdsByMsgIds;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -341,56 +339,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return NUM_ROW_TYPES;
     }
 
-    /**
-     * The read receipst are displayed to the latest received read receipts.
-     * So, the receipst must be filtered to only keep the latest known ones.
-     */
-    protected void refreshUpToReaders() {
-        HashMap<String, ArrayList<Receipt>> UpToReaderIds = new HashMap<String, ArrayList<Receipt>>();
-
-        if (this.getCount() > 0) {
-            String myUserId = mSession.getMyUser().userId;
-
-            IMXStore store = mSession.getDataHandler().getStore();
-            ArrayList<String> knownUserIds = new ArrayList<String>();
-
-            String roomId = this.getItem(this.getCount() - 1).getRoomState().roomId;
-            Collection<Receipt> receipts;
-
-            for(int index = this.getCount() - 1 ; index >= 0; index--) {
-                Event event = this.getItem(index).getEvent();
-
-                if (myUserId.equals(event.userId)) {
-                    String eventId = event.eventId;
-                    receipts = store.getEventReceipts(roomId, eventId);
-
-                    if ((null != receipts) && (receipts.size() > 0)) {
-                        // copy the list to avoid crashing while looping
-                        ArrayList<Receipt> receiptsLists = new ArrayList<>(receipts);
-                        ArrayList<Receipt> filteredReceipts = new ArrayList<Receipt>();
-
-                        for (Receipt r : receiptsLists) {
-                            if (knownUserIds.indexOf(r.userId) < 0) {
-                                filteredReceipts.add(r);
-                                knownUserIds.add(r.userId);
-                            }
-                        }
-
-                        if (filteredReceipts.size() > 0) {
-                            UpToReaderIds.put(eventId, filteredReceipts);
-                        }
-                    }
-                }
-            }
-        }
-
-        mUpToReaderIdsByMsgIds = UpToReaderIds;
-    }
-
     @Override
     public void notifyDataSetChanged() {
         super.notifyDataSetChanged();
-        refreshUpToReaders();
     }
 
     /**
@@ -703,7 +654,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the roomstate.
      */
     protected void refreshReceiverLayout(final LinearLayout receiversLayout, final String eventId, final RoomState roomState) {
-        ArrayList<Receipt> receipts = mUpToReaderIdsByMsgIds.get(eventId);
+        IMXStore store = mSession.getDataHandler().getStore();
+        List<ReceiptData> receipts = store.getEventReceipts(roomState.roomId, eventId, true, true);
         ArrayList<View> imageViews = new ArrayList<View>();
 
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
@@ -718,7 +670,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             int bound = Math.min(receipts.size(), imageViews.size());
 
             for (; index < bound; index++) {
-                final Receipt r = receipts.get(index);
+                final ReceiptData r = receipts.get(index);
                 RoomMember member = roomState.getMember(r.userId);
                 ImageView imageView = (ImageView) imageViews.get(index);
 

@@ -22,7 +22,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Receipt;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -30,8 +30,10 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,8 +53,8 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, RoomSummary> mRoomSummaries;
     protected Map<String, RoomAccountData> mRoomAccountData;
 
-    // by room and by event id
-    protected Map<String, Map<String, Collection<Receipt>>> mMessagesReceipts;
+    // dict of dict of MXReceiptData indexed by userId
+    protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     protected Credentials mCredentials;
 
@@ -68,7 +70,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
         mRoomTokens = new ConcurrentHashMap<String, String>();
         mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
-        mMessagesReceipts = new ConcurrentHashMap<String, Map<String, Collection<Receipt>>>();
+        mReceiptsByRoomId = new ConcurrentHashMap<String, Map<String, ReceiptData>>();
         mRoomAccountData = new ConcurrentHashMap<String, RoomAccountData>();
         mEventStreamToken = null;
     }
@@ -327,41 +329,8 @@ public class MXMemoryStore implements IMXStore {
      * @return the events count after this event if
      */
     public int eventsCountAfter(String roomId, String eventId) {
-        int count = 0;
-
-        // sanity check
-        if ((null != roomId) && (null != eventId)) {
-            synchronized (mRoomEvents) {
-                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-
-                if (events != null) {
-                    Boolean gotIt = false;
-                    Iterator<Event> it = events.values().iterator();
-                    if (it.hasNext()) {
-                        Event lastEvent;
-
-                        while (it.hasNext()) {
-                            lastEvent = it.next();
-
-                            if (null == lastEvent.userId) {
-                              Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
-                            } else if (gotIt) {
-                                // count only the other members message
-                                if (!TextUtils.equals(lastEvent.userId, mCredentials.userId)) {
-                                    count++;
-                                }
-                            } else {
-                                gotIt = TextUtils.equals(lastEvent.eventId, eventId);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return count;
+        return eventsAfter(roomId, eventId,  mCredentials.userId, null).size();
     }
-
 
     @Override
     public void storeLiveRoomEvent(Event event) {
@@ -399,7 +368,7 @@ public class MXMemoryStore implements IMXStore {
                 mRoomTokens.remove(roomId);
                 mRoomSummaries.remove(roomId);
                 mRoomAccountData.remove(roomId);
-                mMessagesReceipts.remove(roomId);
+                mReceiptsByRoomId.remove(roomId);
             }
         }
     }
@@ -662,55 +631,142 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Get the room receipts list.
-     * @param roomId the room Id.
-     * @return the room receipts list.
-     */
-    protected  Map<String, Collection<Receipt>> getRoomReceipts(String roomId) {
-        Map<String, Collection<Receipt>> roomsReceipts;
-
-        if (mMessagesReceipts.containsKey(roomId)) {
-            roomsReceipts = mMessagesReceipts.get(roomId);
-        } else {
-            roomsReceipts = new ConcurrentHashMap<String, Collection<Receipt>>();
-            mMessagesReceipts.put(roomId, roomsReceipts);
-        }
-
-        return roomsReceipts;
-    }
-
-    /**
-     * Returns the receipts for an event in a dedicated room.
+     * Returns the receipts list for an event in a dedicated room.
+     * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.
      * @param eventId The event Id.
+     * @param excludeSelf exclude the oneself read receipts.
+     * @param sort to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
      */
-    public Collection<Receipt> getEventReceipts(String roomId, String eventId) {
-        return getRoomReceipts(roomId).get(eventId);
+    public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
+        ArrayList<ReceiptData> receipts = new ArrayList<ReceiptData>();
+
+        if (mReceiptsByRoomId.containsKey(roomId)) {
+            String myUserID = mCredentials.userId;
+
+            Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+
+            // copy the user id list to avoid having update while looping
+            ArrayList<String> userIds = new ArrayList<String>(receiptsByUserId.keySet());
+
+            for(String userId : userIds) {
+
+                if (receiptsByUserId.containsKey(userId) && (!excludeSelf || !TextUtils.equals(myUserID, userId))) {
+                    ReceiptData receipt = receiptsByUserId.get(userId);
+
+                    if (TextUtils.equals(receipt.eventId, eventId)) {
+                        receipts.add(receipt);
+                    }
+                }
+            }
+        }
+
+        if (sort && (receipts.size() > 0)) {
+            Collections.sort(receipts, ReceiptData.descComparator);
+        }
+
+        return receipts;
     }
 
     /**
-     * Update the receipts list of an event.
-     * @param roomId The room Id.
-     * @param eventId The event Id.
-     * @param receipts The receipts list.
+     * Store the receipt for an user in a room
+     * @param receipt The event
+     * @param roomId The roomId
+     * @return true if the receipt has been stored
      */
-    public void storeEventReceipts(String roomId, String eventId, Collection<Receipt> receipts) {
-        Map<String, Collection<Receipt>> roomsReceipts = getRoomReceipts(roomId);
-        roomsReceipts.put(eventId, receipts);
+    public boolean storeReceipt(ReceiptData receipt, String roomId) {
+        Map<String, ReceiptData> receiptsByUserId = null;
+
+        if (!mReceiptsByRoomId.containsKey(roomId)) {
+            receiptsByUserId = new HashMap<String, ReceiptData>();
+            mReceiptsByRoomId.put(roomId, receiptsByUserId);
+        } else {
+            receiptsByUserId = mReceiptsByRoomId.get(roomId);
+        }
+
+        ReceiptData curReceipt = null;
+
+        if (receiptsByUserId.containsKey(receipt.userId)) {
+            curReceipt = receiptsByUserId.get(receipt.userId);
+        }
+
+        // not yet defined or a new event
+        if ((null == curReceipt) || (!TextUtils.equals(receipt.eventId,curReceipt.eventId) && (receipt.originServerTs > curReceipt.originServerTs))) {
+            receiptsByUserId.put(receipt.userId, receipt);
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Delete the room receips.
-     * @param roomId
+     * Return a list of stored events after the parameter one.
+     * It could the ones sent by the user excludedUserId.
+     * A filter can be applied to ignore some event (Event.EVENT_TYPE_...).
+     *
+     * @param roomId the roomId
+     * @param eventId the start event Id.
+     * @param excludedUserId the excluded user id
+     * @param allowedTypes the filtered event type (null to allow anyone)
+     * @return the evnts list
      */
-    protected void deleteRoomReceips(String roomId) {
-        mMessagesReceipts.remove(roomId);
+    protected List<Event> eventsAfter(String roomId, String eventId, String excludedUserId, List<String> allowedTypes) {
+        // events list
+        ArrayList<Event> events = new ArrayList<Event>();
+
+        // sanity check
+        if ((null != roomId) && (null != eventId)) {
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
+
+                if (roomEvents != null) {
+                    Boolean gotIt = false;
+                    Iterator<Event> it = roomEvents.values().iterator();
+                    if (it.hasNext()) {
+                        Event lastEvent;
+
+                        while (it.hasNext()) {
+                            lastEvent = it.next();
+
+                            if (null == lastEvent.userId) {
+                                Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
+                            } else if (gotIt) {
+                                boolean isNotTypeFiltered = (null == allowedTypes) || (allowedTypes.indexOf(lastEvent.type) < 0);
+                                boolean isNotSenderFiltered = (null == excludedUserId) || !TextUtils.equals(excludedUserId, lastEvent.userId);
+
+                                if (isNotTypeFiltered && isNotSenderFiltered) {
+                                    events.add(lastEvent);
+                                }
+                            } else {
+                                gotIt = TextUtils.equals(lastEvent.eventId, eventId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return events;
     }
 
     /**
-     * Flush the receipt events
+     * Provides the unread events list.
+     * @param roomId the room id.
+     * @param types an array of event types strings (Event.EVENT_TYPE_XXX).
+     * @return the unread events list.
      */
-    public void flushEventReceipts() {
+    public List<Event> unreadEvents(String roomId, List<String> types) {
+        if (mReceiptsByRoomId.containsKey(roomId)) {
+            Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+
+            if (receiptsByUserId.containsKey(mCredentials.userId)) {
+                ReceiptData data = receiptsByUserId.get(mCredentials.userId);
+
+                return eventsAfter(roomId, data.eventId, mCredentials.userId, types);
+            }
+        }
+
+        return new ArrayList<Event>();
     }
 }

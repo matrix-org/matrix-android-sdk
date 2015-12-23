@@ -18,12 +18,8 @@ package org.matrix.androidsdk;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -34,10 +30,8 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Receipt;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -49,11 +43,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -520,79 +510,19 @@ public class MXDataHandler implements IMXEventListener {
 
             this.onPresenceUpdate(event, user);
         } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
-            try {
-                ArrayList<JsonObject> receiptsList = new ArrayList<JsonObject>();
+            if (event.roomId != null) {
+                final Room room = getRoom(event.roomId);
 
-                // check the content type
-                if (event.content instanceof JsonArray) {
-                    JsonArray jsonElements = event.content.getAsJsonArray();
-
-                    for (int index = 0; index < jsonElements.size(); index++) {
-                        receiptsList.add((JsonObject) jsonElements.get(index));
-                    }
-
-                } else {
-                    receiptsList.add(event.getContentAsJsonObject());
-                }
-
-                for (JsonObject object : receiptsList) {
-                    Set<Map.Entry<String, JsonElement>> entrySet = object.entrySet();
-                    Iterator<Map.Entry<String, JsonElement>> it = entrySet.iterator();
-                    String myUserId = mCredentials.userId;
-
-                    while (it.hasNext()) {
-                        Map.Entry<String, JsonElement> entry = it.next();
-                        String eventId = entry.getKey();
-                        JsonObject jsonObject = entry.getValue().getAsJsonObject();
-
-                        if (jsonObject.has("m.read")) {
-                            Set<Map.Entry<String, JsonElement>> readerSet = jsonObject.get("m.read").getAsJsonObject().entrySet();
-                            Iterator<Map.Entry<String, JsonElement>> readerIt = readerSet.iterator();
-
-                            while (readerIt.hasNext()) {
-                                Map.Entry<String, JsonElement> readerEntry = readerIt.next();
-
-                                long ts = System.currentTimeMillis();
-                                JsonObject tsObject = readerEntry.getValue().getAsJsonObject();
-
-                                if (tsObject.has("ts")) {
-                                    ts = tsObject.get("ts").getAsLong();
-                                }
-
-                                if (TextUtils.equals(readerEntry.getKey(), myUserId)) {
-                                    Room room = mStore.getRoom(event.roomId);
-
-                                    if (null != room) {
-                                        if (room.setReadReceiptToken(eventId, ts)) {
-                                            onReceiptEvent(event.roomId);
-                                        }
-                                    }
-                                } else {
-                                    Collection<Receipt> readReceipts = mStore.getEventReceipts(event.roomId, eventId);
-                                    ArrayList<Receipt> nextReceipts;
-
-                                    if (null == readReceipts) {
-                                        nextReceipts = new ArrayList<>();
-                                    } else {
-                                        nextReceipts = new ArrayList<>(readReceipts);
-                                    }
-
-                                    nextReceipts.add(new Receipt(readerEntry.getKey(), ts));
-                                    Collections.sort(nextReceipts, Receipt.descComparator);
-                                    mStore.storeEventReceipts(event.roomId, eventId, nextReceipts);
-
-                                    onReceiptEvent(event.roomId);
-                                }
-                            }
-                        }
+                // sanity check
+                if (null != room) {
+                    if (room.handleReceiptEvent(event)) {
+                        onReceiptEvent(event.roomId);
                     }
                 }
-            } catch (Exception e) {
             }
         }
         // room tags
         else if (Event.EVENT_TYPE_TAGS.equals(event.type)) {
-
             if (event.roomId != null) {
                 final Room room = getRoom(event.roomId);
 
