@@ -30,6 +30,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
+import java.util.HashMap;
 import java.util.List;
 
 import retrofit.Callback;
@@ -284,4 +285,14 @@ public interface RoomsApi {
      */
     @POST("/rooms/{roomId}/redact/{eventId}")
     public void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
+
+    /**
+     * Set the canonical alias name.
+     * @param roomId the room id
+     * @param params the put params.
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.avatar")
+    public void roomAvatarUrl(@Path("roomId") String roomId, @Body HashMap<String, String> params, Callback<Void> callback);
+
 }

@@ -541,6 +541,15 @@ public class Room {
     }
 
     /**
+     * Redact an event from the room.
+     * @param eventId the event's id
+     * @param callback the callback with the created event
+     */
+    public void redact(String eventId, ApiCallback<Event> callback) {
+        mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
+    }
+
+    /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
      * @param callback the callback.
      */
@@ -572,6 +581,17 @@ public class Room {
         isPaginating = false;
         Log.d(LOG_TAG, "manageEvents : commit");
         mDataHandler.getStore().commit();
+    }
+
+    //================================================================================
+    // History Search (local events by now)
+    //================================================================================
+
+    /**
+     * replace the backState by the SearchBack.
+     */
+    public void flushSearchBackState() {
+        mBackState = mSearchBackState;
     }
 
     /**
@@ -654,12 +674,6 @@ public class Room {
         t.start();
     }
 
-    /**
-     * replace the backState by the SearchBack.
-     */
-    public void flushSearchBackState() {
-        mBackState = mSearchBackState;
-    }
 
     /**
      * Request older messages to perform a search on it.
@@ -714,6 +728,9 @@ public class Room {
         return true;
     }
 
+    //================================================================================
+    // History request
+    //================================================================================
 
     /**
      * Request older messages. They will come down the onBackEvent callback.
@@ -827,6 +844,36 @@ public class Room {
     }
 
     /**
+     * Perform a room-level initial sync to get latest messages and pagination token.
+     * @param callback the async callback
+     */
+    public void initialSync(final ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
+            @Override
+            public void onSuccess(RoomResponse roomInfo) {
+                // check if the SDK was not logged out
+                if (mDataHandler.isActive()) {
+                    mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+
+                    Log.d(LOG_TAG, "initialSync : commit");
+                    mDataHandler.getStore().commit();
+                    if (callback != null) {
+                        try {
+                            callback.onSuccess(null);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    //================================================================================
+    // Join
+    //================================================================================
+
+    /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      * @param callback the callback for when done
      */
@@ -859,40 +906,26 @@ public class Room {
         });
     }
 
-
-
-    /**
-     * Perform a room-level initial sync to get latest messages and pagination token.
-     * @param callback the async callback
-     */
-    public void initialSync(final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
-            @Override
-            public void onSuccess(RoomResponse roomInfo) {
-                // check if the SDK was not logged out
-                if (mDataHandler.isActive()) {
-                    mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
-
-                    Log.d(LOG_TAG, "initialSync : commit");
-                    mDataHandler.getStore().commit();
-                    if (callback != null) {
-                        try {
-                            callback.onSuccess(null);
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
-                        }
-                    }
-                }
-            }
-        });
-    }
-
     /**
      * Shorthand for {@link #join(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
      */
     public void join() {
         join(null);
     }
+
+    /**
+     * @return true if the user joined the room
+     */
+    public boolean selfJoined() {
+        RoomMember roomMember = getMember(mMyUserId);
+
+        // send the event only if the user has joined the room.
+        return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
+    }
+
+    //================================================================================
+    // Member actions
+    //================================================================================
 
     /**
      * Invite a user to this room.
@@ -1060,6 +1093,20 @@ public class Room {
     }
 
     /**
+     * Unban a user.
+     * @param userId the user id
+     * @param callback the async callback
+     */
+    public void unban(String userId, ApiCallback<Void> callback) {
+        // Unbanning is just setting a member's state to left, like kick
+        kick(userId, callback);
+    }
+
+    //================================================================================
+    // Room info (liveState) update
+    //================================================================================
+
+    /**
      * Update the power level of the user userId
      * @param userId the user id
      * @param powerLevel the new power level
@@ -1069,16 +1116,6 @@ public class Room {
         PowerLevels powerLevels = getLiveState().getPowerLevels().deepCopy();
         powerLevels.setUserPowerLevel(userId, powerLevel);
         mDataRetriever.getRoomsRestClient().updatePowerLevels(mRoomId, powerLevels, callback);
-    }
-
-    /**
-     * Unban a user.
-     * @param userId the user id
-     * @param callback the async callback
-     */
-    public void unban(String userId, ApiCallback<Void> callback) {
-        // Unbanning is just setting a member's state to left, like kick
-        kick(userId, callback);
     }
 
     /**
@@ -1109,6 +1146,15 @@ public class Room {
     }
 
     /**
+     * Update the room avatar URL.
+     * @param avatarUrl the new avatar URL
+     * @param callback the async callback
+     */
+    public void updateAvatarUrl(String avatarUrl, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, callback);
+    }
+
+    /**
      * Update the room's visibility
      * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
      * @param callback the async callback
@@ -1117,14 +1163,9 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, callback);
     }
 
-    /**
-     * Redact an event from the room.
-     * @param eventId the event's id
-     * @param callback the callback with the created event
-     */
-    public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
-    }
+    //================================================================================
+    // Read receipts events
+    //================================================================================
 
     /**
      * Send the read receipt to the latest room message id.
@@ -1175,6 +1216,10 @@ public class Room {
         return false;
     }
 
+    //================================================================================
+    // Unread event count management
+    //================================================================================
+
     /**
      *  refresh the unread events counts.
      */
@@ -1205,6 +1250,10 @@ public class Room {
         return 0;
     }
 
+    //================================================================================
+    // typing events
+    //================================================================================
+
     /**
      * Get typing users
      * @return the userIds list
@@ -1221,16 +1270,6 @@ public class Room {
     }
 
     /**
-     * @return true if the user joined the room
-     */
-    public boolean selfJoined() {
-        RoomMember roomMember = getMember(mMyUserId);
-
-        // send the event only if the user has joined the room.
-        return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
-    }
-
-    /**
      * Send a typing notification
      * @param isTyping typing status
      * @param timeout the typing timeout
@@ -1241,6 +1280,10 @@ public class Room {
             mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
         }
     }
+
+    //================================================================================
+    // Medias events
+    //================================================================================
 
     /**
      * Fill the locationInfo
@@ -1434,6 +1477,10 @@ public class Room {
         } catch (Exception e) {
         }
     }
+
+    //================================================================================
+    // Unsent events management
+    //================================================================================
 
     /**
      * Resend the unsent messages.
@@ -1667,6 +1714,10 @@ public class Room {
         }
     }
 
+    //================================================================================
+    // Call
+    //================================================================================
+
     /**
      * Test if a call can be performed in this room.
      * @return true if a call can be performed.
@@ -1692,6 +1743,9 @@ public class Room {
         return res;
     }
 
+    //================================================================================
+    // Account data management
+    //================================================================================
 
     /**
      * Handle private user data events.
