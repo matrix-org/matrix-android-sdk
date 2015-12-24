@@ -1626,11 +1626,12 @@ public class MXFileStore extends MXMemoryStore {
 
         synchronized (this) {
             ArrayList<String> roomsToCommit = mRoomsToCommitForReceipts;
-            mRoomsToCommitForReceipts.clear();
 
             for (String roomId : roomsToCommit) {
                 saveReceipts(roomId);
             }
+
+            mRoomsToCommitForReceipts.clear();
         }
     }
 
