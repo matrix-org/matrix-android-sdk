@@ -199,7 +199,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected MXMediasCache mMediasCache;
 
     // events listener
-    private MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
+    protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
 
     private Boolean mIsSearchMode = false;
@@ -723,6 +723,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /***
+     * Tells if the event must be displayed on the right screen side.
+     * By default, the self messages are displayed on right side.
+     * The inherited class must override this class to choose where to display the items
+     *
+     * @param event the event to test.
+     * @return true if the event must be displayed on right side.
+     */
+    protected boolean isEventDisplayedOnRightSide(Event event) {
+        return mSession.getMyUser().userId.equals(event.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+    }
+
     /**
      * Common view management.
      * @param position the item position.
@@ -733,11 +745,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     protected boolean manageSubView(final int position, View convertView, View subView, int msgType) {
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        MyUser myUser = mSession.getMyUser();
-        Boolean isMyEvent = myUser.userId.equals(msg.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(msg.type);
+        Boolean displayedOnRightSide = isEventDisplayedOnRightSide(event);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
@@ -768,8 +779,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            isMergedView = TextUtils.equals(prevUserId, msg.userId);
-            willBeMerged = TextUtils.equals(nextUserId, msg.userId);
+            isMergedView = TextUtils.equals(prevUserId, event.userId);
+            willBeMerged = TextUtils.equals(nextUserId, event.userId);
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
@@ -784,17 +795,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 if (isMergedView) {
                     textView.setText("");
                 } else {
-                    textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
+                    textView.setText(getUserDisplayName(event.userId, row.getRoomState()));
                 }
             }
-            else if (isMergedView || isMyEvent || (msgType == ROW_TYPE_NOTICE)) {
+            else if (isMergedView || displayedOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
                 textView.setVisibility(View.GONE);
             } else {
                 textView.setVisibility(View.VISIBLE);
-                textView.setText(getUserDisplayName(msg.userId, row.getRoomState()));
+                textView.setText(getUserDisplayName(event.userId, row.getRoomState()));
             }
 
-            final String fSenderId = msg.userId;
+            final String fSenderId = event.userId;
             final String fDisplayName = textView.getText().toString();
 
             textView.setOnClickListener(new View.OnClickListener() {
@@ -817,7 +828,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
 
-            if (isMyEvent) {
+            if (displayedOnRightSide) {
                 tsTextView = leftTsTextView;
                 rightTsTextView.setVisibility(View.GONE);
             } else {
@@ -827,7 +838,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        String timeStamp = getFormattedTimestamp(msg);
+        String timeStamp = getFormattedTimestamp(event);
 
         if (TextUtils.isEmpty(timeStamp)) {
             tsTextView.setVisibility(View.GONE);
@@ -845,17 +856,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // read receipts
         LinearLayout leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
         LinearLayout rightReceiversLayout = (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+
         rightReceiversLayout.setVisibility(View.GONE);
 
-        if ((msgType == ROW_TYPE_NOTICE) || !isMyEvent) {
+        if ((msgType == ROW_TYPE_NOTICE) || !displayedOnRightSide) {
             leftReceiversLayout.setVisibility(View.GONE);
         } else {
             leftReceiversLayout.setVisibility(View.VISIBLE);
-            refreshReceiverLayout(leftReceiversLayout, msg.eventId, roomState);
+            refreshReceiverLayout(leftReceiversLayout, event.eventId, roomState);
         }
 
         // Sender avatar
-        RoomMember sender = roomState.getMember(msg.userId);
+        RoomMember sender = roomState.getMember(event.userId);
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
         View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
@@ -864,15 +876,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if ((null != avatarLeftView) && (null != avatarRightView)) {
             View avatarLayoutView = null;
 
-            if (isMyEvent) {
+            if (displayedOnRightSide) {
                 avatarLayoutView = avatarRightView;
                 avatarLeftView.setVisibility(View.GONE);
-
             } else {
                 avatarLayoutView = avatarLeftView;
                 avatarRightView.setVisibility(View.GONE);
 
-                final String userId = msg.userId;
+                final String userId = event.userId;
 
                 avatarLeftView.setClickable(true);
 
@@ -901,7 +912,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
             ImageView presenceView = (ImageView) avatarLayoutView.findViewById(R.id.imageView_presenceRing);
 
-            final String userId = msg.userId;
+            final String userId = event.userId;
             refreshPresenceRing(presenceView, userId);
 
             if (isMergedView) {
@@ -914,7 +925,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 String url = null;
 
                 // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
-                JsonObject msgContent = msg.getContentAsJsonObject();
+                JsonObject msgContent = event.getContentAsJsonObject();
 
                 if (msgContent.has("avatar_url")) {
                     url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
@@ -924,8 +935,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     url = sender.avatarUrl;
                 }
 
-                if (TextUtils.isEmpty(url) && (null != msg.userId)) {
-                    url = ContentManager.getIdenticonURL(msg.userId);
+                if (TextUtils.isEmpty(url) && (null != event.userId)) {
+                    url = ContentManager.getIdenticonURL(event.userId);
                 }
 
                 if (!TextUtils.isEmpty(url)) {
@@ -933,7 +944,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 // display the typing icon when required
-                setTypingVisibility(avatarLayoutView, (!isMyEvent && (mTypingUsers.indexOf(msg.userId) >= 0)) ? View.VISIBLE : View.GONE);
+                setTypingVisibility(avatarLayoutView, (!displayedOnRightSide && (mTypingUsers.indexOf(event.userId) >= 0)) ? View.VISIBLE : View.GONE);
             }
 
             // if the messages are merged
@@ -946,7 +957,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
             ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
 
-            if (!isMyEvent) {
+            if (!displayedOnRightSide) {
                 subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
 
                 if (isMergedView) {
