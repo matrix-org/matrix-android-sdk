@@ -622,24 +622,6 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG,"deleteRoomMessagesFiles - tokenFile failed " + e.getLocalizedMessage());
             }
         }
-
-        File receiptsFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-        if (receiptsFile.exists()) {
-            try {
-                receiptsFile.delete();
-            } catch (Exception e) {
-                Log.d(LOG_TAG,"deleteRoomMessagesFiles - receiptsFile failed " + e.getLocalizedMessage());
-            }
-        }
-
-        File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
-        if (accountDataFile.exists()) {
-            try {
-                accountDataFile.delete();
-            } catch (Exception e) {
-                Log.d(LOG_TAG,"deleteRoomMessagesFiles - accountDataFile failed " + e.getLocalizedMessage());
-            }
-        }
     }
 
     @Override
