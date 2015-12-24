@@ -66,6 +66,8 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -650,10 +652,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Refresh the receiver thumbnails
      * @param receiversLayout the receiver layout
+     * @param leftAlign the avatars are left align i.e. they are ddisplayed from the left to the right one.
      * @param eventId the event Id
      * @param roomState the roomstate.
      */
-    protected void refreshReceiverLayout(final LinearLayout receiversLayout, final String eventId, final RoomState roomState) {
+    protected void refreshReceiverLayout(final LinearLayout receiversLayout, final boolean leftAlign, final String eventId, final RoomState roomState) {
         IMXStore store = mSession.getDataHandler().getStore();
         List<ReceiptData> receipts = store.getEventReceipts(roomState.roomId, eventId, true, true);
         ArrayList<View> imageViews = new ArrayList<View>();
@@ -662,7 +665,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar3).findViewById(R.id.avatar_img));
 
-        View moreView = receiversLayout.findViewById(R.id.messagesAdapter_more_than_three);
+
+        if (!leftAlign) {
+            Collections.reverse(imageViews);
+        }
+
+        TextView moreViewLeft  = (TextView)receiversLayout.findViewById(R.id.messagesAdapter_more_than_three_left);
+        TextView moreViewRight = (TextView)receiversLayout.findViewById(R.id.messagesAdapter_more_than_three_right);
 
         int index = 0;
 
@@ -699,23 +708,47 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 });
             }
 
-            moreView.setVisibility((receipts.size() > imageViews.size()) ? View.VISIBLE : View.GONE);
+            TextView displayedMoreTextView = null;
 
-            moreView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mMessagesAdapterEventsListener.onMoreReadReceiptClick(eventId);
-                }
-            });
+            if (receipts.size() <= imageViews.size()) {
+                moreViewLeft.setVisibility(View.GONE);
+                moreViewRight.setVisibility(View.GONE);
+            } else {
+                int diff = receipts.size() - imageViews.size();
 
-            moreView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    return mMessagesAdapterEventsListener.onMoreReadReceiptLongClick(eventId);
+                if (!leftAlign) {
+                    displayedMoreTextView = moreViewLeft;
+                    moreViewLeft.setVisibility(View.VISIBLE);
+                    moreViewRight.setVisibility(View.GONE);
+
+                    moreViewLeft.setText(diff + "+");
+                } else {
+                    displayedMoreTextView = moreViewRight;
+                    moreViewLeft.setVisibility(View.GONE);
+                    moreViewRight.setVisibility(View.VISIBLE);
+                    moreViewRight.setText("+" + diff);
                 }
-            });
+
+                displayedMoreTextView.setVisibility((receipts.size() > imageViews.size()) ? View.VISIBLE : View.GONE);
+
+                displayedMoreTextView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mMessagesAdapterEventsListener.onMoreReadReceiptClick(eventId);
+                    }
+                });
+
+                displayedMoreTextView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return mMessagesAdapterEventsListener.onMoreReadReceiptLongClick(eventId);
+                    }
+                });
+            }
         } else {
-            moreView.setVisibility(View.GONE);
+
+            moreViewRight.setVisibility(View.GONE);
+            moreViewLeft.setVisibility(View.GONE);
         }
 
         for(; index < imageViews.size(); index++) {
@@ -724,14 +757,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /***
-     * Tells if the event must be displayed on the right screen side.
-     * By default, the self messages are displayed on right side.
-     * The inherited class must override this class to choose where to display the items
+     * Tells if the sender avatar must be displayed on the right screen side.
+     * By default, the self avatar is displayed on right side.
+     * The inherited class must override this class to choose where to display them.
      *
      * @param event the event to test.
-     * @return true if the event must be displayed on right side.
+     * @return true if the avatar must be displayed on right side.
      */
-    protected boolean isEventDisplayedOnRightSide(Event event) {
+    protected boolean isAvatarDisplayedOnRightSide(Event event) {
         return mSession.getMyUser().userId.equals(event.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
     }
 
@@ -748,7 +781,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event event = row.getEvent();
         RoomState roomState = row.getRoomState();
 
-        Boolean displayedOnRightSide = isEventDisplayedOnRightSide(event);
+        Boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged -> false if it is the last message of the user
@@ -798,7 +831,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     textView.setText(getUserDisplayName(event.userId, row.getRoomState()));
                 }
             }
-            else if (isMergedView || displayedOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
+            else if (isMergedView || isAvatarOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
                 textView.setVisibility(View.GONE);
             } else {
                 textView.setVisibility(View.VISIBLE);
@@ -828,7 +861,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
 
-            if (displayedOnRightSide) {
+            if (isAvatarOnRightSide) {
                 tsTextView = leftTsTextView;
                 rightTsTextView.setVisibility(View.GONE);
             } else {
@@ -845,6 +878,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else {
             tsTextView.setVisibility(View.VISIBLE);
             tsTextView.setText(timeStamp);
+
+            tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
         }
 
         if (row.getEvent().isUndeliverable()) {
@@ -857,14 +892,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         LinearLayout leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
         LinearLayout rightReceiversLayout = (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
 
-        rightReceiversLayout.setVisibility(View.GONE);
+        leftReceiversLayout.setVisibility(isAvatarOnRightSide ? View.VISIBLE : View.GONE);
+        rightReceiversLayout.setVisibility(isAvatarOnRightSide ? View.GONE : View.VISIBLE);
 
-        if ((msgType == ROW_TYPE_NOTICE) || !displayedOnRightSide) {
-            leftReceiversLayout.setVisibility(View.GONE);
-        } else {
-            leftReceiversLayout.setVisibility(View.VISIBLE);
-            refreshReceiverLayout(leftReceiversLayout, event.eventId, roomState);
-        }
+        refreshReceiverLayout(isAvatarOnRightSide ? leftReceiversLayout : rightReceiversLayout, isAvatarOnRightSide, event.eventId, roomState);
 
         // Sender avatar
         RoomMember sender = roomState.getMember(event.userId);
@@ -876,7 +907,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if ((null != avatarLeftView) && (null != avatarRightView)) {
             View avatarLayoutView = null;
 
-            if (displayedOnRightSide) {
+            if (isAvatarOnRightSide) {
                 avatarLayoutView = avatarRightView;
                 avatarLeftView.setVisibility(View.GONE);
             } else {
@@ -944,7 +975,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 // display the typing icon when required
-                setTypingVisibility(avatarLayoutView, (!displayedOnRightSide && (mTypingUsers.indexOf(event.userId) >= 0)) ? View.VISIBLE : View.GONE);
+                setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.userId) >= 0)) ? View.VISIBLE : View.GONE);
             }
 
             // if the messages are merged
@@ -957,7 +988,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
             ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
 
-            if (!displayedOnRightSide) {
+            if (!isAvatarOnRightSide) {
                 subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
 
                 if (isMergedView) {
