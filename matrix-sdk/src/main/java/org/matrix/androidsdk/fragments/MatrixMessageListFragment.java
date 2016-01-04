@@ -1343,10 +1343,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if (mMessageListView.getFirstVisiblePosition() == 0) {
-            displayLoadingProgress();
-            mIsCatchingUp = true;
-
-            mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
+            mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
                     dismissLoadingProgress();
@@ -1395,6 +1392,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     onError(e.getLocalizedMessage());
                 }
             });
+
+            if (mIsCatchingUp) {
+                displayLoadingProgress();
+            }
         }
     }
 
