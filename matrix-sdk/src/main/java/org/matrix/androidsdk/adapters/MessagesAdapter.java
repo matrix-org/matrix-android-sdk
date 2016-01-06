@@ -665,7 +665,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar3).findViewById(R.id.avatar_img));
 
-
         if (!leftAlign) {
             Collections.reverse(imageViews);
         }
@@ -675,7 +674,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int index = 0;
 
-        if (null != receipts) {
+        // the receipts are defined
+        if ((null != receipts) && (0 != receipts.size())) {
             int bound = Math.min(receipts.size(), imageViews.size());
 
             for (; index < bound; index++) {
