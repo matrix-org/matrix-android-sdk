@@ -76,25 +76,48 @@ public class RoomMember implements java.io.Serializable {
     };
 
     /**
-     * Test if a room memmber matches with a pattern.
+     * Test if a room member fields matches with a pattern.
      * The check is done with the displayname and the userId.
      * @param aPattern the pattern to search.
      * @return true if it matches.
      */
-    public boolean matchWith(String aPattern) {
+    public boolean matchWithPattern(String aPattern) {
         if (TextUtils.isEmpty(aPattern) || TextUtils.isEmpty(aPattern.trim())) {
             return false;
         }
 
-        String regEx = "(?i:.*" + aPattern.trim() + ".*)";
         boolean res = false;
 
         if (!TextUtils.isEmpty(displayname)) {
-            res = displayname.matches(regEx);
+            res = (displayname.toLowerCase().indexOf(aPattern) >= 0);
         }
 
         if (!res && !TextUtils.isEmpty(userId)) {
-            res = userId.matches(regEx);
+            res = (userId.toLowerCase().indexOf(aPattern) >= 0);
+        }
+
+        return res;
+    }
+
+    /**
+     * Test if a room member matches with a reg ex.
+     * The check is done with the displayname and the userId.
+     * @param aRegEx the reg ex
+     * @return true if it matches.
+     */
+    public boolean matchWithRegEx(String aRegEx) {
+        if (TextUtils.isEmpty(aRegEx)) {
+            return false;
+        }
+
+        boolean res = false;
+
+        if (!TextUtils.isEmpty(displayname)) {
+            res = displayname.matches(aRegEx);
+        }
+
+        if (!res && !TextUtils.isEmpty(userId)) {
+            res = userId.matches(aRegEx);
         }
 
         return res;
