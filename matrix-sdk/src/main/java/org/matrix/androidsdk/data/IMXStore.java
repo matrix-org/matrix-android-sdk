@@ -122,6 +122,7 @@ public interface IMXStore {
      */
     public Collection<Room> getRooms();
     public Room getRoom(String roomId);
+    public Collection<User> getUsers();
     public User getUser(String userId);
     public void storeUser(User user);
     public void storeRoom(Room room);

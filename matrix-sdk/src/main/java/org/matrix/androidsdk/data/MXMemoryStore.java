@@ -234,11 +234,12 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<Room> getRooms() {
-        return mRooms.values();
+        return new ArrayList<Room>(mRooms.values());
     }
 
+    @Override
     public Collection<User> getUsers() {
-        return mUsers.values();
+        return new ArrayList<User>(mUsers.values());
     }
 
     @Override
