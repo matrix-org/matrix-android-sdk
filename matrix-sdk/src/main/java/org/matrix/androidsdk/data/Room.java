@@ -1170,13 +1170,34 @@ public class Room {
     //================================================================================
 
     /**
+     * Handle a receiptData.
+     * @param receiptData the receiptData.
+     * @return true if there a store update.
+     */
+    public Boolean handleReceiptData(ReceiptData receiptData) {
+        Boolean isUpdated = mDataHandler.getStore().storeReceipt(receiptData, mRoomId);
+
+        // check oneself receipts
+        // if there is an update, it means that the messages have been read from andother client
+        // it requires to update the summary to display valid information.
+        if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
+            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+            if (null != summary) {
+                summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
+            }
+            refreshUnreadCounter();
+        }
+
+        return isUpdated;
+    }
+
+    /**
      * Handle receipt event.
      * @param event the event receipts.
-     * @return true if there were some udpates.
+     * @return true if there were some updates.
      */
     public Boolean handleReceiptEvent(Event event) {
         Boolean hasUpdatedReceipts = false;
-        Boolean selfReceipt = false;
 
         try {
             // the receipts dicts
@@ -1202,20 +1223,8 @@ public class Room {
                                 if (TextUtils.equals("ts", paramName)) {
                                     Double value = (Double)paramsDict.get(paramName);
                                     long ts = value.longValue();
-                                    Boolean isUpdated = mDataHandler.getStore().storeReceipt(new ReceiptData(userID, eventId, ts), event.roomId);
 
-                                    hasUpdatedReceipts |= isUpdated;
-
-                                    // check oneself receipts
-                                    // if there is an update, it means that the messages have been read from andother client
-                                    // it requires to update the summary to display valid information.
-                                    if (isUpdated && TextUtils.equals(mMyUserId, userID)) {
-                                        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
-                                        if (null != summary) {
-                                            summary.setReadReceiptToken(eventId, ts);
-                                        }
-                                        refreshUnreadCounter();
-                                    }
+                                    hasUpdatedReceipts |= handleReceiptData(new ReceiptData(userID, eventId, ts));
                                 }
                             }
                         }
