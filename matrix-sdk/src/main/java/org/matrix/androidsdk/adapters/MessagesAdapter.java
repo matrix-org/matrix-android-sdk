@@ -47,6 +47,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -619,13 +620,28 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
 
     /**
-     * Load avatar thumbnail
-     * @param avatarView
-     * @param url
+     * Refresh the avatar thumbnail.
+     * @param avatarView the avatar view
+     * @param member the member
+     * @param userId the member id.
+     * @param url the avatar url
      */
-    protected void loadAvatar(ImageView avatarView, String url) {
-        int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
-        mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
+    protected void loadMemberAvatar(ImageView avatarView, RoomMember member, String userId, String url) {
+        if ((member != null) && (null == url)) {
+            url = member.avatarUrl;
+        }
+
+        if (TextUtils.isEmpty(url) && (null != userId)) {
+            url = ContentManager.getIdenticonURL(userId);
+        }
+
+        // define a default one.
+        avatarView.setImageResource(R.drawable.ic_contact_picture_holo_light);
+
+        if (!TextUtils.isEmpty(url)) {
+            int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_avatar_size);
+            mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
+        }
     }
 
     /**
@@ -951,7 +967,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             } else {
                 avatarLayoutView.setVisibility(View.VISIBLE);
                 avatarImageView.setTag(null);
-                avatarImageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
 
                 String url = null;
 
@@ -962,17 +977,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
-                if ((sender != null) && (null == url)) {
-                    url = sender.avatarUrl;
-                }
-
-                if (TextUtils.isEmpty(url) && (null != event.userId)) {
-                    url = ContentManager.getIdenticonURL(event.userId);
-                }
-
-                if (!TextUtils.isEmpty(url)) {
-                    loadAvatar(avatarImageView, url);
-                }
+                loadMemberAvatar(avatarImageView, sender,userId, url);
 
                 // display the typing icon when required
                 setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.userId) >= 0)) ? View.VISIBLE : View.GONE);
