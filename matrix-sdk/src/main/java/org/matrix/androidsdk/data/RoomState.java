@@ -371,6 +371,8 @@ public class RoomState implements java.io.Serializable {
                     removeMember(userId);
                 } else {
                     member.setUserId(userId);
+                    member.setOriginServerTs(event.getOriginServerTs());
+                    member.setInviterId(event.userId);
 
                     RoomMember currentMember = getMember(userId);
 

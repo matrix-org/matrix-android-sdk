@@ -33,7 +33,11 @@ public class RoomMember implements java.io.Serializable {
     public String avatarUrl;
     public String membership;
 
-    private String userId;
+    private String userId = null;
+    // timestamp of the event which has created this member
+    private long mOriginServerTs = -1;
+    // the id of the sender which has created this member
+    private String mInviter;
 
     public String getUserId() {
         return userId;
@@ -41,6 +45,22 @@ public class RoomMember implements java.io.Serializable {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public void setOriginServerTs(long aTs) {
+        mOriginServerTs = aTs;
+    }
+
+    public long getOriginServerTs() {
+        return mOriginServerTs;
+    }
+
+    public String getInviterId() {
+        return mInviter;
+    }
+
+    public void setInviterId(String userId) {
+        mInviter = userId;
     }
 
     private Boolean fieldsAreEqual(String s1, String s2) {
