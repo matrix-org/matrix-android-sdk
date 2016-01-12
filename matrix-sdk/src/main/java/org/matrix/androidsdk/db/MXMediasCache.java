@@ -18,6 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -661,6 +662,7 @@ public class MXMediasCache {
         if (null != bitmap) {
             if (null != imageView) {
                 // display it
+                imageView.setBackgroundColor(Color.TRANSPARENT);
                 imageView.setImageBitmap(bitmap);
             }
             downloadableUrl = null;

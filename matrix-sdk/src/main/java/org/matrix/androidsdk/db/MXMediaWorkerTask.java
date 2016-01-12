@@ -19,6 +19,7 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
@@ -555,6 +556,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 final ImageView imageView = weakRef.get();
 
                 if (imageView != null && TextUtils.equals(mUrl, (String)imageView.getTag())) {
+                    imageView.setBackgroundColor(Color.TRANSPARENT);
                     imageView.setImageBitmap(bitmap);
                 }
             }
