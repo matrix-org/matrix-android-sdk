@@ -205,8 +205,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
 
-    private Boolean mIsSearchMode = false;
-    private String mPattern = null;
+    protected Boolean mIsSearchMode = false;
+    protected String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
 
     // customization methods
@@ -828,8 +828,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             }
 
-            isMergedView = TextUtils.equals(prevUserId, event.userId);
-            willBeMerged = TextUtils.equals(nextUserId, event.userId);
+            isMergedView = TextUtils.equals(prevUserId, event.userId) && !mIsSearchMode;
+            willBeMerged = TextUtils.equals(nextUserId, event.userId) && !mIsSearchMode;
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
