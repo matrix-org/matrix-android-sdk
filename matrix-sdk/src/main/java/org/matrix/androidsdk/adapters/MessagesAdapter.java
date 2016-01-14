@@ -194,6 +194,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected int notSentColor;
     protected int sendingColor;
     protected int highlightColor;
+    protected int searchHighlightColor;
 
     protected int mMaxImageWidth;
     protected int mMaxImageHeight;
@@ -223,6 +224,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     public int highlightMessageColor(Context context) {
+        return context.getResources().getColor(R.color.message_highlighted);
+    }
+
+    public int searchHighlightMessageColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
@@ -326,6 +331,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         notSentColor = notSentMessageColor(context);
         sendingColor = sendingMessageColor(context);
         highlightColor = highlightMessageColor(context);
+        searchHighlightColor = searchHighlightMessageColor(context);
 
         WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
@@ -1097,7 +1103,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             while (pos >= 0) {
                 start = pos + lowerPattern.length();
-                WordtoSpan.setSpan(new BackgroundColorSpan(Color.GREEN), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                WordtoSpan.setSpan(new BackgroundColorSpan(searchHighlightColor), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 pos = lowerText.indexOf(lowerPattern, start);
             }
 
