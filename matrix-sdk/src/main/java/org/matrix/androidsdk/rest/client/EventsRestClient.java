@@ -38,10 +38,8 @@ import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 import retrofit.client.Response;
 
