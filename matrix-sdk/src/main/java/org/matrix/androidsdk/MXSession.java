@@ -21,6 +21,8 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -47,6 +49,8 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -600,6 +604,47 @@ public class MXSession {
 
         mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
+
+    /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     * @param beforeLimit the number of events to get before the matching results.
+     * @param afterLimit the number of events to get after the matching results.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+    }
+
+    /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, rooms, 0, 0, nextBatch, callback);
+    }
+
+    /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, null, 0, 0, nextBatch, callback);
+    }
+
 
     /**
      * Return the fulfilled active BingRule for the event.

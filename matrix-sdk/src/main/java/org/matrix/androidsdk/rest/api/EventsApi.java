@@ -16,13 +16,24 @@
 package org.matrix.androidsdk.rest.api;
 
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import org.json.JSONObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.Search.SearchParams;
+import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
+import java.util.HashMap;
+
 import retrofit.Callback;
+import retrofit.http.Body;
 import retrofit.http.GET;
+import retrofit.http.POST;
 import retrofit.http.Path;
 import retrofit.http.Query;
 
@@ -63,4 +74,12 @@ public interface EventsApi {
     @GET("/initialSync")
     public void initialSync(@Query("limit") int limit,
                                            Callback<InitialSyncResponse> callback);
+
+    /**
+     * Perform a search.
+     * @param searchParams the search params.
+     * @param callback The search result.
+     */
+    @POST("/search")
+    public void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch ,Callback<SearchResponse> callback);
 }
