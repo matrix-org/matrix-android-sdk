@@ -83,6 +83,11 @@ import retrofit.RetrofitError;
  */
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
 
+    public interface OnSearchResultListener {
+        public void onSearchSucceed(int nbrMessages);
+        public void onSearchFailed();
+    }
+
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
@@ -306,7 +311,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Update the searched pattern.
      * @param pattern the pattern to find out. null to disable the search mode
      */
-    public void searchPattern(final String pattern) {
+    public void searchPattern(final String pattern,  final OnSearchResultListener onSearchResultListener) {
         if (!TextUtils.equals(mPattern, pattern)) {
             mPattern = pattern;
             mAdapter.setSearchPattern(mPattern);
@@ -333,27 +338,45 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     mAdapter.clear();
                                     mAdapter.addAll(messageRows);
 
-
                                     mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+                                    if (null != onSearchResultListener) {
+                                        try {
+                                            onSearchResultListener.onSearchSucceed(messageRows.size());
+                                        } catch (Exception e) {
+                                        }
+                                    }
                                 }
                             }
                         });
+                    }
+
+                    private void onError() {
+                        if (null != onSearchResultListener) {
+                            try {
+                                onSearchResultListener.onSearchFailed();
+                            } catch (Exception e) {
+                            }
+                        }
                     }
 
                     // the request will be auto restarted when a valid network will be found
                     @Override
                     public void onNetworkError(Exception e) {
                         Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                        onError();
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
                         Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                        onError();
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
                         Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                        onError();
                     }
                 });
             }
