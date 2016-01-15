@@ -672,6 +672,7 @@ public class MXSession {
      * Get the list of rooms that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
      * @param tag  RoomTag.ROOM_TAG_XXX values
+     * @return the rooms list.
      */
     public List<Room>roomsWithTag(final String tag) {
         ArrayList<Room> taggedRooms = new ArrayList<Room>();
@@ -733,6 +734,24 @@ public class MXSession {
         }
 
         return taggedRooms;
+    }
+
+    /**
+     * Get the list of roomIds that are tagged the specified tag.
+     * The returned array is ordered according to the room tag order.
+     * @param tag  RoomTag.ROOM_TAG_XXX values
+     * @return the room IDs list.
+     */
+    public List<String>roomIdsWithTag(final String tag) {
+        List<Room> roomsWithTag = roomsWithTag(tag);
+
+        ArrayList<String> roomIdsList = new ArrayList<String>();
+
+        for(Room room : roomsWithTag) {
+            roomIdsList.add(room.getRoomId());
+        }
+
+        return roomIdsList;
     }
 
     /**
