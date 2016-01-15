@@ -197,6 +197,8 @@ public class MatrixMessagesFragment extends Fragment {
             else {
                 requestInitialHistory();
             }
+        } else {
+            mMatrixMessagesListener.onInitialMessagesLoaded();
         }
     }
 

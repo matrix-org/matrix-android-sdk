@@ -242,7 +242,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
-        mMessageListView.setBackgroundColor(Color.BLUE);
 
         int selectionIndex = -1;
 
@@ -352,8 +351,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                                     mAdapter.clear();
                                     mAdapter.addAll(messageRows);
-
-                                    mAdapter.notifyDataSetChanged();
 
                                     mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
 
