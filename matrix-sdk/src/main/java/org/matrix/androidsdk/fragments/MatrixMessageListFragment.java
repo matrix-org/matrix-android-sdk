@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.fragments;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
@@ -234,7 +235,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         String roomId = args.getString(ARG_ROOM_ID);
-        mRoom = mSession.getDataHandler().getRoom(roomId);
+
+        if (!TextUtils.isEmpty(roomId)) {
+            mRoom = mSession.getDataHandler().getRoom(roomId);
+        }
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
@@ -254,7 +258,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         }
 
-        mAdapter.setTypingUsers(mRoom.getTypingUsers());
+        // sanity check
+        if (null != mRoom) {
+            mAdapter.setTypingUsers(mRoom.getTypingUsers());
+        }
         mMessageListView.setAdapter(mAdapter);
 
         if (-1 != selectionIndex) {
@@ -318,7 +325,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // something to search
             if (!TextUtils.isEmpty(mPattern)) {
-                mSession.searchMessageText(mPattern, Arrays.asList(mRoom.getRoomId()), null, new ApiCallback<SearchResponse>() {
+                List<String> roomIds = null;
+
+                // sanity checks
+                if (null != mRoom) {
+                    roomIds = Arrays.asList(mRoom.getRoomId());
+                }
+
+                mSession.searchMessageText(mPattern, roomIds, null, new ApiCallback<SearchResponse>() {
                     @Override
                     public void onSuccess(final SearchResponse searchResponse) {
                         MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -330,7 +344,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
 
                                     for(SearchResult searchResult : searchResults) {
-                                        messageRows.add(new MessageRow(searchResult.result, mRoom.getLiveState()));
+                                        messageRows.add(new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState()));
                                     }
 
                                     Collections.reverse(messageRows);
@@ -415,7 +429,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onPause();
 
         // check if the session has not been logged out
-        if (mSession.isActive()) {
+        if (mSession.isActive() && (null != mRoom)) {
             mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
         }
     }
@@ -423,7 +437,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onResume() {
         super.onResume();
-        mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventsListenener);
+
+        // sanity check
+        if (null != mRoom) {
+            mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventsListenener);
+        }
 
         mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
@@ -485,17 +503,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // It is added to the Adapter
     // return the created Message
     private MessageRow addMessageRow(Message message) {
-        Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
-        getSession().getDataHandler().storeLiveRoomEvent(event);
+        // a message row can only be added if there is a defined room
+        if (null != mRoom) {
+            Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
+            getSession().getDataHandler().storeLiveRoomEvent(event);
 
-        MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
-        mAdapter.add(messageRow);
+            MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
+            mAdapter.add(messageRow);
 
-        scrollToBottom();
+            scrollToBottom();
 
-        Log.d(LOG_TAG, "AddMessage Row : commit");
-        getSession().getDataHandler().getStore().commit();
-        return messageRow;
+            Log.d(LOG_TAG, "AddMessage Row : commit");
+            getSession().getDataHandler().getStore().commit();
+            return messageRow;
+        } else {
+            return null;
+        }
     }
 
     private void sendMessage(String msgType, String body) {
@@ -985,6 +1008,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private void send(final MessageRow messageRow)  {
+        // add sanity check
+        if (null == messageRow) {
+            return;
+        }
+
         final Event event = messageRow.getEvent();
 
         if (!event.isUndeliverable()) {
@@ -1121,7 +1149,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MatrixMessageListFragment.this.displayLoadingProgress();
 
-        mSession.searchMessageText(mPattern, Arrays.asList(mRoom.getRoomId()), mNextBatch, new ApiCallback<SearchResponse>() {
+        List<String> matrixIds = null;
+
+        if (null != mRoom) {
+            matrixIds = Arrays.asList(mRoom.getRoomId());
+        }
+
+        mSession.searchMessageText(mPattern, matrixIds, mNextBatch, new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(final SearchResponse searchResponse) {
                 MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -1136,7 +1170,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 mAdapter.setNotifyOnChange(false);
 
                                 for (SearchResult searchResult : searchResults) {
-                                    MessageRow row = new MessageRow(searchResult.result, mRoom.getLiveState());
+                                    MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
                                     mAdapter.insert(row, 0);
                                 }
 
@@ -1280,7 +1314,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mAdapter.removeEventById(event.redacts);
                     mAdapter.notifyDataSetChanged();
                 } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                    mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                    if (null != mRoom) {
+                        mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                    }
                 } else {
                     if (canAddEvent(event)) {
                         mAdapter.add(event, roomState);

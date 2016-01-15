@@ -54,9 +54,6 @@ public class MatrixMessagesFragment extends Fragment {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
         Bundle args = new Bundle();
 
-        if (null == roomId) {
-            throw new RuntimeException("Must define a roomId.");
-        }
 
         if (null == listener) {
             throw new RuntimeException("Must define a listener.");
@@ -66,7 +63,10 @@ public class MatrixMessagesFragment extends Fragment {
             throw new RuntimeException("Must define a session.");
         }
 
-        args.putString(ARG_ROOM_ID, roomId);
+        if (null != roomId) {
+            args.putString(ARG_ROOM_ID, roomId);
+        }
+
         fragment.setArguments(args);
         fragment.setMatrixMessagesListener(listener);
         fragment.setMXSession(session);
@@ -108,9 +108,6 @@ public class MatrixMessagesFragment extends Fragment {
         mContext = getActivity().getApplicationContext();
 
         String roomId = getArguments().getString(ARG_ROOM_ID);
-        if (roomId == null) {
-            throw new RuntimeException("Must have a room ID specified.");
-        }
 
         // this code should never be called
         // but we've got some crashes when the session was null
@@ -153,60 +150,65 @@ public class MatrixMessagesFragment extends Fragment {
                     joinedRoom = true;
                 }
             }
-        }
 
-        mEventListener = new MXEventListener() {
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onLiveEvent(event, roomState);
+            mEventListener = new MXEventListener() {
+                @Override
+                public void onLiveEvent(Event event, RoomState roomState) {
+                    mMatrixMessagesListener.onLiveEvent(event, roomState);
+                }
+
+                @Override
+                public void onLiveEventsChunkProcessed() {
+                    mMatrixMessagesListener.onLiveEventsChunkProcessed();
+                }
+
+                @Override
+                public void onBackEvent(Event event, RoomState roomState) {
+                    mMatrixMessagesListener.onBackEvent(event, roomState);
+                }
+
+                @Override
+                public void onDeleteEvent(Event event) {
+                    mMatrixMessagesListener.onDeleteEvent(event);
+                }
+
+                @Override
+                public void onResendingEvent(Event event) {
+                    mMatrixMessagesListener.onResendingEvent(event);
+                }
+
+                @Override
+                public void onResentEvent(Event event) {
+                    mMatrixMessagesListener.onResentEvent(event);
+                }
+
+                @Override
+                public void onReceiptEvent(String roomId) {
+                    mMatrixMessagesListener.onReceiptEvent();
+                }
+            };
+
+            mRoom.addEventListener(mEventListener);
+
+            if (!joinedRoom) {
+                Log.i(LOG_TAG, "Joining room >> " + roomId);
+                joinRoom();
             }
-
-            @Override
-            public void onLiveEventsChunkProcessed() {
-                mMatrixMessagesListener.onLiveEventsChunkProcessed();
+            else {
+                requestInitialHistory();
             }
-
-            @Override
-            public void onBackEvent(Event event, RoomState roomState) {
-                mMatrixMessagesListener.onBackEvent(event, roomState);
-            }
-
-            @Override
-            public void onDeleteEvent(Event event)  {
-                mMatrixMessagesListener.onDeleteEvent(event);
-            }
-
-            @Override
-                public void onResendingEvent(Event event)  {
-                mMatrixMessagesListener.onResendingEvent(event);
-            }
-
-            @Override
-            public void onResentEvent(Event event)  {
-                mMatrixMessagesListener.onResentEvent(event);
-            }
-
-            @Override
-            public void onReceiptEvent(String roomId) {
-                mMatrixMessagesListener.onReceiptEvent();
-            }
-        };
-
-        mRoom.addEventListener(mEventListener);
-
-        if (!joinedRoom) {
-            Log.i(LOG_TAG, "Joining room >> " + roomId);
-            joinRoom();
-        }
-        else {
-            requestInitialHistory();
+        } else {
+            mMatrixMessagesListener.onInitialMessagesLoaded();
         }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mRoom.removeEventListener(mEventListener);
+
+        if (null != mRoom) {
+            mRoom.removeEventListener(mEventListener);
+        }
     }
 
     private void displayLoadingProgress() {
@@ -335,14 +337,22 @@ public class MatrixMessagesFragment extends Fragment {
      * @return true if the request is really started
      */
     public boolean requestHistory(ApiCallback<Integer> callback) {
-        return mRoom.requestHistory(callback);
+        if (null != mRoom) {
+            return mRoom.requestHistory(callback);
+        } else {
+            return false;
+        }
     }
 
     public void sendEvent(Event event, ApiCallback<Void> callback) {
-        mRoom.sendEvent(event, callback);
+        if (null != mRoom) {
+            mRoom.sendEvent(event, callback);
+        }
     }
 
     public void redact(String eventId, ApiCallback<Event> callback) {
-        mRoom.redact(eventId, callback);
+        if (null != mRoom) {
+            mRoom.redact(eventId, callback);
+        }
     }
 }

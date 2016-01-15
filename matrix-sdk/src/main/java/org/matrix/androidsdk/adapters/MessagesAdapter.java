@@ -176,7 +176,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     protected Context mContext;
     private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
-    private LayoutInflater mLayoutInflater;
+    protected LayoutInflater mLayoutInflater;
 
     // To keep track of events and avoid duplicates. For instance, we add a message event
     // when the current user sends one but it will also come down the event stream
@@ -579,28 +579,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-
-        try {
-            switch (getItemViewType(position)) {
-                case ROW_TYPE_TEXT:
-                    return getTextView(position, convertView, parent);
-                case ROW_TYPE_IMAGE:
-                    return getImageView(position, convertView, parent);
-                case ROW_TYPE_NOTICE:
-                    return getNoticeView(position, convertView, parent);
-                case ROW_TYPE_EMOTE:
-                    return getEmoteView(position, convertView, parent);
-                case ROW_TYPE_FILE:
-                    return getFileView(position, convertView, parent);
-                case ROW_TYPE_VIDEO:
-                    return getVideoView(position, convertView, parent);
-                default:
-                    throw new RuntimeException("Unknown item view type for position " + position);
-            }
-        }
-        catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to render view at position " + position + ": " + e);
-            return convertView;
+        switch (getItemViewType(position)) {
+            case ROW_TYPE_TEXT:
+                return getTextView(position, convertView, parent);
+            case ROW_TYPE_IMAGE:
+                return getImageView(position, convertView, parent);
+            case ROW_TYPE_NOTICE:
+                return getNoticeView(position, convertView, parent);
+            case ROW_TYPE_EMOTE:
+                return getEmoteView(position, convertView, parent);
+            case ROW_TYPE_FILE:
+                return getFileView(position, convertView, parent);
+            case ROW_TYPE_VIDEO:
+                return getVideoView(position, convertView, parent);
+            default:
+                throw new RuntimeException("Unknown item view type for position " + position);
         }
     }
 
@@ -679,6 +672,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the roomstate.
      */
     protected void refreshReceiverLayout(final LinearLayout receiversLayout, final boolean leftAlign, final String eventId, final RoomState roomState) {
+        //
+        if (null == roomState) {
+            return;
+        }
+
         IMXStore store = mSession.getDataHandler().getStore();
         List<ReceiptData> receipts = store.getEventReceipts(roomState.roomId, eventId, true, true);
         ArrayList<View> imageViews = new ArrayList<View>();
@@ -920,7 +918,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         refreshReceiverLayout(isAvatarOnRightSide ? leftReceiversLayout : rightReceiversLayout, isAvatarOnRightSide, event.eventId, roomState);
 
         // Sender avatar
-        RoomMember sender = roomState.getMember(event.userId);
+        RoomMember sender = null;
+
+        if (null != roomState) {
+            sender = roomState.getMember(event.userId);
+        }
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
         View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
