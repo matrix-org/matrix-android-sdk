@@ -1092,7 +1092,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     protected void highlightPattern(TextView textView, CharSequence text, String pattern) {
         // no pattern or too small
-        if (TextUtils.isEmpty(pattern) || (text.length() < pattern.length())) {
+        if (TextUtils.isEmpty(pattern) || (null == text) ||  (text.length() < pattern.length())) {
             textView.setText(text);
         } else {
             Spannable WordtoSpan = new SpannableString(text);
