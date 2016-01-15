@@ -624,6 +624,11 @@ public class MXDataHandler implements IMXEventListener {
             return null;
         }
 
+        // sanity check
+        if (TextUtils.isEmpty(roomId)) {
+            return null;
+        }
+
         Room room = mStore.getRoom(roomId);
         if ((room == null) && create) {
             room = new Room();
