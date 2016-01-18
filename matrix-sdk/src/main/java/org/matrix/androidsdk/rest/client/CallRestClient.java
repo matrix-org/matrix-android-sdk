@@ -15,16 +15,12 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
