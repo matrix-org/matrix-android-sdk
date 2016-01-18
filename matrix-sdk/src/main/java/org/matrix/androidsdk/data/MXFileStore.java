@@ -637,6 +637,15 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
+    public void deleteAllRoomMessages(String roomId) {
+        Log.d(LOG_TAG, "deleteAllRoomMessages " + roomId);
+
+        super.deleteAllRoomMessages(roomId);
+        deleteRoomMessagesFiles(roomId);
+        deleteRoomSummaryFile(roomId);
+    }
+
+    @Override
     public void storeLiveStateForRoom(String roomId) {
         super.storeLiveStateForRoom(roomId);
 
@@ -818,8 +827,16 @@ public class MXFileStore extends MXMemoryStore {
                 ObjectInputStream ois = new ObjectInputStream(gz);
                 events = (LinkedHashMap<String, Event>) ois.readObject();
 
+                ArrayList<String> eventIds = mRoomEventIds.get(roomId);
+
+                if (null == eventIds) {
+                    eventIds = new ArrayList<String>();
+                    mRoomEventIds.put(roomId, eventIds);
+                }
+
                 for (Event event : events.values()) {
                     event.finalizeDeserialization();
+                    eventIds.add(event.eventId);
                 }
 
                 ois.close();

@@ -33,6 +33,9 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.SyncV2.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.SyncV2.RoomSync;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -45,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -475,7 +479,7 @@ public class MXDataHandler implements IMXEventListener {
      * Handle events coming down from the event stream.
      * @param event the live event
      */
-    private void handleLiveEvent(Event event) {
+    public void handleLiveEvent(Event event) {
         if (!isActive()) {
             Log.e(LOG_TAG, "handleLiveEvent : the session is not anymore active");
             return;
@@ -732,6 +736,98 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    //================================================================================
+    // Sync V2
+    //================================================================================
+
+    public void onSyncV2Complete(SyncResponse syncResponse, boolean isInitialSync) {
+        boolean presencesEvent = true;
+
+        if (null != syncResponse) {
+            Log.d(LOG_TAG, "onSyncV2Complete");
+
+            if ((null != syncResponse.rooms) && (null != syncResponse.rooms.join)) {
+                Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
+
+                Set<String> roomIds = syncResponse.rooms.join.keySet();
+
+                // Handle first joined rooms
+                for (String roomId : roomIds) {
+                    getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId));
+                }
+
+                presencesEvent = false;
+            }
+        }
+
+        if ((null != syncResponse.rooms) && (null != syncResponse.rooms.invite)) {
+            Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
+
+            Set<String> roomIds = syncResponse.rooms.invite.keySet();
+
+            for (String roomId : roomIds) {
+                getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+            }
+
+            presencesEvent = false;
+        }
+
+        if ((null != syncResponse.rooms) && (null != syncResponse.rooms.leave)) {
+            Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
+
+            Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+            for (String roomId : roomIds) {
+                // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
+
+                // Presently we remove the existing room from the rooms list.
+                // FIXME SYNCV2 Archive/Display the left rooms!
+                // For that create 'handleArchivedRoomSync' method
+
+                // Retrieve existing room
+                // check if the room still exists.
+                if (null != this.getStore().getRoom(roomId)) {
+                    this.getStore().deleteRoom(roomId);
+                }
+            }
+
+            presencesEvent = false;
+        }
+
+        // Handle presence of other users
+        if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
+            for (Event presenceEvent : syncResponse.presence.events) {
+                handleLiveEvent(presenceEvent);
+            }
+        }
+
+        if (!presencesEvent) {
+            getStore().setEventStreamToken(syncResponse.nextBatch);
+            getStore().commit();
+        }
+
+        if (isInitialSync) {
+            this.onInitialSyncComplete();
+        } else {
+            try {
+                onLiveEventsChunkProcessed();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+            }
+
+            try {
+                // check if an incoming call has been received
+                mCallsManager.checkPendingIncomingCalls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+            }
+        }
+    }
+
+    //================================================================================
+    // Listeners management
+    //================================================================================
+
     // Proxy IMXEventListener callbacks to everything in mEventListeners
     List<IMXEventListener> getListenersSnapshot() {
         ArrayList<IMXEventListener> eventListeners;
@@ -946,6 +1042,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomTagEvent(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onRoomSyncWithLimitedTimeline(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onRoomSyncWithLimitedTimeline(roomId);
             } catch (Exception e) {
             }
         }

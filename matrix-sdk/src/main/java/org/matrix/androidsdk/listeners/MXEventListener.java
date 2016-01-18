@@ -89,4 +89,8 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onRoomTagEvent(String roomId) {
     }
+
+    @Override
+    public void onRoomSyncWithLimitedTimeline(String roomId) {
+    }
 }

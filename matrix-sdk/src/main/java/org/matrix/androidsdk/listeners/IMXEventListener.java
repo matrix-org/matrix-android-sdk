@@ -125,4 +125,10 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     public void onRoomTagEvent(String roomId);
+
+    /**
+     * A room has been resynced with a limited timeline
+     * @param roomId the room Id
+     */
+    public void onRoomSyncWithLimitedTimeline(String roomId);
 }

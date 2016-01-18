@@ -142,10 +142,23 @@ public interface IMXStore {
     public void storeLiveRoomEvent(Event event);
 
     /**
+     * @param eventId the id of the event to retrieve.
+     * @param roomId the id of the room.
+     * @return true if the event exists in the store.
+     */
+    public Boolean doesEventExist(String eventId, String roomId);
+
+    /**
      * Delete an event
      * @param event The event to be deleted.
      */
     public void deleteEvent(Event event);
+
+    /**
+     * Remove all existing messages in a room.
+     * @param roomId the id of the room.
+     */
+    public void deleteAllRoomMessages(String roomId);
 
     /**
      * Delete the room data

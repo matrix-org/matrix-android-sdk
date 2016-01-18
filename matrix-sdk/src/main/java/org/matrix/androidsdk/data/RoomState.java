@@ -90,6 +90,10 @@ public class RoomState implements java.io.Serializable {
     // the associated token
     private String token;
 
+    // sync V2
+    private Boolean mHasReachedHomeServerPaginationEnd;
+    private String mPaginationToken;
+
     // the room members
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
@@ -102,6 +106,22 @@ public class RoomState implements java.io.Serializable {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public void setHasReachedHomeServerPaginationEnd(Boolean value) {
+        mHasReachedHomeServerPaginationEnd = value;
+    }
+
+    public Boolean hasReachedHomeServerPaginationEnd() {
+        return mHasReachedHomeServerPaginationEnd;
+    }
+
+    public void setPaginationToken(String paginationToken) {
+        mPaginationToken = paginationToken;
+    }
+
+    public String getPaginationToken() {
+        return mPaginationToken;
     }
 
     // avatar Url makes more sense than url.
@@ -198,6 +218,10 @@ public class RoomState implements java.io.Serializable {
         copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.mDataHandler = mDataHandler;
+
+        // sync V2 items
+        copy.mHasReachedHomeServerPaginationEnd = mHasReachedHomeServerPaginationEnd;
+        copy.mPaginationToken = mPaginationToken;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -405,7 +429,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * @return true if the room is a public one
      */
-    public Boolean sPublic() {
+    public Boolean isPublic() {
         return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
     }
 

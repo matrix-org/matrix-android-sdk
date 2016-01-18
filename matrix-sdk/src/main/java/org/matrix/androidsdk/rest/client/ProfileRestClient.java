@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import retrofit.client.Response;
 

@@ -40,11 +40,7 @@ import org.matrix.androidsdk.rest.model.User;
 import java.util.HashMap;
 import java.util.List;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.

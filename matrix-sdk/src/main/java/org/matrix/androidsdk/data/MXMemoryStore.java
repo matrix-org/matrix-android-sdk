@@ -48,6 +48,9 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, User> mUsers;
     // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
     protected Map<String, LinkedHashMap<String, Event>> mRoomEvents;
+    // room id -> list of event Ids
+    protected Map<String, ArrayList<String>> mRoomEventIds;
+
     protected Map<String, String> mRoomTokens;
 
     protected Map<String, RoomSummary> mRoomSummaries;
@@ -55,6 +58,7 @@ public class MXMemoryStore implements IMXStore {
 
     // dict of dict of MXReceiptData indexed by userId
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
+
 
     protected Credentials mCredentials;
 
@@ -68,6 +72,7 @@ public class MXMemoryStore implements IMXStore {
         mRooms = new ConcurrentHashMap<String, Room>();
         mUsers = new ConcurrentHashMap<String, User>();
         mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
+        mRoomEventIds = new ConcurrentHashMap<String, ArrayList<String>>();
         mRoomTokens = new ConcurrentHashMap<String, String>();
         mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
         mReceiptsByRoomId = new ConcurrentHashMap<String, Map<String, ReceiptData>>();
@@ -337,14 +342,35 @@ public class MXMemoryStore implements IMXStore {
     public void storeLiveRoomEvent(Event event) {
         if ((null != event) && (null != event.roomId)) {
             synchronized (mRoomEvents) {
-                LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-                if (events != null) {
-                    // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
-                    // wait for the first pagination request to set things right
-                    events.put(event.eventId, event);
+                // check if the message is already defined
+                if (!doesEventExist(event.eventId, event.roomId)) {
+                    LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+                    if (events != null) {
+                        // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
+                        // wait for the first pagination request to set things right
+                        events.put(event.eventId, event);
+                    }
                 }
             }
         }
+    }
+
+    @Override
+    public Boolean doesEventExist(String eventId, String roomId) {
+        Boolean res = false;
+
+        if (!TextUtils.isEmpty(eventId) && !TextUtils.isEmpty(roomId)) {
+            ArrayList<String> eventIds = mRoomEventIds.get(roomId);
+
+            if (null == eventIds) {
+                eventIds = new ArrayList<String>();
+                mRoomEventIds.put(roomId, eventIds);
+            }
+
+            res = eventIds.indexOf(eventId) < 0;
+        }
+
+        return res;
     }
 
     @Override
@@ -370,6 +396,21 @@ public class MXMemoryStore implements IMXStore {
                 mRoomSummaries.remove(roomId);
                 mRoomAccountData.remove(roomId);
                 mReceiptsByRoomId.remove(roomId);
+            }
+        }
+    }
+
+    /**
+     * Remove all existing messages in a room.
+     * @param roomId the id of the room.
+     */
+    public void deleteAllRoomMessages(String roomId) {
+        // sanity check
+        if (null != roomId) {
+            synchronized (mRoomEvents) {
+                mRoomEvents.remove(roomId);
+                mRoomSummaries.remove(roomId);
+                mRoomEventIds.remove(roomId);
             }
         }
     }

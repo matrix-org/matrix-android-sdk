@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.api.PresenceApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 /**
  * Class used to make requests to the presence API.

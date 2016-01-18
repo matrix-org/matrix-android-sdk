@@ -15,38 +15,17 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.api.RoomsApiV2;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.BannedUser;
-import org.matrix.androidsdk.rest.model.CreateRoomResponse;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.PowerLevels;
-import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.Typing;
-import org.matrix.androidsdk.rest.model.User;
 
 import java.util.HashMap;
-import java.util.List;
-
-import retrofit.Callback;
-import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.
@@ -59,7 +38,7 @@ public class RoomsRestClientV2 extends RestClient<RoomsApiV2> {
      * {@inheritDoc}
      */
     public RoomsRestClientV2(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, RoomsApiV2.class, RestClient.URI_API_PREFIX_V2, false);
+        super(hsConfig, RoomsApiV2.class, RestClient.URI_API_PREFIX_V2_ALPHA, false);
     }
 
     /**
