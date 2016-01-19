@@ -478,8 +478,17 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Handle events coming down from the event stream.
      * @param event the live event
-     */
+     * */
     public void handleLiveEvent(Event event) {
+        handleLiveEvent(event, true);
+    }
+
+    /**
+     * Handle events coming down from the event stream.
+     * @param event the live event
+     * @param withPush set to true to trigger pushes when it is required
+     * */
+    public void handleLiveEvent(Event event, boolean withPush) {
         if (!isActive()) {
             Log.e(LOG_TAG, "handleLiveEvent : the session is not anymore active");
             return;
@@ -578,26 +587,29 @@ public class MXDataHandler implements IMXEventListener {
                 selfJoin(selfJoinRoomId);
             }
 
-            BingRule bingRule;
-            boolean outOfTimeEvent = false;
-            JsonObject eventContent = event.getContentAsJsonObject();
+            // trigger pushes when it is required
+            if (withPush) {
+                BingRule bingRule;
+                boolean outOfTimeEvent = false;
+                JsonObject eventContent = event.getContentAsJsonObject();
 
-            if (eventContent.has("lifetime")) {
-                long maxlifetime = eventContent.get("lifetime").getAsLong();
-                long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                if (eventContent.has("lifetime")) {
+                    long maxlifetime = eventContent.get("lifetime").getAsLong();
+                    long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
-                outOfTimeEvent = eventLifeTime > maxlifetime;
-            }
+                    outOfTimeEvent = eventLifeTime > maxlifetime;
+                }
 
-            // If the bing rules apply, bing
-            if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                    && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
-                    && !outOfTimeEvent
-                    && (mBingRulesManager != null)
-                    && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
-                    && bingRule.shouldNotify()) {
-                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                onBingEvent(event, room.getLiveState(), bingRule);
+                // If the bing rules apply, bing
+                if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                        && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
+                        && !outOfTimeEvent
+                        && (mBingRulesManager != null)
+                        && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
+                        && bingRule.shouldNotify()) {
+                    Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
+                    onBingEvent(event, room.getLiveState(), bingRule);
+                }
             }
         }
         else {

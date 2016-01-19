@@ -74,8 +74,8 @@ public class Event implements java.io.Serializable {
 
     public String eventId;
     public String roomId;
-    // Sync V1 sender name
-    private String userId;
+    // former Sync V1 sender name
+    public String userId;
     // Sync V2 sender name
     public String sender;
     public long originServerTs;
