@@ -347,11 +347,20 @@ public class MXMemoryStore implements IMXStore {
                 // check if the message is already defined
                 if (!doesEventExist(event.eventId, event.roomId)) {
                     LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-                    if (events != null) {
-                        // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
-                        // wait for the first pagination request to set things right
-                        events.put(event.eventId, event);
+
+                    // create the list it does not exist
+                    if (null == events) {
+                        events = new LinkedHashMap<String, Event>();
+                        mRoomEvents.put(event.roomId, events);
                     }
+
+                    // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
+                    // wait for the first pagination request to set things right
+                    events.put(event.eventId, event);
+
+                    // add to the list of known events
+                    ArrayList<String> eventIds = mRoomEventIds.get(event.roomId);
+                    eventIds.add(event.eventId);
                 }
             }
         }

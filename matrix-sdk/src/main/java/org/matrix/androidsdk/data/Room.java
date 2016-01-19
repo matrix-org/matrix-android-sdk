@@ -1953,7 +1953,6 @@ public class Room {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
-        Boolean refreshUnreadCount = false;
 
         if (null != liveState) {
             RoomMember selfMember = liveState.getMember(mMyUserId);
@@ -1976,7 +1975,6 @@ public class Room {
             // Build/Update first the room state corresponding to the 'start' of the timeline.
             // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
             processLiveState(roomSync.state.events);
-            refreshUnreadCount = true;
         }
 
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
@@ -2028,8 +2026,6 @@ public class Room {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
                 }
-
-                refreshUnreadCount = true;
             }
         }
 
@@ -2042,10 +2038,6 @@ public class Room {
             if ((null != roomSync.timeline) && roomSync.timeline.limited) {
                 // The room has been resync with a limited timeline
                 mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
-            }
-
-            if (refreshUnreadCount) {
-                refreshUnreadCounter();
             }
         }
 
