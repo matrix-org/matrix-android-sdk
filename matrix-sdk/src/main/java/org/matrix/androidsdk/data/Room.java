@@ -423,6 +423,18 @@ public class Room {
                     }
                 }
             }
+
+            @Override
+            public void onDeleteRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, roomId)) {
+                    try {
+                        eventListener.onDeleteRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDeleteRoom exception " + e.getMessage());
+                    }
+                }
+            }
         };
         mEventListeners.put(eventListener, globalListener);
         mDataHandler.addListener(globalListener);
@@ -2058,7 +2070,6 @@ public class Room {
 
                 // the roomId is not defined.
                 event.roomId = mRoomId;
-
                 mDataHandler.handleLiveEvent(event);
             }
         }

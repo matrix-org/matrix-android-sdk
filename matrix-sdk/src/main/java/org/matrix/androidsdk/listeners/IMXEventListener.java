@@ -112,6 +112,13 @@ public interface IMXEventListener {
     public void onRoomInternalUpdate(String roomId);
 
     /**
+     * The room has been deleted.
+     *
+     * @param roomId the roomID
+     */
+    public void onDeleteRoom(String roomId);
+
+    /**
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *

@@ -748,58 +748,65 @@ public class MXDataHandler implements IMXEventListener {
     //================================================================================
 
     public void onSyncV2Complete(SyncResponse syncResponse, boolean isInitialSync) {
-        boolean presencesEvent = true;
+        boolean isEmptyResponse = true;
 
         // sanity check
         if (null != syncResponse) {
             Log.d(LOG_TAG, "onSyncV2Complete");
 
-            if ((null != syncResponse.rooms) && (null != syncResponse.rooms.join)) {
-                Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
+            // sanity check
+            if (null != syncResponse.rooms) {
 
-                Set<String> roomIds = syncResponse.rooms.join.keySet();
+                // joined rooms events
+                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
 
-                // Handle first joined rooms
-                for (String roomId : roomIds) {
-                    getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-                }
+                    Set<String> roomIds = syncResponse.rooms.join.keySet();
 
-                presencesEvent = false;
-            }
-
-
-            if ((null != syncResponse.rooms) && (null != syncResponse.rooms.invite)) {
-                Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
-
-                Set<String> roomIds = syncResponse.rooms.invite.keySet();
-
-                for (String roomId : roomIds) {
-                    getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
-                }
-
-                presencesEvent = false;
-            }
-
-            if ((null != syncResponse.rooms) && (null != syncResponse.rooms.leave)) {
-                Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
-
-                Set<String> roomIds = syncResponse.rooms.leave.keySet();
-
-                for (String roomId : roomIds) {
-                    // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
-
-                    // Presently we remove the existing room from the rooms list.
-                    // FIXME SYNCV2 Archive/Display the left rooms!
-                    // For that create 'handleArchivedRoomSync' method
-
-                    // Retrieve existing room
-                    // check if the room still exists.
-                    if (null != this.getStore().getRoom(roomId)) {
-                        this.getStore().deleteRoom(roomId);
+                    // Handle first joined rooms
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                     }
+
+                    isEmptyResponse = false;
                 }
 
-                presencesEvent = false;
+                // invited room management
+                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
+
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                    }
+
+                    isEmptyResponse = false;
+                }
+
+                // left room management
+                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                    for (String roomId : roomIds) {
+                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
+
+                        // Presently we remove the existing room from the rooms list.
+                        // FIXME SYNCV2 Archive/Display the left rooms!
+                        // For that create 'handleArchivedRoomSync' method
+
+                        // Retrieve existing room
+                        // check if the room still exists.
+                        if (null != this.getStore().getRoom(roomId)) {
+                            this.getStore().deleteRoom(roomId);
+                            onDeleteRoom(roomId);
+                        }
+                    }
+
+                    isEmptyResponse = false;
+                }
             }
 
             // Handle presence of other users
@@ -809,7 +816,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            if (!presencesEvent) {
+            if (!isEmptyResponse) {
                 getStore().setEventStreamToken(syncResponse.nextBatch);
                 getStore().commit();
             }
@@ -1029,6 +1036,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomInternalUpdate(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onDeleteRoom(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onDeleteRoom(roomId);
             } catch (Exception e) {
             }
         }
