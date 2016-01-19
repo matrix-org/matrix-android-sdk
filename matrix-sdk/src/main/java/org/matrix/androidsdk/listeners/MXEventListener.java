@@ -20,6 +20,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
+import java.util.List;
+
 /**
  * A no-op class implementing {@link IMXEventListener} so listeners can just implement the methods
  * that they require.
@@ -83,10 +85,18 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onDeleteRoom(String roomId) {
+    }
+
+    @Override
     public void onReceiptEvent(String roomId) {
     }
 
     @Override
     public void onRoomTagEvent(String roomId) {
+    }
+
+    @Override
+    public void onRoomSyncWithLimitedTimeline(String roomId) {
     }
 }

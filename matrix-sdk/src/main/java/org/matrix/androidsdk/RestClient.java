@@ -55,8 +55,18 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
+    // define the used api versions
+    // API V1 : first implementation but with very slow catchup
+    // API V2 : improved V1 : the main improvement is the catchup.
+    public static final int REST_CLIENT_API_VERSION_1 = 1;
+    public static final int REST_CLIENT_API_VERSION_2 = 2;
+
+    // define the preferred server API when it is available.
+    public static final int PREFERED_API_VERSION = REST_CLIENT_API_VERSION_1;
+
+
     public static final String URI_API_PREFIX = "/_matrix/client/api/v1";
-    public static final String URI_API_PREFIX_V2 = "/_matrix/client/v2_alpha";
+    public static final String URI_API_PREFIX_V2_ALPHA = "/_matrix/client/v2_alpha";
     public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
@@ -70,6 +80,7 @@ public class RestClient<T> {
     protected Gson gson;
 
     protected UnsentEventsManager mUnsentEventsManager;
+
 
     /**
      * Public constructor.

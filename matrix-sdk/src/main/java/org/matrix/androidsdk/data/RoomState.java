@@ -172,7 +172,7 @@ public class RoomState implements java.io.Serializable {
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return visibility.equals(HISTORY_VISIBILITY_SHARED) ||
+        return  visibility.equals(HISTORY_VISIBILITY_SHARED) ||
                 (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
                 (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
                 ;
@@ -372,7 +372,7 @@ public class RoomState implements java.io.Serializable {
                 } else {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
-                    member.setInviterId(event.userId);
+                    member.setInviterId(event.getSender());
 
                     RoomMember currentMember = getMember(userId);
 
@@ -405,7 +405,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * @return true if the room is a public one
      */
-    public Boolean sPublic() {
+    public Boolean isPublic() {
         return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
     }
 

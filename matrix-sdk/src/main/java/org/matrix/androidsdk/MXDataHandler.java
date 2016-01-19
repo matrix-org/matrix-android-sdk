@@ -33,6 +33,9 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.SyncV2.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.SyncV2.RoomSync;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -45,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -340,7 +344,7 @@ public class MXDataHandler implements IMXEventListener {
         Event inviteEvent = new Event();
         inviteEvent.roomId = roomId;
         inviteEvent.stateKey = mCredentials.userId;
-        inviteEvent.userId = inviterUserId;
+        inviteEvent.setSender(inviterUserId);
         inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
         inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
@@ -474,16 +478,20 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Handle events coming down from the event stream.
      * @param event the live event
-     */
-    private void handleLiveEvent(Event event) {
+     * */
+    public void handleLiveEvent(Event event) {
+        handleLiveEvent(event, true);
+    }
+
+    /**
+     * Handle events coming down from the event stream.
+     * @param event the live event
+     * @param withPush set to true to trigger pushes when it is required
+     * */
+    public void handleLiveEvent(Event event, boolean withPush) {
         if (!isActive()) {
             Log.e(LOG_TAG, "handleLiveEvent : the session is not anymore active");
             return;
-        }
-
-        // dispatch the call events to the calls manager
-        if (event.isCallEvent()) {
-            mCallsManager.handleCallEvent(event);
         }
 
         // Presence event
@@ -522,6 +530,10 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         }
+        // dispatch the call events to the calls manager
+        else if (event.isCallEvent()) {
+            mCallsManager.handleCallEvent(event);
+        }
         // room tags
         else if (Event.EVENT_TYPE_TAGS.equals(event.type)) {
             if (event.roomId != null) {
@@ -534,8 +546,16 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         }
+
+        // avoid processing event twice
+        if (getStore().doesEventExist(event.eventId, event.roomId)) {
+            Log.e(LOG_TAG, "handleLiveEvent : teh event " + event.eventId + " in " + event.roomId + " already exist.");
+            return;
+        }
+
+
         // Room event
-        else if (event.roomId != null) {
+        if (event.roomId != null) {
             final Room room = getRoom(event.roomId);
 
             String selfJoinRoomId = null;
@@ -543,7 +563,7 @@ public class MXDataHandler implements IMXEventListener {
             // check if the room has been joined
             // the initial sync + the first requestHistory call is done here
             // instead of being done in the application
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && event.userId.equals(mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
                 selfJoinRoomId = event.roomId;
             }
 
@@ -567,26 +587,29 @@ public class MXDataHandler implements IMXEventListener {
                 selfJoin(selfJoinRoomId);
             }
 
-            BingRule bingRule;
-            boolean outOfTimeEvent = false;
-            JsonObject eventContent = event.getContentAsJsonObject();
+            // trigger pushes when it is required
+            if (withPush) {
+                BingRule bingRule;
+                boolean outOfTimeEvent = false;
+                JsonObject eventContent = event.getContentAsJsonObject();
 
-            if (eventContent.has("lifetime")) {
-                long maxlifetime = eventContent.get("lifetime").getAsLong();
-                long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                if (eventContent.has("lifetime")) {
+                    long maxlifetime = eventContent.get("lifetime").getAsLong();
+                    long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
-                outOfTimeEvent = eventLifeTime > maxlifetime;
-            }
+                    outOfTimeEvent = eventLifeTime > maxlifetime;
+                }
 
-            // If the bing rules apply, bing
-            if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                    && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
-                    && !outOfTimeEvent
-                    && (mBingRulesManager != null)
-                    && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
-                    && bingRule.shouldNotify()) {
-                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                onBingEvent(event, room.getLiveState(), bingRule);
+                // If the bing rules apply, bing
+                if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                        && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
+                        && !outOfTimeEvent
+                        && (mBingRulesManager != null)
+                        && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
+                        && bingRule.shouldNotify()) {
+                    Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
+                    onBingEvent(event, room.getLiveState(), bingRule);
+                }
             }
         }
         else {
@@ -667,7 +690,7 @@ public class MXDataHandler implements IMXEventListener {
                 // thread issue
                 // if the user leaves a room,
                 // the server echo could try to delete the room file
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.userId) && mCredentials.userId.equals(event.stateKey)) {
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.getSender()) && mCredentials.userId.equals(event.stateKey)) {
                     String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                     if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
@@ -682,8 +705,8 @@ public class MXDataHandler implements IMXEventListener {
                 if (store) {
                     // create dummy read receipt for any incoming event
                     // to avoid unsynchronized read receipt and event
-                    if ((null != event.userId) && (null != event.eventId)) {
-                        room.handleReceiptData(new ReceiptData(event.userId, event.eventId, event.originServerTs));
+                    if ((null != event.getSender()) && (null != event.eventId)) {
+                        room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
                     }
 
                     mStore.storeLiveRoomEvent(event);
@@ -731,6 +754,107 @@ public class MXDataHandler implements IMXEventListener {
             return mStore.getUser(userId);
         }
     }
+
+    //================================================================================
+    // Sync V2
+    //================================================================================
+
+    public void onSyncV2Complete(SyncResponse syncResponse, boolean isInitialSync) {
+        boolean isEmptyResponse = true;
+
+        // sanity check
+        if (null != syncResponse) {
+            Log.d(LOG_TAG, "onSyncV2Complete");
+
+            // sanity check
+            if (null != syncResponse.rooms) {
+
+                // joined rooms events
+                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.join.keySet();
+
+                    // Handle first joined rooms
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                    }
+
+                    isEmptyResponse = false;
+                }
+
+                // invited room management
+                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
+
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                    }
+
+                    isEmptyResponse = false;
+                }
+
+                // left room management
+                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                    for (String roomId : roomIds) {
+                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
+
+                        // Presently we remove the existing room from the rooms list.
+                        // FIXME SYNCV2 Archive/Display the left rooms!
+                        // For that create 'handleArchivedRoomSync' method
+
+                        // Retrieve existing room
+                        // check if the room still exists.
+                        if (null != this.getStore().getRoom(roomId)) {
+                            this.getStore().deleteRoom(roomId);
+                            onDeleteRoom(roomId);
+                        }
+                    }
+
+                    isEmptyResponse = false;
+                }
+            }
+
+            // Handle presence of other users
+            if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
+                for (Event presenceEvent : syncResponse.presence.events) {
+                    handleLiveEvent(presenceEvent);
+                }
+            }
+
+            if (!isEmptyResponse) {
+                getStore().setEventStreamToken(syncResponse.nextBatch);
+                getStore().commit();
+            }
+        }
+
+        if (isInitialSync) {
+            this.onInitialSyncComplete();
+        } else {
+            try {
+                onLiveEventsChunkProcessed();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+            }
+
+            try {
+                // check if an incoming call has been received
+                mCallsManager.checkPendingIncomingCalls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+            }
+        }
+    }
+
+    //================================================================================
+    // Listeners management
+    //================================================================================
 
     // Proxy IMXEventListener callbacks to everything in mEventListeners
     List<IMXEventListener> getListenersSnapshot() {
@@ -929,6 +1053,17 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    public void onDeleteRoom(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onDeleteRoom(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
     public void onReceiptEvent(String roomId) {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -946,6 +1081,17 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onRoomTagEvent(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onRoomSyncWithLimitedTimeline(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onRoomSyncWithLimitedTimeline(roomId);
             } catch (Exception e) {
             }
         }

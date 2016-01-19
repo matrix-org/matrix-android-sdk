@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;

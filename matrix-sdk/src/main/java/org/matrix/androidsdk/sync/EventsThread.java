@@ -23,9 +23,11 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.EventsRestClientV2;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.ArrayList;
@@ -41,7 +43,12 @@ public class EventsThread extends Thread {
 
     private static final int RETRY_WAIT_TIME_MS = 10000;
 
-    private EventsRestClient mApiClient;
+    private static final int  SERVER_TIMEOUT_MS = 30000;
+    private static final int CLIENT_TIMEOUT_MS = 120000;
+
+    private EventsRestClient mEventsRestClientV1 = null;
+    private EventsRestClientV2 mEventsRestClientV2 = null;
+
     private EventsThreadListener mListener = null;
     private String mCurrentToken = null;
 
@@ -77,13 +84,15 @@ public class EventsThread extends Thread {
 
     /**
      * Default constructor.
-     * @param apiClient API client to make the events API calls
+     * @param apiClientV1 API client to make the events API calls (V1 implementation)
+     * @param apiClientV2 API client to make the events API calls (V2 implementation)
      * @param listener a listener to inform
      * @param initialToken the sync initial token.
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
+    public EventsThread(EventsRestClient apiClientV1, EventsRestClientV2 apiClientV2, EventsThreadListener listener, String initialToken) {
         super("Events thread");
-        mApiClient = apiClient;
+        mEventsRestClientV1 = apiClientV1;
+        mEventsRestClientV2 = apiClientV2;
         mListener = listener;
         mCurrentToken = initialToken;
     }
@@ -201,6 +210,222 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
+        // prefer the api V2 aimplementation
+        if (null != mEventsRestClientV2) {
+            runV2();
+        } else {
+            runV1();
+        }
+    }
+
+    /**
+     * Use the API sync V1 to get the events
+     */
+    private void runV2() {
+        if (null != mCurrentToken) {
+            Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
+        } else {
+            Log.d(LOG_TAG, "Requesting initial sync...");
+        }
+
+        int serverTimeout = 0;
+
+        mPaused = false;
+
+        //
+        mInitialSyncDone = null != mCurrentToken;
+
+        if (mInitialSyncDone) {
+            // get the latest events asap
+            serverTimeout = 0;
+            // dummy initial sync
+            // to hide the splash screen
+            mListener.onSyncV2Reponse(null, true);
+        } else {
+
+            // Start with initial sync
+            while (!mInitialSyncDone) {
+                final CountDownLatch latch = new CountDownLatch(1);
+
+                mEventsRestClientV2.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                    @Override
+                    public void onSuccess(SyncResponse syncResponse) {
+                        Log.d(LOG_TAG, "Received initial sync response.");
+                        mListener.onSyncV2Reponse(syncResponse, true);
+                        mCurrentToken = syncResponse.nextBatch;
+                        mInitialSyncDone = true;
+                        // unblock the events thread
+                        latch.countDown();
+                    }
+
+                    private void sleepAndUnblock() {
+                        Log.i(LOG_TAG, "Waiting a bit before retrying");
+                        try {
+                            Thread.sleep(RETRY_WAIT_TIME_MS);
+                        } catch (InterruptedException e1) {
+                            Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                        }
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != mCurrentToken) {
+                            onSuccess(null);
+                        } else {
+                            super.onNetworkError(e);
+                            sleepAndUnblock();
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        super.onMatrixError(e);
+                        sleepAndUnblock();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        super.onUnexpectedError(e);
+                        sleepAndUnblock();
+                    }
+                });
+
+                // block until the initial sync callback is invoked.
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+                }
+            }
+
+            serverTimeout = SERVER_TIMEOUT_MS;
+        }
+
+        Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
+
+        // sanity check
+        if (null != mNetworkConnectivityReceiver) {
+            mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
+            //
+            mbIsConnected = mNetworkConnectivityReceiver.isConnected();
+            mPaused = !mbIsConnected;
+        }
+
+        // Then repeatedly long-poll for events
+        while (!mKilling) {
+            if (mPaused || mIsNetworkSuspended) {
+                if (mIsNetworkSuspended) {
+                    Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
+                } else {
+                    Log.d(LOG_TAG, "Event stream is paused. Waiting.");
+                }
+
+                try {
+                    synchronized (this) {
+                        wait();
+                    }
+                    Log.d(LOG_TAG, "Event stream woken from pause.");
+
+                    // perform a catchup asap
+                    serverTimeout = 0;
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
+                }
+            }
+
+            // the service could have been killed while being paused.
+            if (!mKilling) {
+                // *** PATCH SYNC V2 ***
+                String inlineFilter = "{\"room\":{\"timeline\":{\"limit\":250}}}";
+                // *** PATCH SYNC V2 ***
+
+                final CountDownLatch latch = new CountDownLatch(1);
+
+                Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
+
+                mEventsRestClientV2.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                    @Override
+                    public void onSuccess(SyncResponse syncResponse) {
+                        if (!mKilling) {
+                            // the catchup request is done once.
+                            if (mIsCatchingUp) {
+                                Log.e(LOG_TAG, "Stop the catchup");
+                                // stop any catch up
+                                mIsCatchingUp = false;
+                                mPaused = true;
+                            }
+
+                            Log.d(LOG_TAG, "Got event response");
+                            mListener.onSyncV2Reponse(syncResponse, false);
+                            mCurrentToken = syncResponse.nextBatch;
+                            Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+                        }
+
+                        // unblock the events thread
+                        latch.countDown();
+                    }
+
+                    private void onError(String description) {
+                        boolean isConnected;
+                        Log.d(LOG_TAG, "Got an error while polling events " + description);
+
+                        synchronized (this) {
+                            isConnected = mbIsConnected;
+                        }
+
+                        // detected if the device is connected before trying again
+                        if (isConnected) {
+                            try {
+                                Thread.sleep(RETRY_WAIT_TIME_MS);
+                            } catch (InterruptedException e1) {
+                                Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                            }
+                        } else {
+                            // no network -> wait that a network connection comes back.
+                            mIsNetworkSuspended = true;
+                        }
+
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        onError(e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        onError(e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        onError(e.getLocalizedMessage());
+                    }
+                });
+
+                // block until the sync callback is invoked.
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Interrupted whilst polling message");
+                }
+            }
+
+            serverTimeout = SERVER_TIMEOUT_MS;
+        }
+
+        if (null != mNetworkConnectivityReceiver) {
+            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+        }
+        Log.d(LOG_TAG, "Event stream terminating.");
+    }
+
+    /**
+     * Use the API sync V1 to get the events
+     */
+    private void runV1() {
         if (null != mCurrentToken) {
             Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
         } else {
@@ -215,41 +440,41 @@ public class EventsThread extends Thread {
             mInitialSyncDone = true;
 
             mListener.onInitialSyncComplete(null);
-            synchronized (mApiClient) {
+            synchronized (mEventsRestClientV1) {
                 mIsGettingPresences = true;
             }
 
             Log.d(LOG_TAG, "Requesting presences update");
 
             // get the members presence
-            mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+            mEventsRestClientV1.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.d(LOG_TAG, "presence update is received");
                     mListener.onMembersPresencesSyncComplete(initialSync.presence);
                     Log.d(LOG_TAG, "presence update is managed");
-                    synchronized (mApiClient) {
+                    synchronized (mEventsRestClientV1) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    synchronized (mApiClient) {
+                    synchronized (mEventsRestClientV1) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    synchronized (mApiClient) {
+                    synchronized (mEventsRestClientV1) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    synchronized (mApiClient) {
+                    synchronized (mEventsRestClientV1) {
                         mIsGettingPresences = false;
                     }
                 }
@@ -263,7 +488,7 @@ public class EventsThread extends Thread {
             // if a start token is provided
             // get only the user presences.
             // else starts a sync from scratch
-            mApiClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+            mEventsRestClientV1.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
@@ -348,7 +573,7 @@ public class EventsThread extends Thread {
             if (!mKilling) {
                 try {
                     Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
-                    TokensChunkResponse<Event> eventsResponse = mApiClient.events(mCurrentToken, mEventRequestTimeout);
+                    TokensChunkResponse<Event> eventsResponse = mEventsRestClientV1.events(mCurrentToken, mEventRequestTimeout);
 
                     if (null != eventsResponse.chunk) {
                         Log.d(LOG_TAG, "Got eventsResponse.chunk with " + eventsResponse.chunk.size() + " items");
@@ -367,7 +592,7 @@ public class EventsThread extends Thread {
                         // same behaviours for the typing events
                         Boolean isGettingsPresence;
 
-                        synchronized (mApiClient) {
+                        synchronized (mEventsRestClientV1) {
                             isGettingsPresence = mIsGettingPresences;
                         }
 

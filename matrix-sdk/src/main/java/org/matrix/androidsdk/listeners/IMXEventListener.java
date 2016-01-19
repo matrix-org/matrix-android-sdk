@@ -112,6 +112,13 @@ public interface IMXEventListener {
     public void onRoomInternalUpdate(String roomId);
 
     /**
+     * The room has been deleted.
+     *
+     * @param roomId the roomID
+     */
+    public void onDeleteRoom(String roomId);
+
+    /**
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *
@@ -125,4 +132,10 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     public void onRoomTagEvent(String roomId);
+
+    /**
+     * A room has been resynced with a limited timeline
+     * @param roomId the room Id
+     */
+    public void onRoomSyncWithLimitedTimeline(String roomId);
 }

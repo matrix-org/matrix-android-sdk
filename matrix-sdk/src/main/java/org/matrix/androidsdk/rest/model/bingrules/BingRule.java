@@ -162,7 +162,7 @@ public class BingRule {
                     JsonPrimitive primitive = json.getAsJsonPrimitive();
 
                     try {
-                        if (primitive.getAsString().equals(value)) {
+                        if (TextUtils.equals(primitive.getAsString(), value)) {
                             jsonPrimitive = primitive;
                             break;
                         }

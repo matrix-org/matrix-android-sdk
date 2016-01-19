@@ -17,7 +17,6 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -37,7 +36,7 @@ public class RegistrationRestClient extends RestClient<RegistrationApi> {
      * {@inheritDoc}
      */
     public RegistrationRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX_V2, false);
+        super(hsConfig, RegistrationApi.class, RestClient.URI_API_PREFIX_V2_ALPHA, false);
     }
 
     /**

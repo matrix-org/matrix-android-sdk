@@ -2,6 +2,7 @@ package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 
 import java.util.List;
 
@@ -15,6 +16,14 @@ public interface EventsThreadListener {
      * @param response the response (can be null)
      */
     public void onInitialSyncComplete(InitialSyncResponse response);
+
+    /**
+     * API V2 support.
+     * Call when a sync request has been performed with the API V2.
+     * @param response the response (can be null)
+     * @param isInitialSync true if the response is triggered by an initial sync
+     */
+    public void onSyncV2Reponse(SyncResponse response, Boolean isInitialSync);
 
     /**
      * Called when getting the users presences.

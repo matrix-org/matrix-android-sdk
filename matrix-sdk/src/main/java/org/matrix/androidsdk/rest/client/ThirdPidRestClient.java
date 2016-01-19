@@ -20,7 +20,6 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.PidResponse;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import java.util.ArrayList;
 
