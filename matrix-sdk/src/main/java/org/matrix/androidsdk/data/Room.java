@@ -23,6 +23,7 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.text.BoringLayout;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -469,7 +470,11 @@ public class Room {
     public void processLiveState(List<Event> stateEvents) {
         if (mDataHandler.isActive()) {
             for (Event event : stateEvents) {
-                processStateEvent(event, EventDirection.FORWARDS);
+                try {
+                    processStateEvent(event, EventDirection.FORWARDS);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "processLiveState failed " + e.getLocalizedMessage());
+                }
             }
             mIsReady = true;
         }
@@ -1932,7 +1937,7 @@ public class Room {
     // Sync V2
     //================================================================================
 
-    public void handleJoinedRoomSync(RoomSync roomSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, Boolean isInitialSync) {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
@@ -1968,8 +1973,14 @@ public class Room {
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
                 // They will be added at the end of the stored events, so we keep the chronologinal order.
                 for (Event event : events) {
-                    // Make room data digest the live event
-                    mDataHandler.handleLiveEvent(event);
+                    // the roomId is not defined.
+                    event.roomId = mRoomId;
+                    try {
+                        // Make room data digest the live event
+                        mDataHandler.handleLiveEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                    }
                 }
 
                 // Check whether we got all history from the home server
@@ -1990,8 +2001,15 @@ public class Room {
             // Here the events are handled in forward direction (see [handleLiveEvent:]).
             // They will be added at the end of the stored events, so we keep the chronological order.
             for (Event event : roomSync.timeline.events) {
-                // Make room data digest the live event
-                mDataHandler.handleLiveEvent(event);
+                // the roomId is not defined.
+                event.roomId = mRoomId;
+
+                try {
+                    // Make room data digest the live event
+                    mDataHandler.handleLiveEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                }
             }
         }
 
@@ -2013,8 +2031,14 @@ public class Room {
         if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
             // Handle here ephemeral events (if any)
             for (Event event : roomSync.ephemeral.events) {
-                // Make room data digest the live event
-                mDataHandler.handleLiveEvent(event);
+                // the roomId is not defined.
+                event.roomId = mRoomId;
+                try {
+                    // Make room data digest the live event
+                    mDataHandler.handleLiveEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
+                }
             }
         }
 
@@ -2033,6 +2057,9 @@ public class Room {
                 if (null == event.eventId) {
                     event.eventId = mRoomId + "-" + System.currentTimeMillis();
                 }
+
+                // the roomId is not defined.
+                event.roomId = mRoomId;
 
                 mDataHandler.handleLiveEvent(event);
             }

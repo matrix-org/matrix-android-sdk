@@ -785,7 +785,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the avatar must be displayed on right side.
      */
     protected boolean isAvatarDisplayedOnRightSide(Event event) {
-        return mSession.getMyUser().userId.equals(event.userId) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+        return mSession.getMyUser().userId.equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
     }
 
     /**
@@ -818,7 +818,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow prevRow = getItem(position - 1);
 
                 if ((null != prevRow) /*&& (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
-                    prevUserId = prevRow.getEvent().userId;
+                    prevUserId = prevRow.getEvent().getSender();
                 }
             }
 
@@ -828,12 +828,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow nextRow = getItem(position + 1);
 
                 if ((null != nextRow) /*&& (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
-                    nextUserId = nextRow.getEvent().userId;
+                    nextUserId = nextRow.getEvent().getSender();
                 }
             }
 
-            isMergedView = TextUtils.equals(prevUserId, event.userId) && !mIsSearchMode;
-            willBeMerged = TextUtils.equals(nextUserId, event.userId) && !mIsSearchMode;
+            isMergedView = TextUtils.equals(prevUserId, event.getSender()) && !mIsSearchMode;
+            willBeMerged = TextUtils.equals(nextUserId, event.getSender()) && !mIsSearchMode;
         }
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
@@ -848,17 +848,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 if (isMergedView) {
                     textView.setText("");
                 } else {
-                    textView.setText(getUserDisplayName(event.userId, row.getRoomState()));
+                    textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
                 }
             }
             else if (isMergedView || isAvatarOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
                 textView.setVisibility(View.GONE);
             } else {
                 textView.setVisibility(View.VISIBLE);
-                textView.setText(getUserDisplayName(event.userId, row.getRoomState()));
+                textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
             }
 
-            final String fSenderId = event.userId;
+            final String fSenderId = event.getSender();
             final String fDisplayName = textView.getText().toString();
 
             textView.setOnClickListener(new View.OnClickListener() {
@@ -921,7 +921,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomMember sender = null;
 
         if (null != roomState) {
-            sender = roomState.getMember(event.userId);
+            sender = roomState.getMember(event.getSender());
         }
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
@@ -938,7 +938,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 avatarLayoutView = avatarLeftView;
                 avatarRightView.setVisibility(View.GONE);
 
-                final String userId = event.userId;
+                final String userId = event.getSender();
 
                 avatarLeftView.setClickable(true);
 
@@ -967,7 +967,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
             ImageView presenceView = (ImageView) avatarLayoutView.findViewById(R.id.imageView_presenceRing);
 
-            final String userId = event.userId;
+            final String userId = event.getSender();
             refreshPresenceRing(presenceView, userId);
 
             if (isMergedView) {
@@ -988,7 +988,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 loadMemberAvatar(avatarImageView, sender,userId, url);
 
                 // display the typing icon when required
-                setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.userId) >= 0)) ? View.VISIBLE : View.GONE);
+                setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.getSender()) >= 0)) ? View.VISIBLE : View.GONE);
             }
 
             // if the messages are merged
@@ -1197,7 +1197,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int progress = -1;
 
-        if (mSession.getMyUser().userId.equals(event.userId)) {
+        if (mSession.getMyUser().userId.equals(event.getSender())) {
             progress = mSession.getContentManager().getUploadProgress(mediaUrl);
 
             if (progress >= 0) {
@@ -1426,7 +1426,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         CharSequence notice;
 
         if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
-            notice = msg.userId.equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
+            notice = msg.getSender().equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
         } else {
             EventDisplay display = new EventDisplay(mContext, msg, roomState);
             notice = display.getTextualDisplay(true);
@@ -1702,7 +1702,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int progress = -1;
 
-        if (mSession.getMyUser().userId.equals(videoEvent.userId)) {
+        if (mSession.getMyUser().userId.equals(videoEvent.getSender())) {
             String uploadingUrl = videoMessage.info.thumbnail_url;
 
             progress = mSession.getContentManager().getUploadProgress(uploadingUrl);

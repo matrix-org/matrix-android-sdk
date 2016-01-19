@@ -84,11 +84,14 @@ public class EventsRestClientV2 extends RestClient<EventsApiV2> {
             params.put("filter", filterId);
         }
 
+        params.put("timeout", timeout);
+
+
         final String description = "syncFromToken";
 
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
-        mApi.sync(params, timeout, new RestAdapterCallback<SyncResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);

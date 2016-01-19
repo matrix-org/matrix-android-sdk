@@ -82,7 +82,6 @@ public class RestClient<T> {
     protected UnsentEventsManager mUnsentEventsManager;
 
 
-
     /**
      * Public constructor.
      * @param hsConfig The homeserver connection config.

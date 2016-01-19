@@ -32,9 +32,8 @@ public interface EventsApiV2 {
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param params the GET params.
-     * @param limit the limit of the amount of messages to return per room
      * @param callback The asynchronous callback to call when finished
      */
     @GET("/sync")
-    public void sync(@QueryMap Map<String, Object> params, @Query("limit") int limit, Callback<SyncResponse> callback);
+    public void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
 }

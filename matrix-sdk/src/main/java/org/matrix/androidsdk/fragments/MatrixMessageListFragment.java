@@ -168,7 +168,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
                             MessageRow row = mAdapter.getItem(i);
-                            refresh |= TextUtils.equals(user.userId, row.getEvent().userId);
+                            refresh |= TextUtils.equals(user.userId, row.getEvent().getSender());
                         }
                     }
 

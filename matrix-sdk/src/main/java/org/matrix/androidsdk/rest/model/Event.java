@@ -74,7 +74,10 @@ public class Event implements java.io.Serializable {
 
     public String eventId;
     public String roomId;
-    public String userId;
+    // Sync V1 sender name
+    private String userId;
+    // Sync V2 sender name
+    public String sender;
     public long originServerTs;
     public long age;
 
@@ -139,6 +142,14 @@ public class Event implements java.io.Serializable {
         mSentState = SentState.SENT;
     }
 
+    public String getSender() {
+        return (null == sender) ? userId : sender;
+    }
+
+    public void setSender(String aSender) {
+        sender = userId = aSender;
+    }
+
     public void setMatrixId(String aMatrixId) {
         mMatrixId = aMatrixId;
     }
@@ -194,7 +205,7 @@ public class Event implements java.io.Serializable {
         type = Event.EVENT_TYPE_MESSAGE;
         content = JsonUtils.toJson(message);
         originServerTs = System.currentTimeMillis();
-        userId = anUserId;
+        sender = userId = anUserId;
         roomId = aRoomId;
         mSentState = Event.SentState.SENDING;
         createDummyEventId();
@@ -212,7 +223,7 @@ public class Event implements java.io.Serializable {
         type = aType;
         content = aContent;
         originServerTs = System.currentTimeMillis();
-        userId = anUserId;
+        sender = userId = anUserId;
         roomId = aRoomId;
         mSentState = Event.SentState.SENDING;
         createDummyEventId();
@@ -265,6 +276,7 @@ public class Event implements java.io.Serializable {
         copy.eventId = eventId;
         copy.roomId = roomId;
         copy.userId = userId;
+        copy.sender = sender;
         copy.originServerTs = originServerTs;
         copy.mTimeZoneRawOffset = mTimeZoneRawOffset;
         copy.age = age;
@@ -363,6 +375,8 @@ public class Event implements java.io.Serializable {
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
         text += "  \"userId\": \"" + userId + "\"\n";
+        text += "  \"sender\": \"" + sender + "\"\n";
+
 
         text += "  \"\n\n Sent state : ";
 

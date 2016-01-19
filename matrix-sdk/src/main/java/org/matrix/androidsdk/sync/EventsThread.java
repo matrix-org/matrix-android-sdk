@@ -218,10 +218,6 @@ public class EventsThread extends Thread {
         }
     }
 
-    private void pollV2() {
-
-    }
-
     /**
      * Use the API sync V1 to get the events
      */
@@ -232,65 +228,78 @@ public class EventsThread extends Thread {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
 
+        int serverTimeout = 0;
+
         mPaused = false;
 
         //
         mInitialSyncDone = null != mCurrentToken;
 
-        // Start with initial sync
-        while (!mInitialSyncDone) {
-            final CountDownLatch latch = new CountDownLatch(1);
+        if (mInitialSyncDone) {
+            // get the latest events asap
+            serverTimeout = 0;
+            // dummy initial sync
+            // to hide the splash screen
+            mListener.onSyncV2Reponse(null, true);
+        } else {
 
-            mEventsRestClientV2.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
-                @Override
-                public void onSuccess(SyncResponse syncResponse) {
-                    Log.d(LOG_TAG, "Received initial sync response.");
-                    mListener.onSyncV2Reponse(syncResponse, true);
-                    mCurrentToken = syncResponse.nextBatch;
-                    mInitialSyncDone = true;
-                    // unblock the events thread
-                    latch.countDown();
-                }
+            // Start with initial sync
+            while (!mInitialSyncDone) {
+                final CountDownLatch latch = new CountDownLatch(1);
 
-                private void sleepAndUnblock() {
-                    Log.i(LOG_TAG, "Waiting a bit before retrying");
-                    try {
-                        Thread.sleep(RETRY_WAIT_TIME_MS);
-                    } catch (InterruptedException e1) {
-                        Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                mEventsRestClientV2.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                    @Override
+                    public void onSuccess(SyncResponse syncResponse) {
+                        Log.d(LOG_TAG, "Received initial sync response.");
+                        mListener.onSyncV2Reponse(syncResponse, true);
+                        mCurrentToken = syncResponse.nextBatch;
+                        mInitialSyncDone = true;
+                        // unblock the events thread
+                        latch.countDown();
                     }
-                    latch.countDown();
-                }
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != mCurrentToken) {
-                        onSuccess(null);
-                    } else {
-                        super.onNetworkError(e);
+                    private void sleepAndUnblock() {
+                        Log.i(LOG_TAG, "Waiting a bit before retrying");
+                        try {
+                            Thread.sleep(RETRY_WAIT_TIME_MS);
+                        } catch (InterruptedException e1) {
+                            Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
+                        }
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != mCurrentToken) {
+                            onSuccess(null);
+                        } else {
+                            super.onNetworkError(e);
+                            sleepAndUnblock();
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        super.onMatrixError(e);
                         sleepAndUnblock();
                     }
-                }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    super.onMatrixError(e);
-                    sleepAndUnblock();
-                }
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        super.onUnexpectedError(e);
+                        sleepAndUnblock();
+                    }
+                });
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    super.onUnexpectedError(e);
-                    sleepAndUnblock();
+                // block until the initial sync callback is invoked.
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
                 }
-            });
-
-            // block until the initial sync callback is invoked.
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
             }
+
+            serverTimeout = SERVER_TIMEOUT_MS;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -306,7 +315,6 @@ public class EventsThread extends Thread {
         // Then repeatedly long-poll for events
         while (!mKilling) {
             if (mPaused || mIsNetworkSuspended) {
-
                 if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
                 } else {
@@ -318,6 +326,9 @@ public class EventsThread extends Thread {
                         wait();
                     }
                     Log.d(LOG_TAG, "Event stream woken from pause.");
+
+                    // perform a catchup asap
+                    serverTimeout = 0;
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
                 }
@@ -334,7 +345,7 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
-                mEventsRestClientV2.syncFromToken(mCurrentToken, SERVER_TIMEOUT_MS, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClientV2.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
@@ -402,6 +413,8 @@ public class EventsThread extends Thread {
                     Log.e(LOG_TAG, "Interrupted whilst polling message");
                 }
             }
+
+            serverTimeout = SERVER_TIMEOUT_MS;
         }
 
         if (null != mNetworkConnectivityReceiver) {

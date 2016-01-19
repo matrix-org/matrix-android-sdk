@@ -73,7 +73,7 @@ public class EventUtils {
             return false;
         }
 
-        if (null == event.userId) {
+        if (null == event.getSender()) {
             Log.e(LOG_TAG, "shouldNotify null room ID");
             return false;
         }
@@ -89,7 +89,7 @@ public class EventUtils {
 
         Room room = session.getDataHandler().getRoom(event.roomId);
         if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
-                && !TextUtils.equals(event.userId, session.getCredentials().userId)) {
+                && !TextUtils.equals(event.getSender(), session.getCredentials().userId)) {
             return true;
         }
         return false;

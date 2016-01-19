@@ -83,7 +83,7 @@ public class EventDisplay {
         try {
             JsonObject eventContent = mEvent.getContentAsJsonObject();
 
-            String userDisplayName = getUserDisplayName(mEvent.userId, mRoomState, desambigious);
+            String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState, desambigious);
 
             if (mEvent.isCallEvent()) {
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(mEvent.type)) {
@@ -196,7 +196,7 @@ public class EventDisplay {
         // cannot retrieve the display name from the event
         if (null == userDisplayName) {
             // retrieve it by the room members list
-            userDisplayName = getUserDisplayName(msg.userId, roomState, desambigious);
+            userDisplayName = getUserDisplayName(msg.getSender(), roomState, desambigious);
         }
 
         if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
@@ -207,7 +207,7 @@ public class EventDisplay {
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
-            if (TextUtils.equals(msg.userId, msg.stateKey)) {
+            if (TextUtils.equals(msg.getSender(), msg.stateKey)) {
                 return context.getString(R.string.notice_room_leave, userDisplayName);
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
@@ -230,12 +230,12 @@ public class EventDisplay {
 
     private String getAvatarChangeNotice(Event msg, boolean desambigious) {
         // TODO: Pictures!
-        return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.userId, mRoomState, desambigious));
+        return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.getSender(), mRoomState, desambigious));
     }
 
     private String getDisplayNameChangeNotice(Event msg) {
         return mContext.getString(R.string.notice_display_name_changed,
-                msg.userId,
+                msg.getSender(),
                 ((JsonObject)msg.content).getAsJsonPrimitive("displayname").getAsString()
         );
     }

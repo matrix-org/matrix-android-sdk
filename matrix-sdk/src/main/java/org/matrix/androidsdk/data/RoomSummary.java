@@ -149,7 +149,7 @@ public class RoomSummary implements java.io.Serializable {
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
                 } else {
                     // use the stored one
                     inviterName = mInviterName;
@@ -258,11 +258,11 @@ public class RoomSummary implements java.io.Serializable {
             mInviterName = null;
 
             if (null != mLatestEvent) {
-                mInviterName = mInviterUserId = mLatestEvent.userId;
+                mInviterName = mInviterUserId = mLatestEvent.getSender();
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
                 }
             }
         } else {

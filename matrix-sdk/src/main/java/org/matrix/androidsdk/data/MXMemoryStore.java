@@ -367,7 +367,7 @@ public class MXMemoryStore implements IMXStore {
                 mRoomEventIds.put(roomId, eventIds);
             }
 
-            res = eventIds.indexOf(eventId) < 0;
+            res = eventIds.indexOf(eventId) >= 0;
         }
 
         return res;
@@ -771,11 +771,11 @@ public class MXMemoryStore implements IMXStore {
                         while (it.hasNext()) {
                             lastEvent = it.next();
 
-                            if (null == lastEvent.userId) {
+                            if (null == lastEvent.getSender()) {
                                 Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
                             } else if (gotIt) {
                                 boolean isNotTypeFiltered = (null == allowedTypes) || (allowedTypes.indexOf(lastEvent.type) < 0);
-                                boolean isNotSenderFiltered = (null == excludedUserId) || !TextUtils.equals(excludedUserId, lastEvent.userId);
+                                boolean isNotSenderFiltered = (null == excludedUserId) || !TextUtils.equals(excludedUserId, lastEvent.getSender());
 
                                 if (isNotTypeFiltered && isNotSenderFiltered) {
                                     events.add(lastEvent);
