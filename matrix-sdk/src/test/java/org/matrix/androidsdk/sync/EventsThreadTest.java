@@ -93,7 +93,7 @@ public class EventsThreadTest {
         setUpNormalInitialSync();
         setUpNormalEvents();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
         eventsThread.start();
 
         // Verify the call to the rest client
@@ -136,7 +136,7 @@ public class EventsThreadTest {
     public void testInitialSyncNetworkError() {
         setUpNetworkErrorInitialSync();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
         eventsThread.start();
 
         // Verify that it recovers from the error and moves on
@@ -150,7 +150,7 @@ public class EventsThreadTest {
     public void testInitialSyncNetworkErrorWithErrorListener() {
         setUpNetworkErrorInitialSync();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
 
         ApiFailureCallback mockFailureCallback = mock(ApiFailureCallback.class);
         eventsThread.setFailureCallback(mockFailureCallback);
@@ -182,7 +182,7 @@ public class EventsThreadTest {
         setUpNormalInitialSync();
         setUpNetworkErrorEvents();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
         eventsThread.start();
 
         // Verify that we get events after the waiting period
@@ -197,7 +197,7 @@ public class EventsThreadTest {
         setUpNormalInitialSync();
         setUpNetworkErrorEvents();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
 
         ApiFailureCallback mockFailureCallback = mock(ApiFailureCallback.class);
         eventsThread.setFailureCallback(mockFailureCallback);
@@ -219,7 +219,7 @@ public class EventsThreadTest {
         setUpNormalInitialSync();
         setUpNormalEvents();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
         eventsThread.start();
 
         // Wait a second, then pause
@@ -248,7 +248,7 @@ public class EventsThreadTest {
         setUpNormalInitialSync();
         setUpNormalEvents();
 
-        eventsThread = new EventsThread(mockRestClient, mockListener, null);
+        eventsThread = new EventsThread(mockRestClient, null, mockListener, null);
         eventsThread.start();
 
         // Wait a second, then kill
