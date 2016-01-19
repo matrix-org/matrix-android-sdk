@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
+import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -401,16 +403,37 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Remove all existing messages in a room.
+     * Remove all sent messages in a room.
      * @param roomId the id of the room.
+     * @param keepUnsent set to true to do not delete the unsent message
      */
-    public void deleteAllRoomMessages(String roomId) {
+    public void deleteAllRoomMessages(String roomId, Boolean keepUnsent) {
         // sanity check
         if (null != roomId) {
             synchronized (mRoomEvents) {
-                mRoomEvents.remove(roomId);
+
+                if (keepUnsent) {
+                    ArrayList<String> eventIds = mRoomEventIds.get(roomId);
+                    LinkedHashMap<String, Event> eventMap = mRoomEvents.get(roomId);
+
+                    if (null != eventMap) {
+                        ArrayList<Event> events = new ArrayList<Event>(eventMap.values());
+
+                        for (Event event : events) {
+                            if (event.mSentState == Event.SentState.SENT) {
+                                if (null != event.eventId) {
+                                    eventMap.remove(event.eventId);
+                                    eventIds.remove(event.eventId);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    mRoomEventIds.remove(roomId);
+                    mRoomEvents.remove(roomId);
+                }
+
                 mRoomSummaries.remove(roomId);
-                mRoomEventIds.remove(roomId);
             }
         }
     }

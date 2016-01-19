@@ -57,7 +57,6 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
-import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
@@ -69,7 +68,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1163,7 +1162,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     public void run() {
                         // check that the pattern was not modified before the end of the search
                         if (TextUtils.equals(mPattern, fPattern)) {
-                            List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
+                            List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
 
                             // is there any result to display
                             if (0 != searchResults.size()) {
@@ -1416,6 +1415,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 });
             }
         });
+    }
+
+    @Override
+    public void onRoomSyncWithLimitedTimeline() {
+        mAdapter.clear();
     }
 
     /**

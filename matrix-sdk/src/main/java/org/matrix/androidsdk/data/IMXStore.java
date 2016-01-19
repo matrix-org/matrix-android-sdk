@@ -155,10 +155,11 @@ public interface IMXStore {
     public void deleteEvent(Event event);
 
     /**
-     * Remove all existing messages in a room.
+     * Remove all sent messages in a room.
      * @param roomId the id of the room.
+     * @param keepUnsent set to true to do not delete the unsent message
      */
-    public void deleteAllRoomMessages(String roomId);
+    public void deleteAllRoomMessages(String roomId, Boolean keepUnsent);
 
     /**
      * Delete the room data

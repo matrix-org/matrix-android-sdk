@@ -81,6 +81,8 @@ public class MatrixMessagesFragment extends Fragment {
         public void onResendingEvent(Event event);
         public void onResentEvent(Event event);
         public void onReceiptEvent();
+        public void onRoomSyncWithLimitedTimeline();
+
 
         /**
          * Called when the first batch of messages is loaded.
@@ -185,6 +187,12 @@ public class MatrixMessagesFragment extends Fragment {
                 @Override
                 public void onReceiptEvent(String roomId) {
                     mMatrixMessagesListener.onReceiptEvent();
+                }
+
+                @Override
+                public void onRoomSyncWithLimitedTimeline(String roomId) {
+                    mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
+                    requestInitialHistory();
                 }
             };
 

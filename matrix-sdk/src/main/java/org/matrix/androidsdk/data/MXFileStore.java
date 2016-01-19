@@ -637,12 +637,23 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void deleteAllRoomMessages(String roomId) {
+    public void deleteAllRoomMessages(String roomId, Boolean keepUnsent) {
         Log.d(LOG_TAG, "deleteAllRoomMessages " + roomId);
 
-        super.deleteAllRoomMessages(roomId);
-        deleteRoomMessagesFiles(roomId);
+        super.deleteAllRoomMessages(roomId, keepUnsent);
+        if (!keepUnsent) {
+            deleteRoomMessagesFiles(roomId);
+        }
+
         deleteRoomSummaryFile(roomId);
+
+        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
+            mRoomsToCommitForMessages.add(roomId);
+        }
+
+        if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
+            mRoomsToCommitForSummaries.add(roomId);
+        }
     }
 
     @Override

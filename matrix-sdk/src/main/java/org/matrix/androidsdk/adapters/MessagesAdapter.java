@@ -353,6 +353,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         super.notifyDataSetChanged();
     }
 
+    @Override
+    public void clear() {
+        super.clear();
+        if (!mIsSearchMode) {
+            mEventRowMap.clear();
+        }
+    }
+
     /**
      * Cancel any pending search and replace the adapter content.
      * @param rows the new adapter content.
@@ -410,6 +418,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             } else {
                 insert(row, 0);
             }
+
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }

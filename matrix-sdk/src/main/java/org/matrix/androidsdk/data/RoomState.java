@@ -90,10 +90,6 @@ public class RoomState implements java.io.Serializable {
     // the associated token
     private String token;
 
-    // sync V2
-    private Boolean mHasReachedHomeServerPaginationEnd;
-    private String mPaginationToken;
-
     // the room members
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
@@ -106,22 +102,6 @@ public class RoomState implements java.io.Serializable {
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public void setHasReachedHomeServerPaginationEnd(Boolean value) {
-        mHasReachedHomeServerPaginationEnd = value;
-    }
-
-    public Boolean hasReachedHomeServerPaginationEnd() {
-        return mHasReachedHomeServerPaginationEnd;
-    }
-
-    public void setPaginationToken(String paginationToken) {
-        mPaginationToken = paginationToken;
-    }
-
-    public String getPaginationToken() {
-        return mPaginationToken;
     }
 
     // avatar Url makes more sense than url.
@@ -192,7 +172,7 @@ public class RoomState implements java.io.Serializable {
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return visibility.equals(HISTORY_VISIBILITY_SHARED) ||
+        return  visibility.equals(HISTORY_VISIBILITY_SHARED) ||
                 (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
                 (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
                 ;
@@ -218,10 +198,6 @@ public class RoomState implements java.io.Serializable {
         copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.mDataHandler = mDataHandler;
-
-        // sync V2 items
-        copy.mHasReachedHomeServerPaginationEnd = mHasReachedHomeServerPaginationEnd;
-        copy.mPaginationToken = mPaginationToken;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();

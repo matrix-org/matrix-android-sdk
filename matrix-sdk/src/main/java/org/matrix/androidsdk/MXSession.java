@@ -168,6 +168,11 @@ public class MXSession {
 
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+
+        if (null != mEventsRestClientV2) {
+            mEventsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
+        }
+
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);

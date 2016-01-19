@@ -1966,12 +1966,44 @@ public class Room {
         }
 
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
-        if (isRoomInitialSync) {
-            if ((null != roomSync.timeline) && (null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
+        if ((null != roomSync.timeline) && (null != roomSync.timeline.events)) {
+            String backToken = null;
+
+            if (roomSync.timeline.limited) {
+                if (!isRoomInitialSync) {
+                    // Flush the existing messages for this room by keeping state events.
+                    mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
+
+                    // define a summary if some messages are left
+                    // teh unsent messages are often displayed messages.
+                    Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
+                    if (oldestEvent != null) {
+                        if (RoomSummary.isSupportedEvent(oldestEvent)) {
+                            mDataHandler.getStore().storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
+                        }
+                    }
+                }
+
+                backToken = roomSync.timeline.prevBatch;
+            }
+
+            // any event ?
+            if (roomSync.timeline.events.size() > 0) {
                 List<Event> events = roomSync.timeline.events;
 
+                // set a back token to the oldest message to enable back pagination
+                if (null != backToken) {
+                    Event event = events.get(0);
+                    if (null == event.mToken) {
+                        event.mToken = backToken;
+                        // reset any back pagination token
+                        mBackState.setToken(null);
+                        canStillPaginate = true;
+                    }
+                }
+
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
-                // They will be added at the end of the stored events, so we keep the chronologinal order.
+                // They will be added at the end of the stored events, so we keep the chronological order.
                 for (Event event : events) {
                     // the roomId is not defined.
                     event.roomId = mRoomId;
@@ -1982,48 +2014,14 @@ public class Room {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
                 }
-
-                // Check whether we got all history from the home server
-                if ((null != roomSync.timeline) && roomSync.timeline.limited) {
-                    if (null != liveState) {
-                        liveState.setHasReachedHomeServerPaginationEnd(true);
-                        mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
-                    }
-                }
             }
-        } else {
-            // Check whether some events have not been received from server.
-            if ((null != roomSync.timeline) && roomSync.timeline.limited) {
-                // Flush the existing messages for this room by keeping state events.
-                mDataHandler.getStore().deleteAllRoomMessages(mRoomId);
-            }
-
-            // Here the events are handled in forward direction (see [handleLiveEvent:]).
-            // They will be added at the end of the stored events, so we keep the chronological order.
-            for (Event event : roomSync.timeline.events) {
-                // the roomId is not defined.
-                event.roomId = mRoomId;
-
-                try {
-                    // Make room data digest the live event
-                    mDataHandler.handleLiveEvent(event);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
-                }
-            }
-        }
-
-        // In case of limited timeline, update token where to start back pagination
-        if (roomSync.timeline.limited) {
-            mLiveState.setPaginationToken(roomSync.timeline.prevBatch);
-            mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
         }
 
         if (isRoomInitialSync) {
             initReadReceiptToken();
         }
         // Finalize initial sync
-        else if (roomSync.timeline.limited) {
+        else if ((null != roomSync.timeline) && roomSync.timeline.limited) {
             // The room has been resync with a limited timeline
             mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
         }
