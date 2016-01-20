@@ -169,10 +169,18 @@ public interface IMXStore {
     public void deleteAllRoomMessages(String roomId, Boolean keepUnsent);
 
     /**
-     * Delete the room data
+     * Delete the room from the storage.
+     * The room data and its reference will be deleted.
      * @param roomId the roomId.
      */
     public void deleteRoom(String roomId);
+
+    /**
+     * Delete the room data from the storage;
+     * The room data are cleared but the getRoom returned object will be the same.
+     * @param roomId the roomId.
+     */
+    public void deleteRoomData(String roomId);
 
     /**
      * Retrieve all non-state room events for this room.

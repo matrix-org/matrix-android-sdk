@@ -400,8 +400,18 @@ public class MXMemoryStore implements IMXStore {
     public void deleteRoom(String roomId) {
     	// sanity check
         if (null != roomId) {
+            deleteRoomData(roomId);
             synchronized (mRoomEvents) {
                 mRooms.remove(roomId);
+            }
+        }
+    }
+
+    @Override
+    public void deleteRoomData(String roomId) {
+        // sanity check
+        if (null != roomId) {
+            synchronized (mRoomEvents) {
                 mRoomEvents.remove(roomId);
                 mRoomTokens.remove(roomId);
                 mRoomSummaries.remove(roomId);

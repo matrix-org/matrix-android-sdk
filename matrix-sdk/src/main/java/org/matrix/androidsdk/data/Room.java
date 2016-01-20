@@ -1820,7 +1820,14 @@ public class Room {
         if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
             // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
             Log.d(LOG_TAG, "handleJoinedRoomSync: clean invited room from the store " + mRoomId);
-            mDataHandler.getStore().deleteRoom(mRoomId);
+            mDataHandler.getStore().deleteRoomData(mRoomId);
+
+            // reinit the states
+            RoomState state = new RoomState();
+            state.roomId = mRoomId;
+            state.setDataHandler(mDataHandler);
+
+            this.mBackState = this.mLiveState = state;
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -1862,10 +1869,10 @@ public class Room {
                     Event event = events.get(0);
                     if (null == event.mToken) {
                         event.mToken = backToken;
-                        canStillPaginate = true;
                     }
                 }
 
+                canStillPaginate = true;
                 mBackState.setToken(null);
 
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).

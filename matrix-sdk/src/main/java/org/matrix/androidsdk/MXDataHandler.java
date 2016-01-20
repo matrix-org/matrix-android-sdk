@@ -33,8 +33,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.SyncV2.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.SyncV2.RoomSync;
 import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
@@ -583,7 +581,7 @@ public class MXDataHandler implements IMXEventListener {
             storeLiveRoomEvent(event);
             onLiveEvent(event, room.getLiveState());
 
-            if (null != selfJoinRoomId) {
+            if (null != selfJoinRoomId && MXSession.useSyncV1()) {
                 selfJoin(selfJoinRoomId);
             }
 

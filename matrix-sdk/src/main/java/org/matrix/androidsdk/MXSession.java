@@ -74,6 +74,15 @@ public class MXSession {
 
     private static final String LOG_TAG = "MXSession";
 
+    // define the used api versions
+    // API V1 : first implementation but with very slow catchup
+    // API V2 : improved V1 : the main improvement is the catchup.
+    public static final int REST_CLIENT_API_VERSION_1 = 1;
+    public static final int REST_CLIENT_API_VERSION_2 = 2;
+
+    // define the preferred server API when it is available.
+    public static final int PREFERED_API_VERSION = REST_CLIENT_API_VERSION_2;
+
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
@@ -113,6 +122,20 @@ public class MXSession {
     private HomeserverConnectionConfig mHsConfig;
 
     /**
+     * @return true if the client uses the SYNC API V1
+     */
+    public static Boolean useSyncV1() {
+        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_1;
+    }
+
+    /**
+     * @return true if the client uses the SYNC API V2
+     */
+    public static Boolean useSyncV2() {
+        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_2;
+    }
+
+    /**
      * Create a basic session for direct API calls.
      * @param hsConfig the home server connection config
      */
@@ -121,7 +144,11 @@ public class MXSession {
         mHsConfig = hsConfig;
 
         mEventsRestClient = new EventsRestClient(hsConfig);
-        mEventsRestClientV2 = new EventsRestClientV2(hsConfig);
+
+        if (useSyncV2()) {
+            mEventsRestClientV2 = new EventsRestClientV2(hsConfig);
+        }
+
         mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
