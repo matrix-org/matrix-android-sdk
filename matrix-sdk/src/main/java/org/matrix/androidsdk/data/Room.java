@@ -1807,7 +1807,7 @@ public class Room {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
-        
+
         RoomMember selfMember = liveState.getMember(mMyUserId);
 
         if (null != selfMember) {
@@ -1892,6 +1892,8 @@ public class Room {
 
         if (isRoomInitialSync) {
             initReadReceiptToken();
+            // any request history can be triggered by now.
+            mIsReady = true;
         }
         // Finalize initial sync
         else {
