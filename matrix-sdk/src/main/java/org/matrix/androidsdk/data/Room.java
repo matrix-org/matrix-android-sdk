@@ -121,7 +121,6 @@ public class Room {
     private String mRoomId;
     private RoomState mLiveState = new RoomState();
     private RoomState mBackState = new RoomState();
-    private RoomState mSearchBackState = new RoomState();
     private RoomAccountData mAccountData = new RoomAccountData();
 
     private DataRetriever mDataRetriever;
@@ -614,151 +613,6 @@ public class Room {
         isPaginating = false;
         Log.d(LOG_TAG, "manageEvents : commit");
         mDataHandler.getStore().commit();
-    }
-
-    //================================================================================
-    // History Search (local events by now)
-    //================================================================================
-
-    /**
-     * replace the backState by the SearchBack.
-     */
-    public void flushSearchBackState() {
-        mBackState = mSearchBackState;
-    }
-
-    /**
-     * Check if pattern is contained in string.
-     * @param string the string
-     * @param pattern the pattern to find.
-     * @return true if the pattern is found.
-     */
-    private static boolean contains(String string, String pattern) {
-        // empty pattern -> cannot match
-        if (TextUtils.isEmpty(string) || TextUtils.isEmpty(pattern) || TextUtils.isEmpty(pattern.trim())) {
-            return false;
-        }
-
-        return string.matches("(?i:.*" + pattern.trim() + ".*)");
-    }
-
-    /**
-     * Search the room messages which contains the pattern pattern.
-     * @param pattern the pattern to search
-     * @param callback the matched events list in the chronological order.
-     */
-    public void getMessagesWithPattern(final String pattern, final ApiCallback<ArrayList<SnapshotedEvent>> callback) {
-        final RoomState startState = mLiveState.deepCopy();
-        final android.os.Handler handler = new android.os.Handler();
-        final ArrayList<Event> eventsList = new ArrayList<Event>(mDataRetriever.getCachedRoomMessages(mRoomId));
-
-        // call the callback with a delay (and on the UI thread).
-        // to reproduce the same behaviour as a network request.
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    public void run() {
-                        ArrayList<SnapshotedEvent> matchedEventsList = new ArrayList<SnapshotedEvent>();
-
-                        if (null != eventsList) {
-                            Boolean includeAll = TextUtils.isEmpty(pattern);
-                            RoomState currentRoomState = startState;
-                            RoomState stateCopy = startState.deepCopy();
-
-                            for (int index = (eventsList.size() - 1); index >= 0; index--) {
-                                Event event = eventsList.get(index);
-                                Boolean processedEvent = true;
-
-                                if (event.stateKey != null) {
-                                    processedEvent = currentRoomState.applyState(event, EventDirection.BACKWARDS);
-
-                                    if (processedEvent) {
-                                        // new state event -> copy the room state
-                                        stateCopy = currentRoomState.deepCopy();
-                                    }
-                                }
-
-                                if (processedEvent) {
-                                    if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-                                        Message message = JsonUtils.toMessage(event.content);
-
-                                        if (includeAll || contains(message.body, pattern)) {
-                                            matchedEventsList.add(0, new SnapshotedEvent(event, stateCopy));
-                                        }
-                                    }
-                                }
-                            }
-
-                            mSearchBackState = stateCopy.deepCopy();
-                            mSearchBackState.setDataHandler(mDataHandler);
-                            if (eventsList.size() > 0) {
-                                mSearchBackState.setToken(eventsList.get(0).mToken);
-                            }
-                        }
-
-                        callback.onSuccess(matchedEventsList);
-                    }
-                });
-            }
-        };
-
-        Thread t = new Thread(r);
-        t.start();
-    }
-
-
-    /**
-     * Request older messages to perform a search on it.
-     * @param pattern the pattern to search. null to list the cached messages.
-     * @param callback callback to send matched events stored in application cache.
-     * @return true if request starts
-     */
-    public boolean requestSearchHistory(final String pattern, final ApiCallback<ArrayList<SnapshotedEvent>> callback) {
-        if (isPaginating // One at a time please
-                || !canStillPaginate // If we have already reached the end of history
-                || !mIsReady) { // If the room is not finished being set up
-            return false;
-        }
-        isPaginating = true;
-
-        final RoomState startState = mSearchBackState.deepCopy();
-
-        mDataRetriever.requestRoomHistory(mRoomId, startState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> response) {
-                // check if the state is the same as expected
-                if ((null != mSearchBackState) && TextUtils.equals(startState.getToken(), mSearchBackState.getToken())) {
-                    getMessagesWithPattern(pattern, callback);
-                }
-                isPaginating = false;
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                // When we've retrieved all the messages from a room, the pagination token is some invalid value
-                if (MatrixError.UNKNOWN.equals(e.errcode)) {
-                    canStillPaginate = false;
-                }
-                isPaginating = false;
-
-                super.onMatrixError(e);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                isPaginating = false;
-                super.onNetworkError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                isPaginating = false;
-                super.onUnexpectedError(e);
-            }
-        });
-
-        return true;
     }
 
     //================================================================================
@@ -1953,13 +1807,11 @@ public class Room {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
+        
+        RoomMember selfMember = liveState.getMember(mMyUserId);
 
-        if (null != liveState) {
-            RoomMember selfMember = liveState.getMember(mMyUserId);
-
-            if (null != selfMember) {
-                membership = selfMember.membership;
-            }
+        if (null != selfMember) {
+            membership = selfMember.membership;
         }
 
         boolean isRoomInitialSync = (null == membership) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
@@ -1979,7 +1831,6 @@ public class Room {
 
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
         if (null != roomSync.timeline) {
-            String backToken = null;
 
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
@@ -1995,9 +1846,12 @@ public class Room {
                         }
                     }
                 }
-
-                backToken = roomSync.timeline.prevBatch;
             }
+
+            String backToken = roomSync.timeline.prevBatch;
+
+            // store the back token
+            mDataHandler.getStore().storeBackToken(mRoomId, backToken);
 
             // any event ?
             if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
@@ -2008,11 +1862,11 @@ public class Room {
                     Event event = events.get(0);
                     if (null == event.mToken) {
                         event.mToken = backToken;
-                        // reset any back pagination token
-                        mBackState.setToken(null);
                         canStillPaginate = true;
                     }
                 }
+
+                mBackState.setToken(null);
 
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
                 // They will be added at the end of the stored events, so we keep the chronological order.

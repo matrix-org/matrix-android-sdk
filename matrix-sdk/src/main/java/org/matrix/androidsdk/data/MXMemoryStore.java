@@ -499,6 +499,17 @@ public class MXMemoryStore implements IMXStore {
         }
     }
 
+    /**
+     * Store the back token of a room.
+     * @param roomId the room id.
+     * @param backToken the back token
+     */
+    public void storeBackToken(String roomId, String backToken) {
+        if ((null != roomId) && (null != backToken)) {
+            mRoomTokens.put(roomId, backToken);
+        }
+    }
+
     @Override
     public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
         if (null != roomId) {
