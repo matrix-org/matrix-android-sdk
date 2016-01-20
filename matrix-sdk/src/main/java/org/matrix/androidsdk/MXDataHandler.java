@@ -516,6 +516,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             this.onPresenceUpdate(event, user);
+
         } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
             if (event.roomId != null) {
                 final Room room = getRoom(event.roomId);
@@ -543,75 +544,74 @@ public class MXDataHandler implements IMXEventListener {
                     onRoomTagEvent(event.roomId);
                 }
             }
-        }
+        } else {
 
-        // avoid processing event twice
-        if (getStore().doesEventExist(event.eventId, event.roomId)) {
-            Log.e(LOG_TAG, "handleLiveEvent : teh event " + event.eventId + " in " + event.roomId + " already exist.");
-            return;
-        }
-
-
-        // Room event
-        if (event.roomId != null) {
-            final Room room = getRoom(event.roomId);
-
-            String selfJoinRoomId = null;
-
-            // check if the room has been joined
-            // the initial sync + the first requestHistory call is done here
-            // instead of being done in the application
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
-                selfJoinRoomId = event.roomId;
+            // avoid processing event twice
+            if (getStore().doesEventExist(event.eventId, event.roomId)) {
+                Log.e(LOG_TAG, "handleLiveEvent : teh event " + event.eventId + " in " + event.roomId + " already exist.");
+                return;
             }
 
-            if (event.stateKey != null) {
-                Log.d(LOG_TAG, "handleLiveEvent : Process a state event");
+            // Room event
+            if (event.roomId != null) {
+                final Room room = getRoom(event.roomId);
 
-                // copy the live state before applying any update
-                room.setLiveState(room.getLiveState().deepCopy());
-                // check if the event has been processed
-                if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
-                    // not processed -> do not warn the application
-                    // assume that the event is a duplicated one.
-                    return;
-                }
-            }
+                String selfJoinRoomId = null;
 
-            storeLiveRoomEvent(event);
-            onLiveEvent(event, room.getLiveState());
-
-            if (null != selfJoinRoomId && MXSession.useSyncV1()) {
-                selfJoin(selfJoinRoomId);
-            }
-
-            // trigger pushes when it is required
-            if (withPush) {
-                BingRule bingRule;
-                boolean outOfTimeEvent = false;
-                JsonObject eventContent = event.getContentAsJsonObject();
-
-                if (eventContent.has("lifetime")) {
-                    long maxlifetime = eventContent.get("lifetime").getAsLong();
-                    long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-
-                    outOfTimeEvent = eventLifeTime > maxlifetime;
+                // check if the room has been joined
+                // the initial sync + the first requestHistory call is done here
+                // instead of being done in the application
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
+                    selfJoinRoomId = event.roomId;
                 }
 
-                // If the bing rules apply, bing
-                if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                        && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
-                        && !outOfTimeEvent
-                        && (mBingRulesManager != null)
-                        && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
-                        && bingRule.shouldNotify()) {
-                    Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                    onBingEvent(event, room.getLiveState(), bingRule);
+                if (event.stateKey != null) {
+                    Log.d(LOG_TAG, "handleLiveEvent : Process a state event");
+
+                    // copy the live state before applying any update
+                    room.setLiveState(room.getLiveState().deepCopy());
+                    // check if the event has been processed
+                    if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
+                        // not processed -> do not warn the application
+                        // assume that the event is a duplicated one.
+                        return;
+                    }
                 }
+
+                storeLiveRoomEvent(event);
+                onLiveEvent(event, room.getLiveState());
+
+                if (null != selfJoinRoomId && MXSession.useSyncV1()) {
+                    selfJoin(selfJoinRoomId);
+                }
+
+                // trigger pushes when it is required
+                if (withPush) {
+                    BingRule bingRule;
+                    boolean outOfTimeEvent = false;
+                    JsonObject eventContent = event.getContentAsJsonObject();
+
+                    if (eventContent.has("lifetime")) {
+                        long maxlifetime = eventContent.get("lifetime").getAsLong();
+                        long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+                        outOfTimeEvent = eventLifeTime > maxlifetime;
+                    }
+
+                    // If the bing rules apply, bing
+                    if (!Event.EVENT_TYPE_TYPING.equals(event.type)
+                            && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
+                            && !outOfTimeEvent
+                            && (mBingRulesManager != null)
+                            && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
+                            && bingRule.shouldNotify()) {
+                        Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
+                        onBingEvent(event, room.getLiveState(), bingRule);
+                    }
+                }
+            } else {
+                Log.e(LOG_TAG, "Unknown live event type: " + event.type);
             }
-        }
-        else {
-            Log.e(LOG_TAG, "Unknown live event type: " + event.type);
         }
     }
 

@@ -1822,7 +1822,7 @@ public class Room {
             Log.d(LOG_TAG, "handleJoinedRoomSync: clean invited room from the store " + mRoomId);
             mDataHandler.getStore().deleteRoomData(mRoomId);
 
-            // reinit the states
+            // clear the states
             RoomState state = new RoomState();
             state.roomId = mRoomId;
             state.setDataHandler(mDataHandler);
@@ -1882,7 +1882,7 @@ public class Room {
                     event.roomId = mRoomId;
                     try {
                         // Make room data digest the live event
-                        mDataHandler.handleLiveEvent(event, !isInitialSync);
+                        mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
@@ -1897,7 +1897,7 @@ public class Room {
         else {
 
             if ((null != roomSync.timeline) && roomSync.timeline.limited) {
-                // The room has been resync with a limited timeline
+                // The room has been synced with a limited timeline
                 mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
             }
         }
@@ -1909,7 +1909,7 @@ public class Room {
                 event.roomId = mRoomId;
                 try {
                     // Make room data digest the live event
-                    mDataHandler.handleLiveEvent(event, !isInitialSync);
+                    mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
                 }
