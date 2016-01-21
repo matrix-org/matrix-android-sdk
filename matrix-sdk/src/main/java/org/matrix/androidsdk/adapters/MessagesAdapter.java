@@ -716,11 +716,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 imageView.setTag(null);
                 imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
 
-                if (null != member.avatarUrl) {
+                // the member might be null if he left the room
+                if ((null != member) && (null != member.avatarUrl)) {
                     loadSmallAvatar(imageView, member.avatarUrl);
                 }
 
-                final String userId = member.getUserId();
+                final String userId = r.userId;
 
                 imageView.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -735,6 +736,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         return mMessagesAdapterEventsListener.onReadReceiptLongClick(eventId, userId, r);
                     }
                 });
+
             }
 
             TextView displayedMoreTextView = null;
