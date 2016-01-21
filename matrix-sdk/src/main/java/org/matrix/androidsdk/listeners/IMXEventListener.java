@@ -112,11 +112,11 @@ public interface IMXEventListener {
     public void onRoomInternalUpdate(String roomId);
 
     /**
-     * The room has been deleted.
+     * The user left the room.
      *
      * @param roomId the roomID
      */
-    public void onDeleteRoom(String roomId);
+    public void onLeaveRoom(String roomId);
 
     /**
      * A receipt event has been received.

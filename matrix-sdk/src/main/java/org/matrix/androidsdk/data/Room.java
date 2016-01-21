@@ -424,13 +424,13 @@ public class Room {
             }
 
             @Override
-            public void onDeleteRoom(String roomId) {
+            public void onLeaveRoom(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(mRoomId, roomId)) {
                     try {
-                        eventListener.onDeleteRoom(roomId);
+                        eventListener.onLeaveRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDeleteRoom exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage());
                     }
                 }
             }
@@ -911,6 +911,8 @@ public class Room {
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "leave exception " + e.getMessage());
                     }
+
+                    mDataHandler.onLeaveRoom(mRoomId);
                 }
             }
 

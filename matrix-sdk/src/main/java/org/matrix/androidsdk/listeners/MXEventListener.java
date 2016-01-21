@@ -85,7 +85,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onDeleteRoom(String roomId) {
+    public void onLeaveRoom(String roomId) {
     }
 
     @Override

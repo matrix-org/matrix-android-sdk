@@ -696,12 +696,14 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
-        super.storeSummary(roomId, event, roomState, selfUserId);
+    public RoomSummary storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
+        RoomSummary summary = super.storeSummary(roomId, event, roomState, selfUserId);
 
         if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
             mRoomsToCommitForSummaries.add(roomId);
         }
+
+        return summary;
     }
 
     //================================================================================

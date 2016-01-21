@@ -696,6 +696,7 @@ public class MXDataHandler implements IMXEventListener {
                         // check if the room still exists.
                         if (null != this.getStore().getRoom(event.roomId)) {
                             this.getStore().deleteRoom(event.roomId);
+                            this.onLeaveRoom(event.roomId);
                         }
                     }
                 }
@@ -710,7 +711,20 @@ public class MXDataHandler implements IMXEventListener {
                     mStore.storeLiveRoomEvent(event);
 
                     if (RoomSummary.isSupportedEvent(event)) {
-                        mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
+                        RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
+
+                        // Watch for potential room name changes
+                        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                                || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                                || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+
+
+                            if (null != summary) {
+                                summary.setName(room.getName(mCredentials.userId));
+                            }
+                        }
+
+
                     } else {
                         Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
                     }
@@ -811,7 +825,7 @@ public class MXDataHandler implements IMXEventListener {
                         // check if the room still exists.
                         if (null != this.getStore().getRoom(roomId)) {
                             this.getStore().deleteRoom(roomId);
-                            onDeleteRoom(roomId);
+                            onLeaveRoom(roomId);
                         }
                     }
 
@@ -1051,12 +1065,12 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void onDeleteRoom(String roomId) {
+    public void onLeaveRoom(String roomId) {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
             try {
-                listener.onDeleteRoom(roomId);
+                listener.onLeaveRoom(roomId);
             } catch (Exception e) {
             }
         }
