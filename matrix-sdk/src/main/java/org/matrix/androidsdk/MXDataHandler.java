@@ -677,13 +677,27 @@ public class MXDataHandler implements IMXEventListener {
 
         // sanity check
         if (null != room) {
+            boolean store = false;
             if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
                 if (event.redacts != null) {
                     mStore.updateEventContent(event.roomId, event.redacts, event.getContentAsJsonObject());
+
+                    // search the latest displayable event
+                    // to replace the summary text
+                    ArrayList<Event> events = new ArrayList<Event>(mStore.getRoomMessages(event.roomId));
+                    for(int index = events.size() - 1; index >= 0; index--) {
+                        Event anEvent = events.get(index);
+
+                        if (RoomSummary.isSupportedEvent(anEvent)) {
+                            store = true;
+                            event = anEvent;
+                            break;
+                        }
+                    }
                 }
             }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
                 // the candidate events are not stored.
-                boolean store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
+                store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
 
                 // thread issue
                 // if the user leaves a room,
@@ -700,34 +714,34 @@ public class MXDataHandler implements IMXEventListener {
                         }
                     }
                 }
+            }
 
-                if (store) {
-                    // create dummy read receipt for any incoming event
-                    // to avoid unsynchronized read receipt and event
-                    if ((null != event.getSender()) && (null != event.eventId)) {
-                        room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
-                    }
+            if (store) {
+                // create dummy read receipt for any incoming event
+                // to avoid unsynchronized read receipt and event
+                if ((null != event.getSender()) && (null != event.eventId)) {
+                    room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
+                }
 
-                    mStore.storeLiveRoomEvent(event);
+                mStore.storeLiveRoomEvent(event);
 
-                    if (RoomSummary.isSupportedEvent(event)) {
-                        RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
+                if (RoomSummary.isSupportedEvent(event)) {
+                    RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
 
-                        // Watch for potential room name changes
-                        if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                                || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                                || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                    // Watch for potential room name changes
+                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                            || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
 
 
-                            if (null != summary) {
-                                summary.setName(room.getName(mCredentials.userId));
-                            }
+                        if (null != summary) {
+                            summary.setName(room.getName(mCredentials.userId));
                         }
-
-
-                    } else {
-                        Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
                     }
+
+
+                } else {
+                    Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
                 }
             }
         }

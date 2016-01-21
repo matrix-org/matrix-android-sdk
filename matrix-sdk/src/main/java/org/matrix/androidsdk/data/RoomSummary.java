@@ -99,7 +99,7 @@ public class RoomSummary implements java.io.Serializable {
                     msgType = element.getAsString();
                 }
 
-                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT) ||
+                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT)||
                         TextUtils.equals(msgType, Message.MSGTYPE_EMOTE) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_NOTICE) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_IMAGE) ||
@@ -107,17 +107,14 @@ public class RoomSummary implements java.io.Serializable {
                         TextUtils.equals(msgType, Message.MSGTYPE_VIDEO) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_FILE);
 
-                if (!isSupported) {
+                if (!isSupported && !TextUtils.isEmpty(msgType)) {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
                 }
             } catch (Exception e) {
 
             }
-        }
-
-        if (!isSupported) {
-            isSupported = TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
+        } else if (!TextUtils.isEmpty(type)){
+            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
