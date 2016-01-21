@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.sync;
 
+import android.os.Handler;
 import android.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -260,12 +261,11 @@ public class EventsThread extends Thread {
 
                     private void sleepAndUnblock() {
                         Log.i(LOG_TAG, "Waiting a bit before retrying");
-                        try {
-                            Thread.sleep(RETRY_WAIT_TIME_MS);
-                        } catch (InterruptedException e1) {
-                            Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
-                        }
-                        latch.countDown();
+                        new Handler().postDelayed(new Runnable() {
+                            public void run() {
+                                latch.countDown();
+                            }
+                        }, RETRY_WAIT_TIME_MS);
                     }
 
                     @Override
@@ -273,6 +273,7 @@ public class EventsThread extends Thread {
                         if (null != mCurrentToken) {
                             onSuccess(null);
                         } else {
+                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getLocalizedMessage());
                             super.onNetworkError(e);
                             sleepAndUnblock();
                         }
@@ -281,12 +282,14 @@ public class EventsThread extends Thread {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
+                        Log.e(LOG_TAG, "Sync V2 onMatrixError " + e.getLocalizedMessage());
                         sleepAndUnblock();
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
                         super.onUnexpectedError(e);
+                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getLocalizedMessage());
                         sleepAndUnblock();
                     }
                 });
@@ -375,13 +378,7 @@ public class EventsThread extends Thread {
                         }
 
                         // detected if the device is connected before trying again
-                        if (isConnected) {
-                            try {
-                                Thread.sleep(RETRY_WAIT_TIME_MS);
-                            } catch (InterruptedException e1) {
-                                Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
-                            }
-                        } else {
+                        if (!isConnected) {
                             // no network -> wait that a network connection comes back.
                             mIsNetworkSuspended = true;
                         }
@@ -500,13 +497,11 @@ public class EventsThread extends Thread {
                 }
 
                 private void sleepAndUnblock() {
-                    Log.i(LOG_TAG, "Waiting a bit before retrying");
-                    try {
-                        Thread.sleep(RETRY_WAIT_TIME_MS);
-                    } catch (InterruptedException e1) {
-                        Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
-                    }
-                    latch.countDown();
+                    new Handler().postDelayed(new Runnable() {
+                        public void run() {
+                            latch.countDown();
+                        }
+                    }, RETRY_WAIT_TIME_MS);
                 }
 
                 @Override
@@ -514,6 +509,7 @@ public class EventsThread extends Thread {
                     if (null != mCurrentToken) {
                         onSuccess(null);
                     } else {
+                        Log.e(LOG_TAG, "Sync V1 onNetworkError " + e.getLocalizedMessage());
                         super.onNetworkError(e);
                         sleepAndUnblock();
                     }
@@ -521,6 +517,7 @@ public class EventsThread extends Thread {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "Sync V1 onMatrixError " + e.getLocalizedMessage());
                     super.onMatrixError(e);
                     sleepAndUnblock();
                 }
@@ -528,6 +525,7 @@ public class EventsThread extends Thread {
                 @Override
                 public void onUnexpectedError(Exception e) {
                     super.onUnexpectedError(e);
+                    Log.e(LOG_TAG, "Sync V1 onUnexpectedError " + e.getLocalizedMessage());
                     sleepAndUnblock();
                 }
             }, 10);
@@ -637,13 +635,7 @@ public class EventsThread extends Thread {
                     }
 
                     // detected if the device is connected before trying again
-                    if (isConnected) {
-                        try {
-                            Thread.sleep(RETRY_WAIT_TIME_MS);
-                        } catch (InterruptedException e1) {
-                            Log.e(LOG_TAG, "Unexpected interruption while sleeping: " + e1.getMessage());
-                        }
-                    } else {
+                    if (!isConnected) {
                         // no network -> wait that a network connection comes back.
                         mIsNetworkSuspended = true;
                     }
