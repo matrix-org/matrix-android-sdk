@@ -21,8 +21,6 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -422,6 +420,10 @@ public class MXSession {
                 mMyUser.avatarUrl = store.avatarURL();
             }
         }
+
+        // check if there is anything to refresh
+        mMyUser.refreshUserInfos(null);
+
         return mMyUser;
     }
 
@@ -431,23 +433,22 @@ public class MXSession {
      * @param networkConnectivityReceiver the network connectivity listener.
      * @param initialToken the initial sync token (null to start from scratch)
      */
-    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver, String initialToken) {
+    public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
         checkIfActive();
 
         if (mEventsThread != null) {
-            Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+            Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
         }
 
-        if (eventsListener == null) {
-            if (mDataHandler == null) {
-                Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
-                return;
-            }
-            eventsListener = new DefaultEventsThreadListener(mDataHandler);
+        if (mDataHandler == null) {
+            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
+            return;
         }
 
-        mEventsThread = new EventsThread(mEventsRestClient, mEventsRestClientV2, eventsListener, initialToken);
+        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler): anEventsListener;
+
+        mEventsThread = new EventsThread(mEventsRestClient, mEventsRestClientV2, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
 
         if (mFailureCallback != null) {

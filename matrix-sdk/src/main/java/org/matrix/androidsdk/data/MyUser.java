@@ -16,10 +16,15 @@
 
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.EditText;
+
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 
 /**
@@ -29,6 +34,10 @@ public class MyUser extends User {
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
+
+    private Boolean mIsAvatarRefreshed = false;
+    private Boolean mIsDislayNameRefreshed = false;
+
 
     public MyUser(User user) {
         clone(user);
@@ -93,4 +102,119 @@ public class MyUser extends User {
             }
         });
     }
+
+
+    //================================================================================
+    // Refresh
+    //================================================================================
+
+    /**
+     * Refresh the user data if it is required
+     * @param callback callback when the job is done.
+     */
+    public void refreshUserInfos(final ApiCallback<Void> callback) {
+        if (!mIsDislayNameRefreshed) {
+            refreshUserDisplayname(callback);
+        }
+
+        if (!mIsAvatarRefreshed) {
+            refreshUserAvatarUrl(callback);
+        }
+
+        if (null != callback) {
+            callback.onSuccess(null);
+        }
+    }
+
+    /**
+     * Refresh the avatar url
+     * @param callback callback when the job is done.
+     */
+    private void refreshUserAvatarUrl(final ApiCallback<Void> callback) {
+        mProfileRestClient.avatarUrl(userId, new SimpleApiCallback<String>() {
+            @Override
+            public void onSuccess(String anAvatarUrl) {
+                if (MyUser.this.mDataHandler.isActive()) {
+                    avatarUrl = anAvatarUrl;
+                    MyUser.this.mDataHandler.getStore().setAvatarURL(anAvatarUrl);
+                    mIsAvatarRefreshed = true;
+
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            }
+
+            private void onError() {
+                if (MyUser.this.mDataHandler.isActive()) {
+                    // will try later
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                onError();
+            }
+        });
+    }
+
+    /**
+     * Refresh the displayname.
+     * @param callback callback callback when the job is done.
+     */
+    private void refreshUserDisplayname(final ApiCallback<Void> callback) {
+        mProfileRestClient.displayname(userId, new SimpleApiCallback<String>() {
+            @Override
+            public void onSuccess(String aDisplayname) {
+                if (MyUser.this.mDataHandler.isActive()) {
+                    displayname = aDisplayname;
+                    MyUser.this.mDataHandler.getStore().setDisplayName(aDisplayname);
+
+                    mIsDislayNameRefreshed = true;
+                }
+            }
+
+            private void onError() {
+                if (MyUser.this.mDataHandler.isActive()) {
+                    // will try later
+                    if (!mIsAvatarRefreshed) {
+                        refreshUserAvatarUrl(callback);
+                    } else {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                onError();
+            }
+        });
+    }
+
 }
