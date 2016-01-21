@@ -61,6 +61,7 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -231,6 +232,23 @@ public class Room {
     }
 
     /**
+     * @return true if the user is invited to the room
+     */
+    public boolean isInvited() {
+        // Is it an initial sync for this room ?
+        RoomState liveState = getLiveState();
+        String membership = null;
+
+        RoomMember selfMember = liveState.getMember(mMyUserId);
+
+        if (null != selfMember) {
+            membership = selfMember.membership;
+        }
+
+        return TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
+    }
+
+    /**
      * Set the data retriever for storage/server requests.
      * @param dataRetriever should be the main DataRetriever object
      */
@@ -383,6 +401,30 @@ public class Room {
                         eventListener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onNewRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, roomId)) {
+                    try {
+                        eventListener.onNewRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onJoinRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, roomId)) {
+                    try {
+                        eventListener.onJoinRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage());
                     }
                 }
             }
@@ -1930,10 +1972,11 @@ public class Room {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
 
         if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
-            for(Event event : invitedRoomSync.inviteState.events) {
+
+           for(Event event : invitedRoomSync.inviteState.events) {
                 // Add a fake event id if none in order to be able to store the event
                 if (null == event.eventId) {
-                    event.eventId = mRoomId + "-" + System.currentTimeMillis();
+                    event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
                 }
 
                 // the roomId is not defined.

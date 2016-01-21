@@ -96,6 +96,20 @@ public interface IMXEventListener {
     public void onPresencesSyncComplete();
 
     /**
+     * A new room has been created.
+     *
+     * @param roomId the roomID
+     */
+    public void onNewRoom(String roomId);
+
+    /**
+     * The user joined a room.
+     *
+     * @param roomId the roomID
+     */
+    public void onJoinRoom(String roomId);
+
+    /**
      * The room initial sync is completed.
      * It is triggered after retrieving the room info and performing a first requestHistory
      *

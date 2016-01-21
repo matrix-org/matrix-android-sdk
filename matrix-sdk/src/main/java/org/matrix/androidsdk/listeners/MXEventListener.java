@@ -77,6 +77,14 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onNewRoom(String roomId) {
+    }
+
+    @Override
+    public void onJoinRoom(String roomId) {
+    }
+
+    @Override
     public void onRoomInitialSyncComplete(String roomId) {
     }
 

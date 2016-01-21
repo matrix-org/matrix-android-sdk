@@ -702,7 +702,7 @@ public class MXDataHandler implements IMXEventListener {
                 // thread issue
                 // if the user leaves a room,
                 // the server echo could try to delete the room file
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.getSender()) && mCredentials.userId.equals(event.stateKey)) {
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.stateKey)) {
                     String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                     if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
@@ -718,7 +718,7 @@ public class MXDataHandler implements IMXEventListener {
 
             if (store) {
                 // create dummy read receipt for any incoming event
-                // to avoid unsynchronized read receipt and event
+                // to avoid not synchronized read receipt and event
                 if ((null != event.getSender()) && (null != event.eventId)) {
                     room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
                 }
@@ -738,10 +738,24 @@ public class MXDataHandler implements IMXEventListener {
                             summary.setName(room.getName(mCredentials.userId));
                         }
                     }
-
-
                 } else {
                     Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
+                }
+            }
+
+            // warn the listener that a new room has been created
+            if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+                this.onNewRoom(event.roomId);
+            }
+
+            // warn the listeners that a room has been joined
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.stateKey)) {
+                String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+
+                if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
+                    this.onJoinRoom(event.roomId);
+                } else if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
+                    this.onNewRoom(event.roomId);
                 }
             }
         }
@@ -1045,6 +1059,28 @@ public class MXDataHandler implements IMXEventListener {
         for (IMXEventListener listener : eventListeners) {
             try {
                 listener.onPresencesSyncComplete();
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onNewRoom(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onNewRoom(roomId);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    public void onJoinRoom(String roomId) {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onJoinRoom(roomId);
             } catch (Exception e) {
             }
         }
