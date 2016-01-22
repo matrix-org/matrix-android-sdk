@@ -621,6 +621,11 @@ public class MXMemoryStore implements IMXStore {
                 return null;
             }
 
+            // reach the end of the stored items
+            if (TextUtils.equals(mRoomTokens.get(roomId), fromToken)) {
+               return null;
+            }
+
             // check if the token is known in the sublist
             ArrayList<Event> eventsList = new ArrayList<>(events.values());
             ArrayList<Event> subEventsList = new ArrayList<>();
@@ -669,12 +674,13 @@ public class MXMemoryStore implements IMXStore {
             Event lastEvent = subEventsList.get(subEventsList.size()-1);
 
             response.start = firstEvent.mToken;
-            response.end = lastEvent.mToken;
 
             // unknown last event token, use the latest known one
-            if (response.end == null) {
-                response.end = mRoomTokens.get(roomId);
+            if (null == lastEvent.mToken) {
+                lastEvent.mToken = mRoomTokens.get(roomId);
             }
+
+            response.end = lastEvent.mToken;
 
             return response;
         }
