@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.sync;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -261,7 +262,7 @@ public class EventsThread extends Thread {
 
                     private void sleepAndUnblock() {
                         Log.i(LOG_TAG, "Waiting a bit before retrying");
-                        new Handler().postDelayed(new Runnable() {
+                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                             public void run() {
                                 latch.countDown();
                             }
@@ -378,12 +379,18 @@ public class EventsThread extends Thread {
                         }
 
                         // detected if the device is connected before trying again
-                        if (!isConnected) {
+                        if (isConnected) {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                public void run() {
+                                    latch.countDown();
+                                }
+                            }, RETRY_WAIT_TIME_MS);
+
+                        } else {
                             // no network -> wait that a network connection comes back.
                             mIsNetworkSuspended = true;
+                            latch.countDown();
                         }
-
-                        latch.countDown();
                     }
 
                     @Override
@@ -497,7 +504,7 @@ public class EventsThread extends Thread {
                 }
 
                 private void sleepAndUnblock() {
-                    new Handler().postDelayed(new Runnable() {
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                         public void run() {
                             latch.countDown();
                         }
@@ -635,7 +642,21 @@ public class EventsThread extends Thread {
                     }
 
                     // detected if the device is connected before trying again
-                    if (!isConnected) {
+                   if (isConnected) {
+                        final CountDownLatch latch = new CountDownLatch(1);
+                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                            public void run() {
+                                latch.countDown();
+                            }
+                        }, RETRY_WAIT_TIME_MS);
+
+                        // block until the timeout is triggered
+                        try {
+                            latch.await();
+                        } catch (Exception anException) {
+                        }
+
+                    } else {
                         // no network -> wait that a network connection comes back.
                         mIsNetworkSuspended = true;
                     }
