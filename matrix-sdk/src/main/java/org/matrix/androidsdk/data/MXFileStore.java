@@ -784,6 +784,7 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
             }
         } catch (Exception e) {
+            Log.e(LOG_TAG, "saveRoomsMessage failed ");
         }
     }
 

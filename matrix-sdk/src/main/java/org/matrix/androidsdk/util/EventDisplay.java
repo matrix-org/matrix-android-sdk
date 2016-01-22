@@ -31,6 +31,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
+import java.util.HashMap;
+
 public class EventDisplay {
 
     private static final String LOG_TAG = "EventDisplay";
@@ -171,18 +173,56 @@ public class EventDisplay {
         return text;
     }
 
+    public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
+        // Check first whether the event has been redacted
+        String redactedInfo = null;
+
+        boolean isRedacted = (event.redactedBecause != null);
+
+        if (isRedacted && (null != roomState)) {
+            String redactorId =(String)(event.redactedBecause.get("user_id"));
+            String redactedBy = "";
+
+            HashMap<String, Object> redactedContentDict = ( HashMap<String, Object> )event.redactedBecause.get("content");
+
+            String redactedReason = null;
+
+            if (null != redactedContentDict) {
+                redactedReason = (String) redactedContentDict.get("reason");
+            }
+
+            if (!TextUtils.isEmpty(redactedReason)) {
+                if (!TextUtils.isEmpty(redactedBy)) {
+                    redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy) + context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                }
+                else {
+                    redactedBy = context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                }
+            }
+            else if (!TextUtils.isEmpty(redactedBy)) {
+                redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy);
+            }
+
+            redactedInfo = context.getString(R.string.notice_event_redacted, redactedBy);
+        }
+
+        return  redactedInfo;
+    }
+
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState) {
         return getMembershipNotice(context, msg, roomState, false);
     }
 
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState, boolean desambigious) {
         JsonObject eventContent = (JsonObject)msg.content;
+        JsonObject prevEventContent = (JsonObject)msg.getPrevContent();
         String membership = eventContent.getAsJsonPrimitive("membership").getAsString();
         String userDisplayName = null;
+        String prevUserDisplayName = null;
 
         String prevMembership = null;
 
-        if (null != msg.prevContent) {
+        if (null != prevEventContent) {
             prevMembership = msg.getPrevContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
         }
 
@@ -193,13 +233,65 @@ public class EventDisplay {
             userDisplayName =  eventContent.get("displayname") == JsonNull.INSTANCE ? null : eventContent.get("displayname").getAsString();
         }
 
+        if ((null != prevEventContent) && prevEventContent.has("displayname")) {
+            prevUserDisplayName = prevEventContent.get("displayname") == JsonNull.INSTANCE ? null : prevEventContent.get("displayname").getAsString();
+        }
+
         // cannot retrieve the display name from the event
-        if (null == userDisplayName) {
+        if (TextUtils.isEmpty(userDisplayName)) {
             // retrieve it by the room members list
             userDisplayName = getUserDisplayName(msg.getSender(), roomState, desambigious);
         }
 
-        if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
+        // Check whether the sender has updated his profile (the membership is then unchanged)
+        if (TextUtils.equals(prevMembership, membership)) {
+            Boolean isRedacted = (msg.redactedBecause != null);
+            String redactedInfo = EventDisplay.getRedactionMessage(context, msg, roomState);
+
+            // Is redacted event?
+            if (isRedacted) {
+                if (null != redactedInfo) {
+                    // Here the event is ignored (no display)
+                    return null;
+                }
+                return context.getString(R.string.notice_profile_change_redacted, userDisplayName, redactedInfo);
+            } else {
+                String displayText = "";
+
+                if (!TextUtils.equals(userDisplayName, prevUserDisplayName)) {
+                    if (TextUtils.isEmpty(prevUserDisplayName)) {
+                        displayText = context.getString(R.string.notice_display_name_set, msg.getSender(), userDisplayName);
+                    } else if (TextUtils.isEmpty(userDisplayName)) {
+                        displayText = context.getString(R.string.notice_display_name_removed, msg.getSender());
+                    } else {
+                        displayText = context.getString(R.string.notice_display_name_changed_from, msg.getSender(), prevUserDisplayName, userDisplayName);
+                    }
+                }
+
+                // Check whether the avatar has been changed
+                String avatar = null;
+                String prevAvatar = null;
+
+                if (eventContent.has("avatar_url")) {
+                    avatar = eventContent.get("avatar_url").getAsString();
+                }
+
+                if ((null != prevEventContent)  && prevEventContent.has("avatar_url")) {
+                    prevAvatar = prevEventContent.get("avatar_url").getAsString();
+                }
+
+                if (!TextUtils.equals(prevAvatar, avatar) && (prevAvatar != avatar)) {
+                    if (!TextUtils.isEmpty(displayText)) {
+                        displayText = displayText + " " + context.getString(R.string.notice_avatar_changed_too);
+                    } else {
+                        displayText =  context.getString(R.string.notice_avatar_url_changed, userDisplayName);
+                    }
+                }
+
+                return displayText;
+            }
+        }
+        else if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
             return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
