@@ -541,7 +541,6 @@ public class MXDataHandler implements IMXEventListener {
                 // sanity check
                 if (null != room) {
                     room.handleAccountDataEvents(Arrays.asList(event));
-                    onRoomTagEvent(event.roomId);
                 }
             }
         } else {

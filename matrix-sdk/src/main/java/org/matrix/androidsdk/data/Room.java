@@ -1755,6 +1755,10 @@ public class Room {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
                 mAccountData.handleEvent(accountDataEvent);
+
+                if (accountDataEvent.type.equals(Event.EVENT_TYPE_TAGS)) {
+                    mDataHandler.onRoomTagEvent(accountDataEvent.roomId);
+                }
             }
 
             mDataHandler.getStore().storeAccountData(mRoomId, mAccountData);
