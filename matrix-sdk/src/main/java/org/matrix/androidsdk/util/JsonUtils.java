@@ -25,6 +25,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
@@ -110,6 +111,10 @@ public class JsonUtils {
 
     public static JsonObject toJson(Message message) {
         return (JsonObject) gson.toJsonTree(message);
+    }
+
+    public static EventContent toEventContent(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, EventContent.class);
     }
 
     public static ImageMessage toImageMessage(JsonElement jsonObject) {

@@ -72,6 +72,9 @@ public class Event implements java.io.Serializable {
     public transient JsonElement content = null;
     private String contentAsString = null;
 
+    public transient JsonElement prev_content = null;
+    private String prev_content_as_string = null;
+
     public String eventId;
     public String roomId;
     // former Sync V1 sender name
@@ -79,15 +82,19 @@ public class Event implements java.io.Serializable {
     // Sync V2 sender name
     public String sender;
     public long originServerTs;
-    public long age;
+    public Long age;
 
     // Specific to state events
     public String stateKey;
-    public transient JsonElement prevContent = null;
-    private String prevContentAsString = null;
+
+    // Contains optional extra information about the event.
+    public UnsignedData unsigned;
 
     // Specific to redactions
     public String redacts;
+
+    // A subset of the state of the room at the time of the invite, if membership is invite
+    public StrippedState invite_room_state;
 
     // store the exception triggered when unsent
     public Exception unsentException = null;
@@ -122,16 +129,16 @@ public class Event implements java.io.Serializable {
     public Event() {
         type = null;
         content = null;
+        prev_content = null;
         mIsInternalPaginationToken = false;
 
         userId = roomId = eventId = null;
-        originServerTs = age = 0;
+        originServerTs = 0;
+        age = null;
 
         mTimeZoneRawOffset = getTimeZoneOffset();
 
         stateKey = null;
-        prevContent = null;
-
         redacts = null;
 
         unsentMatrixError = null;
@@ -188,9 +195,51 @@ public class Event implements java.io.Serializable {
     }
 
     public JsonObject getPrevContentAsJsonObject() {
-        if ((null != prevContent) && prevContent.isJsonObject()) {
-            return prevContent.getAsJsonObject();
+        if ((null == prev_content) && (null != unsigned) && (null != unsigned.prev_content)) {
+            prev_content = unsigned.prev_content;
+            unsigned.prev_content = null;
         }
+
+        if ((null != prev_content) && prev_content.isJsonObject()) {
+            return prev_content.getAsJsonObject();
+        }
+        return null;
+    }
+
+    public EventContent getEventContent() {
+        if (null != content) {
+            return JsonUtils.toEventContent(content);
+        }
+        return null;
+    }
+
+    public EventContent getPrevContent() {
+        if (null != getPrevContentAsJsonObject()) {
+            return JsonUtils.toEventContent(getPrevContentAsJsonObject());
+        }
+        return null;
+    }
+
+    public long getAge() {
+        if (null != age) {
+            return age;
+        } else if ((null != unsigned) && (null != unsigned.age)) {
+            age = unsigned.age;
+
+            return age;
+        }
+
+        return Long.MAX_VALUE;
+    }
+
+    public String getRedacts() {
+        if (null != redacts) {
+            return redacts;
+        } else  if ((null != unsigned) && (null != unsigned.redacted_because)) {
+            redacts = unsigned.redacted_because.redacts;
+            return redacts;
+        }
+
         return null;
     }
 
@@ -282,9 +331,10 @@ public class Event implements java.io.Serializable {
         copy.age = age;
 
         copy.stateKey = stateKey;
-        copy.prevContent = prevContent;
-        copy.prevContentAsString = prevContentAsString;
+        copy.prev_content = prev_content;
 
+        copy.unsigned = unsigned;
+        copy.invite_room_state = invite_room_state;
         copy.redacts = redacts;
 
         copy.mSentState = mSentState;
@@ -414,13 +464,12 @@ public class Event implements java.io.Serializable {
             contentAsString = content.toString();
         }
 
-        if ((null != prevContent) && (null == prevContentAsString)) {
-            prevContentAsString = prevContent.toString();
+        if ((null != getPrevContentAsJsonObject()) && (null == prev_content_as_string)) {
+            prev_content_as_string = getPrevContentAsJsonObject().toString();
         }
     }
 
     public void finalizeDeserialization() {
-
         if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
@@ -428,9 +477,9 @@ public class Event implements java.io.Serializable {
             }
         }
 
-        if ((null != prevContentAsString) && (null == prevContent)) {
+        if ((null != prev_content_as_string) && (null == prev_content)) {
             try {
-                prevContent = new JsonParser().parse(prevContentAsString).getAsJsonObject();
+                prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
             }
         }

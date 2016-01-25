@@ -1310,7 +1310,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void run() {
                 if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                    mAdapter.removeEventById(event.redacts);
+                    mAdapter.removeEventById(event.getRedacts());
                     mAdapter.notifyDataSetChanged();
                 } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                     if (null != mRoom) {

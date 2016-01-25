@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.model.Search;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * subclass representing a search API response
+ * Class representing an event content
  */
-public class SearchCategories  {
+public class EventContent implements java.io.Serializable {
+    /**
+     * The display name for this user, if any.
+     */
+    public String displayname;
 
     /**
-     Mapping of category name to search criteria.
+     * The avatar URL for this user, if any. T
      */
-    public SearchRoomEventResults roomEvents;
+    public String avatar_url;
+
+    /**
+     * The membership state of the user. One of: ["invite", "join", "knock", "leave", "ban"]
+     */
+    public String membership;
+
+    /**
+     *
+     */
+    public Invite third_party_invite;
 }

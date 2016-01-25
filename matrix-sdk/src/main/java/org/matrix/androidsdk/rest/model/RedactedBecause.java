@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.model.Search;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * subclass representing a search API response
+ * Redacted information
  */
-public class SearchCategories  {
+public class RedactedBecause implements java.io.Serializable {
 
-    /**
-     Mapping of category name to search criteria.
-     */
-    public SearchRoomEventResults roomEvents;
+    //  should be m.room.redaction"
+    public String type;
+
+    //
+    public long origin_server_ts;
+
+    // the redacted sender
+    public String sender;
+
+    // the events Id
+    public String event_id;
+
+    // unsigned
+    public UnsignedData unsigned;
+
+    //
+    public String redacts;
+
+    // should defined the reason
+    public RedactedContent content;
 }

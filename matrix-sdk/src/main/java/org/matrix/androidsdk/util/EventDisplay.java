@@ -28,8 +28,12 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.RedactedBecause;
 import org.matrix.androidsdk.rest.model.RoomMember;
+
+import java.util.HashMap;
 
 public class EventDisplay {
 
@@ -81,7 +85,7 @@ public class EventDisplay {
     public CharSequence getTextualDisplay(boolean desambigious) {
         CharSequence text = null;
         try {
-            JsonObject eventContent = mEvent.getContentAsJsonObject();
+            JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
             String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState, desambigious);
 
@@ -99,19 +103,19 @@ public class EventDisplay {
                 // the read receipt should not be displayed
                 text = "Read Receipt";
             } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
-                String msgtype = (null != eventContent.get("msgtype")) ? eventContent.get("msgtype").getAsString() : "";
+                String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
 
                 if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE)) {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else {
                     // all m.room.message events should support the 'body' key fallback, so use it.
-                    text = eventContent.get("body") == null ? null : eventContent.get("body").getAsString();
+                    text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
 
                     // check for html formatting
-                    if (eventContent.has("formatted_body") && eventContent.has("format")) {
-                        String format = eventContent.getAsJsonPrimitive("format").getAsString();
+                    if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
+                        String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
                         if ("org.matrix.custom.html".equals(format)) {
-                            text = Html.fromHtml(eventContent.getAsJsonPrimitive("formatted_body").getAsString());
+                            text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
                         }
                     }
 
@@ -125,43 +129,15 @@ public class EventDisplay {
             else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                 // pretty print 'XXX changed the topic to YYYY'
                 text = mContext.getString(R.string.notice_topic_changed,
-                        userDisplayName, eventContent.getAsJsonPrimitive("topic").getAsString());
+                        userDisplayName, jsonEventContent.getAsJsonPrimitive("topic").getAsString());
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
                 // pretty print 'XXX changed the room name to YYYY'
                 text = mContext.getString(R.string.notice_room_name_changed,
-                        userDisplayName, eventContent.getAsJsonPrimitive("name").getAsString());
+                        userDisplayName, jsonEventContent.getAsJsonPrimitive("name").getAsString());
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
-                // m.room.member is used to represent at least 3 different changes in state: membership,
-                // avatar pic url and display name. We need to figure out which thing changed to display
-                // the right text.
-                JsonObject prevState = mEvent.getPrevContentAsJsonObject();
-
-                if (prevState == null) {
-                    // if there is no previous state, it has to be an invite or a join as they are the first
-                    // m.room.member events for a user.
-                    text = getMembershipNotice(mContext, mEvent, mRoomState);
-                }
-                else {
-                    // check if the membership changed
-                    if (hasStringValueChanged(mEvent, "membership")) {
-                        text = getMembershipNotice(mContext, mEvent, mRoomState);
-                    }
-                    // check if avatar url changed
-                    else if (hasStringValueChanged(mEvent, "avatar_url")) {
-                        text = getAvatarChangeNotice(mEvent, desambigious);
-                    }
-                    // check if the display name changed.
-                    else if (hasStringValueChanged(mEvent, "displayname")) {
-                        text = getDisplayNameChangeNotice(mEvent);
-                    }
-                    else {
-                        // assume it is a membership notice
-                        // some other members could also play with the application
-                        text = getMembershipNotice(mContext, mEvent, mRoomState);
-                    }
-                }
+                text = getMembershipNotice(mContext, mEvent, mRoomState);
             }
         }
         catch (Exception e) {
@@ -171,41 +147,112 @@ public class EventDisplay {
         return text;
     }
 
+    public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
+        // Check first whether the event has been redacted
+        String redactedInfo = null;
+
+        boolean isRedacted = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
+
+        if (isRedacted && (null != roomState)) {
+            RedactedBecause redactedBecause = event.unsigned.redacted_because;
+            String redactedBy = redactedBecause.sender;
+            String redactedReason = null;
+
+            if (null != redactedBecause.content) {
+                redactedReason = redactedBecause.content.reason;
+            }
+
+            if (!TextUtils.isEmpty(redactedReason)) {
+                if (!TextUtils.isEmpty(redactedBy)) {
+                    redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy) + context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                }
+                else {
+                    redactedBy = context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                }
+            }
+            else if (!TextUtils.isEmpty(redactedBy)) {
+                redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy);
+            }
+
+            redactedInfo = context.getString(R.string.notice_event_redacted, redactedBy);
+        }
+
+        return  redactedInfo;
+    }
+
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState) {
         return getMembershipNotice(context, msg, roomState, false);
     }
 
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState, boolean desambigious) {
-        JsonObject eventContent = (JsonObject)msg.content;
-        String membership = eventContent.getAsJsonPrimitive("membership").getAsString();
-        String userDisplayName = null;
+        EventContent eventContent = JsonUtils.toEventContent(msg.getContentAsJsonObject());
+        EventContent prevEventContent = msg.getPrevContent();
+
+        String userDisplayName = eventContent.displayname;
+        String prevUserDisplayName = null;
 
         String prevMembership = null;
 
-        if (null != msg.prevContent) {
-            prevMembership = msg.getPrevContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+        if (null != prevEventContent) {
+            prevMembership = prevEventContent.membership;
         }
 
-        // the displayname could be defined in the event
-        // use it instead of the getUserDisplayName result
-        // the user could have joined the before his roomMember has been created.
-        if (eventContent.has("displayname")) {
-            userDisplayName =  eventContent.get("displayname") == JsonNull.INSTANCE ? null : eventContent.get("displayname").getAsString();
+        if ((null != prevEventContent)) {
+            prevUserDisplayName = prevEventContent.displayname;
         }
 
         // cannot retrieve the display name from the event
-        if (null == userDisplayName) {
+        if (TextUtils.isEmpty(userDisplayName)) {
             // retrieve it by the room members list
             userDisplayName = getUserDisplayName(msg.getSender(), roomState, desambigious);
         }
 
-        if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
+        // Check whether the sender has updated his profile (the membership is then unchanged)
+        if (TextUtils.equals(prevMembership, eventContent.membership)) {
+            String redactedInfo = EventDisplay.getRedactionMessage(context, msg, roomState);
+
+            // Is redacted event?
+            if (!TextUtils.isEmpty(redactedInfo)) {
+                return context.getString(R.string.notice_profile_change_redacted, userDisplayName, redactedInfo);
+            } else {
+                String displayText = "";
+
+                if (!TextUtils.equals(userDisplayName, prevUserDisplayName)) {
+                    if (TextUtils.isEmpty(prevUserDisplayName)) {
+                        displayText = context.getString(R.string.notice_display_name_set, msg.getSender(), userDisplayName);
+                    } else if (TextUtils.isEmpty(userDisplayName)) {
+                        displayText = context.getString(R.string.notice_display_name_removed, msg.getSender());
+                    } else {
+                        displayText = context.getString(R.string.notice_display_name_changed_from, msg.getSender(), prevUserDisplayName, userDisplayName);
+                    }
+                }
+
+                // Check whether the avatar has been changed
+                String avatar = eventContent.avatar_url;
+                String prevAvatar = null;
+
+                if (null != prevEventContent) {
+                    prevAvatar = prevEventContent.avatar_url;
+                }
+
+                if (!TextUtils.equals(prevAvatar, avatar) && (prevAvatar != avatar)) {
+                    if (!TextUtils.isEmpty(displayText)) {
+                        displayText = displayText + " " + context.getString(R.string.notice_avatar_changed_too);
+                    } else {
+                        displayText =  context.getString(R.string.notice_avatar_url_changed, userDisplayName);
+                    }
+                }
+
+                return displayText;
+            }
+        }
+        else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
         }
-        else if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
+        else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_join, userDisplayName);
         }
-        else if (RoomMember.MEMBERSHIP_LEAVE.equals(membership)) {
+        else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(msg.getSender(), msg.stateKey)) {
                 return context.getString(R.string.notice_room_leave, userDisplayName);
@@ -217,12 +264,12 @@ public class EventDisplay {
                 }
             }
         }
-        else if (RoomMember.MEMBERSHIP_BAN.equals(membership)) {
+        else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
         }
         else {
             // eh?
-            Log.e(LOG_TAG, "Unknown membership: "+membership);
+            Log.e(LOG_TAG, "Unknown membership: " + eventContent.membership);
         }
         return null;
     }
@@ -238,23 +285,5 @@ public class EventDisplay {
                 msg.getSender(),
                 ((JsonObject)msg.content).getAsJsonPrimitive("displayname").getAsString()
         );
-    }
-
-    private boolean hasStringValueChanged(Event msg, String key) {
-        JsonObject prevContent = msg.getPrevContentAsJsonObject();
-        JsonObject eventContent = msg.getContentAsJsonObject();
-
-        if (prevContent.has(key) && eventContent.has(key)) {
-            String old = prevContent.get(key) == JsonNull.INSTANCE ? null : prevContent.get(key).getAsString();
-            String current = eventContent.get(key) == JsonNull.INSTANCE ? null : eventContent.get(key).getAsString();
-
-            return !TextUtils.equals(old, current);
-        }
-        else if (!prevContent.has(key) && !eventContent.has(key)) {
-            return false; // this key isn't in either prev or current
-        }
-        else {
-            return true; // this key is in one but not the other.
-        }
     }
 }
