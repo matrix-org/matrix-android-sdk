@@ -679,8 +679,8 @@ public class MXDataHandler implements IMXEventListener {
         if (null != room) {
             boolean store = false;
             if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                if (event.redacts != null) {
-                    mStore.updateEventContent(event.roomId, event.redacts, event.getContentAsJsonObject());
+                if (event.getRedacts() != null) {
+                    mStore.updateEventContent(event.roomId, event.getRedacts(), event.getContentAsJsonObject());
 
                     // search the latest displayable event
                     // to replace the summary text

@@ -521,7 +521,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow currentRow = mEventRowMap.get(eventId);
 
                 // Long.MAX_VALUE means that it is a temporary event
-                shouldSave = (currentRow.getEvent().age == Long.MAX_VALUE);
+                shouldSave = (currentRow.getEvent().getAge() == Long.MAX_VALUE);
 
                 if (!shouldSave) {
                     shouldSave = mWaitingEchoRowMap.containsKey(eventId);

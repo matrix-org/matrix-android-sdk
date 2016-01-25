@@ -20,6 +20,7 @@ import android.content.Context;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.gson.JsonObject;
 
@@ -784,6 +785,7 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
             }
         } catch (Exception e) {
+            Toast.makeText(mContext, "saveRoomsMessage  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "saveRoomsMessage failed ");
         }
     }

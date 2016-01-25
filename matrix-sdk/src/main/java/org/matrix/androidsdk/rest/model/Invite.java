@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.model.Search;
+package org.matrix.androidsdk.rest.model;
 
 /**
  * subclass representing a search API response
  */
-public class SearchCategories  {
+public class Invite implements java.io.Serializable {
+    /**
+     * A name which can be displayed to represent the user instead of their third party identifier.
+     */
+    public String display_name;
 
     /**
-     Mapping of category name to search criteria.
+     * A block of content which has been signed, which servers can use to verify the event. Clients should ignore this.
      */
-    public SearchRoomEventResults roomEvents;
+    public Signed signed;
 }

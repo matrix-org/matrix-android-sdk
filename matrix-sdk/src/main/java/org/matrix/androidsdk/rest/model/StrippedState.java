@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.model.Search;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * subclass representing a search API response
+ * subclass representing a subset of the state of the room at the time of the invite, if membership is invite
  */
-public class SearchCategories  {
+public class StrippedState implements java.io.Serializable {
 
     /**
-     Mapping of category name to search criteria.
+     * The content for the event.
      */
-    public SearchRoomEventResults roomEvents;
+    EventContent content;
+
+    /**
+     * The type for the event. One of: ["m.room.join_rules", "m.room.canonical_alias", "m.room.avatar", "m.room.name"]
+     */
+    String type;
+
+    /**
+     * The state_key for the event
+     */
+    String state_key;
 }
