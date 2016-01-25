@@ -731,7 +731,8 @@ public class MXSession {
                         RoomTag tag2 = r2.getAccountData().roomTag(tag);
 
                         if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
-                            res = (int)(tag2.mOrder - tag1.mOrder);
+                            double diff = (tag1.mOrder - tag2.mOrder);
+                            res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
                         }
                         else if (null != tag1.mOrder) {
                             res = +1;
@@ -749,14 +750,14 @@ public class MXSession {
 
                             // sanity check
                             if ((null != latestEvent2) && (null != latestEvent1)) {
-                                res = (int) (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
+                                long diff = (latestEvent1.getOriginServerTs() - latestEvent2.getOriginServerTs());
+                                res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
                             }
                         }
 
                         return res;
                     }
                 });
-
             }
         } else {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
