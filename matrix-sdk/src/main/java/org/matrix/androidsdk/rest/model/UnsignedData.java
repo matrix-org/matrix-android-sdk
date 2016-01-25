@@ -42,5 +42,5 @@ public class UnsignedData implements java.io.Serializable {
     /**
      * The previous event content (room member information only)
      */
-    public JsonElement prev_content;
+    public transient JsonElement prev_content;
 }

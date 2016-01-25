@@ -195,8 +195,11 @@ public class Event implements java.io.Serializable {
     }
 
     public JsonObject getPrevContentAsJsonObject() {
-        if ((null == prev_content) && (null != unsigned) && (null != unsigned.prev_content)) {
-            prev_content = unsigned.prev_content;
+        if ((null != unsigned) && (null != unsigned.prev_content)) {
+            // avoid getting two value for the same thing
+            if (null == prev_content) {
+                prev_content = unsigned.prev_content;
+            }
             unsigned.prev_content = null;
         }
 
@@ -466,6 +469,10 @@ public class Event implements java.io.Serializable {
 
         if ((null != getPrevContentAsJsonObject()) && (null == prev_content_as_string)) {
             prev_content_as_string = getPrevContentAsJsonObject().toString();
+        }
+
+        if ((null != unsigned) && (null != unsigned.prev_content)) {
+            unsigned.prev_content = null;
         }
     }
 
