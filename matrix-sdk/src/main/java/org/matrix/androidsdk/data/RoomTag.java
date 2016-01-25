@@ -70,10 +70,7 @@ public class RoomTag implements java.io.Serializable {
             if ((null != roomtags.tags) && (0 != roomtags.tags.size())) {
                 for (String tagName : roomtags.tags.keySet()) {
                     HashMap<String, Double> params = roomtags.tags.get(tagName);
-
-                    if (params.containsKey("order")) {
-                        tags.put(tagName, new RoomTag(tagName, params.get("order")));
-                    }
+                    tags.put(tagName, new RoomTag(tagName, params.get("order")));
                 }
             }
         }
