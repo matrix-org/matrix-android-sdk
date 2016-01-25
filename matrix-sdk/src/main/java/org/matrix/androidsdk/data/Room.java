@@ -1077,6 +1077,31 @@ public class Room {
     }
 
     /**
+     * @return the room avatar URL. If there is no defined one, use the members one (1:1 chat only).
+     */
+    public String getAvatarUrl() {
+        String res = mLiveState.getAvatarUrl();
+
+        // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
+        if (null == res) {
+            Collection<RoomMember> members = mLiveState.getMembers();
+
+            if (members.size() < 3) {
+                // use the member avatar only it is an active member
+                for (RoomMember roomMember : members) {
+                    if (TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, roomMember.membership) && ((members.size() == 1) || !TextUtils.equals(mMyUserId, roomMember.getUserId()))) {
+                        res = roomMember.avatarUrl;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return res;
+    }
+
+
+    /**
      * Update the room avatar URL.
      * @param avatarUrl the new avatar URL
      * @param callback the async callback
@@ -1751,7 +1776,7 @@ public class Room {
      * @param accountDataEvents the account events.
      */
     public void handleAccountDataEvents(List<Event> accountDataEvents) {
-        if (null != accountDataEvents) {
+        if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
                 mAccountData.handleEvent(accountDataEvent);
