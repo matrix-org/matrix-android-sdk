@@ -735,10 +735,10 @@ public class MXSession {
                             res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
                         }
                         else if (null != tag1.mOrder) {
-                            res = +1;
+                            res = -1;
                         }
                         else if (null != tag2.mOrder) {
-                            res = -1;
+                            res = +1;
                         }
 
                         // In case of same order, order rooms by their last event
@@ -750,7 +750,7 @@ public class MXSession {
 
                             // sanity check
                             if ((null != latestEvent2) && (null != latestEvent1)) {
-                                long diff = (latestEvent1.getOriginServerTs() - latestEvent2.getOriginServerTs());
+                                long diff = (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
                                 res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
                             }
                         }
