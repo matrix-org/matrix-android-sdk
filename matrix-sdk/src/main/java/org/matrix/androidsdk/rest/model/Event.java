@@ -24,6 +24,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
@@ -94,7 +95,7 @@ public class Event implements java.io.Serializable {
     public String redacts;
 
     // A subset of the state of the room at the time of the invite, if membership is invite
-    public StrippedState invite_room_state;
+    public List<Event> invite_room_state;
 
     // store the exception triggered when unsent
     public Exception unsentException = null;
