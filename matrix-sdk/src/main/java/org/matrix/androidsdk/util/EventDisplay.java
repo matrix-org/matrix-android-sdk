@@ -16,17 +16,14 @@
 package org.matrix.androidsdk.util;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
-import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
 
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
@@ -36,8 +33,6 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RedactedBecause;
 import org.matrix.androidsdk.rest.model.RoomMember;
-
-import java.util.HashMap;
 
 public class EventDisplay {
 

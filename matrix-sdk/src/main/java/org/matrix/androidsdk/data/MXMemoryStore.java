@@ -21,8 +21,10 @@ import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -271,6 +273,23 @@ public class MXMemoryStore implements IMXStore {
     public void storeUser(User user) {
         if ((null != user) && (null != user.userId)) {
             mUsers.put(user.userId, user);
+        }
+    }
+
+    public void updateUserWithRoomMemberEvent(RoomMember roomMember) {
+        if ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership)) {
+            User user = getUser(roomMember.getUserId());
+
+            if (null == user) {
+                user = new User();
+                user.userId = roomMember.getUserId();
+                storeUser(user);
+            }
+
+            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.avatarUrl, roomMember.avatarUrl)) {
+                user.displayname = roomMember.displayname;
+                user.avatarUrl = roomMember.avatarUrl;
+            }
         }
     }
 

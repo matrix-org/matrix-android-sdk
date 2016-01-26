@@ -23,6 +23,10 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import java.util.List;
 
 public interface IMXEventListener {
+    /**
+     * The store is ready.
+     */
+    public void onStoreReady();
 
     /**
      * User presence was updated.

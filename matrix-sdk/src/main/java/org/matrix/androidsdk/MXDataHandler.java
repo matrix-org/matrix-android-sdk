@@ -908,6 +908,17 @@ public class MXDataHandler implements IMXEventListener {
         return eventListeners;
     }
 
+    public void onStoreReady() {
+        List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onStoreReady();
+            } catch (Exception e) {
+            }
+        }
+    }
+
     @Override
     public void onPresenceUpdate(Event event, User user) {
         List<IMXEventListener> eventListeners = getListenersSnapshot();

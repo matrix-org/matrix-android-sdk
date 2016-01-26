@@ -2015,6 +2015,8 @@ public class Room {
                 event.roomId = mRoomId;
                 mDataHandler.handleLiveEvent(event);
             }
+
+            mDataHandler.getStore().storeBackToken(mRoomId, invitedRoomSync.inviteState.events.get(0).eventId);
         }
     }
 }

@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -1096,6 +1097,13 @@ public class MXFileStore extends MXMemoryStore {
 
             if (null != liveState) {
                 room.setLiveState(liveState);
+
+                // check if some user can be retrieved from the room members
+                Collection<RoomMember> members = liveState.getMembers();
+
+                for(RoomMember member : members) {
+                    updateUserWithRoomMemberEvent(member);
+                }
 
                 // force to use the new format
                 if (shouldSave) {

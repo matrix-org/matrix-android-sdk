@@ -29,8 +29,11 @@ import java.util.List;
 public class MXEventListener implements IMXEventListener {
 
     @Override
-    public void onPresenceUpdate(Event event, User user) {
+    public void onStoreReady() {
+    }
 
+    @Override
+    public void onPresenceUpdate(Event event, User user) {
     }
 
     @Override

@@ -120,28 +120,6 @@ public class RoomState implements java.io.Serializable {
         return res;
     }
 
-    /**
-     * Check if the room member can be converted in an User.
-     * @param roomMember the room member
-     */
-    private void updateUser(RoomMember roomMember) {
-        if (null != mDataHandler) {
-            User user = ((MXDataHandler) mDataHandler).getUser(roomMember.getUserId());
-
-            if (null == user) {
-                user = new User();
-                user.userId = roomMember.getUserId();
-                ((MXDataHandler) mDataHandler).getStore().storeUser(user);
-            }
-
-            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.avatarUrl, roomMember.avatarUrl)) {
-                user.displayname = roomMember.displayname;
-                user.setDataHandler((MXDataHandler)mDataHandler);
-                user.avatarUrl = roomMember.avatarUrl;
-            }
-        }
-    }
-
     public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
@@ -184,11 +162,12 @@ public class RoomState implements java.io.Serializable {
      * Check if some users can be created from room members
      */
     public void refreshUsersList() {
-        // check if some user can be retrieved from the room members
-        Collection<RoomMember> members = getMembers();
+        MXDataHandler dataHandler = (MXDataHandler) mDataHandler;
 
-        for(RoomMember member : members) {
-            updateUser(member);
+        Collection<User> users = dataHandler.getStore().getUsers();
+
+        for(User user : users) {
+            user.setDataHandler(dataHandler);
         }
     }
 
@@ -426,7 +405,9 @@ public class RoomState implements java.io.Serializable {
                             }
                         }
 
-                        updateUser(member);
+                        if (null != mDataHandler) {
+                            ((MXDataHandler)mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                        }
                     }
 
                     setMember(userId, member);

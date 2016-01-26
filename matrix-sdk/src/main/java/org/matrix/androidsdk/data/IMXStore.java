@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -125,6 +126,7 @@ public interface IMXStore {
     public Collection<User> getUsers();
     public User getUser(String userId);
     public void storeUser(User user);
+    public void updateUserWithRoomMemberEvent(RoomMember roomMember);
     public void storeRoom(Room room);
 
     /**

@@ -138,6 +138,7 @@ public class MyUser extends User {
                     avatarUrl = anAvatarUrl;
                     MyUser.this.mDataHandler.getStore().setAvatarURL(anAvatarUrl);
                     mIsAvatarRefreshed = true;
+                    MyUser.this.mDataHandler.getStore().storeUser(MyUser.this);
 
                     if (null != callback) {
                         callback.onSuccess(null);
