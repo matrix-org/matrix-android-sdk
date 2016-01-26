@@ -20,6 +20,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
+import java.util.List;
+
 public interface IMXEventListener {
 
     /**
@@ -137,8 +139,9 @@ public interface IMXEventListener {
      * It could be triggered when a request failed.
      *
      * @param roomId the roomID
+     * @param senderIds the list of the
      */
-    public void onReceiptEvent(String roomId);
+    public void onReceiptEvent(String roomId, List<String> senderIds);
 
     /**
      * A Room Tag event has been received.

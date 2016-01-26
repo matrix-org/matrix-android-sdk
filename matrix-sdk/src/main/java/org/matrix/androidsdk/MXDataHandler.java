@@ -523,8 +523,10 @@ public class MXDataHandler implements IMXEventListener {
 
                 // sanity check
                 if (null != room) {
-                    if (room.handleReceiptEvent(event)) {
-                        onReceiptEvent(event.roomId);
+                    List<String> senders = room.handleReceiptEvent(event);
+
+                    if (null != senders) {
+                        onReceiptEvent(event.roomId, senders);
                     }
                 }
             }
@@ -1125,12 +1127,12 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void onReceiptEvent(String roomId) {
+    public void onReceiptEvent(String roomId, List<String> senderIds) {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         for (IMXEventListener listener : eventListeners) {
             try {
-                listener.onReceiptEvent(roomId);
+                listener.onReceiptEvent(roomId, senderIds);
             } catch (Exception e) {
             }
         }

@@ -263,6 +263,7 @@ public class Room {
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
         mLiveState.setDataHandler(mDataHandler);
+        mLiveState.refreshUsersList();
         mBackState.setDataHandler(mDataHandler);
     }
 
@@ -430,11 +431,11 @@ public class Room {
             }
 
             @Override
-            public void onReceiptEvent(String roomId) {
+            public void onReceiptEvent(String roomId, List<String> senderIds) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(mRoomId, roomId)) {
                     try {
-                        eventListener.onReceiptEvent(roomId);
+                        eventListener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
                     }
@@ -1148,10 +1149,10 @@ public class Room {
     /**
      * Handle receipt event.
      * @param event the event receipts.
-     * @return true if there were some updates.
+     * @return the sender user IDs list.
      */
-    public Boolean handleReceiptEvent(Event event) {
-        Boolean hasUpdatedReceipts = false;
+    public List<String> handleReceiptEvent(Event event) {
+        ArrayList<String> senderIDs = new ArrayList<String>();
 
         try {
             // the receipts dicts
@@ -1178,7 +1179,9 @@ public class Room {
                                     Double value = (Double)paramsDict.get(paramName);
                                     long ts = value.longValue();
 
-                                    hasUpdatedReceipts |= handleReceiptData(new ReceiptData(userID, eventId, ts));
+                                    if (handleReceiptData(new ReceiptData(userID, eventId, ts))) {
+                                        senderIDs.add(userID);
+                                    }
                                 }
                             }
                         }
@@ -1188,7 +1191,7 @@ public class Room {
         } catch (Exception e) {
         }
 
-        return hasUpdatedReceipts;
+        return senderIDs;
     }
 
     /**

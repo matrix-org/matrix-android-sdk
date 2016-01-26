@@ -1395,6 +1395,15 @@ public class MXFileStore extends MXMemoryStore {
 
         if (null != summary) {
             summary.getLatestEvent().finalizeDeserialization();
+
+            Room room = getRoom(summary.getRoomId());
+
+            // the room state is not saved in the summary.
+            // it is restored from the room
+            if (null != room) {
+                summary.setLatestRoomState(room.getLiveState());
+            }
+
             mRoomSummaries.put(roomId, summary);
         }
 

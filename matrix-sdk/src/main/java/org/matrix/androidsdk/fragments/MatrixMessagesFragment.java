@@ -80,7 +80,7 @@ public class MatrixMessagesFragment extends Fragment {
         public void onDeleteEvent(Event event);
         public void onResendingEvent(Event event);
         public void onResentEvent(Event event);
-        public void onReceiptEvent();
+        public void onReceiptEvent(List<String> senderIds);
         public void onRoomSyncWithLimitedTimeline();
 
 
@@ -185,8 +185,8 @@ public class MatrixMessagesFragment extends Fragment {
                 }
 
                 @Override
-                public void onReceiptEvent(String roomId) {
-                    mMatrixMessagesListener.onReceiptEvent();
+                public void onReceiptEvent(String roomId, List<String> senderIds) {
+                    mMatrixMessagesListener.onReceiptEvent(senderIds);
                 }
 
                 @Override

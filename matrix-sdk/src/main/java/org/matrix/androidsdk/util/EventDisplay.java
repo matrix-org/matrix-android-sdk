@@ -18,8 +18,12 @@ package org.matrix.androidsdk.util;
 import android.content.Context;
 import android.graphics.Color;
 import android.text.Html;
+import android.text.Spannable;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
 
 import com.google.gson.JsonNull;
@@ -60,16 +64,9 @@ public class EventDisplay {
         mPrependAuthor = prepend;
     }
 
-    private static String getUserDisplayName(String userId, RoomState roomState, boolean desambigious) {
+    private static String getUserDisplayName(String userId, RoomState roomState) {
         if (null != roomState) {
-            SpannableStringBuilder span = roomState.getMemberName(userId, desambigious ? Color.BLACK : null);
-
-            if (null != span) {
-                return span.toString();
-            } else {
-                return null;
-            }
-
+            return roomState.getMemberName(userId);
         } else {
             return userId;
         }
@@ -79,15 +76,16 @@ public class EventDisplay {
      * @return The text or null if it isn't possible.
      */
     public CharSequence getTextualDisplay() {
-        return getTextualDisplay(false);
+        return getTextualDisplay(null);
     }
 
-    public CharSequence getTextualDisplay(boolean desambigious) {
+    public CharSequence getTextualDisplay(Integer displayNameColor) {
+
         CharSequence text = null;
         try {
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
-            String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState, desambigious);
+            String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
 
             if (mEvent.isCallEvent()) {
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(mEvent.type)) {
@@ -122,7 +120,12 @@ public class EventDisplay {
                     if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
                         text = "* " + userDisplayName +  " " + text;
                     } else if (mPrependAuthor) {
-                        text = mContext.getString(R.string.summary_message, userDisplayName, text);
+                        text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
+
+                        if (null != displayNameColor) {
+                            ((SpannableStringBuilder)text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        }
                     }
                 }
             }
@@ -133,7 +136,7 @@ public class EventDisplay {
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
                 // pretty print 'XXX changed the room name to YYYY'
-                text = mContext.getString(R.string.notice_room_name_changed,
+                text =  mContext.getString(R.string.notice_room_name_changed,
                         userDisplayName, jsonEventContent.getAsJsonPrimitive("name").getAsString());
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
@@ -181,10 +184,6 @@ public class EventDisplay {
     }
 
     public static String getMembershipNotice(Context context, Event msg, RoomState roomState) {
-        return getMembershipNotice(context, msg, roomState, false);
-    }
-
-    public static String getMembershipNotice(Context context, Event msg, RoomState roomState, boolean desambigious) {
         EventContent eventContent = JsonUtils.toEventContent(msg.getContentAsJsonObject());
         EventContent prevEventContent = msg.getPrevContent();
 
@@ -204,7 +203,7 @@ public class EventDisplay {
         // cannot retrieve the display name from the event
         if (TextUtils.isEmpty(userDisplayName)) {
             // retrieve it by the room members list
-            userDisplayName = getUserDisplayName(msg.getSender(), roomState, desambigious);
+            userDisplayName = getUserDisplayName(msg.getSender(), roomState);
         }
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
@@ -247,7 +246,7 @@ public class EventDisplay {
             }
         }
         else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
-            return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
+            return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_join, userDisplayName);
@@ -258,14 +257,14 @@ public class EventDisplay {
                 return context.getString(R.string.notice_room_leave, userDisplayName);
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
-                    return context.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
+                    return context.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
                 } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                    return context.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
+                    return context.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
                 }
             }
         }
         else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
-            return context.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey, roomState, desambigious));
+            return context.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
         }
         else {
             // eh?
@@ -277,7 +276,7 @@ public class EventDisplay {
 
     private String getAvatarChangeNotice(Event msg, boolean desambigious) {
         // TODO: Pictures!
-        return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.getSender(), mRoomState, desambigious));
+        return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.getSender(), mRoomState));
     }
 
     private String getDisplayNameChangeNotice(Event msg) {

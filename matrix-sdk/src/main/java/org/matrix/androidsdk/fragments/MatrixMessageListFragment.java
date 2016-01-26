@@ -1382,7 +1382,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onReceiptEvent() {
+    public void onReceiptEvent(List<String> senderIds) {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {

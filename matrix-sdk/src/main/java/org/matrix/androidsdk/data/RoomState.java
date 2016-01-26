@@ -120,6 +120,28 @@ public class RoomState implements java.io.Serializable {
         return res;
     }
 
+    /**
+     * Check if the room member can be converted in an User.
+     * @param roomMember the room member
+     */
+    private void updateUser(RoomMember roomMember) {
+        if (null != mDataHandler) {
+            User user = ((MXDataHandler) mDataHandler).getUser(roomMember.getUserId());
+
+            if (null == user) {
+                user = new User();
+                user.userId = roomMember.getUserId();
+                ((MXDataHandler) mDataHandler).getStore().storeUser(user);
+            }
+
+            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.avatarUrl, roomMember.avatarUrl)) {
+                user.displayname = roomMember.displayname;
+                user.setDataHandler((MXDataHandler)mDataHandler);
+                user.avatarUrl = roomMember.avatarUrl;
+            }
+        }
+    }
+
     public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
@@ -156,6 +178,18 @@ public class RoomState implements java.io.Serializable {
 
     public void setPowerLevels(PowerLevels powerLevels) {
         this.powerLevels = powerLevels;
+    }
+
+    /**
+     * Check if some users can be created from room members
+     */
+    public void refreshUsersList() {
+        // check if some user can be retrieved from the room members
+        Collection<RoomMember> members = getMembers();
+
+        for(RoomMember member : members) {
+            updateUser(member);
+        }
     }
 
     public void setDataHandler(MXDataHandler dataHandler) {
@@ -383,12 +417,16 @@ public class RoomState implements java.io.Serializable {
                     }
 
                     // when a member leaves a room, his avatar is not anymore provided
-                    if ((direction == Room.EventDirection.FORWARDS) && (null != currentMember)) {
-                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                            if (null == member.avatarUrl) {
-                                member.avatarUrl = currentMember.avatarUrl;
+                    if ((direction == Room.EventDirection.FORWARDS) ) {
+                        if (null != currentMember) {
+                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                                if (null == member.avatarUrl) {
+                                    member.avatarUrl = currentMember.avatarUrl;
+                                }
                             }
                         }
+
+                        updateUser(member);
                     }
 
                     setMember(userId, member);
@@ -411,34 +449,17 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Return an unique display name of the member userId.
-     * @param userId
+     * @param userId the user id
+     * @param color the color of the displayname
      * @return unique display name
      */
     public String getMemberName(String userId) {
-        SpannableStringBuilder span = getMemberName(userId, null);
-
-        // sanity check
-        if (null != span) {
-            return span.toString();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Return an unique display name of the member userId.
-     * @param userId
-     * @param disambiguationColor the color to disambiguous name.
-     * @return unique display name
-     */
-    public SpannableStringBuilder getMemberName(String userId, Integer disambiguationColor) {
         // sanity check
         if (null == userId) {
             return null;
         }
 
         String displayName = null;
-        String colorPart = null;
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
@@ -458,20 +479,9 @@ public class RoomState implements java.io.Serializable {
                 }
 
                 // if several users have the same displayname
-                // index it i.e bob (1)
+                // index it i.e bob (<Matrix id>)
                 if (matrixIds.size() > 1) {
-                    if (null != disambiguationColor){
-                        Collections.sort(matrixIds);
-
-                        int pos = matrixIds.indexOf(userId);
-
-                        if (pos >= 0) {
-                            colorPart = " (" + (pos + 1) + ")";
-                            displayName += colorPart;
-                        }
-                    } else {
-                        displayName += " (" + userId + ")";
-                    }
+                    displayName += " (" + userId + ")";
                 }
             }
         }
@@ -491,12 +501,6 @@ public class RoomState implements java.io.Serializable {
             displayName = userId;
         }
 
-        SpannableStringBuilder spannableString = new SpannableStringBuilder(displayName);
-
-        if ((null != disambiguationColor) && !TextUtils.isEmpty(colorPart)) {
-            spannableString.setSpan(new ForegroundColorSpan(disambiguationColor), displayName.length() - colorPart.length(), displayName.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-
-        return spannableString;
+        return displayName;
     }
 }

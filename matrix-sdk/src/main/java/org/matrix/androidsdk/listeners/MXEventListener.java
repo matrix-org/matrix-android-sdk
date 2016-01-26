@@ -97,7 +97,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onReceiptEvent(String roomId) {
+    public void onReceiptEvent(String roomId, List<String> senderIds) {
     }
 
     @Override
