@@ -18,6 +18,8 @@ package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.Event;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Class representing private data that the user has defined for a room.
@@ -44,7 +46,6 @@ public class RoomAccountData implements java.io.Serializable{
      * @return the roomTag if it is found else null
      */
     public RoomTag roomTag(String key) {
-
         if (tags.containsKey(key)) {
             return tags.get(key);
         }
@@ -52,7 +53,21 @@ public class RoomAccountData implements java.io.Serializable{
         return null;
     }
 
+    /**
+     * @return true if some tags are defined
+     */
     public Boolean hasTags() {
-        return tags.size() > 0;
+        return (null != tags) && (tags.size() > 0);
+    }
+
+    /**
+     * @return the list of keys
+     */
+    public Set<String> getKeys() {
+        if (hasTags()) {
+            return tags.keySet();
+        } else {
+            return null;
+        }
     }
 }
