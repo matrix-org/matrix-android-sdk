@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 /**
  * Represents a standard error response.
  */
-public class MatrixError {
+public class MatrixError implements java.io.Serializable {
     public static final String FORBIDDEN = "M_FORBIDDEN";
     public static final String UNKNOWN_TOKEN = "M_UNKNOWN_TOKEN";
     public static final String BAD_JSON = "M_BAD_JSON";
