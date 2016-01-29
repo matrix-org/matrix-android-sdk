@@ -43,6 +43,7 @@ import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -51,6 +52,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private static final String LOG_TAG = "MediaWorkerTask";
 
     private static HashMap<String, MXMediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MXMediaWorkerTask>();
+    private static ArrayList<String> mFileNotFoundUrlsList = new ArrayList<String>();
 
     private static LruCache<String, Bitmap> sMemoryCache = null;
 
@@ -182,6 +184,16 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
             synchronized (sMemoryCache) {
                 bitmap = sMemoryCache.get(url);
+            }
+
+            if (null == bitmap) {
+                // if some medias are not found
+                // do not try to reload them until the next application launch.
+                synchronized (mFileNotFoundUrlsList) {
+                    if (mFileNotFoundUrlsList.indexOf(url) >= 0) {
+                        bitmap = BitmapFactory.decodeResource(context.getResources(), android.R.drawable.ic_menu_gallery);
+                    }
+                }
             }
 
             // check if the image has not been saved in file system
@@ -405,6 +417,12 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
                 if (isBitmapDownload()) {
                     bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), android.R.drawable.ic_menu_gallery);
+
+                    // if some medias are not found
+                    // do not try to reload them until the next application launch.
+                    synchronized (mFileNotFoundUrlsList) {
+                        mFileNotFoundUrlsList.add(mUrl);
+                    }
                 }
             }
 
