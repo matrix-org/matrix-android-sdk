@@ -145,6 +145,8 @@ public class Room {
 
     private boolean mIsLeaving = false;
 
+    private Boolean mIsV2Syncing;
+
     private Gson gson = new GsonBuilder().create();
 
     // userIds list
@@ -1211,20 +1213,6 @@ public class Room {
     }
 
     /**
-     * Init the read receipt token
-     */
-    public void initReadReceiptToken() {
-        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
-        Event event = mDataHandler.getStore().getLatestEvent(getRoomId());
-
-        if ((null != summary) && (null != event)){
-            if (null == summary.getReadReceiptToken()) {
-                setReadReceiptToken(event.eventId, event.originServerTs);
-            }
-        }
-    }
-
-    /**
      * Update the read receipt token.
      * @param token the new token
      * @param ts the token ts
@@ -1251,16 +1239,19 @@ public class Room {
      *  refresh the unread events counts.
      */
     public void refreshUnreadCounter() {
-        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        // avoid refreshing the unread counter while processing a bunch of messages.
+        if (!mIsV2Syncing) {
+            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
 
-        if (null != summary) {
-            int prevValue = summary.getUnreadEventsCount();
-            int newValue = mDataHandler.getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
+            if (null != summary) {
+                int prevValue = summary.getUnreadEventsCount();
+                int newValue = mDataHandler.getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
 
-            if (prevValue != newValue) {
-                summary.setUnreadEventsCount(newValue);
-                mDataHandler.getStore().flushSummary(summary);
-                mDataHandler.getStore().commit();
+                if (prevValue != newValue) {
+                    summary.setUnreadEventsCount(newValue);
+                    mDataHandler.getStore().flushSummary(summary);
+                    mDataHandler.getStore().commit();
+                }
             }
         }
     }
@@ -1884,6 +1875,8 @@ public class Room {
         RoomState liveState = getLiveState();
         String membership = null;
 
+        mIsV2Syncing = true;
+
         RoomMember selfMember = liveState.getMember(mMyUserId);
 
         if (null != selfMember) {
@@ -1967,7 +1960,6 @@ public class Room {
         }
 
         if (isRoomInitialSync) {
-            initReadReceiptToken();
             // any request history can be triggered by now.
             mIsReady = true;
         }
@@ -1998,6 +1990,8 @@ public class Room {
         if (null != roomSync.accountData) {
             handleAccountDataEvents(roomSync.accountData.events);
         }
+
+        mIsV2Syncing = false;
     }
 
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {

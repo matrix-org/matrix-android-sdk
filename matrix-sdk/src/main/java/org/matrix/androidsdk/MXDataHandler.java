@@ -40,6 +40,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -525,6 +526,10 @@ public class MXDataHandler implements IMXEventListener {
                 if (null != room) {
                     List<String> senders = room.handleReceiptEvent(event);
 
+                    if ((senders.size() > 0) && (mUpdatedRoomIdList.indexOf(event.roomId) < 0)) {
+                        mUpdatedRoomIdList.add(event.roomId);
+                    }
+
                     if (null != senders) {
                         onReceiptEvent(event.roomId, senders);
                     }
@@ -893,6 +898,22 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * Refresh the unread summary counters of the updated rooms.
+     */
+    private void refreshUnreadCounters() {
+        // refresh the unread counter
+        for(String roomId : mUpdatedRoomIdList) {
+            Room room = mStore.getRoom(roomId);
+
+            if (null != room) {
+                room.refreshUnreadCounter();
+            }
+        }
+
+        mUpdatedRoomIdList.clear();
+    }
+
     //================================================================================
     // Listeners management
     //================================================================================
@@ -954,14 +975,7 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed() {
-        for(String roomId : mUpdatedRoomIdList) {
-            Room room = mStore.getRoom(roomId);
-
-            if (null != room) {
-                room.refreshUnreadCounter();
-            }
-        }
-        mUpdatedRoomIdList.clear();
+        refreshUnreadCounters();
 
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1050,11 +1064,7 @@ public class MXDataHandler implements IMXEventListener {
         List<IMXEventListener> eventListeners = getListenersSnapshot();
         mInitialSyncComplete = true;
 
-        // initialized
-        Collection<Room> rooms = getStore().getRooms();
-        for(Room room : rooms) {
-            room.initReadReceiptToken();
-        }
+        refreshUnreadCounters();
 
         for (IMXEventListener listener : eventListeners) {
             try {
@@ -1099,12 +1109,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onRoomInitialSyncComplete(String roomId) {
-        // initialized
-        Room room = getStore().getRoom(roomId);
-
-        if (null != room) {
-            room.initReadReceiptToken();
-        }
 
         List<IMXEventListener> eventListeners = getListenersSnapshot();
 

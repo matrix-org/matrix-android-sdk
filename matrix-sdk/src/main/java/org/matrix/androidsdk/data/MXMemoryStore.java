@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.app.usage.UsageEvents;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -845,28 +846,24 @@ public class MXMemoryStore implements IMXStore {
                 LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
 
                 if (roomEvents != null) {
-                    Boolean gotIt = false;
-                    Iterator<Event> it = roomEvents.values().iterator();
-                    if (it.hasNext()) {
-                        Event lastEvent;
+                    List<Event> linkedEvents = new ArrayList<Event>(roomEvents.values());
 
-                        while (it.hasNext()) {
-                            lastEvent = it.next();
+                    // Check messages from the most recent
+                    for (int i = linkedEvents.size() - 1; i >= 0 ; i--) {
+                        Event event = linkedEvents.get(i);
 
-                            if (null == lastEvent.getSender()) {
-                                Log.e(LOG_TAG, "Weird event with no user Id " + lastEvent);
-                            } else if (gotIt) {
-                                boolean isNotTypeFiltered = (null == allowedTypes) || (allowedTypes.indexOf(lastEvent.type) < 0);
-                                boolean isNotSenderFiltered = (null == excludedUserId) || !TextUtils.equals(excludedUserId, lastEvent.getSender());
-
-                                if (isNotTypeFiltered && isNotSenderFiltered) {
-                                    events.add(lastEvent);
-                                }
-                            } else {
-                                gotIt = TextUtils.equals(lastEvent.eventId, eventId);
+                        if (!TextUtils.equals(event.eventId, eventId)) {
+                            // Keep events matching filters
+                            if ((null == allowedTypes || (allowedTypes.indexOf(event.type) >= 0)) && !TextUtils.equals(event.sender, excludedUserId)) {
+                                events.add(event);
                             }
+                        } else {
+                            // We are done
+                            break;
                         }
                     }
+
+                    Collections.reverse(events);
                 }
             }
         }
