@@ -1332,31 +1332,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onBackEvent(final Event event, final RoomState roomState) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (canAddEvent(event)) {
-                    mAdapter.addToFront(event, roomState);
-                }
-            }
-        });
+        if (canAddEvent(event)) {
+            mAdapter.addToFront(event, roomState);
+        }
     }
 
     @Override
     public void onDeleteEvent(final Event event) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (mPendingRelaunchTimersByEventId.containsKey(event.eventId)) {
-                    Timer timer = mPendingRelaunchTimersByEventId.get(event.eventId);
-                    timer.cancel();
-                    mPendingRelaunchTimersByEventId.remove(event.eventId);
-                }
+        if (mPendingRelaunchTimersByEventId.containsKey(event.eventId)) {
+            Timer timer = mPendingRelaunchTimersByEventId.get(event.eventId);
+            timer.cancel();
+            mPendingRelaunchTimersByEventId.remove(event.eventId);
+        }
 
-                mAdapter.removeEventById(event.eventId);
-                mAdapter.notifyDataSetChanged();
-            }
-        });
+        mAdapter.removeEventById(event.eventId);
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -1373,22 +1363,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onResentEvent(final Event event) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.notifyDataSetChanged();
-            }
-        });
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
     public void onReceiptEvent(List<String> senderIds) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.notifyDataSetChanged();
-            }
-        });
+        mAdapter.notifyDataSetChanged();
     }
 
     public void onInitialMessagesLoaded() {
