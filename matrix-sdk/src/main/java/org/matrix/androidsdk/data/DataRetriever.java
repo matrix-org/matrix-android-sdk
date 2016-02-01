@@ -109,9 +109,10 @@ public class DataRetriever {
                                 && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
                             info.chunk.remove(0);
                         }
+
+                        mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     }
 
-                    mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
                     callback.onSuccess(info);
                 }
             });
