@@ -145,7 +145,7 @@ public class Room {
 
     private boolean mIsLeaving = false;
 
-    private Boolean mIsV2Syncing;
+    private boolean mIsV2Syncing;
 
     private Gson gson = new GsonBuilder().create();
 
