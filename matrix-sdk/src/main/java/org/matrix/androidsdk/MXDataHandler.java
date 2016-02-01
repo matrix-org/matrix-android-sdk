@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk;
 
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -40,7 +42,6 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import android.os.Handler;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -70,6 +72,10 @@ public class MXDataHandler implements IMXEventListener {
     private ContentManager mContentManager;
     private MXCallsManager mCallsManager;
     private MXMediasCache mMediasCache;
+
+    private HandlerThread mSyncHandlerThread;
+    private Handler mSyncHandler;
+    private Handler mUiHandler;
 
     private Boolean mIsActive = true;
 
@@ -194,6 +200,11 @@ public class MXDataHandler implements IMXEventListener {
         // clear the store
         mStore.close();
         mStore.clear();
+
+        if (null != mSyncHandlerThread) {
+            mSyncHandlerThread.quit();
+            mSyncHandlerThread = null;
+        }
     }
     /**
      * Handle the room data received from a per-room initial sync
@@ -572,8 +583,6 @@ public class MXDataHandler implements IMXEventListener {
                 }
 
                 if (event.stateKey != null) {
-                    Log.d(LOG_TAG, "handleLiveEvent : Process a state event");
-
                     // copy the live state before applying any update
                     room.setLiveState(room.getLiveState().deepCopy());
                     // check if the event has been processed
@@ -744,8 +753,6 @@ public class MXDataHandler implements IMXEventListener {
                             summary.setName(room.getName(mCredentials.userId));
                         }
                     }
-                } else {
-                    Log.e(LOG_TAG, "Cannot summarize event of type " + event.type);
                 }
             }
 
@@ -805,7 +812,28 @@ public class MXDataHandler implements IMXEventListener {
     // Sync V2
     //================================================================================
 
-    public void onSyncV2Complete(SyncResponse syncResponse, boolean isInitialSync) {
+    public void onSyncV2Complete(final SyncResponse syncResponse, final boolean isInitialSync) {
+
+        // create the handlers
+        if (null == mUiHandler) {
+            mUiHandler = new Handler(Looper.getMainLooper());
+
+            mSyncHandlerThread = new HandlerThread("DataHanler" + mCredentials.userId, Thread.MIN_PRIORITY);
+            mSyncHandlerThread.start();
+            mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
+        }
+
+        // perform the sync in background
+        // to avoid UI thread lags.
+        mSyncHandler.post(new Runnable() {
+            @Override
+            public void run() {
+               manageV2Response(syncResponse, isInitialSync);
+            }
+        });
+    }
+
+    private void manageV2Response(final SyncResponse syncResponse, final boolean isInitialSync) {
         boolean isEmptyResponse = true;
 
         // sanity check
@@ -880,22 +908,29 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
-        if (isInitialSync) {
-            this.onInitialSyncComplete();
-        } else {
-            try {
-                onLiveEventsChunkProcessed();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
-            }
+        // as the sync is performed in a dedicated thread
+        // call the callback in the UI thread
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (isInitialSync) {
+                    onInitialSyncComplete();
+                } else {
+                    try {
+                        onLiveEventsChunkProcessed();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+                    }
 
-            try {
-                // check if an incoming call has been received
-                mCallsManager.checkPendingIncomingCalls();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+                    try {
+                        // check if an incoming call has been received
+                        mCallsManager.checkPendingIncomingCalls();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+                    }
+                }
             }
-        }
+        });
     }
 
     /**
