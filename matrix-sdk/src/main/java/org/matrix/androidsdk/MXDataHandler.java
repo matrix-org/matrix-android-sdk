@@ -86,6 +86,12 @@ public class MXDataHandler implements IMXEventListener {
     public MXDataHandler(IMXStore store, Credentials credentials) {
         mStore = store;
         mCredentials = credentials;
+
+        mUiHandler = new Handler(Looper.getMainLooper());
+
+        mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
+        mSyncHandlerThread.start();
+        mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
     }
 
     private void checkIfActive() {
@@ -399,7 +405,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            Log.d(LOG_TAG, "-- handleLiveEvents : " + events.size() +" events are processed.");
+            Log.d(LOG_TAG, "-- handleLiveEvents : " + events.size() + " events are processed.");
 
             try {
                 onLiveEventsChunkProcessed();
@@ -407,12 +413,17 @@ public class MXDataHandler implements IMXEventListener {
                 Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
             }
 
-            try {
-                // check if an incoming call has been received
-                mCallsManager.checkPendingIncomingCalls();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
-            }
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // check if an incoming call has been received
+                        mCallsManager.checkPendingIncomingCalls();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+                    }
+                }
+            });
         }
     }
 
@@ -813,16 +824,6 @@ public class MXDataHandler implements IMXEventListener {
     //================================================================================
 
     public void onSyncV2Complete(final SyncResponse syncResponse, final boolean isInitialSync) {
-
-        // create the handlers
-        if (null == mUiHandler) {
-            mUiHandler = new Handler(Looper.getMainLooper());
-
-            mSyncHandlerThread = new HandlerThread("DataHanler" + mCredentials.userId, Thread.MIN_PRIORITY);
-            mSyncHandlerThread.start();
-            mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
-        }
-
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
@@ -908,29 +909,22 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
-        // as the sync is performed in a dedicated thread
-        // call the callback in the UI thread
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (isInitialSync) {
-                    onInitialSyncComplete();
-                } else {
-                    try {
-                        onLiveEventsChunkProcessed();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
-                    }
-
-                    try {
-                        // check if an incoming call has been received
-                        mCallsManager.checkPendingIncomingCalls();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
-                    }
-                }
+        if (isInitialSync) {
+            onInitialSyncComplete();
+        } else {
+            try {
+                onLiveEventsChunkProcessed();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
             }
-        });
+
+            try {
+                // check if an incoming call has been received
+                mCallsManager.checkPendingIncomingCalls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+            }
+        }
     }
 
     /**
@@ -965,32 +959,42 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onStoreReady() {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onStoreReady();
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onStoreReady();
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onPresenceUpdate(Event event, User user) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onPresenceUpdate(final Event event, final User user) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onPresenceUpdate(event, user);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onPresenceUpdate(event, user);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     private ArrayList<String> mUpdatedRoomIdList = new ArrayList<String>();
 
     @Override
-    public void onLiveEvent(Event event, RoomState roomState) {
+    public void onLiveEvent(final Event event, final RoomState roomState) {
         //
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, event.type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type)) {
             if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
@@ -998,215 +1002,305 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onLiveEvent(event, roomState);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onLiveEvent(event, roomState);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
     public void onLiveEventsChunkProcessed() {
         refreshUnreadCounters();
 
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onLiveEventsChunkProcessed();
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onLiveEventsChunkProcessed();
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onBackEvent(Event event, RoomState roomState) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onBackEvent(final Event event, final RoomState roomState) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onBackEvent(event, roomState);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onBackEvent(event, roomState);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onBingEvent(event, roomState, bingRule);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onBingEvent(event, roomState, bingRule);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onDeleteEvent(Event event) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onDeleteEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onDeleteEvent(event);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onDeleteEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onResentEvent(Event event) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onResentEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onResentEvent(event);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onResentEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onResendingEvent(Event event) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onResendingEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onResendingEvent(event);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onResendingEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
     public void onBingRulesUpdate() {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onBingRulesUpdate();
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onBingRulesUpdate();
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
     public void onInitialSyncComplete() {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
         mInitialSyncComplete = true;
 
         refreshUnreadCounters();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onInitialSyncComplete();
-            } catch (Exception e) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onInitialSyncComplete();
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
     @Override
     public void onPresencesSyncComplete() {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onPresencesSyncComplete();
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onPresencesSyncComplete();
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onNewRoom(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onNewRoom(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onNewRoom(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onNewRoom(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onJoinRoom(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onJoinRoom(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onJoinRoom(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onJoinRoom(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onRoomInitialSyncComplete(String roomId) {
+    public void onRoomInitialSyncComplete(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onRoomInitialSyncComplete(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomInitialSyncComplete(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onRoomInternalUpdate(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onRoomInternalUpdate(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onRoomInternalUpdate(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomInternalUpdate(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onLeaveRoom(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onLeaveRoom(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onLeaveRoom(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onLeaveRoom(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onReceiptEvent(String roomId, List<String> senderIds) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onReceiptEvent(final String roomId, final List<String> senderIds) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onReceiptEvent(roomId, senderIds);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onReceiptEvent(roomId, senderIds);;
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onRoomTagEvent(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onRoomTagEvent(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onRoomTagEvent(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomTagEvent(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 
-    public void onRoomSyncWithLimitedTimeline(String roomId) {
-        List<IMXEventListener> eventListeners = getListenersSnapshot();
+    public void onRoomSyncWithLimitedTimeline(final String roomId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        for (IMXEventListener listener : eventListeners) {
-            try {
-                listener.onRoomSyncWithLimitedTimeline(roomId);
-            } catch (Exception e) {
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomSyncWithLimitedTimeline(roomId);
+                    } catch (Exception e) {
+                    }
+                }
             }
-        }
+        });
     }
 }
