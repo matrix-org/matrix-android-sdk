@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClientV2;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.ProfileRestClientV2;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RegistrationRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -91,6 +92,7 @@ public class MXSession {
     private EventsRestClient mEventsRestClient;
     private EventsRestClientV2 mEventsRestClientV2;
     private ProfileRestClient mProfileRestClient;
+    private ProfileRestClientV2 mProfileRestClientV2;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
     private RoomsRestClientV2 mRoomsRestClientV2;
@@ -148,6 +150,7 @@ public class MXSession {
         }
 
         mProfileRestClient = new ProfileRestClient(hsConfig);
+        mProfileRestClientV2 = new ProfileRestClientV2(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mRoomsRestClientV2 = new RoomsRestClientV2(hsConfig);
@@ -199,6 +202,7 @@ public class MXSession {
         }
 
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mProfileRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
@@ -843,5 +847,15 @@ public class MXSession {
         }
 
         return (orderA + orderB) / 2.0;
+    }
+
+    /**
+     * Update the account password
+     * @param oldPassword the former account password
+     * @param newPassword the new account password
+     * @param callback the callback
+     */
+    public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
+        mProfileRestClientV2.updatePassword(getMyUser().userId, oldPassword, newPassword, callback);
     }
 }
