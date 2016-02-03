@@ -86,7 +86,6 @@ public class MXSession {
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
-    private MyUser mMyUser;
 
     // Api clients
     private EventsRestClient mEventsRestClient;
@@ -178,6 +177,8 @@ public class MXSession {
         mDataHandler.setDataRetriever(mDataRetriever);
         mBingRulesManager = new BingRulesManager(this);
         mDataHandler.setPushRulesManager(mBingRulesManager);
+        mDataHandler.setProfileRestClient(mProfileRestClient);
+        mDataHandler.setPresenceRestClient(mPresenceRestClient);
 
         // application context
         mAppContent = appContext;
@@ -390,45 +391,7 @@ public class MXSession {
     public MyUser getMyUser() {
         checkIfActive();
 
-        IMXStore store = mDataHandler.getStore();
-
-        // MyUser is initialized as late as possible to have a better chance at having the info in storage,
-        // which should be the case if this is called after the initial sync
-        if (mMyUser == null) {
-            mMyUser = new MyUser(store.getUser(mCredentials.userId));
-            mMyUser.setProfileRestClient(mProfileRestClient);
-            mMyUser.setPresenceRestClient(mPresenceRestClient);
-            mMyUser.setDataHandler(mDataHandler);
-
-            // assume the profile is not yet initialized
-            if (null == store.displayName()) {
-                store.setAvatarURL(mMyUser.avatarUrl);
-                store.setDisplayName(mMyUser.displayname);
-            } else {
-                // use the latest user information
-                // The user could have updated his profile in offline mode and kill the application.
-                mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
-            }
-
-            // Handle the case where the user is null by loading the user information from the server
-            mMyUser.userId = mCredentials.userId;
-        } else {
-            // assume the profile is not yet initialized
-            if ((null == store.displayName()) && (null != mMyUser.displayname)) {
-                // setAvatarURL && setDisplayName perform a commit if it is required.
-                store.setAvatarURL(mMyUser.avatarUrl);
-                store.setDisplayName(mMyUser.displayname);
-            } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
-                mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
-            }
-        }
-
-        // check if there is anything to refresh
-        mMyUser.refreshUserInfos(null);
-
-        return mMyUser;
+        return mDataHandler.getMyUser();
     }
 
     /**

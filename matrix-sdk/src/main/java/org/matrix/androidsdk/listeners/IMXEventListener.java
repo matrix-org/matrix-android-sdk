@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.listeners;
 
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
@@ -34,6 +35,12 @@ public interface IMXEventListener {
      * @param user The new user value.
      */
     public void onPresenceUpdate(Event event, User user);
+
+    /**
+     * The self user has been updated (display name, avatar url...).
+     * @param myUser The updated myUser
+     */
+    public void onAccountInfoUpdate(MyUser myUser);
 
     /**
      * A live room event was received.

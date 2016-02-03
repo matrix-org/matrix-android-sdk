@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.listeners;
 
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
@@ -34,6 +35,10 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onPresenceUpdate(Event event, User user) {
+    }
+
+    @Override
+    public void onAccountInfoUpdate(MyUser myUser) {
     }
 
     @Override

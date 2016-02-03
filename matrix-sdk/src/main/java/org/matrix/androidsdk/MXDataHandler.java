@@ -25,13 +25,17 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.PresenceRestClient;
+import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -73,6 +77,11 @@ public class MXDataHandler implements IMXEventListener {
     private MXCallsManager mCallsManager;
     private MXMediasCache mMediasCache;
 
+    private ProfileRestClient mProfileRestClient;
+    private PresenceRestClient mPresenceRestClient;
+
+    private MyUser mMyUser;
+
     private HandlerThread mSyncHandlerThread;
     private Handler mSyncHandler;
     private Handler mUiHandler;
@@ -94,6 +103,15 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
     }
 
+    // some setters
+    public void setProfileRestClient(ProfileRestClient profileRestClient) {
+        mProfileRestClient = profileRestClient;
+    }
+
+    public void setPresenceRestClient(PresenceRestClient presenceRestClient) {
+        mPresenceRestClient = presenceRestClient;
+    }
+
     private void checkIfActive() {
         synchronized (this) {
             if (!mIsActive) {
@@ -106,6 +124,54 @@ public class MXDataHandler implements IMXEventListener {
         synchronized (this) {
             return mIsActive;
         }
+    }
+
+    /**
+     * Get the session's current user. The MyUser object provides methods for updating user properties which are not possible for other users.
+     * @return the session's MyUser object
+     */
+    public MyUser getMyUser() {
+        checkIfActive();
+
+        IMXStore store = getStore();
+
+        // MyUser is initialized as late as possible to have a better chance at having the info in storage,
+        // which should be the case if this is called after the initial sync
+        if (mMyUser == null) {
+            mMyUser = new MyUser(store.getUser(mCredentials.userId));
+            mMyUser.setProfileRestClient(mProfileRestClient);
+            mMyUser.setPresenceRestClient(mPresenceRestClient);
+            mMyUser.setDataHandler(this);
+
+            // assume the profile is not yet initialized
+            if (null == store.displayName()) {
+                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setDisplayName(mMyUser.displayname);
+            } else {
+                // use the latest user information
+                // The user could have updated his profile in offline mode and kill the application.
+                mMyUser.displayname = store.displayName();
+                mMyUser.avatarUrl = store.avatarURL();
+            }
+
+            // Handle the case where the user is null by loading the user information from the server
+            mMyUser.userId = mCredentials.userId;
+        } else {
+            // assume the profile is not yet initialized
+            if ((null == store.displayName()) && (null != mMyUser.displayname)) {
+                // setAvatarURL && setDisplayName perform a commit if it is required.
+                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setDisplayName(mMyUser.displayname);
+            } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
+                mMyUser.displayname = store.displayName();
+                mMyUser.avatarUrl = store.avatarURL();
+            }
+        }
+
+        // check if there is anything to refresh
+        mMyUser.refreshUserInfos(null);
+
+        return mMyUser;
     }
 
     /**
@@ -589,8 +655,32 @@ public class MXDataHandler implements IMXEventListener {
                 // check if the room has been joined
                 // the initial sync + the first requestHistory call is done here
                 // instead of being done in the application
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId) && shouldSelfJoin(event, room.getLiveState())) {
-                    selfJoinRoomId = event.roomId;
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId)) {
+
+                    // check if the user updates his profile from another device.
+                    MyUser myUser = getMyUser();
+
+                    EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+
+                    boolean hasAccountInfoUpdated = false;
+
+                    if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
+                        hasAccountInfoUpdated = true;
+                        myUser.displayname = eventContent.displayname;
+                    }
+
+                    if (!TextUtils.equals(eventContent.avatar_url, myUser.avatarUrl)) {
+                        hasAccountInfoUpdated = true;
+                        myUser.avatarUrl = eventContent.avatar_url;
+                    }
+
+                    if (hasAccountInfoUpdated) {
+                        onAccountInfoUpdate(myUser);
+                    }
+
+                    if (shouldSelfJoin(event, room.getLiveState())) {
+                        selfJoinRoomId = event.roomId;
+                    }
                 }
 
                 if (event.stateKey != null) {
@@ -967,6 +1057,23 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onStoreReady();
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onAccountInfoUpdate(final MyUser myUser) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onAccountInfoUpdate(myUser);
                     } catch (Exception e) {
                     }
                 }
