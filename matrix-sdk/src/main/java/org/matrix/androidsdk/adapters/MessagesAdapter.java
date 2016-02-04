@@ -681,8 +681,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the roomstate.
      */
     protected void refreshReceiverLayout(final LinearLayout receiversLayout, final boolean leftAlign, final String eventId, final RoomState roomState) {
-        //
-        if (null == roomState) {
+        // sanity checks
+        if ((null == roomState) || (null == receiversLayout)) {
             return;
         }
 
@@ -882,49 +882,68 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        TextView tsTextView;
+        TextView tsTextView = null;
+        TextView leftTsTextView = null;
+        TextView rightTsTextView = null;
 
+        if (null != leftTsTextLayout) {
+            leftTsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+        }
 
-        if (null == rightTsTextLayout) {
-            tsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
-        } else {
-            TextView leftTsTextView = (TextView)leftTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+        if (null != rightTsTextLayout) {
+            rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
+        }
 
-            TextView rightTsTextView = (TextView)rightTsTextLayout.findViewById(R.id.messagesAdapter_timestamp);
-
-            if (isAvatarOnRightSide) {
-                tsTextView = leftTsTextView;
+        if (isAvatarOnRightSide) {
+            tsTextView = leftTsTextView;
+            if (null != rightTsTextView) {
                 rightTsTextView.setVisibility(View.GONE);
-            } else {
+            }
+        } else {
+            tsTextView = rightTsTextView;
+            if (null != leftTsTextView) {
                 leftTsTextView.setVisibility(View.GONE);
-
-                tsTextView = rightTsTextView;
             }
         }
 
-        String timeStamp = getFormattedTimestamp(event);
+        if (null != tsTextView) {
+            String timeStamp = getFormattedTimestamp(event);
 
-        if (TextUtils.isEmpty(timeStamp)) {
-            tsTextView.setVisibility(View.GONE);
-        } else {
-            tsTextView.setVisibility(View.VISIBLE);
-            tsTextView.setText(timeStamp);
+            if (TextUtils.isEmpty(timeStamp)) {
+                tsTextView.setVisibility(View.GONE);
+            } else {
+                tsTextView.setVisibility(View.VISIBLE);
+                tsTextView.setText(timeStamp);
 
-            tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
-        }
+                tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
+            }
 
-        if (row.getEvent().isUndeliverable()) {
-            tsTextView.setTextColor(notSentColor);
-        } else {
-            tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
+            if (row.getEvent().isUndeliverable()) {
+                tsTextView.setTextColor(notSentColor);
+            } else {
+                tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
+            }
         }
 
         // read receipts
-        LinearLayout leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
-        LinearLayout rightReceiversLayout = (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+        LinearLayout leftReceiversLayout = null;
+        LinearLayout rightReceiversLayout = null;
 
-        leftReceiversLayout.setVisibility(isAvatarOnRightSide ? View.VISIBLE : View.GONE);
-        rightReceiversLayout.setVisibility(isAvatarOnRightSide ? View.GONE : View.VISIBLE);
+        if (null != leftTsTextLayout) {
+            leftReceiversLayout = (LinearLayout)leftTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+
+            if (null != leftReceiversLayout) {
+                leftReceiversLayout.setVisibility(isAvatarOnRightSide ? View.VISIBLE : View.GONE);
+            }
+        }
+
+        if (null != rightTsTextLayout) {
+            rightReceiversLayout =  (LinearLayout)rightTsTextLayout.findViewById(R.id.messagesAdapter_receivers_list);
+
+            if (null != rightReceiversLayout) {
+                rightReceiversLayout.setVisibility(isAvatarOnRightSide ? View.GONE : View.VISIBLE);
+            }
+        }
 
         refreshReceiverLayout(isAvatarOnRightSide ? leftReceiversLayout : rightReceiversLayout, isAvatarOnRightSide, event.eventId, roomState);
 
@@ -937,18 +956,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
         View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
+        View avatarLayoutView = null;
 
-        // does the layout display the avatar ?
-        if ((null != avatarLeftView) && (null != avatarRightView)) {
-            View avatarLayoutView = null;
-
-            if (isAvatarOnRightSide) {
-                avatarLayoutView = avatarRightView;
+        if (isAvatarOnRightSide) {
+            avatarLayoutView = avatarRightView;
+            
+            if (null != avatarLeftView) {
                 avatarLeftView.setVisibility(View.GONE);
-            } else {
-                avatarLayoutView = avatarLeftView;
-                avatarRightView.setVisibility(View.GONE);
+            }
+        } else {
+            avatarLayoutView = avatarLeftView;
 
+            if (null != avatarRightView) {
+                avatarRightView.setVisibility(View.GONE);
+            }
+
+            if (null != avatarLeftView) {
                 final String userId = event.getSender();
 
                 avatarLeftView.setClickable(true);
@@ -974,7 +997,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 });
             }
+        }
 
+        if (null != avatarLayoutView) {
             ImageView avatarImageView = (ImageView) avatarLayoutView.findViewById(R.id.avatar_img);
             ImageView presenceView = (ImageView) avatarLayoutView.findViewById(R.id.imageView_presenceRing);
 
@@ -996,51 +1021,52 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
-                loadMemberAvatar(avatarImageView, sender,userId, url);
+                loadMemberAvatar(avatarImageView, sender, userId, url);
 
                 // display the typing icon when required
                 setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.getSender()) >= 0)) ? View.VISIBLE : View.GONE);
             }
+        }
 
-            // if the messages are merged
-            // the thumbnail is hidden
-            // and the subview must be moved to be aligned with the previous body
-            View bodyLayoutView = convertView.findViewById(R.id.messagesAdapter_body_layout);
-            ViewGroup.MarginLayoutParams bodyLayout = (ViewGroup.MarginLayoutParams) bodyLayoutView.getLayoutParams();
-            FrameLayout.LayoutParams subViewLinearLayout = (FrameLayout.LayoutParams) subView.getLayoutParams();
+        // if the messages are merged
+        // the thumbnail is hidden
+        // and the subview must be moved to be aligned with the previous body
+        View bodyLayoutView = convertView.findViewById(R.id.messagesAdapter_body_layout);
+        ViewGroup.MarginLayoutParams bodyLayout = (ViewGroup.MarginLayoutParams) bodyLayoutView.getLayoutParams();
+        FrameLayout.LayoutParams subViewLinearLayout = (FrameLayout.LayoutParams) subView.getLayoutParams();
 
-            View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
-            ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
+        View view = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
+        ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
 
-            if (!isAvatarOnRightSide) {
-                subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+        if (!isAvatarOnRightSide) {
+            subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
 
-                if (isMergedView) {
-                    bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
+            if (isMergedView) {
+                bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
 
-                } else {
-                    bodyLayout.setMargins(4, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
-                }
-                subView.setLayoutParams(bodyLayout);
             } else {
-                subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
-
-                if (isMergedView) {
-                    bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
-                } else {
-                    bodyLayout.setMargins(4, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
-                }
+                bodyLayout.setMargins(4, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
             }
+            subView.setLayoutParams(bodyLayout);
+        } else {
+            subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
 
-            bodyLayoutView.setLayoutParams(bodyLayout);
-            subView.setLayoutParams(subViewLinearLayout);
-
-            view = convertView.findViewById(R.id.messagesAdapter_message_separator);
-
-            if (null != view) {
-                view.setVisibility((willBeMerged || ((position + 1) == this.getCount())) ? View.GONE : View.VISIBLE);
+            if (isMergedView) {
+                bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
+            } else {
+                bodyLayout.setMargins(4, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
             }
         }
+
+        bodyLayoutView.setLayoutParams(bodyLayout);
+        subView.setLayoutParams(subViewLinearLayout);
+
+        view = convertView.findViewById(R.id.messagesAdapter_message_separator);
+
+        if (null != view) {
+            view.setVisibility((willBeMerged || ((position + 1) == this.getCount())) ? View.GONE : View.VISIBLE);
+        }
+
 
         convertView.setClickable(true);
 
