@@ -251,9 +251,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
-        } else {
+        } else if(null != savedInstanceState){
             if (savedInstanceState.containsKey("FIRST_VISIBLE_ROW")) {
                 selectionIndex = savedInstanceState.getInt("FIRST_VISIBLE_ROW");
+            }
+            else {
+                selectionIndex = -1;
             }
         }
 
