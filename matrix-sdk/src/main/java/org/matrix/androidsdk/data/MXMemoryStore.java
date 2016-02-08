@@ -452,20 +452,26 @@ public class MXMemoryStore implements IMXStore {
             synchronized (mRoomEvents) {
 
                 if (keepUnsent) {
-                    ArrayList<String> eventIds = mRoomEventIds.get(roomId);
                     LinkedHashMap<String, Event> eventMap = mRoomEvents.get(roomId);
 
                     if (null != eventMap) {
+                        ArrayList<String> eventIds = mRoomEventIds.get(roomId);
                         ArrayList<Event> events = new ArrayList<Event>(eventMap.values());
 
                         for (Event event : events) {
                             if (event.mSentState == Event.SentState.SENT) {
                                 if (null != event.eventId) {
                                     eventMap.remove(event.eventId);
-                                    eventIds.remove(event.eventId);
+
+                                    // sanity check
+                                    if (null != eventIds) {
+                                        eventIds.remove(event.eventId);
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        mRoomEventIds.remove(roomId);
                     }
                 } else {
                     mRoomEventIds.remove(roomId);
