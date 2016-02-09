@@ -145,13 +145,13 @@ public class MXDataHandler implements IMXEventListener {
 
             // assume the profile is not yet initialized
             if (null == store.displayName()) {
-                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setAvatarURL(mMyUser.getAvatarUrl());
                 store.setDisplayName(mMyUser.displayname);
             } else {
                 // use the latest user information
                 // The user could have updated his profile in offline mode and kill the application.
                 mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
+                mMyUser.setAvatarUrl(store.avatarURL());
             }
 
             // Handle the case where the user is null by loading the user information from the server
@@ -160,11 +160,11 @@ public class MXDataHandler implements IMXEventListener {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
                 // setAvatarURL && setDisplayName perform a commit if it is required.
-                store.setAvatarURL(mMyUser.avatarUrl);
+                store.setAvatarURL(mMyUser.getAvatarUrl());
                 store.setDisplayName(mMyUser.displayname);
             } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
                 mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
+                mMyUser.setAvatarUrl(store.avatarURL());
             }
         }
 
@@ -600,7 +600,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // check if the current user has been updated
             if (mCredentials.userId.equals(user.userId)) {
-                mStore.setAvatarURL(user.avatarUrl);
+                mStore.setAvatarURL(user.getAvatarUrl());
                 mStore.setDisplayName(user.displayname);
             }
 
@@ -669,9 +669,9 @@ public class MXDataHandler implements IMXEventListener {
                         myUser.displayname = eventContent.displayname;
                     }
 
-                    if (!TextUtils.equals(eventContent.avatar_url, myUser.avatarUrl)) {
+                    if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
                         hasAccountInfoUpdated = true;
-                        myUser.avatarUrl = eventContent.avatar_url;
+                        myUser.setAvatarUrl(eventContent.avatar_url);
                     }
 
                     if (hasAccountInfoUpdated) {

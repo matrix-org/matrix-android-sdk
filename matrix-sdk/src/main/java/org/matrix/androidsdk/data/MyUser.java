@@ -16,10 +16,6 @@
 
 package org.matrix.androidsdk.data;
 
-import android.text.TextUtils;
-import android.view.View;
-import android.widget.EditText;
-
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
@@ -78,7 +74,7 @@ public class MyUser extends User {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
-                MyUser.this.avatarUrl = avatarUrl;
+                MyUser.this.setAvatarUrl(avatarUrl);
                 MyUser.this.mDataHandler.getStore().setAvatarURL(avatarUrl);
                 super.onSuccess(info);
             }
@@ -135,7 +131,7 @@ public class MyUser extends User {
             @Override
             public void onSuccess(String anAvatarUrl) {
                 if (MyUser.this.mDataHandler.isActive()) {
-                    avatarUrl = anAvatarUrl;
+                    MyUser.this.setAvatarUrl(anAvatarUrl);
                     MyUser.this.mDataHandler.getStore().setAvatarURL(anAvatarUrl);
                     mIsAvatarRefreshed = true;
                     MyUser.this.mDataHandler.getStore().storeUser(MyUser.this);

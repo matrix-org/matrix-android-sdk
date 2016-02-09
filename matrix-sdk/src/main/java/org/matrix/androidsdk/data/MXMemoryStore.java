@@ -236,7 +236,7 @@ public class MXMemoryStore implements IMXStore {
             User myUser = getUser(mMetadata.mUserId);
 
             if (null != myUser) {
-                myUser.avatarUrl = avatarURL;
+                myUser.setAvatarUrl(avatarURL);
             }
 
             Log.d(LOG_TAG, "setAvatarURL : commit");
@@ -289,9 +289,9 @@ public class MXMemoryStore implements IMXStore {
                 storeUser(user);
             }
 
-            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.avatarUrl, roomMember.avatarUrl)) {
+            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.avatarUrl)) {
                 user.displayname = roomMember.displayname;
-                user.avatarUrl = roomMember.avatarUrl;
+                user.setAvatarUrl(roomMember.avatarUrl);
             }
         }
     }
