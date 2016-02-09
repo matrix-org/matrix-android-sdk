@@ -68,6 +68,7 @@ import java.io.FileInputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -714,7 +715,10 @@ public class Room {
                     if (response.chunk.size() > 0) {
                         mBackState.setToken(response.end);
 
-                        // the roomstate is copied to have a state snapshot
+                        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+                        Boolean shouldCommitStore = false;
+
+                        // the room state is copied to have a state snapshot
                         // but copy it only if there is a state update
                         RoomState stateCopy = mBackState.deepCopy();
 
@@ -733,8 +737,19 @@ public class Room {
                             // warn the listener only if the message is processed.
                             // it should avoid duplicated events.
                             if (processedEvent) {
+                                // update the summary is the event has been received after the oldest known event
+                                // it might happen after a timeline update (hole in the chat history)
+                                if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                                    summary =  mDataHandler.getStore().storeSummary(mRoomId, event, getLiveState(), mMyUserId);
+                                    shouldCommitStore = true;
+                                }
+
                                 mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
                             }
+                        }
+
+                        if (shouldCommitStore) {
+                            mDataHandler.getStore().commit();
                         }
                     }
 
@@ -1877,6 +1892,7 @@ public class Room {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
+        RoomSummary currentSummary = null;
 
         mIsV2Syncing = true;
 
@@ -1913,6 +1929,8 @@ public class Room {
 
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
+                    currentSummary =  mDataHandler.getStore().getSummary(mRoomId);
+
                     // Flush the existing messages for this room by keeping state events.
                     mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
 
@@ -1994,6 +2012,60 @@ public class Room {
             handleAccountDataEvents(roomSync.accountData.events);
         }
 
+        // check if the summary is defined
+        // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
+        if (null != mDataHandler.getStore().getRoom(mRoomId)) {
+            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+
+            // if there is no defined summary
+            // we have to create a new one
+            if (null == summary) {
+                // define a summary if some messages are left
+                // the unsent messages are often displayed messages.
+                Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
+
+                // if there is an oldest event, use it to set a summary
+                if (oldestEvent != null) {
+                    if (RoomSummary.isSupportedEvent(oldestEvent)) {
+                        mDataHandler.getStore().storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
+                        mDataHandler.getStore().commit();
+                    }
+                }
+                // use the latest known event
+                else if (null != currentSummary) {
+                    mDataHandler.getStore().storeSummary(mRoomId, currentSummary.getLatestEvent(), getLiveState(), mMyUserId);
+                    mDataHandler.getStore().commit();
+                }
+                // try to build a summary from the state events
+                else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
+                    ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
+
+                    Collections.reverse(events);
+
+                    for(Event event : events) {
+                        event.roomId = mRoomId;
+                        if (RoomSummary.isSupportedEvent(event)) {
+                            summary = mDataHandler.getStore().storeSummary(event.roomId, event, getLiveState(), mMyUserId);
+
+                            // Watch for potential room name changes
+                            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+
+
+                                if (null != summary) {
+                                    summary.setName(getName(mMyUserId));
+                                }
+                            }
+
+                            mDataHandler.getStore().commit();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         mIsV2Syncing = false;
     }
 
