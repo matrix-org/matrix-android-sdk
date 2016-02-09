@@ -36,7 +36,6 @@ public class User {
 
     public String userId;
     public String displayname;
-    public String avatarUrl;
     public String avatar_url;
     public String presence;
     public Long lastActiveAgo;
@@ -54,22 +53,17 @@ public class User {
     private ArrayList<IMXEventListener> pendingListeners = new ArrayList<IMXEventListener>();
 
     public String getAvatarUrl() {
-        if (null != avatar_url) {
-            avatarUrl = avatar_url;
-        }
-
-        return avatarUrl;
+        return avatar_url;
     }
 
     public void setAvatarUrl(String newAvatarUrl) {
-        avatarUrl = avatar_url = newAvatarUrl;
+        avatar_url = newAvatarUrl;
     }
 
     protected void clone(User user) {
         if (user != null) {
             userId = user.userId;
             displayname = user.displayname;
-            avatarUrl = user.avatarUrl;
             avatar_url = user.avatar_url;
             presence = user.presence;
             lastActiveAgo = user.lastActiveAgo;
