@@ -64,6 +64,8 @@ public class MXMemoryStore implements IMXStore {
     // dict of dict of MXReceiptData indexed by userId
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
+    //
+    protected HashMap<String, Event> mTemporaryEventsList = new HashMap<String, Event>();
 
     protected Credentials mCredentials;
 
@@ -372,6 +374,22 @@ public class MXMemoryStore implements IMXStore {
                     if (null == events) {
                         events = new LinkedHashMap<String, Event>();
                         mRoomEvents.put(event.roomId, events);
+                    } else if (!event.isDummyEvent() && (mTemporaryEventsList.size() > 0)) {
+                        // remove any waiting echo event
+                        String dummyKey = null;
+
+                        for (String key : mTemporaryEventsList.keySet()) {
+                            Event eventToCheck = mTemporaryEventsList.get(key);
+                            if (TextUtils.equals(eventToCheck.eventId, event.eventId)) {
+                                dummyKey = key;
+                                break;
+                            }
+                        }
+
+                        if (null != dummyKey) {
+                            events.remove(dummyKey);
+                            mTemporaryEventsList.remove(dummyKey);
+                        }
                     }
 
                     // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
@@ -381,6 +399,10 @@ public class MXMemoryStore implements IMXStore {
                     // add to the list of known events
                     ArrayList<String> eventIds = mRoomEventIds.get(event.roomId);
                     eventIds.add(event.eventId);
+
+                    if (event.isDummyEvent()) {
+                        mTemporaryEventsList.put(event.eventId, event);
+                    }
                 }
             }
         }
@@ -551,14 +573,14 @@ public class MXMemoryStore implements IMXStore {
         if (null != roomId) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
             if (events != null) {
-                Event event = null;
+                Event eventToUpdate;
 
                 synchronized (mRoomEvents) {
-                    event = events.get(eventId);
+                    eventToUpdate = events.get(eventId);
                 }
 
-                if (event != null) {
-                    event.content = newContent;
+                if (eventToUpdate != null) {
+                    eventToUpdate.updateContent(newContent);
                     return true;
                 }
             }

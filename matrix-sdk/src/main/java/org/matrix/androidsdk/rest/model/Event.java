@@ -170,6 +170,11 @@ public class Event implements java.io.Serializable {
         return originServerTs;
     }
 
+    public void updateContent(JsonElement newContent) {
+        content = newContent;
+        contentAsString = null;
+    }
+
     static DateFormat mDateFormat = null;
     static long mFormatterRawOffset = 1234;
 
