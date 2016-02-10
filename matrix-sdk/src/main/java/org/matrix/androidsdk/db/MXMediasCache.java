@@ -47,7 +47,7 @@ public class MXMediasCache {
          *
          * @param downloadId the download Identifier
          */
-        public void onDownloadStart(String downloadId);
+        void onDownloadStart(String downloadId);
 
         /**
          * Warn of the progress download
@@ -55,14 +55,14 @@ public class MXMediasCache {
          * @param downloadId         the download Identifier
          * @param percentageProgress the progress value
          */
-        public void onDownloadProgress(String downloadId, int percentageProgress);
+        void onDownloadProgress(String downloadId, int percentageProgress);
 
         /**
          * Called when the upload is complete or has failed.
          *
          * @param downloadId the download Identifier
          */
-        public void onDownloadComplete(String downloadId);
+        void onDownloadComplete(String downloadId);
     }
 
     private static final String LOG_TAG = "ConsoleMediasCache";

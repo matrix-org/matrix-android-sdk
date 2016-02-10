@@ -35,5 +35,5 @@ public interface EventsApiV2 {
      * @param callback The asynchronous callback to call when finished
      */
     @GET("/sync")
-    public void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
+    void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
 }

@@ -270,7 +270,6 @@ public class MXCall implements IMXCall {
             for (MXCallListener listener : mxCallListeners) {
                 try {
                     listener.onViewLoading(callView);
-                    ;
                 } catch (Exception e) {
                 }
             }
@@ -323,7 +322,6 @@ public class MXCall implements IMXCall {
             for (MXCallListener listener : mxCallListeners) {
                 try {
                     listener.onStateDidChange(newState);
-                    ;
                 } catch (Exception e) {
                 }
             }

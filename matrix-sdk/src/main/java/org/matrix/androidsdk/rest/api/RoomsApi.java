@@ -54,8 +54,8 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/send/{eventType}")
-    public void send(@Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content,
-                     Callback<Event> callback);
+    void send(@Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content,
+              Callback<Event> callback);
 
     /**
      * Set state information for a room. The state key can be omitted.
@@ -66,8 +66,8 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/{eventType}/{stateKey}")
-    public void state(@Path("roomId") String roomId, @Path("eventType") String eventType, @Path("stateKey") String stateKey,
-                      @Body RoomState state, Callback<Void> callback);
+    void state(@Path("roomId") String roomId, @Path("eventType") String eventType, @Path("stateKey") String stateKey,
+               @Body RoomState state, Callback<Void> callback);
 
     /**
      * Send a message for the specified room.
@@ -77,7 +77,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @PUT("/rooms/{roomId}/send/m.room.message/{txId}")
-    public void sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message, Callback<Event> callback);
+    void sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message, Callback<Event> callback);
 
     /**
      * Set the room topic.
@@ -86,7 +86,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @PUT("/rooms/{roomId}/state/m.room.topic")
-    public void roomTopic(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+    void roomTopic(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Get the room topic.
@@ -94,7 +94,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.topic")
-    public void roomTopic(@Path("roomId") String roomId, Callback<RoomState> callback);
+    void roomTopic(@Path("roomId") String roomId, Callback<RoomState> callback);
 
     /**
      * Set the room name.
@@ -103,7 +103,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.name")
-    public void roomName(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+    void roomName(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Get the room name.
@@ -111,7 +111,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.name")
-    public void roomName(@Path("roomId") String roomId, Callback<RoomState> callback);
+    void roomName(@Path("roomId") String roomId, Callback<RoomState> callback);
 
     /**
      * Set the canonical alias name.
@@ -120,7 +120,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.canonical_alias")
-    public void canonicalAlias(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+    void canonicalAlias(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Set the history visibility.
@@ -129,7 +129,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.history_visibility")
-    public void historyVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+    void historyVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
      * Update the power levels
@@ -138,7 +138,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.power_levels")
-    public void powerLevels(@Path("roomId") String roomId, @Body PowerLevels powerLevels, Callback<Void> callback);
+    void powerLevels(@Path("roomId") String roomId, @Body PowerLevels powerLevels, Callback<Void> callback);
 
     /**
      * Send feedback for an event.
@@ -147,7 +147,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/send/m.room.message.feedback")
-    public void sendFeedback(@Path("roomId") String roomId, @Body MessageFeedback feedback, Callback<Event> callback);
+    void sendFeedback(@Path("roomId") String roomId, @Body MessageFeedback feedback, Callback<Event> callback);
 
     /**
      * Invite a user to the given room.
@@ -156,7 +156,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/invite")
-    public void invite(@Path("roomId") String roomId, @Body User user, Callback<Void> callback);
+    void invite(@Path("roomId") String roomId, @Body User user, Callback<Void> callback);
 
     /**
      * Join the given room.
@@ -164,7 +164,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/join")
-    public void join(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
+    void join(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
      * Join the room with the given alias.
@@ -172,7 +172,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/join/{roomAliasOrId}")
-    public void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
+    void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
 
     /**
      * Leave the given room.
@@ -180,7 +180,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/leave")
-    public void leave(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
+    void leave(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
      * Ban a user from the given room.
@@ -189,7 +189,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @POST("/rooms/{roomId}/ban")
-    public void ban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
+    void ban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
 
     /**
      * Change the membership state for a user in a room.
@@ -199,7 +199,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.member/{userId}")
-    public void roomMember(@Path("roomId") String roomId, @Path("userId") String userId, @Body RoomMember member, Callback<Void> callback);
+    void roomMember(@Path("roomId") String roomId, @Path("userId") String userId, @Body RoomMember member, Callback<Void> callback);
 
     /**
      * Get the membership state of a user in a room.
@@ -208,7 +208,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state/m.room.member/{userId}")
-    public void roomMember(@Path("roomId") String roomId, @Path("userId") String userId, Callback<RoomMember> callback);
+    void roomMember(@Path("roomId") String roomId, @Path("userId") String userId, Callback<RoomMember> callback);
 
     /**
      * Update the typing notification
@@ -218,7 +218,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/typing/{userId}")
-    public void typing(@Path("roomId") String roomId, @Path("userId") String userId, @Body Typing typing, Callback<Void> callback);
+    void typing(@Path("roomId") String roomId, @Path("userId") String userId, @Body Typing typing, Callback<Void> callback);
 
     /**
      * Create a room.
@@ -226,7 +226,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/createRoom")
-    public void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
+    void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
 
     /**
      * Get a list of the last messages for this room.
@@ -236,8 +236,8 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    public void messages(@Path("roomId") String roomId, @Query("dir") String dir,
-                         @Query("limit") int limit, Callback<TokensChunkResponse<Event>> callback);
+    void messages(@Path("roomId") String roomId, @Query("dir") String dir,
+                  @Query("limit") int limit, Callback<TokensChunkResponse<Event>> callback);
 
     /**
      * Get a list of messages starting from a certain point.
@@ -248,9 +248,9 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    public void messagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
-                             @Query("from") String from, @Query("limit") int limit,
-                             Callback<TokensChunkResponse<Event>> callback);
+    void messagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
+                      @Query("from") String from, @Query("limit") int limit,
+                      Callback<TokensChunkResponse<Event>> callback);
 
     /**
      * Get a list of members for this room.
@@ -258,7 +258,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/members")
-    public void members(@Path("roomId") String roomId, Callback<TokensChunkResponse<RoomMember>> callback);
+    void members(@Path("roomId") String roomId, Callback<TokensChunkResponse<RoomMember>> callback);
 
     /**
      * Get the current state events for the room.
@@ -266,7 +266,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/state")
-    public void state(@Path("roomId") String roomId, Callback<List<Event>> callback);
+    void state(@Path("roomId") String roomId, Callback<List<Event>> callback);
 
     /**
      * Get the initial information concerning a specific room.
@@ -275,7 +275,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/initialSync")
-    public void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
+    void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
 
     /**
      * Redact an event from the room>.
@@ -284,7 +284,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/redact/{eventId}")
-    public void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
+    void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
 
     /**
      * Set the canonical alias name.
@@ -293,6 +293,6 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/rooms/{roomId}/state/m.room.avatar")
-    public void roomAvatarUrl(@Path("roomId") String roomId, @Body HashMap<String, String> params, Callback<Void> callback);
+    void roomAvatarUrl(@Path("roomId") String roomId, @Body HashMap<String, String> params, Callback<Void> callback);
 
 }

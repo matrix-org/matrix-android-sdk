@@ -45,12 +45,12 @@ public class MXCallsManager {
         /**
          * Called when there is an incoming call within the room.
          */
-        public void onIncomingCall(IMXCall call);
+        void onIncomingCall(IMXCall call);
 
         /**
          * Called when a called has been hung up
          */
-        public void onCallHangUp(IMXCall call);
+        void onCallHangUp(IMXCall call);
     }
 
     /**

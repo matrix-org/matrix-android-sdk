@@ -38,7 +38,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
      * This callback should manage the request auto resent.
      */
     public interface RequestRetryCallBack {
-        public void onRetry();
+        void onRetry();
     }
 
     private String mEventDescription;

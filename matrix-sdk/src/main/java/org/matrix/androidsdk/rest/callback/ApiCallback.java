@@ -25,5 +25,5 @@ public interface ApiCallback<T> extends ApiFailureCallback {
      * Called if the API call is successful.
      * @param info the returned information
      */
-    public void onSuccess(T info);
+    void onSuccess(T info);
 }

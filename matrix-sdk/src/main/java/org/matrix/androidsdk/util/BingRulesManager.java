@@ -48,9 +48,9 @@ import java.util.regex.Pattern;
  */
 public class BingRulesManager {
 
-    public static interface onBingRuleUpdateListener {
-        public void onBingRuleUpdateSuccess();
-        public void onBingRuleUpdateFailure(String errorMessage);
+    public interface onBingRuleUpdateListener {
+        void onBingRuleUpdateSuccess();
+        void onBingRuleUpdateFailure(String errorMessage);
     }
 
     private BingRulesRestClient mApiClient;
@@ -150,7 +150,7 @@ public class BingRulesManager {
                     // some rules have no condition
                     // so their ruleId defines the method
                     if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
-                        if (event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+                        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
                             Message message = JsonUtils.toMessage(event.content);
                             MyUser myUser =  mSession.getMyUser();
                             String pattern = myUser.displayname;

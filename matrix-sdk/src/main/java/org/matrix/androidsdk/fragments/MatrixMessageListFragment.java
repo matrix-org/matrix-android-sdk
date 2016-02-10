@@ -84,8 +84,8 @@ import retrofit.RetrofitError;
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
 
     public interface OnSearchResultListener {
-        public void onSearchSucceed(int nbrMessages);
-        public void onSearchFailed();
+        void onSearchSucceed(int nbrMessages);
+        void onSearchFailed();
     }
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";

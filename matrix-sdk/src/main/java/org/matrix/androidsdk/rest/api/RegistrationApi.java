@@ -33,6 +33,6 @@ public interface RegistrationApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/tokenrefresh")
-    public void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
+    void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
 
 }

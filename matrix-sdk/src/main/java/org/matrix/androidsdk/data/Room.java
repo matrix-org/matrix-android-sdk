@@ -92,7 +92,7 @@ public class Room {
      * <li>BACKWARDS for old events requested through pagination</li>
      * </ul>
      */
-    public static enum EventDirection {
+    public enum EventDirection {
         /**
          * The direction for events coming down the live event stream.
          */

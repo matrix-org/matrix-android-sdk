@@ -56,8 +56,8 @@ public interface RoomsApiV2 {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/receipt/m.read/{eventId}")
-    public void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
-                     Callback<Void> callback);
+    void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
+                         Callback<Void> callback);
 
     /**
      * Add a tag to a room
@@ -68,8 +68,8 @@ public interface RoomsApiV2 {
      * @param callback the asynchronous callback called with the response
      */
     @PUT("/user/{userId}/rooms/{roomId}/tags/{tag}")
-    public void addTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,  @Body HashMap<String, Object> content,
-                                Callback<Void> callback);
+    void addTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag, @Body HashMap<String, Object> content,
+                Callback<Void> callback);
 
     /**
      * Remove a tag to a room
@@ -79,6 +79,6 @@ public interface RoomsApiV2 {
      * @param callback the asynchronous callback called with the response
      */
     @DELETE("/user/{userId}/rooms/{roomId}/tags/{tag}")
-    public void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
-                       Callback<Void> callback);
+    void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
+                   Callback<Void> callback);
 }

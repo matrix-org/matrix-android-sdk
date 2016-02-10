@@ -35,7 +35,7 @@ public interface PresenceApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/presence/{userId}/status")
-    public void presenceStatus(@Path("userId") String userId, @Body User userPresence, Callback<Void> callback);
+    void presenceStatus(@Path("userId") String userId, @Body User userPresence, Callback<Void> callback);
 
     /**
      * Get a user's presence state.
@@ -43,5 +43,5 @@ public interface PresenceApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/presence/{userId}/status")
-    public void presenceStatus(@Path("userId") String userId, Callback<User> callback);
+    void presenceStatus(@Path("userId") String userId, Callback<User> callback);
 }

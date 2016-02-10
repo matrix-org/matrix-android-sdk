@@ -1371,7 +1371,7 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onReceiptEvent(roomId, senderIds);;
+                        listener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
                     }
                 }

@@ -99,7 +99,7 @@ public class MXChromeCall extends MXCall {
                         mCallWebAppInterface = new CallWebAppInterface();
                         mWebView.addJavascriptInterface(mCallWebAppInterface, "Android");
 
-                        mWebView.setWebContentsDebuggingEnabled(true);
+                        WebView.setWebContentsDebuggingEnabled(true);
                         WebSettings settings = mWebView.getSettings();
 
                         // Enable Javascript

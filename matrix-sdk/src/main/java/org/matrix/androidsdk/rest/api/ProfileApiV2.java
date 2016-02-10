@@ -32,5 +32,5 @@ public interface ProfileApiV2 {
      * @param callback the asynchronous callback to call when finished
      */
     @POST("/account/password")
-    public void updatePassword(@Body ChangePasswordParams passwordParams, Callback<Void> callback);
+    void updatePassword(@Body ChangePasswordParams passwordParams, Callback<Void> callback);
 }

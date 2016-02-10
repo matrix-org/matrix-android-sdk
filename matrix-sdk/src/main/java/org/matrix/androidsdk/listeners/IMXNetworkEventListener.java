@@ -21,5 +21,5 @@ public interface IMXNetworkEventListener {
      * The network connection has been updated
      * @param isConnected true if the device uses a data connection.
      */
-    public void onNetworkConnectionUpdate(boolean isConnected);
+    void onNetworkConnectionUpdate(boolean isConnected);
 }

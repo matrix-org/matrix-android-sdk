@@ -62,7 +62,7 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     }
 
     @Override
-    public void onSyncV2Reponse(SyncResponse syncResponse, Boolean isInitialSync) {
+    public void onSyncV2Response(SyncResponse syncResponse, Boolean isInitialSync) {
         mData.onSyncV2Complete(syncResponse, isInitialSync);
     }
 

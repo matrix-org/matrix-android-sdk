@@ -242,7 +242,7 @@ public class EventsThread extends Thread {
             serverTimeout = 0;
             // dummy initial sync
             // to hide the splash screen
-            mListener.onSyncV2Reponse(null, true);
+            mListener.onSyncV2Response(null, true);
         } else {
 
             // Start with initial sync
@@ -253,7 +253,7 @@ public class EventsThread extends Thread {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncV2Reponse(syncResponse, true);
+                        mListener.onSyncV2Response(syncResponse, true);
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -361,7 +361,7 @@ public class EventsThread extends Thread {
                             }
 
                             Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncV2Reponse(syncResponse, false);
+                            mListener.onSyncV2Response(syncResponse, false);
                             mCurrentToken = syncResponse.nextBatch;
                             Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
                         }

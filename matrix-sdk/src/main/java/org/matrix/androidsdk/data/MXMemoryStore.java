@@ -882,7 +882,7 @@ public class MXMemoryStore implements IMXStore {
 
                         if (!TextUtils.equals(event.eventId, eventId)) {
                             // Keep events matching filters
-                            if ((null == allowedTypes || (allowedTypes.indexOf(event.type) >= 0)) && !TextUtils.equals(event.sender, excludedUserId)) {
+                            if ((null == allowedTypes || (allowedTypes.indexOf(event.type) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
                                 events.add(event);
                             }
                         } else {

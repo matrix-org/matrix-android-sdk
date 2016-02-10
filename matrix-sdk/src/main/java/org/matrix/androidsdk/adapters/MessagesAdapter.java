@@ -78,58 +78,58 @@ import java.util.List;
  */
 public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
-    public static interface MessagesAdapterEventsListener {
+    public interface MessagesAdapterEventsListener {
         /**
          * Call when the row is clicked.
          * @param position the cell position.
          */
-        public void onRowClick(int position);
+        void onRowClick(int position);
 
         /**
          * Call when the row is long clicked.
          * @param position the cell position.
          * @return true if managed
          */
-        public Boolean onRowLongClick(int position);
+        Boolean onRowLongClick(int position);
 
         /**
          * Called when a click is performed on the message content
          * @param position the cell position
          */
-        public void onContentClick(int position);
+        void onContentClick(int position);
 
         /**
          * Called when a long click is performed on the message content
          * @param position the cell position
          * @return true if managed
          */
-        public Boolean onContentLongClick(int position);
+        Boolean onContentLongClick(int position);
 
         /**
          * Define the action to perform when the user tap on an avatar
          * @param userId the user ID
          */
-        public void onAvatarClick(String userId);
+        void onAvatarClick(String userId);
 
         /**
          * Define the action to perform when the user performs a long tap on an avatar
          * @param userId the user ID
          * @return true if the long clik event is managed
          */
-        public Boolean onAvatarLongClick(String userId);
+        Boolean onAvatarLongClick(String userId);
 
         /**
          * Define the action to perform when the user taps on the message sender
          * @param userId
          * @param displayName
          */
-        public void onSenderNameClick(String userId, String displayName);
+        void onSenderNameClick(String userId, String displayName);
 
         /**
          * A media download is done
          * @param position
          */
-        public void onMediaDownloaded(int position);
+        void onMediaDownloaded(int position);
 
         /**
          * Define the action to perform when the user taps on the read receipt.
@@ -137,7 +137,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param userId the userId.
          * @param receipt the receipt.
          */
-        public void onReadReceiptClick(String eventId, String userId, ReceiptData receipt);
+        void onReadReceiptClick(String eventId, String userId, ReceiptData receipt);
 
         /**
          * Define the action to perform when the user performs a long tap on the read receipt.
@@ -146,20 +146,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param receipt the receipt.
          * @return true if the long click event is managed
          */
-        public boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt);
+        boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt);
 
         /**
          * Define the action to perform when the user taps on the more read receipts button.
          * @param eventId the eventID
          */
-        public void onMoreReadReceiptClick(String eventId);
+        void onMoreReadReceiptClick(String eventId);
 
         /**
          * Define the action to perform when the user performs a long tap  on the more read receipts button.
          * @param eventId the eventID
          * @return true if the long clik event is managed
          */
-        public boolean onMoreReadReceiptLongClick(String eventId);
+        boolean onMoreReadReceiptLongClick(String eventId);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;

@@ -73,26 +73,26 @@ public class MatrixMessagesFragment extends Fragment {
         return fragment;
     }
 
-    public static interface MatrixMessagesListener {
-        public void onLiveEvent(Event event, RoomState roomState);
-        public void onLiveEventsChunkProcessed();
-        public void onBackEvent(Event event, RoomState roomState);
-        public void onDeleteEvent(Event event);
-        public void onResendingEvent(Event event);
-        public void onResentEvent(Event event);
-        public void onReceiptEvent(List<String> senderIds);
-        public void onRoomSyncWithLimitedTimeline();
+    public interface MatrixMessagesListener {
+        void onLiveEvent(Event event, RoomState roomState);
+        void onLiveEventsChunkProcessed();
+        void onBackEvent(Event event, RoomState roomState);
+        void onDeleteEvent(Event event);
+        void onResendingEvent(Event event);
+        void onResentEvent(Event event);
+        void onReceiptEvent(List<String> senderIds);
+        void onRoomSyncWithLimitedTimeline();
 
 
         /**
          * Called when the first batch of messages is loaded.
          */
-        public void onInitialMessagesLoaded();
+        void onInitialMessagesLoaded();
 
         // UI events
-        public void displayLoadingProgress();
-        public void dismissLoadingProgress();
-        public void logout();
+        void displayLoadingProgress();
+        void dismissLoadingProgress();
+        void logout();
     }
 
     // The listener to send messages back
