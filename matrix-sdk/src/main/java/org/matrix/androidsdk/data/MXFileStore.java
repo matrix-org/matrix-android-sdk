@@ -1025,6 +1025,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
         } catch (Exception e) {
+            Toast.makeText(mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
         }
     }
@@ -1206,6 +1207,7 @@ public class MXFileStore extends MXMemoryStore {
                                         }
 
                                     } catch (Exception e) {
+                                        Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                         Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getMessage());
                                     }
                                 }
@@ -1361,6 +1363,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     } catch (Exception e) {
                                         Log.e(LOG_TAG, "saveSummaries failed : " + e.getMessage());
+                                        Toast.makeText(mContext, "saveSummaries failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 }
 
@@ -1515,6 +1518,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.writeObject(fMetadata);
                                     out.close();
                                 } catch (Exception e) {
+                                    Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     Log.e(LOG_TAG, "saveMetaData failed : " + e.getMessage());
                                 }
 
@@ -1636,6 +1640,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.writeObject(receipts);
                                     out.close();
                                 } catch (Exception e) {
+                                    Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     Log.e(LOG_TAG, "saveReceipts failed : " + e.getMessage());
                                 }
 
