@@ -243,7 +243,15 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
-                requestInitialHistory();
+
+                // on Sync V2, the room initial sync is done as a standard events chunck
+                // so wait that the dedicated chunk is received.
+                if (MXSession.useSyncV2()) {
+                    MatrixMessagesFragment.this.dismissLoadingProgress();
+                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                } else {
+                    requestInitialHistory();
+                }
             }
 
             // the request will be automatically restarted when a valid network will be found

@@ -26,6 +26,7 @@ import android.net.Uri;
 import android.text.BoringLayout;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.ExpandableListAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,6 +34,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -147,6 +149,8 @@ public class Room {
     private boolean mIsLeaving = false;
 
     private boolean mIsV2Syncing;
+
+    private ApiCallback<Void> mOnInitialSyncCallback;
 
     private Gson gson = new GsonBuilder().create();
 
@@ -798,25 +802,25 @@ public class Room {
      * @param callback the async callback
      */
     public void initialSync(final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
-            @Override
-            public void onSuccess(RoomResponse roomInfo) {
-                // check if the SDK was not logged out
-                if (mDataHandler.isActive()) {
-                    mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+            mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
+                @Override
+                public void onSuccess(RoomResponse roomInfo) {
+                    // check if the SDK was not logged out
+                    if (mDataHandler.isActive()) {
+                        mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
 
-                    Log.d(LOG_TAG, "initialSync : commit");
-                    mDataHandler.getStore().commit();
-                    if (callback != null) {
-                        try {
-                            callback.onSuccess(null);
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                        Log.d(LOG_TAG, "initialSync : commit");
+                        mDataHandler.getStore().commit();
+                        if (callback != null) {
+                            try {
+                                callback.onSuccess(null);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
     }
 
     //================================================================================
@@ -832,8 +836,14 @@ public class Room {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {
-                    // Once we've joined, we run an initial sync on the room to have all of its information
-                    initialSync(callback);
+                    if (MXSession.useSyncV2()) {
+                        // wait the server sends the events chunk before calling the callback
+                        mOnInitialSyncCallback = callback;
+                    } else {
+                        // Once we've joined, we run an initial sync on the room to have all of its information
+                        initialSync(callback);
+                    }
+
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "join exception " + e.getMessage());
                 }
@@ -2082,6 +2092,16 @@ public class Room {
                     }
                 }
             }
+        }
+
+        // the user joined the room
+        // With V2 sync, the server sends the events to init the room.
+        if (null != mOnInitialSyncCallback) {
+            try {
+                mOnInitialSyncCallback.onSuccess(null);
+            } catch (Exception e) {
+            }
+            mOnInitialSyncCallback = null;
         }
 
         mIsV2Syncing = false;
