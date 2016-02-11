@@ -2012,6 +2012,24 @@ public class Room {
             handleAccountDataEvents(roomSync.accountData.events);
         }
 
+        // wait the end of the events chunk processing to detect if the user leaves the room
+        // The timeline events could contain a leave event followed by a join.
+        // so, the user does not leave.
+        // The handleLiveEvent used to warn the client that a room was left where as it should not
+        selfMember = liveState.getMember(mMyUserId);
+
+        if (null != selfMember) {
+            membership = selfMember.membership;
+
+            if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
+                // check if the room still exists.
+                if (null != mDataHandler.getStore().getRoom(mRoomId)) {
+                    mDataHandler.getStore().deleteRoom(mRoomId);
+                    mDataHandler.onLeaveRoom(mRoomId);
+                }
+            }
+        }
+
         // check if the summary is defined
         // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
         if (null != mDataHandler.getStore().getRoom(mRoomId)) {
@@ -2065,7 +2083,7 @@ public class Room {
                 }
             }
         }
-        
+
         mIsV2Syncing = false;
     }
 

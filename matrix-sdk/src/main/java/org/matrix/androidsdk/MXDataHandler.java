@@ -817,17 +817,12 @@ public class MXDataHandler implements IMXEventListener {
 
                 // thread issue
                 // if the user leaves a room,
-                // the server echo could try to delete the room file
                 if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.stateKey)) {
                     String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                     if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                         store = false;
-                        // check if the room still exists.
-                        if (null != this.getStore().getRoom(event.roomId)) {
-                            this.getStore().deleteRoom(event.roomId);
-                            this.onLeaveRoom(event.roomId);
-                        }
+                        // delete the room and warn the listener of the leave event only at the end of the events chunk processing
                     }
                 }
             }
@@ -934,6 +929,32 @@ public class MXDataHandler implements IMXEventListener {
             // sanity check
             if (null != syncResponse.rooms) {
 
+                // left room management
+                // it should be done at the end but it seems there is a server issue
+                // when inviting after leaving a room, the room is defined in the both leave & invite rooms list.
+                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                    for (String roomId : roomIds) {
+                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
+
+                        // Presently we remove the existing room from the rooms list.
+                        // FIXME SYNCV2 Archive/Display the left rooms!
+                        // For that create 'handleArchivedRoomSync' method
+
+                        // Retrieve existing room
+                        // check if the room still exists.
+                        if (null != this.getStore().getRoom(roomId)) {
+                            this.getStore().deleteRoom(roomId);
+                            onLeaveRoom(roomId);
+                        }
+                    }
+
+                    isEmptyResponse = false;
+                }
+
                 // joined rooms events
                 if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
                     Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
@@ -956,30 +977,6 @@ public class MXDataHandler implements IMXEventListener {
 
                     for (String roomId : roomIds) {
                         getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
-                    }
-
-                    isEmptyResponse = false;
-                }
-
-                // left room management
-                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
-
-                    for (String roomId : roomIds) {
-                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
-
-                        // Presently we remove the existing room from the rooms list.
-                        // FIXME SYNCV2 Archive/Display the left rooms!
-                        // For that create 'handleArchivedRoomSync' method
-
-                        // Retrieve existing room
-                        // check if the room still exists.
-                        if (null != this.getStore().getRoom(roomId)) {
-                            this.getStore().deleteRoom(roomId);
-                            onLeaveRoom(roomId);
-                        }
                     }
 
                     isEmptyResponse = false;
