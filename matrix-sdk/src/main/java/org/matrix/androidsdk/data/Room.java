@@ -1957,7 +1957,8 @@ public class Room {
 
             String backToken = roomSync.timeline.prevBatch;
 
-            // store the back token
+            // the backtoken should only store when roomSync.timeline.limited
+            // but the MXMemoryStore use the token as marker to detect then end of the cached data.
             mDataHandler.getStore().storeBackToken(mRoomId, backToken);
 
             // any event ?
@@ -2122,8 +2123,9 @@ public class Room {
                 event.roomId = mRoomId;
                 mDataHandler.handleLiveEvent(event);
             }
-
-            mDataHandler.getStore().storeBackToken(mRoomId, invitedRoomSync.inviteState.events.get(0).eventId);
+            // the backtoken should only store when roomSync.timeline.limited
+            // but the MXMemoryStore use the token as marker to detect then end of the cached data.
+            mDataHandler.getStore().storeBackToken(mRoomId,  invitedRoomSync.inviteState.events.get(0).eventId);
         }
     }
 }
