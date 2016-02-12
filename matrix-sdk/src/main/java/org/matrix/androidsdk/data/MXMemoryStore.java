@@ -455,6 +455,7 @@ public class MXMemoryStore implements IMXStore {
         if (null != roomId) {
             synchronized (mRoomEvents) {
                 mRoomEvents.remove(roomId);
+                mRoomEventIds.remove(roomId);
                 mRoomTokens.remove(roomId);
                 mRoomSummaries.remove(roomId);
                 mRoomAccountData.remove(roomId);
