@@ -27,8 +27,8 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         versionCode 15
-        version "0.5.3"
-        versionName "0.5.3"
+        version "0.5.4-dev"
+        versionName "0.5.4-dev"
         testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
     }
 
@@ -48,7 +48,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            resValue "string", "git_sdk_revision", "\"${gitRevision()}\""
+            resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
+            resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
+        }
+
         release {
+            resValue "string", "git_sdk_revision", "\"${gitRevision()}\""
+            resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
+            resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
+
             libraryVariants.all { variant ->
                 variant.outputs.each { output ->
                     def outputFile = output.outputFile
@@ -66,6 +76,20 @@ android {
     }
 }
 
+def gitRevision() {
+    def cmd = "git rev-parse --short HEAD"
+    return cmd.execute().text.trim()
+}
+
+def gitRevisionUnixDate() {
+    def cmd = "git show -s --format=%ct HEAD^{commit}"
+    return cmd.execute().text.trim()
+}
+
+def gitRevisionDate() {
+    def cmd = "git show -s --format=%ci HEAD^{commit}"
+    return cmd.execute().text.trim()
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])

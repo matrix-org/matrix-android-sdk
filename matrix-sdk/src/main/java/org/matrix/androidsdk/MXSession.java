@@ -17,6 +17,7 @@ package org.matrix.androidsdk;
 
 import android.content.Context;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
 import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -225,6 +226,27 @@ public class MXSession {
                 throw new AssertionError("Should not used a cleared mxsession ");
             }
         }
+    }
+
+    /**
+     * @return the SDK version.
+     */
+    public String getVersion(boolean longFormat) {
+        checkIfActive();
+
+        String versionName = BuildConfig.VERSION_NAME;
+
+        if (!TextUtils.isEmpty(versionName)) {
+            String gitVersion = mAppContent.getResources().getString(R.string.git_sdk_revision);
+
+            if (longFormat) {
+                String date = mAppContent.getResources().getString(R.string.git_sdk_revision_date);
+                versionName += " (" + gitVersion + "-" + date + ")";
+            } else {
+                versionName += " (" + gitVersion + ")";
+            }
+        }
+        return versionName;
     }
 
     /**
