@@ -25,6 +25,7 @@ public class MatrixError implements java.io.Serializable {
     public static final String NOT_JSON = "M_NOT_JSON";
     public static final String NOT_FOUND = "M_NOT_FOUND";
     public static final String LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED";
+    public static final String TOO_LARGE = "M_TOO_LARGE";
     public static final String USER_IN_USE = "M_USER_IN_USE";
     public static final String ROOM_IN_USE = "M_ROOM_IN_USE";
     public static final String BAD_PAGINATION = "M_BAD_PAGINATION";
@@ -60,6 +61,7 @@ public class MatrixError implements java.io.Serializable {
                 MatrixError.LIMIT_EXCEEDED.equals(errcode) ||
                 MatrixError.USER_IN_USE.equals(errcode) ||
                 MatrixError.ROOM_IN_USE.equals(errcode) ||
+                MatrixError.TOO_LARGE.equals(errcode) ||
                 MatrixError.BAD_PAGINATION.equals(errcode);
     }
 }

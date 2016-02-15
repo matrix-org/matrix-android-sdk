@@ -21,6 +21,8 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -40,6 +42,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
@@ -55,6 +58,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -1364,6 +1368,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
 
                     @Override
+                    public void onError(String downloadId, JsonElement jsonElement) {
+                        final MatrixError error = JsonUtils.toMatrixError(jsonElement);
+
+                        if ((null != error) && error.isSupportedErrorCode()) {
+                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
                     public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                         if (TextUtils.equals(aDownloadId, fDownloadId)) {
                             downloadPieFractionView.setFraction(percentageProgress);
@@ -1546,6 +1559,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             @Override
+            public void onError(String downloadId, JsonElement jsonElement) {
+                final MatrixError error = JsonUtils.toMatrixError(jsonElement);
+
+                if ((null != error) && error.isSupportedErrorCode()) {
+                    Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
             public void onDownloadProgress(String aDownloadId, int percentageProgress) {
                 if (TextUtils.equals(aDownloadId, downloadId)) {
                     downloadPieFractionView.setFraction(percentageProgress);
@@ -1686,6 +1708,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                         @Override
                         public void onDownloadStart(String downloadId) {
+                        }
+
+                        @Override
+                        public void onError(String downloadId, JsonElement jsonElement) {
+                            final MatrixError error = JsonUtils.toMatrixError(jsonElement);
+
+                            if ((null != error) && error.isSupportedErrorCode()) {
+                                Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                            }
                         }
 
                         @Override
