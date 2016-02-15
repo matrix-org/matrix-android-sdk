@@ -139,7 +139,11 @@ public class Room {
 
     private boolean isPaginating = false;
     private boolean canStillPaginate = true;
-    private int mLatestChunkSize = 0;
+    private boolean mIsLastChunk;
+    // the server provides a token even for the first room message (which should never change it is the creator message)
+    // so requestHistory always triggers a remote request which returns an empty json.
+    //  try to avoid such behaviour
+    private String mTopToken;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
 
@@ -649,7 +653,7 @@ public class Room {
             mDataHandler.onBackEvent(snapshotedEvent.mEvent, snapshotedEvent.mState);
         }
 
-        if ((mSnapshotedEvents.size() == 0) && (0 == mLatestChunkSize)) {
+        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastChunk) {
             canStillPaginate = false;
         }
 
@@ -711,6 +715,8 @@ public class Room {
             return true;
         }
 
+        final String fromToken = mBackState.getToken();
+
         mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
@@ -757,7 +763,13 @@ public class Room {
                         }
                     }
 
-                    mLatestChunkSize = response.chunk.size();
+                    // assume it is the first room message
+                    if (0 == response.chunk.size()) {
+                        // save its token to avoid useless request
+                        mTopToken = fromToken;
+                    }
+
+                    mIsLastChunk = (0 == response.chunk.size()) || TextUtils.isEmpty(response.end) || TextUtils.equals(response.end, mTopToken);
                     manageEvents(callback);
                 }
             }
@@ -1936,7 +1948,6 @@ public class Room {
 
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
         if (null != roomSync.timeline) {
-
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
                     currentSummary =  mDataHandler.getStore().getSummary(mRoomId);
@@ -1945,7 +1956,7 @@ public class Room {
                     mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
 
                     // define a summary if some messages are left
-                    // teh unsent messages are often displayed messages.
+                    // the unsent messages are often displayed messages.
                     Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
                     if (oldestEvent != null) {
                         if (RoomSummary.isSupportedEvent(oldestEvent)) {
@@ -1953,28 +1964,20 @@ public class Room {
                         }
                     }
                 }
+
+                // In case of limited timeline, update token where to start back pagination
+                mDataHandler.getStore().storeBackToken(mRoomId, roomSync.timeline.prevBatch);
+                // reset the state back token
+                // because it does not make anymore sense
+                // by setting at null, the events cache will be cleared when a requesthistory will be called
+                mBackState.setToken(null);
+                // reset the back paginate lock
+                canStillPaginate = true;
             }
-
-            String backToken = roomSync.timeline.prevBatch;
-
-            // the backtoken should only store when roomSync.timeline.limited
-            // but the MXMemoryStore use the token as marker to detect then end of the cached data.
-            mDataHandler.getStore().storeBackToken(mRoomId, backToken);
 
             // any event ?
             if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
                 List<Event> events = roomSync.timeline.events;
-
-                // set a back token to the oldest message to enable back pagination
-                if (null != backToken) {
-                    Event event = events.get(0);
-                    if (null == event.mToken) {
-                        event.mToken = backToken;
-                    }
-                }
-
-                canStillPaginate = true;
-                mBackState.setToken(null);
 
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
                 // They will be added at the end of the stored events, so we keep the chronological order.
@@ -2123,9 +2126,6 @@ public class Room {
                 event.roomId = mRoomId;
                 mDataHandler.handleLiveEvent(event);
             }
-            // the backtoken should only store when roomSync.timeline.limited
-            // but the MXMemoryStore use the token as marker to detect then end of the cached data.
-            mDataHandler.getStore().storeBackToken(mRoomId,  invitedRoomSync.inviteState.events.get(0).eventId);
         }
     }
 }

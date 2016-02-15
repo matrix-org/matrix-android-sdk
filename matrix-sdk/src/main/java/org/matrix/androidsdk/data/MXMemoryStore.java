@@ -300,6 +300,7 @@ public class MXMemoryStore implements IMXStore {
     public void storeRoom(Room room) {
         if ((null != room) && (null != room.getRoomId())) {
             mRooms.put(room.getRoomId(), room);
+            storeBackToken(room.getRoomId(), "");
         }
     }
 
@@ -725,7 +726,7 @@ public class MXMemoryStore implements IMXStore {
             response.start = firstEvent.mToken;
 
             // unknown last event token, use the latest known one
-            if (null == lastEvent.mToken) {
+            if ((null == lastEvent.mToken) && !TextUtils.isEmpty(mRoomTokens.get(roomId))) {
                 lastEvent.mToken = mRoomTokens.get(roomId);
             }
 
