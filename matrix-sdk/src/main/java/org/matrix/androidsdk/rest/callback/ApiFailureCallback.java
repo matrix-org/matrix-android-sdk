@@ -26,17 +26,17 @@ public interface ApiFailureCallback {
      * Called if there is a network error.
      * @param e the exception
      */
-    public void onNetworkError(Exception e);
+    void onNetworkError(Exception e);
 
     /**
      * Called in case of a Matrix error.
      * @param e the Matrix error
      */
-    public void onMatrixError(MatrixError e);
+    void onMatrixError(MatrixError e);
 
     /**
      * Called for some other type of error.
      * @param e the exception
      */
-    public void onUnexpectedError(Exception e);
+    void onUnexpectedError(Exception e);
 }

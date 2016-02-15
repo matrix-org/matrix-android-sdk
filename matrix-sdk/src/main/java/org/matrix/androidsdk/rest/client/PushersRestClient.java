@@ -16,26 +16,14 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import android.util.Log;
-
-import com.google.gson.JsonNull;
-
-import org.json.JSONObject;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
-import java.net.URL;
 import java.util.HashMap;
-
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
 
 /**
  * REST client for the Pushers API.

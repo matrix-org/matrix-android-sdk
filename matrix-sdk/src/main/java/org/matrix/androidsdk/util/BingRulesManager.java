@@ -48,9 +48,9 @@ import java.util.regex.Pattern;
  */
 public class BingRulesManager {
 
-    public static interface onBingRuleUpdateListener {
-        public void onBingRuleUpdateSuccess();
-        public void onBingRuleUpdateFailure(String errorMessage);
+    public interface onBingRuleUpdateListener {
+        void onBingRuleUpdateSuccess();
+        void onBingRuleUpdateFailure(String errorMessage);
     }
 
     private BingRulesRestClient mApiClient;
@@ -137,7 +137,7 @@ public class BingRulesManager {
         }
 
         // do not trigger notification for oneself messages
-        if ((null != event.userId) && TextUtils.equals(event.userId, mMyUserId)) {
+        if ((null != event.getSender()) && TextUtils.equals(event.getSender(), mMyUserId)) {
             return null;
         }
 
@@ -150,7 +150,7 @@ public class BingRulesManager {
                     // some rules have no condition
                     // so their ruleId defines the method
                     if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
-                        if (event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+                        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
                             Message message = JsonUtils.toMessage(event.content);
                             MyUser myUser =  mSession.getMyUser();
                             String pattern = myUser.displayname;
@@ -505,7 +505,7 @@ public class BingRulesManager {
              * @param e the Matrix error
              */
             @Override
-            public void onMatrixError(MatrixError e)  {
+            public void onMatrixError(MatrixError e) {
                 onError(e.getLocalizedMessage());
             }
 
@@ -518,5 +518,75 @@ public class BingRulesManager {
                 onError(e.getLocalizedMessage());
             }
         });
+    }
+
+    /**
+     * Search the a room rule for a dedicated room.
+     * @param room the room
+     * @return the room rule if it exists.
+     */
+    public BingRule getPushRulesForRoom(Room room) {
+        // sanity checks
+        if ((null != room) && (null != mRulesSet) && (null != mRulesSet.room)) {
+
+            for(BingRule roomRule : mRulesSet.room) {
+                if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                    return roomRule;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Test if the room has a dedicated rule which disables notification.
+     * @return true if there is a rule to disable notifications.
+     */
+    public Boolean isRoomNotificationsDisabled(Room room) {
+        BingRule roomRule = getPushRulesForRoom(room);
+
+        return (null != roomRule) && !roomRule.shouldNotify() && roomRule.isEnabled;
+    }
+
+    /**
+     * Mute / unmute the room notifications.
+     * Only the room rules are checked.
+     *
+     * @param room the room to mute / unmute.
+     * @param isMuted set to true to mute the notification
+     * @param listener the listener.
+     */
+    public void muteRoomNotifications(final Room room, final boolean isMuted, final onBingRuleUpdateListener listener) {
+        BingRule bingRule = getPushRulesForRoom(room);
+
+        // accept any notification
+        if (!isMuted) {
+            // if there is one
+            if (null != bingRule) {
+                // remove it
+                deleteRule(bingRule, listener);
+            } else {
+                // the job is done
+                listener.onBingRuleUpdateSuccess();
+            }
+        } else {
+            if (null == bingRule) {
+                addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
+            } else {
+                // delete the rule and create a new one
+                deleteRule(bingRule, new onBingRuleUpdateListener() {
+                    @Override
+                    public void onBingRuleUpdateSuccess() {
+                        addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
+                    }
+
+                    @Override
+                    public void onBingRuleUpdateFailure(String errorMessage) {
+                        listener.onBingRuleUpdateFailure(errorMessage);
+                    }
+                });
+            }
+        }
     }
 }

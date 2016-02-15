@@ -21,25 +21,25 @@ import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.squareup.okhttp.Call;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.api.RegistrationApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.EventsRestClientV2;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.ProfileRestClientV2;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RegistrationRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -59,6 +60,10 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -68,15 +73,25 @@ public class MXSession {
 
     private static final String LOG_TAG = "MXSession";
 
+    // define the used api versions
+    // API V1 : first implementation but with very slow catchup
+    // API V2 : improved V1 : the main improvement is the catchup.
+    public static final int REST_CLIENT_API_VERSION_1 = 1;
+    public static final int REST_CLIENT_API_VERSION_2 = 2;
+
+    // define the preferred server API when it is available.
+    public static final int PREFERED_API_VERSION = REST_CLIENT_API_VERSION_2;
+
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
     private Credentials mCredentials;
-    private MyUser mMyUser;
 
     // Api clients
     private EventsRestClient mEventsRestClient;
+    private EventsRestClientV2 mEventsRestClientV2;
     private ProfileRestClient mProfileRestClient;
+    private ProfileRestClientV2 mProfileRestClientV2;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
     private RoomsRestClientV2 mRoomsRestClientV2;
@@ -106,6 +121,20 @@ public class MXSession {
     private HomeserverConnectionConfig mHsConfig;
 
     /**
+     * @return true if the client uses the SYNC API V1
+     */
+    public static Boolean useSyncV1() {
+        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_1;
+    }
+
+    /**
+     * @return true if the client uses the SYNC API V2
+     */
+    public static Boolean useSyncV2() {
+        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_2;
+    }
+
+    /**
      * Create a basic session for direct API calls.
      * @param hsConfig the home server connection config
      */
@@ -114,7 +143,13 @@ public class MXSession {
         mHsConfig = hsConfig;
 
         mEventsRestClient = new EventsRestClient(hsConfig);
+
+        if (useSyncV2()) {
+            mEventsRestClientV2 = new EventsRestClientV2(hsConfig);
+        }
+
         mProfileRestClient = new ProfileRestClient(hsConfig);
+        mProfileRestClientV2 = new ProfileRestClientV2(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mRoomsRestClientV2 = new RoomsRestClientV2(hsConfig);
@@ -142,6 +177,8 @@ public class MXSession {
         mDataHandler.setDataRetriever(mDataRetriever);
         mBingRulesManager = new BingRulesManager(this);
         mDataHandler.setPushRulesManager(mBingRulesManager);
+        mDataHandler.setProfileRestClient(mProfileRestClient);
+        mDataHandler.setPresenceRestClient(mPresenceRestClient);
 
         // application context
         mAppContent = appContext;
@@ -160,7 +197,13 @@ public class MXSession {
 
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
+
+        if (null != mEventsRestClientV2) {
+            mEventsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
+        }
+
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mProfileRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
@@ -348,41 +391,7 @@ public class MXSession {
     public MyUser getMyUser() {
         checkIfActive();
 
-        IMXStore store = mDataHandler.getStore();
-
-        // MyUser is initialized as late as possible to have a better chance at having the info in storage,
-        // which should be the case if this is called after the initial sync
-        if (mMyUser == null) {
-            mMyUser = new MyUser(store.getUser(mCredentials.userId));
-            mMyUser.setProfileRestClient(mProfileRestClient);
-            mMyUser.setPresenceRestClient(mPresenceRestClient);
-            mMyUser.setDataHandler(mDataHandler);
-
-            // assume the profile is not yet initialized
-            if (null == store.displayName()) {
-                store.setAvatarURL(mMyUser.avatarUrl);
-                store.setDisplayName(mMyUser.displayname);
-            } else {
-                // use the latest user information
-                // The user could have updated his profile in offline mode and kill the application.
-                mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
-            }
-
-            // Handle the case where the user is null by loading the user information from the server
-            mMyUser.userId = mCredentials.userId;
-        } else {
-            // assume the profile is not yet initialized
-            if ((null == store.displayName()) && (null != mMyUser.displayname)) {
-                // setAvatarURL && setDisplayName perform a commit if it is required.
-                store.setAvatarURL(mMyUser.avatarUrl);
-                store.setDisplayName(mMyUser.displayname);
-            } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
-                mMyUser.displayname = store.displayName();
-                mMyUser.avatarUrl = store.avatarURL();
-            }
-        }
-        return mMyUser;
+        return mDataHandler.getMyUser();
     }
 
     /**
@@ -391,23 +400,22 @@ public class MXSession {
      * @param networkConnectivityReceiver the network connectivity listener.
      * @param initialToken the initial sync token (null to start from scratch)
      */
-    public void startEventStream(EventsThreadListener eventsListener, NetworkConnectivityReceiver networkConnectivityReceiver, String initialToken) {
+    public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
         checkIfActive();
 
         if (mEventsThread != null) {
-            Log.w(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+            Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
             return;
         }
 
-        if (eventsListener == null) {
-            if (mDataHandler == null) {
-                Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
-                return;
-            }
-            eventsListener = new DefaultEventsThreadListener(mDataHandler);
+        if (mDataHandler == null) {
+            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
+            return;
         }
 
-        mEventsThread = new EventsThread(mEventsRestClient, eventsListener, initialToken);
+        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler): anEventsListener;
+
+        mEventsThread = new EventsThread(mEventsRestClient, mEventsRestClientV2, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
 
         if (mFailureCallback != null) {
@@ -600,6 +608,47 @@ public class MXSession {
     }
 
     /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     * @param beforeLimit the number of events to get before the matching results.
+     * @param afterLimit the number of events to get after the matching results.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+    }
+
+    /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, rooms, 0, 0, nextBatch, callback);
+    }
+
+    /**
+     * Perform a remote text search.
+     * @param text the text to search for.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+    public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
+        checkIfActive();
+
+        mEventsRestClient.searchMessageText(text, null, 0, 0, nextBatch, callback);
+    }
+
+
+    /**
      * Return the fulfilled active BingRule for the event.
      * @param event the event
      * @return the fulfilled bingRule
@@ -619,5 +668,157 @@ public class MXSession {
         } else {
             return false;
         }
+    }
+    
+    /**
+     * Get the list of rooms that are tagged the specified tag.
+     * The returned array is ordered according to the room tag order.
+     * @param tag  RoomTag.ROOM_TAG_XXX values
+     * @return the rooms list.
+     */
+    public List<Room>roomsWithTag(final String tag) {
+        ArrayList<Room> taggedRooms = new ArrayList<Room>();
+
+        if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
+            Collection<Room> rooms = mDataHandler.getStore().getRooms();
+
+            for (Room room : rooms) {
+                if (null != room.getAccountData().roomTag(tag)) {
+                    taggedRooms.add(room);
+                }
+            }
+
+            if (taggedRooms.size() > 0) {
+                Collections.sort(taggedRooms, new Comparator<Room>() {
+                    @Override
+                    public int compare(Room r1, Room r2) {
+                        int res = 0;
+
+                        RoomTag tag1 = r1.getAccountData().roomTag(tag);
+                        RoomTag tag2 = r2.getAccountData().roomTag(tag);
+
+                        if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
+                            double diff = (tag1.mOrder - tag2.mOrder);
+                            res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
+                        }
+                        else if (null != tag1.mOrder) {
+                            res = -1;
+                        }
+                        else if (null != tag2.mOrder) {
+                            res = +1;
+                        }
+
+                        // In case of same order, order rooms by their last event
+                        if (0 == res) {
+                            IMXStore store = mDataHandler.getStore();
+
+                            Event latestEvent1 = store.getLatestEvent(r1.getRoomId());
+                            Event latestEvent2 = store.getLatestEvent(r2.getRoomId());
+
+                            // sanity check
+                            if ((null != latestEvent2) && (null != latestEvent1)) {
+                                long diff = (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
+                                res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
+                            }
+                        }
+
+                        return res;
+                    }
+                });
+            }
+        } else {
+            Collection<Room> rooms = mDataHandler.getStore().getRooms();
+
+            for(Room room : rooms) {
+                if (!room.getAccountData().hasTags()) {
+                    taggedRooms.add(room);
+                }
+            }
+        }
+
+        return taggedRooms;
+    }
+
+    /**
+     * Get the list of roomIds that are tagged the specified tag.
+     * The returned array is ordered according to the room tag order.
+     * @param tag  RoomTag.ROOM_TAG_XXX values
+     * @return the room IDs list.
+     */
+    public List<String>roomIdsWithTag(final String tag) {
+        List<Room> roomsWithTag = roomsWithTag(tag);
+
+        ArrayList<String> roomIdsList = new ArrayList<String>();
+
+        for(Room room : roomsWithTag) {
+            roomIdsList.add(room.getRoomId());
+        }
+
+        return roomIdsList;
+    }
+
+    /**
+     * Compute the tag order to use for a room tag so that the room will appear in the expected position
+     * in the list of rooms stamped with this tag.
+     * @param index the targeted index of the room in the list of rooms with the tag `tag`.
+     * @param originIndex the origin index. Integer.MAX_VALUE if there is none.
+     * @param tag the tag
+     * @return the tag order to apply to get the expected position.
+     */
+    public Double tagOrderToBeAtIndex(int index, int originIndex, String tag) {
+        // Algo (and the [0.0, 1.0] assumption) inspired from matrix-react-sdk:
+        // We sort rooms by the lexicographic ordering of the 'order' metadata on their tags.
+        // For convenience, we calculate this for now a floating point number between 0.0 and 1.0.
+
+        Double orderA = 0.0; // by default we're next to the beginning of the list
+        Double orderB = 1.0; // by default we're next to the end of the list too
+
+        List<Room> roomsWithTag = roomsWithTag(tag);
+
+        if (roomsWithTag.size() > 0) {
+            // when an object is moved down, the index must be incremented
+            // because the object will be removed from the list to be inserted after its destination
+            if ((originIndex != Integer.MAX_VALUE) && (originIndex < index)) {
+                index++;
+            }
+
+            if (index > 0) {
+                // Bound max index to the array size
+                int prevIndex = (index < roomsWithTag.size()) ? index : roomsWithTag.size();
+
+                RoomTag prevTag = roomsWithTag.get(prevIndex - 1).getAccountData().roomTag(tag);
+
+                if (null == prevTag.mOrder) {
+                    Log.e(LOG_TAG, "computeTagOrderForRoom: Previous room in sublist has no ordering metadata. This should never happen.");
+                }
+                else {
+                    orderA = prevTag.mOrder;
+                }
+            }
+
+            if (index <= roomsWithTag.size() - 1)
+            {
+                RoomTag nextTag = roomsWithTag.get(index).getAccountData().roomTag(tag);
+
+                if (null == nextTag.mOrder) {
+                    Log.e(LOG_TAG, "computeTagOrderForRoom: Next room in sublist has no ordering metadata. This should never happen.");
+                }
+                else {
+                    orderB = nextTag.mOrder;
+                }
+            }
+        }
+
+        return (orderA + orderB) / 2.0;
+    }
+
+    /**
+     * Update the account password
+     * @param oldPassword the former account password
+     * @param newPassword the new account password
+     * @param callback the callback
+     */
+    public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
+        mProfileRestClientV2.updatePassword(getMyUser().userId, oldPassword, newPassword, callback);
     }
 }

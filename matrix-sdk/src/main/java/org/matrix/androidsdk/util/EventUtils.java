@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.util;
 
-import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -23,8 +22,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
 import java.util.regex.Pattern;
@@ -76,7 +73,7 @@ public class EventUtils {
             return false;
         }
 
-        if (null == event.userId) {
+        if (null == event.getSender()) {
             Log.e(LOG_TAG, "shouldNotify null room ID");
             return false;
         }
@@ -91,11 +88,8 @@ public class EventUtils {
         }
 
         Room room = session.getDataHandler().getRoom(event.roomId);
-        if (RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
-                && !TextUtils.equals(event.userId, session.getCredentials().userId)) {
-            return true;
-        }
-        return false;
+        return RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
+                && !TextUtils.equals(event.getSender(), session.getCredentials().userId);
     }
 
     /**

@@ -34,85 +34,85 @@ import java.util.Collection;
 public interface IMXCall {
     // call state events
     // the call is an empty shell nothing has been initialized
-    public static final String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
+    String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
 
     // the callview has been created
-    public static final String CALL_STATE_CREATING_CALL_VIEW = "IMXCall.CALL_STATE_CREATING_CALL_VIEW";
+    String CALL_STATE_CREATING_CALL_VIEW = "IMXCall.CALL_STATE_CREATING_CALL_VIEW";
 
     // the call is preparing
-    public static final String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
+    String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
 
     // incoming/outgoing calls : initializing the local audio / video
-    public static final String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
+    String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
 
     // incoming calls : the local media is retrieved
-    public static final String CALL_STATE_WAIT_CREATE_OFFER = "IMXCall.CALL_STATE_WAIT_CREATE_OFFER";
+    String CALL_STATE_WAIT_CREATE_OFFER = "IMXCall.CALL_STATE_WAIT_CREATE_OFFER";
 
     // outgoing calls : the call invitation is sent
-    public static final String CALL_STATE_INVITE_SENT = "IMXCall.CALL_STATE_INVITE_SENT";
+    String CALL_STATE_INVITE_SENT = "IMXCall.CALL_STATE_INVITE_SENT";
 
     // the device is ringing
     // incoming calls : after applying the incoming params
     // outgoing calls : after getting the m.call.invite echo
-    public static final String CALL_STATE_RINGING = "IMXCall.CALL_STATE_RINGING";
+    String CALL_STATE_RINGING = "IMXCall.CALL_STATE_RINGING";
 
     // incoming calls : create the call answer
-    public static final String CALL_STATE_CREATE_ANSWER = "IMXCall.CALL_STATE_CREATE_ANSWER";
+    String CALL_STATE_CREATE_ANSWER = "IMXCall.CALL_STATE_CREATE_ANSWER";
 
     // the call connection is connecting
-    public static final String CALL_STATE_CONNECTING = "IMXCall.CALL_STATE_CONNECTING";
+    String CALL_STATE_CONNECTING = "IMXCall.CALL_STATE_CONNECTING";
 
     //
-    public static final String CALL_STATE_CONNECTED = "IMXCall.CALL_STATE_CONNECTED";
+    String CALL_STATE_CONNECTED = "IMXCall.CALL_STATE_CONNECTED";
 
     // call is ended
-    public static final String CALL_STATE_ENDED = "IMXCall.CALL_STATE_ENDED";
+    String CALL_STATE_ENDED = "IMXCall.CALL_STATE_ENDED";
 
     // error codes
     // cannot initialize the camera
-    public static final String CALL_ERROR_CAMERA_INIT_FAILED = "IMXCall.CALL_ERROR_CAMERA_INIT_FAILED";
+    String CALL_ERROR_CAMERA_INIT_FAILED = "IMXCall.CALL_ERROR_CAMERA_INIT_FAILED";
 
     // cannot initialize the call.
-    public static final String CALL_ERROR_CALL_INIT_FAILED = "IMXCall.CALL_ERROR_CALL_INIT_FAILED";
+    String CALL_ERROR_CALL_INIT_FAILED = "IMXCall.CALL_ERROR_CALL_INIT_FAILED";
 
     // ICE error
-    public static final String CALL_ERROR_ICE_FAILED = "IMXCall.CALL_ERROR_ICE_FAILED";
+    String CALL_ERROR_ICE_FAILED = "IMXCall.CALL_ERROR_ICE_FAILED";
 
     // the user did not respond to the call.
-    public static final String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
+    String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
 
 
-    public interface MXCallListener {
+    interface MXCallListener {
         /**
          * Called when the call state change
          */
-        public void onStateDidChange(String state);
+        void onStateDidChange(String state);
 
         /**
          * Called when the call fails
          */
-        public void onCallError(String error);
+        void onCallError(String error);
 
         /**
          * The callview must be added to a layout
          * @param callview the callview
          */
-        public void onViewLoading(View callview);
+        void onViewLoading(View callview);
 
         /**
          * Warn when the call view is ready
          */
-        public void onViewReady();
+        void onViewReady();
 
         /**
          * The call was answered on another device
          */
-        public void onCallAnsweredElsewhere();
+        void onCallAnsweredElsewhere();
 
         /**
          * Warn that the call isEnded
          */
-        public void onCallEnd();
+        void onCallEnd();
     }
 
     // creator
@@ -120,134 +120,134 @@ public interface IMXCall {
     /**
      * Create the callview
      */
-    public void createCallView();
+    void createCallView();
 
     /**
      * The activity is paused.
      */
-    public void onPause();
+    void onPause();
 
     /**
      * The activity is resumed.
      */
-    public void onResume();
+    void onResume();
 
     // actions (must be done after onViewReady()
     /**
      * Start a call.
      */
-    public void placeCall();
+    void placeCall();
 
     /**
      * Prepare a call reception.
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
      */
-    public void prepareIncomingCall(JsonObject callInviteParams, String callId);
+    void prepareIncomingCall(JsonObject callInviteParams, String callId);
 
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
      */
-    public void launchIncomingCall();
+    void launchIncomingCall();
 
     // events thread
     /**
      * Manage the call events.
      * @param event the call event.
      */
-    public void handleCallEvent(Event event);
+    void handleCallEvent(Event event);
 
     // user actions
     /**
      * The call is accepted.
      */
-    public void answer();
+    void answer();
 
     /**
      * The call has been has answered on another device.
      */
-    public void onAnsweredElsewhere();
+    void onAnsweredElsewhere();
 
     /**
      * The call is hung up.
      */
-    public void hangup(String reason);
+    void hangup(String reason);
 
     // listener managemenent
-    public void addListener(MXCallListener callListener);
-    public void removeListener(MXCallListener callListener);
+    void addListener(MXCallListener callListener);
+    void removeListener(MXCallListener callListener);
 
     // getters / setters
     /**
      * @return the callId
      */
-    public String getCallId();
+    String getCallId();
 
     /**
      * Set the callId
      */
-    public void setCallId(String callId);
+    void setCallId(String callId);
 
     /**
      * @return the linked room
      */
-    public Room getRoom();
+    Room getRoom();
 
     /**
      * Set the linked room.
      * @param room the room
      */
-    public void setRoom(Room room);
+    void setRoom(Room room);
 
     /**
      * @return the session
      */
-    public MXSession getSession();
+    MXSession getSession();
 
     /**
      * @return true if the call is an incoming call.
      */
-    public Boolean isIncoming();
+    Boolean isIncoming();
 
     /**
      * @param isIncoming true if the call is an incoming one.
      */
-    public void setIsIncoming(Boolean isIncoming);
+    void setIsIncoming(Boolean isIncoming);
 
     /**
      * Defines the call type
      */
-    public void setIsVideo(Boolean isVideo);
+    void setIsVideo(Boolean isVideo);
 
     /**
      * @return true if the call is a video call.
      */
-    public Boolean isVideo();
+    Boolean isVideo();
 
     /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
-    public String getCallState();
+    String getCallState();
 
     /**
      * @return the callView
      */
-    public View getCallView();
+    View getCallView();
 
     /**
      * @return the callView visibility
      */
-    public int getVisibility();
+    int getVisibility();
 
     /**
      * Set the callview visibility
      * @return true if the operation succeeds
      */
-    public boolean setVisibility(int visibility);
+    boolean setVisibility(int visibility);
 
     /**
      * Toogle the speaker
      */
-    public void toggleSpeaker();
+    void toggleSpeaker();
 }

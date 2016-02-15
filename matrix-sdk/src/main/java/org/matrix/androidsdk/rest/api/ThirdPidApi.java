@@ -30,5 +30,5 @@ public interface ThirdPidApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/lookup")
-    public void lookup3Pid(@Query("address") String address, @Query("medium") String medium, Callback<PidResponse> callback);
+    void lookup3Pid(@Query("address") String address, @Query("medium") String medium, Callback<PidResponse> callback);
 }

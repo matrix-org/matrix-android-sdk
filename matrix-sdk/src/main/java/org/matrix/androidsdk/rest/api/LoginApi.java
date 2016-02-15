@@ -35,7 +35,7 @@ public interface LoginApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/login")
-    public void login(Callback<LoginFlowResponse> callback);
+    void login(Callback<LoginFlowResponse> callback);
 
     /**
      * Pass params to the server for the current login phase.
@@ -43,5 +43,5 @@ public interface LoginApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/login")
-    public void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
+    void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
 }

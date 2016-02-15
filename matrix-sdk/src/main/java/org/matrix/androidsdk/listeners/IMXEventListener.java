@@ -15,39 +15,51 @@
  */
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
+import java.util.List;
+
 public interface IMXEventListener {
+    /**
+     * The store is ready.
+     */
+    void onStoreReady();
 
     /**
      * User presence was updated.
      * @param event The presence event.
      * @param user The new user value.
      */
-    public void onPresenceUpdate(Event event, User user);
+    void onPresenceUpdate(Event event, User user);
+
+    /**
+     * The self user has been updated (display name, avatar url...).
+     * @param myUser The updated myUser
+     */
+    void onAccountInfoUpdate(MyUser myUser);
 
     /**
      * A live room event was received.
      * @param event the event
      * @param roomState the room state right before the event
      */
-    public void onLiveEvent(Event event, RoomState roomState);
+    void onLiveEvent(Event event, RoomState roomState);
 
     /**
      * The live events from a chunk are performed.
      */
-    public void onLiveEventsChunkProcessed();
+    void onLiveEventsChunkProcessed();
 
     /**
      * A back room event was received.
      * @param event the event
      * @param roomState the room state right before the event
      */
-    public void onBackEvent(Event event, RoomState roomState);
+    void onBackEvent(Event event, RoomState roomState);
 
     /**
      * A received event fulfills the bing rules
@@ -58,43 +70,57 @@ public interface IMXEventListener {
      * @param roomState the room state right before the event
      * @param bingRule the bing rule
      */
-    public void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
+    void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
      * An event has been deleted
      *
      * @param event the event
      */
-    public void onDeleteEvent(Event event);
+    void onDeleteEvent(Event event);
 
     /**
      * An event is automatically resending.
      *
      * @param event the event
      */
-    public void onResendingEvent(Event event);
+    void onResendingEvent(Event event);
 
     /**
      * An event has been automatically resent
      *
      * @param event the event
      */
-    public void onResentEvent(Event event);
+    void onResentEvent(Event event);
 
     /**
      * The bing rules have been updated
      */
-    public void onBingRulesUpdate();
+    void onBingRulesUpdate();
 
     /**
      * The initial sync is complete and the store can be queried for current state.
      */
-    public void onInitialSyncComplete();
+    void onInitialSyncComplete();
 
     /**
      * User presences was synchronized..
      */
-    public void onPresencesSyncComplete();
+    void onPresencesSyncComplete();
+
+    /**
+     * A new room has been created.
+     *
+     * @param roomId the roomID
+     */
+    void onNewRoom(String roomId);
+
+    /**
+     * The user joined a room.
+     *
+     * @param roomId the roomID
+     */
+    void onJoinRoom(String roomId);
 
     /**
      * The room initial sync is completed.
@@ -102,7 +128,7 @@ public interface IMXEventListener {
      *
      * @param roomId the roomID
      */
-    public void onRoomInitialSyncComplete(String roomId);
+    void onRoomInitialSyncComplete(String roomId);
 
     /**
      * The room data has been internally updated.
@@ -110,13 +136,34 @@ public interface IMXEventListener {
      *
      * @param roomId the roomID
      */
-    public void onRoomInternalUpdate(String roomId);
+    void onRoomInternalUpdate(String roomId);
+
+    /**
+     * The user left the room.
+     *
+     * @param roomId the roomID
+     */
+    void onLeaveRoom(String roomId);
 
     /**
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *
      * @param roomId the roomID
+     * @param senderIds the list of the
      */
-    public void onReceiptEvent(String roomId);
+    void onReceiptEvent(String roomId, List<String> senderIds);
+
+    /**
+     * A Room Tag event has been received.
+     *
+     * @param roomId the roomID
+     */
+    void onRoomTagEvent(String roomId);
+
+    /**
+     * A room has been resynced with a limited timeline
+     * @param roomId the room Id
+     */
+    void onRoomSyncWithLimitedTimeline(String roomId);
 }

@@ -86,25 +86,25 @@ public class ContentManager {
     /**
      * Interface to implement to get the mxc URI of uploaded content.
      */
-    public static interface UploadCallback {
+    public interface UploadCallback {
         /**
          * Warn of the upload starts
          * @param uploadId the upload Identifier
          */
-        public void onUploadStart(String uploadId);
+        void onUploadStart(String uploadId);
 
         /**
          * Warn of the progress upload
          * @param uploadId the upload Identifier
          * @param percentageProgress the progress value
          */
-        public void onUploadProgress(String uploadId, int percentageProgress);
+        void onUploadProgress(String uploadId, int percentageProgress);
 
         /**
          * Called when the upload is complete or has failed.
          * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
          */
-        public void onUploadComplete(String uploadId, ContentResponse uploadResponse, int serverReponseCode,  String serverErrorMessage);
+        void onUploadComplete(String uploadId, ContentResponse uploadResponse, int serverReponseCode, String serverErrorMessage);
     }
 
     /**

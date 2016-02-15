@@ -16,18 +16,15 @@
 
 package org.matrix.androidsdk.data;
 
-import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.w3c.dom.Text;
 
 import java.util.Collection;
 
@@ -35,6 +32,8 @@ import java.util.Collection;
  * Stores summarised information about the room.
  */
 public class RoomSummary implements java.io.Serializable {
+
+    private static final String LOG_TAG = "RoomSummary";
 
     private String mRoomId = null;
     private String mName = null;
@@ -86,13 +85,47 @@ public class RoomSummary implements java.io.Serializable {
      */
     public static boolean isSupportedEvent(Event event) {
         String type = event.type;
+        Boolean isSupported = false;
 
-        return  TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type) ||
-                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
-                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
-                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
-                TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
-                (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+        // check if the msgtype is supported
+        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type)) {
+            try {
+                JsonObject eventContent = event.getContentAsJsonObject();
+                String msgType = "";
+
+                JsonElement element = eventContent.get("msgtype");
+
+                if (null != element) {
+                    msgType = element.getAsString();
+                }
+
+                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT)||
+                        TextUtils.equals(msgType, Message.MSGTYPE_EMOTE) ||
+                        TextUtils.equals(msgType, Message.MSGTYPE_NOTICE) ||
+                        TextUtils.equals(msgType, Message.MSGTYPE_IMAGE) ||
+                        TextUtils.equals(msgType, Message.MSGTYPE_AUDIO) ||
+                        TextUtils.equals(msgType, Message.MSGTYPE_VIDEO) ||
+                        TextUtils.equals(msgType, Message.MSGTYPE_FILE);
+
+                if (!isSupported && !TextUtils.isEmpty(msgType)) {
+                    Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
+                }
+            } catch (Exception e) {
+
+            }
+        } else if (!TextUtils.isEmpty(type)){
+            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
+                    (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+
+            if (!isSupported) {
+                Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
+            }
+        }
+
+        return isSupported;
     }
 
     public String getMatrixId() {
@@ -113,7 +146,7 @@ public class RoomSummary implements java.io.Serializable {
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
                 } else {
                     // use the stored one
                     inviterName = mInviterName;
@@ -222,11 +255,11 @@ public class RoomSummary implements java.io.Serializable {
             mInviterName = null;
 
             if (null != mLatestEvent) {
-                mInviterName = mInviterUserId = mLatestEvent.userId;
+                mInviterName = mInviterUserId = mLatestEvent.getSender();
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.userId);
+                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
                 }
             }
         } else {

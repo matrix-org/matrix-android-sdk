@@ -15,11 +15,13 @@
  */
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+
+import java.util.List;
 
 /**
  * A no-op class implementing {@link IMXEventListener} so listeners can just implement the methods
@@ -28,8 +30,15 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 public class MXEventListener implements IMXEventListener {
 
     @Override
-    public void onPresenceUpdate(Event event, User user) {
+    public void onStoreReady() {
+    }
 
+    @Override
+    public void onPresenceUpdate(Event event, User user) {
+    }
+
+    @Override
+    public void onAccountInfoUpdate(MyUser myUser) {
     }
 
     @Override
@@ -76,6 +85,14 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onNewRoom(String roomId) {
+    }
+
+    @Override
+    public void onJoinRoom(String roomId) {
+    }
+
+    @Override
     public void onRoomInitialSyncComplete(String roomId) {
     }
 
@@ -84,6 +101,18 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onReceiptEvent(String roomId) {
+    public void onLeaveRoom(String roomId) {
+    }
+
+    @Override
+    public void onReceiptEvent(String roomId, List<String> senderIds) {
+    }
+
+    @Override
+    public void onRoomTagEvent(String roomId) {
+    }
+
+    @Override
+    public void onRoomSyncWithLimitedTimeline(String roomId) {
     }
 }

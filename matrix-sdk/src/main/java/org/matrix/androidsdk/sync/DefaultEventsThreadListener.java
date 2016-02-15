@@ -20,8 +20,8 @@ import android.util.Log;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 
 import java.util.List;
 
@@ -59,6 +59,11 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
         }
 
         mData.onInitialSyncComplete();
+    }
+
+    @Override
+    public void onSyncV2Response(SyncResponse syncResponse, Boolean isInitialSync) {
+        mData.onSyncV2Complete(syncResponse, isInitialSync);
     }
 
     /**

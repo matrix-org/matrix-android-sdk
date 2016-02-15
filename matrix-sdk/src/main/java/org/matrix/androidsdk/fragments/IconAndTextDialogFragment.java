@@ -53,7 +53,7 @@ public class IconAndTextDialogFragment extends DialogFragment {
          * @param dialogFragment the dialog.
          * @param position The clicked position
          */
-        public void onItemClick(IconAndTextDialogFragment dialogFragment, int position);
+        void onItemClick(IconAndTextDialogFragment dialogFragment, int position);
     }
 
     private ListView mListView;

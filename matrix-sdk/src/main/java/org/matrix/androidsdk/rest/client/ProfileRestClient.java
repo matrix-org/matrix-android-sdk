@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
 import retrofit.client.Response;
 
@@ -95,7 +94,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         }) {
             @Override
             public void success(User user, Response response) {
-                callback.onSuccess(user.avatarUrl);
+                callback.onSuccess(user.getAvatarUrl());
             }
         });
     }
@@ -109,7 +108,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         final String description = "updateAvatarUrl newUrl : " + newUrl;
 
         User user = new User();
-        user.avatarUrl = newUrl;
+        user.setAvatarUrl(newUrl);
 
         mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override

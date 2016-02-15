@@ -15,25 +15,22 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.net.Uri;
-import android.util.Log;
-
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.Search.SearchParams;
+import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 
+import java.util.HashMap;
 import java.util.List;
 
-import retrofit.RestAdapter;
 import retrofit.client.Response;
 
 /**
@@ -116,4 +113,45 @@ public class EventsRestClient extends RestClient<EventsApi> {
     public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
         return mApi.events(fromToken, timeoutMs);
     }
+
+    /**
+     * Search a text in room messages.
+     * @param text the text to search for.
+     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     * @param beforeLimit the number of events to get before the matching results.
+     * @param afterLimit the number of events to get after the matching results.
+     * @param nextBatch the token to pass for doing pagination from a previous response.
+     * @param callback the request callback
+     */
+     public void searchMessageText(final String text, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
+         SearchParams searchParams = new SearchParams();
+         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
+
+         searchEventParams.search_term = text;
+         searchEventParams.order_by = "recent";
+
+         searchEventParams.event_context = new HashMap<String, Object>();
+         searchEventParams.event_context.put("before_limit", beforeLimit);
+         searchEventParams.event_context.put("after_limit", afterLimit);
+         searchEventParams.event_context.put("include_profile", true);
+
+         if (null != rooms) {
+             searchEventParams.filter = new HashMap<String, Object>();
+             searchEventParams.filter.put("rooms", rooms);
+         }
+
+         searchParams.search_categories = new HashMap<String, Object>();
+         searchParams.search_categories.put("room_events", searchEventParams);
+
+         final String description = "searchMessageText";
+
+         // don't retry to send the request
+         // if the search fails, stop it
+         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+             @Override
+             public void onRetry() {
+                 searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+             }
+         }));
+     }
 }

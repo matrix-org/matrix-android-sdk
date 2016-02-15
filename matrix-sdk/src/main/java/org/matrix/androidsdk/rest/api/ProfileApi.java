@@ -35,7 +35,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback to call when finished
      */
     @PUT("/profile/{userId}/displayname")
-    public void displayname(@Path("userId") String userId, @Body User user, Callback<Void> callback);
+    void displayname(@Path("userId") String userId, @Body User user, Callback<Void> callback);
 
     /**
      * Get a user's display name.
@@ -43,7 +43,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/profile/{userId}/displayname")
-    public void displayname(@Path("userId") String userId, Callback<User> callback);
+    void displayname(@Path("userId") String userId, Callback<User> callback);
 
     /**
      * Update a user's avatar URL.
@@ -52,7 +52,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback to call when finished
      */
     @PUT("/profile/{userId}/avatar_url")
-    public void avatarUrl(@Path("userId") String userId, @Body User user, Callback<Void> callback);
+    void avatarUrl(@Path("userId") String userId, @Body User user, Callback<Void> callback);
 
     /**
      * Get a user's avatar URL.
@@ -60,5 +60,5 @@ public interface ProfileApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/profile/{userId}/avatar_url")
-    public void avatarUrl(@Path("userId") String userId, Callback<User> callback);
+    void avatarUrl(@Path("userId") String userId, Callback<User> callback);
 }

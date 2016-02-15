@@ -492,7 +492,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         try {
             // default UI
             // when a room is deleting, the UI is dimmed
-            final View deleteProgress = (View) convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
+            final View deleteProgress = convertView.findViewById(R.id.roomSummaryAdapter_delete_progress);
             deleteProgress.setVisibility(View.GONE);
             convertView.setAlpha(1.0f);
 

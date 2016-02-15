@@ -15,14 +15,17 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.Search.SearchParams;
+import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import retrofit.Callback;
+import retrofit.http.Body;
 import retrofit.http.GET;
+import retrofit.http.POST;
 import retrofit.http.Path;
 import retrofit.http.Query;
 
@@ -38,7 +41,7 @@ public interface EventsApi {
      * @return the next event or just the same token in case of timeout
      */
     @GET("/events")
-    public TokensChunkResponse<Event> events(@Query("from") String from, @Query("timeout") int timeout);
+    TokensChunkResponse<Event> events(@Query("from") String from, @Query("timeout") int timeout);
 
     /**
      * Get information about a single event.
@@ -46,14 +49,14 @@ public interface EventsApi {
      * @param callback The asynchronous callback to call when finished
      */
     @GET("/events/{eventId}")
-    public void events(@Path("eventId") String eventId, Callback<Event> callback);
+    void events(@Path("eventId") String eventId, Callback<Event> callback);
 
     /**
      * Get the list of public rooms for this home server.
      * @param callback The asynchronous callback to call when finished
      */
     @GET("/publicRooms")
-    public void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
+    void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
 
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
@@ -61,6 +64,14 @@ public interface EventsApi {
      * @param callback The asynchronous callback to call when finished
      */
     @GET("/initialSync")
-    public void initialSync(@Query("limit") int limit,
-                                           Callback<InitialSyncResponse> callback);
+    void initialSync(@Query("limit") int limit,
+                     Callback<InitialSyncResponse> callback);
+
+    /**
+     * Perform a search.
+     * @param searchParams the search params.
+     * @param callback The search result.
+     */
+    @POST("/search")
+    void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
 }

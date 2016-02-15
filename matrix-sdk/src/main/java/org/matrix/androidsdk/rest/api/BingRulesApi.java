@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
@@ -29,10 +28,10 @@ import retrofit.http.Path;
 public interface BingRulesApi {
 
     @GET("/pushrules/")
-    public void getAllBingRules(Callback<BingRulesResponse> callback);
+    void getAllBingRules(Callback<BingRulesResponse> callback);
 
     @GET("/pushrules/")
-    public BingRulesResponse getAllBingRules();
+    BingRulesResponse getAllBingRules();
 
     /**
      * Update the ruleID enable status
@@ -42,7 +41,7 @@ public interface BingRulesApi {
      * @param callback the callback
      */
     @PUT("/pushrules/global/{kind}/{ruleId}/enabled")
-    public void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
+    void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
 
     /**
      * Update the ruleID enable status
@@ -51,7 +50,7 @@ public interface BingRulesApi {
      * @param callback the callback
      */
     @DELETE("/pushrules/global/{kind}/{ruleId}")
-    public void deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId, Callback<Void> callback);
+    void deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId, Callback<Void> callback);
 
     /**
      * Add the ruleID enable status
@@ -61,7 +60,7 @@ public interface BingRulesApi {
      * @param callback the callback.
      */
     @PUT("/pushrules/global/{kind}/{ruleId}")
-    public void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
+    void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
 
 
 

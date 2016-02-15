@@ -30,10 +30,13 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import retrofit.Callback;
 import retrofit.http.Body;
+import retrofit.http.DELETE;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
@@ -53,8 +56,29 @@ public interface RoomsApiV2 {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/receipt/m.read/{eventId}")
-    public void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
-                     Callback<Void> callback);
+    void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
+                         Callback<Void> callback);
 
+    /**
+     * Add a tag to a room
+     * @param userId the userId
+     * @param roomId the room id
+     * @param tag the new room tag
+     * @param content the event content
+     * @param callback the asynchronous callback called with the response
+     */
+    @PUT("/user/{userId}/rooms/{roomId}/tags/{tag}")
+    void addTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag, @Body HashMap<String, Object> content,
+                Callback<Void> callback);
 
+    /**
+     * Remove a tag to a room
+     * @param userId the userId
+     * @param roomId the room id
+     * @param tag the new room tag
+     * @param callback the asynchronous callback called with the response
+     */
+    @DELETE("/user/{userId}/rooms/{roomId}/tags/{tag}")
+    void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
+                   Callback<Void> callback);
 }

@@ -37,13 +37,10 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
+import java.util.HashMap;
 import java.util.List;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
 
 /**
  * Class used to make requests to the rooms API.
@@ -507,4 +504,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         // never resend typing on network error
         mApi.typing(roomId, userId, typing, new RestAdapterCallback<Void>(description, null, callback, null));
     }
+
+    /**
+     * Update the room avatar url.
+     * @param roomId the room id
+     * @param avatarUrl canonical alias
+     * @param callback the async callback
+     */
+    public void updateAvatarUrl(final String roomId, final String avatarUrl, final ApiCallback<Void> callback) {
+        final String description = "updateAvatarUrl : roomId " + roomId + " avatarUrl " + avatarUrl;
+
+        HashMap<String, String> params = new HashMap<String, String>();
+        params.put("url", avatarUrl);
+
+        mApi.roomAvatarUrl(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateAvatarUrl(roomId, avatarUrl, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateAvatarUrl failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
 }

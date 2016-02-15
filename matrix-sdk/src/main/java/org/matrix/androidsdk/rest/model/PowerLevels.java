@@ -19,18 +19,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PowerLevels implements java.io.Serializable {
-    public int ban;
-    public int kick;
-    public int invite;
-    public int redact;
+    public int ban = 50;
+    public int kick = 50;
+    public int invite = 50;
+    public int redact = 50;
 
-    public int eventsDefault;
+    public int eventsDefault = 50;
     public Map<String, Integer> events = new HashMap<String, Integer>();
 
-    public int usersDefault;
+    public int usersDefault = 0;
     public Map<String, Integer> users = new HashMap<String, Integer>();
 
-    public int stateDefault;
+    public int stateDefault = 50;
 
     public PowerLevels deepCopy() {
         PowerLevels copy = new PowerLevels();
@@ -61,5 +61,37 @@ public class PowerLevels implements java.io.Serializable {
         if (null != userId) {
             users.put(userId, Integer.valueOf(powerLevel));
         }
+    }
+
+    /**
+     *  Helper to get the minimum power level the user must have to send an event of the given type
+     as a message.
+     * @param eventTypeString the type of event (in Event.EVENT_TYPE_XXX values)
+     * @return the required minimum power level.
+     */
+    public int minimumPowerLevelForSendingEventAsMessage(String eventTypeString) {
+        int minimumPowerLevel = eventsDefault;
+
+        if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
+            minimumPowerLevel = events.get(eventTypeString);
+        }
+
+        return minimumPowerLevel;
+    }
+
+    /**
+     * Helper to get the minimum power level the user must have to send an event of the given type
+     * as a state event.
+     * @param eventTypeString the type of event (in Event.EVENT_TYPE_STATE_ values).
+     * @return the required minimum power level.
+     */
+    public int minimumPowerLevelForSendingEventAsStateEvent(String eventTypeString) {
+        int minimumPowerLevel = stateDefault;
+
+        if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
+            minimumPowerLevel = events.get(eventTypeString);
+        }
+
+        return minimumPowerLevel;
     }
 }

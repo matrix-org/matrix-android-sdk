@@ -22,5 +22,5 @@ import retrofit.http.GET;
 
 public interface CallRulesApi {
     @GET("/voip/turnServer")
-    public void getTurnServer(Callback<JsonObject> callback);
+    void getTurnServer(Callback<JsonObject> callback);
 }

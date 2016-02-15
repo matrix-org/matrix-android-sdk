@@ -1045,7 +1045,7 @@ public class MXJingleCall extends MXCall {
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
             // event from other member
-            if (!TextUtils.equals(event.userId, mSession.getMyUser().userId)) {
+            if (!TextUtils.equals(event.getSender(), mSession.getMyUser().userId)) {
                 if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
                     onCallAnswer(event);
                 } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {

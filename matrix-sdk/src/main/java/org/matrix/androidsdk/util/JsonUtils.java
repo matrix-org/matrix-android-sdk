@@ -25,12 +25,14 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -74,6 +76,10 @@ public class JsonUtils {
         return gson.fromJson(jsonObject, RoomMember.class);
     }
 
+    public static RoomTags toRoomTags(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, RoomTags.class);
+    }
+
     public static JsonElement toJson(RoomMember roomMember) {
         return gson.toJsonTree(roomMember);
     }
@@ -105,6 +111,10 @@ public class JsonUtils {
 
     public static JsonObject toJson(Message message) {
         return (JsonObject) gson.toJsonTree(message);
+    }
+
+    public static EventContent toEventContent(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, EventContent.class);
     }
 
     public static ImageMessage toImageMessage(JsonElement jsonObject) {

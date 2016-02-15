@@ -21,12 +21,33 @@ import java.util.List;
  * Class representing a room from a JSON response from room or global initial sync.
  */
 public class RoomResponse {
+    // The room identifier.
     public String roomId;
+
+    // The last recent messages of the room.
     public TokensChunkResponse<Event> messages;
+
+    // The state events.
     public List<Event> state;
-    public List<Event> presence;
-    public List<Event> receipts;
+
+    // The private data that this user has attached to this room.
+    public List<Event> accountData;
+
+    // The current user membership in this room.
     public String membership;
+
+    // The room visibility (public/private).
     public String visibility;
+
+    // The matrix id of the inviter in case of pending invitation.
     public String inviter;
+
+    // The invite event if membership is invite.
+    public Event invite;
+
+    // The presence status of other users (Provided in case of room initial sync @see http://matrix.org/docs/api/client-server/#!/-rooms/get_room_sync_data)).
+    public List<Event> presence;
+
+    // The read receipts (Provided in case of room initial sync).
+    public List<Event> receipts;
 }
