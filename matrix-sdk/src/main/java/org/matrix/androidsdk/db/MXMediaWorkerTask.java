@@ -406,6 +406,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                         sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
                         sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "doInBackground SSL exception " + e.getLocalizedMessage());
                     }
                 }
 
