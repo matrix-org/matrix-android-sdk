@@ -1,3 +1,31 @@
+Changes to Matrix Android Console in 0.5.3 (2016-02-16)
+=======================================================
+
+Improvements:
+ * The read receipts are displayed for outgoing and incoming messages.
+ * The room members search methods have been improved.
+ * The user account data is updated at application launch and resume to speed up account update.
+ * The server sync methods are not anymore called in the IU thread.
+ * Updates to support the renamed JSON fields (server update).
+ * Reduce the number of room backpagination requests when reaching the room history top.
+
+Features:
+ * Add new server synchronisation.
+ * Add room tags support.
+ * Add the mute room notifications methods.
+ * Add the remote text search method. 
+
+Bugfixes:
+ * Some member avatars were not properly retrieved.
+ * The read receipts were not properly saved.
+ * The room loading spinner was sometimes stuck when joining a room.
+ * Some redacted events were wrongly displayed in the recents (e.g. John:null).
+ * Do not try to download an invalid media at each room refresh.
+ * A full sync was triggered after failing to send some messages.
+ * Fix a null pointer while refresh the messages fragment.
+ * Some redacted events were displayed as echoed one (light gray).
+ * Fixed some leave - join - leave - join issues.
+
 Changes to Matrix Android SDK in 0.5.2 (2015-11-20)
 ===================================================
 
