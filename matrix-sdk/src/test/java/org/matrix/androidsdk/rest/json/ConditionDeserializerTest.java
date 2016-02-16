@@ -36,7 +36,6 @@ import static org.junit.Assert.*;
 /**
  * Class for unit testing the ConditionDeserializer.
  */
-@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class ConditionDeserializerTest {
 

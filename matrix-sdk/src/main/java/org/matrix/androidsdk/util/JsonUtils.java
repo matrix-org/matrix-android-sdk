@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -78,6 +79,10 @@ public class JsonUtils {
 
     public static RoomTags toRoomTags(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomTags.class);
+    }
+
+    public static MatrixError toMatrixError(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, MatrixError.class);
     }
 
     public static JsonElement toJson(RoomMember roomMember) {

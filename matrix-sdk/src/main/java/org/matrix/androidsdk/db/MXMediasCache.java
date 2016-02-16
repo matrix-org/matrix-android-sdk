@@ -26,7 +26,10 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
+import com.google.gson.JsonElement;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -42,12 +45,20 @@ public class MXMediasCache {
      * Interface to implement to get the mxc URI of downloaded content.
      */
     public interface DownloadCallback {
+
         /**
          * The download start
          *
          * @param downloadId the download Identifier
          */
         void onDownloadStart(String downloadId);
+
+        /**
+         * An error has been returned by the server
+         * @param downloadId  the download Identifier
+         * @param jsonElement the error
+         */
+        void onError(String downloadId, JsonElement jsonElement);
 
         /**
          * Warn of the progress download
@@ -683,6 +694,10 @@ public class MXMediasCache {
 
                 // check at the end of the download, if a suspended task can be launched again.
                 task.addCallback(new DownloadCallback() {
+                    @Override
+                    public void onError(String downloadId, JsonElement jsonElement) {
+                    }
+
                     @Override
                     public void onDownloadStart(String downloadId) {
                     }

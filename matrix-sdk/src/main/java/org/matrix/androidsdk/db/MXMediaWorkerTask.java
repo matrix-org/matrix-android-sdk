@@ -27,16 +27,25 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import org.json.JSONObject;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
+import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
@@ -64,6 +73,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     private File mDirectoryFile = null;
     private int mRotation = 0;
     private int mProgress = 0;
+    private JsonElement mErrorAsJsonElement;
     private final HomeserverConnectionConfig mHsConfig;
 
     public static void clearBitmapsCache() {
@@ -395,10 +405,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             Bitmap bitmap = null;
 
             long filelen = -1;
-
+            URLConnection connection = null;
+            
             try {
-                URLConnection connection = url.openConnection();
-
+            	connection = url.openConnection();
+            
                 if (mHsConfig != null && connection instanceof HttpsURLConnection) {
                     // Add SSL Socket factory.
                     HttpsURLConnection sslConn = (HttpsURLConnection) connection;
@@ -415,6 +426,24 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 filelen = connection.getContentLength();
                 stream = connection.getInputStream();
             } catch (FileNotFoundException e) {
+                InputStream errorStream = ((HttpsURLConnection) connection).getErrorStream();
+
+                if (null != errorStream) {
+                    try {
+                        BufferedReader streamReader = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
+                        StringBuilder responseStrBuilder = new StringBuilder();
+
+                        String inputStr;
+
+                        while ((inputStr = streamReader.readLine()) != null) {
+                            responseStrBuilder.append(inputStr);
+                        }
+
+                        mErrorAsJsonElement = new JsonParser().parse(responseStrBuilder.toString());
+                    } catch (Exception ee) {
+                    }
+                }
+
                 Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
                 if (isBitmapDownload()) {
                     bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), android.R.drawable.ic_menu_gallery);
@@ -546,6 +575,19 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     }
 
     /**
+     * Dispatch error message.
+     * @param jsonElement the Json error
+     */
+    private void sendError(JsonElement jsonElement) {
+        for(MXMediasCache.DownloadCallback callback : mCallbacks) {
+            try {
+                callback.onError(mUrl, jsonElement);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    /**
      * Dispatch end of download
      */
     private void sendDownloadComplete() {
@@ -567,6 +609,10 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     // Once complete, see if ImageView is still around and set bitmap.
     @Override
     protected void onPostExecute(Bitmap bitmap) {
+        if (null != mErrorAsJsonElement) {
+            sendError(mErrorAsJsonElement);
+        }
+
         sendDownloadComplete();
 
         // update the imageView image
