@@ -36,7 +36,6 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     }
 
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-        //mApi.getAllBingRules(new RestAdapterCallback<BingRulesResponse>(callback));
         mApi.getAllBingRules(new Callback<BingRulesResponse>() {
             @Override
             public void success(BingRulesResponse bingRulesResponse, Response response) {
