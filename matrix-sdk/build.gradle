@@ -13,7 +13,7 @@ apply plugin: 'org.robolectric'
 
 android {
     compileSdkVersion 21
-    buildToolsVersion '21.0.0'
+    buildToolsVersion '23.0.2'
 
     packagingOptions {
         exclude 'LICENSE.txt'
