@@ -42,7 +42,6 @@ import static org.mockito.Mockito.*;
 /**
  * Class for unit testing EventsThread.
  */
-@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class EventsThreadTest {
 

@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class RoomMemberCountConditionTest {
 
