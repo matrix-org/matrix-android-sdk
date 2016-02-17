@@ -1,14 +1,15 @@
-Joachim reigle <Joachim at matrix.org>
+Joachim Reigle <Joachim at matrix.org>
  * First implementation of the android client
 
 Kegan Dougal <kegan at matrix.org>
- * Developer
+ * Core developer
 
 Yannick Le Collen <yannick at matrix.org>
- * Developer
-
-Mitchell Hentges <mitchhentges at protonmail.com>
- * Developer
+ * Core developer
 
 Matthew Hodgson <matthew at matrix.org>
  * General doc & housekeeping
+
+Mitchell Hentges <mitchhentges at protonmail.com>
+ * PR #35, PR #36, etc
+
