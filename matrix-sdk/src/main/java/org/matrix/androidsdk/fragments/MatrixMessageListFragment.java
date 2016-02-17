@@ -1414,7 +1414,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        if (mMessageListView.getFirstVisiblePosition() == 0) {
+        // fill the room history until there are at least 10 messages to be displayed
+        // it avoid weird back pagination effects if the test is done with
+        // mMessageListView.getFirstVisiblePosition() == 0
+        // because getFirstVisiblePosition returns the one above the first visible on the screen
+        // and when jumping to the first visible after back paginating, this cell is not yet rendering.
+        if (mMessageListView.getFirstVisiblePosition() < 10)  {
             mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
