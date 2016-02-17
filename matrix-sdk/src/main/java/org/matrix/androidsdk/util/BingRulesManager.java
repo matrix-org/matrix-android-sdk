@@ -81,7 +81,6 @@ public class BingRulesManager {
      * @param callback an async callback called when the rules are loaded
      */
     public void loadRules(final ApiCallback<Void> callback) {
-        isReady = false;
         mApiClient.getAllBingRules(new SimpleApiCallback<BingRulesResponse>(callback) {
             @Override
             public void onSuccess(BingRulesResponse info) {
