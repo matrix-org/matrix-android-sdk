@@ -468,7 +468,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // If we scroll to the top, load more history
                 // so not load history if there is an initial sync progress
                 // or the whole room content fits in a single page
-                if ((firstVisibleItem == 0) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                if ((firstVisibleItem < 2) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                     requestHistory();
                 }
             }
