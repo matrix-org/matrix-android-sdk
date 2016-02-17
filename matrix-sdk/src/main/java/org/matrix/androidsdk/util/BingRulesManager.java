@@ -81,38 +81,13 @@ public class BingRulesManager {
      * @param callback an async callback called when the rules are loaded
      */
     public void loadRules(final ApiCallback<Void> callback) {
-        isReady = false;
-        mApiClient.getAllBingRules(new ApiCallback<BingRulesResponse>() {
+        mApiClient.getAllBingRules(new SimpleApiCallback<BingRulesResponse>(callback) {
             @Override
             public void onSuccess(BingRulesResponse info) {
-                buildRules(info);
                 isReady = true;
+                buildRules(info);
                 if (callback != null) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                isReady = true;
-                if (callback != null) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                isReady = true;
-                if (callback != null) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                isReady = true;
-                if (callback != null) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
