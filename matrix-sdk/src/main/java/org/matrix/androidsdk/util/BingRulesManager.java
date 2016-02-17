@@ -84,8 +84,8 @@ public class BingRulesManager {
         mApiClient.getAllBingRules(new SimpleApiCallback<BingRulesResponse>(callback) {
             @Override
             public void onSuccess(BingRulesResponse info) {
-                isReady = true;
                 buildRules(info);
+                isReady = true;
                 if (callback != null) {
                     callback.onSuccess(null);
                 }
