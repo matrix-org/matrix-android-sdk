@@ -312,6 +312,15 @@ public interface IMXStore {
     List<Event> unreadEvents(String roomId, List<String> types);
 
     /**
+     * Check if an event has been read by an user.
+     * @param roomId the room Id
+     * @param userId the user id
+     * @param eventId the event id
+     * @return true if the user has read the message.
+     */
+    boolean isEventRead(String roomId, String userId, String eventId);
+
+    /**
      * Store the user data for a room.
      *
      * @param roomId The room Id.

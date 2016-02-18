@@ -902,6 +902,38 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Check if an event has been read by an user.
+     * @param roomId the room Id
+     * @param userId the user id
+     * @param eventId the event id
+     * @return true if the user has read the message.
+     */
+    public boolean isEventRead(String roomId, String userId, String eventId) {
+        boolean res = false;
+
+        // sanity check
+        if ((null != roomId) && (null != userId)) {
+            if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
+                Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+                // check if the event is known
+                if (events.containsKey(eventId) && receiptsByUserId.containsKey(userId)) {
+                    Event event = events.get(eventId);
+                    ReceiptData data = receiptsByUserId.get(userId);
+
+                    res = event.originServerTs < data.originServerTs;
+                } else if (receiptsByUserId.containsKey(userId)) {
+                    // the event is not known so assume it is has been flushed
+                    res = true;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    /**
      * Provides the unread events list.
      * @param roomId the room id.
      * @param types an array of event types strings (Event.EVENT_TYPE_XXX).

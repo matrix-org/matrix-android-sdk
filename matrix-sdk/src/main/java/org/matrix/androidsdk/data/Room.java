@@ -1271,6 +1271,15 @@ public class Room {
         return false;
     }
 
+    /**
+     * Check if an event has been read.
+     * @param eventId the event id
+     * @return true if the message has been read
+     */
+    public boolean isEventRead(String eventId) {
+        return mDataHandler.getStore().isEventRead(mRoomId, mMyUserId, eventId);
+    }
+
     //================================================================================
     // Unread event count management
     //================================================================================
