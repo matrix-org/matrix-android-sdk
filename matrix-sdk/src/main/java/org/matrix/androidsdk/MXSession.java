@@ -176,8 +176,6 @@ public class MXSession {
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
         mDataRetriever.setRoomsRestClientV2(mRoomsRestClientV2);
         mDataHandler.setDataRetriever(mDataRetriever);
-        mBingRulesManager = new BingRulesManager(this);
-        mDataHandler.setPushRulesManager(mBingRulesManager);
         mDataHandler.setProfileRestClient(mProfileRestClient);
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
 
@@ -186,6 +184,9 @@ public class MXSession {
 
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
+        mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
+        mDataHandler.setPushRulesManager(mBingRulesManager);
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
 

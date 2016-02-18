@@ -23,6 +23,8 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
@@ -63,17 +65,45 @@ public class BingRulesManager {
 
     private BingRule mDefaultBingRule = new BingRule(true);
 
-    private boolean isReady = false;
+    private boolean mIsInitialized = false;
 
-    public BingRulesManager(MXSession session) {
+    // network management
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private IMXNetworkEventListener mNetworkListener;
+    private ApiCallback<Void> mLoadRulesCallback;
+
+    public BingRulesManager(MXSession session, NetworkConnectivityReceiver networkConnectivityReceiver) {
         mSession = session;
         mApiClient = session.getBingRulesApiClient();
         mMyUserId = session.getCredentials().userId;
         mDataHandler = session.getDataHandler();
+
+        mNetworkListener = new IMXNetworkEventListener() {
+            @Override
+            public void onNetworkConnectionUpdate(boolean isConnected) {
+                // mLoadRulesCallback is set when a loadRules failed
+                // so when a network is available, trigger again loadRules
+                if (isConnected && (null != mLoadRulesCallback)) {
+                    loadRules(mLoadRulesCallback);
+                }
+            }
+        };
+
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
+        networkConnectivityReceiver.addEventListener(mNetworkListener);
     }
 
     public boolean isReady() {
-        return isReady;
+        return mIsInitialized;
+    }
+
+
+    private void removeNetworkListener() {
+        if ((null != mNetworkConnectivityReceiver) && (null != mNetworkListener)) {
+            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+            mNetworkConnectivityReceiver = null;
+            mNetworkListener = null;
+        }
     }
 
     /**
@@ -81,14 +111,39 @@ public class BingRulesManager {
      * @param callback an async callback called when the rules are loaded
      */
     public void loadRules(final ApiCallback<Void> callback) {
-        mApiClient.getAllBingRules(new SimpleApiCallback<BingRulesResponse>(callback) {
+        mLoadRulesCallback = null;
+
+        mApiClient.getAllBingRules(new ApiCallback<BingRulesResponse>() {
             @Override
             public void onSuccess(BingRulesResponse info) {
                 buildRules(info);
-                isReady = true;
+                mIsInitialized = true;
+
                 if (callback != null) {
                     callback.onSuccess(null);
                 }
+
+                removeNetworkListener();
+            }
+
+            private void onError() {
+                // the callback will be called when the request will succeed
+                mLoadRulesCallback = callback;
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError();
             }
         });
     }
@@ -131,7 +186,7 @@ public class BingRulesManager {
             return null;
         }
 
-        if (!isReady) {
+        if (!mIsInitialized) {
             return null;
         }
 
