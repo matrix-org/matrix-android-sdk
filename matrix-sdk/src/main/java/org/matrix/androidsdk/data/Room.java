@@ -23,6 +23,7 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Looper;
 import android.text.BoringLayout;
 import android.text.TextUtils;
 import android.util.Log;
@@ -694,7 +695,7 @@ public class Room {
 
         // enough buffered data
         if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
-            final android.os.Handler handler = new android.os.Handler();
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -705,7 +706,7 @@ public class Room {
                         public void run() {
                             manageEvents(callback);
                         }
-                    }, 300);
+                    }, 100);
                 }
             };
 

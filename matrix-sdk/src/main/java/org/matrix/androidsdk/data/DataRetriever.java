@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.data;
 
+import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -74,7 +75,7 @@ public class DataRetriever {
         final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         if (storageResponse != null) {
-            final android.os.Handler handler = new android.os.Handler();
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -86,7 +87,7 @@ public class DataRetriever {
                         public void run() {
                             callback.onSuccess(storageResponse);
                         }
-                    }, (null == token) ? 0 : 300);
+                    }, (null == token) ? 0 : 100);
                 }
             };
 
