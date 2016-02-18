@@ -804,6 +804,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Tells if the event body should be merged with the previous event
+     * @param event the event
+     * @param position the event position in the events list
+     * @param isMerged true if the event should be be merged
+     * @return true to merge with the previous event body
+     */
+    protected boolean mergeView(Event event, int position, boolean shouldBeMerged) {
+        return shouldBeMerged;
+    }
+
+    /**
      * Common view management.
      * @param position the item position.
      * @param convertView the row view
@@ -850,6 +861,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             isMergedView = TextUtils.equals(prevUserId, event.getSender()) && !mIsSearchMode;
             willBeMerged = TextUtils.equals(nextUserId, event.getSender()) && !mIsSearchMode;
         }
+
+        isMergedView = mergeView(event, position, isMergedView);
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
         View rightTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_right);
