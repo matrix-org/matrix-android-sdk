@@ -1419,7 +1419,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // mMessageListView.getFirstVisiblePosition() == 0
         // because getFirstVisiblePosition returns the one above the first visible on the screen
         // and when jumping to the first visible after back paginating, this cell is not yet rendering.
-        if (mMessageListView.getFirstVisiblePosition() < 10)  {
+        if ((mMessageListView.getVisibility() == View.VISIBLE) &&  mMessageListView.getFirstVisiblePosition() < 10)  {
             mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
