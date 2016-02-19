@@ -21,13 +21,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
-import android.util.Log;
+import android.text.style.CharacterStyle;
+import android.text.style.ForegroundColorSpan;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -50,7 +49,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -71,7 +69,6 @@ import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1139,6 +1136,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Highlight text style
+     */
+    protected CharacterStyle getHighLightTextStyle() {
+        return new BackgroundColorSpan(searchHighlightColor);
+    }
+
+    /**
      * Highlight the pattern in the text.
      * @param textView the textView in which the text is displayed.
      * @param text the text to display.
@@ -1147,7 +1151,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected void highlightPattern(TextView textView, CharSequence text, String pattern) {
         // no pattern or too small
         if (TextUtils.isEmpty(pattern) || (null == text) ||  (text.length() < pattern.length())) {
-            textView.setText(text);
+            if (null != textView) {
+                textView.setText(text);
+            }
         } else {
             Spannable WordtoSpan = new SpannableString(text);
 
@@ -1159,11 +1165,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             while (pos >= 0) {
                 start = pos + lowerPattern.length();
-                WordtoSpan.setSpan(new BackgroundColorSpan(searchHighlightColor), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                WordtoSpan.setSpan(getHighLightTextStyle(), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 pos = lowerText.indexOf(lowerPattern, start);
             }
-
-            textView.setText(WordtoSpan);
+            if (null != textView) {
+            	textView.setText(WordtoSpan);
+            }
         }
     }
 
