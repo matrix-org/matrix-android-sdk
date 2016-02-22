@@ -667,11 +667,13 @@ public class MXDataHandler implements IMXEventListener {
                     if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
                         hasAccountInfoUpdated = true;
                         myUser.displayname = eventContent.displayname;
+                        getStore().setDisplayName(myUser.displayname);
                     }
 
                     if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
                         hasAccountInfoUpdated = true;
                         myUser.setAvatarUrl(eventContent.avatar_url);
+                        getStore().setAvatarURL(myUser.avatar_url);
                     }
 
                     if (hasAccountInfoUpdated) {
