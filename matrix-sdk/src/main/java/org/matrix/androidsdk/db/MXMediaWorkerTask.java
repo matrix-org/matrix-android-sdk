@@ -122,10 +122,11 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
             uniqueId = sb.toString();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "uniqueId failed " + e.getLocalizedMessage());
         }
 
         if (null == uniqueId) {
-            uniqueId = "" + Math.abs(input.hashCode());
+            uniqueId = "" + Math.abs(input.hashCode() + (System.currentTimeMillis() + "").hashCode());
         }
 
         return uniqueId;
