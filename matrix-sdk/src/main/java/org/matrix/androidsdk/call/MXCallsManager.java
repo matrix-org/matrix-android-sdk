@@ -379,7 +379,7 @@ public class MXCallsManager {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Boolean isMyEvent = TextUtils.equals(event.getSender(), mSession.getMyUser().userId);
+                    boolean isMyEvent = TextUtils.equals(event.getSender(), mSession.getMyUserId());
                     Room room = mSession.getDataHandler().getRoom(event.roomId);
 
                     String callId = null;

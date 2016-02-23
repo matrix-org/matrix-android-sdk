@@ -193,7 +193,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "inviteToRoom : roomId " + roomId + " userId " + userId;
 
         User user = new User();
-        user.userId = userId;
+        user.user_id = userId;
         mApi.invite(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {

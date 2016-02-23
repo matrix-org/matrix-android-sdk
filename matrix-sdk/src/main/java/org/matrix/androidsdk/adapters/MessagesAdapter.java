@@ -797,7 +797,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the avatar must be displayed on right side.
      */
     protected boolean isAvatarDisplayedOnRightSide(Event event) {
-        return mSession.getMyUser().userId.equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+        return mSession.getMyUserId().equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
     }
 
     /**
@@ -1211,7 +1211,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if (!mTextColorByEventId.containsKey(msg.eventId)) {
                         String sBody = body.toString();
                         String displayName = mSession.getMyUser().displayname;
-                        String userID =  mSession.getMyUser().userId;
+                        String userID = mSession.getMyUserId();
 
                         if (EventUtils.caseInsensitiveFind(displayName, sBody) || EventUtils.caseInsensitiveFind(userID, sBody)) {
                             textColor = highlightColor;
@@ -1258,7 +1258,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int progress = -1;
 
-        if (mSession.getMyUser().userId.equals(event.getSender())) {
+        if (mSession.getMyUserId().equals(event.getSender())) {
             progress = mSession.getContentManager().getUploadProgress(mediaUrl);
 
             if (progress >= 0) {
@@ -1790,7 +1790,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int progress = -1;
 
-        if (mSession.getMyUser().userId.equals(videoEvent.getSender())) {
+        if (mSession.getMyUserId().equals(videoEvent.getSender())) {
             String uploadingUrl = videoMessage.info.thumbnail_url;
 
             progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
@@ -1939,9 +1939,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (mTypingUsers.size() == 1) {
                 // avoid refreshing when the self user is alone
                 String userId = mTypingUsers.get(0);
-                MyUser myUser = mSession.getMyUser();
 
-                if (TextUtils.equals(userId, myUser.userId)) {
+                if (TextUtils.equals(userId, mSession.getMyUserId())) {
                     mTypingUsers = typingUsers;
                     return;
                 }

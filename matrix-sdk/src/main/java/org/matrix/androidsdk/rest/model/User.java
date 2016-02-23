@@ -34,7 +34,7 @@ public class User {
     public static final String PRESENCE_FREE_FOR_CHAT = "free_for_chat";
     public static final String PRESENCE_HIDDEN = "hidden";
 
-    public String userId;
+    public String user_id;
     public String displayname;
     public String avatar_url;
     public String presence;
@@ -62,7 +62,7 @@ public class User {
 
     protected void clone(User user) {
         if (user != null) {
-            userId = user.userId;
+            user_id = user.user_id;
             displayname = user.displayname;
             avatar_url = user.avatar_url;
             presence = user.presence;
@@ -117,7 +117,7 @@ public class User {
             @Override
             public void onPresenceUpdate(Event event, User user) {
                 // Only pass event through for this user
-                if (user.userId.equals(userId)) {
+                if (user.user_id.equals(user_id)) {
                     eventListener.onPresenceUpdate(event, user);
                 }
             }

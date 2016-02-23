@@ -274,8 +274,8 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeUser(User user) {
-        if ((null != user) && (null != user.userId)) {
-            mUsers.put(user.userId, user);
+        if ((null != user) && (null != user.user_id)) {
+            mUsers.put(user.user_id, user);
         }
     }
 
@@ -285,7 +285,7 @@ public class MXMemoryStore implements IMXStore {
 
             if (null == user) {
                 user = new User();
-                user.userId = roomMember.getUserId();
+                user.user_id = roomMember.getUserId();
                 storeUser(user);
             }
 

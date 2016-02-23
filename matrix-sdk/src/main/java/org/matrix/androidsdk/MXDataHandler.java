@@ -155,7 +155,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             // Handle the case where the user is null by loading the user information from the server
-            mMyUser.userId = mCredentials.userId;
+            mMyUser.user_id = mCredentials.userId;
         } else {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
@@ -191,6 +191,7 @@ public class MXDataHandler implements IMXEventListener {
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         if (isActive()) {
             mBingRulesManager = bingRulesManager;
+
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -585,11 +586,12 @@ public class MXDataHandler implements IMXEventListener {
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = JsonUtils.toUser(event.content);
 
-            if (TextUtils.isEmpty(userPresence.userId)) {
-                userPresence.userId = event.getSender();
+            // use the sender by default
+            if (!TextUtils.isEmpty(event.getSender())) {
+                userPresence.user_id = event.getSender();
             }
 
-            User user = mStore.getUser(userPresence.userId);
+            User user = mStore.getUser(userPresence.user_id);
 
             if (user == null) {
                 user = userPresence;
@@ -604,7 +606,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             // check if the current user has been updated
-            if (mCredentials.userId.equals(user.userId)) {
+            if (mCredentials.userId.equals(user.user_id)) {
                 mStore.setAvatarURL(user.getAvatarUrl());
                 mStore.setDisplayName(user.displayname);
             }

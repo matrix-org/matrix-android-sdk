@@ -153,7 +153,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 @Override
                 public void run() {
                     // check first if the userID has sent some messages in the room history
-                    Boolean refresh = mAdapter.isDisplayedUser(user.userId);
+                    Boolean refresh = mAdapter.isDisplayedUser(user.user_id);
 
                     if (refresh) {
                         // check, if the avatar is currently displayed
@@ -167,7 +167,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
                             MessageRow row = mAdapter.getItem(i);
-                            refresh |= TextUtils.equals(user.userId, row.getEvent().getSender());
+                            refresh |= TextUtils.equals(user.user_id, row.getEvent().getSender());
                         }
                     }
 

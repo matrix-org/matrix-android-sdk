@@ -127,7 +127,7 @@ public class MyUser extends User {
      * @param callback callback when the job is done.
      */
     private void refreshUserAvatarUrl(final ApiCallback<Void> callback) {
-        mProfileRestClient.avatarUrl(userId, new SimpleApiCallback<String>() {
+        mProfileRestClient.avatarUrl(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String anAvatarUrl) {
                 if (MyUser.this.mDataHandler.isActive()) {
@@ -173,7 +173,7 @@ public class MyUser extends User {
      * @param callback callback callback when the job is done.
      */
     private void refreshUserDisplayname(final ApiCallback<Void> callback) {
-        mProfileRestClient.displayname(userId, new SimpleApiCallback<String>() {
+        mProfileRestClient.displayname(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String aDisplayname) {
                 if (MyUser.this.mDataHandler.isActive()) {

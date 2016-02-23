@@ -255,8 +255,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
     // return true if the user has been added
     public boolean saveUser(User user) {
         if (user != null) {
-            if(!mUserMap.containsKey(user.userId)) {
-                mUserMap.put(user.userId, user);
+            if(!mUserMap.containsKey(user.user_id)) {
+                mUserMap.put(user.user_id, user);
                 return true;
             }
         }
@@ -266,8 +266,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     public void deleteUser(User user) {
         if (user != null) {
-            if(mUserMap.containsKey(user.userId)) {
-                mUserMap.remove(user.userId);
+            if(mUserMap.containsKey(user.user_id)) {
+                mUserMap.remove(user.user_id);
             }
         }
     }

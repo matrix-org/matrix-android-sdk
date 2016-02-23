@@ -417,6 +417,20 @@ public class MXSession {
         return mDataHandler.getMyUser();
     }
 
+
+    /**
+     * Get the session's current userid.
+     * @return the session's MyUser id
+     */
+    public String getMyUserId() {
+        checkIfActive();
+
+        if (null != mDataHandler.getMyUser()) {
+            return mDataHandler.getMyUser().user_id;
+        }
+        return null;
+    }
+
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
      * @param eventsListener the event listener or null if using a DataHandler
@@ -842,6 +856,6 @@ public class MXSession {
      * @param callback the callback
      */
     public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
-        mProfileRestClientV2.updatePassword(getMyUser().userId, oldPassword, newPassword, callback);
+        mProfileRestClientV2.updatePassword(getMyUserId(), oldPassword, newPassword, callback);
     }
 }

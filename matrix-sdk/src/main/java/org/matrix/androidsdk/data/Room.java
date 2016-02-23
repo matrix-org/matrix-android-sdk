@@ -289,7 +289,7 @@ public class Room {
             @Override
             public void onPresenceUpdate(Event event, User user) {
                 // Only pass event through if the user is a member of the room
-                if (getMember(user.userId) != null) {
+                if (getMember(user.user_id) != null) {
                     try {
                         eventListener.onPresenceUpdate(event, user);
                     } catch (Exception e) {
