@@ -584,6 +584,11 @@ public class MXDataHandler implements IMXEventListener {
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
             User userPresence = JsonUtils.toUser(event.content);
+
+            if (TextUtils.isEmpty(userPresence.userId)) {
+                userPresence.userId = event.getSender();
+            }
+
             User user = mStore.getUser(userPresence.userId);
 
             if (user == null) {
