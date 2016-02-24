@@ -1334,12 +1334,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
         final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
 
+        RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
+        final FrameLayout.LayoutParams LayoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
+
         // no download in progress
         if (null != downloadId) {
-            downloadPieFractionView.setVisibility(View.VISIBLE);
 
-            RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
-            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
+            downloadPieFractionView.setVisibility(View.VISIBLE);
 
             int frameHeight = -1;
             int frameWidth = -1;
@@ -1379,8 +1380,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             // apply it the layout
             // it avoid row jumping when the image is downloaded
-            lp.height = frameHeight;
-            lp.width = frameWidth;
+            LayoutParams.height = frameHeight;
+            LayoutParams.width = frameWidth;
 
             final String fDownloadId = downloadId;
 
@@ -1410,6 +1411,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if (TextUtils.equals(aDownloadId, fDownloadId)) {
                         downloadPieFractionView.setVisibility(View.GONE);
 
+                        LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                        LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+                        downloadPieFractionView.setVisibility(View.GONE);
+
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
                         }
@@ -1419,6 +1425,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
         } else {
+            LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+
             downloadPieFractionView.setVisibility(View.GONE);
         }
     }
