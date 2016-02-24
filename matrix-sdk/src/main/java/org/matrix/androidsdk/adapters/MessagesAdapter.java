@@ -1337,6 +1337,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
         final FrameLayout.LayoutParams LayoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
+        // the tag is used to detect if the progress value is destinated to this piechart.
+        downloadPieFractionView.setTag(downloadId);
+
         // no download in progress
         if (null != downloadId) {
 
@@ -1383,8 +1386,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             LayoutParams.height = frameHeight;
             LayoutParams.width = frameWidth;
 
-            final String fDownloadId = downloadId;
-
             mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                 @Override
                 public void onDownloadStart(String downloadId) {
@@ -1401,14 +1402,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 @Override
                 public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                    if (TextUtils.equals(aDownloadId, fDownloadId)) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
                         downloadPieFractionView.setFraction(percentageProgress);
                     }
                 }
 
                 @Override
                 public void onDownloadComplete(String aDownloadId) {
-                    if (TextUtils.equals(aDownloadId, fDownloadId)) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
                         downloadPieFractionView.setVisibility(View.GONE);
 
                         LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
