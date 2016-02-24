@@ -46,7 +46,7 @@
                     android:id="@+id/messagesAdapter_body_layout">
 
                     <!-- the body is here -->
-                    <FrameLayout
+                    <RelativeLayout
                         android:layout_gravity="right"
                         android:id="@+id/messagesAdapter_image_layout"
                         android:layout_width="wrap_content"
@@ -63,39 +63,34 @@
                         <ImageView
                             android:layout_width="@dimen/chat_avatar_keyboard_size"
                             android:layout_height="@dimen/chat_avatar_keyboard_size"
-                            android:visibility="gone"
                             android:id="@+id/messagesAdapter_image_type"
                             android:src="@drawable/filetype_image"/>
 
                         <!-- the upload / download information -->
-                        <RelativeLayout
-                            android:id="@+id/download_content_layout"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content">
 
-                            <!-- progress -->
-                            <org.matrix.androidsdk.view.PieFractionView
-                                android:id="@+id/content_progress_piechart"
-                                android:layout_centerInParent="true"
-                                android:layout_width="@dimen/chat_avatar_size"
-                                android:layout_height="@dimen/chat_avatar_size"/>
+                        <!-- progress -->
+                        <org.matrix.androidsdk.view.PieFractionView
+                            android:id="@+id/content_progress_piechart"
+                            android:layout_centerInParent="true"
+                            android:layout_width="@dimen/chat_avatar_size"
+                            android:layout_height="@dimen/chat_avatar_size"/>
 
-                            <!-- the upload fails -->
-                            <ImageView
-                                android:id="@+id/upload_event_failed"
-                                android:src="@drawable/file_upload_failed"
-                                android:layout_centerInParent="true"
-                                android:layout_width="@dimen/chat_avatar_size"
-                                android:layout_height="@dimen/chat_avatar_size"/>
+                        <!-- the upload fails -->
+                        <ImageView
+                            android:id="@+id/upload_event_failed"
+                            android:src="@drawable/file_upload_failed"
+                            android:layout_centerInParent="true"
+                            android:layout_width="@dimen/chat_avatar_size"
+                            android:layout_height="@dimen/chat_avatar_size"/>
 
-                            <!-- the thumbnail has been uploaded : sending the message -->
-                            <ProgressBar
-                                android:id="@+id/upload_event_spinner"
-                                android:layout_gravity="center"
-                                android:layout_width="@dimen/chat_avatar_size"
-                                android:layout_height="@dimen/chat_avatar_size"/>
-                        </RelativeLayout>
-                    </FrameLayout>
+                        <!-- the thumbnail has been uploaded : sending the message -->
+                        <ProgressBar
+                            android:id="@+id/upload_event_spinner"
+                            android:layout_centerInParent="true"
+                            android:layout_width="@dimen/chat_avatar_size"
+                            android:layout_height="@dimen/chat_avatar_size"/>
+
+                    </RelativeLayout>
                     <!-- end of body layout -->
                 </FrameLayout>
 

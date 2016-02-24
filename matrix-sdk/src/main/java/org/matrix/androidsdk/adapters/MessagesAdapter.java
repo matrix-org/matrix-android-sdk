@@ -38,6 +38,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -1236,76 +1237,67 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
-
     /**
      * manage the upload piechart
      * @param convertView the media view
      * @param event teh related event
      * @param mediaUrl the media url
-     */
-    void manageUploadView(View convertView, Event event, String mediaUrl) {
-        // manage the upload progress
-        final LinearLayout uploadProgressLayout = (LinearLayout) convertView.findViewById(R.id.upload_content_layout);
-        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.upload_content_piechart);
+     */private void manageUploadView(View convertView, Event event, String mediaUrl) {
+        final PieFractionView uploadFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
 
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
         final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
         // the dedicated UI items are not found
-        if ((null == uploadProgressLayout) || (null == uploadFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
             return;
         }
 
-        int progress = -1;
-
-        if (mSession.getMyUserId().equals(event.getSender())) {
-            progress = mSession.getContentManager().getUploadProgress(mediaUrl);
-
-            if (progress >= 0) {
-                final String url = mediaUrl;
-
-                mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
-                    @Override
-                    public void onUploadStart(String uploadId) {
-                    }
-
-                    @Override
-                    public void onUploadProgress(String anUploadId, int percentageProgress) {
-                        if (TextUtils.equals(url, anUploadId)) {
-                            uploadFractionView.setFraction(percentageProgress);
-                        }
-                    }
-
-                    @Override
-                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                        if (TextUtils.equals(url, anUploadId)) {
-                            uploadProgressLayout.post(new Runnable() {
-                                public void run() {
-                                    uploadProgressLayout.setVisibility(View.GONE);
-
-                                    if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                                        if (null != serverErrorMessage) {
-                                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                                    serverErrorMessage,
-                                                    Toast.LENGTH_LONG).show();
-                                        }
-                                        uploadFailedImage.setVisibility(View.VISIBLE);
-                                    } else {
-                                        uploadSpinner.setVisibility(View.VISIBLE);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            }
+        // no upload in progress
+        if (!mSession.getMyUserId().equals(event.getSender()) || !event.isSending()) {
+            uploadSpinner.setVisibility(View.GONE);
+            uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+            return;
         }
 
-        uploadSpinner.setVisibility(((progress < 0) && event.isSending()) ? View.VISIBLE : View.GONE);
-        uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+        int progress = mSession.getContentManager().getUploadProgress(mediaUrl);
 
+        if (progress >= 0) {
+            final String url = mediaUrl;
+
+            mSession.getContentManager().addUploadListener(url, new ContentManager.UploadCallback() {
+                @Override
+                public void onUploadStart(String uploadId) {
+                }
+
+                @Override
+                public void onUploadProgress(String anUploadId, int percentageProgress) {
+                    if (TextUtils.equals(url, anUploadId)) {
+                        uploadFractionView.setFraction(percentageProgress);
+                    }
+                }
+
+                @Override
+                public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+                    if (TextUtils.equals(url, anUploadId)) {
+                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                            if (null != serverErrorMessage) {
+                                Toast.makeText(MessagesAdapter.this.getContext(),
+                                        serverErrorMessage,
+                                        Toast.LENGTH_LONG).show();
+                            }
+                            uploadFailedImage.setVisibility(View.VISIBLE);
+                        } else {
+                            uploadSpinner.setVisibility(View.VISIBLE);
+                        }
+                    }
+                }
+            });
+        }
+
+        uploadSpinner.setVisibility((progress < 0) ? View.VISIBLE : View.GONE);
+        uploadFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
         uploadFractionView.setFraction(progress);
-        uploadProgressLayout.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -1338,88 +1330,96 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             imageInfo = imageMessage.info;
         }
 
-        // the thumbnails are always prerotated
+        // the thumbnails are always pre - rotated
         final String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
 
-        // display a pie char
-        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
+        // no download in progress
+        if (null != downloadId) {
+            downloadPieFractionView.setVisibility(View.VISIBLE);
 
-        if (null != downloadProgressLayout) {
-            if (null != downloadId) {
-                downloadProgressLayout.setVisibility(View.VISIBLE);
-                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) downloadProgressLayout.getLayoutParams();
+            RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
-                int frameHeight = -1;
+            int frameHeight = -1;
+            int frameWidth = -1;
 
-                // if the image size is known
-                // compute the expected thumbnail height
-                if ((null != imageInfo) && (null != imageInfo.w) && (null != imageInfo.h)) {
-                    int imageW = imageInfo.w;
-                    int imageH = imageInfo.h;
+            // if the image size is known
+            // compute the expected thumbnail height
+            if ((null != imageInfo) && (null != imageInfo.w) && (null != imageInfo.h)) {
+                int imageW = imageInfo.w;
+                int imageH = imageInfo.h;
 
-                    // swap width and height if the image is side oriented
-                    if ((rotationAngle == 90) || (rotationAngle == 270)) {
-                        int tmp = imageW;
-                        imageW = imageH;
-                        imageH = tmp;
-                    }
-
-                    if ((imageW > 0) && (imageH > 0)) {
-                        frameHeight = Math.min(maxImageWidth * imageH / imageW, maxImageHeight);
-                    }
+                // swap width and height if the image is side oriented
+                if ((rotationAngle == 90) || (rotationAngle == 270)) {
+                    int tmp = imageW;
+                    imageW = imageH;
+                    imageH = tmp;
+                } else if ((null != imageInfo.orientation) &&
+                        ((imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_90) || (imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_270))) {
+                    int tmp = imageW;
+                    imageW = imageH;
+                    imageH = tmp;
                 }
 
-                // if no defined height
-                // use the pie chart one.
-                if (frameHeight < 0) {
-                    frameHeight = downloadPieFractionView.getHeight();
+                if ((imageW > 0) && (imageH > 0)) {
+                    frameHeight = Math.min(maxImageWidth * imageH / imageW, maxImageHeight);
+                    frameWidth  = frameHeight * imageW / imageH;
                 }
-
-                // apply it the layout
-                // it avoid row jumping when the image is downloaded
-                lp.height = frameHeight;
-
-                final String fDownloadId = downloadId;
-
-                mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
-                    @Override
-                    public void onDownloadStart(String downloadId) {
-                    }
-
-                    @Override
-                    public void onError(String downloadId, JsonElement jsonElement) {
-                        final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                        if ((null != error) && error.isSupportedErrorCode()) {
-                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    }
-
-                    @Override
-                    public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
-                            downloadPieFractionView.setFraction(percentageProgress);
-                        }
-                    }
-
-                    @Override
-                    public void onDownloadComplete(String aDownloadId) {
-                        if (TextUtils.equals(aDownloadId, fDownloadId)) {
-                            downloadProgressLayout.setVisibility(View.GONE);
-
-                            if (null != mMessagesAdapterEventsListener) {
-                                mMessagesAdapterEventsListener.onMediaDownloaded(position);
-                            }
-                        }
-                    }
-                });
-
-                downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
-
-            } else {
-                downloadProgressLayout.setVisibility(View.GONE);
             }
+
+            // ensure that some values are properly initialized
+            if (frameHeight < 0) {
+                frameHeight = mMaxImageHeight;
+            }
+
+            if (frameWidth < 0) {
+                frameWidth = mMaxImageWidth;
+            }
+
+            // apply it the layout
+            // it avoid row jumping when the image is downloaded
+            lp.height = frameHeight;
+            lp.width = frameWidth;
+
+            final String fDownloadId = downloadId;
+
+            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+                @Override
+                public void onDownloadStart(String downloadId) {
+                }
+
+                @Override
+                public void onError(String downloadId, JsonElement jsonElement) {
+                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
+
+                    if ((null != error) && error.isSupportedErrorCode()) {
+                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                @Override
+                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                    if (TextUtils.equals(aDownloadId, fDownloadId)) {
+                        downloadPieFractionView.setFraction(percentageProgress);
+                    }
+                }
+
+                @Override
+                public void onDownloadComplete(String aDownloadId) {
+                    if (TextUtils.equals(aDownloadId, fDownloadId)) {
+                        downloadPieFractionView.setVisibility(View.GONE);
+
+                        if (null != mMessagesAdapterEventsListener) {
+                            mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                        }
+                    }
+                }
+            });
+
+            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+        } else {
+            downloadPieFractionView.setVisibility(View.GONE);
         }
     }
 
@@ -1444,9 +1444,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
         imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
-        final boolean displayTypeIcon = "image/gif".equals(imageMessage.getMimeType());
-
-        if (displayTypeIcon) {
+        if ("image/gif".equals(imageMessage.getMimeType())) {
             imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.filetype_gif));
             imageTypeView.setVisibility(View.VISIBLE);
         } else {
@@ -1457,6 +1455,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap to ensure that it is not reused from older cells
         imageView.setImageBitmap(null);
 
+        // download management
         manageImageDownload(convertView, imageMessage, position);
 
         // The API doesn't make any strong guarantees about the thumbnail size, so also scale
@@ -1465,8 +1464,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageView.setMaxHeight(mMaxImageHeight);
         imageView.setBackgroundColor(Color.TRANSPARENT);
 
+        // upload management
         manageUploadView(convertView, msg, imageMessage.url);
 
+        // dimmed when the message is not sent
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
         imageLayout.setAlpha(msg.isSent() ? 1.0f : 0.5f);
 
