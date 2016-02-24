@@ -1259,6 +1259,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // no upload in progress
         if (!mSession.getMyUserId().equals(event.getSender()) || !event.isSending()) {
+            uploadPieFractionView.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
             uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
             return;
@@ -1296,7 +1297,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
         }
-
+        uploadFailedImage.setVisibility(View.GONE);
         uploadSpinner.setVisibility((progress < 0) ? View.VISIBLE : View.GONE);
         uploadPieFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
         uploadPieFractionView.setFraction(progress);
@@ -1497,27 +1498,27 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
 
         Message message;
-        int waterMarkRsourceId = -1;
+        int waterMarkResourceId = -1;
 
         if (type == ROW_TYPE_IMAGE) {
             ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
 
             if ("image/gif".equals(imageMessage.getMimeType())) {
-                waterMarkRsourceId = R.drawable.filetype_gif;
+                waterMarkResourceId = R.drawable.filetype_gif;
             }
             message = imageMessage;
 
         } else {
             message = JsonUtils.toVideoMessage(msg.content);
-            waterMarkRsourceId = R.drawable.filetype_video;
+            waterMarkResourceId = R.drawable.filetype_video;
         }
 
         // display a type watermark
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
         imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
-        if (waterMarkRsourceId > 0) {
-            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), waterMarkRsourceId));
+        if (waterMarkResourceId > 0) {
+            imageTypeView.setImageBitmap(BitmapFactory.decodeResource(getContext().getResources(), waterMarkResourceId));
             imageTypeView.setVisibility(View.VISIBLE);
         } else {
             imageTypeView.setVisibility(View.GONE);
@@ -1628,69 +1629,58 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param fileMessage
      * @param position
      */
-    protected void manageFileDonload(View convertView, FileMessage fileMessage, final int position) {
-        final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
-        final TextView downloadTextView = (TextView) convertView.findViewById(R.id.download_content_text);
+    protected void manageFileDownload(View convertView, FileMessage fileMessage, final int position) {
+        String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
 
-        // if the content downloading ?
-        final String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
+        // check the progress value
+        // display the piechart only if the file is downloading
+        if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+            downloadId = null;
+        }
 
-        // display a pie char
-        final LinearLayout downloadProgressLayout = (LinearLayout) convertView.findViewById(R.id.download_content_layout);
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.download_content_piechart);
-        final View fileTypeView = convertView.findViewById(R.id.messagesAdapter_file_type);
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
+        downloadPieFractionView.setTag(downloadId);
 
-        final MXMediasCache.DownloadCallback downloadCallback = new MXMediasCache.DownloadCallback() {
+        // no download in progress
+        if (null != downloadId) {
+            downloadPieFractionView.setVisibility(View.VISIBLE);
 
-            @Override
-            public void onDownloadStart(String downloadId) {
-            }
-
-            @Override
-            public void onError(String downloadId, JsonElement jsonElement) {
-                final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                if ((null != error) && error.isSupportedErrorCode()) {
-                    Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+                @Override
+                public void onDownloadStart(String downloadId) {
                 }
-            }
 
-            @Override
-            public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                if (TextUtils.equals(aDownloadId, downloadId)) {
-                    downloadPieFractionView.setFraction(percentageProgress);
-                }
-            }
+                @Override
+                public void onError(String downloadId, JsonElement jsonElement) {
+                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
 
-            @Override
-            public void onDownloadComplete(String aDownloadId) {
-                if (TextUtils.equals(aDownloadId, downloadId)) {
-                    fileTextView.setVisibility(View.VISIBLE);
-                    fileTypeView.setVisibility(View.VISIBLE);
-                    downloadProgressLayout.setVisibility(View.GONE);
-
-                    if (null != mMessagesAdapterEventsListener) {
-                        mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                    if ((null != error) && error.isSupportedErrorCode()) {
+                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                     }
                 }
-            }
-        };
 
-        fileTypeView.setVisibility(View.VISIBLE);
-        fileTextView.setVisibility(View.VISIBLE);
+                @Override
+                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
+                        downloadPieFractionView.setFraction(percentageProgress);
+                    }
+                }
 
-        if (null != downloadProgressLayout) {
-            if ((null != downloadId) && (mMediasCache.progressValueForDownloadId(downloadId) >= 0)) {
-                fileTypeView.setVisibility(View.GONE);
-                downloadTextView.setText(mContext.getString(R.string.downloading) + " " + fileMessage.body);
-                downloadProgressLayout.setVisibility(View.VISIBLE);
-                fileTextView.setVisibility(View.GONE);
-                mMediasCache.addDownloadListener(downloadId, downloadCallback);
-                downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+                @Override
+                public void onDownloadComplete(String aDownloadId) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
+                        downloadPieFractionView.setVisibility(View.GONE);
 
-            } else {
-                downloadProgressLayout.setVisibility(View.GONE);
-            }
+                        if (null != mMessagesAdapterEventsListener) {
+                            mMessagesAdapterEventsListener.onMediaDownloaded(position);
+                        }
+                    }
+                }
+            });
+
+            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+        } else {
+            downloadPieFractionView.setVisibility(View.GONE);
         }
     }
 
@@ -1715,7 +1705,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
 
-        manageFileDonload(convertView, fileMessage, position);
+        manageFileDownload(convertView, fileMessage, position);
         manageUploadView(convertView, msg, fileMessage.url);
 
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
