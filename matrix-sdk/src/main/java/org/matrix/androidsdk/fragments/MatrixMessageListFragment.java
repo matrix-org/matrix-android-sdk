@@ -758,7 +758,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                             } else {
                                 // ony upload the thumbnail
-                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType);
+                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
                                 fVideoMessage.info.thumbnail_url = uploadResponse.contentUri;
 
                                 // upload the video
