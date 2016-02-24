@@ -1244,7 +1244,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param mediaUrl the media url
      */
     private void manageUploadView(View convertView, Event event, String mediaUrl) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
+        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
 
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
         final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
@@ -1365,12 +1365,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // reset the bitmap
         imageView.setImageBitmap(null);
 
-        // the thumbnails are always pre - rotated
-        final String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
-
         RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
         final FrameLayout.LayoutParams LayoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
+
+        // the thumbnails are always pre - rotated
+        String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+
+        // for a video check if the media is downloading if there is no thumbnail downnload
+        if ((null == downloadId) && (message instanceof VideoMessage)) {
+            downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
+            // check the progress value
+            // display the piechart only if the video is downloading
+            if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+                downloadId = null;
+            }
+        }
+
+        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
 
         // the tag is used to detect if the progress value is destinated to this piechart.
         downloadPieFractionView.setTag(downloadId);
@@ -1722,7 +1733,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param videoMessage the video message
      */
     protected void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_progress_piechart);
+        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
         final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
@@ -1736,6 +1747,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // not the sender ?
         if (!mSession.getMyUserId().equals(videoEvent.getSender()) || videoEvent.isUndeliverable() || (null == videoMessage.info)) {
+            uploadPieFractionView.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
             uploadFailedImage.setVisibility(videoEvent.isUndeliverable() ? View.VISIBLE : View.GONE);
             return;
