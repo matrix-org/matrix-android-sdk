@@ -292,12 +292,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
         this(session, context,
-                org.matrix.androidsdk.R.layout.adapter_item_message_text,
-                org.matrix.androidsdk.R.layout.adapter_item_message_image,
-                org.matrix.androidsdk.R.layout.adapter_item_message_notice,
-                org.matrix.androidsdk.R.layout.adapter_item_message_emote,
-                org.matrix.androidsdk.R.layout.adapter_item_message_file,
-                org.matrix.androidsdk.R.layout.adapter_item_message_video,
+                R.layout.adapter_item_message_text_emote_notice,
+                R.layout.adapter_item_message_image_video,
+                R.layout.adapter_item_message_text_emote_notice,
+                R.layout.adapter_item_message_text_emote_notice,
+                R.layout.adapter_item_message_file,
+                R.layout.adapter_item_message_image_video,
                 mediasCache);
     }
 
