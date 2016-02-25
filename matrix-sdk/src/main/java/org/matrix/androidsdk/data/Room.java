@@ -684,6 +684,9 @@ public class Room {
                 || !mLiveState.canBackPaginated(mMyUserId) // history_visibility flag management
                 || !canStillPaginate // If we have already reached the end of history
                 || !mIsReady) { // If the room is not finished being set up
+
+            Log.d(LOG_TAG, "cannot requestHistory " + isPaginating + " " + !mLiveState.canBackPaginated(mMyUserId) + " " + !canStillPaginate + " " + !mIsReady);
+
             return false;
         }
         isPaginating = true;
@@ -771,6 +774,11 @@ public class Room {
                     }
 
                     mIsLastChunk = (0 == response.chunk.size()) || TextUtils.isEmpty(response.end) || TextUtils.equals(response.end, mTopToken);
+
+                    if (mIsLastChunk) {
+                        Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end)  + " " + TextUtils.equals(response.end, mTopToken));
+                    }
+
                     manageEvents(callback);
                 }
             }
@@ -783,19 +791,33 @@ public class Room {
                 }
                 isPaginating = false;
 
-                super.onMatrixError(e);
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                } else {
+                    super.onMatrixError(e);
+                }
             }
 
             @Override
             public void onNetworkError(Exception e) {
                 isPaginating = false;
-                super.onNetworkError(e);
+
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                } else {
+                    super.onNetworkError(e);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 isPaginating = false;
-                super.onUnexpectedError(e);
+
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                } else {
+                    super.onUnexpectedError(e);
+                }
             }
         });
 

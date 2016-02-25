@@ -1193,6 +1193,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                         mIsCatchingUp = false;
                                     }
                                 });
+                            } else {
+                                mIsCatchingUp = false;
                             }
 
                             MatrixMessageListFragment.this.dismissLoadingProgress();
@@ -1201,23 +1203,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 });
             }
 
+            private void onError() {
+                mIsCatchingUp = false;
+                MatrixMessageListFragment.this.dismissLoadingProgress();
+            }
+
             // the request will be auto restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "Network error: " + e.getMessage());
-                MatrixMessageListFragment.this.dismissLoadingProgress();
+                onError();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
-                MatrixMessageListFragment.this.dismissLoadingProgress();
+                onError();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
-                MatrixMessageListFragment.this.dismissLoadingProgress();
+                onError();
             }
         });
     }
@@ -1234,11 +1241,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 return;
             }
 
-            mIsCatchingUp = true;
             final int firstPos = mMessageListView.getFirstVisiblePosition();
             final int countBeforeUpdate = mAdapter.getCount();
 
-            boolean isStarted = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
+            mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
                     dismissLoadingProgress();
@@ -1283,7 +1289,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
 
-            if (isStarted && (null != getActivity())) {
+            if (mIsCatchingUp && (null != getActivity())) {
                 displayLoadingProgress();
             }
         }
@@ -1419,7 +1425,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // mMessageListView.getFirstVisiblePosition() == 0
         // because getFirstVisiblePosition returns the one above the first visible on the screen
         // and when jumping to the first visible after back paginating, this cell is not yet rendering.
-        if ((mMessageListView.getVisibility() == View.VISIBLE) &&  mMessageListView.getFirstVisiblePosition() < 10)  {
+        if ((mMessageListView.getVisibility() == View.VISIBLE) && !mIsCatchingUp &&  mMessageListView.getFirstVisiblePosition() < 10)  {
             mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
@@ -1451,6 +1457,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Toast.makeText(MatrixMessageListFragment.this.getActivity(), message, Toast.LENGTH_SHORT).show();
                     }
 
+                    mIsCatchingUp = false;
                     dismissLoadingProgress();
                 }
 
