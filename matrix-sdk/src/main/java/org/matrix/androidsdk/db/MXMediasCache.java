@@ -34,8 +34,10 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -432,6 +434,21 @@ public class MXMediasCache {
      * @param mimeType the mimeType.
      */
     public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType) {
+        saveFileMediaForUrl(mediaUrl, fileUrl, width, height, mimeType, false);
+    }
+
+    /**
+     * Copy or Replace a media cache by a file content.
+     * MediaUrl is the same model as the one used in loadBitmap.
+     *
+     * @param mediaUrl the mediaUrl
+     * @param fileUrl  the file which replaces the cached media.
+     * @param width    the expected image width
+     * @param height   the expected image height
+     * @param mimeType the mimeType.
+     * @param keepSource keep the source file
+     */
+    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
         String downloadableUrl = downloadableUrl(mediaUrl, width, height);
         String filename = MXMediaWorkerTask.buildFileName(downloadableUrl, mimeType);
 
@@ -448,7 +465,22 @@ public class MXMediasCache {
 
             Uri uri = Uri.parse(fileUrl);
             File srcFile = new File(uri.getPath());
-            srcFile.renameTo(destFile);
+
+            if (keepSource) {
+                InputStream in = new FileInputStream(srcFile);
+                OutputStream out = new FileOutputStream(destFile);
+
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                in.close();
+                out.close();
+            } else {
+                srcFile.renameTo(destFile);
+            }
 
         } catch (Exception e) {
         }
