@@ -388,6 +388,12 @@ public class MXMediasCache {
 
         try {
             File file = new File(getFolderFile(mimeType), filename);
+
+            // if the file exits, delete it
+            if (file.exists()) {
+                file.delete();
+            }
+
             FileOutputStream fos = new FileOutputStream(file.getPath());
 
             try {
