@@ -429,11 +429,17 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void deleteEvent(Event event) {
-        if ((null != event) && (null != event.roomId)) {
+        if ((null != event) && (null != event.roomId) && (event.eventId != null)) {
             synchronized (mRoomEvents) {
+
                 LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
-                if ((events != null) && (event.eventId != null)) {
+                if (events != null) {
                     events.remove(event.eventId);
+                }
+
+                ArrayList<String> ids = mRoomEventIds.get(event.roomId);
+                if (null != ids) {
+                    ids.remove(event.eventId);
                 }
             }
         }

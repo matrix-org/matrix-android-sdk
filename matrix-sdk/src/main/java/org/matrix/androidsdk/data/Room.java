@@ -68,6 +68,7 @@ import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1843,6 +1844,7 @@ public class Room {
             // reset the timestamp
             for (Event event : evensList) {
                 event.originServerTs = System.currentTimeMillis();
+                event.mSentState = Event.SentState.SENDING;
             }
 
             resendEventsList(new ArrayList<Event>(evensList), 0, Long.MAX_VALUE);
@@ -2250,6 +2252,33 @@ public class Room {
                         mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                    }
+                }
+            }
+
+            if (roomSync.timeline.limited) {
+                // the unsent / undeliverable event mus be pushed to the history bottom
+                Collection<Event> events = mDataHandler.getStore().getRoomMessages(mRoomId);
+
+                if (null != events) {
+                    ArrayList<Event> unsentEvents = new ArrayList<Event>();
+
+                    for(Event event : events) {
+                        if (event.mSentState != Event.SentState.SENT) {
+                            unsentEvents.add(event);
+                        }
+                    }
+
+                    if (unsentEvents.size() > 0) {
+                        for (Event event : unsentEvents) {
+                            event.mSentState = Event.SentState.UNDELIVERABLE;
+                            event.originServerTs = System.currentTimeMillis();
+                            mDataHandler.getStore().deleteEvent(event);
+                            mDataHandler.getStore().storeLiveRoomEvent(event);
+                        }
+
+                        // update the store
+                        mDataHandler.getStore().commit();
                     }
                 }
             }

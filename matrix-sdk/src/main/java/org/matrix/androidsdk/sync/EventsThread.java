@@ -340,9 +340,7 @@ public class EventsThread extends Thread {
 
             // the service could have been killed while being paused.
             if (!mKilling) {
-                // *** PATCH SYNC V2 ***
-                String inlineFilter = "{\"room\":{\"timeline\":{\"limit\":250}}}";
-                // *** PATCH SYNC V2 ***
+                String inlineFilter = null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
 
                 final CountDownLatch latch = new CountDownLatch(1);
 
