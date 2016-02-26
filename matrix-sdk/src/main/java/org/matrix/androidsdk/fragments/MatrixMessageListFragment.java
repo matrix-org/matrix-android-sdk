@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.fragments;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
@@ -453,11 +452,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 //check only when the user scrolls the content
                 if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
                     int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
-                    int lastVisibleRow = mMessageListView.getLastVisiblePosition();
                     int count = mMessageListView.getCount();
 
                     // All the messages are displayed within the same page
-                    if ((count > 0) && (firstVisibleRow == 0) && (lastVisibleRow == (count - 1)) && (!mIsInitialSyncing)) {
+                    if ((count > 0) && (firstVisibleRow < 2) && !mIsInitialSyncing && !mIsCatchingUp) {
                         requestHistory();
                     }
                 }
@@ -468,7 +466,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // If we scroll to the top, load more history
                 // so not load history if there is an initial sync progress
                 // or the whole room content fits in a single page
-                if ((firstVisibleItem < 2) && (!mIsInitialSyncing) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                if ((firstVisibleItem < 2) && !mIsInitialSyncing && !mIsCatchingUp && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                     requestHistory();
                 }
             }
@@ -1419,7 +1417,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null == getActivity()) {
             return;
         }
-
         // fill the room history until there are at least 10 messages to be displayed
         // it avoid weird back pagination effects if the test is done with
         // mMessageListView.getFirstVisiblePosition() == 0

@@ -510,6 +510,9 @@ public class Room {
     public void initHistory() {
         mBackState = mLiveState.deepCopy();
         canStillPaginate = true;
+        isPaginating = false;
+
+        mDataRetriever.cancelHistoryRequest(mRoomId);
     }
 
     /**

@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
@@ -35,6 +36,8 @@ public class DataRetriever {
     private IMXStore mStore;
     private RoomsRestClient mRestClient;
     private RoomsRestClientV2 mRestClientV2;
+
+    private HashMap<String, String> mPendingRequestTokenByRoomId = new HashMap<String, String>();
 
     public void setStore(IMXStore store) {
         mStore = store;
@@ -66,6 +69,18 @@ public class DataRetriever {
     }
 
     /**
+     * Cancel any history requests for a dedicated room
+     * @param RoomId the room id.
+     */
+    public void cancelHistoryRequest(String RoomId) {
+        if (null != RoomId) {
+            synchronized (mPendingRequestTokenByRoomId) {
+                mPendingRequestTokenByRoomId.remove(RoomId);
+            }
+        }
+    }
+
+    /**
      * Request older messages than the given token. These will come from storage if available, from the server otherwise.
      * @param roomId the room id
      * @param token the token to go back from. Null to start from live.
@@ -73,6 +88,10 @@ public class DataRetriever {
      */
     public void requestRoomHistory(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+
+        synchronized (mPendingRequestTokenByRoomId) {
+            mPendingRequestTokenByRoomId.put(roomId, token);
+        }
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
@@ -85,7 +104,14 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            callback.onSuccess(storageResponse);
+                            String expectedToken;
+                            synchronized (mPendingRequestTokenByRoomId) {
+                                expectedToken = mPendingRequestTokenByRoomId.get(roomId);
+                            }
+
+                            if (TextUtils.equals(expectedToken, token)){
+                                callback.onSuccess(storageResponse);
+                            }
                         }
                     }, (null == token) ? 0 : 100);
                 }
@@ -98,23 +124,31 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
-                    // Watch for the one event overlap
-                    Event oldestEvent = mStore.getOldestEvent(roomId);
+                    String expectedToken;
 
-                    if (info.chunk.size() != 0) {
-                        info.chunk.get(0).mToken = info.start;
-                        info.chunk.get(info.chunk.size()-1).mToken = info.end;
-
-                        Event firstReturnedEvent = info.chunk.get(0);
-                        if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
-                            info.chunk.remove(0);
-                        }
-
-                        mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
+                    synchronized (mPendingRequestTokenByRoomId) {
+                        expectedToken = mPendingRequestTokenByRoomId.get(roomId);
                     }
 
-                    callback.onSuccess(info);
+                    if (TextUtils.equals(expectedToken, token)){
+                        // Watch for the one event overlap
+                        Event oldestEvent = mStore.getOldestEvent(roomId);
+
+                        if (info.chunk.size() != 0) {
+                            info.chunk.get(0).mToken = info.start;
+                            info.chunk.get(info.chunk.size() - 1).mToken = info.end;
+
+                            Event firstReturnedEvent = info.chunk.get(0);
+                            if ((oldestEvent != null) && (firstReturnedEvent != null)
+                                    && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
+                                info.chunk.remove(0);
+                            }
+
+                            mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
+                        }
+
+                        callback.onSuccess(info);
+                    }
                 }
             });
         }
