@@ -148,6 +148,8 @@ public class Room {
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
 
+    private android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
     private boolean isResendingEvents = false;
     private boolean checkUnsentMessages = false;
 
@@ -353,6 +355,43 @@ public class Room {
                         eventListener.onBackEvent(event, roomState);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onSendingEvent(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, event.roomId)) {
+                    try {
+                        eventListener.onSendingEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onSendingEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onSentEvent(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, event.roomId)) {
+                    try {
+                        eventListener.onSentEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onSentEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+
+            @Override
+            public void onFailedSendingEvent(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(mRoomId, event.roomId)) {
+                    try {
+                        eventListener.onFailedSendingEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onFailedSendingEvent exception " + e.getMessage());
                     }
                 }
             }
@@ -577,6 +616,8 @@ public class Room {
                     event.mSentState = Event.SentState.WAITING_ECHO;
                     event.eventId = serverResponseEvent.eventId;
 
+                    mDataHandler.onSentEvent(event);
+
                     try {
                         callback.onSuccess(null);
                     } catch (Exception e) {
@@ -588,6 +629,8 @@ public class Room {
                 public void onNetworkError(Exception e) {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
+
+                    mDataHandler.onSendingEvent(event);
 
                     try {
                         callback.onNetworkError(e);
@@ -601,6 +644,8 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
 
+                    mDataHandler.onSendingEvent(event);
+
                     try {
                         callback.onMatrixError(e);
                     } catch (Exception anException) {
@@ -613,6 +658,8 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
 
+                    mDataHandler.onSendingEvent(event);
+
                     try {
                         callback.onUnexpectedError(e);
                     } catch (Exception anException) {
@@ -622,6 +669,8 @@ public class Room {
             };
 
         event.mSentState = Event.SentState.SENDING;
+
+        mDataHandler.onSendingEvent(event);
 
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             mDataRetriever.getRoomsRestClient().sendMessage(event.originServerTs + "", mRoomId, JsonUtils.toMessage(event.content), localCB);
@@ -1741,7 +1790,7 @@ public class Room {
      * Returns the unsent messages except the sending ones.
      * @return the unsent messages list.
      */
-    private ArrayList<Event> getUnsentEvents() {
+    public ArrayList<Event> getUnsentEvents() {
         Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
 
         ArrayList<Event> eventsList = new ArrayList<Event>(events);
@@ -1786,12 +1835,26 @@ public class Room {
     }
 
     /**
+     * Resend a list of events
+     * @param evensList the events list
+     */
+    public void resendEvents(Collection<Event> evensList) {
+        if (null != evensList) {
+            // reset the timestamp
+            for (Event event : evensList) {
+                event.originServerTs = System.currentTimeMillis();
+            }
+
+            resendEventsList(new ArrayList<Event>(evensList), 0, Long.MAX_VALUE);
+        }
+    }
+
+    /**
      * Resend events list.
      * Wait that the event is resent before sending the next one
      * to keep the genuine order
      */
     private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
-
         if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
             final Event unsentEvent = evensList.get(index);
 
@@ -1880,6 +1943,7 @@ public class Room {
                     final Event unsentEventCopy = unsentEvent.deepCopy();
 
                     mDataHandler.onResendingEvent(unsentEvent);
+                    unsentEvent.originServerTs = System.currentTimeMillis();
 
                     sendEvent(unsentEvent, new ApiCallback<Void>() {
                         private Event storeUnsentMessage() {
@@ -1891,21 +1955,28 @@ public class Room {
                             return dummyEvent;
                         }
 
-                        private void common(Event sentEvent, Exception exception, MatrixError matrixError) {
-                            // replace the resent event
-                            mDataHandler.deleteRoomEvent(unsentEventCopy);
-                            mDataHandler.onDeleteEvent(unsentEventCopy);
+                        private void common(final Event sentEvent, final Exception exception, final MatrixError matrixError) {
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    // replace the resent event
+                                    mDataHandler.deleteRoomEvent(unsentEventCopy);
+                                    mDataHandler.onDeleteEvent(unsentEventCopy);
 
-                            // with a new one
-                            unsentEvent.eventId = sentEvent.eventId;
-                            unsentEvent.mSentState = sentEvent.mSentState;
-                            unsentEvent.unsentException = exception;
-                            unsentEvent.unsentMatrixError = matrixError;
+                                    // with a new one
+                                    unsentEvent.eventId = sentEvent.eventId;
+                                    unsentEvent.mSentState = sentEvent.mSentState;
+                                    unsentEvent.unsentException = exception;
+                                    unsentEvent.unsentMatrixError = matrixError;
+                                    // don't wait after the echo
+                                    unsentEvent.mSentState = Event.SentState.SENT;
 
-                            mDataHandler.onLiveEvent(unsentEvent, getLiveState());
+                                    mDataHandler.onLiveEvent(unsentEvent, getLiveState());
 
-                            // send the next one
-                            Room.this.resendEventsList(evensList, index + 1, maxTime);
+                                    // send the next one
+                                    Room.this.resendEventsList(evensList, index + 1, maxTime);
+                                }
+                            });
                         }
 
                         @Override
@@ -1931,7 +2002,7 @@ public class Room {
                 }
             }
         } else {
-            boolean mustCheckUnsent = false;
+            boolean mustCheckUnsent;
 
             synchronized (this) {
                 isResendingEvents = false;

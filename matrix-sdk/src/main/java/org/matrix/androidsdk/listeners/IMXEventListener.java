@@ -73,6 +73,27 @@ public interface IMXEventListener {
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
+     * An event is sending.
+     *
+     * @param event the event
+     */
+    void onSendingEvent(Event event);
+
+    /**
+     * An event has been sent.
+     *
+     * @param event the event
+     */
+    void onSentEvent(Event event);
+
+    /**
+     * The event fails to be sent.
+     *
+     * @param event the event
+     */
+    void onFailedSendingEvent(Event event);
+
+    /**
      * An event has been deleted
      *
      * @param event the event

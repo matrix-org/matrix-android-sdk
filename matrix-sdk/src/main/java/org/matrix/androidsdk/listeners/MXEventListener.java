@@ -48,7 +48,6 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed() {
-
     }
 
     @Override
@@ -58,6 +57,18 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
+    }
+
+    @Override
+    public void onSendingEvent(Event event) {
+    }
+
+    @Override
+    public void onSentEvent(Event event) {
+    }
+
+    @Override
+    public void onFailedSendingEvent(Event event) {
     }
 
     @Override

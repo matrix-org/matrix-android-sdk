@@ -285,6 +285,13 @@ public interface IMXStore {
     Collection<Event> getLatestUnsentEvents(String roomId);
 
     /**
+     * Return the list of undeliverable events
+     * @param roomId the room id
+     * @return  list of undeliverable events
+     */
+    Collection<Event> getUndeliverableEvents(String roomId);
+
+    /**
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.

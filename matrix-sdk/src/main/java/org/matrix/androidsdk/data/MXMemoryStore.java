@@ -786,6 +786,40 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Return the list of undeliverable events
+     * @param roomId the room id
+     * @return  list of undeliverable events
+     */
+    public Collection<Event> getUndeliverableEvents(String roomId) {
+        if (null == roomId) {
+            return null;
+        }
+
+        ArrayList<Event> undeliverableRoomEvents = new ArrayList<Event>();
+
+        synchronized (mRoomEvents) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            // contain some events
+            if ((null != events) && (events.size() > 0)) {
+                ArrayList<Event> eventsList = new ArrayList(events.values());
+
+                for (int index = events.size() - 1; index >= 0; index--) {
+                    Event event = eventsList.get(index);
+
+                    if (event.isUndeliverable()) {
+                        undeliverableRoomEvents.add(event);
+                    }
+                }
+
+                Collections.reverse(undeliverableRoomEvents);
+            }
+        }
+
+        return undeliverableRoomEvents;
+    }
+
+    /**
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.

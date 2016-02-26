@@ -1185,6 +1185,57 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
+    public void onSendingEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onSendingEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onSentEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onSentEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onFailedSendingEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onFailedSendingEvent(event);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
     public void onDeleteEvent(final Event event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 

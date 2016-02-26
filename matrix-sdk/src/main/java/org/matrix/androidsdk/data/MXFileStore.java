@@ -851,9 +851,31 @@ public class MXFileStore extends MXMemoryStore {
                     mRoomEventIds.put(roomId, eventIds);
                 }
 
+                ArrayList<Event> undeliverabled = new ArrayList<Event>();
+
+                // finalizes the deserialization
                 for (Event event : events.values()) {
+                    // if a message was not sent, mark at as UNDELIVERABLE
+                    if ((event.mSentState == Event.SentState.SENDING) ||(event.mSentState == Event.SentState.WAITING_RETRY)) {
+                        event.mSentState = Event.SentState.UNDELIVERABLE;
+                        shouldSave = true;
+                    }
+
                     event.finalizeDeserialization();
-                    eventIds.add(event.eventId);
+
+                    // the undeliverable events are put to the list tail
+                    if (event.isUndeliverable()) {
+                        undeliverabled.add(event);
+                    } else {
+                        eventIds.add(event.eventId);
+                    }
+                }
+
+                // put the undel to the end of the list
+                for(Event undelEvent : undeliverabled) {
+                    events.remove(undelEvent.eventId);
+                    events.put(undelEvent.eventId, undelEvent);
+                    eventIds.add(undelEvent.eventId);
                 }
 
                 ois.close();
