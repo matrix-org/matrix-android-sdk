@@ -600,6 +600,7 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.storeUser(user);
             }
             else {
+                user.currently_active = userPresence.currently_active;
                 user.presence = userPresence.presence;
                 user.lastActiveAgo = userPresence.lastActiveAgo;
                 user.lastActiveReceived();

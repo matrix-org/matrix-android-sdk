@@ -38,6 +38,7 @@ public class User {
     public String displayname;
     public String avatar_url;
     public String presence;
+    public Boolean currently_active;
     public Long lastActiveAgo;
     public String statusMsg;
 
