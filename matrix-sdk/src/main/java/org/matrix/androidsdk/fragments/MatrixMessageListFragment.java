@@ -1146,6 +1146,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Cancel the current search
+     */
+    protected void cancelSearch() {
+        mPattern = null;
+    }
+
+    /**
      * Search the pattern on a pagination server side.
      */
     public void requestSearchHistory() {
@@ -1172,47 +1179,49 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mSession.searchMessageText(mPattern, matrixIds, mNextBatch, new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(final SearchResponse searchResponse) {
-                MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // check that the pattern was not modified before the end of the search
-                        if (TextUtils.equals(mPattern, fPattern)) {
-                            List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
+                if (TextUtils.equals(mPattern, fPattern)) {
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // check that the pattern was not modified before the end of the search
+                            if (TextUtils.equals(mPattern, fPattern)) {
+                                List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
 
-                            // is there any result to display
-                            if (0 != searchResults.size()) {
-                                mAdapter.setNotifyOnChange(false);
+                                // is there any result to display
+                                if (0 != searchResults.size()) {
+                                    mAdapter.setNotifyOnChange(false);
 
-                                for (SearchResult searchResult : searchResults) {
-                                    MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
-                                    mAdapter.insert(row, 0);
+                                    for (SearchResult searchResult : searchResults) {
+                                        MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
+                                        mAdapter.insert(row, 0);
+                                    }
+
+                                    mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+                                    // Scroll the list down to where it was before adding rows to the top
+                                    mUiHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // refresh the list only at the end of the sync
+                                            // else the one by one message refresh gives a weird UX
+                                            // The application is almost frozen during the
+                                            mAdapter.notifyDataSetChanged();
+
+                                            // do not use count because some messages are not displayed
+                                            // so we compute the new pos
+                                            mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
+                                            mIsCatchingUp = false;
+                                        }
+                                    });
+                                } else {
+                                    mIsCatchingUp = false;
                                 }
 
-                                mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                                // Scroll the list down to where it was before adding rows to the top
-                                mUiHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // refresh the list only at the end of the sync
-                                        // else the one by one message refresh gives a weird UX
-                                        // The application is almost frozen during the
-                                        mAdapter.notifyDataSetChanged();
-
-                                        // do not use count because some messages are not displayed
-                                        // so we compute the new pos
-                                        mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
-                                        mIsCatchingUp = false;
-                                    }
-                                });
-                            } else {
-                                mIsCatchingUp = false;
+                                MatrixMessageListFragment.this.dismissLoadingProgress();
                             }
-
-                            MatrixMessageListFragment.this.dismissLoadingProgress();
                         }
-                    }
-                });
+                    });
+                }
             }
 
             private void onError() {
