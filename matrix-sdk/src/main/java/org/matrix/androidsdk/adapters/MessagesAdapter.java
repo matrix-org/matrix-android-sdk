@@ -615,7 +615,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return teh user display name.
      */
     protected String getUserDisplayName(String userId, RoomState roomState) {
-        return roomState.getMemberName(userId);
+        if (null != roomState) {
+            return roomState.getMemberName(userId);
+        } else {
+            return userId;
+        }
     }
 
     /**

@@ -345,7 +345,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
 
                                     for(SearchResult searchResult : searchResults) {
-                                        messageRows.add(new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState()));
+                                        RoomState roomState = null;
+
+                                        if (null != mRoom) {
+                                            roomState = mRoom.getLiveState();
+                                        }
+
+                                        if (null == roomState) {
+                                            Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
+
+                                            if (null != room) {
+                                                roomState = room.getLiveState();
+                                            }
+                                        }
+
+                                        messageRows.add(new MessageRow(searchResult.result, roomState));
                                     }
 
                                     Collections.reverse(messageRows);
