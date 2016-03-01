@@ -213,6 +213,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return true;
     }
 
+    /**
+     * Cancel the catching requests.
+     */
+    public void cancelCatchingRequests() {
+        mPattern = null;
+        mIsMediaSearch = false;
+        mIsInitialSyncing = false;
+        mIsCatchingUp = false;
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
@@ -1296,7 +1306,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (mIsMediaSearch) {
             String[] mediaTypes = {"m.image", "m.video", "m.file"};
-            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, callback);
+            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
 
         } else {
             mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
