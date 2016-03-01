@@ -114,6 +114,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected String mMatrixId;
     protected Room mRoom;
     protected String mPattern = null;
+    protected boolean mIsMediaSearch;
     protected String mNextBatch = null;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
@@ -316,12 +317,66 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Update the searched pattern.
-     * @param pattern the pattern to find out. null to disable the search mode
+     * Manage the search response.
+     * @param searchResponse the search response
+     * @param onSearchResultListener the search result listener
      */
-    public void searchPattern(final String pattern,  final OnSearchResultListener onSearchResultListener) {
+    protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
+        List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
+        ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
+
+        for(SearchResult searchResult : searchResults) {
+            RoomState roomState = null;
+
+            if (null != mRoom) {
+                roomState = mRoom.getLiveState();
+            }
+
+            if (null == roomState) {
+                Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
+
+                if (null != room) {
+                    roomState = room.getLiveState();
+                }
+            }
+
+            messageRows.add(new MessageRow(searchResult.result, roomState));
+        }
+
+        Collections.reverse(messageRows);
+
+        mAdapter.clear();
+        mAdapter.addAll(messageRows);
+
+        mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+        if (null != onSearchResultListener) {
+            try {
+                onSearchResultListener.onSearchSucceed(messageRows.size());
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, final OnSearchResultListener onSearchResultListener) {
+        searchPattern(pattern, false, onSearchResultListener);
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search (filename for a media message)
+     * @param isMediaSearch true if is it is a media search.
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, boolean isMediaSearch, final OnSearchResultListener onSearchResultListener) {
         if (!TextUtils.equals(mPattern, pattern)) {
             mPattern = pattern;
+            mIsMediaSearch = isMediaSearch;
             mAdapter.setSearchPattern(mPattern);
 
             // something to search
@@ -333,7 +388,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     roomIds = Arrays.asList(mRoom.getRoomId());
                 }
 
-                mSession.searchMessageText(mPattern, roomIds, null, new ApiCallback<SearchResponse>() {
+                //
+                ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
                     @Override
                     public void onSuccess(final SearchResponse searchResponse) {
                         MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -341,40 +397,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             public void run() {
                                 // check that the pattern was not modified before the end of the search
                                 if (TextUtils.equals(mPattern, pattern)) {
-                                    List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
-                                    ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
-
-                                    for(SearchResult searchResult : searchResults) {
-                                        RoomState roomState = null;
-
-                                        if (null != mRoom) {
-                                            roomState = mRoom.getLiveState();
-                                        }
-
-                                        if (null == roomState) {
-                                            Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
-
-                                            if (null != room) {
-                                                roomState = room.getLiveState();
-                                            }
-                                        }
-
-                                        messageRows.add(new MessageRow(searchResult.result, roomState));
-                                    }
-
-                                    Collections.reverse(messageRows);
-
-                                    mAdapter.clear();
-                                    mAdapter.addAll(messageRows);
-
-                                    mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                                    if (null != onSearchResultListener) {
-                                        try {
-                                            onSearchResultListener.onSearchSucceed(messageRows.size());
-                                        } catch (Exception e) {
-                                        }
-                                    }
+                                    onSearchResponse(searchResponse, onSearchResultListener);
                                 }
                             }
                         });
@@ -407,7 +430,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
                         onError();
                     }
-                });
+                };
+
+                if (isMediaSearch) {
+                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
+                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
+
+                } else {
+                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
+                }
             }
         }
     }
@@ -1170,13 +1201,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MatrixMessageListFragment.this.displayLoadingProgress();
 
-        List<String> matrixIds = null;
+        List<String> roomIds = null;
 
         if (null != mRoom) {
-            matrixIds = Arrays.asList(mRoom.getRoomId());
+            roomIds = Arrays.asList(mRoom.getRoomId());
         }
 
-        mSession.searchMessageText(mPattern, matrixIds, mNextBatch, new ApiCallback<SearchResponse>() {
+        ApiCallback<SearchResponse> callback = new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(final SearchResponse searchResponse) {
                 if (TextUtils.equals(mPattern, fPattern)) {
@@ -1247,7 +1278,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
                 onError();
             }
-        });
+        };
+
+
+        if (mIsMediaSearch) {
+            String[] mediaTypes = {"m.image", "m.video", "m.file"};
+            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, callback);
+
+        } else {
+            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
+        }
     }
 
 

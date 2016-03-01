@@ -245,7 +245,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                     SearchResponse mergedResponse = mergeAndFilterResponse(response, newSearchResponse, messageTypes);
 
                     // at least matched event ?
-                    if (mergedResponse.searchCategories.roomEvents.results.size() >= 10) {
+                    if (mergedResponse.searchCategories.roomEvents.results.size() >= 5) {
                         // weel done
                         callback.onSuccess(mergedResponse);
                     } else {
