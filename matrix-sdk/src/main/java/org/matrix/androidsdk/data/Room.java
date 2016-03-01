@@ -696,6 +696,8 @@ public class Room {
     private void manageEvents(final ApiCallback<Integer> callback) {
         // check if the SDK was not logged out
         if (!mDataHandler.isActive()) {
+            Log.d(LOG_TAG, "manageEvents : mDataHandler is not anymore active.");
+
             return;
         }
 
@@ -749,9 +751,13 @@ public class Room {
             mSnapshotedEvents.clear();
         }
 
+        Log.d(LOG_TAG, "requestHistory starts");
+
         // enough buffered data
         if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
+            Log.d(LOG_TAG, "requestHistory : the events are already loaded.");
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -778,6 +784,8 @@ public class Room {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
+
+                    Log.d(LOG_TAG, "requestHistory : " + response.chunk.size() + " are retrieved.");
 
                     if (response.chunk.size() > 0) {
                         mBackState.setToken(response.end);
@@ -833,11 +841,15 @@ public class Room {
                     }
 
                     manageEvents(callback);
+                } else {
+                    Log.d(LOG_TAG, "mDataHandler is not active.");
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                Log.d(LOG_TAG, "requestRoomHistory onMatrixError");
+
                 // When we've retrieved all the messages from a room, the pagination token is some invalid value
                 if (MatrixError.UNKNOWN.equals(e.errcode)) {
                     canStillPaginate = false;
@@ -853,6 +865,8 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
+                Log.d(LOG_TAG, "requestRoomHistory onNetworkError");
+
                 isPaginating = false;
 
                 if (null != callback) {
@@ -864,6 +878,8 @@ public class Room {
 
             @Override
             public void onUnexpectedError(Exception e) {
+                Log.d(LOG_TAG, "requestRoomHistory onUnexpectedError");
+
                 isPaginating = false;
 
                 if (null != callback) {

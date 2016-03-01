@@ -501,6 +501,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     // All the messages are displayed within the same page
                     if ((count > 0) && (firstVisibleRow < 2) && !mIsInitialSyncing && !mIsCatchingUp) {
+                        Log.d(LOG_TAG, "onScrollStateChanged - requesthistory");
                         requestHistory();
                     }
                 }
@@ -512,6 +513,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // so not load history if there is an initial sync progress
                 // or the whole room content fits in a single page
                 if ((firstVisibleItem < 2) && !mIsInitialSyncing && !mIsCatchingUp && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                    Log.d(LOG_TAG, "onScroll - requesthistory");
                     requestHistory();
                 }
             }
@@ -1141,7 +1143,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Manage the request history error cases.
      * @param error the error object.
      */
-    private void onRequestError(Object error) {
+    private void onRequestError(final Object error) {
         if (error instanceof Exception) {
             Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
             MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -1171,6 +1173,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void run() {
                 MatrixMessageListFragment.this.dismissLoadingProgress();
+                Log.d(LOG_TAG, "requestHistory failed " + error);
                 mIsCatchingUp = false;
             }
         });
@@ -1298,9 +1301,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // in search mode,
             if (!TextUtils.isEmpty(mPattern)) {
+                Log.d(LOG_TAG, "requestHistory with pattern " + mPattern);
                 requestSearchHistory();
                 return;
             }
+
+            Log.d(LOG_TAG, "requestHistory starts");
 
             final int firstPos = mMessageListView.getFirstVisiblePosition();
             final int countBeforeUpdate = mAdapter.getCount();
@@ -1328,6 +1334,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
                             }
 
+                            Log.d(LOG_TAG, "requestHistory done with " + count + " items");
                             mIsCatchingUp = false;
                         }
                     });
@@ -1353,6 +1360,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (mIsCatchingUp && (null != getActivity())) {
                 displayLoadingProgress();
             }
+        } else {
+            Log.d(LOG_TAG, "requestHistory : ignored because there is a pending catchup");
         }
     }
 
@@ -1454,6 +1463,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mAdapter.notifyDataSetChanged();
                 mMessageListView.setSelection(mAdapter.getCount() - 1);
 
+                Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
 
                 // fill the page
