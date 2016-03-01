@@ -94,7 +94,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public static final String ARG_MATRIX_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
-    private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
     public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
@@ -453,17 +452,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
     }
 
+    /**
+     * @return the fragment tag to use to restore the matrix messages fragement
+     */
+    protected String getMatrixMessagesFragmentTag() {
+        return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         Bundle args = getArguments();
         FragmentManager fm = getActivity().getSupportFragmentManager();
-        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
+        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
             // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
-            fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
+            fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         }
         else {
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
@@ -503,6 +509,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     if ((count > 0) && (firstVisibleRow < 2) && !mIsInitialSyncing && !mIsCatchingUp) {
                         Log.d(LOG_TAG, "onScrollStateChanged - requesthistory");
                         requestHistory();
+                    } else {
+                        Log.d(LOG_TAG, "onScrollStateChanged mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
                     }
                 }
             }
@@ -515,6 +523,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if ((firstVisibleItem < 2) && !mIsInitialSyncing && !mIsCatchingUp && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                     Log.d(LOG_TAG, "onScroll - requesthistory");
                     requestHistory();
+                } else {
+                    Log.d(LOG_TAG, "onScroll mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
                 }
             }
         });
@@ -1451,17 +1461,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void onInitialMessagesLoaded() {
+        Log.d(LOG_TAG, "onInitialMessagesLoaded");
+
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
                 dismissLoadingProgress();
 
-                // refresh the list only at the end of the sync
-                // else the one by one message refresh gives a weird UX
-                // The application is almost frozen during the
-                mAdapter.notifyDataSetChanged();
-                mMessageListView.setSelection(mAdapter.getCount() - 1);
+                if (mAdapter.getCount() > 0) {
+                    // refresh the list only at the end of the sync
+                    // else the one by one message refresh gives a weird UX
+                    // The application is almost frozen during the
+                    mAdapter.notifyDataSetChanged();
+
+                    mMessageListView.setSelection(mAdapter.getCount() - 1);
+                }
 
                 Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
@@ -1490,6 +1505,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null == getActivity()) {
             return;
         }
+
         // fill the room history until there are at least 10 messages to be displayed
         // it avoid weird back pagination effects if the test is done with
         // mMessageListView.getFirstVisiblePosition() == 0
