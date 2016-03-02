@@ -35,7 +35,6 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests RestClient.
  */
-@Config(emulateSdk = 18)
 @RunWith(RobolectricTestRunner.class)
 public class RestClientTest {
 
