@@ -21,12 +21,17 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.CharacterStyle;
+import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.URLSpan;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -163,6 +168,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @return true if the long clik event is managed
          */
         boolean onMoreReadReceiptLongClick(String eventId);
+
+        /**
+         * An url has been clicked in a message text.
+         * @param uri the uri.
+         */
+        void onURLClick(Uri uri);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -1150,13 +1161,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param pattern the pattern to highlight.
      */
     protected void highlightPattern(TextView textView, CharSequence text, String pattern) {
-        // no pattern or too small
-        if (TextUtils.isEmpty(pattern) || (null == text) ||  (text.length() < pattern.length())) {
-            if (null != textView) {
-                textView.setText(text);
-            }
-        } else {
-            Spannable WordtoSpan = new SpannableString(text);
+        // sanity check
+        if (null == textView) {
+            return;
+        }
+
+        Spannable WordToSpan = new SpannableString(text);
+
+        if (!TextUtils.isEmpty(pattern) && !TextUtils.isEmpty(text) && (text.length() >= pattern.length())) {
 
             String lowerText = text.toString().toLowerCase();
             String lowerPattern = pattern.toLowerCase();
@@ -1166,14 +1178,45 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             while (pos >= 0) {
                 start = pos + lowerPattern.length();
-                WordtoSpan.setSpan(getHighLightTextStyle(), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                WordToSpan.setSpan(getHighLightTextStyle(), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 pos = lowerText.indexOf(lowerPattern, start);
             }
-            if (null != textView) {
-            	textView.setText(WordtoSpan);
+        }
+
+        SpannableStringBuilder strBuilder = new SpannableStringBuilder(WordToSpan);
+        URLSpan[] urls = strBuilder.getSpans(0, WordToSpan.length(), URLSpan.class);
+
+        if ((null != urls) && (urls.length > 0)) {
+
+            for (URLSpan span : urls) {
+                makeLinkClickable(strBuilder, span);
             }
+            textView.setText(strBuilder);
+            textView.setMovementMethod(LinkMovementMethod.getInstance());
+        } else {
+            textView.setText(WordToSpan);
         }
     }
+
+    /**
+     * Trap the clicked URL.
+     * @param strBuilder the input string
+     * @param span the URL
+     */
+    protected void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
+        int start = strBuilder.getSpanStart(span);
+        int end = strBuilder.getSpanEnd(span);
+        int flags = strBuilder.getSpanFlags(span);
+
+        ClickableSpan clickable = new ClickableSpan() {
+            public void onClick(View view) {
+                mMessagesAdapterEventsListener.onURLClick(Uri.parse(span.getURL()));
+            }
+        };
+        strBuilder.setSpan(clickable, start, end, flags);
+        strBuilder.removeSpan(span);
+    }
+
 
     /**
      * Text message management

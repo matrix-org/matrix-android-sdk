@@ -16,12 +16,14 @@
 
 package org.matrix.androidsdk.fragments;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Browser;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -1520,6 +1522,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     public boolean onMoreReadReceiptLongClick(String eventId) {
         return false;
+    }
+
+    public void onURLClick(Uri uri) {
+        if (null != uri) {
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            intent.putExtra(Browser.EXTRA_APPLICATION_ID, getActivity().getPackageName());
+            getActivity().startActivity(intent);
+        }
     }
 
     // thumbnails management
