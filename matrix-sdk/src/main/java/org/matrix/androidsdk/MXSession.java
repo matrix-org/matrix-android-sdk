@@ -655,8 +655,9 @@ public class MXSession {
      */
     public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfActive();
-
-        mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+        if (null != callback) {
+            mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+        }
     }
 
     /**
@@ -687,6 +688,14 @@ public class MXSession {
     }
 
     /**
+     * Cancel any pending search request
+     */
+    public void cancelSearchMessageText() {
+        checkIfActive();
+        mEventsRestClient.cancelSearchMessageText();
+    }
+
+    /**
      * Perform a remote text search for a dedicated media types list
      * @param name the text to search for.
      * @param rooms a list of rooms to search in. nil means all rooms the user is in.
@@ -700,6 +709,14 @@ public class MXSession {
         if (null != callback) {
             mEventsRestClient.searchMediaName(name, rooms, messageTypes, 0, 0, nextBatch, callback);
         }
+    }
+
+    /**
+     * Cancel any pending file search request
+     */
+    public void cancelSearchMediaName() {
+        checkIfActive();
+        mEventsRestClient.cancelSearchMediaName();
     }
 
     /**

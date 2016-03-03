@@ -53,6 +53,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     public static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
+    private String mSearchPattern = null;
+    private String mSearchMediaName = null;
+
     /**
      * {@inheritDoc}
      */
@@ -164,9 +167,56 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "searchMessageText";
 
+        mSearchPattern = text;
+
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+            @Override
+            public void onSuccess(SearchResponse response) {
+                if (TextUtils.equals(mSearchPattern, text)) {
+                    if (null != callback) {
+                        callback.onSuccess(response);
+                    }
+
+                    mSearchPattern = null;
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (TextUtils.equals(mSearchPattern, text)) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+
+                    mSearchPattern = null;
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (TextUtils.equals(mSearchPattern, text)) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+
+                    mSearchPattern = null;
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (TextUtils.equals(mSearchPattern, text)) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+
+                    mSearchPattern = null;
+                }
+            }
+
+        }, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
@@ -228,6 +278,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
         searchParams.search_categories = new HashMap<String, Object>();
         searchParams.search_categories.put("room_events", searchEventParams);
 
+        mSearchMediaName = name;
+
         final String description = "mediaSearch";
 
         // don't retry to send the request
@@ -235,39 +287,52 @@ public class EventsRestClient extends RestClient<EventsApi> {
         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(SearchResponse newSearchResponse) {
-                // no more message with the pattern
-                if ((null == newSearchResponse.searchCategories.roomEvents.results)
-                        || (0 ==newSearchResponse.searchCategories.roomEvents.results.size())) {
-                    callback.onSuccess(response);
-                } else {
-
-                    // merge the responses
-                    SearchResponse mergedResponse = mergeAndFilterResponse(response, newSearchResponse, messageTypes);
-
-                    // at least matched event ?
-                    if (mergedResponse.searchCategories.roomEvents.results.size() >= 5) {
-                        // weel done
-                        callback.onSuccess(mergedResponse);
+                if (TextUtils.equals(mSearchMediaName, name)) {
+                    // no more message with the pattern
+                    if ((null == newSearchResponse.searchCategories.roomEvents.results)
+                            || (0 ==newSearchResponse.searchCategories.roomEvents.results.size())) {
+                        callback.onSuccess(response);
+                        mSearchMediaName = null;
                     } else {
-                        // search again
-                        mediaSearch(mergedResponse, name, rooms, messageTypes, beforeLimit, afterLimit, mergedResponse.searchCategories.roomEvents.nextBatch, callback);
+
+                        // merge the responses
+                        SearchResponse mergedResponse = mergeAndFilterResponse(response, newSearchResponse, messageTypes);
+
+                        // at least matched event ?
+                        if (mergedResponse.searchCategories.roomEvents.results.size() >= 10) {
+                            // weel done
+                            callback.onSuccess(mergedResponse);
+                            mSearchMediaName = null;
+                        } else {
+                            // search again
+                            mediaSearch(mergedResponse, name, rooms, messageTypes, beforeLimit, afterLimit, mergedResponse.searchCategories.roomEvents.nextBatch, callback);
+                        }
                     }
                 }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
+                if (TextUtils.equals(mSearchMediaName, name)) {
+                    callback.onNetworkError(e);
+                    mSearchMediaName = null;
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
+                if (TextUtils.equals(mSearchMediaName, name)) {
+                    callback.onMatrixError(e);
+                    mSearchMediaName = null;
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
+                if (TextUtils.equals(mSearchMediaName, name)) {
+                    callback.onUnexpectedError(e);
+                    mSearchMediaName = null;
+                }
             }
 
         }, new RestAdapterCallback.RequestRetryCallBack() {
@@ -347,5 +412,19 @@ public class EventsRestClient extends RestClient<EventsApi> {
         responseToMerge.searchCategories.roomEvents.groups = null;
 
         return responseToMerge;
+    }
+
+    /**
+     * Cancel any pending file search request
+     */
+    public void cancelSearchMediaName() {
+        mSearchMediaName = null;
+    }
+
+    /**
+     * Cancel any pending search request
+     */
+    public void cancelSearchMessageText() {
+        mSearchPattern = null;
     }
 }

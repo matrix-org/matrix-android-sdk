@@ -218,7 +218,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void cancelCatchingRequests() {
         mPattern = null;
-        mIsMediaSearch = false;
         mIsInitialSyncing = false;
         mIsCatchingUp = false;
     }
