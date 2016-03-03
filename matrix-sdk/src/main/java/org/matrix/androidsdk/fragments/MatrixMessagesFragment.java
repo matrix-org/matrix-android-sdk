@@ -47,7 +47,6 @@ public class MatrixMessagesFragment extends Fragment {
      * Fragment argument: String.
      */
     public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
-
     private static final String LOG_TAG = "MatrixMessagesFragment";
 
     public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
@@ -298,7 +297,7 @@ public class MatrixMessagesFragment extends Fragment {
     /**
      * Request messages in this room upon entering.
      */
-    private void requestInitialHistory() {
+    protected void requestInitialHistory() {
         displayLoadingProgress();
 
         // the initial sync will be retrieved when a network connection will be found

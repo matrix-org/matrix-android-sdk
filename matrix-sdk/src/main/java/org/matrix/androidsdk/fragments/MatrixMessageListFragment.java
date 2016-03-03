@@ -108,7 +108,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MatrixMessagesFragment mMatrixMessagesFragment;
     protected MessagesAdapter mAdapter;
     public ListView mMessageListView;
-    private Handler mUiHandler;
+    protected Handler mUiHandler;
     protected MXSession mSession;
     protected String mMatrixId;
     protected Room mRoom;
@@ -119,8 +119,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public boolean mCheckSlideToHide = false;
 
     // avoid to catch up old content if the initial sync is in progress
-    private boolean mIsInitialSyncing = true;
-    private boolean mIsCatchingUp = false;
+    protected boolean mIsInitialSyncing = true;
+    protected boolean mIsCatchingUp = false;
 
     private Handler uiThreadHandler;
 

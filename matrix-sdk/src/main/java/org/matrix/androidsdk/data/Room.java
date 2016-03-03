@@ -556,6 +556,13 @@ public class Room {
     }
 
     /**
+     * cancel any remote request
+     */
+    public void cancelRemoteHistoryRequest() {
+        mDataRetriever.cancelRemoteHistoryRequest(mRoomId);
+    }
+
+    /**
      * Process a state event to keep the internal live and back states up to date.
      * @param event the state event
      * @param direction the direction; ie. forwards for live state, backwards for back state
@@ -899,6 +906,23 @@ public class Room {
      */
     public boolean requestHistory() {
         return requestHistory(null);
+    }
+
+    /**
+     * Request events to the server. The local cache is not used.
+     * The events will not be saved in the local storage.
+     *
+     * @param token the token to go back from.
+     * @param paginationCount the number of events to retrieve.
+     * @param callback the onComplete callback
+     */
+    public void requestServerRoomHistory(final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        mDataRetriever.requestServerRoomHistory(mRoomId, token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> info) {
+                callback.onSuccess(info);
+            }
+        });
     }
 
     /**
