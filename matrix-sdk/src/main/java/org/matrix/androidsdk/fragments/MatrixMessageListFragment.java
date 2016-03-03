@@ -96,7 +96,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public static final String ARG_MATRIX_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
-    private static final String TAG_FRAGMENT_MATRIX_MESSAGES = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     private static final String LOG_TAG = "ErrorListener";
 
     public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
@@ -111,18 +110,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private MatrixMessagesFragment mMatrixMessagesFragment;
     protected MessagesAdapter mAdapter;
     public ListView mMessageListView;
-    private Handler mUiHandler;
+    protected Handler mUiHandler;
     protected MXSession mSession;
     protected String mMatrixId;
     protected Room mRoom;
     protected String mPattern = null;
+    protected boolean mIsMediaSearch;
     protected String mNextBatch = null;
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
 
     // avoid to catch up old content if the initial sync is in progress
-    private boolean mIsInitialSyncing = true;
-    private boolean mIsCatchingUp = false;
+    protected boolean mIsInitialSyncing = true;
+    protected boolean mIsCatchingUp = false;
 
     private Handler uiThreadHandler;
 
@@ -213,6 +213,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public boolean isDisplayAllEvents() {
         return true;
+    }
+
+    /**
+     * Cancel the catching requests.
+     */
+    public void cancelCatchingRequests() {
+        mPattern = null;
+        mIsInitialSyncing = false;
+        mIsCatchingUp = false;
     }
 
     @Override
@@ -318,12 +327,66 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Update the searched pattern.
-     * @param pattern the pattern to find out. null to disable the search mode
+     * Manage the search response.
+     * @param searchResponse the search response
+     * @param onSearchResultListener the search result listener
      */
-    public void searchPattern(final String pattern,  final OnSearchResultListener onSearchResultListener) {
+    protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
+        List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
+        ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
+
+        for(SearchResult searchResult : searchResults) {
+            RoomState roomState = null;
+
+            if (null != mRoom) {
+                roomState = mRoom.getLiveState();
+            }
+
+            if (null == roomState) {
+                Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
+
+                if (null != room) {
+                    roomState = room.getLiveState();
+                }
+            }
+
+            messageRows.add(new MessageRow(searchResult.result, roomState));
+        }
+
+        Collections.reverse(messageRows);
+
+        mAdapter.clear();
+        mAdapter.addAll(messageRows);
+
+        mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+        if (null != onSearchResultListener) {
+            try {
+                onSearchResultListener.onSearchSucceed(messageRows.size());
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, final OnSearchResultListener onSearchResultListener) {
+        searchPattern(pattern, false, onSearchResultListener);
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search (filename for a media message)
+     * @param isMediaSearch true if is it is a media search.
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, boolean isMediaSearch, final OnSearchResultListener onSearchResultListener) {
         if (!TextUtils.equals(mPattern, pattern)) {
             mPattern = pattern;
+            mIsMediaSearch = isMediaSearch;
             mAdapter.setSearchPattern(mPattern);
 
             // something to search
@@ -335,7 +398,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     roomIds = Arrays.asList(mRoom.getRoomId());
                 }
 
-                mSession.searchMessageText(mPattern, roomIds, null, new ApiCallback<SearchResponse>() {
+                //
+                ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
                     @Override
                     public void onSuccess(final SearchResponse searchResponse) {
                         MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -343,26 +407,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             public void run() {
                                 // check that the pattern was not modified before the end of the search
                                 if (TextUtils.equals(mPattern, pattern)) {
-                                    List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
-                                    ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
-
-                                    for(SearchResult searchResult : searchResults) {
-                                        messageRows.add(new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState()));
-                                    }
-
-                                    Collections.reverse(messageRows);
-
-                                    mAdapter.clear();
-                                    mAdapter.addAll(messageRows);
-
-                                    mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                                    if (null != onSearchResultListener) {
-                                        try {
-                                            onSearchResultListener.onSearchSucceed(messageRows.size());
-                                        } catch (Exception e) {
-                                        }
-                                    }
+                                    onSearchResponse(searchResponse, onSearchResultListener);
                                 }
                             }
                         });
@@ -395,7 +440,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
                         onError();
                     }
-                });
+                };
+
+                if (isMediaSearch) {
+                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
+                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
+
+                } else {
+                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
+                }
             }
         }
     }
@@ -410,17 +463,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
     }
 
+    /**
+     * @return the fragment tag to use to restore the matrix messages fragement
+     */
+    protected String getMatrixMessagesFragmentTag() {
+        return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         Bundle args = getArguments();
         FragmentManager fm = getActivity().getSupportFragmentManager();
-        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(TAG_FRAGMENT_MATRIX_MESSAGES);
+        mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
             // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
-            fm.beginTransaction().add(mMatrixMessagesFragment, TAG_FRAGMENT_MATRIX_MESSAGES).commit();
+            fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         }
         else {
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
@@ -458,7 +518,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     // All the messages are displayed within the same page
                     if ((count > 0) && (firstVisibleRow < 2) && !mIsInitialSyncing && !mIsCatchingUp) {
+                        Log.d(LOG_TAG, "onScrollStateChanged - requesthistory");
                         requestHistory();
+                    } else {
+                        Log.d(LOG_TAG, "onScrollStateChanged mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
                     }
                 }
             }
@@ -469,7 +532,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // so not load history if there is an initial sync progress
                 // or the whole room content fits in a single page
                 if ((firstVisibleItem < 2) && !mIsInitialSyncing && !mIsCatchingUp && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                    Log.d(LOG_TAG, "onScroll - requesthistory");
                     requestHistory();
+                } else {
+                    Log.d(LOG_TAG, "onScroll mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
                 }
             }
         });
@@ -1098,7 +1164,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Manage the request history error cases.
      * @param error the error object.
      */
-    private void onRequestError(Object error) {
+    private void onRequestError(final Object error) {
         if (error instanceof Exception) {
             Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
             MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
@@ -1128,9 +1194,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void run() {
                 MatrixMessageListFragment.this.dismissLoadingProgress();
+                Log.d(LOG_TAG, "requestHistory failed " + error);
                 mIsCatchingUp = false;
             }
         });
+    }
+
+    /**
+     * Cancel the current search
+     */
+    protected void cancelSearch() {
+        mPattern = null;
     }
 
     /**
@@ -1151,56 +1225,58 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         MatrixMessageListFragment.this.displayLoadingProgress();
 
-        List<String> matrixIds = null;
+        List<String> roomIds = null;
 
         if (null != mRoom) {
-            matrixIds = Arrays.asList(mRoom.getRoomId());
+            roomIds = Arrays.asList(mRoom.getRoomId());
         }
 
-        mSession.searchMessageText(mPattern, matrixIds, mNextBatch, new ApiCallback<SearchResponse>() {
+        ApiCallback<SearchResponse> callback = new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(final SearchResponse searchResponse) {
-                MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // check that the pattern was not modified before the end of the search
-                        if (TextUtils.equals(mPattern, fPattern)) {
-                            List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
+                if (TextUtils.equals(mPattern, fPattern)) {
+                    MatrixMessageListFragment.this.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // check that the pattern was not modified before the end of the search
+                            if (TextUtils.equals(mPattern, fPattern)) {
+                                List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
 
-                            // is there any result to display
-                            if (0 != searchResults.size()) {
-                                mAdapter.setNotifyOnChange(false);
+                                // is there any result to display
+                                if (0 != searchResults.size()) {
+                                    mAdapter.setNotifyOnChange(false);
 
-                                for (SearchResult searchResult : searchResults) {
-                                    MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
-                                    mAdapter.insert(row, 0);
+                                    for (SearchResult searchResult : searchResults) {
+                                        MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
+                                        mAdapter.insert(row, 0);
+                                    }
+
+                                    mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+                                    // Scroll the list down to where it was before adding rows to the top
+                                    mUiHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // refresh the list only at the end of the sync
+                                            // else the one by one message refresh gives a weird UX
+                                            // The application is almost frozen during the
+                                            mAdapter.notifyDataSetChanged();
+
+                                            // do not use count because some messages are not displayed
+                                            // so we compute the new pos
+                                            mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
+                                            mIsCatchingUp = false;
+                                        }
+                                    });
+                                } else {
+                                    mIsCatchingUp = false;
                                 }
 
-                                mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                                // Scroll the list down to where it was before adding rows to the top
-                                mUiHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // refresh the list only at the end of the sync
-                                        // else the one by one message refresh gives a weird UX
-                                        // The application is almost frozen during the
-                                        mAdapter.notifyDataSetChanged();
-
-                                        // do not use count because some messages are not displayed
-                                        // so we compute the new pos
-                                        mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
-                                        mIsCatchingUp = false;
-                                    }
-                                });
-                            } else {
-                                mIsCatchingUp = false;
+                                MatrixMessageListFragment.this.dismissLoadingProgress();
                             }
-
-                            MatrixMessageListFragment.this.dismissLoadingProgress();
                         }
-                    }
-                });
+                    });
+                }
             }
 
             private void onError() {
@@ -1226,7 +1302,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
                 onError();
             }
-        });
+        };
+
+
+        if (mIsMediaSearch) {
+            String[] mediaTypes = {"m.image", "m.video", "m.file"};
+            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
+
+        } else {
+            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
+        }
     }
 
 
@@ -1237,9 +1322,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // in search mode,
             if (!TextUtils.isEmpty(mPattern)) {
+                Log.d(LOG_TAG, "requestHistory with pattern " + mPattern);
                 requestSearchHistory();
                 return;
             }
+
+            Log.d(LOG_TAG, "requestHistory starts");
 
             final int firstPos = mMessageListView.getFirstVisiblePosition();
             final int countBeforeUpdate = mAdapter.getCount();
@@ -1267,6 +1355,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
                             }
 
+                            Log.d(LOG_TAG, "requestHistory done with " + count + " items");
                             mIsCatchingUp = false;
                         }
                     });
@@ -1292,6 +1381,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (mIsCatchingUp && (null != getActivity())) {
                 displayLoadingProgress();
             }
+        } else {
+            Log.d(LOG_TAG, "requestHistory : ignored because there is a pending catchup");
         }
     }
 
@@ -1381,18 +1472,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void onInitialMessagesLoaded() {
+        Log.d(LOG_TAG, "onInitialMessagesLoaded");
+
         // Jump to the bottom of the list
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
                 dismissLoadingProgress();
 
-                // refresh the list only at the end of the sync
-                // else the one by one message refresh gives a weird UX
-                // The application is almost frozen during the
-                mAdapter.notifyDataSetChanged();
-                mMessageListView.setSelection(mAdapter.getCount() - 1);
+                if (mAdapter.getCount() > 0) {
+                    // refresh the list only at the end of the sync
+                    // else the one by one message refresh gives a weird UX
+                    // The application is almost frozen during the
+                    mAdapter.notifyDataSetChanged();
 
+                    mMessageListView.setSelection(mAdapter.getCount() - 1);
+                }
+
+                Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
 
                 // fill the page
@@ -1419,6 +1516,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null == getActivity()) {
             return;
         }
+
         // fill the room history until there are at least 10 messages to be displayed
         // it avoid weird back pagination effects if the test is done with
         // mMessageListView.getFirstVisiblePosition() == 0
