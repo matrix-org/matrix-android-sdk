@@ -23,6 +23,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClientV2;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Collection;
@@ -38,6 +39,7 @@ public class DataRetriever {
     private RoomsRestClientV2 mRestClientV2;
 
     private HashMap<String, String> mPendingRequestTokenByRoomId = new HashMap<String, String>();
+    private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<String, String>();
 
     public void setStore(IMXStore store) {
         mStore = store;
@@ -70,14 +72,18 @@ public class DataRetriever {
 
     /**
      * Cancel any history requests for a dedicated room
-     * @param RoomId the room id.
+     * @param roomId the room id.
      */
-    public void cancelHistoryRequest(String RoomId) {
-        if (null != RoomId) {
-            synchronized (mPendingRequestTokenByRoomId) {
-                mPendingRequestTokenByRoomId.remove(RoomId);
-            }
-        }
+    public void cancelHistoryRequest(String roomId) {
+        clearPendingToken(mPendingRequestTokenByRoomId, roomId);
+    }
+
+    /**
+     * Cancel any request history requests for a dedicated room
+     * @param roomId the room id.
+     */
+    public void cancelRemoteHistoryRequest(String roomId) {
+        clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
     }
 
     /**
@@ -89,9 +95,7 @@ public class DataRetriever {
     public void requestRoomHistory(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
-        synchronized (mPendingRequestTokenByRoomId) {
-            mPendingRequestTokenByRoomId.put(roomId, token);
-        }
+        putPendingToken(mPendingRequestTokenByRoomId, roomId, token);
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
@@ -104,12 +108,7 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            String expectedToken;
-                            synchronized (mPendingRequestTokenByRoomId) {
-                                expectedToken = mPendingRequestTokenByRoomId.get(roomId);
-                            }
-
-                            if (TextUtils.equals(expectedToken, token)){
+                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token)){
                                 callback.onSuccess(storageResponse);
                             }
                         }
@@ -124,13 +123,7 @@ public class DataRetriever {
             mRestClient.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> info) {
-                    String expectedToken;
-
-                    synchronized (mPendingRequestTokenByRoomId) {
-                        expectedToken = mPendingRequestTokenByRoomId.get(roomId);
-                    }
-
-                    if (TextUtils.equals(expectedToken, token)){
+                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token)) {
                         // Watch for the one event overlap
                         Event oldestEvent = mStore.getOldestEvent(roomId);
 
@@ -151,6 +144,90 @@ public class DataRetriever {
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * Request events to the server. The local cache is not used.
+     * The events will not be saved in the local storage.
+     * @param roomId the room id
+     * @param token the token to go back from.
+     * @param paginationCount the number of events to retrieve.
+     * @param callback the onComplete callback
+     */
+    public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
+
+        mRestClient.getEarlierMessages(roomId, token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> info) {
+
+                if (TextUtils.equals(getPendingToken(mPendingRemoteRequestTokenByRoomId, roomId), token)){
+                    if (info.chunk.size() != 0) {
+                        info.chunk.get(0).mToken = info.start;
+                        info.chunk.get(info.chunk.size() - 1).mToken = info.end;
+                    }
+                    callback.onSuccess(info);
+                }
+            }
+        });
+    }
+
+    //==============================================================================================================
+    // Pending token management
+    //==============================================================================================================
+
+    /**
+     * Clear token for a dedicated room
+     * @param dict the token cache
+     * @param roomId the room id
+     */
+    private void clearPendingToken(HashMap<String, String> dict, String roomId) {
+        if (null != roomId) {
+            synchronized (dict) {
+                dict.remove(roomId);
+            }
+        }
+    }
+
+    /**
+     * Get the pending token for a dedicated room
+     * @param dict the token cache
+     * @param roomId the room Id
+     * @return the token
+     */
+    private String getPendingToken(HashMap<String, String> dict, String roomId) {
+        String expectedToken = "Not a valid token";
+
+        synchronized (dict) {
+            // token == null is a valid value
+            if(dict.containsKey(roomId)) {
+                expectedToken = dict.get(roomId);
+
+                if (TextUtils.isEmpty(expectedToken)) {
+                    expectedToken = null;
+                }
+            }
+            dict.remove(roomId);
+        }
+
+        return expectedToken;
+    }
+
+    /**
+     * Store a token for a dedicated room
+     * @param dict the token cache
+     * @param roomId the room id
+     * @param token the token
+     */
+    private void putPendingToken(HashMap<String, String> dict, String roomId, String token) {
+        synchronized (dict) {
+            // null is allowed for a request
+            if (null == token) {
+                dict.put(roomId, "");
+            } else {
+                dict.put(roomId, token);
+            }
         }
     }
 }
