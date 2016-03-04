@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -79,6 +81,14 @@ public class User {
         User copy = new User();
         copy.clone(this);
         return copy;
+    }
+
+    /**
+     * Tells if an user is active
+     * @return true if the user is active
+     */
+    public boolean isActive() {
+        return TextUtils.equals(presence, PRESENCE_ONLINE) || ((null != currently_active) && currently_active);
     }
 
     /**
