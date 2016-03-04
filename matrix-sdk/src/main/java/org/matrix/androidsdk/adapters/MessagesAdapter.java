@@ -31,6 +31,7 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 import android.util.Log;
 import android.view.Display;
@@ -100,7 +101,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param position the cell position.
          * @return true if managed
          */
-        Boolean onRowLongClick(int position);
+        boolean onRowLongClick(int position);
 
         /**
          * Called when a click is performed on the message content
@@ -113,7 +114,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param position the cell position
          * @return true if managed
          */
-        Boolean onContentLongClick(int position);
+        boolean onContentLongClick(int position);
 
         /**
          * Define the action to perform when the user tap on an avatar
@@ -126,7 +127,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param userId the user ID
          * @return true if the long clik event is managed
          */
-        Boolean onAvatarLongClick(String userId);
+        boolean onAvatarLongClick(String userId);
 
         /**
          * Define the action to perform when the user taps on the message sender
@@ -176,6 +177,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param uri the uri.
          */
         void onURLClick(Uri uri);
+
+        /**
+         * Tells if an event body must be highlighted
+         * @param event the event
+         * @return true to highlight it.
+         */
+         boolean shouldHighlightEvent(Event event);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -1184,13 +1192,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param text the text to display.
      * @param pattern the pattern to highlight.
      */
-    protected void highlightPattern(TextView textView, CharSequence text, String pattern) {
+    protected void highlightPattern(TextView textView, Spannable text, String pattern) {
         // sanity check
         if (null == textView) {
             return;
         }
-
-        Spannable WordToSpan = new SpannableString(text);
 
         if (!TextUtils.isEmpty(pattern) && !TextUtils.isEmpty(text) && (text.length() >= pattern.length())) {
 
@@ -1202,13 +1208,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             while (pos >= 0) {
                 start = pos + lowerPattern.length();
-                WordToSpan.setSpan(getHighLightTextStyle(), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setSpan(getHighLightTextStyle(), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), pos, start, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 pos = lowerText.indexOf(lowerPattern, start);
             }
         }
 
-        SpannableStringBuilder strBuilder = new SpannableStringBuilder(WordToSpan);
-        URLSpan[] urls = strBuilder.getSpans(0, WordToSpan.length(), URLSpan.class);
+        SpannableStringBuilder strBuilder = new SpannableStringBuilder(text);
+        URLSpan[] urls = strBuilder.getSpans(0, text.length(), URLSpan.class);
 
         if ((null != urls) && (urls.length > 0)) {
 
@@ -1218,7 +1225,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textView.setText(strBuilder);
             textView.setMovementMethod(LinkMovementMethod.getInstance());
         } else {
-            textView.setText(WordToSpan);
+            textView.setText(text);
         }
     }
 
@@ -1259,8 +1266,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        final CharSequence body = display.getTextualDisplay();
+        final SpannableString body = new SpannableString(display.getTextualDisplay());
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+
+        if (mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
+            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
 
         highlightPattern(bodyTextView, body, mPattern);
 

@@ -62,6 +62,7 @@ import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -1584,21 +1585,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onRowClick(int position) {
     }
 
-    public Boolean onRowLongClick(int position) {
+    public boolean onRowLongClick(int position) {
         return false;
     }
 
     public void onContentClick(int position) {
     }
 
-    public Boolean onContentLongClick(int position) {
+    public boolean onContentLongClick(int position) {
         return false;
     }
 
     public void onAvatarClick(String userId) {
     }
 
-    public Boolean onAvatarLongClick(String userId) {
+    public boolean onAvatarLongClick(String userId) {
         return false;
     }
 
@@ -1628,6 +1629,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             intent.putExtra(Browser.EXTRA_APPLICATION_ID, getActivity().getPackageName());
             getActivity().startActivity(intent);
         }
+    }
+
+    public boolean shouldHighlightEvent(Event event) {
+        BingRule rule = mSession.getDataHandler().getBingRulesManager().fulfilledBingRule(event);
+
+        if (null != rule) {
+            return rule.shouldHighlight();
+        }
+
+        return false;
     }
 
     // thumbnails management
