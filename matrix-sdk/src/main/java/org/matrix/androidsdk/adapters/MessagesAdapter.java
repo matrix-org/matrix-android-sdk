@@ -56,10 +56,12 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -828,6 +830,32 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Some event should never be merged.
+     * e.g. the profile info update (avatar, display name...)
+     * @param event the event
+     * @return true if the event can be merged.
+     */
+    protected boolean isMergeableEvent(Event event) {
+        boolean res = true;
+
+        // user profile update should not be merged
+        if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+
+            EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+            EventContent prevEventContent = event.getPrevContent();
+            String prevMembership = null;
+
+            if (null != prevEventContent) {
+                prevMembership = prevEventContent.membership;
+            }
+
+            res = !TextUtils.equals(prevMembership, eventContent.membership);
+        }
+
+        return res;
+    }
+
+    /**
      * Common view management.
      * @param position the item position.
      * @param convertView the row view
@@ -840,41 +868,33 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event event = row.getEvent();
         RoomState roomState = row.getRoomState();
 
+        convertView.setClickable(false);
+
         Boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
 
         // isMergedView -> the message is going to be merged with the previous one
-        // willBeMerged -> false if it is the last message of the user
-        boolean isMergedView;
-        boolean willBeMerged;
+        // willBeMerged ->tell if a message separator must be displayed
+        boolean isMergedView = false;
+        boolean willBeMerged = false;
 
-        convertView.setClickable(false);
+        if (!mIsSearchMode) {
 
-        // the notice messages are never merged
-        /*if (msgType != ROW_TYPE_NOTICE)*/ {
-            //
-            String prevUserId = null;
-            if (position > 0) {
+            if ((position > 0) && isMergeableEvent(event)) {
                 MessageRow prevRow = getItem(position - 1);
-
-                if ((null != prevRow) /*&& (getItemViewType(prevRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
-                    prevUserId = prevRow.getEvent().getSender();
-                }
+                isMergedView  = TextUtils.equals(prevRow.getEvent().getSender(), event.getSender());
             }
 
-            String nextUserId = null;
-
+            // not the last message
             if ((position + 1) < this.getCount()) {
                 MessageRow nextRow = getItem(position + 1);
 
-                if ((null != nextRow) /*&& (getItemViewType(nextRow.getEvent()) != ROW_TYPE_NOTICE)*/) {
-                    nextUserId = nextRow.getEvent().getSender();
+                if (isMergeableEvent(event) || isMergeableEvent(nextRow.getEvent())) {
+                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender());
                 }
             }
-
-            isMergedView = TextUtils.equals(prevUserId, event.getSender()) && !mIsSearchMode;
-            willBeMerged = TextUtils.equals(nextUserId, event.getSender()) && !mIsSearchMode;
         }
 
+        // inherited class custom behaviour
         isMergedView = mergeView(event, position, isMergedView);
 
         View leftTsTextLayout = convertView.findViewById(R.id.message_timestamp_layout_left);
