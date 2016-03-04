@@ -203,13 +203,20 @@ public class Room {
         return mLiveState.getMembers();
     }
 
+    /**
+     * @return the list of active members in a room.
+     */
     public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = mLiveState.getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
 
         for(RoomMember member : members) {
-            if (!member.hasLeft()) {
-                activeMembers.add(member);
+            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                User user =  mDataHandler.getStore().getUser(member.getUserId());
+
+                if ((null != user) && user.isActive()) {
+                    activeMembers.add(member);
+                }
             }
         }
 
