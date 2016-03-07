@@ -71,6 +71,7 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -124,6 +125,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // avoid to catch up old content if the initial sync is in progress
     protected boolean mIsInitialSyncing = true;
     protected boolean mIsCatchingUp = false;
+
+    protected ArrayList<Event> mResendingEventsList;
 
     private Handler uiThreadHandler;
 
@@ -537,19 +540,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    @Override
-    public void onDestroy() {
-        if (null != mPendingRelaunchTimersByEventId) {
-            for (Timer timer : mPendingRelaunchTimersByEventId.values()) {
-                timer.cancel();
-            }
-
-            mPendingRelaunchTimersByEventId = null;
-        }
-
-        super.onDestroy();
-    }
-
     public void sendTextMessage(String body) {
         sendMessage(Message.MSGTYPE_TEXT, body);
     }
@@ -958,7 +948,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    protected void resend(Event event) {
+    public void resendUnsent() {
+        Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
+
+        if ((null != unsent) && (unsent.size() > 0)) {
+            mResendingEventsList =  new ArrayList<Event>(unsent);
+
+            // reset the timestamp
+            for (Event event : mResendingEventsList) {
+                event.mSentState = Event.SentState.UNSENT;
+            }
+
+            resend(mResendingEventsList.get(0));
+            mResendingEventsList.remove(0);
+        }
+    }
+
+    public void resend(Event event) {
         // sanity check
         // should never happen but got it in a GA issue
         if (null == event.eventId) {
@@ -966,10 +972,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        if (null == mPendingRelaunchTimersByEventId) {
-            Log.e(LOG_TAG, "resend : with a destroyed list fragment");
-            return;
-        }
+        // update the timestamp
+        event.originServerTs = System.currentTimeMillis();
 
         // remove the event
         getSession().getDataHandler().deleteRoomEvent(event);
@@ -1047,12 +1051,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final Event event = messageRow.getEvent();
 
         if (!event.isUndeliverable()) {
-
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     if (null != MatrixMessageListFragment.this.getActivity()) {
                         mAdapter.waitForEcho(messageRow);
+                    }
+
+                    // pending resending ?
+                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                        resend(mResendingEventsList.get(0));
+                        mResendingEventsList.remove(0);
                     }
                 }
 
@@ -1370,35 +1379,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (canAddEvent(event)) {
             mAdapter.addToFront(event, roomState);
         }
-    }
-
-    @Override
-    public void onDeleteEvent(final Event event) {
-        if (mPendingRelaunchTimersByEventId.containsKey(event.eventId)) {
-            Timer timer = mPendingRelaunchTimersByEventId.get(event.eventId);
-            timer.cancel();
-            mPendingRelaunchTimersByEventId.remove(event.eventId);
-        }
-
-        mAdapter.removeEventById(event.eventId);
-        mAdapter.notifyDataSetChanged();
-    }
-
-    @Override
-    public void onResendingEvent(final Event event) {
-        // not anymore required
-        // because the message keeps the same UI until the server echo is receieved.
-        /*mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.notifyDataSetChanged();
-            }
-        });*/
-    }
-
-    @Override
-    public void onResentEvent(final Event event) {
-        mAdapter.notifyDataSetChanged();
     }
 
     @Override

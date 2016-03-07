@@ -73,13 +73,6 @@ public interface IMXEventListener {
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
-     * An event is sending.
-     *
-     * @param event the event
-     */
-    void onSendingEvent(Event event);
-
-    /**
      * An event has been sent.
      *
      * @param event the event
@@ -92,27 +85,6 @@ public interface IMXEventListener {
      * @param event the event
      */
     void onFailedSendingEvent(Event event);
-
-    /**
-     * An event has been deleted
-     *
-     * @param event the event
-     */
-    void onDeleteEvent(Event event);
-
-    /**
-     * An event is automatically resending.
-     *
-     * @param event the event
-     */
-    void onResendingEvent(Event event);
-
-    /**
-     * An event has been automatically resent
-     *
-     * @param event the event
-     */
-    void onResentEvent(Event event);
 
     /**
      * The bing rules have been updated

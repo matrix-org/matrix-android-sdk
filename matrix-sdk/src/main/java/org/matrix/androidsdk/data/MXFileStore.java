@@ -856,7 +856,7 @@ public class MXFileStore extends MXMemoryStore {
                 // finalizes the deserialization
                 for (Event event : events.values()) {
                     // if a message was not sent, mark at as UNDELIVERABLE
-                    if ((event.mSentState == Event.SentState.SENDING) ||(event.mSentState == Event.SentState.WAITING_RETRY)) {
+                    if ((event.mSentState == Event.SentState.UNSENT) || (event.mSentState == Event.SentState.SENDING) || (event.mSentState == Event.SentState.WAITING_RETRY)) {
                         event.mSentState = Event.SentState.UNDELIVERABLE;
                         shouldSave = true;
                     }
@@ -1571,8 +1571,10 @@ public class MXFileStore extends MXMemoryStore {
         Boolean res = super.storeReceipt(receipt, roomId);
 
         if (res) {
-            if (mRoomsToCommitForReceipts.indexOf(roomId) < 0) {
-                mRoomsToCommitForReceipts.add(roomId);
+            synchronized (this) {
+                if (mRoomsToCommitForReceipts.indexOf(roomId) < 0) {
+                    mRoomsToCommitForReceipts.add(roomId);
+                }
             }
         }
 

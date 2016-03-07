@@ -1185,23 +1185,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onSendingEvent(final Event event) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onSendingEvent(event);
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
     public void onSentEvent(final Event event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1228,57 +1211,6 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onFailedSendingEvent(event);
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onDeleteEvent(final Event event) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onDeleteEvent(event);
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onResentEvent(final Event event) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onResentEvent(event);
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onResendingEvent(final Event event) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onResendingEvent(event);
                     } catch (Exception e) {
                     }
                 }

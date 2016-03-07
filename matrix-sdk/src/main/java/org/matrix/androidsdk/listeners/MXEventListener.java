@@ -60,27 +60,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onSendingEvent(Event event) {
-    }
-
-    @Override
     public void onSentEvent(Event event) {
     }
 
     @Override
     public void onFailedSendingEvent(Event event) {
-    }
-
-    @Override
-    public void onDeleteEvent(Event event) {
-    }
-
-    @Override
-    public void onResendingEvent(Event event) {
-    }
-
-    @Override
-    public void onResentEvent(Event event) {
     }
 
     @Override

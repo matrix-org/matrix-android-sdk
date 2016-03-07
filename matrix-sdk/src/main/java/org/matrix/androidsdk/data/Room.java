@@ -24,10 +24,8 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Looper;
-import android.text.BoringLayout;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.ExpandableListAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -41,7 +39,6 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileInfo;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -49,7 +46,6 @@ import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -64,11 +60,9 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.w3c.dom.Text;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.lang.reflect.Array;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,9 +77,6 @@ import java.util.Map;
 public class Room {
 
     private static final String LOG_TAG = "Room";
-    private static final int MAX_RATE_LIMIT_MS = 20000;
-    // 3 mins
-    private static final int MAX_MESSAGE_TIME_LIFE_MS = 180000;
 
     private static final int MAX_EVENT_COUNT_PER_PAGINATION = 20;
 
@@ -148,11 +139,6 @@ public class Room {
     private String mTopToken;
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
-
-    private android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
-
-    private boolean isResendingEvents = false;
-    private boolean checkUnsentMessages = false;
 
     private boolean mIsLeaving = false;
 
@@ -368,18 +354,6 @@ public class Room {
             }
 
             @Override
-            public void onSendingEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onSendingEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSendingEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
             public void onSentEvent(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(mRoomId, event.roomId)) {
@@ -391,7 +365,6 @@ public class Room {
                 }
             }
 
-
             @Override
             public void onFailedSendingEvent(Event event) {
                 // Filter out events for other rooms
@@ -400,43 +373,6 @@ public class Room {
                         eventListener.onFailedSendingEvent(event);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onFailedSendingEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onDeleteEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onDeleteEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDeleteEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onResendingEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onResendingEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onResendingEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onResentEvent(Event event) {
-                // Filter out events for other rooms
-                if (mRoomId.equals(event.roomId)) {
-                    try {
-                        eventListener.onResentEvent(event);
-                    }
-                    catch (Exception e) {
-                        Log.e(LOG_TAG, "onResentEvent exception " + e.getMessage());
                     }
                 }
             }
@@ -645,8 +581,6 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
 
-                    mDataHandler.onSendingEvent(event);
-
                     try {
                         callback.onNetworkError(e);
                     } catch (Exception anException) {
@@ -658,8 +592,6 @@ public class Room {
                 public void onMatrixError(MatrixError e) {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
-
-                    mDataHandler.onSendingEvent(event);
 
                     try {
                         callback.onMatrixError(e);
@@ -673,8 +605,6 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
 
-                    mDataHandler.onSendingEvent(event);
-
                     try {
                         callback.onUnexpectedError(e);
                     } catch (Exception anException) {
@@ -684,8 +614,6 @@ public class Room {
             };
 
         event.mSentState = Event.SentState.SENDING;
-
-        mDataHandler.onSendingEvent(event);
 
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             mDataRetriever.getRoomsRestClient().sendMessage(event.originServerTs + "", mRoomId, JsonUtils.toMessage(event.content), localCB);
@@ -1824,15 +1752,8 @@ public class Room {
     }
 
     //================================================================================
-    // Unsent events management
+    // Unsent events
     //================================================================================
-
-    /**
-     * Resend the unsent messages.
-     */
-    public void resendUnsentEvents() {
-        resendUnsentEvents(-1);
-    }
 
     /**
      * Returns the unsent messages except the sending ones.
@@ -1859,228 +1780,6 @@ public class Room {
         return unsentEvents;
     }
 
-    /**
-     * Check the undeliverable events.
-     * Warn the application if some are found.
-     */
-    private void checkUndeliverableEvents() {
-        ArrayList<Event> unsentEvents = getUnsentEvents();
-
-        for(Event event : unsentEvents) {
-            if ((System.currentTimeMillis() - event.getOriginServerTs()) > MAX_MESSAGE_TIME_LIFE_MS) {
-                event.mSentState = Event.SentState.UNDELIVERABLE;
-                mDataHandler.onResentEvent(event);
-            }
-        }
-    }
-
-    /**
-     * Resend the unsent messages during a time  interval.
-     * @param timeInterval define the time interval in ms to resend the messages to avoid application lock.
-     */
-    public void resendUnsentEvents(int timeInterval) {
-        resendEventsList(getUnsentEvents(), 0,(timeInterval > 0) ? (System.currentTimeMillis() + timeInterval) : Long.MAX_VALUE);
-    }
-
-    /**
-     * Resend a list of events
-     * @param evensList the events list
-     */
-    public void resendEvents(Collection<Event> evensList) {
-        if (null != evensList) {
-            // reset the timestamp
-            for (Event event : evensList) {
-                event.originServerTs = System.currentTimeMillis();
-                event.mSentState = Event.SentState.SENDING;
-            }
-
-            resendEventsList(new ArrayList<Event>(evensList), 0, Long.MAX_VALUE);
-        }
-    }
-
-    /**
-     * Resend events list.
-     * Wait that the event is resent before sending the next one
-     * to keep the genuine order
-     */
-    private void resendEventsList(final ArrayList<Event> evensList, final int index, final long maxTime) {
-        if ((evensList.size() > 0) && (index < evensList.size()) && (System.currentTimeMillis() < maxTime)) {
-            final Event unsentEvent = evensList.get(index);
-
-            // is the event too old to be resent ?
-            if ((System.currentTimeMillis() - unsentEvent.getOriginServerTs()) > MAX_MESSAGE_TIME_LIFE_MS) {
-
-                unsentEvent.mSentState = Event.SentState.UNDELIVERABLE;
-
-                // warn that the event has been resent
-                mDataHandler.onResentEvent(unsentEvent);
-
-                // send the next one
-                Room.this.resendEventsList(evensList, index + 1, maxTime);
-
-            } else {
-                unsentEvent.mSentState = Event.SentState.SENDING;
-                mDataHandler.onResendingEvent(unsentEvent);
-
-                boolean hasPreviousTask = false;
-                final Message message = JsonUtils.toMessage(unsentEvent.content);
-
-                if (message instanceof ImageMessage) {
-                    final ImageMessage imageMessage = (ImageMessage) message;
-
-                    if (imageMessage.isLocalContent()) {
-                        // delete the previous image message
-                        mDataHandler.deleteRoomEvent(unsentEvent);
-                        mDataHandler.onDeleteEvent(unsentEvent);
-
-                        final Event newEvent = new Event(message, mMyUserId, mRoomId);
-                        evensList.set(index, newEvent);
-
-                        mDataHandler.storeLiveRoomEvent(unsentEvent);
-                        mDataHandler.onLiveEvent(newEvent, getLiveState());
-
-                        String filename;
-                        // try to parse it
-                        try {
-                            Uri uri = Uri.parse(imageMessage.url);
-                            filename = uri.getPath();
-                            FileInputStream fis = new FileInputStream(new File(filename));
-
-                            hasPreviousTask = true;
-
-                            if (null != fis) {
-                                mContentManager.uploadContent(fis, imageMessage.info.mimetype, imageMessage.url, imageMessage.body, new ContentManager.UploadCallback() {
-                                    @Override
-                                    public void onUploadStart(String uploadId) {
-                                    }
-
-                                    @Override
-                                    public void onUploadProgress(String anUploadId, int percentageProgress) {
-                                    }
-
-                                    @Override
-                                    public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode,  final String serverErrorMessage) {
-                                        ImageMessage uploadedMessage = (ImageMessage) JsonUtils.toMessage(newEvent.content);
-
-                                        uploadedMessage.thumbnailUrl = imageMessage.thumbnailUrl;
-
-                                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                                            uploadedMessage.url = uploadResponse.contentUri;
-                                        } else {
-                                            uploadedMessage.url = imageMessage.url;
-                                        }
-
-                                        uploadedMessage.info = imageMessage.info;
-                                        uploadedMessage.body = imageMessage.body;
-
-                                        // update the content
-                                        newEvent.content = JsonUtils.toJson(uploadedMessage);
-
-                                        // send the body
-                                        Room.this.resendEventsList(evensList, index, maxTime);
-                                    }
-                                });
-                            }
-                        } catch (Exception e) {
-
-                        }
-                    }
-                }
-
-                // no pending request
-                if (!hasPreviousTask) {
-                    final Event unsentEventCopy = unsentEvent.deepCopy();
-
-                    mDataHandler.onResendingEvent(unsentEvent);
-                    unsentEvent.originServerTs = System.currentTimeMillis();
-
-                    sendEvent(unsentEvent, new ApiCallback<Void>() {
-                        private Event storeUnsentMessage() {
-                            Event dummyEvent = new Event(message, mMyUserId, mRoomId);
-                            // create a dummy identifier
-                            dummyEvent.createDummyEventId();
-                            mDataHandler.storeLiveRoomEvent(dummyEvent);
-
-                            return dummyEvent;
-                        }
-
-                        private void common(final Event sentEvent, final Exception exception, final MatrixError matrixError) {
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // replace the resent event
-                                    mDataHandler.deleteRoomEvent(unsentEventCopy);
-                                    mDataHandler.onDeleteEvent(unsentEventCopy);
-
-                                    // with a new one
-                                    unsentEvent.eventId = sentEvent.eventId;
-                                    unsentEvent.mSentState = sentEvent.mSentState;
-                                    unsentEvent.unsentException = exception;
-                                    unsentEvent.unsentMatrixError = matrixError;
-                                    // don't wait after the echo
-                                    unsentEvent.mSentState = Event.SentState.SENT;
-
-                                    mDataHandler.onLiveEvent(unsentEvent, getLiveState());
-
-                                    // send the next one
-                                    Room.this.resendEventsList(evensList, index + 1, maxTime);
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onSuccess(Void info) {
-                            common(unsentEvent, null, null);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            common(storeUnsentMessage(), e, null);
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            common(storeUnsentMessage(), null, e);
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            common(storeUnsentMessage(), e, null);
-                        }
-                    });
-                }
-            }
-        } else {
-            boolean mustCheckUnsent;
-
-            synchronized (this) {
-                isResendingEvents = false;
-                mustCheckUnsent = checkUnsentMessages;
-                checkUnsentMessages = false;
-            }
-
-            // the timeout should be done on each request but assume
-            // that the requests are sent in pools so the timeout is valid for it.
-            if ((mustCheckUnsent) && (System.currentTimeMillis() < maxTime)) {
-                resendUnsentEvents(MAX_RATE_LIMIT_MS);
-            } else {
-                Event lastEvent = null;
-
-                for(int subindex = index; subindex < evensList.size(); subindex++) {
-                    lastEvent = evensList.get(subindex);
-                    lastEvent.mSentState = Event.SentState.UNDELIVERABLE;
-                }
-
-                if (null != lastEvent) {
-                    mDataHandler.onLiveEvent(lastEvent, getLiveState());
-                }
-            }
-
-            if ((evensList.size() > 0)) {
-                mDataHandler.onLiveEventsChunkProcessed();
-            }
-        }
-    }
 
     //================================================================================
     // Call
