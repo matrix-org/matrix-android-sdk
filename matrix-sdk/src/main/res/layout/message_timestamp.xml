@@ -23,7 +23,7 @@
             android:layout_width="20dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:textSize="8dp"
+            android:textSize="8sp"
             android:id="@+id/messagesAdapter_more_than_three_left"
             android:text="..." />
 
@@ -38,7 +38,7 @@
 
         <TextView
             android:layout_width="20dp"
-            android:textSize="8dp"
+            android:textSize="8sp"
             android:layout_height="match_parent"
             android:gravity="center"
             android:id="@+id/messagesAdapter_more_than_three_right"
