@@ -1333,7 +1333,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return;
         }
 
-        // refresh the piechart only if it is the expected URL
+        // refresh the pie chart only if it is the expected URL
         uploadPieFractionView.setTag(mediaUrl);
 
         // no upload in progress
@@ -1372,6 +1372,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         } else {
                             uploadSpinner.setVisibility(View.VISIBLE);
                         }
+
+                        uploadPieFractionView.setVisibility(View.GONE);
                     }
                 }
             });
@@ -1871,6 +1873,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         } else {
                             uploadSpinner.setVisibility(View.VISIBLE);
                         }
+
+                        uploadSpinner.setVisibility(View.GONE);
                     }
                 }
             });

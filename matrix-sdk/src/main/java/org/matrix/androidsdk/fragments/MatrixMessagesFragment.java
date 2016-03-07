@@ -242,7 +242,6 @@ public class MatrixMessagesFragment extends Fragment {
         mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
-
                 // on Sync V2, the room initial sync is done as a standard events chunck
                 // so wait that the dedicated chunk is received.
                 if (MXSession.useSyncV2()) {
@@ -258,13 +257,10 @@ public class MatrixMessagesFragment extends Fragment {
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "Network error: " + e.getMessage());
 
-                MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
-                        MatrixMessagesFragment.this.dismissLoadingProgress();
-                    }
-                });
+                if (null != MatrixMessagesFragment.this.getActivity()) {
+                    Toast.makeText(mContext, getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
+                    MatrixMessagesFragment.this.dismissLoadingProgress();
+                }
             }
 
             @Override
@@ -275,20 +271,15 @@ public class MatrixMessagesFragment extends Fragment {
                     logout();
                 }
 
-                final MatrixError matrixError = e;
-
-                MatrixMessagesFragment.this.getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                        MatrixMessagesFragment.this.dismissLoadingProgress();
-                    }
-                });
+                if (null != MatrixMessagesFragment.this.getActivity()) {
+                    Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                    MatrixMessagesFragment.this.dismissLoadingProgress();
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, getActivity().getString(R.string.unexpected_error) + " : " + e.getMessage());
+                Log.e(LOG_TAG, mContext.getString(R.string.unexpected_error) + " : " + e.getMessage());
                 MatrixMessagesFragment.this.dismissLoadingProgress();
             }
         });
@@ -304,26 +295,32 @@ public class MatrixMessagesFragment extends Fragment {
         requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(Integer info) {
-                MatrixMessagesFragment.this.dismissLoadingProgress();
-                mMatrixMessagesListener.onInitialMessagesLoaded();
+                if (null != getActivity()) {
+                    MatrixMessagesFragment.this.dismissLoadingProgress();
+                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                }
+            }
+
+            private void onError(String errorMessage) {
+                if (null != getActivity()) {
+                    Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG).show();
+                    MatrixMessagesFragment.this.dismissLoadingProgress();
+                }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                MatrixMessagesFragment.this.dismissLoadingProgress();
-                Toast.makeText(getActivity(), e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                onError(e.getLocalizedMessage());
             }
         });
     }
