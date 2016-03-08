@@ -23,6 +23,7 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -562,11 +563,21 @@ public class Room {
 
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
                 @Override
-                public void onSuccess(Event serverResponseEvent) {
+                public void onSuccess(final Event serverResponseEvent) {
+                    // remove the tmp event
+                    mDataHandler.getStore().deleteEvent(event);
+
                     // update the event with the server response
                     event.mSentState = Event.SentState.SENT;
                     event.eventId = serverResponseEvent.eventId;
                     event.originServerTs = System.currentTimeMillis();
+
+                    // the message echo is not yet echoed
+                    if (!mDataHandler.getStore().doesEventExist(serverResponseEvent.eventId, mRoomId)) {
+                        mDataHandler.getStore().storeLiveRoomEvent(event);
+                    }
+
+                    mDataHandler.getStore().commit();
 
                     mDataHandler.onSentEvent(event);
 

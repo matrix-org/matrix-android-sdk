@@ -410,8 +410,8 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public Boolean doesEventExist(String eventId, String roomId) {
-        Boolean res = false;
+    public boolean doesEventExist(String eventId, String roomId) {
+        boolean res = false;
 
         if (!TextUtils.isEmpty(eventId) && !TextUtils.isEmpty(roomId)) {
             ArrayList<String> eventIds = mRoomEventIds.get(roomId);
@@ -425,6 +425,23 @@ public class MXMemoryStore implements IMXStore {
         }
 
         return res;
+    }
+
+    @Override
+    public Event getEvent(String eventId, String roomId) {
+        Event event = null;
+
+        if (doesEventExist(eventId,roomId)) {
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+                if (events != null) {
+                    event = events.get(eventId);
+                }
+            }
+        }
+
+        return event;
     }
 
     @Override
@@ -476,7 +493,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the id of the room.
      * @param keepUnsent set to true to do not delete the unsent message
      */
-    public void deleteAllRoomMessages(String roomId, Boolean keepUnsent) {
+    public void deleteAllRoomMessages(String roomId, boolean keepUnsent) {
         // sanity check
         if (null != roomId) {
             synchronized (mRoomEvents) {

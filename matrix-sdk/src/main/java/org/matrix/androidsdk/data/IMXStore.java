@@ -155,7 +155,15 @@ public interface IMXStore {
      * @param roomId the id of the room.
      * @return true if the event exists in the store.
      */
-    Boolean doesEventExist(String eventId, String roomId);
+    boolean doesEventExist(String eventId, String roomId);
+
+    /**
+     * Retrieve an event from its room Id and its Event id
+     * @param eventId the event id
+     * @param roomId the room Id
+     * @return the event (null if it is not found)
+     */
+    Event getEvent(String eventId, String roomId);
 
     /**
      * Delete an event
@@ -168,7 +176,7 @@ public interface IMXStore {
      * @param roomId the id of the room.
      * @param keepUnsent set to true to do not delete the unsent message
      */
-    void deleteAllRoomMessages(String roomId, Boolean keepUnsent);
+    void deleteAllRoomMessages(String roomId, boolean keepUnsent);
 
     /**
      * Delete the room from the storage.

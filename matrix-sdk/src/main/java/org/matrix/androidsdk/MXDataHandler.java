@@ -647,10 +647,23 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         } else {
+            Event storedEvent = getStore().getEvent(event.eventId, event.roomId);
 
             // avoid processing event twice
-            if (getStore().doesEventExist(event.eventId, event.roomId)) {
-                Log.e(LOG_TAG, "handleLiveEvent : teh event " + event.eventId + " in " + event.roomId + " already exist.");
+            if (null != storedEvent) {
+
+                // an event has been echoed
+                if (storedEvent.getAge() == Long.MAX_VALUE) {
+                    getStore().deleteEvent(storedEvent);
+                    getStore().storeLiveRoomEvent(event);
+                    getStore().commit();
+
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
+
+                } else {
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                }
+
                 return;
             }
 
