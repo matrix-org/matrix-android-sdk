@@ -16,6 +16,7 @@ import java.util.ArrayList;
  */
 public class HomeserverConnectionConfig {
     private Uri mHsUri;
+    private Uri mIdentityServerUri;
     private ArrayList<Fingerprint> mAllowedFingerprints;
     private Credentials mCredentials;
     private boolean mPin;
@@ -32,28 +33,40 @@ public class HomeserverConnectionConfig {
      * @param credentials The credentials to use, if needed. Can be null.
      */
     public HomeserverConnectionConfig(Uri hsUri, Credentials credentials) {
-        this(hsUri, credentials, new ArrayList<Fingerprint>(), false);
+        this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false);
     }
 
     /**
      * @param hsUri The URI to use to connect to the homeserver
+     * @param identityServerUri The URI to use to manage identity
      * @param credentials The credentials to use, if needed. Can be null.
      * @param allowedFingerprints If using SSL, allow server certs that match these fingerprints.
      * @param pin If true only allow certs matching given fingerprints, otherwise fallback to
      *            standard X509 checks.
      */
-    public HomeserverConnectionConfig(Uri hsUri, Credentials credentials, ArrayList<Fingerprint> allowedFingerprints, boolean pin) {
+    public HomeserverConnectionConfig(Uri hsUri, Uri identityServerUri, Credentials credentials, ArrayList<Fingerprint> allowedFingerprints, boolean pin) {
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
             throw new RuntimeException("Invalid home server URI: "+hsUri);
         }
 
+        if ((null != identityServerUri) && (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
+            throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
+        }
+
         this.mHsUri = hsUri;
+        this.mIdentityServerUri = identityServerUri;
         this.mAllowedFingerprints = allowedFingerprints;
         this.mPin = pin;
         this.mCredentials = credentials;
     }
 
     public Uri getHomeserverUri() { return mHsUri; }
+
+    public void setIdentityServerUri(Uri uri) {
+        mIdentityServerUri = uri;
+    }
+    public Uri getIdentityServerUri() { return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri; }
+
     public ArrayList<Fingerprint> getAllowedFingerprints() { return mAllowedFingerprints; }
 
     public Credentials getCredentials() { return mCredentials; }
@@ -72,6 +85,7 @@ public class HomeserverConnectionConfig {
     public String toString() {
         return "HomeserverConnectionConfig{" +
                 "mHsUri=" + mHsUri +
+                "mIdentityServerUri=" + mIdentityServerUri +
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
                 ", mCredentials=" + mCredentials +
                 ", mPin=" + mPin +
@@ -82,7 +96,10 @@ public class HomeserverConnectionConfig {
         JSONObject json = new JSONObject();
 
         json.put("home_server_url", mHsUri.toString());
+        json.put("identity_server_url", getIdentityServerUri().toString());
+
         json.put("pin", mPin);
+
         if (mCredentials != null) json.put("credentials", mCredentials.toJson());
         if (mAllowedFingerprints != null) {
             ArrayList<JSONObject> fingerprints = new ArrayList<JSONObject>(mAllowedFingerprints.size());
@@ -109,11 +126,13 @@ public class HomeserverConnectionConfig {
         JSONObject credentialsObj = obj.optJSONObject("credentials");
         Credentials creds = credentialsObj != null ? Credentials.fromJson(credentialsObj) : null;
 
-        return new HomeserverConnectionConfig(
+        HomeserverConnectionConfig config = new HomeserverConnectionConfig(
                 Uri.parse(obj.getString("home_server_url")),
+                obj.has("identity_server_url") ? Uri.parse(obj.getString("identity_server_url")) : null,
                 creds,
                 fingerprints,
-                obj.optBoolean("pin", false)
-        );
+                obj.optBoolean("pin", false));
+
+        return config;
     }
 }
