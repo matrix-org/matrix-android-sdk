@@ -206,9 +206,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // when the current user sends one but it will also come down the event stream
     private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
 
-    // when a message is sent, the content is displayed until to get the echo from the server
-    private HashMap<String, MessageRow> mWaitingEchoRowMap = new HashMap<String, MessageRow>();
-
     // avoid searching bingrule at each refresh
     private HashMap<String, Integer> mTextColorByEventId = new HashMap<String, Integer>();
 
@@ -432,7 +429,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void addToFront(Event event, RoomState roomState) {
         MessageRow row = new MessageRow(event, roomState);
-        if (shouldSave(row)) {
+        if (isSupportedRow(row)) {
             // ensure that notifyDataSetChanged is not called
             // it seems that setNotifyOnChange is reinitialized to true;
             setNotifyOnChange(false);
@@ -458,24 +455,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         add(new MessageRow(event, roomState));
     }
 
-    /**
-     * Check if the event is echoed by the server.
-     * Or if the event is waiting after the server echo.
-     * @param row the row event to check.
-     */
-    public void waitForEcho(MessageRow row) {
-        String eventId = row.getEvent().eventId;
-
-        // the echo has already been received
-        if (mEventRowMap.containsKey(eventId)) {
-            mWaitingEchoRowMap.remove(eventId);
-            this.remove(row);
-        } else {
-            mEventRowMap.put(eventId, row);
-            mWaitingEchoRowMap.put(eventId, row);
-        }
-    }
-
     @Override
     public void remove(MessageRow row) {
         if (mIsSearchMode) {
@@ -491,7 +470,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // it seems that setNotifyOnChange is reinitialized to true;
         setNotifyOnChange(false);
 
-        if (shouldSave(row)) {
+        if (isSupportedRow(row)) {
             if (mIsSearchMode) {
                 mLiveMessagesRowList.add(row);
             } else {
@@ -499,10 +478,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             if (row.getEvent().eventId != null) {
                 mEventRowMap.put(row.getEvent().eventId, row);
-            }
-
-            if (row.getEvent().isWaitingForEcho()) {
-                mWaitingEchoRowMap.put(row.getEvent().eventId, row);
             }
 
             if (!mIsSearchMode) {
@@ -527,45 +502,56 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    public void updateEventById(Event event, String oldEventId) {
+        MessageRow row = mEventRowMap.get(event.eventId);
+
+        // the event is not yet defined
+        if (null == row) {
+            MessageRow oldRow = mEventRowMap.get(oldEventId);
+
+            if (null != oldRow) {
+                mEventRowMap.remove(oldEventId);
+                mEventRowMap.put(event.eventId, oldRow);
+            }
+        } else  {
+            // the destinated eventId already exists
+            // remove the old display
+            removeEventById(oldEventId);
+        }
+
+        notifyDataSetChanged();
+
+    }
+
+
     /**
      * Check if the row must be added to the list.
      * @param row the row to check.
      * @return true if should be added
      */
-    protected boolean shouldSave(MessageRow row) {
-        boolean shouldSave = isDisplayableEvent(row.getEvent(), row.getRoomState());
+    protected boolean isSupportedRow(MessageRow row) {
+        boolean isSupported = isDisplayableEvent(row.getEvent(), row.getRoomState());
 
-        if (shouldSave) {
+        if (isSupported) {
             String eventId = row.getEvent().eventId;
 
-            shouldSave = !mEventRowMap.containsKey(eventId);
+            MessageRow currentRow = mEventRowMap.get(eventId);
 
-            // a message has already been store with the same eventID
-            if (!shouldSave) {
-                MessageRow currentRow = mEventRowMap.get(eventId);
+            // the row should be added only if the message has not been received
+            isSupported = (null == currentRow);
 
-                // Long.MAX_VALUE means that it is a temporary event
-                shouldSave = (currentRow.getEvent().getAge() == Long.MAX_VALUE);
-
-                if (!shouldSave) {
-                    shouldSave = mWaitingEchoRowMap.containsKey(eventId);
-
-                    // remove the waiting echo message
-                    if (shouldSave) {
-                        super.remove(mWaitingEchoRowMap.get(eventId));
-                        mWaitingEchoRowMap.remove(eventId);
-                    }
-                } else {
-                    if (mIsSearchMode) {
-                        mLiveMessagesRowList.remove(currentRow);
-                    } else {
-                        super.remove(currentRow);
-                    }
+            // check if the message is already received
+            if (null != currentRow) {
+                // waiting for echo
+                // the message is displayed as sent event if the echo has not been received
+                // it avoids displaying a pending message whereas the message has been sent
+                if (currentRow.getEvent().getAge() == Long.MAX_VALUE) {
+                    currentRow.updateEvent(row.getEvent());
                 }
             }
         }
 
-        return shouldSave;
+        return isSupported;
     }
 
     /**
@@ -830,7 +816,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Tells if the event body should be merged with the previous event
      * @param event the event
      * @param position the event position in the events list
-     * @param isMerged true if the event should be be merged
+     * @param shouldBeMerged true if the event should be be merged
      * @return true to merge with the previous event body
      */
     protected boolean mergeView(Event event, int position, boolean shouldBeMerged) {

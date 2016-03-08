@@ -31,6 +31,10 @@ public class MessageRow {
         return mEvent;
     }
 
+    public void updateEvent(Event event) {
+        mEvent = event;
+    }
+
     public RoomState getRoomState() {
         return mRoomState;
     }

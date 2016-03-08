@@ -1051,12 +1051,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final Event event = messageRow.getEvent();
 
         if (!event.isUndeliverable()) {
+            final String prevEventId = event.eventId;
+
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    if (null != MatrixMessageListFragment.this.getActivity()) {
-                        mAdapter.waitForEcho(messageRow);
-                    }
+                    mAdapter.updateEventById(event, prevEventId);
 
                     // pending resending ?
                     if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {

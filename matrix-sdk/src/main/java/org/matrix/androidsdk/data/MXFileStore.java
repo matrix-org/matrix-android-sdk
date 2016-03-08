@@ -639,7 +639,7 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void deleteAllRoomMessages(String roomId, Boolean keepUnsent) {
+    public void deleteAllRoomMessages(String roomId, boolean keepUnsent) {
         Log.d(LOG_TAG, "deleteAllRoomMessages " + roomId);
 
         super.deleteAllRoomMessages(roomId, keepUnsent);
