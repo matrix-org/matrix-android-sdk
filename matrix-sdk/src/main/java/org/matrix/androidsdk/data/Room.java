@@ -190,9 +190,9 @@ public class Room {
     }
 
     /**
-     * @return the list of active members in a room.
+     * @return the list of online members in a room.
      */
-    public Collection<RoomMember> getActiveMembers() {
+    public Collection<RoomMember> getOnlineMembers() {
         Collection<RoomMember> members = mLiveState.getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
 
@@ -208,6 +208,25 @@ public class Room {
 
         return activeMembers;
     }
+
+    /**
+     * @return the list of active members in a room ie joined or invited ones.
+     */
+    public Collection<RoomMember> getActiveMembers() {
+        Collection<RoomMember> members = mLiveState.getMembers();
+        ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
+
+        for(RoomMember member : members) {
+            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) ||TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                activeMembers.add(member);
+            }
+        }
+
+        return activeMembers;
+    }
+
+
+
 
     public void setMember(String userId, RoomMember member) {
         mLiveState.setMember(userId, member);
