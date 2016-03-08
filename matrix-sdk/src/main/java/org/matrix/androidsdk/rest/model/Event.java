@@ -38,7 +38,6 @@ public class Event implements java.io.Serializable {
         UNSENT,  // the event has not been sent
         SENDING, // the event is currently sending
         WAITING_RETRY, // the event is going to be resent asap
-        WAITING_ECHO, // the event is sent to the server but it does not aknowledge it.
         SENT,    // the event has been sent
         UNDELIVERABLE   // The event failed to be sent
     }
@@ -373,7 +372,7 @@ public class Event implements java.io.Serializable {
      * @return true if it is sending.
      */
     public boolean isSending() {
-        return (mSentState == SentState.SENDING) || (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.WAITING_ECHO);
+        return (mSentState == SentState.SENDING) || (mSentState == SentState.WAITING_RETRY);
     }
 
     /**
@@ -383,15 +382,6 @@ public class Event implements java.io.Serializable {
      */
     public boolean isUndeliverable() {
         return (mSentState == SentState.UNDELIVERABLE);
-    }
-
-    /**
-     * Check if the current event has not been acknowledged.
-     *
-     * @return true if the event has not been acknowledged.
-     */
-    public boolean isWaitingForEcho() {
-        return (mSentState == SentState.WAITING_ECHO);
     }
 
     /**
@@ -445,8 +435,6 @@ public class Event implements java.io.Serializable {
             text += "SENDING";
         } else if (mSentState == SentState.WAITING_RETRY) {
             text += "WAITING_RETRY";
-        } else if (mSentState == SentState.WAITING_ECHO) {
-            text += "WAITING_ECHO";
         } else if (mSentState == SentState.SENT) {
             text += "SENT";
         } else if (mSentState == SentState.UNDELIVERABLE) {

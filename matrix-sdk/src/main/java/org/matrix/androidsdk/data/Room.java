@@ -564,8 +564,9 @@ public class Room {
                 @Override
                 public void onSuccess(Event serverResponseEvent) {
                     // update the event with the server response
-                    event.mSentState = Event.SentState.WAITING_ECHO;
+                    event.mSentState = Event.SentState.SENT;
                     event.eventId = serverResponseEvent.eventId;
+                    event.originServerTs = System.currentTimeMillis();
 
                     mDataHandler.onSentEvent(event);
 
