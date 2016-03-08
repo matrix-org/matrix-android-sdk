@@ -928,7 +928,7 @@ public class MXMemoryStore implements IMXStore {
         ArrayList<Event> events = new ArrayList<Event>();
 
         // sanity check
-        if ((null != roomId) && (null != eventId)) {
+        if (null != roomId) {
             synchronized (mRoomEvents) {
                 LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
 
@@ -939,7 +939,7 @@ public class MXMemoryStore implements IMXStore {
                     for (int i = linkedEvents.size() - 1; i >= 0 ; i--) {
                         Event event = linkedEvents.get(i);
 
-                        if (!TextUtils.equals(event.eventId, eventId)) {
+                        if ((null == eventId) || !TextUtils.equals(event.eventId, eventId)) {
                             // Keep events matching filters
                             if ((null == allowedTypes || (allowedTypes.indexOf(event.type) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
                                 events.add(event);

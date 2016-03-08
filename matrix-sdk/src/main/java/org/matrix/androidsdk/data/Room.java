@@ -2007,12 +2007,13 @@ public class Room {
                 if (!isRoomInitialSync) {
                     currentSummary =  mDataHandler.getStore().getSummary(mRoomId);
 
-                    // Flush the existing messages for this room by keeping state events.
-                    mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
-
                     // define a summary if some messages are left
                     // the unsent messages are often displayed messages.
                     Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
+
+                    // Flush the existing messages for this room by keeping state events.
+                    mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
+
                     if (oldestEvent != null) {
                         if (RoomSummary.isSupportedEvent(oldestEvent)) {
                             mDataHandler.getStore().storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
