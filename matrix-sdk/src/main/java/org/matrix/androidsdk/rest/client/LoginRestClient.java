@@ -84,7 +84,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
         final String description = "loginWithPassword user : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.user = user;
+        params.type = "m.login.password";
+        
+        if (android.util.Patterns.EMAIL_ADDRESS.matcher(user).matches()) {
+            params.address = user;
+            params.medium = "email";
+        } else {
+            params.user = user;
+        }
+
         params.password = password;
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,

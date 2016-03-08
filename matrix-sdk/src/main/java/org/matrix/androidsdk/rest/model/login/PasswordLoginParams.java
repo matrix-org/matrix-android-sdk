@@ -19,10 +19,14 @@ package org.matrix.androidsdk.rest.model.login;
  * Object to pass to a /login call of type password.
  */
 public class PasswordLoginParams extends LoginParams {
+    // user name login
     public String user;
+
+    // email login
+    public String address;
+    public String medium;
+
+    // common
     public String password;
 
-    public PasswordLoginParams() {
-        type = "m.login.password";
-    }
 }
