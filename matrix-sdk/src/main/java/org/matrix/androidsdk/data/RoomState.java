@@ -87,6 +87,18 @@ public class RoomState implements java.io.Serializable {
     // the room visibility (i.e. public, private...)
     public String visibility;
 
+    /**
+     The number of unread messages that match the push notification rules.
+     It is based on the notificationCount field in /sync response.
+     */
+    public int mNotificationCount;
+
+    /**
+     The number of highlighted unread messages (subset of notifications).
+     It is based on the notificationCount field in /sync response.
+     */
+    public int mHighlightCount;
+
     // the associated token
     private String token;
 

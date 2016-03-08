@@ -15,31 +15,26 @@
  */
 package org.matrix.androidsdk.rest.model.SyncV2;
 
-// RoomSync represents the response for a room during server sync v2.
-public class RoomSync implements java.io.Serializable {
+import org.matrix.androidsdk.rest.model.Event;
+
+import java.util.List;
+
+/**
+ `MXRoomSyncUnreadNotifications` represents the unread counts for a room.
+ */
+public class RoomSyncUnreadNotifications implements java.io.Serializable {
     /**
-     * The state updates for the room.
+     * List of account data events (array of Event).
      */
-    public RoomSyncState state;
+    public List<Event> events;
 
     /**
-     * The timeline of messages and state changes in the room.
+     The number of unread messages that match the push notification rules.
      */
-    public RoomSyncTimeline timeline;
+    public Integer notificationCount;
 
     /**
-     * The ephemeral events in the room that aren't recorded in the timeline or state of the room (e.g. typing, receipts).
+     The number of highlighted unread messages (subset of notifications).
      */
-    public RoomSyncEphemeral ephemeral;
-
-    /**
-     * The account data events for the room (e.g. tags).
-     */
-    public RoomSyncAccountData accountData;
-
-    /**
-     The notification counts for the room.
-     */
-    public RoomSyncUnreadNotifications unreadNotifications;
-
+    public Integer highlightCount;
 }

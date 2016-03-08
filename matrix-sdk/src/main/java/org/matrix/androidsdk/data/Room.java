@@ -23,7 +23,6 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -239,6 +238,8 @@ public class Room {
     public void setContentManager(ContentManager contentManager) {
         mContentManager = contentManager;
     }
+
+
 
     /**
      * @return true if the user is invited to the room
@@ -1503,6 +1504,20 @@ public class Room {
     //================================================================================
 
     /**
+     * @return the number of unread messages that match the push notification rules.
+     */
+    public int getNotificationCount() {
+        return getLiveState().mNotificationCount;
+    }
+
+    /**
+     * @return the number of highlighted events.
+     */
+    public int gettHighlightCount() {
+        return getLiveState().mHighlightCount;
+    }
+
+    /**
      *  refresh the unread events counts.
      */
     public void refreshUnreadCounter() {
@@ -1931,7 +1946,7 @@ public class Room {
     // Sync V2
     //================================================================================
 
-    public void handleJoinedRoomSync(RoomSync roomSync, Boolean isInitialSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
         // Is it an initial sync for this room ?
         RoomState liveState = getLiveState();
         String membership = null;
@@ -2155,6 +2170,27 @@ public class Room {
             }
             mOnInitialSyncCallback = null;
         }
+
+        if (null != roomSync.unreadNotifications) {
+            int notifCount = 0;
+            int highlightCount = 0;
+
+            if (null != roomSync.unreadNotifications.highlightCount) {
+                highlightCount = roomSync.unreadNotifications.highlightCount;
+            }
+
+            if (null != roomSync.unreadNotifications.notificationCount) {
+                notifCount = roomSync.unreadNotifications.notificationCount;
+            }
+
+            boolean isUpdated = (notifCount != getLiveState().mNotificationCount) || (getLiveState().mHighlightCount != highlightCount);
+
+            if (isUpdated) {
+                getLiveState().mNotificationCount = notifCount;
+                getLiveState().mHighlightCount = highlightCount;
+                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+            }
+         }
 
         mIsV2Syncing = false;
     }
