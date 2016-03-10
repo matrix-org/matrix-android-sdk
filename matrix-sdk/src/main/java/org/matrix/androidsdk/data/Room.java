@@ -2001,6 +2001,12 @@ public class Room {
             // Build/Update first the room state corresponding to the 'start' of the timeline.
             // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
             processLiveState(roomSync.state.events);
+
+            // if it is an initial sync, the live state is initialized here
+            // so the back state must also be initialized
+            if (isRoomInitialSync) {
+                this.mBackState = this.mLiveState.deepCopy();
+            }
         }
 
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
