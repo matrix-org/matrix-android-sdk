@@ -677,28 +677,39 @@ public class MXDataHandler implements IMXEventListener {
                 // the initial sync + the first requestHistory call is done here
                 // instead of being done in the application
                 if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId)) {
-
-                    // check if the user updates his profile from another device.
-                    MyUser myUser = getMyUser();
-
                     EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+                    EventContent prevEventContent = event.getPrevContent();
 
-                    boolean hasAccountInfoUpdated = false;
+                    String prevMembership = null;
 
-                    if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
-                        hasAccountInfoUpdated = true;
-                        myUser.displayname = eventContent.displayname;
-                        getStore().setDisplayName(myUser.displayname);
+                    if (null != prevEventContent) {
+                        prevMembership = prevEventContent.membership;
                     }
 
-                    if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
-                        hasAccountInfoUpdated = true;
-                        myUser.setAvatarUrl(eventContent.avatar_url);
-                        getStore().setAvatarURL(myUser.avatar_url);
-                    }
+                    boolean isRedactedEvent = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
 
-                    if (hasAccountInfoUpdated) {
-                        onAccountInfoUpdate(myUser);
+                    // if the membership is the same, assume that the user
+                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership)) {
+                        // check if the user updates his profile from another device.
+                        MyUser myUser = getMyUser();
+
+                        boolean hasAccountInfoUpdated = false;
+
+                        if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
+                            hasAccountInfoUpdated = true;
+                            myUser.displayname = eventContent.displayname;
+                            getStore().setDisplayName(myUser.displayname);
+                        }
+
+                        if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
+                            hasAccountInfoUpdated = true;
+                            myUser.setAvatarUrl(eventContent.avatar_url);
+                            getStore().setAvatarURL(myUser.avatar_url);
+                        }
+
+                        if (hasAccountInfoUpdated) {
+                            onAccountInfoUpdate(myUser);
+                        }
                     }
 
                     if (shouldSelfJoin(event, room.getLiveState())) {
