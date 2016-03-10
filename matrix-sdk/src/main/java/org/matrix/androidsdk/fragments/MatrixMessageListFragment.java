@@ -1271,9 +1271,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 return;
             }
 
-            Log.d(LOG_TAG, "requestHistory starts");
-
-            final int firstPos = mMessageListView.getFirstVisiblePosition();
             final int countBeforeUpdate = mAdapter.getCount();
 
             mIsCatchingUp = mMatrixMessagesFragment.requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
@@ -1282,24 +1279,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     dismissLoadingProgress();
 
                     // Scroll the list down to where it was before adding rows to the top
-                    mUiHandler.post(new Runnable() {
+                    mMessageListView.post(new Runnable() {
                         @Override
                         public void run() {
+
+                            int countDiff = mAdapter.getCount() - countBeforeUpdate;
+
                             // check if some messages have been added
                             // do not refresh the UI if no message have been added
-                            if (0 != (mAdapter.getCount() - countBeforeUpdate)) {
+                            if (0 != countDiff) {
                                 // refresh the list only at the end of the sync
                                 // else the one by one message refresh gives a weird UX
                                 // The application is almost frozen during the
                                 mAdapter.notifyDataSetChanged();
 
-
                                 // do not use count because some messages are not displayed
                                 // so we compute the new pos
-                                mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
+                                mMessageListView.setSelection(mMessageListView.getFirstVisiblePosition() + countDiff);
                             }
 
-                            Log.d(LOG_TAG, "requestHistory done with " + count + " items");
                             mIsCatchingUp = false;
                         }
                     });
