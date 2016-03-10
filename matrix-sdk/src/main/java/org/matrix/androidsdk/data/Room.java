@@ -1968,14 +1968,12 @@ public class Room {
     //================================================================================
 
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        // Is it an initial sync for this room ?
-        RoomState liveState = getLiveState();
         String membership = null;
         RoomSummary currentSummary = null;
-
+        
         mIsV2Syncing = true;
 
-        RoomMember selfMember = liveState.getMember(mMyUserId);
+        RoomMember selfMember = getLiveState().getMember(mMyUserId);
 
         if (null != selfMember) {
             membership = selfMember.membership;
@@ -2121,7 +2119,7 @@ public class Room {
         // The timeline events could contain a leave event followed by a join.
         // so, the user does not leave.
         // The handleLiveEvent used to warn the client that a room was left where as it should not
-        selfMember = liveState.getMember(mMyUserId);
+        selfMember = getLiveState().getMember(mMyUserId);
 
         if (null != selfMember) {
             membership = selfMember.membership;
