@@ -1901,6 +1901,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Call when there are some updates in the typing users list.
+     */
+    protected void onTypingUsersUpdate() {
+        notifyDataSetChanged();
+    }
+
+    /**
      * Update the typing users list
      * @param typingUsers
      */
@@ -1941,7 +1948,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mTypingUsers = typingUsers;
 
             if (refresh) {
-                notifyDataSetChanged();
+                onTypingUsersUpdate();
             }
         }
     }
