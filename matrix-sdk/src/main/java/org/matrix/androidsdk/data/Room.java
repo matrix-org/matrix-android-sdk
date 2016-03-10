@@ -597,8 +597,10 @@ public class Room {
                         mDataHandler.getStore().storeLiveRoomEvent(event);
                     }
 
-                    mDataHandler.getStore().commit();
+                    // send the dedicated read receipt asap
+                    sendReadReceipt();
 
+                    mDataHandler.getStore().commit();
                     mDataHandler.onSentEvent(event);
 
                     try {
