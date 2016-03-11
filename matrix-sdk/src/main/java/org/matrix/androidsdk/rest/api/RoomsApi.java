@@ -159,6 +159,15 @@ public interface RoomsApi {
     void invite(@Path("roomId") String roomId, @Body User user, Callback<Void> callback);
 
     /**
+     * Trigger an invitation from a parameters set.
+     * @param roomId the room id
+     * @param params the parameters
+     * @param callback the asynchronous callback called when finished
+     */
+    @POST("/rooms/{roomId}/invite")
+    void invite(@Path("roomId") String roomId, @Body HashMap<String, String> params, Callback<Void> callback);
+
+    /**
      * Join the given room.
      * @param roomId the room id
      * @param callback the asynchronous callback called when finished

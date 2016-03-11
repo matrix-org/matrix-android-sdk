@@ -71,6 +71,8 @@ public class RestClient<T> {
 
     protected UnsentEventsManager mUnsentEventsManager;
 
+    protected HomeserverConnectionConfig mHsConfig;
+
 
     /**
      * Public constructor.
@@ -80,6 +82,7 @@ public class RestClient<T> {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
+        mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
         OkHttpClient okHttpClient = new OkHttpClient();

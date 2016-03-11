@@ -985,13 +985,23 @@ public class Room {
     //================================================================================
 
     /**
-     * Invite a user to this room.
+     * Invite an user to this room.
      * @param userId the user id
      * @param callback the callback for when done
      */
     public void invite(String userId, ApiCallback<Void> callback) {
         mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userId, callback);
     }
+
+    /**
+     * Invite an user to a room based on their email address to this room.
+     * @param email the email adress
+     * @param callback the callback for when done
+     */
+    public void inviteByEmail(String email, ApiCallback<Void> callback) {
+        mDataRetriever.getRoomsRestClient().inviteByEmailToRoom(mRoomId, email, callback);
+    }
+
 
     /**
      * Invite some users to this room.

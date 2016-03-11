@@ -207,6 +207,53 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Invite a user by his email address to a room.
+     * @param roomId the room id
+     * @param email the email
+     * @param callback the async callback
+     */
+    public void inviteByEmailToRoom(final String roomId, final String email, final ApiCallback<Void> callback) {
+        inviteThreePidToRoom("email", email, roomId, callback);
+    }
+
+    /**
+     * Invite an user from a 3Pids.
+     * @param medium the medium
+     * @param address the address
+     * @param roomId the room id
+     * @param callback the async callback
+     */
+    public void inviteThreePidToRoom(final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
+        final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
+
+        // This request must not have the protocol part
+        String identityServer = mHsConfig.getIdentityServerUri().toString();
+
+        if (identityServer.startsWith("http://")) {
+            identityServer = identityServer.substring("http://".length());
+        } else if (identityServer.startsWith("https://")) {
+            identityServer = identityServer.substring("https://".length());
+        }
+
+        HashMap<String, String> parameters = new HashMap<String, String>();
+        parameters.put("id_server", identityServer);
+        parameters.put("medium", medium);
+        parameters.put("address", address);
+
+        mApi.invite(roomId, parameters, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    inviteThreePidToRoom(medium, address, roomId, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend inviteThreePidToRoom : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+
+    /**
      * Join a room by its roomAlias or its roomId
      * @param roomIdOrAlias the room id or the room alias
      * @param callback the async callback
