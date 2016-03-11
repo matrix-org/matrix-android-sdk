@@ -950,6 +950,17 @@ public class MXMemoryStore implements IMXStore {
                         }
                     }
 
+                    // filter the unread messages
+                    // some messages are not defined as unreadable
+                    for(int index = 0; index < events.size(); index++) {
+                        Event event = events.get(index);
+
+                        if (TextUtils.equals(event.getSender(), mCredentials.userId) || TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                            events.remove(index);
+                            index--;
+                        }
+                    }
+
                     Collections.reverse(events);
                 }
             }
