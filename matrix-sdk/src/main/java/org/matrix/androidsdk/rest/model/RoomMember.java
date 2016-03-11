@@ -32,6 +32,8 @@ public class RoomMember implements java.io.Serializable {
     public String displayname;
     public String avatarUrl;
     public String membership;
+    public String thirdPartyInviteToken;
+
 
     private String userId = null;
     // timestamp of the event which has created this member

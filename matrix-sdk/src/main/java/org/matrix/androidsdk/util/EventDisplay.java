@@ -33,6 +33,7 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RedactedBecause;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 
 public class EventDisplay {
 
@@ -133,6 +134,10 @@ public class EventDisplay {
                 // pretty print 'XXX changed the room name to YYYY'
                 text =  mContext.getString(R.string.notice_room_name_changed,
                         userDisplayName, jsonEventContent.getAsJsonPrimitive("name").getAsString());
+            }
+            else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(mEvent.type)) {
+                RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.content);
+                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, invite.display_name);
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
@@ -241,7 +246,11 @@ public class EventDisplay {
             }
         }
         else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
-            return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+            if (null != eventContent.third_party_invite) {
+                return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, getUserDisplayName(msg.stateKey, roomState), userDisplayName);
+            } else {
+                return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+            }
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_join, userDisplayName);

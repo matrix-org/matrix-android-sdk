@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
+import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -144,6 +145,10 @@ public class JsonUtils {
 
     public static PowerLevels toPowerLevels(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, PowerLevels.class);
+    }
+
+    public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
     }
 
     public static JsonObject toJson(Event event) {

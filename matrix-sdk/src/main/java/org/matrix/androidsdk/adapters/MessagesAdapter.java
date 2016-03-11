@@ -580,9 +580,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (
                 event.isCallEvent() ||
-                Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+                        Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                        Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
+                        Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
+                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                ) {
             return ROW_TYPE_NOTICE;
         }
         else {
@@ -1892,7 +1894,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // display only the start call
             return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;

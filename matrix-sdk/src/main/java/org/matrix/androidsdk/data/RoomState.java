@@ -27,6 +27,7 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -105,6 +106,15 @@ public class RoomState implements java.io.Serializable {
     // the room members
     private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
 
+    // the third party invite members
+    private Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<String, RoomThirdPartyInvite>();
+
+    /**
+     Cache for [self memberWithThirdPartyInviteToken].
+     The key is the 3pid invite token.
+     */
+    private Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<String, RoomMember>();
+
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
 
@@ -156,6 +166,18 @@ public class RoomState implements java.io.Serializable {
         synchronized (this) {
             mMembers.remove(userId);
         }
+    }
+
+    public RoomMember memberWithThirdPartyInviteToken(String thirdPartyInviteToken) {
+        return mMembersWithThirdPartyInviteTokenCache.get(thirdPartyInviteToken);
+    }
+
+    public RoomThirdPartyInvite thirdPartyInviteWithToken(String thirdPartyInviteToken) {
+        return mThirdPartyInvites.get(thirdPartyInviteToken);
+    }
+
+    public Collection<RoomThirdPartyInvite> thirdPartyInvites() {
+        return mThirdPartyInvites.values();
     }
 
     public PowerLevels getPowerLevels() {
@@ -229,6 +251,16 @@ public class RoomState implements java.io.Serializable {
             while (it.hasNext()) {
                 Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
                 copy.setMember(pair.getKey(), pair.getValue().deepCopy());
+            }
+
+            Collection<String> keys = mThirdPartyInvites.keySet();
+            for(String key : keys) {
+                copy.mThirdPartyInvites.put(key, mThirdPartyInvites.get(key).deepCopy());
+            }
+
+            keys = mMembersWithThirdPartyInviteTokenCache.keySet();
+            for(String key : keys) {
+                copy.mMembersWithThirdPartyInviteTokenCache.put(key, mMembersWithThirdPartyInviteTokenCache.get(key).deepCopy());
             }
         }
 
@@ -422,10 +454,24 @@ public class RoomState implements java.io.Serializable {
                         }
                     }
 
+                    // Cache room member event that is successor of a third party invite event
+                    if (!TextUtils.isEmpty(member.thirdPartyInviteToken)) {
+                        mMembersWithThirdPartyInviteTokenCache.put(member.thirdPartyInviteToken, member);
+                    }
+
+
                     setMember(userId, member);
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
+            } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
+                RoomThirdPartyInvite thirdPartyInvite  = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
+
+                thirdPartyInvite.token = event.stateKey;
+
+                if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
+                    mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
+                }
             }
         } catch (Exception e) {
         }
