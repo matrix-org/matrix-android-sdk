@@ -414,7 +414,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void clear() {
         Log.d(LOG_TAG, "Clear the store");
-        super.close();
+        super.clear();
         deleteAllData(false);
     }
 
