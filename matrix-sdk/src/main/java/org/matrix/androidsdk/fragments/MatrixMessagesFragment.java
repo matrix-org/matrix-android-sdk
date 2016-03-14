@@ -220,9 +220,13 @@ public class MatrixMessagesFragment extends Fragment {
     private void joinRoom() {
         displayLoadingProgress();
 
+        Log.d(LOG_TAG, "joinRoom " + mRoom.getRoomId());
+
         mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "joinRoom succeeds");
+
                 // on Sync V2, the room initial sync is done as a standard events chunck
                 // so wait that the dedicated chunk is received.
                 if (MXSession.useSyncV2()) {
@@ -236,7 +240,7 @@ public class MatrixMessagesFragment extends Fragment {
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
 
                 if (null != MatrixMessagesFragment.this.getActivity()) {
                     Toast.makeText(mContext, getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
@@ -246,7 +250,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "Matrix error: " + e.errcode + " - " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom Matrix error: " + e.errcode + " - " + e.getLocalizedMessage());
                 // The access token was not recognized: log out
                 if (MatrixError.UNKNOWN_TOKEN.equals(e.errcode)) {
                     logout();
@@ -260,7 +264,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, mContext.getString(R.string.unexpected_error) + " : " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom : " + mContext.getString(R.string.unexpected_error) + " : " + e.getMessage());
                 MatrixMessagesFragment.this.dismissLoadingProgress();
             }
         });
@@ -272,10 +276,14 @@ public class MatrixMessagesFragment extends Fragment {
     protected void requestInitialHistory() {
         displayLoadingProgress();
 
+        Log.d(LOG_TAG, "requestInitialHistory " + mRoom.getRoomId());
+
         // the initial sync will be retrieved when a network connection will be found
         requestHistory(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(Integer info) {
+                Log.d(LOG_TAG, "requestInitialHistory onSuccess");
+
                 if (null != getActivity()) {
                     MatrixMessagesFragment.this.dismissLoadingProgress();
                     mMatrixMessagesListener.onInitialMessagesLoaded();
@@ -283,6 +291,7 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "requestInitialHistory failed" + errorMessage);
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG).show();
                     MatrixMessagesFragment.this.dismissLoadingProgress();
