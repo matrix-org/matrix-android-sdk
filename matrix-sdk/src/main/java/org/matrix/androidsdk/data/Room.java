@@ -934,8 +934,14 @@ public class Room {
             public void onSuccess(final RoomResponse aReponse) {
                 try {
                     if (MXSession.useSyncV2()) {
-                        // wait the server sends the events chunk before calling the callback
-                        mOnInitialSyncCallback = callback;
+                        // the join request did not get the room initial history
+                        if (getLiveState().getMember(mMyUserId) == null) {
+                            // wait the server sends the events chunk before calling the callback
+                            mOnInitialSyncCallback = callback;
+                        } else {
+                            // already got the initial sync
+                            initialSync(callback);
+                        }
                     } else {
                         // Once we've joined, we run an initial sync on the room to have all of its information
                         initialSync(callback);
