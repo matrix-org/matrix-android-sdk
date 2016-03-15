@@ -24,11 +24,14 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,7 +50,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param hsConfig the home server connection config
      */
     public LoginRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
         mHsUri = hsConfig.getHomeserverUri();
     }
 
@@ -155,4 +158,6 @@ public class LoginRestClient extends RestClient<LoginApi> {
             }
         });
     }
+
+
 }

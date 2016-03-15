@@ -55,9 +55,14 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
-    public static final String URI_API_PREFIX = "/_matrix/client/api/v1";
-    public static final String URI_API_PREFIX_V2_ALPHA = "/_matrix/client/v2_alpha";
-    public static final String URI_IDENTITY_PREFIX = "/_matrix/identity/api/v1";
+    public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
+    public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
+
+    //
+    public static final String URI_API_PREFIX_PATH_V1 = "/_matrix/client/api/v1";
+    public static final String URI_API_PREFIX_PATh_V2_ALPHA = "/_matrix/client/v2_alpha";
+
+
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private static final int CONNECTION_TIMEOUT_MS = 15000;
@@ -94,6 +99,14 @@ public class RestClient<T> {
             okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
             okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
+        }
+
+
+        // remove any trailing http in the uri prefix
+        if (uriPrefix.startsWith("http://")) {
+            uriPrefix = uriPrefix.substring("http://".length());
+        } else if (uriPrefix.startsWith("https://")) {
+            uriPrefix = uriPrefix.substring("https://".length());
         }
 
         // Rest adapter for turning API interfaces into actual REST-calling objects

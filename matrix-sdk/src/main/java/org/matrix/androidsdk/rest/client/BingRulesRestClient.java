@@ -32,7 +32,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * {@inheritDoc}
      */
     public BingRulesRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, BingRulesApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, BingRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {

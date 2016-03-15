@@ -15,8 +15,10 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.text.TextUtils;
 import android.util.Log;
 
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -58,6 +60,9 @@ public class UnsentEventsManager {
     private ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<UnsentEventSnapshot>();
     // true of the device is connected to a data network
     private boolean mbIsConnected = false;
+
+    // matrix error management
+    private MXDataHandler mDataHandler;
 
     /**
      * storage class
@@ -150,7 +155,7 @@ public class UnsentEventsManager {
      * Constructor
      * @param networkConnectivityReceiver
      */
-    public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver) {
+    public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver, MXDataHandler dataHandler) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
         // add a default listener
@@ -165,6 +170,8 @@ public class UnsentEventsManager {
                 }
             }
         });
+
+        mDataHandler = dataHandler;
     }
 
     /**
@@ -219,7 +226,7 @@ public class UnsentEventsManager {
      * @param error the retrofit error
      * @param callback the callback.
      */
-    public static void triggerErrorCallback(String eventDescription, RetrofitError error, ApiCallback callback) {
+    public static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
         if (null != error) {
             Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
         }
@@ -259,7 +266,12 @@ public class UnsentEventsManager {
                         Log.e(LOG_TAG, "Matrix Error " + mxError + " " + eventDescription);
                     }
 
-                    callback.onMatrixError(mxError);
+                    if (TextUtils.equals(MatrixError.FORBIDDEN, mxError.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
+                        dataHandler.onInvalidToken();
+                    } else {
+                        callback.onMatrixError(mxError);
+                    }
+
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
                 }
@@ -376,7 +388,7 @@ public class UnsentEventsManager {
                                         mUnsentEvents.remove(fSnapshot);
                                     }
 
-                                    triggerErrorCallback(eventDescription, retrofitError, apiCallback);
+                                    triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
                                 } catch (Exception e) {
                                 }
                             }
@@ -402,7 +414,7 @@ public class UnsentEventsManager {
         }
 
         if (!isManaged) {
-            triggerErrorCallback(eventDescription, retrofitError, apiCallback);
+            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
         }
     }
 

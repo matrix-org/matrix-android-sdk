@@ -17,7 +17,6 @@ package org.matrix.androidsdk;
 
 import android.content.Context;
 import android.content.IntentFilter;
-import android.content.pm.PackageInfo;
 import android.net.ConnectivityManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -37,14 +36,10 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
-import org.matrix.androidsdk.rest.client.EventsRestClientV2;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
-import org.matrix.androidsdk.rest.client.ProfileRestClientV2;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
-import org.matrix.androidsdk.rest.client.RegistrationRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.RoomsRestClientV2;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
@@ -71,7 +66,6 @@ import java.util.List;
  * There can potentially be multiple sessions for handling multiple accounts.
  */
 public class MXSession {
-
     private static final String LOG_TAG = "MXSession";
 
     // define the used api versions
@@ -90,17 +84,13 @@ public class MXSession {
 
     // Api clients
     private EventsRestClient mEventsRestClient;
-    private EventsRestClientV2 mEventsRestClientV2;
     private ProfileRestClient mProfileRestClient;
-    private ProfileRestClientV2 mProfileRestClientV2;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
-    private RoomsRestClientV2 mRoomsRestClientV2;
     private BingRulesRestClient mBingRulesRestClient;
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
-    private RegistrationRestClient mRegistrationRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -117,21 +107,21 @@ public class MXSession {
 
     private BingRulesManager mBingRulesManager = null;
 
-    private Boolean mIsActiveSession = true;
+    private boolean mIsActiveSession = true;
 
     private HomeserverConnectionConfig mHsConfig;
 
     /**
      * @return true if the client uses the SYNC API V1
      */
-    public static Boolean useSyncV1() {
+    public static boolean useSyncV1() {
         return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_1;
     }
 
     /**
      * @return true if the client uses the SYNC API V2
      */
-    public static Boolean useSyncV2() {
+    public static boolean useSyncV2() {
         return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_2;
     }
 
@@ -144,21 +134,13 @@ public class MXSession {
         mHsConfig = hsConfig;
 
         mEventsRestClient = new EventsRestClient(hsConfig);
-
-        if (useSyncV2()) {
-            mEventsRestClientV2 = new EventsRestClientV2(hsConfig);
-        }
-
-        mProfileRestClient = new ProfileRestClient(hsConfig);
-        mProfileRestClientV2 = new ProfileRestClientV2(hsConfig);
+        mProfileRestClient = new ProfileRestClient(hsConfig);;
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
-        mRoomsRestClientV2 = new RoomsRestClientV2(hsConfig);
         mBingRulesRestClient = new BingRulesRestClient(hsConfig);
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
-        mRegistrationRestClient = new RegistrationRestClient(hsConfig);
     }
 
     /**
@@ -174,7 +156,6 @@ public class MXSession {
         // Initialize a data retriever with rest clients
         mDataRetriever = new DataRetriever();
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);
-        mDataRetriever.setRoomsRestClientV2(mRoomsRestClientV2);
         mDataHandler.setDataRetriever(mDataRetriever);
         mDataHandler.setProfileRestClient(mProfileRestClient);
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
@@ -188,7 +169,7 @@ public class MXSession {
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
         mDataHandler.setPushRulesManager(mBingRulesManager);
 
-        mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver);
+        mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver, mDataHandler);
 
         mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
         mDataHandler.setContentManager(mContentManager);
@@ -200,26 +181,18 @@ public class MXSession {
         // the rest client
         mEventsRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
-        if (null != mEventsRestClientV2) {
-            mEventsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
-        }
-
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mProfileRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mRoomsRestClientV2.setUnsentEventsManager(mUnsentEventsManager);
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mRegistrationRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
     }
-
 
     private void checkIfActive() {
         synchronized (this) {
@@ -452,7 +425,7 @@ public class MXSession {
 
         final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler): anEventsListener;
 
-        mEventsThread = new EventsThread(mEventsRestClient, mEventsRestClientV2, fEventsListener, initialToken);
+        mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
 
         if (mFailureCallback != null) {
@@ -470,7 +443,7 @@ public class MXSession {
     public void refreshToken() {
         checkIfActive();
 
-        mRegistrationRestClient.refreshTokens(new ApiCallback<Credentials>() {
+        mProfileRestClient.refreshTokens(new ApiCallback<Credentials>() {
             @Override
             public void onSuccess(Credentials info) {
                 Log.d(LOG_TAG, "refreshToken : succeeds.");
@@ -890,6 +863,6 @@ public class MXSession {
      * @param callback the callback
      */
     public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
-        mProfileRestClientV2.updatePassword(getMyUserId(), oldPassword, newPassword, callback);
+        mProfileRestClient.updatePassword(getMyUserId(), oldPassword, newPassword, callback);
     }
 }

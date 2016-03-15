@@ -54,7 +54,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * {@inheritDoc}
      */
     public RoomsRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     /**
@@ -571,6 +571,79 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateAvatarUrl(roomId, avatarUrl, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend updateAvatarUrl failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Send a read receipt.
+     * @param roomId the room id
+     * @param eventId the latest event Id
+     * @param callback the callback containing the created event if successful
+     */
+    public void sendReadReceipt(final String roomId, final String eventId, final ApiCallback<Void> callback) {
+        final String description = "sendReadReceipt : roomId " + roomId + " - eventId " + eventId;
+
+        // empty body by now
+        JsonObject content = new JsonObject();
+
+        mApi.sendReadReceipt(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendReadReceipt(roomId, eventId, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Add a tag to a room.
+     * Use this method to update the order of an existing tag.
+     *
+     * @param roomId the roomId
+     * @param tag the new tag to add to the room.
+     * @param order the order.
+     * @param callback the operation callback
+     */
+    public void addTag(final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
+        final String description = "addTag : roomId " + roomId + " - tag " + tag + " - order " + order;
+
+        HashMap<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("order", order);
+
+        mApi.addTag(mCredentials.userId, roomId, tag, hashmap, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    addTag(roomId, tag, order, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend addTag : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Remove a tag to a room.
+     *
+     * @param roomId the roomId
+     * @param tag the new tag to add to the room.
+     * @param callback the operation callback
+     */
+    public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
+        final String description = "addTag : roomId " + roomId + " - tag " + tag;
+
+        mApi.removeTag(mCredentials.userId, roomId, tag, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    removeTag(roomId, tag, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend removeTag : failed " + e.getMessage());
                 }
             }
         }));

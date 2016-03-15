@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventResults;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.w3c.dom.Text;
 
@@ -60,7 +61,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * {@inheritDoc}
      */
     public EventsRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, EventsApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, EventsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     protected EventsRestClient(EventsApi api) {
@@ -133,6 +134,60 @@ public class EventsRestClient extends RestClient<EventsApi> {
      */
     public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
         return mApi.events(fromToken, timeoutMs);
+    }
+
+    /**
+     * Synchronise the client's state and receive new messages. Based on server sync C-S v2 API.
+
+     * Synchronise the client's state with the latest state on the server.
+     * Client's use this API when they first log in to get an initial snapshot
+     * of the state on the server, and then continue to call this API to get
+     * incremental deltas to the state, and to receive new messages.
+
+     * @param token the token to stream from (nil in case of initial sync).
+     * @param serverTimeout the maximum time in ms to wait for an event.
+     * @param clientTimeout the maximum time in ms the SDK must wait for the server response.
+     * @param setPresence  the optional parameter which controls whether the client is automatically
+     * marked as online by polling this API. If this parameter is omitted then the client is
+     * automatically marked as online when it uses this API. Otherwise if
+     * the parameter is set to "offline" then the client is not marked as
+     * being online when it uses this API.
+     * @param filterId the ID of a filter created using the filter API (optional).
+     * @param callback The request callback
+     */
+    public void syncFromToken(final String token, final int serverTimeout, final int clientTimeout, final String setPresence, final String filterId, final ApiCallback<SyncResponse> callback) {
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        int timeout = (EVENT_STREAM_TIMEOUT_MS / 1000);
+
+        if (!TextUtils.isEmpty(token)) {
+            params.put("since", token);
+        }
+
+        if (-1 != serverTimeout) {
+            timeout = serverTimeout;
+        }
+
+        if (!TextUtils.isEmpty(setPresence)) {
+            params.put("set_presence", setPresence);
+        }
+
+        if (!TextUtils.isEmpty(filterId)) {
+            params.put("filter", filterId);
+        }
+
+        params.put("timeout", timeout);
+
+
+        final String description = "syncFromToken";
+
+        // Disable retry because it interferes with clientTimeout
+        // Let the client manage retries on events streams
+        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
+            }
+        }));
     }
 
     /**

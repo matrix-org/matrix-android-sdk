@@ -20,7 +20,13 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AuthParams;
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.client.Response;
 
@@ -33,7 +39,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * {@inheritDoc}
      */
     public ProfileRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, ProfileApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, ProfileApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     /**
@@ -116,5 +122,87 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 updateAvatarUrl(newUrl, callback);
             }
         }));
+    }
+
+
+    /**
+     * Get the user's display name.
+     * @param userId the user id
+     * @param oldPassword the former password
+     * @param newPassword the new password
+     * @param callback the callback
+     */
+    public void updatePassword(final String userId, final String oldPassword, final String newPassword, final ApiCallback<Void> callback) {
+        final String description = "update password : " + userId + " oldPassword " + oldPassword + " newPassword " + newPassword;
+
+        ChangePasswordParams passwordParams = new ChangePasswordParams();
+
+        passwordParams.auth = new AuthParams();
+        passwordParams.auth.type = "m.login.password";
+        passwordParams.auth.user = userId;
+        passwordParams.auth.password = oldPassword;
+        passwordParams.new_password = newPassword;
+
+        mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updatePassword(userId, oldPassword, newPassword, callback);
+                } catch (Exception e) {
+                }
+            }
+        }));
+    }
+
+    /**
+     * Attempt a user/password registration.
+     * @param callback the callback success and failure callback
+     */
+    public void refreshTokens( final ApiCallback<Credentials> callback) {
+        final String description = "refreshTokens";
+
+        TokenRefreshParams params = new TokenRefreshParams();
+        params.refresh_token = mCredentials.refreshToken;
+
+        mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
+            @Override
+            public void success(TokenRefreshResponse tokenreponse, Response response) {
+                mCredentials.refreshToken = tokenreponse.refresh_token;
+                mCredentials.accessToken = tokenreponse.access_token;
+                if (null != callback) {
+                    callback.onSuccess(mCredentials);
+                }
+            }
+
+            /**
+             * Called if there is a network error.
+             * @param e the exception
+             */
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            /**
+             * Called in case of a Matrix error.
+             * @param e the Matrix error
+             */
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            /**
+             * Called for some other type of error.
+             * @param e the exception
+             */
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 }

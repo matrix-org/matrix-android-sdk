@@ -104,4 +104,9 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
             }
         }
     }
+
+    @Override
+    public void onInvalidToken() {
+        mData.onInvalidToken();
+    }
 }

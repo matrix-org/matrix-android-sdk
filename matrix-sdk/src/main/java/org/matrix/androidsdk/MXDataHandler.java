@@ -66,6 +66,13 @@ import android.os.Handler;
 public class MXDataHandler implements IMXEventListener {
     private static final String LOG_TAG = "MXData";
 
+    public interface InvalidTokenListener {
+        /**
+         * Call when the access token is corrupted
+         */
+        void onTokenCorrupted();
+    }
+
     private List<IMXEventListener> mEventListeners = new ArrayList<IMXEventListener>();
 
     private IMXStore mStore;
@@ -86,13 +93,15 @@ public class MXDataHandler implements IMXEventListener {
     private Handler mSyncHandler;
     private Handler mUiHandler;
 
-    private Boolean mIsActive = true;
+    private boolean mIsActive = true;
+
+    InvalidTokenListener mInvalidTokenListener;
 
     /**
      * Default constructor.
      * @param store the data storage implementation.
      */
-    public MXDataHandler(IMXStore store, Credentials credentials) {
+    public MXDataHandler(IMXStore store, Credentials credentials,InvalidTokenListener invalidTokenListener) {
         mStore = store;
         mCredentials = credentials;
 
@@ -101,6 +110,8 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
         mSyncHandlerThread.start();
         mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
+
+        mInvalidTokenListener = invalidTokenListener;
     }
 
     // some setters
@@ -123,6 +134,15 @@ public class MXDataHandler implements IMXEventListener {
     public boolean isActive() {
         synchronized (this) {
             return mIsActive;
+        }
+    }
+
+    /**
+     * The current token is not anymore valid
+     */
+    public void onInvalidToken() {
+        if (null != mInvalidTokenListener) {
+            mInvalidTokenListener.onTokenCorrupted();
         }
     }
 

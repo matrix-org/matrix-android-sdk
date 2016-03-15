@@ -33,7 +33,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * {@inheritDoc}
      */
     public ThirdPidRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, ThirdPidApi.class, RestClient.URI_IDENTITY_PREFIX, false);
+        super(hsConfig, ThirdPidApi.class, hsConfig.getIdentityServerUri().toString(), false);
     }
 
     /**

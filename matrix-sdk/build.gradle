@@ -64,7 +64,7 @@ android {
                     def outputFile = output.outputFile
                     if (outputFile != null && outputFile.name.endsWith('.aar')) {
                         def fileName = outputFile.name.replace(".aar", "-${version}.aar")
-                        output.outputFile = new File(outputFile.parent, fileName)
+                        output.outputFile = new File("/Users/yannick_lecollen/vector-android/vector/libs", "matrix-sdk.aar")
                     }
                 }
             }

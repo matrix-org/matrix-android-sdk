@@ -19,6 +19,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.LoginParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.Callback;
 import retrofit.http.Body;

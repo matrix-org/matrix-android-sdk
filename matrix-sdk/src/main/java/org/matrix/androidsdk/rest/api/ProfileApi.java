@@ -15,11 +15,15 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.Callback;
 import retrofit.http.Body;
 import retrofit.http.GET;
+import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
 
@@ -61,4 +65,20 @@ public interface ProfileApi {
      */
     @GET("/profile/{userId}/avatar_url")
     void avatarUrl(@Path("userId") String userId, Callback<User> callback);
+
+    /**
+     * Update the password
+     * @param passwordParams the new password
+     * @param callback the asynchronous callback to call when finished
+     */
+    @POST("/account/password")
+    void updatePassword(@Body ChangePasswordParams passwordParams, Callback<Void> callback);
+
+    /**
+     * Pass params to the server for the token refresh phase.
+     * @param refreshParams the refresh token parameters
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/tokenrefresh")
+    void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
 }

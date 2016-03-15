@@ -21,9 +21,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.RoomsRestClientV2;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Collection;
@@ -36,7 +34,6 @@ public class DataRetriever {
 
     private IMXStore mStore;
     private RoomsRestClient mRestClient;
-    private RoomsRestClientV2 mRestClientV2;
 
     private HashMap<String, String> mPendingRequestTokenByRoomId = new HashMap<String, String>();
     private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<String, String>();
@@ -51,14 +48,6 @@ public class DataRetriever {
 
     public void setRoomsRestClient(RoomsRestClient client) {
         mRestClient = client;
-    }
-
-    public RoomsRestClientV2 getRoomsRestClientV2() {
-        return mRestClientV2;
-    }
-
-    public void setRoomsRestClientV2(RoomsRestClientV2 client) {
-        mRestClientV2 = client;
     }
 
     /**

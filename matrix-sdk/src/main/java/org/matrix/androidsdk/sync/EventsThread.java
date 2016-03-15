@@ -17,6 +17,7 @@ package org.matrix.androidsdk.sync;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -25,7 +26,6 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
-import org.matrix.androidsdk.rest.client.EventsRestClientV2;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -48,8 +48,7 @@ public class EventsThread extends Thread {
     private static final int  SERVER_TIMEOUT_MS = 30000;
     private static final int CLIENT_TIMEOUT_MS = 120000;
 
-    private EventsRestClient mEventsRestClientV1 = null;
-    private EventsRestClientV2 mEventsRestClientV2 = null;
+    private EventsRestClient mEventsRestClient = null;
 
     private EventsThreadListener mListener = null;
     private String mCurrentToken = null;
@@ -86,15 +85,13 @@ public class EventsThread extends Thread {
 
     /**
      * Default constructor.
-     * @param apiClientV1 API client to make the events API calls (V1 implementation)
-     * @param apiClientV2 API client to make the events API calls (V2 implementation)
+     * @param apiClient API client to make the events API calls
      * @param listener a listener to inform
      * @param initialToken the sync initial token.
      */
-    public EventsThread(EventsRestClient apiClientV1, EventsRestClientV2 apiClientV2, EventsThreadListener listener, String initialToken) {
+    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
         super("Events thread");
-        mEventsRestClientV1 = apiClientV1;
-        mEventsRestClientV2 = apiClientV2;
+        mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
     }
@@ -212,12 +209,7 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
-        // prefer the api V2 aimplementation
-        if (null != mEventsRestClientV2) {
-            runV2();
-        } else {
-            runV1();
-        }
+        runV2();
     }
 
     /**
@@ -249,7 +241,7 @@ public class EventsThread extends Thread {
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                mEventsRestClientV2.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
@@ -283,8 +275,12 @@ public class EventsThread extends Thread {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
-                        Log.e(LOG_TAG, "Sync V2 onMatrixError " + e.getLocalizedMessage());
-                        sleepAndUnblock();
+
+                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                            mListener.onInvalidToken();
+                        } else {
+                            sleepAndUnblock();
+                        }
                     }
 
                     @Override
@@ -346,7 +342,7 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
-                mEventsRestClientV2.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
@@ -398,7 +394,11 @@ public class EventsThread extends Thread {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        onError(e.getLocalizedMessage());
+                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                            mListener.onInvalidToken();
+                        } else {
+                            onError(e.getLocalizedMessage());
+                        }
                     }
 
                     @Override
@@ -442,41 +442,41 @@ public class EventsThread extends Thread {
             mInitialSyncDone = true;
 
             mListener.onInitialSyncComplete(null);
-            synchronized (mEventsRestClientV1) {
+            synchronized (mEventsRestClient) {
                 mIsGettingPresences = true;
             }
 
             Log.d(LOG_TAG, "Requesting presences update");
 
             // get the members presence
-            mEventsRestClientV1.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+            mEventsRestClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.d(LOG_TAG, "presence update is received");
                     mListener.onMembersPresencesSyncComplete(initialSync.presence);
                     Log.d(LOG_TAG, "presence update is managed");
-                    synchronized (mEventsRestClientV1) {
+                    synchronized (mEventsRestClient) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    synchronized (mEventsRestClientV1) {
+                    synchronized (mEventsRestClient) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    synchronized (mEventsRestClientV1) {
+                    synchronized (mEventsRestClient) {
                         mIsGettingPresences = false;
                     }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    synchronized (mEventsRestClientV1) {
+                    synchronized (mEventsRestClient) {
                         mIsGettingPresences = false;
                     }
                 }
@@ -490,7 +490,7 @@ public class EventsThread extends Thread {
             // if a start token is provided
             // get only the user presences.
             // else starts a sync from scratch
-            mEventsRestClientV1.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
+            mEventsRestClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
                 @Override
                 public void onSuccess(InitialSyncResponse initialSync) {
                     Log.i(LOG_TAG, "Received initial sync response.");
@@ -576,7 +576,7 @@ public class EventsThread extends Thread {
             if (!mKilling) {
                 try {
                     Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
-                    TokensChunkResponse<Event> eventsResponse = mEventsRestClientV1.events(mCurrentToken, mEventRequestTimeout);
+                    TokensChunkResponse<Event> eventsResponse = mEventsRestClient.events(mCurrentToken, mEventRequestTimeout);
 
                     if (null != eventsResponse.chunk) {
                         Log.d(LOG_TAG, "Got eventsResponse.chunk with " + eventsResponse.chunk.size() + " items");
@@ -595,7 +595,7 @@ public class EventsThread extends Thread {
                         // same behaviours for the typing events
                         Boolean isGettingsPresence;
 
-                        synchronized (mEventsRestClientV1) {
+                        synchronized (mEventsRestClient) {
                             isGettingsPresence = mIsGettingPresences;
                         }
 

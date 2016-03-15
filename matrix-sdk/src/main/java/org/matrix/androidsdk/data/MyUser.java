@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
@@ -31,9 +33,8 @@ public class MyUser extends User {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
 
-    private Boolean mIsAvatarRefreshed = false;
-    private Boolean mIsDislayNameRefreshed = false;
-
+    private boolean mIsAvatarRefreshed = false;
+    private boolean mIsDislayNameRefreshed = false;
 
     public MyUser(User user) {
         clone(user);
@@ -98,7 +99,6 @@ public class MyUser extends User {
             }
         });
     }
-
 
     //================================================================================
     // Refresh

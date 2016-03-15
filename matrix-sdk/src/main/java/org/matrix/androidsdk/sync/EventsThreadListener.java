@@ -37,4 +37,9 @@ public interface EventsThreadListener {
      * @param latestToken the token of the latest event
      */
     void onEventsReceived(List<Event> events, String latestToken);
+
+    /**
+     * the server returns an invalid token error
+     */
+    void onInvalidToken();
 }

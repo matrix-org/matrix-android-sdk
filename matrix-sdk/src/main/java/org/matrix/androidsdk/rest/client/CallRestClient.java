@@ -32,7 +32,7 @@ public class CallRestClient extends RestClient<CallRulesApi> {
      * {@inheritDoc}
      */
     public CallRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, CallRulesApi.class, RestClient.URI_API_PREFIX, false);
+        super(hsConfig, CallRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {

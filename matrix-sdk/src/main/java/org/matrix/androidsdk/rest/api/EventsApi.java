@@ -20,7 +20,10 @@ import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -28,6 +31,7 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Path;
 import retrofit.http.Query;
+import retrofit.http.QueryMap;
 
 /**
  * The events API.
@@ -50,6 +54,14 @@ public interface EventsApi {
      */
     @GET("/events/{eventId}")
     void events(@Path("eventId") String eventId, Callback<Event> callback);
+
+    /**
+     * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
+     * @param params the GET params.
+     * @param callback The asynchronous callback to call when finished
+     */
+    @GET("/sync")
+    void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
 
     /**
      * Get the list of public rooms for this home server.

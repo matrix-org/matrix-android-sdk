@@ -258,8 +258,6 @@ public class Room {
         mContentManager = contentManager;
     }
 
-
-
     /**
      * @return true if the user is invited to the room
      */
@@ -627,10 +625,14 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
 
-                    try {
-                        callback.onMatrixError(e);
-                    } catch (Exception anException) {
-                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                    if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                        mDataHandler.onInvalidToken();
+                    } else {
+                        try {
+                            callback.onMatrixError(e);
+                        } catch (Exception anException) {
+                            Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                        }
                     }
                 }
 
@@ -1502,7 +1504,7 @@ public class Room {
         if ((null != event) && (null != summary)) {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
-                mDataRetriever.getRoomsRestClientV2().sendReadReceipt(getRoomId(), event.eventId, null);
+                mDataRetriever.getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, null);
                 setReadReceiptToken(event.eventId, System.currentTimeMillis());
             }
         }
@@ -1908,7 +1910,7 @@ public class Room {
     public void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataRetriever.getRoomsRestClientV2().addTag(mRoomId, tag, order, callback);
+            mDataRetriever.getRoomsRestClient().addTag(mRoomId, tag, order, callback);
         } else {
             if (null != callback) {
                 // warn that something was wrong
@@ -1926,7 +1928,7 @@ public class Room {
     public void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataRetriever.getRoomsRestClientV2().removeTag(mRoomId, tag, callback);
+            mDataRetriever.getRoomsRestClient().removeTag(mRoomId, tag, callback);
         } else {
             if (null != callback) {
                 // warn that something was wrong

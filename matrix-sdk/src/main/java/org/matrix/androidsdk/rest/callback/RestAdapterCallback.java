@@ -102,7 +102,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
             Log.d(LOG_TAG, "Failed : [" + mEventDescription + "]");
         }
 
-        Boolean retry = true;
+        boolean retry = true;
 
         if (null != error.getResponse()) {
             retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() >= 500);
