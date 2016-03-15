@@ -62,7 +62,6 @@ public class EventsThreadTest {
     @After
     public void tearDown() {
        // eventsThread.kill(); // Which hopefully works
-    }
 
     /**
      * Set up normal behavior from initial sync.
