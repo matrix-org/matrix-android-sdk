@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.ContentUtils;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -38,6 +39,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
@@ -101,9 +103,9 @@ public class MXFileStore extends MXMemoryStore {
     private HandlerThread mHandlerThread = null;
     private android.os.Handler mFileStoreHandler = null;
 
-    private Boolean mIsKilled = false;
+    private boolean mIsKilled = false;
 
-    private Boolean mIsNewStorage = false;
+    private boolean mIsNewStorage = false;
 
     /**
      * Create the file store dirtrees
@@ -214,7 +216,7 @@ public class MXFileStore extends MXMemoryStore {
      * Killed the background thread.
      * @param isKilled
      */
-    private void setIsKilled(Boolean isKilled) {
+    private void setIsKilled(boolean isKilled) {
         synchronized (this) {
             mIsKilled = isKilled;
         }
@@ -223,8 +225,8 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * @return true if the background thread is killed.
      */
-    private Boolean isKilled() {
-        Boolean isKilled;
+    private boolean isKilled() {
+        boolean isKilled;
 
         synchronized (this) {
             isKilled = mIsKilled;
@@ -541,7 +543,7 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
-        Boolean canStore = true;
+        boolean canStore = true;
 
         // do not flush the room messages file
         // when the user reads the room history and the events list size reaches its max size.
@@ -579,7 +581,7 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
-        Boolean isReplaced = super.updateEventContent(roomId, eventId, newContent);
+        boolean isReplaced = super.updateEventContent(roomId, eventId, newContent);
 
         if (isReplaced) {
             if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
@@ -831,8 +833,8 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if succeed.
      */
     private boolean loadRoomMessages(final String roomId) {
-        Boolean succeeded = true;
-        Boolean shouldSave = false;
+        boolean succeeded = true;
+        boolean shouldSave = false;
         LinkedHashMap<String, Event> events = null;
 
         try {
@@ -899,8 +901,8 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room id.
      * @return true if it succeeds.
      */
-    private Boolean loadRoomToken(final String roomId) {
-        Boolean succeed = true;
+    private boolean loadRoomToken(final String roomId) {
+        boolean succeed = true;
 
         Room room = getRoom(roomId);
 
@@ -955,7 +957,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return  true if the operation succeeds.
      */
     private boolean loadRoomsMessages() {
-        Boolean succeed = true;
+        boolean succeed = true;
 
         try {
             // extract the messages list
@@ -1080,7 +1082,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the operation succeeds.
      */
     private boolean loadRoomState(final String roomId) {
-        Boolean succeed = true;
+        boolean succeed = true;
 
         Room room = getRoom(roomId);
 
@@ -1142,7 +1144,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the operation succeeds.
      */
     private boolean loadRoomsState() {
-        Boolean succeed = true;
+        boolean succeed = true;
 
         try {
             long start = System.currentTimeMillis();
@@ -1240,8 +1242,8 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room Id
      * @return true if the operation succeeds.
      */
-    private Boolean loadRoomAccountData(final String roomId) {
-        Boolean succeeded = true;
+    private boolean loadRoomAccountData(final String roomId) {
+        boolean succeeded = true;
         RoomAccountData roomAccountData = null;
 
         try {
@@ -1276,7 +1278,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the operation succeeds.
      */
     private boolean loadRoomsAccountData() {
-        Boolean succeed = true;
+        boolean succeed = true;
 
         try {
             // extract the messages list
@@ -1396,7 +1398,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the operation succeeds;
      */
     private boolean loadSummary(final String roomId) {
-        Boolean succeed = true;
+        boolean succeed = true;
 
         // do not check if the room exists here.
         // if the user is invited to a room, the room object is not created until it is joined.
@@ -1436,8 +1438,8 @@ public class MXFileStore extends MXMemoryStore {
      * Load room summaries from the file system.
      * @return true if the operation succeeds.
      */
-    private Boolean loadSummaries() {
-        Boolean succeed = true;
+    private boolean loadSummaries() {
+        boolean succeed = true;
         try {
             // extract the room states
             String[] filenames = mStoreRoomsSummaryFolderFile.list();
@@ -1557,7 +1559,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public boolean storeReceipt(ReceiptData receipt, String roomId) {
-        Boolean res = super.storeReceipt(receipt, roomId);
+        boolean res = super.storeReceipt(receipt, roomId);
 
         if (res) {
             synchronized (this) {
@@ -1575,7 +1577,7 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room Id
      * @return true if the operation succeeds.
      */
-    private Boolean loadReceipts(String roomId) {
+    private boolean loadReceipts(String roomId) {
         Map<String, ReceiptData> receipts = null;
         try {
             File file = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
@@ -1585,7 +1587,11 @@ public class MXFileStore extends MXMemoryStore {
 
             receipts = (Map<String, ReceiptData>) ois.readObject();
             ois.close();
-        } catch (Exception e) {
+        } catch (EOFException endOfFile) {
+            // there is no read receipt for this room
+        }
+        catch (Exception e) {
+            Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
             return false;
         }
@@ -1601,8 +1607,8 @@ public class MXFileStore extends MXMemoryStore {
      * Load event receipts from the file system.
      * @return true if the operation succeeds.
      */
-    private Boolean loadReceipts() {
-        Boolean succeed = true;
+    private boolean loadReceipts() {
+        boolean succeed = true;
         try {
             // extract the room states
             String[] filenames = mStoreRoomsMessagesReceiptsFolderFile.list();
@@ -1618,6 +1624,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
             succeed = false;
+            Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
         }
 
@@ -1644,7 +1651,8 @@ public class MXFileStore extends MXMemoryStore {
                                 receiptFile.delete();
                             }
 
-                            if (null != receipts) {
+                            // save only if there is some read receips
+                            if ((null != receipts) && (receipts.size() > 0)) {
                                 long start = System.currentTimeMillis();
 
                                 try {
