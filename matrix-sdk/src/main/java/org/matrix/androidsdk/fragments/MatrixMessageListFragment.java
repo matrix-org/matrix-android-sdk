@@ -38,6 +38,8 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
@@ -348,7 +350,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             }
 
-            messageRows.add(new MessageRow(searchResult.result, roomState));
+            boolean isValidMessage = false;
+
+            if ((null != searchResult.result) && (null != searchResult.result.content)) {
+                JsonObject object = searchResult.result.getContentAsJsonObject();
+
+                if (null != object) {
+                    isValidMessage = (0 != object.entrySet().size());
+                }
+            }
+
+            if (isValidMessage) {
+                messageRows.add(new MessageRow(searchResult.result, roomState));
+            }
         }
 
         Collections.reverse(messageRows);
