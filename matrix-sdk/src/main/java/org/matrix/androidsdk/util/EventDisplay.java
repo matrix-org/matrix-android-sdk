@@ -183,11 +183,30 @@ public class EventDisplay {
         return  redactedInfo;
     }
 
-    public static String getMembershipNotice(Context context, Event msg, RoomState roomState) {
-        EventContent eventContent = JsonUtils.toEventContent(msg.getContentAsJsonObject());
-        EventContent prevEventContent = msg.getPrevContent();
+    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
+        String senderDisplayName = event.getSender();
 
-        String userDisplayName = eventContent.displayname;
+        if (null != roomState) {
+            // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
+            senderDisplayName = roomState.getMemberName(event.getSender());
+        }
+
+        // Check whether this sender name is updated by the current event (This happens in case of new joined member)
+        if (null != eventContent) {
+            if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
+                // Use the actual display name
+                senderDisplayName = eventContent.displayname;
+            }
+        }
+
+        return senderDisplayName;
+    }
+
+    public static String getMembershipNotice(Context context, Event event, RoomState roomState) {
+        EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+        EventContent prevEventContent = event.getPrevContent();
+
+        String senderDisplayName = senderDisplayNameForEvent(event, eventContent, roomState);
         String prevUserDisplayName = null;
 
         String prevMembership = null;
@@ -200,29 +219,29 @@ public class EventDisplay {
             prevUserDisplayName = prevEventContent.displayname;
         }
 
-        // cannot retrieve the display name from the event
-        if (TextUtils.isEmpty(userDisplayName)) {
-            // retrieve it by the room members list
-            userDisplayName = getUserDisplayName(msg.getSender(), roomState);
+        String targetDisplayName = event.stateKey;
+
+        if ((null != targetDisplayName) && (null != roomState)) {
+            targetDisplayName = roomState.getMemberName(targetDisplayName);
         }
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
         if (TextUtils.equals(prevMembership, eventContent.membership)) {
-            String redactedInfo = EventDisplay.getRedactionMessage(context, msg, roomState);
+            String redactedInfo = EventDisplay.getRedactionMessage(context, event, roomState);
 
             // Is redacted event?
             if (!TextUtils.isEmpty(redactedInfo)) {
-                return context.getString(R.string.notice_profile_change_redacted, userDisplayName, redactedInfo);
+                return context.getString(R.string.notice_profile_change_redacted, senderDisplayName, redactedInfo);
             } else {
                 String displayText = "";
 
-                if (!TextUtils.equals(userDisplayName, prevUserDisplayName)) {
+                if (!TextUtils.equals(senderDisplayName, prevUserDisplayName)) {
                     if (TextUtils.isEmpty(prevUserDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_set, msg.getSender(), userDisplayName);
-                    } else if (TextUtils.isEmpty(userDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_removed, msg.getSender());
+                        displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
+                    } else if (TextUtils.isEmpty(senderDisplayName)) {
+                        displayText = context.getString(R.string.notice_display_name_removed, event.getSender());
                     } else {
-                        displayText = context.getString(R.string.notice_display_name_changed_from, msg.getSender(), prevUserDisplayName, userDisplayName);
+                        displayText = context.getString(R.string.notice_display_name_changed_from, event.getSender(), prevUserDisplayName, senderDisplayName);
                     }
                 }
 
@@ -238,7 +257,7 @@ public class EventDisplay {
                     if (!TextUtils.isEmpty(displayText)) {
                         displayText = displayText + " " + context.getString(R.string.notice_avatar_changed_too);
                     } else {
-                        displayText =  context.getString(R.string.notice_avatar_url_changed, userDisplayName);
+                        displayText =  context.getString(R.string.notice_avatar_url_changed, senderDisplayName);
                     }
                 }
 
@@ -247,28 +266,28 @@ public class EventDisplay {
         }
         else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
             if (null != eventContent.third_party_invite) {
-                return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, getUserDisplayName(msg.stateKey, roomState), userDisplayName);
+                return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, targetDisplayName, senderDisplayName);
             } else {
-                return context.getString(R.string.notice_room_invite, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+                return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
-            return context.getString(R.string.notice_room_join, userDisplayName);
+            return context.getString(R.string.notice_room_join, senderDisplayName);
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
-            if (TextUtils.equals(msg.getSender(), msg.stateKey)) {
-                return context.getString(R.string.notice_room_leave, userDisplayName);
+            if (TextUtils.equals(event.getSender(), event.stateKey)) {
+                return context.getString(R.string.notice_room_leave, senderDisplayName);
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
-                    return context.getString(R.string.notice_room_kick, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+                    return context.getString(R.string.notice_room_kick, senderDisplayName, targetDisplayName);
                 } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                    return context.getString(R.string.notice_room_unban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+                    return context.getString(R.string.notice_room_unban, senderDisplayName, targetDisplayName);
                 }
             }
         }
         else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
-            return context.getString(R.string.notice_room_ban, userDisplayName, getUserDisplayName(msg.stateKey, roomState));
+            return context.getString(R.string.notice_room_ban, senderDisplayName, targetDisplayName);
         }
         else {
             // eh?
