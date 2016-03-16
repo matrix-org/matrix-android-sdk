@@ -50,8 +50,9 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.SyncV2.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.SyncV2.RoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
+import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -935,20 +936,14 @@ public class Room {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {
-                    if (MXSession.useSyncV2()) {
-                        // the join request did not get the room initial history
-                        if (getLiveState().getMember(mMyUserId) == null) {
-                            // wait the server sends the events chunk before calling the callback
-                            mOnInitialSyncCallback = callback;
-                        } else {
-                            // already got the initial sync
-                            initialSync(callback);
-                        }
+                    // the join request did not get the room initial history
+                    if (getLiveState().getMember(mMyUserId) == null) {
+                        // wait the server sends the events chunk before calling the callback
+                        mOnInitialSyncCallback = callback;
                     } else {
-                        // Once we've joined, we run an initial sync on the room to have all of its information
+                        // already got the initial sync
                         initialSync(callback);
                     }
-
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "join exception " + e.getMessage());
                 }

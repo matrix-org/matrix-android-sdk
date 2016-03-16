@@ -26,16 +26,10 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
-import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
-
-import retrofit.RetrofitError;
 
 /**
  * Thread that continually watches the event stream and sends events to its listener.
@@ -58,8 +52,6 @@ public class EventsThread extends Thread {
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
     private boolean mKilling = false;
-    private boolean mIsGettingPresences = false;
-    private int mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private RestAdapterCallback mEventsFailureCallback;
@@ -123,13 +115,6 @@ public class EventsThread extends Thread {
         mIsCatchingUp = false;
     }
 
-    /**
-     * @return true if the thread is paused.
-     */
-    public Boolean isPaused() {
-        return mPaused;
-    }
-
     public void onNetworkAvailable() {
         Log.i(LOG_TAG, "onNetWorkAvailable()");
         if (mIsNetworkSuspended) {
@@ -139,8 +124,6 @@ public class EventsThread extends Thread {
                 Log.i(LOG_TAG, "the event thread is still suspended");
             } else {
                 Log.i(LOG_TAG, "Resume the thread");
-                // request the latest events asap
-                mEventRequestTimeout = 0;
                 // cancel any catchup process.
                 mIsCatchingUp = false;
 
@@ -165,8 +148,6 @@ public class EventsThread extends Thread {
             }
         }
 
-        // request the latest events asap
-        mEventRequestTimeout = 0;
         // cancel any catchup process.
         mIsCatchingUp = false;
     }
@@ -183,9 +164,6 @@ public class EventsThread extends Thread {
             }
         }
 
-        // request the latest events once
-        // without any delay.
-        mEventRequestTimeout = 0;
         mIsCatchingUp = true;
     }
 
@@ -209,13 +187,13 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
-        runV2();
+        startSync();
     }
 
     /**
-     * Use the API sync V1 to get the events
+     * Start the events sync
      */
-    private void runV2() {
+    private void startSync() {
         if (null != mCurrentToken) {
             Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
         } else {
@@ -234,7 +212,7 @@ public class EventsThread extends Thread {
             serverTimeout = 0;
             // dummy initial sync
             // to hide the splash screen
-            mListener.onSyncV2Response(null, true);
+            mListener.onSyncResponse(null, true);
         } else {
 
             // Start with initial sync
@@ -245,7 +223,7 @@ public class EventsThread extends Thread {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncV2Response(syncResponse, true);
+                        mListener.onSyncResponse(syncResponse, true);
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -355,7 +333,7 @@ public class EventsThread extends Thread {
                             }
 
                             Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncV2Response(syncResponse, false);
+                            mListener.onSyncResponse(syncResponse, false);
                             mCurrentToken = syncResponse.nextBatch;
                             Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
                         }
@@ -416,250 +394,6 @@ public class EventsThread extends Thread {
             }
 
             serverTimeout = SERVER_TIMEOUT_MS;
-        }
-
-        if (null != mNetworkConnectivityReceiver) {
-            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-        }
-        Log.d(LOG_TAG, "Event stream terminating.");
-    }
-
-    /**
-     * Use the API sync V1 to get the events
-     */
-    private void runV1() {
-        if (null != mCurrentToken) {
-            Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
-        } else {
-            Log.d(LOG_TAG, "Requesting initial sync...");
-        }
-
-        mPaused = false;
-
-        // a start token is provided ?
-        if (null != mCurrentToken) {
-            // assume the initial sync is done
-            mInitialSyncDone = true;
-
-            mListener.onInitialSyncComplete(null);
-            synchronized (mEventsRestClient) {
-                mIsGettingPresences = true;
-            }
-
-            Log.d(LOG_TAG, "Requesting presences update");
-
-            // get the members presence
-            mEventsRestClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
-                @Override
-                public void onSuccess(InitialSyncResponse initialSync) {
-                    Log.d(LOG_TAG, "presence update is received");
-                    mListener.onMembersPresencesSyncComplete(initialSync.presence);
-                    Log.d(LOG_TAG, "presence update is managed");
-                    synchronized (mEventsRestClient) {
-                        mIsGettingPresences = false;
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    synchronized (mEventsRestClient) {
-                        mIsGettingPresences = false;
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    synchronized (mEventsRestClient) {
-                        mIsGettingPresences = false;
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    synchronized (mEventsRestClient) {
-                        mIsGettingPresences = false;
-                    }
-                }
-            }, 0);
-        }
-
-        // Start with initial sync
-        while (!mInitialSyncDone) {
-            final CountDownLatch latch = new CountDownLatch(1);
-
-            // if a start token is provided
-            // get only the user presences.
-            // else starts a sync from scratch
-            mEventsRestClient.initialSyncWithLimit(new SimpleApiCallback<InitialSyncResponse>(mFailureCallback) {
-                @Override
-                public void onSuccess(InitialSyncResponse initialSync) {
-                    Log.i(LOG_TAG, "Received initial sync response.");
-                    mListener.onInitialSyncComplete(initialSync);
-                    mCurrentToken = initialSync.end;
-                    mInitialSyncDone = true;
-                    // unblock the events thread
-                    latch.countDown();
-                }
-
-                private void sleepAndUnblock() {
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                        public void run() {
-                            latch.countDown();
-                        }
-                    }, RETRY_WAIT_TIME_MS);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != mCurrentToken) {
-                        onSuccess(null);
-                    } else {
-                        Log.e(LOG_TAG, "Sync V1 onNetworkError " + e.getLocalizedMessage());
-                        super.onNetworkError(e);
-                        sleepAndUnblock();
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "Sync V1 onMatrixError " + e.getLocalizedMessage());
-                    super.onMatrixError(e);
-                    sleepAndUnblock();
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    super.onUnexpectedError(e);
-                    Log.e(LOG_TAG, "Sync V1 onUnexpectedError " + e.getLocalizedMessage());
-                    sleepAndUnblock();
-                }
-            }, 10);
-
-            // block until the initial sync callback is invoked.
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
-            }
-        }
-
-        Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
-
-        // sanity check
-        if (null != mNetworkConnectivityReceiver) {
-            mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
-            //
-            mbIsConnected = mNetworkConnectivityReceiver.isConnected();
-            mPaused = !mbIsConnected;
-        }
-
-        // Then repeatedly long-poll for events
-        while (!mKilling) {
-            if (mPaused || mIsNetworkSuspended) {
-                if (mIsNetworkSuspended) {
-                    Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
-                } else {
-                    Log.d(LOG_TAG, "Event stream is paused. Waiting.");
-                }
-
-                try {
-                    synchronized (this) {
-                        wait();
-                    }
-                    Log.d(LOG_TAG, "Event stream woken from pause.");
-                } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
-                }
-            }
-
-            // the service could have been killed while being paused.
-            if (!mKilling) {
-                try {
-                    Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
-                    TokensChunkResponse<Event> eventsResponse = mEventsRestClient.events(mCurrentToken, mEventRequestTimeout);
-
-                    if (null != eventsResponse.chunk) {
-                        Log.d(LOG_TAG, "Got eventsResponse.chunk with " + eventsResponse.chunk.size() + " items");
-                    } else {
-                        Log.d(LOG_TAG, "Got eventsResponse with no chunk");
-                    }
-
-                    if (!mKilling) {
-                        // set the dedicated token when they are known.
-                        if ((null != eventsResponse.chunk) && (eventsResponse.chunk.size() > 0)) {
-                            eventsResponse.chunk.get(0).setIntenalPaginationToken(eventsResponse.start);
-                            eventsResponse.chunk.get(eventsResponse.chunk.size() - 1).setIntenalPaginationToken(eventsResponse.end);
-                        }
-
-                        // remove presence events because they will be retrieved by a global request
-                        // same behaviours for the typing events
-                        Boolean isGettingsPresence;
-
-                        synchronized (mEventsRestClient) {
-                            isGettingsPresence = mIsGettingPresences;
-                        }
-
-                        if (isGettingsPresence) {
-                            ArrayList<Event> events = new ArrayList<Event>();
-
-                            for(Event event : eventsResponse.chunk) {
-                                if (!Event.EVENT_TYPE_PRESENCE.equals(event.type) && !Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                                    events.add(event);
-                                }
-                            }
-
-                            eventsResponse.chunk = events;
-                        }
-
-                        // the catchup request is done once.
-                        if (mIsCatchingUp) {
-                            Log.e(LOG_TAG, "Stop the catchup");
-                            // stop any catch up
-                            mIsCatchingUp = false;
-                            mPaused = true;
-                        }
-
-                        mListener.onEventsReceived(eventsResponse.chunk, eventsResponse.end);
-                        Log.d(LOG_TAG, "mCurrentToken is now set to " + eventsResponse.end);
-                        mCurrentToken = eventsResponse.end;
-                    }
-
-                    // reset to the default value
-                    mEventRequestTimeout = EventsRestClient.EVENT_STREAM_TIMEOUT_MS;
-
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Waiting a bit before retrying : " + e.getMessage() + " " + e.getStackTrace());
-
-                    if ((mEventsFailureCallback != null) && (e instanceof RetrofitError)) {
-                        mEventsFailureCallback.failure((RetrofitError) e);
-                    }
-
-                    boolean isConnected;
-                    synchronized (this) {
-                        isConnected = mbIsConnected;
-                    }
-
-                    // detected if the device is connected before trying again
-                   if (isConnected) {
-                        final CountDownLatch latch = new CountDownLatch(1);
-                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                            public void run() {
-                                latch.countDown();
-                            }
-                        }, RETRY_WAIT_TIME_MS);
-
-                        // block until the timeout is triggered
-                        try {
-                            latch.await();
-                        } catch (Exception anException) {
-                        }
-
-                    } else {
-                        // no network -> wait that a network connection comes back.
-                        mIsNetworkSuspended = true;
-                    }
-                }
-            }
         }
 
         if (null != mNetworkConnectivityReceiver) {

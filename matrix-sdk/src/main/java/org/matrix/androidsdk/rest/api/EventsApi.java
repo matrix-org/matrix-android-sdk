@@ -15,12 +15,10 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Map;
@@ -29,7 +27,6 @@ import retrofit.Callback;
 import retrofit.http.Body;
 import retrofit.http.GET;
 import retrofit.http.POST;
-import retrofit.http.Path;
 import retrofit.http.Query;
 import retrofit.http.QueryMap;
 
@@ -37,24 +34,6 @@ import retrofit.http.QueryMap;
  * The events API.
  */
 public interface EventsApi {
-
-    /**
-     * Wait and return the next event that comes down.
-     * @param from the token starting from which we scan for events
-     * @param timeout a timeout value
-     * @return the next event or just the same token in case of timeout
-     */
-    @GET("/events")
-    TokensChunkResponse<Event> events(@Query("from") String from, @Query("timeout") int timeout);
-
-    /**
-     * Get information about a single event.
-     * @param eventId The event ID to get
-     * @param callback The asynchronous callback to call when finished
-     */
-    @GET("/events/{eventId}")
-    void events(@Path("eventId") String eventId, Callback<Event> callback);
-
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param params the GET params.
@@ -69,15 +48,6 @@ public interface EventsApi {
      */
     @GET("/publicRooms")
     void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
-
-    /**
-     * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
-     * @param limit the limit of the amount of messages to return per room
-     * @param callback The asynchronous callback to call when finished
-     */
-    @GET("/initialSync")
-    void initialSync(@Query("limit") int limit,
-                     Callback<InitialSyncResponse> callback);
 
     /**
      * Perform a search.

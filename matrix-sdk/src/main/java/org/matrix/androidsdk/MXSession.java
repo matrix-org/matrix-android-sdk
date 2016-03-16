@@ -68,15 +68,6 @@ import java.util.List;
 public class MXSession {
     private static final String LOG_TAG = "MXSession";
 
-    // define the used api versions
-    // API V1 : first implementation but with very slow catchup
-    // API V2 : improved V1 : the main improvement is the catchup.
-    public static final int REST_CLIENT_API_VERSION_1 = 1;
-    public static final int REST_CLIENT_API_VERSION_2 = 2;
-
-    // define the preferred server API when it is available.
-    public static final int PREFERED_API_VERSION = REST_CLIENT_API_VERSION_2;
-
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
@@ -110,20 +101,6 @@ public class MXSession {
     private boolean mIsActiveSession = true;
 
     private HomeserverConnectionConfig mHsConfig;
-
-    /**
-     * @return true if the client uses the SYNC API V1
-     */
-    public static boolean useSyncV1() {
-        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_1;
-    }
-
-    /**
-     * @return true if the client uses the SYNC API V2
-     */
-    public static boolean useSyncV2() {
-        return PREFERED_API_VERSION == REST_CLIENT_API_VERSION_2;
-    }
 
     /**
      * Create a basic session for direct API calls.
@@ -406,7 +383,7 @@ public class MXSession {
 
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
-     * @param eventsListener the event listener or null if using a DataHandler
+     * @param anEventsListener the event listener or null if using a DataHandler
      * @param networkConnectivityReceiver the network connectivity listener.
      * @param initialToken the initial sync token (null to start from scratch)
      */

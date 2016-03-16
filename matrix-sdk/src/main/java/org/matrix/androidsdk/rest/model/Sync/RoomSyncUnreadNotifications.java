@@ -1,35 +1,40 @@
-/*
+/* 
  * Copyright 2016 OpenMarket Ltd
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.sync;
+package org.matrix.androidsdk.rest.model.Sync;
 
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.Event;
+
+import java.util.List;
 
 /**
- * Interface to implement to listen to the event thread.
+ `MXRoomSyncUnreadNotifications` represents the unread counts for a room.
  */
-public interface EventsThreadListener {
+public class RoomSyncUnreadNotifications implements java.io.Serializable {
     /**
-     * Call when a sync request has been performed with the API V2.
-     * @param response the response (can be null)
-     * @param isInitialSync true if the response is triggered by an initial sync
+     * List of account data events (array of Event).
      */
-    void onSyncResponse(SyncResponse response, boolean isInitialSync);
+    public List<Event> events;
 
     /**
-     * the server returns an invalid token error
+     The number of unread messages that match the push notification rules.
      */
-    void onInvalidToken();
+    public Integer notificationCount;
+
+    /**
+     The number of highlighted unread messages (subset of notifications).
+     */
+    public Integer highlightCount;
 }

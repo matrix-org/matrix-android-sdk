@@ -39,7 +39,7 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -534,56 +534,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Check if the room should be joined
-     * @param event
-     * @param roomState
-     * @return true of the room should be self joined.
-     */
-    private Boolean shouldSelfJoin(final Event event, final RoomState roomState) {
-        if (isActive()) {
-            RoomMember member = JsonUtils.toRoomMember(event.content);
-
-            // join event ?
-            if (RoomMember.MEMBERSHIP_JOIN.equals(member.membership)) {
-                Collection<RoomMember> members = roomState.getMembers();
-                RoomMember myMember = getMember(members, mCredentials.userId);
-
-                return ((null == myMember) || RoomMember.MEMBERSHIP_INVITE.equals(myMember.membership));
-            }
-        } else {
-            Log.e(LOG_TAG, "shouldSelfJoin : the session is not anymore active");
-        }
-        return false;
-    }
-
-    /**
-     * Perform an initial room sync (get the metadata + get the first bunch of messages)
-     * @param roomId the roomid of the room to join.
-     */
-    private void selfJoin(final String roomId) {
-        if (isActive()) {
-            // inviterUserId is only used when the user is invited to the room found during the initial sync
-            RoomSummary roomSummary = getStore().getSummary(roomId);
-            roomSummary.setInviterUserId(null);
-
-            final Room room = getStore().getRoom(roomId);
-            room.initialSync(new SimpleApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    room.requestHistory(new SimpleApiCallback<Integer>() {
-                        @Override
-                        public void onSuccess(Integer info) {
-                            onRoomInitialSyncComplete(roomId);
-                        }
-                    });
-                }
-            });
-        } else {
-            Log.e(LOG_TAG, "selfJoin : the session is not anymore active");
-        }
-    }
-
-    /**
      * Handle events coming down from the event stream.
      * @param event the live event
      * */
@@ -691,8 +641,6 @@ public class MXDataHandler implements IMXEventListener {
             if (event.roomId != null) {
                 final Room room = getRoom(event.roomId);
 
-                String selfJoinRoomId = null;
-
                 // check if the room has been joined
                 // the initial sync + the first requestHistory call is done here
                 // instead of being done in the application
@@ -731,10 +679,6 @@ public class MXDataHandler implements IMXEventListener {
                             onAccountInfoUpdate(myUser);
                         }
                     }
-
-                    if (shouldSelfJoin(event, room.getLiveState())) {
-                        selfJoinRoomId = event.roomId;
-                    }
                 }
 
                 if (event.stateKey != null) {
@@ -750,10 +694,6 @@ public class MXDataHandler implements IMXEventListener {
 
                 storeLiveRoomEvent(event);
                 onLiveEvent(event, room.getLiveState());
-
-                if (null != selfJoinRoomId && MXSession.useSyncV1()) {
-                    selfJoin(selfJoinRoomId);
-                }
 
                 // trigger pushes when it is required
                 if (withPush) {
@@ -962,23 +902,23 @@ public class MXDataHandler implements IMXEventListener {
     // Sync V2
     //================================================================================
 
-    public void onSyncV2Complete(final SyncResponse syncResponse, final boolean isInitialSync) {
+    public void onSyncReponse(final SyncResponse syncResponse, final boolean isInitialSync) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageV2Response(syncResponse, isInitialSync);
+               manageResponse(syncResponse, isInitialSync);
             }
         });
     }
 
-    private void manageV2Response(final SyncResponse syncResponse, final boolean isInitialSync) {
+    private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
         boolean isEmptyResponse = true;
 
         // sanity check
         if (null != syncResponse) {
-            Log.d(LOG_TAG, "onSyncV2Complete");
+            Log.d(LOG_TAG, "onSyncComplete");
 
             // sanity check
             if (null != syncResponse.rooms) {
@@ -1293,23 +1233,6 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onInitialSyncComplete();
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onPresencesSyncComplete() {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onPresencesSyncComplete();
                     } catch (Exception e) {
                     }
                 }

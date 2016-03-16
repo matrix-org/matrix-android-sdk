@@ -26,20 +26,15 @@ import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.InitialSyncResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PublicRoom;
-import org.matrix.androidsdk.rest.model.Search.SearchEventContext;
-import org.matrix.androidsdk.rest.model.Search.SearchGroup;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventResults;
-import org.matrix.androidsdk.rest.model.SyncV2.SyncResponse;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -87,53 +82,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
                 callback.onSuccess(typedResponse.chunk);
             }
         });
-    }
-
-    /**
-     * Get initial information about the user's rooms, messages, other users.
-     *
-     * @param callback callback to provide the information
-     */
-    public void initialSync(final ApiCallback<InitialSyncResponse> callback) {
-        initialSyncWithLimit(callback, 10);
-    }
-
-    /**
-     * Get initial information about the user's rooms, messages, other users.
-     *
-     * @param callback callback to provide the information
-     * @param limit    the number of messages per room
-     */
-    public void initialSyncWithLimit(final ApiCallback<InitialSyncResponse> callback, final int limit) {
-        final String description = "initialSyncWithLimit";
-
-        mApi.initialSync(limit, new RestAdapterCallback<InitialSyncResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                initialSyncWithLimit(callback, limit);
-            }
-        }));
-    }
-
-    /**
-     * {@link #events(String, int)} with a default timeout.
-     *
-     * @param fromToken the token provided by the previous call's response
-     * @return a list of events
-     */
-    public TokensChunkResponse<Event> events(String fromToken) {
-        return events(fromToken, EVENT_STREAM_TIMEOUT_MS);
-    }
-
-    /**
-     * Long poll for the next events. To be called repeatedly to listen to the events stream.
-     *
-     * @param fromToken the token provided by the previous call's response
-     * @param timeoutMs max time before the server sends a response
-     * @return a list of events
-     */
-    public TokensChunkResponse<Event> events(String fromToken, int timeoutMs) {
-        return mApi.events(fromToken, timeoutMs);
     }
 
     /**

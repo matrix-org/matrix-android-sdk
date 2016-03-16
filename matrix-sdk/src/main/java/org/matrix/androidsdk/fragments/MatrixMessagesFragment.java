@@ -226,15 +226,8 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "joinRoom succeeds");
-
-                // on Sync V2, the room initial sync is done as a standard events chunck
-                // so wait that the dedicated chunk is received.
-                if (MXSession.useSyncV2()) {
-                    MatrixMessagesFragment.this.dismissLoadingProgress();
-                    mMatrixMessagesListener.onInitialMessagesLoaded();
-                } else {
-                    requestInitialHistory();
-                }
+                MatrixMessagesFragment.this.dismissLoadingProgress();
+                mMatrixMessagesListener.onInitialMessagesLoaded();
             }
 
             // the request will be automatically restarted when a valid network will be found

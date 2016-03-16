@@ -182,14 +182,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
         }
-
-        /**
-         * User presences was synchronized..
-         */
-        @Override
-        public void onPresencesSyncComplete() {
-            mAdapter.notifyDataSetChanged();
-        }
     };
 
     public MessagesAdapter createMessagesAdapter() {

@@ -97,11 +97,6 @@ public interface IMXEventListener {
     void onInitialSyncComplete();
 
     /**
-     * User presences was synchronized..
-     */
-    void onPresencesSyncComplete();
-
-    /**
      * A new room has been created.
      *
      * @param roomId the roomID
