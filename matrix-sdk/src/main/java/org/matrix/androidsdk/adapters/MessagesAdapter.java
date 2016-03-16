@@ -1254,7 +1254,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
-        final SpannableString body = new SpannableString(display.getTextualDisplay());
+        CharSequence textualDisplay = display.getTextualDisplay();
+
+        final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
         if (mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
