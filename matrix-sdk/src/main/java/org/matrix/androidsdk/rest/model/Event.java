@@ -166,6 +166,13 @@ public class Event implements java.io.Serializable {
         return mMatrixId;
     }
 
+    static final long MAX_ORIGIN_SERVER_TS = 1L << 50L;
+
+    public boolean isValidOriginServerTs() {
+        long a = MAX_ORIGIN_SERVER_TS;
+        return originServerTs < MAX_ORIGIN_SERVER_TS;
+    }
+
     public long getOriginServerTs() {
         return originServerTs;
     }
@@ -179,14 +186,19 @@ public class Event implements java.io.Serializable {
     static long mFormatterRawOffset = 1234;
 
     public String formattedOriginServerTs() {
-        // the formatter must be updated if the timezone has been updated
-        // else the formatted string are wrong (does not use the current timezone)
-        if ((null == mDateFormat) || (mFormatterRawOffset != getTimeZoneOffset())) {
-            mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
-            mFormatterRawOffset = getTimeZoneOffset();
-        }
+        // avoid displaying weird orign ts
+        if (!isValidOriginServerTs()) {
+            return " ";
+        } else {
+            // the formatter must be updated if the timezone has been updated
+            // else the formatted string are wrong (does not use the current timezone)
+            if ((null == mDateFormat) || (mFormatterRawOffset != getTimeZoneOffset())) {
+                mDateFormat = new SimpleDateFormat("MMM d HH:mm", Locale.getDefault());
+                mFormatterRawOffset = getTimeZoneOffset();
+            }
 
-        return mDateFormat.format(new Date(getOriginServerTs()));
+            return mDateFormat.format(new Date(getOriginServerTs()));
+        }
     }
 
     public void setOriginServerTs(long anOriginServer) {

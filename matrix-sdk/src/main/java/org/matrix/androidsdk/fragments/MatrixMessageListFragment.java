@@ -42,8 +42,10 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -940,7 +942,35 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    public void resendUnsent() {
+    public void deleteUnsentMessages() {
+        Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
+
+        if ((null != unsent) && (unsent.size() > 0)) {
+            IMXStore store = mSession.getDataHandler().getStore();
+
+
+            // reset the timestamp
+            for (Event event : unsent) {
+                mAdapter.removeEventById(event.eventId);
+                store.deleteEvent(event);
+            }
+
+            // update the summary
+            Event latestEvent = store.getLatestEvent(mRoom.getRoomId());
+
+            // if there is an oldest event, use it to set a summary
+            if (latestEvent != null) {
+                if (RoomSummary.isSupportedEvent(latestEvent)) {
+                    store.storeSummary(latestEvent.roomId, latestEvent, mRoom.getLiveState(), mSession.getMyUserId());
+                }
+            }
+
+            store.commit();
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
+    public void resendUnsentMessages() {
         Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
 
         if ((null != unsent) && (unsent.size() > 0)) {
@@ -955,6 +985,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mResendingEventsList.remove(0);
         }
     }
+
 
     public void resend(Event event) {
         // sanity check
