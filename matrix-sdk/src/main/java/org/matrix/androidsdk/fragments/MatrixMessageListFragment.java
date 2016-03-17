@@ -103,7 +103,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public static final String ARG_MATRIX_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_LAYOUT_ID = "org.matrix.androidsdk.fragments.MatrixMessageListFragment.ARG_LAYOUT_ID";
 
-    private static final String LOG_TAG = "ErrorListener";
+    private static final String LOG_TAG = "MessageListFrg";
 
     public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
@@ -203,6 +203,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreate");
+
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
     }
@@ -226,6 +228,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreateView");
+
         super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
 
@@ -252,7 +256,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
-        int selectionIndex = -1;
+        int selectionIndex;
 
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
@@ -463,16 +467,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
         Bundle args = getArguments();
         FragmentManager fm = getActivity().getSupportFragmentManager();
         mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
+            Log.d(LOG_TAG, "onActivityCreated create");
+
             // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
             fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         }
         else {
+
+            Log.d(LOG_TAG, "onActivityCreated - reuse");
+
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
         }

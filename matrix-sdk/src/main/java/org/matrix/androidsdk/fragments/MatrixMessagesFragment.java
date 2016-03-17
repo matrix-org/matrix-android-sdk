@@ -18,6 +18,7 @@ package org.matrix.androidsdk.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -45,12 +46,13 @@ import java.util.List;
  * pagination. For a UI implementation of this, see {@link MatrixMessageListFragment}.
  */
 public class MatrixMessagesFragment extends Fragment {
+    private static final String LOG_TAG = "MatrixMessagesFragment";
+
     /**
      * The room ID to get messages for.
      * Fragment argument: String.
      */
     public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
-    private static final String LOG_TAG = "MatrixMessagesFragment";
 
     public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
@@ -103,12 +105,16 @@ public class MatrixMessagesFragment extends Fragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreate");
+
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreateView");
+
         View v = super.onCreateView(inflater, container, savedInstanceState);
 
         // the requests are done in onCreateView  instead of onActivityCreated to speed up in the events request
@@ -197,7 +203,15 @@ public class MatrixMessagesFragment extends Fragment {
                 requestInitialHistory();
             }
         } else {
-            mMatrixMessagesListener.onInitialMessagesLoaded();
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
+            // add a delay to avoid calling MatrixListFragement before it is fully initialized
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                }
+            }, 100);
         }
 
         return v;
