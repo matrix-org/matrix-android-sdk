@@ -21,6 +21,9 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -102,6 +105,14 @@ public class MatrixMessagesFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View v = super.onCreateView(inflater, container, savedInstanceState);
+
+        // the requests are done in onCreateView  instead of onActivityCreated to speed up in the events request
+        // it saves only few ms but it reduces the white screen flash.
         mContext = getActivity().getApplicationContext();
 
         String roomId = getArguments().getString(ARG_ROOM_ID);
@@ -188,6 +199,8 @@ public class MatrixMessagesFragment extends Fragment {
         } else {
             mMatrixMessagesListener.onInitialMessagesLoaded();
         }
+
+        return v;
     }
 
     @Override

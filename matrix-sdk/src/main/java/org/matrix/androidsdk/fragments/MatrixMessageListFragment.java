@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Browser;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
@@ -131,9 +132,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected boolean mIsCatchingUp = false;
 
     protected ArrayList<Event> mResendingEventsList;
-
-    private Handler uiThreadHandler;
-
     private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
 
     public MXMediasCache getMXMediasCache() {
@@ -158,11 +156,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         @Override
         public void onPresenceUpdate(Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
-            uiThreadHandler.post(new Runnable() {
+            mUiHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     // check first if the userID has sent some messages in the room history
-                    Boolean refresh = mAdapter.isDisplayedUser(user.user_id);
+                    boolean refresh = mAdapter.isDisplayedUser(user.user_id);
 
                     if (refresh) {
                         // check, if the avatar is currently displayed
@@ -203,7 +201,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        uiThreadHandler = new Handler();
         setRetainInstance(true);
     }
 
