@@ -114,6 +114,10 @@ public class MXDataHandler implements IMXEventListener {
         mInvalidTokenListener = invalidTokenListener;
     }
 
+    public Credentials getCredentials() {
+        return mCredentials;
+    }
+
     // some setters
     public void setProfileRestClient(ProfileRestClient profileRestClient) {
         mProfileRestClient = profileRestClient;
@@ -221,11 +225,6 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void setContentManager(ContentManager contentManager) {
-        checkIfActive();
-        mContentManager = contentManager;
-    }
-
     public void setCallsManager(MXCallsManager callsManager) {
         checkIfActive();
         mCallsManager = callsManager;
@@ -299,88 +298,12 @@ public class MXDataHandler implements IMXEventListener {
             mSyncHandlerThread = null;
         }
     }
-    /**
-     * Handle the room data received from a per-room initial sync
-     * @param roomResponse the room response object
-     * @param room the associated room
-     */
-    public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
-            return;
-        }
 
-        // Handle state events
-        if (roomResponse.state != null) {
-            room.processLiveState(roomResponse.state);
-        }
-
-        // Handle visibility
-        if (roomResponse.visibility != null) {
-            room.setVisibility(roomResponse.visibility);
-        }
-
-        // Handle messages / pagination token
-        if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
-            mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
-
-            int index = roomResponse.messages.chunk.size() - 1;
-
-            while (index >= 0) {
-                // To store the summary, we need the last event and the room state from just before
-                Event lastEvent = roomResponse.messages.chunk.get(index);
-
-                if (RoomSummary.isSupportedEvent(lastEvent)) {
-                    RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
-                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
-
-                    mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
-
-                    index = -1;
-                } else {
-                    index--;
-                }
-            }
-        }
-
-        // Handle presence
-        if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
-            handleLiveEvents(roomResponse.presence);
-        }
-
-        // receipts
-        if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
-            handleLiveEvents(roomResponse.receipts);
-        }
-
-        // account data
-        if ((roomResponse.accountData != null) && (roomResponse.accountData.size() > 0)) {
-            // the room id is not defined in the events
-            // so as the room is defined here, avoid calling handleLiveEvents
-            room.handleAccountDataEvents(roomResponse.accountData);
-        }
-
-        // Handle the special case where the room is an invite
-        if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
-            handleInitialSyncInvite(room.getRoomId(), roomResponse.inviter);
+    public String getUserId() {
+        if (isActive()) {
+            return mCredentials.userId;
         } else {
-            onRoomInitialSyncComplete(room.getRoomId());
-        }
-    }
-
-    /**
-     * Handle the room data received from a global initial sync
-     * @param roomResponse the room response object
-     */
-    public void handleInitialRoomResponse(RoomResponse roomResponse) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
-            return;
-        }
-
-        if (roomResponse.roomId != null) {
-            Room room = getRoom(roomResponse.roomId);
-            handleInitialRoomResponse(roomResponse, room);
+            return "dummy";
         }
     }
 
@@ -389,7 +312,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void checkPermanentStorageData() {
         if (!isActive()) {
-            Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");        
+            Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");
             return;
         }
 
@@ -405,7 +328,6 @@ public class MXDataHandler implements IMXEventListener {
                 room.setDataHandler(this);
                 room.setDataRetriever(mDataRetriever);
                 room.setMyUserId(mCredentials.userId);
-                room.setContentManager(mContentManager);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
@@ -414,50 +336,6 @@ public class MXDataHandler implements IMXEventListener {
                     summary.getLatestRoomState().setDataHandler(this);
                 }
             }
-        }
-    }
-
-    public String getUserId() {
-        if (isActive()) {
-            return mCredentials.userId;
-        } else {
-            return "dummy";
-        }
-    }
-
-    private void handleInitialSyncInvite(String roomId, String inviterUserId) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialSyncInvite : the session is not anymore active");
-            return;
-        }
-
-        Room room = getRoom(roomId);
-
-        // add yourself
-        RoomMember member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_INVITE;
-        room.setMember(mCredentials.userId, member);
-
-        // and the inviter
-        member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_JOIN;
-        room.setMember(inviterUserId, member);
-
-        // Build a fake invite event
-        Event inviteEvent = new Event();
-        inviteEvent.roomId = roomId;
-        inviteEvent.stateKey = mCredentials.userId;
-        inviteEvent.setSender(inviterUserId);
-        inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
-        inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
-        inviteEvent.content = JsonUtils.toJson(member);
-
-        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
-
-        // Set the inviter ID
-        RoomSummary roomSummary = mStore.getSummary(roomId);
-        if (null != roomSummary) {
-            roomSummary.setInviterUserId(inviterUserId);
         }
     }
 
@@ -767,7 +645,6 @@ public class MXDataHandler implements IMXEventListener {
             room.setDataHandler(this);
             room.setDataRetriever(mDataRetriever);
             room.setMyUserId(mCredentials.userId);
-            room.setContentManager(mContentManager);
             mStore.storeRoom(room);
         }
         return room;

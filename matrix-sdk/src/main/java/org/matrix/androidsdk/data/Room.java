@@ -121,7 +121,6 @@ public class Room {
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
-    private ContentManager mContentManager;
 
     private String mMyUserId = null;
 
@@ -142,6 +141,8 @@ public class Room {
     private boolean mIsLeaving = false;
 
     private boolean mIsV2Syncing;
+
+    private EventTimeline mLiveTimeline;
 
     private ApiCallback<Void> mOnInitialSyncCallback;
 
@@ -188,6 +189,14 @@ public class Room {
         return mLiveState.getMembers();
     }
 
+    public EventTimeline getLiveTimeLine() {
+        if (null == mLiveTimeline) {
+            mLiveTimeline = new EventTimeline(mDataRetriever, mDataHandler, this, null);
+        }
+
+        return mLiveTimeline;
+    }
+
     /**
      * @return the list of online members in a room.
      */
@@ -224,9 +233,6 @@ public class Room {
         return activeMembers;
     }
 
-
-
-
     public void setMember(String userId, RoomMember member) {
         mLiveState.setMember(userId, member);
     }
@@ -252,10 +258,6 @@ public class Room {
     }
 
     public void setMyUserId(String userId) { mMyUserId = userId; }
-
-    public void setContentManager(ContentManager contentManager) {
-        mContentManager = contentManager;
-    }
 
     /**
      * @return true if the user is invited to the room
@@ -555,8 +557,6 @@ public class Room {
             }
             mIsReady = true;
         }
-        // check if they are some pending events
-        //resendUnsentEvents();
     }
 
     /**
@@ -895,6 +895,109 @@ public class Room {
         });
     }
 
+
+    private void handleInitialSyncInvite(String inviterUserId) {
+        if (!mDataHandler.isActive()) {
+            Log.e(LOG_TAG, "handleInitialSyncInvite : the session is not anymore active");
+            return;
+        }
+
+        // add yourself
+        RoomMember member = new RoomMember();
+        member.membership = RoomMember.MEMBERSHIP_INVITE;
+        setMember(mMyUserId, member);
+
+        // and the inviter
+        member = new RoomMember();
+        member.membership = RoomMember.MEMBERSHIP_JOIN;
+        setMember(inviterUserId, member);
+
+        // Build a fake invite event
+        Event inviteEvent = new Event();
+        inviteEvent.roomId = getRoomId();
+        inviteEvent.stateKey = mMyUserId;
+        inviteEvent.setSender(inviterUserId);
+        inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
+        inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
+        inviteEvent.content = JsonUtils.toJson(member);
+
+        mDataHandler.getStore().storeSummary(getRoomId(), inviteEvent, null, mMyUserId);
+
+        // Set the inviter ID
+        RoomSummary roomSummary = mDataHandler.getStore().getSummary(getRoomId());
+        if (null != roomSummary) {
+            roomSummary.setInviterUserId(inviterUserId);
+        }
+    }
+
+    /**
+     * Handle the room data received from a per-room initial sync
+     * @param roomResponse the room response object
+     */
+    public void handleInitialRoomResponse(RoomResponse roomResponse) {
+        if (!mDataHandler.isActive()) {
+            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
+            return;
+        }
+
+        // Handle state events
+        if (roomResponse.state != null) {
+            processLiveState(roomResponse.state);
+        }
+
+        // Handle visibility
+        if (roomResponse.visibility != null) {
+            setVisibility(roomResponse.visibility);
+        }
+
+        // Handle messages / pagination token
+        if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
+            mDataHandler.getStore().storeRoomEvents(getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
+
+            int index = roomResponse.messages.chunk.size() - 1;
+
+            while (index >= 0) {
+                // To store the summary, we need the last event and the room state from just before
+                Event lastEvent = roomResponse.messages.chunk.get(index);
+
+                if (RoomSummary.isSupportedEvent(lastEvent)) {
+                    RoomState beforeLiveRoomState = getLiveState().deepCopy();
+                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
+
+                    mDataHandler.getStore().storeSummary(getRoomId(), lastEvent, getLiveState(), mMyUserId);
+
+                    index = -1;
+                } else {
+                    index--;
+                }
+            }
+        }
+
+        // Handle presence
+        if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
+            mDataHandler.handleLiveEvents(roomResponse.presence);
+        }
+
+        // receipts
+        if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
+            mDataHandler.handleLiveEvents(roomResponse.receipts);
+        }
+
+        // account data
+        if ((roomResponse.accountData != null) && (roomResponse.accountData.size() > 0)) {
+            // the room id is not defined in the events
+            // so as the room is defined here, avoid calling handleLiveEvents
+            handleAccountDataEvents(roomResponse.accountData);
+        }
+
+        // Handle the special case where the room is an invite
+        if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
+            handleInitialSyncInvite(roomResponse.inviter);
+        } else {
+            mDataHandler.onRoomInitialSyncComplete(getRoomId());
+        }
+    }
+
     /**
      * Perform a room-level initial sync to get latest messages and pagination token.
      * @param callback the async callback
@@ -905,7 +1008,7 @@ public class Room {
                 public void onSuccess(RoomResponse roomInfo) {
                     // check if the SDK was not logged out
                     if (mDataHandler.isActive()) {
-                        mDataHandler.handleInitialRoomResponse(roomInfo, Room.this);
+                        handleInitialRoomResponse(roomInfo);
 
                         Log.d(LOG_TAG, "initialSync : commit");
                         mDataHandler.getStore().commit();

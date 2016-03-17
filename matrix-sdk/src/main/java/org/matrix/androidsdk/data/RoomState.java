@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -85,14 +86,14 @@ public class RoomState implements java.io.Serializable {
     public String visibility;
 
     /**
-     The number of unread messages that match the push notification rules.
-     It is based on the notificationCount field in /sync response.
+     * The number of unread messages that match the push notification rules.
+     * It is based on the notificationCount field in /sync response.
      */
     public int mNotificationCount;
 
     /**
-     The number of highlighted unread messages (subset of notifications).
-     It is based on the notificationCount field in /sync response.
+     * The number of highlighted unread messages (subset of notifications).
+     * It is based on the notificationCount field in /sync response.
      */
     public int mHighlightCount;
 
@@ -106,10 +107,21 @@ public class RoomState implements java.io.Serializable {
     private Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<String, RoomThirdPartyInvite>();
 
     /**
-     Cache for [self memberWithThirdPartyInviteToken].
-     The key is the 3pid invite token.
+     * Cache for [self memberWithThirdPartyInviteToken].
+     * The key is the 3pid invite token.
      */
     private Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<String, RoomMember>();
+
+    /**
+     * Additional and optional metadata got from initialSync
+     */
+    private String mMembership;
+
+    /**
+     * Tell if the roomstate if a live one.
+     */
+    private boolean mIsLive;
+
 
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
@@ -210,7 +222,7 @@ public class RoomState implements java.io.Serializable {
      * @param userId the user Id.
      * @return true if the user can backpaginate.
      */
-    public Boolean canBackPaginated(String userId) {
+    public boolean canBackPaginated(String userId) {
         RoomMember member = getMember(userId);
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
@@ -241,6 +253,9 @@ public class RoomState implements java.io.Serializable {
         copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.mDataHandler = mDataHandler;
+        copy.mMembership = mMembership;
+        copy.mIsLive = mIsLive;
+
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -379,7 +394,7 @@ public class RoomState implements java.io.Serializable {
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public Boolean applyState(Event event, Room.EventDirection direction) {
+    public boolean applyState(Event event, Room.EventDirection direction) {
         if (event.stateKey == null) {
             return false;
         }
@@ -478,7 +493,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * @return true if the room is a public one
      */
-    public Boolean isPublic() {
+    public boolean isPublic() {
         return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
     }
 

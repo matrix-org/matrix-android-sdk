@@ -149,7 +149,6 @@ public class MXSession {
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver, mDataHandler);
 
         mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
-        mDataHandler.setContentManager(mContentManager);
 
         //
         mCallsManager = new MXCallsManager(this, mAppContent);
