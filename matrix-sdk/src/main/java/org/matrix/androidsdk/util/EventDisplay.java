@@ -109,7 +109,13 @@ public class EventDisplay {
                     if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
                         String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
                         if ("org.matrix.custom.html".equals(format)) {
-                            text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
+                            String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
+
+                            // some markers are not supported so fallback on an ascii display until to find the right way to manage them
+                            // an issue has been created https://github.com/vector-im/vector-android/issues/38
+                            if (!TextUtils.isEmpty(htmlBody) && (htmlBody.indexOf("<ol>") < 0) && (htmlBody.indexOf("<li>") < 0)) {
+                                text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
+                            }
                         }
                     }
 
