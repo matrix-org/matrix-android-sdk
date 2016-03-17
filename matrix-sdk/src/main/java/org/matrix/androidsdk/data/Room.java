@@ -626,7 +626,7 @@ public class Room {
                     event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentMatrixError = e;
 
-                    if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                         mDataHandler.onInvalidToken();
                     } else {
                         try {

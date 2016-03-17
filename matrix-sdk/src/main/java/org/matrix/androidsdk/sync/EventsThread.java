@@ -254,7 +254,7 @@ public class EventsThread extends Thread {
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
 
-                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                             mListener.onInvalidToken();
                         } else {
                             sleepAndUnblock();
