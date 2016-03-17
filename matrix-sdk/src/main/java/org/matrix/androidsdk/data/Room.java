@@ -121,6 +121,7 @@ public class Room {
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
+    private IMXStore mStore;
 
     private String mMyUserId = null;
 
@@ -206,7 +207,7 @@ public class Room {
 
         for(RoomMember member : members) {
             if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                User user =  mDataHandler.getStore().getUser(member.getUserId());
+                User user =  mStore.getUser(member.getUserId());
 
                 if ((null != user) && user.isActive()) {
                     activeMembers.add(member);
@@ -290,6 +291,7 @@ public class Room {
      */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
+        mStore = mDataHandler.getStore();
         mLiveState.setDataHandler(mDataHandler);
         mLiveState.refreshUsersList();
         mBackState.setDataHandler(mDataHandler);
@@ -536,7 +538,7 @@ public class Room {
         Boolean isProcessed = affectedState.applyState(event, direction);
 
         if ((isProcessed) && (direction == EventDirection.FORWARDS)) {
-            mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+            mStore.storeLiveStateForRoom(mRoomId);
         }
 
         return isProcessed;
@@ -582,7 +584,7 @@ public class Room {
                 @Override
                 public void onSuccess(final Event serverResponseEvent) {
                     // remove the tmp event
-                    mDataHandler.getStore().deleteEvent(event);
+                    mStore.deleteEvent(event);
 
                     // update the event with the server response
                     event.mSentState = Event.SentState.SENT;
@@ -590,14 +592,14 @@ public class Room {
                     event.originServerTs = System.currentTimeMillis();
 
                     // the message echo is not yet echoed
-                    if (!mDataHandler.getStore().doesEventExist(serverResponseEvent.eventId, mRoomId)) {
-                        mDataHandler.getStore().storeLiveRoomEvent(event);
+                    if (!mStore.doesEventExist(serverResponseEvent.eventId, mRoomId)) {
+                        mStore.storeLiveRoomEvent(event);
                     }
 
                     // send the dedicated read receipt asap
                     sendReadReceipt();
 
-                    mDataHandler.getStore().commit();
+                    mStore.commit();
                     mDataHandler.onSentEvent(event);
 
                     try {
@@ -699,7 +701,7 @@ public class Room {
         }
         isPaginating = false;
         Log.d(LOG_TAG, "manageEvents : commit");
-        mDataHandler.getStore().commit();
+        mStore.commit();
     }
 
     //================================================================================
@@ -767,7 +769,7 @@ public class Room {
                     if (response.chunk.size() > 0) {
                         mBackState.setToken(response.end);
 
-                        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+                        RoomSummary summary = mStore.getSummary(mRoomId);
                         Boolean shouldCommitStore = false;
 
                         // the room state is copied to have a state snapshot
@@ -792,7 +794,7 @@ public class Room {
                                 // update the summary is the event has been received after the oldest known event
                                 // it might happen after a timeline update (hole in the chat history)
                                 if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                                    summary =  mDataHandler.getStore().storeSummary(mRoomId, event, getLiveState(), mMyUserId);
+                                    summary =  mStore.storeSummary(mRoomId, event, getLiveState(), mMyUserId);
                                     shouldCommitStore = true;
                                 }
 
@@ -801,7 +803,7 @@ public class Room {
                         }
 
                         if (shouldCommitStore) {
-                            mDataHandler.getStore().commit();
+                            mStore.commit();
                         }
                     }
 
@@ -921,10 +923,10 @@ public class Room {
         inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
         inviteEvent.content = JsonUtils.toJson(member);
 
-        mDataHandler.getStore().storeSummary(getRoomId(), inviteEvent, null, mMyUserId);
+        mStore.storeSummary(getRoomId(), inviteEvent, null, mMyUserId);
 
         // Set the inviter ID
-        RoomSummary roomSummary = mDataHandler.getStore().getSummary(getRoomId());
+        RoomSummary roomSummary = mStore.getSummary(getRoomId());
         if (null != roomSummary) {
             roomSummary.setInviterUserId(inviterUserId);
         }
@@ -952,7 +954,7 @@ public class Room {
 
         // Handle messages / pagination token
         if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
-            mDataHandler.getStore().storeRoomEvents(getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
+            mStore.storeRoomEvents(getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
 
             int index = roomResponse.messages.chunk.size() - 1;
 
@@ -964,7 +966,7 @@ public class Room {
                     RoomState beforeLiveRoomState = getLiveState().deepCopy();
                     beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-                    mDataHandler.getStore().storeSummary(getRoomId(), lastEvent, getLiveState(), mMyUserId);
+                    mStore.storeSummary(getRoomId(), lastEvent, getLiveState(), mMyUserId);
 
                     index = -1;
                 } else {
@@ -1011,7 +1013,7 @@ public class Room {
                         handleInitialRoomResponse(roomInfo);
 
                         Log.d(LOG_TAG, "initialSync : commit");
-                        mDataHandler.getStore().commit();
+                        mStore.commit();
                         if (callback != null) {
                             try {
                                 callback.onSuccess(null);
@@ -1186,9 +1188,9 @@ public class Room {
                     Room.this.mIsLeaving = false;
 
                     // delete references to the room
-                    mDataHandler.getStore().deleteRoom(mRoomId);
+                    mStore.deleteRoom(mRoomId);
                     Log.d(LOG_TAG, "leave : commit");
-                    mDataHandler.getStore().commit();
+                    mStore.commit();
 
                     try {
                         callback.onSuccess(info);
@@ -1301,7 +1303,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 mLiveState.name = name;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1341,7 +1343,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 mLiveState.topic = topic;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1381,7 +1383,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 mLiveState.roomAliasName = canonicalAlias;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1446,7 +1448,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 mLiveState.url = avatarUrl;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1486,7 +1488,7 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 mLiveState.visibility = visibility;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1526,13 +1528,13 @@ public class Room {
      * @return true if there a store update.
      */
     public Boolean handleReceiptData(ReceiptData receiptData) {
-        Boolean isUpdated = mDataHandler.getStore().storeReceipt(receiptData, mRoomId);
+        boolean isUpdated = mStore.storeReceipt(receiptData, mRoomId);
 
         // check oneself receipts
         // if there is an update, it means that the messages have been read from andother client
         // it requires to update the summary to display valid information.
         if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
-            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+            RoomSummary summary = mStore.getSummary(mRoomId);
             if (null != summary) {
                 summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
             }
@@ -1594,8 +1596,8 @@ public class Room {
      * Send the read receipt to the latest room message id.
      */
     public void sendReadReceipt() {
-        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
-        Event event = mDataHandler.getStore().getLatestEvent(getRoomId());
+        RoomSummary summary = mStore.getSummary(mRoomId);
+        Event event = mStore.getLatestEvent(getRoomId());
 
         if ((null != event) && (null != summary)) {
             // any update
@@ -1613,11 +1615,11 @@ public class Room {
      * @return true if the token is refreshed
      */
     public boolean setReadReceiptToken(String token, long ts) {
-        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        RoomSummary summary = mStore.getSummary(mRoomId);
 
         if (summary.setReadReceiptToken(token, ts)) {
-            mDataHandler.getStore().flushSummary(summary);
-            mDataHandler.getStore().commit();
+            mStore.flushSummary(summary);
+            mStore.commit();
             refreshUnreadCounter();
             return true;
         }
@@ -1631,7 +1633,7 @@ public class Room {
      * @return true if the message has been read
      */
     public boolean isEventRead(String eventId) {
-        return mDataHandler.getStore().isEventRead(mRoomId, mMyUserId, eventId);
+        return mStore.isEventRead(mRoomId, mMyUserId, eventId);
     }
 
     //================================================================================
@@ -1658,16 +1660,16 @@ public class Room {
     public void refreshUnreadCounter() {
         // avoid refreshing the unread counter while processing a bunch of messages.
         if (!mIsV2Syncing) {
-            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+            RoomSummary summary = mStore.getSummary(mRoomId);
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
-                int newValue = mDataHandler.getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
+                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
-                    mDataHandler.getStore().flushSummary(summary);
-                    mDataHandler.getStore().commit();
+                    mStore.flushSummary(summary);
+                    mStore.commit();
                 }
             }
         }
@@ -1677,7 +1679,7 @@ public class Room {
      * @return the unread messages count.
      */
     public int getUnreadEventsCount() {
-        RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        RoomSummary summary = mStore.getSummary(mRoomId);
 
         if (null != summary) {
             return summary.getUnreadEventsCount();
@@ -1922,7 +1924,7 @@ public class Room {
      * @return the unsent messages list.
      */
     public ArrayList<Event> getUnsentEvents() {
-        Collection<Event> events = mDataHandler.getStore().getLatestUnsentEvents(mRoomId);
+        Collection<Event> events = mStore.getLatestUnsentEvents(mRoomId);
 
         ArrayList<Event> eventsList = new ArrayList<Event>(events);
         ArrayList<Event> unsentEvents = new ArrayList<Event>();
@@ -1991,7 +1993,7 @@ public class Room {
                 }
             }
 
-            mDataHandler.getStore().storeAccountData(mRoomId, mAccountData);
+            mStore.storeAccountData(mRoomId, mAccountData);
         }
     }
 
@@ -2099,7 +2101,7 @@ public class Room {
         if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
             // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
             Log.d(LOG_TAG, "handleJoinedRoomSync: clean invited room from the store " + mRoomId);
-            mDataHandler.getStore().deleteRoomData(mRoomId);
+            mStore.deleteRoomData(mRoomId);
 
             // clear the states
             RoomState state = new RoomState();
@@ -2125,24 +2127,24 @@ public class Room {
         if (null != roomSync.timeline) {
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
-                    currentSummary =  mDataHandler.getStore().getSummary(mRoomId);
+                    currentSummary =  mStore.getSummary(mRoomId);
 
                     // define a summary if some messages are left
                     // the unsent messages are often displayed messages.
-                    Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
+                    Event oldestEvent = mStore.getOldestEvent(mRoomId);
 
                     // Flush the existing messages for this room by keeping state events.
-                    mDataHandler.getStore().deleteAllRoomMessages(mRoomId, true);
+                    mStore.deleteAllRoomMessages(mRoomId, true);
 
                     if (oldestEvent != null) {
                         if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                            mDataHandler.getStore().storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
+                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
                         }
                     }
                 }
 
                 // In case of limited timeline, update token where to start back pagination
-                mDataHandler.getStore().storeBackToken(mRoomId, roomSync.timeline.prevBatch);
+                mStore.storeBackToken(mRoomId, roomSync.timeline.prevBatch);
                 // reset the state back token
                 // because it does not make anymore sense
                 // by setting at null, the events cache will be cleared when a requesthistory will be called
@@ -2171,7 +2173,7 @@ public class Room {
 
             if (roomSync.timeline.limited) {
                 // the unsent / undeliverable event mus be pushed to the history bottom
-                Collection<Event> events = mDataHandler.getStore().getRoomMessages(mRoomId);
+                Collection<Event> events = mStore.getRoomMessages(mRoomId);
 
                 if (null != events) {
                     ArrayList<Event> unsentEvents = new ArrayList<Event>();
@@ -2186,12 +2188,12 @@ public class Room {
                         for (Event event : unsentEvents) {
                             event.mSentState = Event.SentState.UNDELIVERABLE;
                             event.originServerTs = System.currentTimeMillis();
-                            mDataHandler.getStore().deleteEvent(event);
-                            mDataHandler.getStore().storeLiveRoomEvent(event);
+                            mStore.deleteEvent(event);
+                            mStore.storeLiveRoomEvent(event);
                         }
 
                         // update the store
-                        mDataHandler.getStore().commit();
+                        mStore.commit();
                     }
                 }
             }
@@ -2240,8 +2242,8 @@ public class Room {
 
             if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
                 // check if the room still exists.
-                if (null != mDataHandler.getStore().getRoom(mRoomId)) {
-                    mDataHandler.getStore().deleteRoom(mRoomId);
+                if (null != mStore.getRoom(mRoomId)) {
+                    mStore.deleteRoom(mRoomId);
                     mDataHandler.onLeaveRoom(mRoomId);
                 }
             }
@@ -2249,27 +2251,27 @@ public class Room {
 
         // check if the summary is defined
         // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
-        if (null != mDataHandler.getStore().getRoom(mRoomId)) {
-            RoomSummary summary = mDataHandler.getStore().getSummary(mRoomId);
+        if (null != mStore.getRoom(mRoomId)) {
+            RoomSummary summary = mStore.getSummary(mRoomId);
 
             // if there is no defined summary
             // we have to create a new one
             if (null == summary) {
                 // define a summary if some messages are left
                 // the unsent messages are often displayed messages.
-                Event oldestEvent = mDataHandler.getStore().getOldestEvent(mRoomId);
+                Event oldestEvent = mStore.getOldestEvent(mRoomId);
 
                 // if there is an oldest event, use it to set a summary
                 if (oldestEvent != null) {
                     if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                        mDataHandler.getStore().storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
-                        mDataHandler.getStore().commit();
+                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
+                        mStore.commit();
                     }
                 }
                 // use the latest known event
                 else if (null != currentSummary) {
-                    mDataHandler.getStore().storeSummary(mRoomId, currentSummary.getLatestEvent(), getLiveState(), mMyUserId);
-                    mDataHandler.getStore().commit();
+                    mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), getLiveState(), mMyUserId);
+                    mStore.commit();
                 }
                 // try to build a summary from the state events
                 else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -2280,7 +2282,7 @@ public class Room {
                     for(Event event : events) {
                         event.roomId = mRoomId;
                         if (RoomSummary.isSupportedEvent(event)) {
-                            summary = mDataHandler.getStore().storeSummary(event.roomId, event, getLiveState(), mMyUserId);
+                            summary = mStore.storeSummary(event.roomId, event, getLiveState(), mMyUserId);
 
                             // Watch for potential room name changes
                             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
@@ -2293,7 +2295,7 @@ public class Room {
                                 }
                             }
 
-                            mDataHandler.getStore().commit();
+                            mStore.commit();
                             break;
                         }
                     }
@@ -2328,9 +2330,9 @@ public class Room {
             if (isUpdated) {
                 getLiveState().mNotificationCount = notifCount;
                 getLiveState().mHighlightCount = highlightCount;
-                mDataHandler.getStore().storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(mRoomId);
             }
-         }
+        }
 
         mIsV2Syncing = false;
     }
