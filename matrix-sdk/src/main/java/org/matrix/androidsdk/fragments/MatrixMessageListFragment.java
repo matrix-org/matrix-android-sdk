@@ -134,6 +134,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected ArrayList<Event> mResendingEventsList;
     private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
 
+    // scroll to to the dedicated index when the device has been rotated
+    private int mFirstVisibleRow = -1;
+
     public MXMediasCache getMXMediasCache() {
         return null;
     }
@@ -258,13 +261,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
-        } else if(null != savedInstanceState){
-            if (savedInstanceState.containsKey("FIRST_VISIBLE_ROW")) {
-                selectionIndex = savedInstanceState.getInt("FIRST_VISIBLE_ROW");
-            }
-            else {
-                selectionIndex = -1;
-            }
+        } else if(null != savedInstanceState) {
+            mFirstVisibleRow = savedInstanceState.getInt("FIRST_VISIBLE_ROW", -1);
         }
 
         // sanity check
@@ -272,18 +270,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mAdapter.setTypingUsers(mRoom.getTypingUsers());
         }
         mMessageListView.setAdapter(mAdapter);
-
-        if (-1 != selectionIndex) {
-            final int fselectionIndex = selectionIndex;
-
-            // fill the page
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mMessageListView.setSelection(fselectionIndex);
-                }
-            });
-        }
 
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -1434,7 +1420,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // The application is almost frozen during the
                     mAdapter.notifyDataSetChanged();
 
-                    mMessageListView.setSelection(mAdapter.getCount() - 1);
+                    if ((-1 == mFirstVisibleRow) && (mFirstVisibleRow < mAdapter.getCount())) {
+                        mMessageListView.setSelection(mAdapter.getCount() - 1);
+                    } else {
+                        mMessageListView.setSelection(mFirstVisibleRow);
+                        mFirstVisibleRow = -1;
+                    }
+
                 }
 
                 Log.d(LOG_TAG, "onInitialMessagesLoaded");
