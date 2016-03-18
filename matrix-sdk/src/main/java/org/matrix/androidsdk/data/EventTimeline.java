@@ -16,17 +16,21 @@
 
 package org.matrix.androidsdk.data;
 
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,8 +113,8 @@ public class EventTimeline {
      */
     public void initHistory() {
         mBackState = mState.deepCopy();
-        mRoom.mCanStillPaginate = true;
-        mRoom.mIsPaginating = false;
+        mCanStillPaginate = true;
+        mIsPaginating = false;
 
         mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
     }
@@ -279,7 +283,7 @@ public class EventTimeline {
                 // by setting at null, the events cache will be cleared when a requesthistory will be called
                 mBackState.setToken(null);
                 // reset the back paginate lock
-                mRoom.mCanStillPaginate = true;
+                mCanStillPaginate = true;
             }
 
             // any event ?
@@ -442,6 +446,259 @@ public class EventTimeline {
      */
     public void initialiseState(List<Event> stateEvents) {
 
+    }
+
+
+    //================================================================================
+    // History request
+    //================================================================================
+
+    private static final int MAX_EVENT_COUNT_PER_PAGINATION = 20;
+
+    // the storage events are buffered to provide a small bunch of events
+    // the storage can provide a big bunch which slows down the UI.
+    public class SnapshotedEvent {
+        public Event mEvent;
+        public RoomState mState;
+
+        public SnapshotedEvent(Event event, RoomState state) {
+            mEvent = event;
+            mState = state;
+        }
+    }
+
+    // avoid adding to many events
+    // the room history request can provide more than exxpected event.
+    private ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<SnapshotedEvent>();
+
+    /**
+     * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
+     * @param callback the callback.
+     */
+    private void manageEvents(final ApiCallback<Integer> callback) {
+        // check if the SDK was not logged out
+        if (!mDataHandler.isActive()) {
+            Log.d(LOG_TAG, "manageEvents : mDataHandler is not anymore active.");
+
+            return;
+        }
+
+        int count = Math.min(mSnapshotedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
+
+        for(int i = 0; i < count; i++) {
+            SnapshotedEvent snapshotedEvent = mSnapshotedEvents.get(0);
+            mSnapshotedEvents.remove(0);
+            mDataHandler.onBackEvent(snapshotedEvent.mEvent, snapshotedEvent.mState);
+        }
+
+        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastChunk) {
+            mIsPaginating = false;
+        }
+
+        if (callback != null) {
+            try {
+                callback.onSuccess(count);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
+            }
+        }
+
+        mIsPaginating = false;
+        Log.d(LOG_TAG, "manageEvents : commit");
+        mStore.commit();
+    }
+
+    public boolean mIsPaginating = false;
+    public boolean mCanStillPaginate = true;
+    public boolean mIsLastChunk;
+
+
+    // the server provides a token even for the first room message (which should never change it is the creator message)
+    // so requestHistory always triggers a remote request which returns an empty json.
+    //  try to avoid such behaviour
+    private String mTopToken;
+
+    /**
+     * Request older messages. They will come down the onBackEvent callback.
+     * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @return true if request starts
+     */
+    public boolean backPaginate(final ApiCallback<Integer> callback) {
+        final String myUserId = mDataHandler.getUserId();
+
+        if (mIsPaginating // One at a time please
+                || !mState.canBackPaginated(myUserId) // history_visibility flag management
+                || !mCanStillPaginate // If we have already reached the end of history
+                || !mRoom.isReady()) { // If the room is not finished being set up
+
+            Log.d(LOG_TAG, "cannot requestHistory " + mIsPaginating + " " + !getState().canBackPaginated(myUserId) + " " + !mCanStillPaginate + " " + !mRoom.isReady());
+
+            return false;
+        }
+        mIsPaginating = true;
+
+        // restart the pagination
+        if (null == getBackState().getToken()) {
+            mSnapshotedEvents.clear();
+        }
+
+        Log.d(LOG_TAG, "requestHistory starts");
+
+        // enough buffered data
+        if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
+            Log.d(LOG_TAG, "requestHistory : the events are already loaded.");
+
+            // call the callback with a delay
+            // to reproduce the same behaviour as a network request.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    handler.postDelayed(new Runnable() {
+                        public void run() {
+                            manageEvents(callback);
+                        }
+                    }, 100);
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+
+            return true;
+        }
+
+        final String fromToken = getBackState().getToken();
+
+        mDataHandler.getDataRetriever().paginate(mRoomId, getBackState().getToken(), Room.EventDirection.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> response) {
+                if (mDataHandler.isActive()) {
+
+                    Log.d(LOG_TAG, "requestHistory : " + response.chunk.size() + " are retrieved.");
+
+                    if (response.chunk.size() > 0) {
+                        getBackState().setToken(response.end);
+
+                        RoomSummary summary = mStore.getSummary(mRoomId);
+                        Boolean shouldCommitStore = false;
+
+                        // the room state is copied to have a state snapshot
+                        // but copy it only if there is a state update
+                        RoomState stateCopy = getBackState().deepCopy();
+
+                        for (Event event : response.chunk) {
+                            boolean processedEvent = true;
+
+                            if (event.stateKey != null) {
+                                processedEvent = processStateEvent(event, Room.EventDirection.BACKWARDS);
+
+                                if (processedEvent) {
+                                    // new state event -> copy the room state
+                                    stateCopy = getBackState().deepCopy();
+                                }
+                            }
+
+                            // warn the listener only if the message is processed.
+                            // it should avoid duplicated events.
+                            if (processedEvent) {
+                                // update the summary is the event has been received after the oldest known event
+                                // it might happen after a timeline update (hole in the chat history)
+                                if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                                    summary = mStore.storeSummary(mRoomId, event, getState(), myUserId);
+                                    shouldCommitStore = true;
+                                }
+
+                                mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
+                            }
+                        }
+
+                        if (shouldCommitStore) {
+                            mStore.commit();
+                        }
+                    }
+
+                    // assume it is the first room message
+                    if (0 == response.chunk.size()) {
+                        // save its token to avoid useless request
+                        mTopToken = fromToken;
+                    }
+
+                    mIsLastChunk = (0 == response.chunk.size()) || TextUtils.isEmpty(response.end) || TextUtils.equals(response.end, mTopToken);
+
+                    if (mIsLastChunk) {
+                        Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end) + " " + TextUtils.equals(response.end, mTopToken));
+                    }
+
+                    manageEvents(callback);
+                } else {
+                    Log.d(LOG_TAG, "mDataHandler is not active.");
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.d(LOG_TAG, "requestRoomHistory onMatrixError");
+
+                // When we've retrieved all the messages from a room, the pagination token is some invalid value
+                if (MatrixError.UNKNOWN.equals(e.errcode)) {
+                    mCanStillPaginate = false;
+                }
+                mIsPaginating = false;
+
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                } else {
+                    super.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.d(LOG_TAG, "requestRoomHistory onNetworkError");
+
+                mIsPaginating = false;
+
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                } else {
+                    super.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.d(LOG_TAG, "requestRoomHistory onUnexpectedError");
+
+                mIsPaginating = false;
+
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                } else {
+                    super.onUnexpectedError(e);
+                }
+            }
+        });
+
+        return true;
+    }
+
+
+    /**
+     *
+     * @param direction
+     * @param callback
+     * @return true if the operation succeeds
+     */
+    public boolean paginate(Room.EventDirection direction,  final ApiCallback<Integer> callback) {
+        if (Room.EventDirection.BACKWARDS == direction) {
+
+            return backPaginate(callback);
+        }
+
+        // TODO implement forward pagination
+        return false;
     }
 
     //==============================================================================================================

@@ -76,18 +76,25 @@ public class DataRetriever {
     }
 
     /**
-     * Request older messages than the given token. These will come from storage if available, from the server otherwise.
+     * Request messages than the given token. These will come from storage if available, from the server otherwise.
      * @param roomId the room id
      * @param token the token to go back from. Null to start from live.
+     * @param direction the pagination direction
      * @param callback the onComplete callback
      */
-    public void requestRoomHistory(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        final TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+    public void paginate(final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        TokensChunkResponse<Event> storageResponse = null;
 
-        putPendingToken(mPendingRequestTokenByRoomId, roomId, token);
+        if (Room.EventDirection.BACKWARDS == direction) {
+            storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+        }
+
+        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_" + direction);
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+            final TokensChunkResponse<Event> fStorageResponse = storageResponse;
+
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -97,8 +104,8 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token)){
-                                callback.onSuccess(storageResponse);
+                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_" + direction)) {
+                                callback.onSuccess(fStorageResponse);
                             }
                         }
                     }, (null == token) ? 0 : 100);
@@ -109,27 +116,32 @@ public class DataRetriever {
             t.start();
         }
         else {
-            mRestClient.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.messagesFrom(roomId, token, direction, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
-                public void onSuccess(TokensChunkResponse<Event> info) {
-                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token)) {
+                public void onSuccess(TokensChunkResponse<Event> events) {
+                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_" + direction)) {
                         // Watch for the one event overlap
                         Event oldestEvent = mStore.getOldestEvent(roomId);
 
-                        if (info.chunk.size() != 0) {
-                            info.chunk.get(0).mToken = info.start;
-                            info.chunk.get(info.chunk.size() - 1).mToken = info.end;
+                        if (events.chunk.size() != 0) {
 
-                            Event firstReturnedEvent = info.chunk.get(0);
-                            if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                    && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
-                                info.chunk.remove(0);
+                            if (direction == Room.EventDirection.BACKWARDS) {
+                                events.chunk.get(0).mToken = events.start;
+                                events.chunk.get(events.chunk.size() - 1).mToken = events.end;
+
+                                Event firstReturnedEvent = events.chunk.get(0);
+                                if ((oldestEvent != null) && (firstReturnedEvent != null)
+                                        && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
+                                    events.chunk.remove(0);
+                                }
+                            } else {
+                                // TODO manage forward direction
                             }
 
-                            mStore.storeRoomEvents(roomId, info, Room.EventDirection.BACKWARDS);
+                            mStore.storeRoomEvents(roomId, events, direction);
                         }
 
-                        callback.onSuccess(info);
+                        callback.onSuccess(events);
                     }
                 }
             });
@@ -147,7 +159,7 @@ public class DataRetriever {
     public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
 
-        mRestClient.getEarlierMessages(roomId, token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.messagesFrom(roomId, token, Room.EventDirection.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
 

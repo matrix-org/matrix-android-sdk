@@ -333,7 +333,7 @@ public class MatrixMessagesFragment extends Fragment {
      */
     public boolean requestHistory(ApiCallback<Integer> callback) {
         if (null != mRoom) {
-            return mRoom.requestHistory(callback);
+            return mRoom.backpaginate(callback);
         } else {
             return false;
         }
