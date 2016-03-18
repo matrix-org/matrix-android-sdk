@@ -206,6 +206,11 @@ public class MXDataHandler implements IMXEventListener {
         return mInitialSyncComplete;
     }
 
+    public DataRetriever getDataRetriever() {
+        checkIfActive();
+        return mDataRetriever;
+    }
+
     public void setDataRetriever(DataRetriever dataRetriever) {
         checkIfActive();
         mDataRetriever = dataRetriever;
@@ -325,9 +330,7 @@ public class MXDataHandler implements IMXEventListener {
             Collection<Room> rooms =  mStore.getRooms();
 
             for(Room room : rooms) {
-                room.setDataHandler(this);
-                room.setDataRetriever(mDataRetriever);
-                room.setMyUserId(mCredentials.userId);
+                room.init(room.getRoomId(), this);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
@@ -642,10 +645,7 @@ public class MXDataHandler implements IMXEventListener {
         Room room = mStore.getRoom(roomId);
         if ((room == null) && create) {
             room = new Room();
-            room.setRoomId(roomId);
-            room.setDataHandler(this);
-            room.setDataRetriever(mDataRetriever);
-            room.setMyUserId(mCredentials.userId);
+            room.init(roomId, this);
             mStore.storeRoom(room);
         }
         return room;

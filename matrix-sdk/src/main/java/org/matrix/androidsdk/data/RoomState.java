@@ -199,20 +199,7 @@ public class RoomState implements java.io.Serializable {
     public void setPowerLevels(PowerLevels powerLevels) {
         this.powerLevels = powerLevels;
     }
-
-    /**
-     * Check if some users can be created from room members
-     */
-    public void refreshUsersList() {
-        MXDataHandler dataHandler = (MXDataHandler) mDataHandler;
-
-        Collection<User> users = dataHandler.getStore().getUsers();
-
-        for(User user : users) {
-            user.setDataHandler(dataHandler);
-        }
-    }
-
+    
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
     }

@@ -112,12 +112,10 @@ public class Room {
     // the room history request can provide more than exxpected event.
     private ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<SnapshotedEvent>();
 
-    private String mRoomId;
     //private RoomState mLiveState = new RoomState();
     //private RoomState mBackState = new RoomState();
     private RoomAccountData mAccountData = new RoomAccountData();
 
-    private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private IMXStore mStore;
 
@@ -139,7 +137,7 @@ public class Room {
 
     private boolean mIsLeaving = false;
 
-    private boolean mIsV2Syncing;
+    private boolean mIsSyncing;
 
     private EventTimeline mLiveTimeline;
 
@@ -155,12 +153,7 @@ public class Room {
     }
 
     public String getRoomId() {
-        return this.mRoomId;
-    }
-
-    public void setRoomId(String roomId) {
-        mRoomId = roomId;
-        mLiveTimeline.setRoomId(roomId);
+        return mLiveTimeline.getState().roomId;
     }
 
     public void setAccountData(RoomAccountData accountData) {
@@ -264,8 +257,6 @@ public class Room {
         getState().visibility = visibility;
     }
 
-    public void setMyUserId(String userId) { mMyUserId = userId; }
-
     /**
      * @return true if the user is invited to the room
      */
@@ -283,246 +274,26 @@ public class Room {
         return TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
     }
 
-    /**
-     * Set the data retriever for storage/server requests.
-     * @param dataRetriever should be the main DataRetriever object
-     */
-    public void setDataRetriever(DataRetriever dataRetriever) {
-        mDataRetriever = dataRetriever;
-        mLiveTimeline.mDataRetriever = dataRetriever;
-    }
 
-    /**
-     * Set the event listener to send back events to. This is typically the DataHandler for dispatching the events to listeners.
-     * @param dataHandler should be the main data handler for dispatching back events to registered listeners.
-     */
-    public void setDataHandler(MXDataHandler dataHandler) {
+    public void init(String roomId, MXDataHandler dataHandler) {
+        mLiveTimeline.setRoomId(roomId);
+
         mDataHandler = dataHandler;
-        mStore = mDataHandler.getStore();
 
-        mLiveTimeline.mStore = mDataHandler.getStore();
-        mLiveTimeline.mDataHandler = dataHandler;
-        getState().setDataHandler(dataHandler);
-        getBackState().setDataHandler(dataHandler);
+        if (null != mDataHandler) {
+            mStore = mDataHandler.getStore();
+            mMyUserId = mDataHandler.getUserId();
+            mLiveTimeline.setDataHandler(dataHandler);
+        }
     }
 
-    /**
-     * Add an event listener to this room. Only events relative to the room will come down.
-     * @param eventListener the event listener to add
-     */
-    public void addEventListener(final IMXEventListener eventListener) {
-        // Create a global listener that we'll add to the data handler
-        IMXEventListener globalListener = new MXEventListener() {
-            @Override
-            public void onPresenceUpdate(Event event, User user) {
-                // Only pass event through if the user is a member of the room
-                if (getMember(user.user_id) != null) {
-                    try {
-                        eventListener.onPresenceUpdate(event, user);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                // Filter out events for other rooms and events while we are joining (before the room is ready)
-                if (TextUtils.equals(mRoomId, event.roomId) && mIsReady) {
-
-                    if (TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)) {
-                        // Typing notifications events are not room messages nor room state events
-                        // They are just volatile information
-
-                        JsonObject eventContent = event.getContentAsJsonObject();
-
-                        if (eventContent.has("user_ids")) {
-                            synchronized (Room.this) {
-                                mTypingUsers = null;
-
-                                try {
-                                    mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
-                                    }.getType());
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
-                                }
-
-                                // avoid null list
-                                if (null == mTypingUsers) {
-                                    mTypingUsers = new ArrayList<String>();
-                                }
-                            }
-                        }
-                    }
-
-                    try {
-                        eventListener.onLiveEvent(event, roomState);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onLiveEventsChunkProcessed() {
-                try {
-                    eventListener.onLiveEventsChunkProcessed();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
-                }
-            }
-
-            @Override
-            public void onBackEvent(Event event, RoomState roomState) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onBackEvent(event, roomState);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onSentEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onSentEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onFailedSendingEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, event.roomId)) {
-                    try {
-                        eventListener.onFailedSendingEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onFailedSendingEvent exception " + e.getMessage());
-                    }
-                }
-            }
-            
-            @Override
-            public void onRoomInitialSyncComplete(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onRoomInitialSyncComplete(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomInternalUpdate(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onRoomInternalUpdate(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onNewRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onNewRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onJoinRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onJoinRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onReceiptEvent(String roomId, List<String> senderIds) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onReceiptEvent(roomId, senderIds);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomTagEvent(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onRoomTagEvent(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomSyncWithLimitedTimeline(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onRoomSyncWithLimitedTimeline(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onLeaveRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(mRoomId, roomId)) {
-                    try {
-                        eventListener.onLeaveRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage());
-                    }
-                }
-            }
-        };
-        mEventListeners.put(eventListener, globalListener);
-        mDataHandler.addListener(globalListener);
-    }
-
-    /**
-     * Remove an event listener.
-     * @param eventListener the event listener to remove
-     */
-    public void removeEventListener(IMXEventListener eventListener) {
-        mDataHandler.removeListener(mEventListeners.get(eventListener));
-        mEventListeners.remove(eventListener);
-    }
 
 
     /**
      * cancel any remote request
      */
     public void cancelRemoteHistoryRequest() {
-        mDataRetriever.cancelRemoteHistoryRequest(mRoomId);
+        mDataHandler.getDataRetriever().cancelRemoteHistoryRequest(getRoomId());
     }
 
 
@@ -557,7 +328,7 @@ public class Room {
                     event.originServerTs = System.currentTimeMillis();
 
                     // the message echo is not yet echoed
-                    if (!mStore.doesEventExist(serverResponseEvent.eventId, mRoomId)) {
+                    if (!mStore.doesEventExist(serverResponseEvent.eventId, getRoomId())) {
                         mStore.storeLiveRoomEvent(event);
                     }
 
@@ -618,9 +389,9 @@ public class Room {
         event.mSentState = Event.SentState.SENDING;
 
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            mDataRetriever.getRoomsRestClient().sendMessage(event.originServerTs + "", mRoomId, JsonUtils.toMessage(event.content), localCB);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
         } else {
-            mDataRetriever.getRoomsRestClient().sendEvent(mRoomId, event.type, event.content.getAsJsonObject(), localCB);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendEvent(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
         }
     }
 
@@ -630,7 +401,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataRetriever.getRoomsRestClient().redact(getRoomId(), eventId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().redact(getRoomId(), eventId, callback);
     }
 
     /**
@@ -725,7 +496,7 @@ public class Room {
 
         final String fromToken = getBackState().getToken();
 
-        mDataRetriever.requestRoomHistory(mRoomId, getBackState().getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().requestRoomHistory(getRoomId(), getBackState().getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
@@ -735,7 +506,7 @@ public class Room {
                     if (response.chunk.size() > 0) {
                         getBackState().setToken(response.end);
 
-                        RoomSummary summary = mStore.getSummary(mRoomId);
+                        RoomSummary summary = mStore.getSummary(getRoomId());
                         Boolean shouldCommitStore = false;
 
                         // the room state is copied to have a state snapshot
@@ -760,7 +531,7 @@ public class Room {
                                 // update the summary is the event has been received after the oldest known event
                                 // it might happen after a timeline update (hole in the chat history)
                                 if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                                    summary =  mStore.storeSummary(mRoomId, event, getState(), mMyUserId);
+                                    summary = mStore.storeSummary(getRoomId(), event, getState(), mMyUserId);
                                     shouldCommitStore = true;
                                 }
 
@@ -782,7 +553,7 @@ public class Room {
                     mIsLastChunk = (0 == response.chunk.size()) || TextUtils.isEmpty(response.end) || TextUtils.equals(response.end, mTopToken);
 
                     if (mIsLastChunk) {
-                        Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end)  + " " + TextUtils.equals(response.end, mTopToken));
+                        Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end) + " " + TextUtils.equals(response.end, mTopToken));
                     }
 
                     manageEvents(callback);
@@ -855,7 +626,7 @@ public class Room {
      * @param callback the onComplete callback
      */
     public void requestServerRoomHistory(final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        mDataRetriever.requestServerRoomHistory(mRoomId, token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().requestServerRoomHistory(getRoomId(), token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
                 callback.onSuccess(info);
@@ -977,7 +748,7 @@ public class Room {
      * @param callback the async callback
      */
     public void initialSync(final ApiCallback<Void> callback) {
-            mDataRetriever.getRoomsRestClient().initialSync(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(getRoomId(), new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(RoomResponse roomInfo) {
                     // check if the SDK was not logged out
@@ -1007,7 +778,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().joinRoom(mRoomId, new SimpleApiCallback<RoomResponse>(callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(getRoomId(), new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {
@@ -1068,7 +839,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void invite(String userId, ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userId, callback);
     }
 
     /**
@@ -1077,7 +848,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void inviteByEmail(String email, ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().inviteByEmailToRoom(mRoomId, email, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), email, callback);
     }
 
 
@@ -1101,7 +872,7 @@ public class Room {
         if ((null == userIds) || (index >= userIds.size())) {
             return;
         }
-        mDataRetriever.getRoomsRestClient().inviteToRoom(mRoomId, userIds.get(index), new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // invite the last user
@@ -1151,16 +922,16 @@ public class Room {
      */
     public void leave(final ApiCallback<Void> callback) {
         this.mIsLeaving = true;
-        mDataHandler.onRoomInternalUpdate(mRoomId);
+        mDataHandler.onRoomInternalUpdate(getRoomId());
 
-        mDataRetriever.getRoomsRestClient().leaveRoom(mRoomId, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().leaveRoom(getRoomId(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isActive()) {
                     Room.this.mIsLeaving = false;
 
                     // delete references to the room
-                    mStore.deleteRoom(mRoomId);
+                    mStore.deleteRoom(getRoomId());
                     Log.d(LOG_TAG, "leave : commit");
                     mStore.commit();
 
@@ -1170,7 +941,7 @@ public class Room {
                         Log.e(LOG_TAG, "leave exception " + e.getMessage());
                     }
 
-                    mDataHandler.onLeaveRoom(mRoomId);
+                    mDataHandler.onLeaveRoom(getRoomId());
                 }
             }
 
@@ -1184,7 +955,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(getRoomId());
             }
 
             @Override
@@ -1197,7 +968,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(getRoomId());
             }
 
             @Override
@@ -1210,7 +981,7 @@ public class Room {
                     Log.e(LOG_TAG, "leave exception " + anException.getMessage());
                 }
 
-                mDataHandler.onRoomInternalUpdate(mRoomId);
+                mDataHandler.onRoomInternalUpdate(getRoomId());
             }
         });
     }
@@ -1221,7 +992,7 @@ public class Room {
      * @param callback the async callback
      */
     public void kick(String userId, ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().kickFromRoom(mRoomId, userId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().kickFromRoom(getRoomId(), userId, callback);
     }
 
     /**
@@ -1236,7 +1007,7 @@ public class Room {
         if (!TextUtils.isEmpty(reason)) {
             user.reason = reason;
         }
-        mDataRetriever.getRoomsRestClient().banFromRoom(mRoomId, user, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().banFromRoom(getRoomId(), user, callback);
     }
 
     /**
@@ -1262,7 +1033,7 @@ public class Room {
     public void updateUserPowerLevels(String userId, int powerLevel, ApiCallback<Void> callback) {
         PowerLevels powerLevels = getState().getPowerLevels().deepCopy();
         powerLevels.setUserPowerLevel(userId, powerLevel);
-        mDataRetriever.getRoomsRestClient().updatePowerLevels(mRoomId, powerLevels, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().updatePowerLevels(getRoomId(), powerLevels, callback);
     }
 
     /**
@@ -1271,11 +1042,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().name = name;
-                mStore.storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1311,11 +1082,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String topic, final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().topic = topic;
-                mStore.storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1351,11 +1122,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateCanonicalAlias(final String canonicalAlias, final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().roomAliasName = canonicalAlias;
-                mStore.storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1416,11 +1187,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().url = avatarUrl;
-                mStore.storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1456,11 +1227,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateHistoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataRetriever.getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
-                mStore.storeLiveStateForRoom(mRoomId);
+                mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
                     callback.onSuccess(info);
@@ -1500,13 +1271,13 @@ public class Room {
      * @return true if there a store update.
      */
     public Boolean handleReceiptData(ReceiptData receiptData) {
-        boolean isUpdated = mStore.storeReceipt(receiptData, mRoomId);
+        boolean isUpdated = mStore.storeReceipt(receiptData, getRoomId());
 
         // check oneself receipts
         // if there is an update, it means that the messages have been read from andother client
         // it requires to update the summary to display valid information.
         if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
-            RoomSummary summary = mStore.getSummary(mRoomId);
+            RoomSummary summary = mStore.getSummary(getRoomId());
             if (null != summary) {
                 summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
             }
@@ -1568,13 +1339,13 @@ public class Room {
      * Send the read receipt to the latest room message id.
      */
     public void sendReadReceipt() {
-        RoomSummary summary = mStore.getSummary(mRoomId);
+        RoomSummary summary = mStore.getSummary(getRoomId());
         Event event = mStore.getLatestEvent(getRoomId());
 
         if ((null != event) && (null != summary)) {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
-                mDataRetriever.getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, null);
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, null);
                 setReadReceiptToken(event.eventId, System.currentTimeMillis());
             }
         }
@@ -1587,7 +1358,7 @@ public class Room {
      * @return true if the token is refreshed
      */
     public boolean setReadReceiptToken(String token, long ts) {
-        RoomSummary summary = mStore.getSummary(mRoomId);
+        RoomSummary summary = mStore.getSummary(getRoomId());
 
         if (summary.setReadReceiptToken(token, ts)) {
             mStore.flushSummary(summary);
@@ -1605,7 +1376,7 @@ public class Room {
      * @return true if the message has been read
      */
     public boolean isEventRead(String eventId) {
-        return mStore.isEventRead(mRoomId, mMyUserId, eventId);
+        return mStore.isEventRead(getRoomId(), mMyUserId, eventId);
     }
 
     //================================================================================
@@ -1631,8 +1402,8 @@ public class Room {
      */
     public void refreshUnreadCounter() {
         // avoid refreshing the unread counter while processing a bunch of messages.
-        if (!mIsV2Syncing) {
-            RoomSummary summary = mStore.getSummary(mRoomId);
+        if (!mIsSyncing) {
+            RoomSummary summary = mStore.getSummary(getRoomId());
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
@@ -1651,7 +1422,7 @@ public class Room {
      * @return the unread messages count.
      */
     public int getUnreadEventsCount() {
-        RoomSummary summary = mStore.getSummary(mRoomId);
+        RoomSummary summary = mStore.getSummary(getRoomId());
 
         if (null != summary) {
             return summary.getUnreadEventsCount();
@@ -1686,7 +1457,7 @@ public class Room {
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
         // send the event only if the user has joined the room.
         if (selfJoined()) {
-            mDataRetriever.getRoomsRestClient().sendTypingNotification(mRoomId, mMyUserId, isTyping, timeout, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendTypingNotification(getRoomId(), mMyUserId, isTyping, timeout, callback);
         }
     }
 
@@ -1896,7 +1667,7 @@ public class Room {
      * @return the unsent messages list.
      */
     public ArrayList<Event> getUnsentEvents() {
-        Collection<Event> events = mStore.getLatestUnsentEvents(mRoomId);
+        Collection<Event> events = mStore.getLatestUnsentEvents(getRoomId());
 
         ArrayList<Event> eventsList = new ArrayList<Event>(events);
         ArrayList<Event> unsentEvents = new ArrayList<Event>();
@@ -1965,7 +1736,7 @@ public class Room {
                 }
             }
 
-            mStore.storeAccountData(mRoomId, mAccountData);
+            mStore.storeAccountData(getRoomId(), mAccountData);
         }
     }
 
@@ -1980,7 +1751,7 @@ public class Room {
     public void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataRetriever.getRoomsRestClient().addTag(mRoomId, tag, order, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
                 // warn that something was wrong
@@ -1998,7 +1769,7 @@ public class Room {
     public void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataRetriever.getRoomsRestClient().removeTag(mRoomId, tag, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
         } else {
             if (null != callback) {
                 // warn that something was wrong
@@ -2056,7 +1827,7 @@ public class Room {
     //================================================================================
 
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        mIsV2Syncing = true;
+        mIsSyncing = true;
 
         boolean isRoomInitialSync = mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
 
@@ -2064,7 +1835,7 @@ public class Room {
             // Handle here ephemeral events (if any)
             for (Event event : roomSync.ephemeral.events) {
                 // the roomId is not defined.
-                event.roomId = mRoomId;
+                event.roomId = getRoomId();
                 try {
                     // Make room data digest the live event
                     mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
@@ -2090,7 +1861,7 @@ public class Room {
         }
 
 
-        mIsV2Syncing = false;
+        mIsSyncing = false;
     }
 
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
@@ -2101,13 +1872,230 @@ public class Room {
            for(Event event : invitedRoomSync.inviteState.events) {
                 // Add a fake event id if none in order to be able to store the event
                 if (null == event.eventId) {
-                    event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
+                    event.eventId = getRoomId() + "-" + System.currentTimeMillis() + "-" + event.hashCode();
                 }
 
                 // the roomId is not defined.
-                event.roomId = mRoomId;
+                event.roomId = getRoomId();
                 mDataHandler.handleLiveEvent(event);
             }
         }
     }
+
+    //==============================================================================================================
+    // Room events dispatcher
+    //==============================================================================================================
+
+    /**
+     * Add an event listener to this room. Only events relative to the room will come down.
+     * @param eventListener the event listener to add
+     */
+    public void addEventListener(final IMXEventListener eventListener) {
+        // Create a global listener that we'll add to the data handler
+        IMXEventListener globalListener = new MXEventListener() {
+            @Override
+            public void onPresenceUpdate(Event event, User user) {
+                // Only pass event through if the user is a member of the room
+                if (getMember(user.user_id) != null) {
+                    try {
+                        eventListener.onPresenceUpdate(event, user);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                // Filter out events for other rooms and events while we are joining (before the room is ready)
+                if (TextUtils.equals(getRoomId(), event.roomId) && mIsReady) {
+
+                    if (TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)) {
+                        // Typing notifications events are not room messages nor room state events
+                        // They are just volatile information
+
+                        JsonObject eventContent = event.getContentAsJsonObject();
+
+                        if (eventContent.has("user_ids")) {
+                            synchronized (Room.this) {
+                                mTypingUsers = null;
+
+                                try {
+                                    mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                    }.getType());
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
+                                }
+
+                                // avoid null list
+                                if (null == mTypingUsers) {
+                                    mTypingUsers = new ArrayList<String>();
+                                }
+                            }
+                        }
+                    }
+
+                    try {
+                        eventListener.onLiveEvent(event, roomState);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onLiveEventsChunkProcessed() {
+                try {
+                    eventListener.onLiveEventsChunkProcessed();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onBackEvent(Event event, RoomState roomState) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onBackEvent(event, roomState);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onSentEvent(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onSentEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onSentEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailedSendingEvent(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onFailedSendingEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onFailedSendingEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomInitialSyncComplete(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomInitialSyncComplete(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomInternalUpdate(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomInternalUpdate(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onNewRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onNewRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onJoinRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onJoinRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onReceiptEvent(String roomId, List<String> senderIds) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onReceiptEvent(roomId, senderIds);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomTagEvent(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomTagEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onRoomSyncWithLimitedTimeline(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomSyncWithLimitedTimeline(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onLeaveRoom(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onLeaveRoom(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage());
+                    }
+                }
+            }
+        };
+        mEventListeners.put(eventListener, globalListener);
+        mDataHandler.addListener(globalListener);
+    }
+
+    /**
+     * Remove an event listener.
+     * @param eventListener the event listener to remove
+     */
+    public void removeEventListener(IMXEventListener eventListener) {
+        mDataHandler.removeListener(mEventListeners.get(eventListener));
+        mEventListeners.remove(eventListener);
+    }
+
+
 }

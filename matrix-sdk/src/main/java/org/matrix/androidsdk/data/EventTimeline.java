@@ -101,7 +101,6 @@ public class EventTimeline {
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
 
-    public DataRetriever mDataRetriever;
     public MXDataHandler mDataHandler;
 
     /**
@@ -113,7 +112,7 @@ public class EventTimeline {
         mRoom.mCanStillPaginate = true;
         mRoom.mIsPaginating = false;
 
-        mDataRetriever.cancelHistoryRequest(mRoomId);
+        mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
     }
 
     public EventTimeline(Room room) {
@@ -132,9 +131,8 @@ public class EventTimeline {
      * @param aRoom the room associated to the timeline
      * @param initialEventId the initial event for the timeline. A null value will create a live timeline.
      */
-    public EventTimeline(DataRetriever dataRetriever, MXDataHandler dataHandler, Room aRoom, String initialEventId) {
+    public EventTimeline(MXDataHandler dataHandler, Room aRoom, String initialEventId) {
 
-        mDataRetriever = dataRetriever;
         mDataHandler = dataHandler;
         mRoom = aRoom;
         mRoomId = aRoom.getRoomId();
@@ -150,6 +148,14 @@ public class EventTimeline {
             mIsLiveTimeline = true;
             mStore = dataHandler.getStore();
         }
+    }
+
+
+    public void setDataHandler(MXDataHandler dataHandler) {
+        mStore = dataHandler.getStore();
+        mDataHandler = dataHandler;
+        mState.setDataHandler(dataHandler);
+        mBackState.setDataHandler(dataHandler);
     }
 
     /**
