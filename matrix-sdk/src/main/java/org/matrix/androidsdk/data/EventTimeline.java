@@ -20,17 +20,24 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.util.BingRulesManager;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -297,7 +304,7 @@ public class EventTimeline {
                     event.roomId = mRoomId;
                     try {
                         // Make room data digest the live event
-                        mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
@@ -441,11 +448,205 @@ public class EventTimeline {
     }
 
     /**
-     * Initialise the room evenTimeline state.
-     * @param stateEvents the state event.
+     * Store a live room event.
+     * @param event The event to be stored.
      */
-    public void initialiseState(List<Event> stateEvents) {
+    public void storeLiveRoomEvent(Event event) {
+        boolean store = false;
+        String myUserId = mDataHandler.getCredentials().userId;
 
+        if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+            if (event.getRedacts() != null) {
+                mStore.updateEventContent(event.roomId, event.getRedacts(), event.getContentAsJsonObject());
+
+                // search the latest displayable event
+                // to replace the summary text
+                ArrayList<Event> events = new ArrayList<Event>(mStore.getRoomMessages(event.roomId));
+                for(int index = events.size() - 1; index >= 0; index--) {
+                    Event anEvent = events.get(index);
+
+                    if (RoomSummary.isSupportedEvent(anEvent)) {
+                        store = true;
+                        event = anEvent;
+                        break;
+                    }
+                }
+            }
+        }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+            // the candidate events are not stored.
+            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
+
+            // thread issue
+            // if the user leaves a room,
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
+                String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+
+                if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
+                    store = false;
+                    // delete the room and warn the listener of the leave event only at the end of the events chunk processing
+                }
+            }
+        }
+
+        if (store) {
+            // create dummy read receipt for any incoming event
+            // to avoid not synchronized read receipt and event
+            if ((null != event.getSender()) && (null != event.eventId)) {
+                mRoom.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
+            }
+
+            mStore.storeLiveRoomEvent(event);
+
+            if (RoomSummary.isSupportedEvent(event)) {
+                RoomSummary summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+
+                // Watch for potential room name changes
+                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+
+
+                    if (null != summary) {
+                        summary.setName(mRoom.getName(myUserId));
+                    }
+                }
+            }
+        }
+
+        // warn the listener that a new room has been created
+        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+            mDataHandler.onNewRoom(event.roomId);
+        }
+
+        // warn the listeners that a room has been joined
+        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
+            String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+
+            if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
+                mDataHandler.onJoinRoom(event.roomId);
+            } else if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
+                mDataHandler.onNewRoom(event.roomId);
+            }
+        }
+
+    }
+
+    /**
+     * Handle events coming down from the event stream.
+     * @param event the live event
+     * @param withPush set to true to trigger pushes when it is required
+     * */
+    public void handleLiveEvent(Event event, boolean withPush) {
+        MyUser myUser = mDataHandler.getMyUser();
+
+        // dispatch the call events to the calls manager
+        if (event.isCallEvent()) {
+            mDataHandler.getCallsManager().handleCallEvent(event);
+        } else {
+            Event storedEvent = mStore.getEvent(event.eventId, event.roomId);
+
+            // avoid processing event twice
+            if (null != storedEvent) {
+
+                // an event has been echoed
+                if (storedEvent.getAge() == Long.MAX_VALUE) {
+                    mStore.deleteEvent(storedEvent);
+                    mStore.storeLiveRoomEvent(event);
+                    mStore.commit();
+
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
+
+                } else {
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                }
+
+                return;
+            }
+
+            // Room event
+            if (event.roomId != null) {
+                // check if the room has been joined
+                // the initial sync + the first requestHistory call is done here
+                // instead of being done in the application
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
+                    EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+                    EventContent prevEventContent = event.getPrevContent();
+
+                    String prevMembership = null;
+
+                    if (null != prevEventContent) {
+                        prevMembership = prevEventContent.membership;
+                    }
+
+                    boolean isRedactedEvent = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
+
+                    // if the membership is the same, assume that the user
+                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership)) {
+                        // check if the user updates his profile from another device.
+
+                        boolean hasAccountInfoUpdated = false;
+
+                        if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
+                            hasAccountInfoUpdated = true;
+                            myUser.displayname = eventContent.displayname;
+                            mStore.setDisplayName(myUser.displayname);
+                        }
+
+                        if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
+                            hasAccountInfoUpdated = true;
+                            myUser.setAvatarUrl(eventContent.avatar_url);
+                            mStore.setAvatarURL(myUser.avatar_url);
+                        }
+
+                        if (hasAccountInfoUpdated) {
+                            mDataHandler.onAccountInfoUpdate(myUser);
+                        }
+                    }
+                }
+
+                if (event.stateKey != null) {
+                    // copy the live state before applying any update
+                    deepCopyState();
+
+                    // chck if the event has been processed
+                    if (!processStateEvent(event, Room.EventDirection.FORWARDS)) {
+                        // not processed -> do not warn the application
+                        // assume that the event is a duplicated one.
+                        return;
+                    }
+                }
+
+                storeLiveRoomEvent(event);
+                mDataHandler.onLiveEvent(event, mState);
+
+                // trigger pushes when it is required
+                if (withPush) {
+                    BingRule bingRule;
+                    boolean outOfTimeEvent = false;
+                    JsonObject eventContent = event.getContentAsJsonObject();
+
+                    if (eventContent.has("lifetime")) {
+                        long maxlifetime = eventContent.get("lifetime").getAsLong();
+                        long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+                        outOfTimeEvent = eventLifeTime > maxlifetime;
+                    }
+
+                    BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
+
+                    // If the bing rules apply, bing
+                    if (!outOfTimeEvent
+                            && (bingRulesManager != null)
+                            && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
+                            && bingRule.shouldNotify()) {
+                        Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
+                        mDataHandler.onBingEvent(event, mState, bingRule);
+                    }
+                }
+            } else {
+                Log.e(LOG_TAG, "Unknown live event type: " + event.type);
+            }
+        }
     }
 
 

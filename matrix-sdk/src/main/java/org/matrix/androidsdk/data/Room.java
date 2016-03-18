@@ -154,10 +154,25 @@ public class Room {
     // Sync V2
     //================================================================================
 
+    private void handleEphemeralEvent(Event event) {
+        if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+            if (event.roomId != null) {
+                    List<String> senders = handleReceiptEvent(event);
+
+                    if ((null != senders) && (senders.size() > 0)) {
+                        mDataHandler.onReceiptEvent(event.roomId, senders);
+                    }
+                }
+            }
+         else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+            mDataHandler.onLiveEvent(event, getState());
+        }
+    }
+
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
         mIsSyncing = true;
 
-        boolean isRoomInitialSync = mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
+        mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
 
         if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
             // Handle here ephemeral events (if any)
@@ -165,8 +180,7 @@ public class Room {
                 // the roomId is not defined.
                 event.roomId = getRoomId();
                 try {
-                    // Make room data digest the live event
-                    mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
+                    handleEphemeralEvent(event);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
                 }
@@ -194,7 +208,6 @@ public class Room {
 
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
-
         if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
 
             for(Event event : invitedRoomSync.inviteState.events) {
@@ -205,9 +218,13 @@ public class Room {
 
                 // the roomId is not defined.
                 event.roomId = getRoomId();
-                mDataHandler.handleLiveEvent(event);
+                mLiveTimeline.handleLiveEvent(event, true);
             }
         }
+    }
+
+    public void storeLiveRoomEvent(Event event) {
+        mLiveTimeline.storeLiveRoomEvent(event);
     }
 
     /**
@@ -312,12 +329,24 @@ public class Room {
 
         // Handle presence
         if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
-            mDataHandler.handleLiveEvents(roomResponse.presence);
+            for(Event event : roomResponse.presence) {
+                try {
+                    mDataHandler.handlePresenceEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "handleInitialRoomResponse handlePresenceEvent " + e.getLocalizedMessage());
+                }
+            }
         }
 
         // receipts
         if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
-            mDataHandler.handleLiveEvents(roomResponse.receipts);
+            for(Event event : roomResponse.receipts) {
+                try {
+                    handleEphemeralEvent(event);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "handleInitialRoomResponse handleEphemeralEvent " + e.getLocalizedMessage());
+                }
+            }
         }
 
         // account data

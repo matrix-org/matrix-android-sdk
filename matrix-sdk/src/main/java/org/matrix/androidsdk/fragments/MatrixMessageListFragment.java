@@ -568,7 +568,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // a message row can only be added if there is a defined room
         if (null != mRoom) {
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
-            getSession().getDataHandler().storeLiveRoomEvent(event);
+            mRoom.storeLiveRoomEvent(event);
 
             MessageRow messageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(messageRow);
