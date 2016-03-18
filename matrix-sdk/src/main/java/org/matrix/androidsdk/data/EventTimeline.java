@@ -17,15 +17,20 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -60,12 +65,12 @@ public class EventTimeline {
     /**
      * The state of the room at the top most recent event of the timeline.
      */
-    private RoomState mState;
+    private RoomState mState = new RoomState();
 
     /**
      * The historical state of the room when paginating back.
      */
-    private RoomState mBackState;
+    private RoomState mBackState = new RoomState();
 
     /**
      * The state that was in the `state` property before it changed.
@@ -80,10 +85,13 @@ public class EventTimeline {
      */
     private Room mRoom;
 
+
+    private String mRoomId;
+
     /**
      * The store.
      */
-    private IMXStore mStore;
+    public IMXStore mStore;
 
     /**
      * MXStore does only back pagination. So, the forward pagination token for
@@ -93,8 +101,30 @@ public class EventTimeline {
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
 
-    DataRetriever mDataRetriever;
-    MXDataHandler mDataHandler;
+    public DataRetriever mDataRetriever;
+    public MXDataHandler mDataHandler;
+
+    /**
+     * Reset the back state so that future history requests start over from live.
+     * Must be called when opening a room if interested in history.
+     */
+    public void initHistory() {
+        mBackState = mState.deepCopy();
+        mRoom.mCanStillPaginate = true;
+        mRoom.mIsPaginating = false;
+
+        mDataRetriever.cancelHistoryRequest(mRoomId);
+    }
+
+    public EventTimeline(Room room) {
+        mRoom = room;
+    }
+
+    public void setRoomId(String roomId) {
+        mRoomId = roomId;
+        mState.roomId = roomId;
+        mBackState.roomId = roomId;
+    }
 
     /**
      * Create a timeline instance for a room.
@@ -107,6 +137,7 @@ public class EventTimeline {
         mDataRetriever = dataRetriever;
         mDataHandler = dataHandler;
         mRoom = aRoom;
+        mRoomId = aRoom.getRoomId();
         mInitialEventId = initialEventId;
 
         mState = new RoomState();
@@ -119,6 +150,284 @@ public class EventTimeline {
             mIsLiveTimeline = true;
             mStore = dataHandler.getStore();
         }
+    }
+
+    /**
+     * @return The state of the room at the top most recent event of the timeline.
+     */
+    public RoomState getState() {
+        return mState;
+    }
+
+    public void setState(RoomState state) {
+        mState = state;
+    }
+
+    public RoomState getBackState() {
+        return mBackState;
+    }
+
+    public void deepCopyState() {
+        mState = mState.deepCopy();
+    }
+
+    /**
+     * Process a state event to keep the internal live and back states up to date.
+     * @param event the state event
+     * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @return true if the event has been processed.
+     */
+    public boolean processStateEvent(Event event, Room.EventDirection direction) {
+        RoomState affectedState = (direction ==  Room.EventDirection.FORWARDS) ? mState : mBackState;
+        Boolean isProcessed = affectedState.applyState(event, direction);
+
+        if ((isProcessed) && (direction == Room.EventDirection.FORWARDS)) {
+            mStore.storeLiveStateForRoom(mRoomId);
+        }
+
+        return isProcessed;
+    }
+
+    /**
+     *
+     * @param roomSync
+     * @param isInitialSync
+     * @return true if it is an initial sync
+     */
+    public boolean  handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+        String membership = null;
+        String myUserId = mDataHandler.getMyUser().user_id;
+        RoomSummary currentSummary = null;
+
+        RoomMember selfMember = mState.getMember(mDataHandler.getMyUser().user_id);
+
+        if (null != selfMember) {
+            membership = selfMember.membership;
+        }
+
+        boolean isRoomInitialSync = (null == membership) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
+
+        // Check whether the room was pending on an invitation.
+        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
+            // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
+            Log.d(LOG_TAG, "handleJoinedRoomSync: clean invited room from the store " + mRoomId);
+            mStore.deleteRoomData(mRoomId);
+
+            // clear the states
+            RoomState state = new RoomState();
+            state.roomId = mRoomId;
+            state.setDataHandler(mDataHandler);
+
+            this.mBackState = this.mState = state;
+        }
+
+        if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
+            // Build/Update first the room state corresponding to the 'start' of the timeline.
+            // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
+
+            // Build/Update first the room state corresponding to the 'start' of the timeline.
+            // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
+            if (mDataHandler.isActive()) {
+                for (Event event : roomSync.state.events) {
+                    try {
+                        processStateEvent(event,  Room.EventDirection.FORWARDS);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                    }
+                }
+
+                mRoom.setReadyState(true);
+            }
+
+            // if it is an initial sync, the live state is initialized here
+            // so the back state must also be initialized
+            if (isRoomInitialSync) {
+                this.mBackState = this.mState.deepCopy();
+            }
+        }
+
+        // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
+        if (null != roomSync.timeline) {
+            if (roomSync.timeline.limited) {
+                if (!isRoomInitialSync) {
+                    currentSummary = mStore.getSummary(mRoomId);
+
+                    // define a summary if some messages are left
+                    // the unsent messages are often displayed messages.
+                    Event oldestEvent = mStore.getOldestEvent(mRoomId);
+
+                    // Flush the existing messages for this room by keeping state events.
+                    mStore.deleteAllRoomMessages(mRoomId, true);
+
+                    if (oldestEvent != null) {
+                        if (RoomSummary.isSupportedEvent(oldestEvent)) {
+                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
+                        }
+                    }
+                }
+
+                // In case of limited timeline, update token where to start back pagination
+                mStore.storeBackToken(mRoomId, roomSync.timeline.prevBatch);
+                // reset the state back token
+                // because it does not make anymore sense
+                // by setting at null, the events cache will be cleared when a requesthistory will be called
+                mBackState.setToken(null);
+                // reset the back paginate lock
+                mRoom.mCanStillPaginate = true;
+            }
+
+            // any event ?
+            if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
+                List<Event> events = roomSync.timeline.events;
+
+                // Here the events are handled in forward direction (see [handleLiveEvent:]).
+                // They will be added at the end of the stored events, so we keep the chronological order.
+                for (Event event : events) {
+                    // the roomId is not defined.
+                    event.roomId = mRoomId;
+                    try {
+                        // Make room data digest the live event
+                        mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                    }
+                }
+            }
+
+            if (roomSync.timeline.limited) {
+                // the unsent / undeliverable event mus be pushed to the history bottom
+                Collection<Event> events = mStore.getRoomMessages(mRoomId);
+
+                if (null != events) {
+                    ArrayList<Event> unsentEvents = new ArrayList<Event>();
+
+                    for (Event event : events) {
+                        if (event.mSentState != Event.SentState.SENT) {
+                            unsentEvents.add(event);
+                        }
+                    }
+
+                    if (unsentEvents.size() > 0) {
+                        for (Event event : unsentEvents) {
+                            event.mSentState = Event.SentState.UNDELIVERABLE;
+                            event.originServerTs = System.currentTimeMillis();
+                            mStore.deleteEvent(event);
+                            mStore.storeLiveRoomEvent(event);
+                        }
+
+                        // update the store
+                        mStore.commit();
+                    }
+                }
+            }
+        }
+
+        if (isRoomInitialSync) {
+            // any request history can be triggered by now.
+            mRoom.setReadyState(true);
+        }
+        // Finalize initial sync
+        else {
+
+            if ((null != roomSync.timeline) && roomSync.timeline.limited) {
+                // The room has been synced with a limited timeline
+                mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
+            }
+        }
+        // wait the end of the events chunk processing to detect if the user leaves the room
+        // The timeline events could contain a leave event followed by a join.
+        // so, the user does not leave.
+        // The handleLiveEvent used to warn the client that a room was left where as it should not
+        selfMember = mState.getMember(myUserId);
+
+        if (null != selfMember) {
+            membership = selfMember.membership;
+
+            if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
+                // check if the room still exists.
+                if (null != mStore.getRoom(mRoomId)) {
+                    mStore.deleteRoom(mRoomId);
+                    mDataHandler.onLeaveRoom(mRoomId);
+                }
+            }
+        }
+
+        // check if the summary is defined
+        // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
+        if (null != mStore.getRoom(mRoomId)) {
+            RoomSummary summary = mStore.getSummary(mRoomId);
+
+            // if there is no defined summary
+            // we have to create a new one
+            if (null == summary) {
+                // define a summary if some messages are left
+                // the unsent messages are often displayed messages.
+                Event oldestEvent = mStore.getOldestEvent(mRoomId);
+
+                // if there is an oldest event, use it to set a summary
+                if (oldestEvent != null) {
+                    if (RoomSummary.isSupportedEvent(oldestEvent)) {
+                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
+                        mStore.commit();
+                    }
+                }
+                // use the latest known event
+                else if (null != currentSummary) {
+                    mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), mState, myUserId);
+                    mStore.commit();
+                }
+                // try to build a summary from the state events
+                else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
+                    ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
+
+                    Collections.reverse(events);
+
+                    for (Event event : events) {
+                        event.roomId = mRoomId;
+                        if (RoomSummary.isSupportedEvent(event)) {
+                            summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+
+                            // Watch for potential room name changes
+                            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+
+
+                                if (null != summary) {
+                                    summary.setName(mRoom.getName(myUserId));
+                                }
+                            }
+
+                            mStore.commit();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (null != roomSync.unreadNotifications) {
+            int notifCount = 0;
+            int highlightCount = 0;
+
+            if (null != roomSync.unreadNotifications.highlightCount) {
+                highlightCount = roomSync.unreadNotifications.highlightCount;
+            }
+
+            if (null != roomSync.unreadNotifications.notificationCount) {
+                notifCount = roomSync.unreadNotifications.notificationCount;
+            }
+
+            boolean isUpdated = (notifCount != mState.mNotificationCount) || (mState.mHighlightCount != highlightCount);
+
+            if (isUpdated) {
+                mState.mNotificationCount = notifCount;
+                mState.mHighlightCount = highlightCount;
+                mStore.storeLiveStateForRoom(mRoomId);
+            }
+        }
+
+        return isRoomInitialSync;
     }
 
     /**

@@ -1032,9 +1032,9 @@ public class MXFileStore extends MXMemoryStore {
                 GZIPOutputStream gz = new GZIPOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
-                out.writeObject(room.getLiveState());
+                out.writeObject(room.getState());
                 out.close();
-                Log.d(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+                Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
             }
 
         } catch (Exception e) {
@@ -1110,7 +1110,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             if (null != liveState) {
-                room.setLiveState(liveState);
+                room.getLiveTimeLine().setState(liveState);
 
                 // check if some user can be retrieved from the room members
                 Collection<RoomMember> members = liveState.getMembers();
@@ -1425,7 +1425,7 @@ public class MXFileStore extends MXMemoryStore {
             // the room state is not saved in the summary.
             // it is restored from the room
             if (null != room) {
-                summary.setLatestRoomState(room.getLiveState());
+                summary.setLatestRoomState(room.getState());
             }
 
             mRoomSummaries.put(roomId, summary);

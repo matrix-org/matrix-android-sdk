@@ -561,9 +561,10 @@ public class MXDataHandler implements IMXEventListener {
 
                 if (event.stateKey != null) {
                     // copy the live state before applying any update
-                    room.setLiveState(room.getLiveState().deepCopy());
+                    room.getLiveTimeLine().deepCopyState();
+
                     // check if the event has been processed
-                    if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
+                    if (!room.getLiveTimeLine().processStateEvent(event, Room.EventDirection.FORWARDS)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
@@ -571,7 +572,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
 
                 storeLiveRoomEvent(event);
-                onLiveEvent(event, room.getLiveState());
+                onLiveEvent(event, room.getState());
 
                 // trigger pushes when it is required
                 if (withPush) {
@@ -594,7 +595,7 @@ public class MXDataHandler implements IMXEventListener {
                             && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
                             && bingRule.shouldNotify()) {
                         Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                        onBingEvent(event, room.getLiveState(), bingRule);
+                        onBingEvent(event, room.getState(), bingRule);
                     }
                 }
             } else {
@@ -708,7 +709,7 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.storeLiveRoomEvent(event);
 
                 if (RoomSummary.isSupportedEvent(event)) {
-                    RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
+                    RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getState(), mCredentials.userId);
 
                     // Watch for potential room name changes
                     if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
@@ -752,7 +753,7 @@ public class MXDataHandler implements IMXEventListener {
             if (null != room) {
                 mStore.deleteEvent(event);
                 Event lastEvent = mStore.getLatestEvent(event.roomId);
-                RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+                RoomState beforeLiveRoomState = room.getState().deepCopy();
 
                 mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
             }

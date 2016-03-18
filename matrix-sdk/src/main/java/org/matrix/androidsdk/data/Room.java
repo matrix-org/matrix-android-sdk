@@ -56,7 +56,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -65,7 +64,6 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,8 +113,8 @@ public class Room {
     private ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<SnapshotedEvent>();
 
     private String mRoomId;
-    private RoomState mLiveState = new RoomState();
-    private RoomState mBackState = new RoomState();
+    //private RoomState mLiveState = new RoomState();
+    //private RoomState mBackState = new RoomState();
     private RoomAccountData mAccountData = new RoomAccountData();
 
     private DataRetriever mDataRetriever;
@@ -129,9 +127,9 @@ public class Room {
     // This is needed to find the right one when removing the listener.
     private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
 
-    private boolean isPaginating = false;
-    private boolean canStillPaginate = true;
-    private boolean mIsLastChunk;
+    public boolean mIsPaginating = false;
+    public boolean mCanStillPaginate = true;
+    public boolean mIsLastChunk;
     // the server provides a token even for the first room message (which should never change it is the creator message)
     // so requestHistory always triggers a remote request which returns an empty json.
     //  try to avoid such behaviour
@@ -152,14 +150,17 @@ public class Room {
     // userIds list
     private ArrayList<String>mTypingUsers = new ArrayList<String>();
 
+    public Room() {
+        mLiveTimeline = new EventTimeline(this);
+    }
+
     public String getRoomId() {
         return this.mRoomId;
     }
 
     public void setRoomId(String roomId) {
         mRoomId = roomId;
-        mLiveState.roomId = roomId;
-        mBackState.roomId = roomId;
+        mLiveTimeline.setRoomId(roomId);
     }
 
     public void setAccountData(RoomAccountData accountData) {
@@ -174,27 +175,32 @@ public class Room {
         mIsReady = isReady;
     }
 
-    public RoomState getLiveState() {
-        return mLiveState;
+    public RoomState getState() {
+        return mLiveTimeline.getState();
     }
 
-    public void setLiveState(RoomState liveState) {
-        mLiveState = liveState;
+    // TODO remove it when complete
+    public RoomState getLiveState() {
+        return getState();
     }
+
+    public RoomState getBackState() {
+        return mLiveTimeline.getBackState();
+    }
+
+    /*public void setLiveState(RoomState liveState) {
+        mLiveState = liveState;
+    }*/
 
     public boolean isLeaving() {
         return mIsLeaving;
     }
 
     public Collection<RoomMember> getMembers() {
-        return mLiveState.getMembers();
+        return getState().getMembers();
     }
 
     public EventTimeline getLiveTimeLine() {
-        if (null == mLiveTimeline) {
-            mLiveTimeline = new EventTimeline(mDataRetriever, mDataHandler, this, null);
-        }
-
         return mLiveTimeline;
     }
 
@@ -202,7 +208,7 @@ public class Room {
      * @return the list of online members in a room.
      */
     public Collection<RoomMember> getOnlineMembers() {
-        Collection<RoomMember> members = mLiveState.getMembers();
+        Collection<RoomMember> members = getState().getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
 
         for(RoomMember member : members) {
@@ -222,7 +228,7 @@ public class Room {
      * @return the list of active members in a room ie joined or invited ones.
      */
     public Collection<RoomMember> getActiveMembers() {
-        Collection<RoomMember> members = mLiveState.getMembers();
+        Collection<RoomMember> members = getState().getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
 
         for(RoomMember member : members) {
@@ -235,27 +241,27 @@ public class Room {
     }
 
     public void setMember(String userId, RoomMember member) {
-        mLiveState.setMember(userId, member);
+        getState().setMember(userId, member);
     }
 
     public RoomMember getMember(String userId) {
-        return mLiveState.getMember(userId);
+        return getState().getMember(userId);
     }
 
     public String getTopic() {
-        return this.mLiveState.topic;
+        return this.getState().topic;
     }
 
     public String getName(String selfUserId) {
-        return mLiveState.getDisplayName(selfUserId);
+        return getState().getDisplayName(selfUserId);
     }
 
     public String getVisibility() {
-        return mLiveState.visibility;
+        return getState().visibility;
     }
 
     public void setVisibility(String visibility) {
-        mLiveState.visibility = visibility;
+        getState().visibility = visibility;
     }
 
     public void setMyUserId(String userId) { mMyUserId = userId; }
@@ -265,10 +271,10 @@ public class Room {
      */
     public boolean isInvited() {
         // Is it an initial sync for this room ?
-        RoomState liveState = getLiveState();
+        RoomState state = getState();
         String membership = null;
 
-        RoomMember selfMember = liveState.getMember(mMyUserId);
+        RoomMember selfMember = state.getMember(mMyUserId);
 
         if (null != selfMember) {
             membership = selfMember.membership;
@@ -283,6 +289,7 @@ public class Room {
      */
     public void setDataRetriever(DataRetriever dataRetriever) {
         mDataRetriever = dataRetriever;
+        mLiveTimeline.mDataRetriever = dataRetriever;
     }
 
     /**
@@ -292,9 +299,11 @@ public class Room {
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
         mStore = mDataHandler.getStore();
-        mLiveState.setDataHandler(mDataHandler);
-        mLiveState.refreshUsersList();
-        mBackState.setDataHandler(mDataHandler);
+
+        mLiveTimeline.mStore = mDataHandler.getStore();
+        mLiveTimeline.mDataHandler = dataHandler;
+        getState().setDataHandler(dataHandler);
+        getBackState().setDataHandler(dataHandler);
     }
 
     /**
@@ -508,17 +517,6 @@ public class Room {
         mEventListeners.remove(eventListener);
     }
 
-    /**
-     * Reset the back state so that future history requests start over from live.
-     * Must be called when opening a room if interested in history.
-     */
-    public void initHistory() {
-        mBackState = mLiveState.deepCopy();
-        canStillPaginate = true;
-        isPaginating = false;
-
-        mDataRetriever.cancelHistoryRequest(mRoomId);
-    }
 
     /**
      * cancel any remote request
@@ -527,39 +525,6 @@ public class Room {
         mDataRetriever.cancelRemoteHistoryRequest(mRoomId);
     }
 
-    /**
-     * Process a state event to keep the internal live and back states up to date.
-     * @param event the state event
-     * @param direction the direction; ie. forwards for live state, backwards for back state
-     * @return true if the event has been processed.
-     */
-    public boolean processStateEvent(Event event, EventDirection direction) {
-        RoomState affectedState = (direction == EventDirection.FORWARDS) ? mLiveState : mBackState;
-        Boolean isProcessed = affectedState.applyState(event, direction);
-
-        if ((isProcessed) && (direction == EventDirection.FORWARDS)) {
-            mStore.storeLiveStateForRoom(mRoomId);
-        }
-
-        return isProcessed;
-    }
-
-    /**
-     * Process the live state events for the room. Only once this is done is the room considered ready to pass on events.
-     * @param stateEvents the state events describing the state of the room
-     */
-    public void processLiveState(List<Event> stateEvents) {
-        if (mDataHandler.isActive()) {
-            for (Event event : stateEvents) {
-                try {
-                    processStateEvent(event, EventDirection.FORWARDS);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "processLiveState failed " + e.getLocalizedMessage());
-                }
-            }
-            mIsReady = true;
-        }
-    }
 
     /**
      * Send an event content to the room.
@@ -689,7 +654,7 @@ public class Room {
         }
 
         if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastChunk) {
-            canStillPaginate = false;
+            mIsPaginating = false;
         }
 
         if (callback != null) {
@@ -699,7 +664,8 @@ public class Room {
                 Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
             }
         }
-        isPaginating = false;
+
+        mIsPaginating = false;
         Log.d(LOG_TAG, "manageEvents : commit");
         mStore.commit();
     }
@@ -714,19 +680,19 @@ public class Room {
      * @return true if request starts
      */
     public boolean requestHistory(final ApiCallback<Integer> callback) {
-        if (isPaginating // One at a time please
-                || !mLiveState.canBackPaginated(mMyUserId) // history_visibility flag management
-                || !canStillPaginate // If we have already reached the end of history
+        if (mIsPaginating // One at a time please
+                || !getState().canBackPaginated(mMyUserId) // history_visibility flag management
+                || !mCanStillPaginate // If we have already reached the end of history
                 || !mIsReady) { // If the room is not finished being set up
 
-            Log.d(LOG_TAG, "cannot requestHistory " + isPaginating + " " + !mLiveState.canBackPaginated(mMyUserId) + " " + !canStillPaginate + " " + !mIsReady);
+            Log.d(LOG_TAG, "cannot requestHistory " + mIsPaginating + " " + !getState().canBackPaginated(mMyUserId) + " " + !mCanStillPaginate + " " + !mIsReady);
 
             return false;
         }
-        isPaginating = true;
+        mIsPaginating = true;
 
         // restart the pagination
-        if (null == mBackState.getToken()) {
+        if (null == getBackState().getToken()) {
             mSnapshotedEvents.clear();
         }
 
@@ -757,9 +723,9 @@ public class Room {
             return true;
         }
 
-        final String fromToken = mBackState.getToken();
+        final String fromToken = getBackState().getToken();
 
-        mDataRetriever.requestRoomHistory(mRoomId, mBackState.getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataRetriever.requestRoomHistory(mRoomId, getBackState().getToken(), new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
@@ -767,24 +733,24 @@ public class Room {
                     Log.d(LOG_TAG, "requestHistory : " + response.chunk.size() + " are retrieved.");
 
                     if (response.chunk.size() > 0) {
-                        mBackState.setToken(response.end);
+                        getBackState().setToken(response.end);
 
                         RoomSummary summary = mStore.getSummary(mRoomId);
                         Boolean shouldCommitStore = false;
 
                         // the room state is copied to have a state snapshot
                         // but copy it only if there is a state update
-                        RoomState stateCopy = mBackState.deepCopy();
+                        RoomState stateCopy = getBackState().deepCopy();
 
                         for (Event event : response.chunk) {
-                            Boolean processedEvent = true;
+                            boolean processedEvent = true;
 
                             if (event.stateKey != null) {
-                                processedEvent = processStateEvent(event, EventDirection.BACKWARDS);
+                                processedEvent = mLiveTimeline.processStateEvent(event, EventDirection.BACKWARDS);
 
                                 if (processedEvent) {
                                     // new state event -> copy the room state
-                                    stateCopy = mBackState.deepCopy();
+                                    stateCopy = getBackState().deepCopy();
                                 }
                             }
 
@@ -794,7 +760,7 @@ public class Room {
                                 // update the summary is the event has been received after the oldest known event
                                 // it might happen after a timeline update (hole in the chat history)
                                 if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                                    summary =  mStore.storeSummary(mRoomId, event, getLiveState(), mMyUserId);
+                                    summary =  mStore.storeSummary(mRoomId, event, getState(), mMyUserId);
                                     shouldCommitStore = true;
                                 }
 
@@ -831,9 +797,9 @@ public class Room {
 
                 // When we've retrieved all the messages from a room, the pagination token is some invalid value
                 if (MatrixError.UNKNOWN.equals(e.errcode)) {
-                    canStillPaginate = false;
+                    mCanStillPaginate = false;
                 }
-                isPaginating = false;
+                mIsPaginating = false;
 
                 if (null != callback) {
                     callback.onMatrixError(e);
@@ -846,7 +812,7 @@ public class Room {
             public void onNetworkError(Exception e) {
                 Log.d(LOG_TAG, "requestRoomHistory onNetworkError");
 
-                isPaginating = false;
+                mIsPaginating = false;
 
                 if (null != callback) {
                     callback.onNetworkError(e);
@@ -859,7 +825,7 @@ public class Room {
             public void onUnexpectedError(Exception e) {
                 Log.d(LOG_TAG, "requestRoomHistory onUnexpectedError");
 
-                isPaginating = false;
+                mIsPaginating = false;
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);
@@ -944,7 +910,13 @@ public class Room {
 
         // Handle state events
         if (roomResponse.state != null) {
-            processLiveState(roomResponse.state);
+            for (Event event : roomResponse.state) {
+                try {
+                    mLiveTimeline.processStateEvent(event, Room.EventDirection.FORWARDS);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                }
+            }
         }
 
         // Handle visibility
@@ -963,10 +935,10 @@ public class Room {
                 Event lastEvent = roomResponse.messages.chunk.get(index);
 
                 if (RoomSummary.isSupportedEvent(lastEvent)) {
-                    RoomState beforeLiveRoomState = getLiveState().deepCopy();
+                    RoomState beforeLiveRoomState = getState().deepCopy();
                     beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
 
-                    mStore.storeSummary(getRoomId(), lastEvent, getLiveState(), mMyUserId);
+                    mStore.storeSummary(getRoomId(), lastEvent, getState(), mMyUserId);
 
                     index = -1;
                 } else {
@@ -1040,7 +1012,7 @@ public class Room {
             public void onSuccess(final RoomResponse aReponse) {
                 try {
                     // the join request did not get the room initial history
-                    if (getLiveState().getMember(mMyUserId) == null) {
+                    if (getState().getMember(mMyUserId) == null) {
                         // wait the server sends the events chunk before calling the callback
                         mOnInitialSyncCallback = callback;
                     } else {
@@ -1288,7 +1260,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void updateUserPowerLevels(String userId, int powerLevel, ApiCallback<Void> callback) {
-        PowerLevels powerLevels = getLiveState().getPowerLevels().deepCopy();
+        PowerLevels powerLevels = getState().getPowerLevels().deepCopy();
         powerLevels.setUserPowerLevel(userId, powerLevel);
         mDataRetriever.getRoomsRestClient().updatePowerLevels(mRoomId, powerLevels, callback);
     }
@@ -1302,7 +1274,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mLiveState.name = name;
+                getState().name = name;
                 mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
@@ -1342,7 +1314,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mLiveState.topic = topic;
+                getState().topic = topic;
                 mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
@@ -1382,7 +1354,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mLiveState.roomAliasName = canonicalAlias;
+                getState().roomAliasName = canonicalAlias;
                 mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
@@ -1417,11 +1389,11 @@ public class Room {
      * @return the room avatar URL. If there is no defined one, use the members one (1:1 chat only).
      */
     public String getAvatarUrl() {
-        String res = mLiveState.getAvatarUrl();
+        String res = getState().getAvatarUrl();
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            Collection<RoomMember> members = mLiveState.getMembers();
+            Collection<RoomMember> members = getState().getMembers();
 
             if (members.size() < 3) {
                 // use the member avatar only it is an active member
@@ -1447,7 +1419,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mLiveState.url = avatarUrl;
+                getState().url = avatarUrl;
                 mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
@@ -1487,7 +1459,7 @@ public class Room {
         mDataRetriever.getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mLiveState.visibility = visibility;
+                getState().visibility = visibility;
                 mStore.storeLiveStateForRoom(mRoomId);
 
                 if (null != callback) {
@@ -1644,14 +1616,14 @@ public class Room {
      * @return the number of unread messages that match the push notification rules.
      */
     public int getNotificationCount() {
-        return getLiveState().mNotificationCount;
+        return getState().mNotificationCount;
     }
 
     /**
      * @return the number of highlighted events.
      */
     public int gettHighlightCount() {
-        return getLiveState().mHighlightCount;
+        return getState().mHighlightCount;
     }
 
     /**
@@ -2084,133 +2056,9 @@ public class Room {
     //================================================================================
 
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        String membership = null;
-        RoomSummary currentSummary = null;
-        
         mIsV2Syncing = true;
 
-        RoomMember selfMember = getLiveState().getMember(mMyUserId);
-
-        if (null != selfMember) {
-            membership = selfMember.membership;
-        }
-
-        boolean isRoomInitialSync = (null == membership) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
-
-        // Check whether the room was pending on an invitation.
-        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
-            // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
-            Log.d(LOG_TAG, "handleJoinedRoomSync: clean invited room from the store " + mRoomId);
-            mStore.deleteRoomData(mRoomId);
-
-            // clear the states
-            RoomState state = new RoomState();
-            state.roomId = mRoomId;
-            state.setDataHandler(mDataHandler);
-
-            this.mBackState = this.mLiveState = state;
-        }
-
-        if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-            // Build/Update first the room state corresponding to the 'start' of the timeline.
-            // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
-            processLiveState(roomSync.state.events);
-
-            // if it is an initial sync, the live state is initialized here
-            // so the back state must also be initialized
-            if (isRoomInitialSync) {
-                this.mBackState = this.mLiveState.deepCopy();
-            }
-        }
-
-        // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
-        if (null != roomSync.timeline) {
-            if (roomSync.timeline.limited) {
-                if (!isRoomInitialSync) {
-                    currentSummary =  mStore.getSummary(mRoomId);
-
-                    // define a summary if some messages are left
-                    // the unsent messages are often displayed messages.
-                    Event oldestEvent = mStore.getOldestEvent(mRoomId);
-
-                    // Flush the existing messages for this room by keeping state events.
-                    mStore.deleteAllRoomMessages(mRoomId, true);
-
-                    if (oldestEvent != null) {
-                        if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
-                        }
-                    }
-                }
-
-                // In case of limited timeline, update token where to start back pagination
-                mStore.storeBackToken(mRoomId, roomSync.timeline.prevBatch);
-                // reset the state back token
-                // because it does not make anymore sense
-                // by setting at null, the events cache will be cleared when a requesthistory will be called
-                mBackState.setToken(null);
-                // reset the back paginate lock
-                canStillPaginate = true;
-            }
-
-            // any event ?
-            if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
-                List<Event> events = roomSync.timeline.events;
-
-                // Here the events are handled in forward direction (see [handleLiveEvent:]).
-                // They will be added at the end of the stored events, so we keep the chronological order.
-                for (Event event : events) {
-                    // the roomId is not defined.
-                    event.roomId = mRoomId;
-                    try {
-                        // Make room data digest the live event
-                        mDataHandler.handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
-                    }
-                }
-            }
-
-            if (roomSync.timeline.limited) {
-                // the unsent / undeliverable event mus be pushed to the history bottom
-                Collection<Event> events = mStore.getRoomMessages(mRoomId);
-
-                if (null != events) {
-                    ArrayList<Event> unsentEvents = new ArrayList<Event>();
-
-                    for(Event event : events) {
-                        if (event.mSentState != Event.SentState.SENT) {
-                            unsentEvents.add(event);
-                        }
-                    }
-
-                    if (unsentEvents.size() > 0) {
-                        for (Event event : unsentEvents) {
-                            event.mSentState = Event.SentState.UNDELIVERABLE;
-                            event.originServerTs = System.currentTimeMillis();
-                            mStore.deleteEvent(event);
-                            mStore.storeLiveRoomEvent(event);
-                        }
-
-                        // update the store
-                        mStore.commit();
-                    }
-                }
-            }
-        }
-
-        if (isRoomInitialSync) {
-            // any request history can be triggered by now.
-            mIsReady = true;
-        }
-        // Finalize initial sync
-        else {
-
-            if ((null != roomSync.timeline) && roomSync.timeline.limited) {
-                // The room has been synced with a limited timeline
-                mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
-            }
-        }
+        boolean isRoomInitialSync = mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
 
         if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
             // Handle here ephemeral events (if any)
@@ -2231,78 +2079,6 @@ public class Room {
             handleAccountDataEvents(roomSync.accountData.events);
         }
 
-        // wait the end of the events chunk processing to detect if the user leaves the room
-        // The timeline events could contain a leave event followed by a join.
-        // so, the user does not leave.
-        // The handleLiveEvent used to warn the client that a room was left where as it should not
-        selfMember = getLiveState().getMember(mMyUserId);
-
-        if (null != selfMember) {
-            membership = selfMember.membership;
-
-            if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
-                // check if the room still exists.
-                if (null != mStore.getRoom(mRoomId)) {
-                    mStore.deleteRoom(mRoomId);
-                    mDataHandler.onLeaveRoom(mRoomId);
-                }
-            }
-        }
-
-        // check if the summary is defined
-        // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
-        if (null != mStore.getRoom(mRoomId)) {
-            RoomSummary summary = mStore.getSummary(mRoomId);
-
-            // if there is no defined summary
-            // we have to create a new one
-            if (null == summary) {
-                // define a summary if some messages are left
-                // the unsent messages are often displayed messages.
-                Event oldestEvent = mStore.getOldestEvent(mRoomId);
-
-                // if there is an oldest event, use it to set a summary
-                if (oldestEvent != null) {
-                    if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, getLiveState(), mMyUserId);
-                        mStore.commit();
-                    }
-                }
-                // use the latest known event
-                else if (null != currentSummary) {
-                    mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), getLiveState(), mMyUserId);
-                    mStore.commit();
-                }
-                // try to build a summary from the state events
-                else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-                    ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
-
-                    Collections.reverse(events);
-
-                    for(Event event : events) {
-                        event.roomId = mRoomId;
-                        if (RoomSummary.isSupportedEvent(event)) {
-                            summary = mStore.storeSummary(event.roomId, event, getLiveState(), mMyUserId);
-
-                            // Watch for potential room name changes
-                            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-
-
-                                if (null != summary) {
-                                    summary.setName(getName(mMyUserId));
-                                }
-                            }
-
-                            mStore.commit();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
         if (null != mOnInitialSyncCallback) {
@@ -2313,26 +2089,6 @@ public class Room {
             mOnInitialSyncCallback = null;
         }
 
-        if (null != roomSync.unreadNotifications) {
-            int notifCount = 0;
-            int highlightCount = 0;
-
-            if (null != roomSync.unreadNotifications.highlightCount) {
-                highlightCount = roomSync.unreadNotifications.highlightCount;
-            }
-
-            if (null != roomSync.unreadNotifications.notificationCount) {
-                notifCount = roomSync.unreadNotifications.notificationCount;
-            }
-
-            boolean isUpdated = (notifCount != getLiveState().mNotificationCount) || (getLiveState().mHighlightCount != highlightCount);
-
-            if (isUpdated) {
-                getLiveState().mNotificationCount = notifCount;
-                getLiveState().mHighlightCount = highlightCount;
-                mStore.storeLiveStateForRoom(mRoomId);
-            }
-        }
 
         mIsV2Syncing = false;
     }

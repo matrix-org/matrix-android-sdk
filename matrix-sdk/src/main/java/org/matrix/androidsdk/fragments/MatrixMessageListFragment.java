@@ -339,14 +339,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             RoomState roomState = null;
 
             if (null != mRoom) {
-                roomState = mRoom.getLiveState();
+                roomState = mRoom.getState();
             }
 
             if (null == roomState) {
                 Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
 
                 if (null != room) {
-                    roomState = room.getLiveState();
+                    roomState = room.getState();
                 }
             }
 
@@ -570,7 +570,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
             getSession().getDataHandler().storeLiveRoomEvent(event);
 
-            MessageRow messageRow = new MessageRow(event, mRoom.getLiveState());
+            MessageRow messageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(messageRow);
 
             scrollToBottom();
@@ -975,7 +975,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // if there is an oldest event, use it to set a summary
             if (latestEvent != null) {
                 if (RoomSummary.isSupportedEvent(latestEvent)) {
-                    store.storeSummary(latestEvent.roomId, latestEvent, mRoom.getLiveState(), mSession.getMyUserId());
+                    store.storeSummary(latestEvent.roomId, latestEvent, mRoom.getState(), mSession.getMyUserId());
                 }
             }
 
@@ -1230,7 +1230,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mAdapter.setNotifyOnChange(false);
 
                             for (SearchResult searchResult : searchResults) {
-                                MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getLiveState());
+                                MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getState());
                                 mAdapter.insert(row, 0);
                             }
 
