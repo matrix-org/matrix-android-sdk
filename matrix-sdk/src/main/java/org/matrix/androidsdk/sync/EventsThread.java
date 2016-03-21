@@ -54,7 +54,6 @@ public class EventsThread extends Thread {
     private boolean mKilling = false;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
-    private RestAdapterCallback mEventsFailureCallback;
     private ApiFailureCallback mFailureCallback;
 
     // avoid restarting the listener if there is no network.
@@ -103,7 +102,6 @@ public class EventsThread extends Thread {
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
-        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback));
     }
 
     /**
