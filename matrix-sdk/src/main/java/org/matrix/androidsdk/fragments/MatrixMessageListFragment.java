@@ -1424,17 +1424,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 dismissLoadingProgress();
 
+                boolean fillHistory = true;
+
                 if (mAdapter.getCount() > 0) {
                     // refresh the list only at the end of the sync
                     // else the one by one message refresh gives a weird UX
                     // The application is almost frozen during the
                     mAdapter.notifyDataSetChanged();
 
-                    if ((-1 == mFirstVisibleRow) && (mFirstVisibleRow < mAdapter.getCount())) {
+                    if ((-1 == mFirstVisibleRow) || (mFirstVisibleRow >= mAdapter.getCount())) {
                         mMessageListView.setSelection(mAdapter.getCount() - 1);
                     } else {
                         mMessageListView.setSelection(mFirstVisibleRow);
                         mFirstVisibleRow = -1;
+                        fillHistory = false;
                     }
 
                 }
@@ -1442,13 +1445,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
 
-                // fill the page
-                mMessageListView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        fillHistoryPage();
-                    }
-                });
+                if (fillHistory) {
+                    // fill the page
+                    mMessageListView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            fillHistoryPage();
+                        }
+                    });
+                }
             }
         });
     }
