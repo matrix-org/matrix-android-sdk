@@ -492,8 +492,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onPause();
 
         // check if the session has not been logged out
-        if (mSession.isActive() && (null != mRoom)) {
-            mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+        if (mSession.isActive()) {
+
+            // dismiss the loading when pausing the fragement
+            // as we cannot detect if a back pagination is stopped.
+            dismissLoadingProgress();
+
+            if (null != mRoom) {
+                mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+            }
         }
     }
 
@@ -1313,7 +1320,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         @Override
                         public void run() {
 
+
                             int countDiff = mAdapter.getCount() - countBeforeUpdate;
+                            int pos = mMessageListView.getFirstVisiblePosition() + countDiff;
 
                             // check if some messages have been added
                             // do not refresh the UI if no message have been added
@@ -1325,7 +1334,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                                 // do not use count because some messages are not displayed
                                 // so we compute the new pos
-                                mMessageListView.setSelection(mMessageListView.getFirstVisiblePosition() + countDiff);
+                                mMessageListView.requestFocusFromTouch();
+                                mMessageListView.setSelection(pos);
                             }
 
                             mIsCatchingUp = false;
