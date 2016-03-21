@@ -1259,6 +1259,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
+        // cannot refresh it
+        if (null == bodyTextView) {
+            return convertView;
+        }
+
         if (mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -1586,6 +1591,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // display a type watermark
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+
+        if (null == imageTypeView) {
+            return convertView;
+        }
+
         imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
         if (waterMarkResourceId > 0) {
@@ -1771,8 +1781,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
 
         final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
-
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+
+        if (null == fileTextView) {
+            return convertView;
+        }
+
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
 

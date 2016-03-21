@@ -1138,17 +1138,13 @@ public class MXDataHandler implements IMXEventListener {
     public void onBackEvent(final Event event, final RoomState roomState) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onBackEvent(event, roomState);
-                    } catch (Exception e) {
-                    }
-                }
+        // must not be delayed to avoid jumping while setting the index in the room messages list.
+        for (IMXEventListener listener : eventListeners) {
+            try {
+                listener.onBackEvent(event, roomState);
+            } catch (Exception e) {
             }
-        });
+        }
     }
 
     @Override

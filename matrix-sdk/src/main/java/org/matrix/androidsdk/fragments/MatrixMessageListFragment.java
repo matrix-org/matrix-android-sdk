@@ -256,8 +256,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
-        int selectionIndex;
-
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = createMessagesAdapter();
@@ -480,12 +478,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         }
         else {
-
             Log.d(LOG_TAG, "onActivityCreated - reuse");
 
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
         }
+
+        mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
+
     }
     @Override
     public void onPause() {

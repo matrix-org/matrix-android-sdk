@@ -18,6 +18,7 @@ package org.matrix.androidsdk.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -102,6 +103,7 @@ public class MatrixMessagesFragment extends Fragment {
     private Context mContext;
     private MXSession mSession;
     private Room mRoom;
+    public boolean mKeepRoomHistory;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -154,8 +156,12 @@ public class MatrixMessagesFragment extends Fragment {
 
         // does the room already exist ?
         if (mRoom != null) {
-            // init the history
-            mRoom.initHistory();
+
+            if (!mKeepRoomHistory) {
+                // init the history
+                mRoom.initHistory();
+            }
+
             // check if some required fields are initialized
             // else, the joining could have been half broken (network error)
             if (null != mRoom.getLiveState().creator) {
@@ -196,25 +202,39 @@ public class MatrixMessagesFragment extends Fragment {
             mRoom.addEventListener(mEventListener);
 
             if (!joinedRoom) {
-                Log.i(LOG_TAG, "Joining room >> " + roomId);
+                Log.d(LOG_TAG, "Joining room >> " + roomId);
                 joinRoom();
             }
             else {
-                requestInitialHistory();
+                // do not need to initialize the history
+                if (mKeepRoomHistory) {
+                    Log.d(LOG_TAG, "Keeping the room history so nothing to do");
+                    sendInitialMessagesLoaded();
+                } else {
+                    Log.d(LOG_TAG, "Get the initial room content");
+                    requestInitialHistory();
+                }
             }
         } else {
-            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
-
-            // add a delay to avoid calling MatrixListFragement before it is fully initialized
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mMatrixMessagesListener.onInitialMessagesLoaded();
-                }
-            }, 100);
+            Log.d(LOG_TAG, "No room so nothing to do");
+            sendInitialMessagesLoaded();
         }
 
+        mKeepRoomHistory = false;
+
         return v;
+    }
+
+    private void sendInitialMessagesLoaded() {
+        final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
+        // add a delay to avoid calling MatrixListFragement before it is fully initialized
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mMatrixMessagesListener.onInitialMessagesLoaded();
+            }
+        }, 100);
     }
 
     @Override
