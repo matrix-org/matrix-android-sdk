@@ -319,6 +319,14 @@ public interface IMXStore {
     boolean storeReceipt(ReceiptData receipt, String roomId);
 
     /**
+     * Get the receipt for an user in a dedicated room.
+     * @param roomId the room id.
+     * @param userId the user id.
+     * @return the dedicated receipt
+     */
+    ReceiptData getReceipt(String roomId, String userId);
+
+    /**
      * Provides the unread events list.
      * @param roomId the room id.
      * @param types an array of event types strings (Event.EVENT_TYPE_XXX).

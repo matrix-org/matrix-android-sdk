@@ -1422,7 +1422,55 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onReceiptEvent(List<String> senderIds) {
-        mAdapter.notifyDataSetChanged();
+        // avoid useless refresh
+        boolean shouldRefresh = true;
+
+        try {
+            IMXStore store = mSession.getDataHandler().getStore();
+            int firstPos = mMessageListView.getFirstVisiblePosition();
+            int lastPos = mMessageListView.getLastVisiblePosition();
+
+            ArrayList<String> senders = new ArrayList<>();
+            ArrayList<String> eventIds = new ArrayList<>();
+
+            for (int index = firstPos; index <= lastPos; index++) {
+                MessageRow row = mAdapter.getItem(index);
+
+                senders.add(row.getEvent().getSender());
+                eventIds.add(row.getEvent().eventId);
+            }
+
+            shouldRefresh = false;
+
+            // check if the receipt will trigger a refresh
+            for (String sender : senderIds) {
+                if (!TextUtils.equals(sender, mSession.getMyUserId())) {
+                    ReceiptData receipt = store.getReceipt(mRoom.getRoomId(), sender);
+
+                    // sanity check
+                    if (null != receipt) {
+                        // test if the event is displayed
+                        int pos = eventIds.indexOf(receipt.eventId);
+
+                        // if displayed
+                        if (pos >= 0) {
+                            // the sender is not displayed as a reader (makes sense...)
+                            shouldRefresh = !TextUtils.equals(senders.get(pos), sender);
+
+                            if (shouldRefresh) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+        }
+
+        if (shouldRefresh) {
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     public void onInitialMessagesLoaded() {

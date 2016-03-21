@@ -913,6 +913,26 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Get the receipt for an user in a dedicated room.
+     * @param roomId the room id.
+     * @param userId the user id.
+     * @return the dedicated receipt
+     */
+    public ReceiptData getReceipt(String roomId, String userId) {
+        ReceiptData res = null;
+
+        // sanity checks
+        if (!TextUtils.isEmpty(roomId) && !TextUtils.isEmpty(userId)) {
+            if (mReceiptsByRoomId.containsKey(roomId)) {
+                Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
+                res = receipts.get(userId);
+            }
+        }
+
+        return res;
+    }
+
+    /**
      * Return a list of stored events after the parameter one.
      * It could the ones sent by the user excludedUserId.
      * A filter can be applied to ignore some event (Event.EVENT_TYPE_...).

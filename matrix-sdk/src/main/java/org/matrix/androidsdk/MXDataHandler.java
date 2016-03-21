@@ -596,7 +596,7 @@ public class MXDataHandler implements IMXEventListener {
                         mUpdatedRoomIdList.add(event.roomId);
                     }
 
-                    if (null != senders) {
+                    if ((null != senders) && (senders.size() > 0)) {
                         onReceiptEvent(event.roomId, senders);
                     }
                 }
