@@ -540,12 +540,33 @@ public class MXSession {
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
                 Room createdRoom = mDataHandler.getRoom(roomId);
-                createdRoom.initialSync(new SimpleApiCallback<Void>(callback) {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        callback.onSuccess(roomId);
-                    }
-                });
+
+                // the creation events are not be called during the creation
+                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
+                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            callback.onSuccess(roomId);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            callback.onNetworkError(e);
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            callback.onMatrixError(e);
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                } else {
+                    callback.onSuccess(roomId);
+                }
             }
         });
     }

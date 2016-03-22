@@ -154,18 +154,27 @@ public class Room {
     // Sync V2
     //================================================================================
 
-    private void handleEphemeralEvent(Event event) {
-        if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
-            if (event.roomId != null) {
-                    List<String> senders = handleReceiptEvent(event);
+    private void handleEphemeralEvents(List<Event> events) {
+        for (Event event : events) {
 
-                    if ((null != senders) && (senders.size() > 0)) {
-                        mDataHandler.onReceiptEvent(event.roomId, senders);
+            // ensure that the room Id is defined
+            event.roomId = getRoomId();
+
+            try {
+                if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+                    if (event.roomId != null) {
+                        List<String> senders = handleReceiptEvent(event);
+
+                        if ((null != senders) && (senders.size() > 0)) {
+                            mDataHandler.onReceiptEvent(event.roomId, senders);
+                        }
                     }
+                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                    mDataHandler.onLiveEvent(event, getState());
                 }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
             }
-         else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
-            mDataHandler.onLiveEvent(event, getState());
         }
     }
 
@@ -174,17 +183,9 @@ public class Room {
 
         mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
 
+        // ephemeral events
         if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
-            // Handle here ephemeral events (if any)
-            for (Event event : roomSync.ephemeral.events) {
-                // the roomId is not defined.
-                event.roomId = getRoomId();
-                try {
-                    handleEphemeralEvent(event);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
-                }
-            }
+            handleEphemeralEvents(roomSync.ephemeral.events);
         }
 
         // Handle account data events (if any)
@@ -276,118 +277,6 @@ public class Room {
         if (null != roomSummary) {
             roomSummary.setInviterUserId(inviterUserId);
         }
-    }
-
-    /**
-     * Handle the room data received from a per-room initial sync
-     * @param roomResponse the room response object
-     */
-    public void handleInitialRoomResponse(RoomResponse roomResponse) {
-        if (!mDataHandler.isActive()) {
-            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
-            return;
-        }
-
-        // Handle state events
-        if (roomResponse.state != null) {
-            for (Event event : roomResponse.state) {
-                try {
-                    mLiveTimeline.processStateEvent(event, Room.EventDirection.FORWARDS);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
-                }
-            }
-        }
-
-        // Handle visibility
-        if (roomResponse.visibility != null) {
-            setVisibility(roomResponse.visibility);
-        }
-
-        // Handle messages / pagination token
-        if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
-            mStore.storeRoomEvents(getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
-
-            int index = roomResponse.messages.chunk.size() - 1;
-
-            while (index >= 0) {
-                // To store the summary, we need the last event and the room state from just before
-                Event lastEvent = roomResponse.messages.chunk.get(index);
-
-                if (RoomSummary.isSupportedEvent(lastEvent)) {
-                    RoomState beforeLiveRoomState = getState().deepCopy();
-                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
-
-                    mStore.storeSummary(getRoomId(), lastEvent, getState(), mMyUserId);
-
-                    index = -1;
-                } else {
-                    index--;
-                }
-            }
-        }
-
-        // Handle presence
-        if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
-            for(Event event : roomResponse.presence) {
-                try {
-                    mDataHandler.handlePresenceEvent(event);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "handleInitialRoomResponse handlePresenceEvent " + e.getLocalizedMessage());
-                }
-            }
-        }
-
-        // receipts
-        if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
-            for(Event event : roomResponse.receipts) {
-                try {
-                    handleEphemeralEvent(event);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "handleInitialRoomResponse handleEphemeralEvent " + e.getLocalizedMessage());
-                }
-            }
-        }
-
-        // account data
-        if ((roomResponse.accountData != null) && (roomResponse.accountData.size() > 0)) {
-            // the room id is not defined in the events
-            // so as the room is defined here, avoid calling handleLiveEvents
-            handleAccountDataEvents(roomResponse.accountData);
-        }
-
-        // Handle the special case where the room is an invite
-        if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
-            handleInitialSyncInvite(roomResponse.inviter);
-        } else {
-            mDataHandler.onRoomInitialSyncComplete(getRoomId());
-        }
-    }
-
-    /**
-     * Perform a room-level initial sync to get latest messages and pagination token.
-     * @param callback the async callback
-     */
-    public void initialSync(final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(getRoomId(), new SimpleApiCallback<RoomResponse>(callback) {
-                @Override
-                public void onSuccess(RoomResponse roomInfo) {
-                    // check if the SDK was not logged out
-                    if (mDataHandler.isActive()) {
-                        handleInitialRoomResponse(roomInfo);
-
-                        Log.d(LOG_TAG, "initialSync : commit");
-                        mStore.commit();
-                        if (callback != null) {
-                            try {
-                                callback.onSuccess(null);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "initialSync exception " + e.getMessage());
-                            }
-                        }
-                    }
-                }
-            });
     }
 
     //================================================================================
@@ -521,6 +410,14 @@ public class Room {
     //================================================================================
 
     /**
+     * Defines the initial sync callback
+     * @param callback tyhe new callback.
+     */
+    public void setOnInitialSyncCallback(ApiCallback<Void> callback) {
+        mOnInitialSyncCallback = callback;
+    }
+
+    /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      * @param callback the callback for when done
      */
@@ -532,10 +429,10 @@ public class Room {
                     // the join request did not get the room initial history
                     if (getState().getMember(mMyUserId) == null) {
                         // wait the server sends the events chunk before calling the callback
-                        mOnInitialSyncCallback = callback;
+                        setOnInitialSyncCallback(callback);
                     } else {
                         // already got the initial sync
-                        initialSync(callback);
+                        callback.onSuccess(null);
                     }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "join exception " + e.getMessage());

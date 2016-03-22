@@ -419,8 +419,6 @@ public class MXDataHandler implements IMXEventListener {
         return room;
     }
 
-
-
     /**
      * Delete an event.
      * @param event The event to be stored.
