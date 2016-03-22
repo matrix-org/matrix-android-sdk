@@ -126,7 +126,8 @@ public class MXDataHandler implements IMXEventListener {
     private void checkIfActive() {
         synchronized (this) {
             if (!mIsActive) {
-                throw new AssertionError("Should not used a MXDataHandler");
+                Log.e(LOG_TAG, "use of a released dataHandler");
+                //throw new AssertionError("Should not used a MXDataHandler");
             }
         }
     }
