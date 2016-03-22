@@ -31,16 +31,10 @@ import java.util.HashMap;
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
  */
 public class DataRetriever {
-
-    private IMXStore mStore;
     private RoomsRestClient mRestClient;
 
     private HashMap<String, String> mPendingRequestTokenByRoomId = new HashMap<String, String>();
     private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<String, String>();
-
-    public void setStore(IMXStore store) {
-        mStore = store;
-    }
 
     public RoomsRestClient getRoomsRestClient() {
         return mRestClient;
@@ -52,11 +46,12 @@ public class DataRetriever {
 
     /**
      * Provides the cached messages for a dedicated roomId
+     * @param store the store.
      * @param roomId the roomId
      * @return the events list, null if the room does not exist
      */
-    public Collection<Event> getCachedRoomMessages(final String roomId) {
-        return mStore.getRoomMessages(roomId);
+    public Collection<Event> getCachedRoomMessages(IMXStore store, final String roomId) {
+        return store.getRoomMessages(roomId);
     }
 
     /**
@@ -81,8 +76,8 @@ public class DataRetriever {
      * @param token the start token.
      * @param callback the callback
      */
-    private void backPaginate(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+    private void backPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_backward");
 
@@ -115,7 +110,7 @@ public class DataRetriever {
                 public void onSuccess(TokensChunkResponse<Event> events) {
                     if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_backward")) {
                         // Watch for the one event overlap
-                        Event oldestEvent = mStore.getOldestEvent(roomId);
+                        Event oldestEvent = store.getOldestEvent(roomId);
 
                         if (events.chunk.size() != 0) {
                             events.chunk.get(0).mToken = events.start;
@@ -128,7 +123,7 @@ public class DataRetriever {
                             }
 
 
-                            mStore.storeRoomEvents(roomId, events, Room.EventDirection.BACKWARDS);
+                            store.storeRoomEvents(roomId, events, Room.EventDirection.BACKWARDS);
                         }
 
                         callback.onSuccess(events);
@@ -144,7 +139,7 @@ public class DataRetriever {
      * @param token the start token.
      * @param callback the callback
      */
-    private void forwardPaginate(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_forward");
 
         mRestClient.messagesFrom(roomId, token, Room.EventDirection.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
@@ -152,7 +147,7 @@ public class DataRetriever {
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_forward")) {
 
-                    mStore.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
+                    store.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
                     callback.onSuccess(events);
                 }
             }
@@ -166,11 +161,11 @@ public class DataRetriever {
      * @param direction the pagination direction
      * @param callback the onComplete callback
      */
-    public void paginate(final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void paginate(final IMXStore store, final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
        if (direction == Room.EventDirection.BACKWARDS) {
-           backPaginate(roomId, token, callback);
+           backPaginate(store, roomId, token, callback);
        } else {
-           forwardPaginate(roomId, token, callback);
+           forwardPaginate(store, roomId, token, callback);
        }
     }
 

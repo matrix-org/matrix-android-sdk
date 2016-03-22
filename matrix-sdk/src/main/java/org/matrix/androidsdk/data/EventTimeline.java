@@ -129,11 +129,12 @@ public class EventTimeline {
      * @param
      * @param isLive true if it is a live EventTimeline
      */
-    public EventTimeline(Room room, Event event, MXDataHandler dataHandler) {
-        mRoom = room;
+    public EventTimeline(Event event, MXDataHandler dataHandler) {
         mInitialEventId = event.eventId;
-        setRoomId(event.roomId);
         mDataHandler = dataHandler;
+
+        mRoom = mDataHandler.getStore().getRoom(event.roomId);
+        setRoomId(event.roomId);
 
         mStore = new MXMemoryStore(dataHandler.getCredentials());
     }
@@ -706,6 +707,11 @@ public class EventTimeline {
             mIsPaginating = false;
         }
 
+        mIsPaginating = false;
+
+        Log.d(LOG_TAG, "manageEvents : commit");
+        mStore.commit();
+
         if (callback != null) {
             try {
                 callback.onSuccess(count);
@@ -713,10 +719,6 @@ public class EventTimeline {
                 Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
             }
         }
-
-        mIsPaginating = false;
-        Log.d(LOG_TAG, "manageEvents : commit");
-        mStore.commit();
     }
 
     public boolean mIsPaginating = false;
@@ -782,7 +784,7 @@ public class EventTimeline {
 
         final String fromToken = getBackState().getToken();
 
-        mDataHandler.getDataRetriever().paginate(mRoomId, getBackState().getToken(), Room.EventDirection.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, getBackState().getToken(), Room.EventDirection.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
@@ -910,7 +912,7 @@ public class EventTimeline {
 
         mIsPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mRoomId, mForwardsPaginationToken, Room.EventDirection.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Room.EventDirection.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
@@ -934,11 +936,15 @@ public class EventTimeline {
 
                             mDataHandler.onLiveEvent(event, stateCopy);
                         }
+
                         mStore.commit();
                     }
 
                     mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
                     mForwardsPaginationToken = response.end;
+
+                    mIsPaginating = false;
+                    callback.onSuccess(response.chunk.size());
 
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
@@ -1004,6 +1010,7 @@ public class EventTimeline {
                     processStateEvent(event, Room.EventDirection.FORWARDS);
                 }
 
+                mState.setToken(eventContext.start);
                 initHistory();
 
                 storeLiveRoomEvent(eventContext.event);

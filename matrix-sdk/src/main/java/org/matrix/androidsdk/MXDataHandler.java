@@ -214,7 +214,6 @@ public class MXDataHandler implements IMXEventListener {
     public void setDataRetriever(DataRetriever dataRetriever) {
         checkIfActive();
         mDataRetriever = dataRetriever;
-        mDataRetriever.setStore(mStore);
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {

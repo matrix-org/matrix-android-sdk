@@ -162,7 +162,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 @Override
                 public void run() {
                     // check first if the userID has sent some messages in the room history
-                    Boolean refresh = mAdapter.isDisplayedUser(user.user_id);
+                    boolean refresh = mAdapter.isDisplayedUser(user.user_id);
 
                     if (refresh) {
                         // check, if the avatar is currently displayed
