@@ -117,15 +117,20 @@ public class Room {
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
 
-
+    /**
+     * Default room creator
+     */
     public Room() {
-        mLiveTimeline = new EventTimeline(this);
+        mLiveTimeline = new EventTimeline(this, true);
     }
 
-
+    /**
+     * Init the room fields.
+     * @param roomId the room id
+     * @param dataHandler the data handler
+     */
     public void init(String roomId, MXDataHandler dataHandler) {
         mLiveTimeline.setRoomId(roomId);
-
         mDataHandler = dataHandler;
 
         if (null != mDataHandler) {
@@ -135,7 +140,11 @@ public class Room {
         }
     }
 
-
+    /**
+     * Trigger a back pagination.
+     * @param callback the callback.
+     * @return true if the back pagination succeeds.
+     */
     public boolean backPaginate(final ApiCallback<Integer> callback) {
         return mLiveTimeline.paginate(EventDirection.BACKWARDS, callback);
     }

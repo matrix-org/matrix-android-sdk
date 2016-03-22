@@ -111,8 +111,53 @@ public class EventTimeline {
     private String mForwardsPaginationToken;
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
-
     public MXDataHandler mDataHandler;
+
+    /**
+     * Constructor from room.
+     * @param room the linked room.
+     * @param isLive true if it is a live EventTimeline
+     */
+    public EventTimeline(Room room, boolean isLive) {
+        mRoom = room;
+        mIsLiveTimeline = isLive;
+    }
+
+    /**
+     * Constructor from room and event Id
+     * @param room the linked room.
+     * @param
+     * @param isLive true if it is a live EventTimeline
+     */
+    public EventTimeline(Room room, Event event, MXDataHandler dataHandler) {
+        mRoom = room;
+        mInitialEventId = event.eventId;
+        setRoomId(event.roomId);
+        mDataHandler = dataHandler;
+
+        mStore = new MXMemoryStore(dataHandler.getCredentials());
+    }
+
+    /**
+     * Set the room Id
+     * @param roomId the new room id.
+     */
+    public void setRoomId(String roomId) {
+        mRoomId = roomId;
+        mState.roomId = roomId;
+        mBackState.roomId = roomId;
+    }
+
+    /**
+     * Set the data handler.
+     * @param dataHandler the data handler.
+     */
+    public void setDataHandler(MXDataHandler dataHandler) {
+        mStore = dataHandler.getStore();
+        mDataHandler = dataHandler;
+        mState.setDataHandler(dataHandler);
+        mBackState.setDataHandler(dataHandler);
+    }
 
     /**
      * Reset the back state so that future history requests start over from live.
@@ -124,49 +169,6 @@ public class EventTimeline {
         mIsPaginating = false;
 
         mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
-    }
-
-    public EventTimeline(Room room) {
-        mRoom = room;
-    }
-
-    public void setRoomId(String roomId) {
-        mRoomId = roomId;
-        mState.roomId = roomId;
-        mBackState.roomId = roomId;
-    }
-
-    /**
-     * Create a timeline instance for a room.
-     * @param session the session.
-     * @param aRoom the room associated to the timeline
-     * @param initialEventId the initial event for the timeline. A null value will create a live timeline.
-     */
-    public EventTimeline(MXDataHandler dataHandler, Room aRoom, String initialEventId) {
-
-        mDataHandler = dataHandler;
-        mRoom = aRoom;
-        mRoomId = aRoom.getRoomId();
-        mInitialEventId = initialEventId;
-
-        mState = new RoomState();
-
-        // Is it a past or live timeline?
-        if (!TextUtils.isEmpty(initialEventId)) {
-            // Events for a past timeline are stored in memory
-            mStore = new MXMemoryStore(dataHandler.getCredentials());
-        } else {
-            mIsLiveTimeline = true;
-            mStore = dataHandler.getStore();
-        }
-    }
-
-
-    public void setDataHandler(MXDataHandler dataHandler) {
-        mStore = dataHandler.getStore();
-        mDataHandler = dataHandler;
-        mState.setDataHandler(dataHandler);
-        mBackState.setDataHandler(dataHandler);
     }
 
     /**
@@ -184,8 +186,16 @@ public class EventTimeline {
         return mBackState;
     }
 
-    public void deepCopyState() {
-        mState = mState.deepCopy();
+    /**
+     * Copy a room state.
+     * @param direction the direction
+     */
+    public void deepCopyState(Room.EventDirection direction) {
+        if (direction == Room.EventDirection.FORWARDS) {
+            mState = mState.deepCopy();
+        } else {
+            mBackState = mBackState.deepCopy();
+        }
     }
 
     /**
@@ -206,12 +216,12 @@ public class EventTimeline {
     }
 
     /**
-     *
-     * @param roomSync
-     * @param isInitialSync
+     * Manage the joined room events.
+     * @param roomSync the roomSync.
+     * @param isInitialSync true if the sync has been triggered by a global initial sync
      * @return true if it is an initial sync
      */
-    public boolean  handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+    public boolean handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -606,9 +616,9 @@ public class EventTimeline {
 
                 if (event.stateKey != null) {
                     // copy the live state before applying any update
-                    deepCopyState();
+                    deepCopyState(Room.EventDirection.FORWARDS);
 
-                    // chck if the event has been processed
+                    // check if the event has been processed
                     if (!processStateEvent(event, Room.EventDirection.FORWARDS)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
@@ -743,13 +753,13 @@ public class EventTimeline {
             mSnapshotedEvents.clear();
         }
 
-        Log.d(LOG_TAG, "requestHistory starts");
+        Log.d(LOG_TAG, "backPaginate starts");
 
         // enough buffered data
         if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-            Log.d(LOG_TAG, "requestHistory : the events are already loaded.");
+            Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -777,7 +787,7 @@ public class EventTimeline {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isActive()) {
 
-                    Log.d(LOG_TAG, "requestHistory : " + response.chunk.size() + " are retrieved.");
+                    Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " are retrieved.");
 
                     if (response.chunk.size() > 0) {
                         getBackState().setToken(response.end);
@@ -840,7 +850,7 @@ public class EventTimeline {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "requestRoomHistory onMatrixError");
+                Log.d(LOG_TAG, "backPaginate onMatrixError");
 
                 // When we've retrieved all the messages from a room, the pagination token is some invalid value
                 if (MatrixError.UNKNOWN.equals(e.errcode)) {
@@ -857,7 +867,7 @@ public class EventTimeline {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "requestRoomHistory onNetworkError");
+                Log.d(LOG_TAG, "backPaginate onNetworkError");
 
                 mIsPaginating = false;
 
@@ -870,7 +880,7 @@ public class EventTimeline {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "requestRoomHistory onUnexpectedError");
+                Log.d(LOG_TAG, "backPaginate onUnexpectedError");
 
                 mIsPaginating = false;
 
@@ -885,6 +895,74 @@ public class EventTimeline {
         return true;
     }
 
+    /**
+     * Request older messages. They will come down the onBackEvent callback.
+     * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @return true if request starts
+     */
+    public boolean forwardPaginate(final ApiCallback<Integer> callback) {
+        final String myUserId = mDataHandler.getUserId();
+
+        if (mIsPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
+            Log.d(LOG_TAG, "forwardPaginate " + mIsPaginating + " " + !getState().canBackPaginated(myUserId) + " " + !mCanStillPaginate + " " + !mRoom.isReady());
+            return false;
+        }
+
+        mIsPaginating = true;
+
+        mDataHandler.getDataRetriever().paginate(mRoomId, mForwardsPaginationToken, Room.EventDirection.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> response) {
+                if (mDataHandler.isActive()) {
+
+                    Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
+
+                    if (response.chunk.size() > 0) {
+                        // the room state is copied to have a state snapshot
+                        // but copy it only if there is a state update
+                        RoomState stateCopy = mState.deepCopy();
+
+                        for (Event event : response.chunk) {
+                            if (event.stateKey != null) {
+                                boolean processedEvent = processStateEvent(event, Room.EventDirection.FORWARDS);
+
+                                if (processedEvent) {
+                                    // new state event -> copy the room state
+                                    stateCopy = mState.deepCopy();
+                                }
+                            }
+
+                            mDataHandler.onLiveEvent(event, stateCopy);
+                        }
+                        mStore.commit();
+                    }
+
+                    mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
+                    mForwardsPaginationToken = response.end;
+
+                } else {
+                    Log.d(LOG_TAG, "mDataHandler is not active.");
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                // TODO
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                // TODO
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                // TODO
+            }
+        });
+
+        return true;
+    }
 
     /**
      *
@@ -892,42 +970,17 @@ public class EventTimeline {
      * @param callback
      * @return true if the operation succeeds
      */
-    public boolean paginate(Room.EventDirection direction,  final ApiCallback<Integer> callback) {
+    public boolean paginate(Room.EventDirection direction, final ApiCallback<Integer> callback) {
         if (Room.EventDirection.BACKWARDS == direction) {
-
             return backPaginate(callback);
+        } else {
+            return forwardPaginate(callback);
         }
-
-        // TODO implement forward pagination
-        return false;
     }
 
     //==============================================================================================================
     // pagination methods
     //==============================================================================================================
-
-    /**
-     * Check if this timelime can be extended.
-     *
-     * This returns true if we either have more events, or if we have a pagination
-     * token which means we can paginate in that direction. It does not necessarily
-     * mean that there are more events available in that direction at this time.
-     * canPaginate in forward direction has no meaning for a live timeline.
-     * @param direction MXTimelineDirectionBackwards to check if we can paginate backwards. MXTimelineDirectionForwards to check if we can go forwards.
-     * @returntrue if we can paginate in the given direction.
-     */
-    public boolean canPaginate(Room.EventDirection direction) {
-
-        return true;
-    }
-
-    /**
-     * Reset the pagination so that future calls to paginate start from the most recent
-     * event of the timeline.
-     */
-    public void resetPagination() {
-
-    }
 
     /**
      * Reset the pagination timelime and start loading the context around its `initialEventId`.
@@ -936,53 +989,46 @@ public class EventTimeline {
      * @param callback the operation callbacl
      */
 
-    public void resetPaginationAroundInitialEventWithLimit(int limit, ApiCallback<EventContext> callback) {
+    public void resetPaginationAroundInitialEvent(final ApiCallback<Void> callback) {
+        // Reset the store
+        mStore.deleteRoomData(mRoomId);
 
-    }
+        mForwardsPaginationToken = null;
+        mHasReachedHomeServerForwardsPaginationEnd = false;
 
+        mDataHandler.getDataRetriever().getRoomsRestClient().contextOfEvent(mRoomId, mInitialEventId, 0, new ApiCallback<EventContext>() {
+            @Override
+            public void onSuccess(EventContext eventContext) {
+                // And fill the timelime with received data
+                for(Event event : eventContext.state) {
+                    processStateEvent(event, Room.EventDirection.FORWARDS);
+                }
 
-    /**
-     * Get more messages.
-     * The retrieved events will be sent to registered listeners.
-     * Note it is not possible to paginate forwards on a live timeline.
-     *
-     * @param numItems the number of items to get.
-     * @param direction `MXTimelineDirectionForwards` or `MXTimelineDirectionBackwards`
-     * @param onlyFromStore if YES, return available events from the store, do not make a pagination request to the homeserver.
-     * @param callback the operation callback
-     */
-    public void paginate(int numItems, Room.EventDirection direction, boolean onlyFromStore, ApiCallback<Void> callback) {
+                initHistory();
 
-    }
+                storeLiveRoomEvent(eventContext.event);
 
+                mForwardsPaginationToken = eventContext.end;
 
-    /**
-     * Get the number of messages we can still back paginate from the store.
-     * It provides the count of events available without making a request to the home server.
-     * @return the count of remaining messages in store.
-     */
-    public int remainingMessagesForBackPaginationInStore() {
-        return 0;
-    }
+                // TODO manage other fields
 
+                callback.onSuccess(null);
+            }
 
-    //==============================================================================================================
-    // Server sync
-    //==============================================================================================================
-    /**
-     * For live timeline, update data according to the received /sync response.
-     *
-     * @param roomSync information to sync the room with the home server data
-     */
-    public void handleJoinedRoomSync(RoomSync roomSync) {
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
 
-    }
-    /**
-     * For live timeline, update invited room state according to the received /sync response.
-     *
-     * @param invitedRoomSync information to update the room state.
-     */
-    public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
 
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
     }
 }

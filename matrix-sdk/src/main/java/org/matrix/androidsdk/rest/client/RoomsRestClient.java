@@ -30,6 +30,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -41,7 +42,11 @@ import org.matrix.androidsdk.rest.model.User;
 import java.util.HashMap;
 import java.util.List;
 
+import retrofit.Callback;
 import retrofit.client.Response;
+import retrofit.http.GET;
+import retrofit.http.Path;
+import retrofit.http.Query;
 
 /**
  * Class used to make requests to the rooms API.
@@ -389,6 +394,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     initialSync(roomId, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend initialSync failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Get the context surrounding an event.
+     * @param roomId the room id
+     * @param eventId the event Id
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    public void contextOfEvent(final String roomId, final String eventId, final int limit, final ApiCallback<EventContext> callback) {
+        final String description = "contextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
+
+        mApi.contextOfEvent(roomId, eventId, limit, new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    contextOfEvent(roomId, eventId, limit, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend contextOfEvent failed " + e.getMessage());
                 }
             }
         }));

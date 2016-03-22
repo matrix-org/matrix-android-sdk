@@ -21,6 +21,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.MessageFeedback;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -288,6 +289,16 @@ public interface RoomsApi {
     void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
 
     /**
+     * Get the context surrounding an event.
+     * @param roomId the room id
+     * @param eventId the event Id
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/context/{eventId}")
+    void contextOfEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Query("limit") int limit, Callback<EventContext> callback);
+
+    /**
      * Redact an event from the room>.
      * @param roomId the room id
      * @param eventId the event id of the event to redact
@@ -338,5 +349,4 @@ public interface RoomsApi {
     @DELETE("/user/{userId}/rooms/{roomId}/tags/{tag}")
     void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
                    Callback<Void> callback);
-
 }

@@ -546,7 +546,6 @@ public class MXMemoryStore implements IMXStore {
                     for (Event event : eventsResponse.chunk) {
                         events.put(event.eventId, event);
                     }
-
                 } else { // BACKWARD
                     Collection<Event> eventsList = events.values();
 

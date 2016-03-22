@@ -76,25 +76,19 @@ public class DataRetriever {
     }
 
     /**
-     * Request messages than the given token. These will come from storage if available, from the server otherwise.
-     * @param roomId the room id
-     * @param token the token to go back from. Null to start from live.
-     * @param direction the pagination direction
-     * @param callback the onComplete callback
+     * Trigger a back pagination for a dedicated room from Token.
+     * @param roomId the room Id
+     * @param token the start token.
+     * @param callback the callback
      */
-    public void paginate(final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        TokensChunkResponse<Event> storageResponse = null;
+    private void backPaginate(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        TokensChunkResponse<Event> storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
-        if (Room.EventDirection.BACKWARDS == direction) {
-            storageResponse = mStore.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
-        }
-
-        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_" + direction);
+        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_backward");
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
             final TokensChunkResponse<Event> fStorageResponse = storageResponse;
-
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -104,7 +98,7 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_" + direction)) {
+                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_backward")) {
                                 callback.onSuccess(fStorageResponse);
                             }
                         }
@@ -116,29 +110,25 @@ public class DataRetriever {
             t.start();
         }
         else {
-            mRestClient.messagesFrom(roomId, token, direction, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.messagesFrom(roomId, token, Room.EventDirection.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
-                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_" + direction)) {
+                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_backward")) {
                         // Watch for the one event overlap
                         Event oldestEvent = mStore.getOldestEvent(roomId);
 
                         if (events.chunk.size() != 0) {
+                            events.chunk.get(0).mToken = events.start;
+                            events.chunk.get(events.chunk.size() - 1).mToken = events.end;
 
-                            if (direction == Room.EventDirection.BACKWARDS) {
-                                events.chunk.get(0).mToken = events.start;
-                                events.chunk.get(events.chunk.size() - 1).mToken = events.end;
-
-                                Event firstReturnedEvent = events.chunk.get(0);
-                                if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                        && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
-                                    events.chunk.remove(0);
-                                }
-                            } else {
-                                // TODO manage forward direction
+                            Event firstReturnedEvent = events.chunk.get(0);
+                            if ((oldestEvent != null) && (firstReturnedEvent != null)
+                                    && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
+                                events.chunk.remove(0);
                             }
 
-                            mStore.storeRoomEvents(roomId, events, direction);
+
+                            mStore.storeRoomEvents(roomId, events, Room.EventDirection.BACKWARDS);
                         }
 
                         callback.onSuccess(events);
@@ -146,6 +136,42 @@ public class DataRetriever {
                 }
             });
         }
+    }
+
+    /**
+     * Trigger a forward pagination for a dedicated room from Token.
+     * @param roomId the room Id
+     * @param token the start token.
+     * @param callback the callback
+     */
+    private void forwardPaginate(final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_forward");
+
+        mRestClient.messagesFrom(roomId, token, Room.EventDirection.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> events) {
+                if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_forward")) {
+
+                    mStore.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
+                    callback.onSuccess(events);
+                }
+            }
+        });
+    }
+
+    /**
+     * Request messages than the given token. These will come from storage if available, from the server otherwise.
+     * @param roomId the room id
+     * @param token the token to go back from. Null to start from live.
+     * @param direction the pagination direction
+     * @param callback the onComplete callback
+     */
+    public void paginate(final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+       if (direction == Room.EventDirection.BACKWARDS) {
+           backPaginate(roomId, token, callback);
+       } else {
+           forwardPaginate(roomId, token, callback);
+       }
     }
 
     /**
