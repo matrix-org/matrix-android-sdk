@@ -23,7 +23,6 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -105,7 +104,6 @@ public class Room {
     // This is needed to find the right one when removing the listener.
     private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
 
-
     private boolean mIsLeaving = false;
 
     private boolean mIsSyncing;
@@ -125,7 +123,6 @@ public class Room {
     }
 
 
-
     public void init(String roomId, MXDataHandler dataHandler) {
         mLiveTimeline.setRoomId(roomId);
 
@@ -138,22 +135,19 @@ public class Room {
         }
     }
 
-    /**
-     * cancel any remote request
-     */
-    public void cancelRemoteHistoryRequest() {
-        mDataHandler.getDataRetriever().cancelRemoteHistoryRequest(getRoomId());
-    }
 
-
-    public boolean backpaginate(final ApiCallback<Integer> callback) {
+    public boolean backPaginate(final ApiCallback<Integer> callback) {
         return mLiveTimeline.paginate(EventDirection.BACKWARDS, callback);
     }
 
     //================================================================================
-    // Sync V2
+    // Sync events
     //================================================================================
 
+    /**
+     * Manage list of ephemeral events
+     * @param events the ephemeral events
+     */
     private void handleEphemeralEvents(List<Event> events) {
         for (Event event : events) {
 
@@ -178,6 +172,11 @@ public class Room {
         }
     }
 
+    /**
+     * Handle the events of a joined room.
+     * @param roomSync the sync events list.
+     * @param isInitialSync true if the room is initialized by a global initial sync.
+     */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
         mIsSyncing = true;
 
@@ -207,6 +206,10 @@ public class Room {
         mIsSyncing = false;
     }
 
+    /**
+     * Handle the invitation room events
+     * @param invitedRoomSync the invitation room events.
+     */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
         if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
@@ -224,6 +227,10 @@ public class Room {
         }
     }
 
+    /**
+     * Store an event.
+     * @param event the event.
+     */
     public void storeLiveRoomEvent(Event event) {
         mLiveTimeline.storeLiveRoomEvent(event);
     }
@@ -245,38 +252,11 @@ public class Room {
         });
     }
 
-    private void handleInitialSyncInvite(String inviterUserId) {
-        if (!mDataHandler.isActive()) {
-            Log.e(LOG_TAG, "handleInitialSyncInvite : the session is not anymore active");
-            return;
-        }
-
-        // add yourself
-        RoomMember member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_INVITE;
-        setMember(mMyUserId, member);
-
-        // and the inviter
-        member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_JOIN;
-        setMember(inviterUserId, member);
-
-        // Build a fake invite event
-        Event inviteEvent = new Event();
-        inviteEvent.roomId = getRoomId();
-        inviteEvent.stateKey = mMyUserId;
-        inviteEvent.setSender(inviterUserId);
-        inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
-        inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
-        inviteEvent.content = JsonUtils.toJson(member);
-
-        mStore.storeSummary(getRoomId(), inviteEvent, null, mMyUserId);
-
-        // Set the inviter ID
-        RoomSummary roomSummary = mStore.getSummary(getRoomId());
-        if (null != roomSummary) {
-            roomSummary.setInviterUserId(inviterUserId);
-        }
+    /**
+     * cancel any remote request
+     */
+    public void cancelRemoteHistoryRequest() {
+        mDataHandler.getDataRetriever().cancelRemoteHistoryRequest(getRoomId());
     }
 
     //================================================================================
