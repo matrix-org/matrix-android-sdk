@@ -1261,6 +1261,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // cannot refresh it
         if (null == bodyTextView) {
+            Log.e(LOG_TAG, "getTextView : invalid layout");
             return convertView;
         }
 
@@ -1593,6 +1594,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
 
         if (null == imageTypeView) {
+            Log.e(LOG_TAG, "getImageVideoView : invalid layout");
             return convertView;
         }
 
@@ -1653,6 +1655,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+
+        if (null == noticeTextView) {
+            Log.e(LOG_TAG, "getNoticeView : invalid layout");
+            return convertView;
+        }
+
         noticeTextView.setText(notice);
         noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
@@ -1682,6 +1690,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+
+        if (null == emoteTextView) {
+            Log.e(LOG_TAG, "getEmoteView : invalid layout");
+            return convertView;
+        }
+
         emoteTextView.setText(display.getTextualDisplay());
 
         int textColor;
@@ -1784,6 +1798,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
 
         if (null == fileTextView) {
+            Log.e(LOG_TAG, "getFileView : invalid layout");
             return convertView;
         }
 
