@@ -466,6 +466,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public void add(MessageRow row) {
+        add(row, true);
+    }
+
+    /**
+     * Add a row and refresh the adapter if it is required.
+     * @param row the row to append
+     * @param refresh tru to refresh the display.
+     */
+    public void add(MessageRow row, boolean refresh) {
         // ensure that notifyDataSetChanged is not called
         // it seems that setNotifyOnChange is reinitialized to true;
         setNotifyOnChange(false);
@@ -480,7 +489,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
 
-            if (!mIsSearchMode) {
+            if ((!mIsSearchMode) && refresh) {
                 this.notifyDataSetChanged();
             }
         }
@@ -1259,7 +1268,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
-        if (mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
+        if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }

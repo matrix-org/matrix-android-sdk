@@ -17,6 +17,7 @@ package org.matrix.androidsdk.data;
 
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -25,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Collection;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 
 /**
@@ -33,7 +35,8 @@ import java.util.HashMap;
 public class DataRetriever {
     private RoomsRestClient mRestClient;
 
-    private HashMap<String, String> mPendingRequestTokenByRoomId = new HashMap<String, String>();
+    private HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<String, String>();
+    private HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<String, String>();
     private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<String, String>();
 
     public RoomsRestClient getRoomsRestClient() {
@@ -59,7 +62,8 @@ public class DataRetriever {
      * @param roomId the room id.
      */
     public void cancelHistoryRequest(String roomId) {
-        clearPendingToken(mPendingRequestTokenByRoomId, roomId);
+        clearPendingToken(mPendingFordwardRequestTokenByRoomId, roomId);
+        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
     }
 
     /**
@@ -79,7 +83,7 @@ public class DataRetriever {
     private void backPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
-        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_backward");
+        putPendingToken(mPendingBackwardRequestTokenByRoomId, roomId, token);
 
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
@@ -93,7 +97,7 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_backward")) {
+                            if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
                                 callback.onSuccess(fStorageResponse);
                             }
                         }
@@ -108,7 +112,7 @@ public class DataRetriever {
             mRestClient.messagesFrom(roomId, token, Room.EventDirection.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
-                    if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_backward")) {
+                    if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
                         // Watch for the one event overlap
                         Event oldestEvent = store.getOldestEvent(roomId);
 
@@ -140,12 +144,12 @@ public class DataRetriever {
      * @param callback the callback
      */
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        putPendingToken(mPendingRequestTokenByRoomId, roomId, token + "_forward");
+        putPendingToken(mPendingFordwardRequestTokenByRoomId, roomId, token);
 
         mRestClient.messagesFrom(roomId, token, Room.EventDirection.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
-                if (TextUtils.equals(getPendingToken(mPendingRequestTokenByRoomId, roomId), token + "_forward")) {
+                if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
 
                     store.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
                     callback.onSuccess(events);

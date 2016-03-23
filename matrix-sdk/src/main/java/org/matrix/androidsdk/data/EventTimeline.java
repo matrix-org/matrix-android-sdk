@@ -133,12 +133,12 @@ public class EventTimeline {
      * @param
      * @param isLive true if it is a live EventTimeline
      */
-    public EventTimeline(Event event, MXDataHandler dataHandler) {
-        mInitialEventId = event.eventId;
+    public EventTimeline(MXDataHandler dataHandler, String roomId, String eventId) {
+        mInitialEventId = eventId;
         mDataHandler = dataHandler;
 
-        mRoom = mDataHandler.getStore().getRoom(event.roomId);
-        setRoomId(event.roomId);
+        mRoom = mDataHandler.getStore().getRoom(roomId);
+        setRoomId(roomId);
 
         mStore = new MXMemoryStore(dataHandler.getCredentials());
     }
@@ -778,7 +778,7 @@ public class EventTimeline {
         final String fromToken = getBackState().getToken();
 
         // reach the top of the history.
-        if (TextUtils.equals(fromToken, mTopToken)) {
+        if ((null != fromToken) && TextUtils.equals(fromToken, mTopToken)) {
             return false;
         }
 
@@ -906,6 +906,7 @@ public class EventTimeline {
     public boolean forwardPaginate(final ApiCallback<Integer> callback) {
         if (mIsFordwardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
             Log.d(LOG_TAG, "forwardPaginate " + mIsFordwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
+            return false;
         }
 
         mIsFordwardPaginating = true;
@@ -951,17 +952,32 @@ public class EventTimeline {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                // TODO
+                mIsFordwardPaginating = false;
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                } else {
+                    super.onMatrixError(e);
+                }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                // TODO
+                mIsFordwardPaginating = false;
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                } else {
+                    super.onNetworkError(e);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                // TODO
+                mIsFordwardPaginating = false;
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                } else {
+                    super.onUnexpectedError(e);
+                }
             }
         });
 
