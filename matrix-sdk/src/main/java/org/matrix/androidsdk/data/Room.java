@@ -220,20 +220,7 @@ public class Room {
      * @param invitedRoomSync the invitation room events.
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
-        // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
-        if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
-
-            for(Event event : invitedRoomSync.inviteState.events) {
-                // Add a fake event id if none in order to be able to store the event
-                if (null == event.eventId) {
-                    event.eventId = getRoomId() + "-" + System.currentTimeMillis() + "-" + event.hashCode();
-                }
-
-                // the roomId is not defined.
-                event.roomId = getRoomId();
-                mLiveTimeline.handleForwardEvent(event, true);
-            }
-        }
+        mLiveTimeline.handleInvitedRoomSync(invitedRoomSync);
     }
 
     /**

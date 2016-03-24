@@ -124,7 +124,7 @@ public class EventTimeline {
     // the server provides a token even for the first room message (which should never change it is the creator message)
     // so requestHistory always triggers a remote request which returns an empty json.
     //  try to avoid such behaviour
-    private String mTopToken;
+    private String mBackwardTopToken = "not yet found";
 
     /**
      * Constructor from room.
@@ -202,10 +202,6 @@ public class EventTimeline {
         return mBackState;
     }
 
-    /**
-     * Copy a room state.
-     * @param direction the direction
-     */
     public void deepCopyState(Room.EventDirection direction) {
         if (direction == Room.EventDirection.FORWARDS) {
             mState = mState.deepCopy();
@@ -231,6 +227,26 @@ public class EventTimeline {
         return isProcessed;
     }
 
+    /**
+     * Handle the invitation room events
+     * @param invitedRoomSync the invitation room events.
+     */
+    public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
+        // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
+        if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
+
+            for(Event event : invitedRoomSync.inviteState.events) {
+                // Add a fake event id if none in order to be able to store the event
+                if (null == event.eventId) {
+                    event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
+                }
+
+                // the roomId is not defined.
+                event.roomId = mRoomId;
+                handleForwardEvent(event, true);
+            }
+        }
+    }
     /**
      * Manage the joined room events.
      * @param roomSync the roomSync.
@@ -333,33 +349,6 @@ public class EventTimeline {
                         handleForwardEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
-                    }
-                }
-            }
-
-            if (roomSync.timeline.limited) {
-                // the unsent / undeliverable event mus be pushed to the history bottom
-                Collection<Event> events = mStore.getRoomMessages(mRoomId);
-
-                if (null != events) {
-                    ArrayList<Event> unsentEvents = new ArrayList<Event>();
-
-                    for (Event event : events) {
-                        if (event.mSentState != Event.SentState.SENT) {
-                            unsentEvents.add(event);
-                        }
-                    }
-
-                    if (unsentEvents.size() > 0) {
-                        for (Event event : unsentEvents) {
-                            event.mSentState = Event.SentState.UNDELIVERABLE;
-                            event.originServerTs = System.currentTimeMillis();
-                            mStore.deleteEvent(event);
-                            mStore.storeLiveRoomEvent(event);
-                        }
-
-                        // update the store
-                        mStore.commit();
                     }
                 }
             }
@@ -530,8 +519,6 @@ public class EventTimeline {
                 if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
                         || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
                         || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-
-
                     if (null != summary) {
                         summary.setName(mRoom.getName(myUserId));
                     }
@@ -722,6 +709,10 @@ public class EventTimeline {
         Log.d(LOG_TAG, "manageEvents : commit");
         mStore.commit();
 
+        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastChunk) {
+            mCanBackPaginate = false;
+        }
+
         if (callback != null) {
             try {
                 callback.onSuccess(count);
@@ -832,20 +823,29 @@ public class EventTimeline {
             return false;
         }
 
-        mIsBackPaginating = true;
+        Log.d(LOG_TAG, "backPaginate starts");
 
         // restart the pagination
         if (null == getBackState().getToken()) {
             mSnapshotedEvents.clear();
         }
 
-        Log.d(LOG_TAG, "backPaginate starts");
+        mIsBackPaginating = true;
+
+        final String fromBackToken = getBackState().getToken();
 
         // enough buffered data
-        if (mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) {
+        if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken)) {
+
+            mIsLastChunk = TextUtils.equals(fromBackToken, mBackwardTopToken);
+
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-            Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
+            if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION)) {
+                Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
+            } else {
+                Log.d(LOG_TAG, "backPaginate : reach the history top");
+            }
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -866,13 +866,6 @@ public class EventTimeline {
             return true;
         }
 
-        final String fromToken = getBackState().getToken();
-
-        // reach the top of the history.
-        if ((null != fromToken) && TextUtils.equals(fromToken, mTopToken)) {
-            return false;
-        }
-
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, getBackState().getToken(), Room.EventDirection.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
@@ -880,20 +873,13 @@ public class EventTimeline {
 
                     Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
 
-                    if (response.chunk.size() > 0) {
-                        getBackState().setToken(response.end);
-                    }
-
-                    // assume it is the first room message
-                    if (0 == response.chunk.size()) {
-                        // save its token to avoid useless request
-                        mTopToken = fromToken;
-                    }
-
-                    mIsLastChunk = (0 == response.chunk.size()) || TextUtils.isEmpty(response.end) || TextUtils.equals(response.end, mTopToken);
+                    mIsLastChunk = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
 
                     if (mIsLastChunk) {
-                        Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end) + " " + TextUtils.equals(response.end, mTopToken));
+                        // save its token to avoid useless request
+                        mBackwardTopToken = fromBackToken;
+                    } else {
+                        getBackState().setToken(response.end);
                     }
 
                     addEvents(response.chunk, Room.EventDirection.BACKWARDS, callback);
@@ -956,6 +942,11 @@ public class EventTimeline {
      * @return true if request starts
      */
     public boolean forwardPaginate(final ApiCallback<Integer> callback) {
+        if (mIsLiveTimeline) {
+            Log.d(LOG_TAG, "Cannot forward paginate on Live timeline");
+            return false;
+        }
+
         if (mIsFordwardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
             Log.d(LOG_TAG, "forwardPaginate " + mIsFordwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
             return false;
