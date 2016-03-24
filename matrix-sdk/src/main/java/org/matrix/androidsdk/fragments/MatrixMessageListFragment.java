@@ -1385,36 +1385,35 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onLiveEvent(final Event event, final RoomState roomState) {
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                    mAdapter.removeEventById(event.getRedacts());
-                    mAdapter.notifyDataSetChanged();
-                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
-                    if (null != mRoom) {
-                        mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                    }
-                } else {
-                    if (canAddEvent(event)) {
-                        mAdapter.add(event, roomState);
+    public void onEvent(final Event event, final Room.EventDirection direction, final RoomState roomState) {
+        if (direction == Room.EventDirection.FORWARDS) {
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                        mAdapter.removeEventById(event.getRedacts());
+                        mAdapter.notifyDataSetChanged();
+                    } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                        if (null != mRoom) {
+                            mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                        }
+                    } else {
+                        if (canAddEvent(event)) {
+                            mAdapter.add(event, roomState);
+                        }
                     }
                 }
+            });
+        } else {
+            if (canAddEvent(event)) {
+                mAdapter.addToFront(event, roomState);
             }
-        });
+        }
     }
 
     @Override
     public void onLiveEventsChunkProcessed() {
        // NOP
-    }
-
-    @Override
-    public void onBackEvent(final Event event, final RoomState roomState) {
-        if (canAddEvent(event)) {
-            mAdapter.addToFront(event, roomState);
-        }
     }
 
     @Override

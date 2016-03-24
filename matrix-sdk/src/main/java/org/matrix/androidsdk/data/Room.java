@@ -231,7 +231,7 @@ public class Room {
 
                 // the roomId is not defined.
                 event.roomId = getRoomId();
-                mLiveTimeline.handleLiveEvent(event, true);
+                mLiveTimeline.handleForwardEvent(event, true);
             }
         }
     }
@@ -1335,18 +1335,6 @@ public class Room {
                     eventListener.onLiveEventsChunkProcessed();
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
-                }
-            }
-
-            @Override
-            public void onBackEvent(Event event, RoomState roomState) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onBackEvent(event, roomState);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBackEvent exception " + e.getMessage());
-                    }
                 }
             }
 

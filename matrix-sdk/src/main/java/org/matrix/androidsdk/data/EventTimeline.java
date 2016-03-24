@@ -23,7 +23,6 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -39,6 +38,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,8 +59,18 @@ import java.util.List;
  * Events are stored in a in-memory store (MXMemoryStore).
  */
 public class EventTimeline {
-
     private static final String LOG_TAG = "EventTimeline";
+
+    public interface EventTimelineListener {
+
+        /**
+         * Call when an event has been handled in the timeline.
+         * @param event the event.
+         * @param direction the direction.
+         * @param roomState the room state
+         */
+        void onEvent(Event event, Room.EventDirection direction, RoomState roomState);
+    };
 
     /**
      * The initial event id used to initialise the timeline.
@@ -115,7 +125,6 @@ public class EventTimeline {
     // so requestHistory always triggers a remote request which returns an empty json.
     //  try to avoid such behaviour
     private String mTopToken;
-
 
     /**
      * Constructor from room.
@@ -320,8 +329,8 @@ public class EventTimeline {
                     // the roomId is not defined.
                     event.roomId = mRoomId;
                     try {
-                        // Make room data digest the live event
-                        handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
+                        // digest the forward event
+                        handleForwardEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
@@ -553,7 +562,7 @@ public class EventTimeline {
      * @param event the live event
      * @param withPush set to true to trigger pushes when it is required
      * */
-    public void handleLiveEvent(Event event, boolean withPush) {
+    public void handleForwardEvent(Event event, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
         // dispatch the call events to the calls manager
@@ -635,6 +644,8 @@ public class EventTimeline {
 
                 storeLiveRoomEvent(event);
                 mDataHandler.onLiveEvent(event, mState);
+                onEvent(event, Room.EventDirection.FORWARDS, mState);
+
 
                 // trigger pushes when it is required
                 if (withPush) {
@@ -693,7 +704,7 @@ public class EventTimeline {
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
      * @param callback the callback.
      */
-    private void manageEvents(final ApiCallback<Integer> callback) {
+    private void manageBackEvents(final ApiCallback<Integer> callback) {
         // check if the SDK was not logged out
         if (!mDataHandler.isActive()) {
             Log.d(LOG_TAG, "manageEvents : mDataHandler is not anymore active.");
@@ -706,7 +717,7 @@ public class EventTimeline {
         for(int i = 0; i < count; i++) {
             SnapshotedEvent snapshotedEvent = mSnapshotedEvents.get(0);
             mSnapshotedEvents.remove(0);
-            mDataHandler.onBackEvent(snapshotedEvent.mEvent, snapshotedEvent.mState);
+            onEvent(snapshotedEvent.mEvent, Room.EventDirection.BACKWARDS, snapshotedEvent.mState);
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
@@ -763,7 +774,7 @@ public class EventTimeline {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            manageEvents(callback);
+                            manageBackEvents(callback);
                         }
                     }, 100);
                 }
@@ -845,7 +856,7 @@ public class EventTimeline {
                         Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end) + " " + TextUtils.equals(response.end, mTopToken));
                     }
 
-                    manageEvents(callback);
+                    manageBackEvents(callback);
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
                 }
@@ -933,7 +944,7 @@ public class EventTimeline {
                                 }
                             }
 
-                            mDataHandler.onLiveEvent(event, stateCopy);
+                            onEvent(event, Room.EventDirection.FORWARDS, stateCopy);
                         }
 
                         mStore.commit();
@@ -1052,4 +1063,60 @@ public class EventTimeline {
             }
         });
     }
+
+    //==============================================================================================================
+    // onEvent listener management.
+    //==============================================================================================================
+
+    private ArrayList<EventTimelineListener> mEventTimelineListeners = new ArrayList<EventTimelineListener>();
+
+    /**
+     * Add an events listener.
+     * @param listener the listener to add.
+     */
+    public void addEventTimelineListener(EventTimelineListener listener) {
+        if (null != listener) {
+            synchronized (this) {
+                if (-1 == mEventTimelineListeners.indexOf(listener)) {
+                    mEventTimelineListeners.add(listener);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove an events listener.
+     * @param listener the listener to remove.
+     */
+    public void removeEventTimelineListener(EventTimelineListener listener) {
+        if (null != listener) {
+            synchronized (this) {
+                mEventTimelineListeners.remove(listener);
+            }
+        }
+    }
+
+    /**
+     * Dispatch the onEvent callback.
+     * @param event the event.
+     * @param direction the direction.
+     * @param roomState the roomState.
+     */
+    private void onEvent(Event event, Room.EventDirection direction, RoomState roomState) {
+        ArrayList<EventTimelineListener> listeners;
+
+        synchronized (this) {
+            listeners = new ArrayList<EventTimelineListener>(mEventTimelineListeners);
+        }
+
+        for(EventTimelineListener listener : listeners) {
+            try {
+                listener.onEvent(event, direction, roomState);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"EventTimeline.onEvent " + listener + " crashes " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+
 }

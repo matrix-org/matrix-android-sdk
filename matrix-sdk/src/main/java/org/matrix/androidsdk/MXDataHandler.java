@@ -724,23 +724,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onBackEvent(final Event event, final RoomState roomState) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onBackEvent(event, roomState);
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
     public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
