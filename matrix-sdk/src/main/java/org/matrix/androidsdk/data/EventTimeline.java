@@ -523,7 +523,7 @@ public class EventTimeline {
 
             mStore.storeLiveRoomEvent(event);
 
-            if (RoomSummary.isSupportedEvent(event)) {
+            if (RoomSummary.isSupportedEvent(event) && mIsLiveTimeline) {
                 RoomSummary summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
 
                 // Watch for potential room name changes
@@ -646,7 +646,6 @@ public class EventTimeline {
                 mDataHandler.onLiveEvent(event, mState);
                 onEvent(event, Room.EventDirection.FORWARDS, mState);
 
-
                 // trigger pushes when it is required
                 if (withPush) {
                     BingRule bingRule;
@@ -735,6 +734,87 @@ public class EventTimeline {
     }
 
     /**
+     * Add some events in a dedicated direction.
+     * @param events the events list
+     * @param direction the direction
+     * @param callback the callback.
+     */
+    private void addEvents(List<Event> events, Room.EventDirection direction, final ApiCallback<Integer> callback) {
+        final String myUserId = mDataHandler.getUserId();
+
+        if (direction == Room.EventDirection.BACKWARDS) {
+            RoomSummary summary = mStore.getSummary(mRoomId);
+
+            boolean shouldCommitStore = false;
+
+            // the room state is copied to have a state snapshot
+            // but copy it only if there is a state update
+            RoomState stateCopy = getBackState().deepCopy();
+
+            for (Event event : events) {
+                boolean processedEvent = true;
+
+                if (event.stateKey != null) {
+                    processedEvent = processStateEvent(event, Room.EventDirection.BACKWARDS);
+
+                    if (processedEvent) {
+                        // new state event -> copy the room state
+                        stateCopy = getBackState().deepCopy();
+                    }
+                }
+
+                // warn the listener only if the message is processed.
+                // it should avoid duplicated events.
+                if (processedEvent) {
+                    if (mIsLiveTimeline) {
+                        // update the summary is the event has been received after the oldest known event
+                        // it might happen after a timeline update (hole in the chat history)
+                        if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                            summary = mStore.storeSummary(mRoomId, event, getState(), myUserId);
+                            shouldCommitStore = true;
+                        }
+                    }
+
+                    mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
+                }
+            }
+
+            if (shouldCommitStore) {
+                mStore.commit();
+            }
+
+            manageBackEvents(callback);
+        } else {
+            if (events.size() > 0) {
+                // the room state is copied to have a state snapshot
+                // but copy it only if there is a state update
+                RoomState stateCopy = mState.deepCopy();
+
+                for (Event event : events) {
+                    if (event.stateKey != null) {
+                        boolean processedEvent = processStateEvent(event, Room.EventDirection.FORWARDS);
+
+                        if (processedEvent) {
+                            // new state event -> copy the room state
+                            stateCopy = mState.deepCopy();
+                        }
+                    }
+
+                    onEvent(event, Room.EventDirection.FORWARDS, stateCopy);
+                }
+
+                mStore.commit();
+            }
+
+            mIsFordwardPaginating = false;
+
+            if (null != callback) {
+                callback.onSuccess(events.size());
+            }
+        }
+    }
+
+    /**
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
@@ -802,46 +882,6 @@ public class EventTimeline {
 
                     if (response.chunk.size() > 0) {
                         getBackState().setToken(response.end);
-
-                        RoomSummary summary = mStore.getSummary(mRoomId);
-
-                        boolean shouldCommitStore = false;
-
-                        // the room state is copied to have a state snapshot
-                        // but copy it only if there is a state update
-                        RoomState stateCopy = getBackState().deepCopy();
-
-                        for (Event event : response.chunk) {
-                            boolean processedEvent = true;
-
-                            if (event.stateKey != null) {
-                                processedEvent = processStateEvent(event, Room.EventDirection.BACKWARDS);
-
-                                if (processedEvent) {
-                                    // new state event -> copy the room state
-                                    stateCopy = getBackState().deepCopy();
-                                }
-                            }
-
-                            // warn the listener only if the message is processed.
-                            // it should avoid duplicated events.
-                            if (processedEvent) {
-                                if (mIsLiveTimeline) {
-                                    // update the summary is the event has been received after the oldest known event
-                                    // it might happen after a timeline update (hole in the chat history)
-                                    if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                                        summary = mStore.storeSummary(mRoomId, event, getState(), myUserId);
-                                        shouldCommitStore = true;
-                                    }
-                                }
-
-                                mSnapshotedEvents.add(new SnapshotedEvent(event, stateCopy));
-                            }
-                        }
-
-                        if (shouldCommitStore) {
-                            mStore.commit();
-                        }
                     }
 
                     // assume it is the first room message
@@ -856,7 +896,8 @@ public class EventTimeline {
                         Log.d(LOG_TAG, "is last chunck" + (0 == response.chunk.size()) + " " + TextUtils.isEmpty(response.end) + " " + TextUtils.equals(response.end, mTopToken));
                     }
 
-                    manageBackEvents(callback);
+                    addEvents(response.chunk, Room.EventDirection.BACKWARDS, callback);
+
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
                 }
@@ -929,32 +970,10 @@ public class EventTimeline {
 
                     Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 
-                    if (response.chunk.size() > 0) {
-                        // the room state is copied to have a state snapshot
-                        // but copy it only if there is a state update
-                        RoomState stateCopy = mState.deepCopy();
-
-                        for (Event event : response.chunk) {
-                            if (event.stateKey != null) {
-                                boolean processedEvent = processStateEvent(event, Room.EventDirection.FORWARDS);
-
-                                if (processedEvent) {
-                                    // new state event -> copy the room state
-                                    stateCopy = mState.deepCopy();
-                                }
-                            }
-
-                            onEvent(event, Room.EventDirection.FORWARDS, stateCopy);
-                        }
-
-                        mStore.commit();
-                    }
-
                     mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
                     mForwardsPaginationToken = response.end;
 
-                    mIsFordwardPaginating = false;
-                    callback.onSuccess(response.chunk.size());
+                    addEvents(response.chunk, Room.EventDirection.FORWARDS, callback);
 
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
@@ -1020,14 +1039,14 @@ public class EventTimeline {
      * @param callback the operation callbacl
      */
 
-    public void resetPaginationAroundInitialEvent(final ApiCallback<Void> callback) {
+    public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
 
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().contextOfEvent(mRoomId, mInitialEventId, 0, new ApiCallback<EventContext>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().contextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
             public void onSuccess(EventContext eventContext) {
                 // And fill the timelime with received data
@@ -1036,13 +1055,21 @@ public class EventTimeline {
                 }
 
                 mState.setToken(eventContext.start);
+
+                // init the room states
                 initHistory();
 
+                // selected event
                 storeLiveRoomEvent(eventContext.event);
+                onEvent(eventContext.event, Room.EventDirection.BACKWARDS, mState);
+
+                // add events before
+                addEvents(eventContext.eventsBefore, Room.EventDirection.BACKWARDS, null);
+
+                // add events after
+                addEvents(eventContext.eventsAfter, Room.EventDirection.FORWARDS, null);
 
                 mForwardsPaginationToken = eventContext.end;
-
-                // TODO manage other fields
 
                 callback.onSuccess(null);
             }

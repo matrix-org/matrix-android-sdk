@@ -150,7 +150,6 @@ public class DataRetriever {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
-
                     store.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
                     callback.onSuccess(events);
                 }
