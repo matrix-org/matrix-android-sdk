@@ -99,7 +99,34 @@ public class MatrixMessagesFragment extends Fragment {
     // The listener to send messages back
     private MatrixMessagesListener mMatrixMessagesListener;
     // The adapted listener to register to the SDK
-    private IMXEventListener mEventListener;
+    private final IMXEventListener mEventListener = new MXEventListener() {
+        @Override
+        public void onLiveEvent(Event event, RoomState roomState) {
+            mMatrixMessagesListener.onLiveEvent(event, roomState);
+        }
+
+        @Override
+        public void onLiveEventsChunkProcessed() {
+            mMatrixMessagesListener.onLiveEventsChunkProcessed();
+        }
+
+        @Override
+        public void onBackEvent(Event event, RoomState roomState) {
+            mMatrixMessagesListener.onBackEvent(event, roomState);
+        }
+
+        @Override
+        public void onReceiptEvent(String roomId, List<String> senderIds) {
+            mMatrixMessagesListener.onReceiptEvent(senderIds);
+        }
+
+        @Override
+        public void onRoomSyncWithLimitedTimeline(String roomId) {
+            mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
+            requestInitialHistory();
+        }
+    };
+
     private Context mContext;
     private MXSession mSession;
     private Room mRoom;
@@ -170,34 +197,6 @@ public class MatrixMessagesFragment extends Fragment {
                     joinedRoom = true;
                 }
             }
-
-            mEventListener = new MXEventListener() {
-                @Override
-                public void onLiveEvent(Event event, RoomState roomState) {
-                    mMatrixMessagesListener.onLiveEvent(event, roomState);
-                }
-
-                @Override
-                public void onLiveEventsChunkProcessed() {
-                    mMatrixMessagesListener.onLiveEventsChunkProcessed();
-                }
-
-                @Override
-                public void onBackEvent(Event event, RoomState roomState) {
-                    mMatrixMessagesListener.onBackEvent(event, roomState);
-                }
-
-                @Override
-                public void onReceiptEvent(String roomId, List<String> senderIds) {
-                    mMatrixMessagesListener.onReceiptEvent(senderIds);
-                }
-
-                @Override
-                public void onRoomSyncWithLimitedTimeline(String roomId) {
-                    mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
-                    requestInitialHistory();
-                }
-            };
 
             mRoom.addEventListener(mEventListener);
 

@@ -462,6 +462,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     }
 
+    /**
+     * Called when the fragment is no longer in use.  This is called
+     * after {@link #onStop()} and before {@link #onDetach()}.
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        // remove listeners to prevent memory leak
+        if(null != mMatrixMessagesFragment) {
+            mMatrixMessagesFragment.setMatrixMessagesListener(null);
+        }
+        if(null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(null);
+        }
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
