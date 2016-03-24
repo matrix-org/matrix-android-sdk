@@ -74,7 +74,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     public interface MatrixMessagesListener {
-        void onEvent(Event event, Room.EventDirection direction, RoomState roomState);
+        void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
         void onLiveEventsChunkProcessed();
         void onReceiptEvent(List<String> senderIds);
         void onRoomSyncWithLimitedTimeline();
@@ -113,7 +113,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     private final EventTimeline.EventTimelineListener mEventTimelineListener = new EventTimeline.EventTimelineListener() {
         @Override
-        public void onEvent(Event event, Room.EventDirection direction, RoomState roomState) {
+        public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
             mMatrixMessagesListener.onEvent(event, direction,roomState);
         }
     };
@@ -331,7 +331,7 @@ public class MatrixMessagesFragment extends Fragment {
      */
     public boolean requestHistory(ApiCallback<Integer> callback) {
         if (null != mRoom) {
-            return mRoom.backPaginate(callback);
+            return mRoom.getLiveTimeLine().backPaginate(callback);
         } else {
             return false;
         }

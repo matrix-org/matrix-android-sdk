@@ -109,7 +109,7 @@ public class DataRetriever {
             t.start();
         }
         else {
-            mRestClient.messagesFrom(roomId, token, Room.EventDirection.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
                     if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
@@ -127,7 +127,7 @@ public class DataRetriever {
                             }
 
 
-                            store.storeRoomEvents(roomId, events, Room.EventDirection.BACKWARDS);
+                            store.storeRoomEvents(roomId, events, EventTimeline.Direction.BACKWARDS);
                         }
 
                         callback.onSuccess(events);
@@ -146,11 +146,11 @@ public class DataRetriever {
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingFordwardRequestTokenByRoomId, roomId, token);
 
-        mRestClient.messagesFrom(roomId, token, Room.EventDirection.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
-                    store.storeRoomEvents(roomId, events, Room.EventDirection.FORWARDS);
+                    store.storeRoomEvents(roomId, events, EventTimeline.Direction.FORWARDS);
                     callback.onSuccess(events);
                 }
             }
@@ -164,8 +164,8 @@ public class DataRetriever {
      * @param direction the pagination direction
      * @param callback the onComplete callback
      */
-    public void paginate(final IMXStore store, final String roomId, final String token, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
-       if (direction == Room.EventDirection.BACKWARDS) {
+    public void paginate(final IMXStore store, final String roomId, final String token, final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+       if (direction == EventTimeline.Direction.BACKWARDS) {
            backPaginate(store, roomId, token, callback);
        } else {
            forwardPaginate(store, roomId, token, callback);
@@ -183,7 +183,7 @@ public class DataRetriever {
     public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
 
-        mRestClient.messagesFrom(roomId, token, Room.EventDirection.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
 

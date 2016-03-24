@@ -542,12 +542,12 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         boolean canStore = true;
 
         // do not flush the room messages file
         // when the user reads the room history and the events list size reaches its max size.
-        if (direction == Room.EventDirection.BACKWARDS) {
+        if (direction == EventTimeline.Direction.BACKWARDS) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             if (null != events) {

@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
@@ -115,7 +116,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param direction the direction
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void messagesFrom(final String roomId, final String fromToken, final Room.EventDirection direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
         messagesFrom(roomId, fromToken, direction, DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
     }
 
@@ -127,10 +128,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param limit the maximum number of messages to retrieve.
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void messagesFrom(final String roomId, final String fromToken, final Room.EventDirection direction,  final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction,  final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction +  " with limit " + limit;
 
-        mApi.messagesFrom(roomId, (direction == Room.EventDirection.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.messagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {

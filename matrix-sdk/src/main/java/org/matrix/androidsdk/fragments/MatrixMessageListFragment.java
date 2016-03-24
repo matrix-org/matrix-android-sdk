@@ -44,6 +44,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -568,7 +569,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // a message row can only be added if there is a defined room
         if (null != mRoom) {
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
-            mRoom.storeLiveRoomEvent(event);
+            mRoom.storeOutgoingEvent(event);
 
             MessageRow messageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(messageRow);
@@ -1385,8 +1386,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onEvent(final Event event, final Room.EventDirection direction, final RoomState roomState) {
-        if (direction == Room.EventDirection.FORWARDS) {
+    public void onEvent(final Event event, final EventTimeline.Direction direction, final RoomState roomState) {
+        if (direction == EventTimeline.Direction.FORWARDS) {
             mUiHandler.post(new Runnable() {
                 @Override
                 public void run() {

@@ -381,12 +381,12 @@ public class RoomState implements java.io.Serializable {
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public boolean applyState(Event event, Room.EventDirection direction) {
+    public boolean applyState(Event event, EventTimeline.Direction direction) {
         if (event.stateKey == null) {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
+        JsonObject contentToConsider = (direction == EventTimeline.Direction.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
@@ -438,7 +438,7 @@ public class RoomState implements java.io.Serializable {
                     }
 
                     // when a member leaves a room, his avatar is not anymore provided
-                    if ((direction == Room.EventDirection.FORWARDS) ) {
+                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
                         if (null != currentMember) {
                             if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
                                 if (null == member.avatarUrl) {
@@ -487,7 +487,6 @@ public class RoomState implements java.io.Serializable {
     /**
      * Return an unique display name of the member userId.
      * @param userId the user id
-     * @param color the color of the displayname
      * @return unique display name
      */
     public String getMemberName(String userId) {

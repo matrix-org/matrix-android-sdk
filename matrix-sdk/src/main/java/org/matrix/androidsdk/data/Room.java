@@ -74,25 +74,6 @@ public class Room {
 
     private static final String LOG_TAG = "Room";
 
-    /**
-     * The direction from which an incoming event is considered.
-     * <ul>
-     * <li>FORWARDS for events coming down the live event stream</li>
-     * <li>BACKWARDS for old events requested through pagination</li>
-     * </ul>
-     */
-    public enum EventDirection {
-        /**
-         * The direction for events coming down the live event stream.
-         */
-        FORWARDS,
-
-        /**
-         * The direction for old events requested through pagination.
-         */
-        BACKWARDS
-    }
-
     private RoomAccountData mAccountData = new RoomAccountData();
 
     private MXDataHandler mDataHandler;
@@ -138,15 +119,6 @@ public class Room {
             mMyUserId = mDataHandler.getUserId();
             mLiveTimeline.setDataHandler(dataHandler);
         }
-    }
-
-    /**
-     * Trigger a back pagination.
-     * @param callback the callback.
-     * @return true if the back pagination succeeds.
-     */
-    public boolean backPaginate(final ApiCallback<Integer> callback) {
-        return mLiveTimeline.paginate(EventDirection.BACKWARDS, callback);
     }
 
     //================================================================================
@@ -224,11 +196,11 @@ public class Room {
     }
 
     /**
-     * Store an event.
+     * Store an outgoing event.
      * @param event the event.
      */
-    public void storeLiveRoomEvent(Event event) {
-        mLiveTimeline.storeLiveRoomEvent(event);
+    public void storeOutgoingEvent(Event event) {
+        mLiveTimeline.storeOutgoingEvent(event);
     }
 
     /**
@@ -275,7 +247,6 @@ public class Room {
         return mLiveTimeline.getState();
     }
 
-    // TODO remove it when complete
     public RoomState getLiveState() {
         return getState();
     }
