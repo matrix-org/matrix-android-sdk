@@ -20,8 +20,6 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -35,10 +33,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
@@ -49,7 +44,6 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -346,6 +340,9 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * @return the used store.
+     */
     public IMXStore getStore() {
         if (isActive()) {
             return mStore;
@@ -379,7 +376,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param roomId the room ID
      * @return true it exists.
      */
-    public Boolean doesRoomExist(String roomId) {
+    public boolean doesRoomExist(String roomId) {
         return (null != roomId) && (null != mStore.getRoom(roomId));
     }
 

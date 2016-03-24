@@ -341,7 +341,7 @@ public class MXSession {
     /**
      * @return true if the session is active i.e. has not been cleared after a logout.
      */
-    public Boolean isActive() {
+    public boolean isActive() {
         synchronized (this) {
             return mIsActiveSession;
         }
@@ -703,7 +703,7 @@ public class MXSession {
     /**
      * @return true if the calls are supported
      */
-    public Boolean isVoipCallSupported() {
+    public boolean isVoipCallSupported() {
         if (null != mCallsManager) {
             return mCallsManager.isSupported();
         } else {

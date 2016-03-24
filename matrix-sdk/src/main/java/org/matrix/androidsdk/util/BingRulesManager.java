@@ -199,7 +199,7 @@ public class BingRulesManager {
             // Go down the rule list until we find a match
             for (BingRule bingRule : mRules) {
                 if (bingRule.isEnabled) {
-                    Boolean isFullfilled = false;
+                    boolean isFullfilled = false;
 
                     // some rules have no condition
                     // so their ruleId defines the method
@@ -597,7 +597,7 @@ public class BingRulesManager {
      * Test if the room has a dedicated rule which disables notification.
      * @return true if there is a rule to disable notifications.
      */
-    public Boolean isRoomNotificationsDisabled(Room room) {
+    public boolean isRoomNotificationsDisabled(Room room) {
         BingRule roomRule = getPushRulesForRoom(room);
 
         return (null != roomRule) && !roomRule.shouldNotify() && roomRule.isEnabled;

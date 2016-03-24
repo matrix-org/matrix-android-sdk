@@ -183,7 +183,6 @@ public class Room {
             mOnInitialSyncCallback = null;
         }
 
-
         mIsSyncing = false;
     }
 
@@ -419,7 +418,6 @@ public class Room {
         // send the event only if the user has joined the room.
         return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
     }
-
 
     //================================================================================
     // Room info (liveState) update
@@ -1100,7 +1098,7 @@ public class Room {
      * Test if a call can be performed in this room.
      * @return true if a call can be performed.
      */
-    public Boolean canPerformCall() {
+    public boolean canPerformCall() {
         return 1 == callees().size();
     }
 

@@ -60,7 +60,7 @@ public class EventsThread extends Thread {
     // avoid restarting the listener if there is no network.
     // wait that there is an available network.
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
-    private Boolean mbIsConnected = true;
+    private boolean mbIsConnected = true;
     IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {

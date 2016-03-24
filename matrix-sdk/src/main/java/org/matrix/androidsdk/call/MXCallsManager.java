@@ -68,7 +68,7 @@ public class MXCallsManager {
     private CallRestClient mCallResClient = null;
     private JsonElement mTurnServer = null;
     private Timer mTurnServerTimer = null;
-    private Boolean mSuspendTurnServerRefresh = false;
+    private boolean mSuspendTurnServerRefresh = false;
 
     private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
 
@@ -201,7 +201,7 @@ public class MXCallsManager {
     /**
      * @return true if the call feature is supported
      */
-    public Boolean isSupported() {
+    public boolean isSupported() {
         return MXChromeCall.isSupported() || MXJingleCall.isSupported();
     }
 
@@ -226,7 +226,7 @@ public class MXCallsManager {
      * @param callClass set the default callClass
      */
     public void setDefaultCallClass(CallClass callClass) {
-        Boolean isUpdatable = false;
+        boolean isUpdatable = false;
 
         if (callClass == CallClass.CHROME_CLASS) {
             isUpdatable = MXChromeCall.isSupported();
@@ -334,7 +334,7 @@ public class MXCallsManager {
      * @param create create the IMXCall if it does not exist
      * @return the IMXCall if it exists
      */
-    private IMXCall callWithCallId(String callId, Boolean create) {
+    private IMXCall callWithCallId(String callId, boolean create) {
         IMXCall call = null;
 
         // check if the call exists
@@ -359,7 +359,7 @@ public class MXCallsManager {
      * @return true if there are some active calls.
      */
     public boolean hasActiveCalls() {
-        Boolean res;
+        boolean res;
 
         synchronized (this) {
             res = (0 != mCallsByCallId.size());
@@ -446,7 +446,7 @@ public class MXCallsManager {
                             final IMXCall call = callWithCallId(callId);
                             if (null != call) {
                                 // trigger call events only if the call is active
-                                final Boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
+                                final boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
 
                                 call.setRoom(room);
 

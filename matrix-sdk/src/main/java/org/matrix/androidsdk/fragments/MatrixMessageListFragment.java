@@ -770,7 +770,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
         }
 
-        final Boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
+        final boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
 
         getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {

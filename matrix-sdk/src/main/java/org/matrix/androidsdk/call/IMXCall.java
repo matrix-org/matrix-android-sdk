@@ -208,22 +208,22 @@ public interface IMXCall {
     /**
      * @return true if the call is an incoming call.
      */
-    Boolean isIncoming();
+    boolean isIncoming();
 
     /**
      * @param isIncoming true if the call is an incoming one.
      */
-    void setIsIncoming(Boolean isIncoming);
+    void setIsIncoming(boolean isIncoming);
 
     /**
      * Defines the call type
      */
-    void setIsVideo(Boolean isVideo);
+    void setIsVideo(boolean isVideo);
 
     /**
      * @return true if the call is a video call.
      */
-    Boolean isVideo();
+    boolean isVideo();
 
     /**
      * @return the callstate (must be a CALL_STATE_XX value)

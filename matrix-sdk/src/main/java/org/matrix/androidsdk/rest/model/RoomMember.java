@@ -65,7 +65,7 @@ public class RoomMember implements java.io.Serializable {
         mInviter = userId;
     }
 
-    private Boolean fieldsAreEqual(String s1, String s2) {
+    private boolean fieldsAreEqual(String s1, String s2) {
         // compare display name
         if (s1 == null) {
             return (s1 == s2);
@@ -158,7 +158,7 @@ public class RoomMember implements java.io.Serializable {
         }
 
         // compare display name
-        Boolean isEqual = fieldsAreEqual(displayname, otherMember.displayname);
+        boolean isEqual = fieldsAreEqual(displayname, otherMember.displayname);
 
         if (isEqual) {
             isEqual = fieldsAreEqual(avatarUrl, otherMember.avatarUrl);

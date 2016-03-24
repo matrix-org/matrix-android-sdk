@@ -227,7 +227,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
 
-    protected Boolean mIsSearchMode = false;
+    protected boolean mIsSearchMode = false;
     protected String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
 
@@ -875,7 +875,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         convertView.setClickable(false);
 
-        Boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
+        boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged ->tell if a message separator must be displayed
@@ -2001,7 +2001,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * @return true if the user has sent some messages in this room history.
      */
-    public Boolean isDisplayedUser(String userId) {
+    public boolean isDisplayedUser(String userId) {
         // check if the user has been displayed in the room history
         return (null != userId) && mUserByUserId.containsKey(userId);
     }

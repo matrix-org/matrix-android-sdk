@@ -68,7 +68,7 @@ public class MXJingleCall extends MXCall {
 
     private GLSurfaceView mCallView = null;
 
-    private Boolean mIsVideoSourceStopped = false;
+    private boolean mIsVideoSourceStopped = false;
     private VideoSource mVideoSource = null;
     private VideoTrack  mLocalVideoTrack = null;
     private AudioSource mAudioSource = null;
@@ -88,10 +88,10 @@ public class MXJingleCall extends MXCall {
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
     private VideoRenderer mLargeLocalRenderer = null;
 
-    private static Boolean mIsInitialized = false;
+    private static boolean mIsInitialized = false;
 
     // candidate management
-    private Boolean mIsIncomingPrepared = false;
+    private boolean mIsIncomingPrepared = false;
     private JsonArray mPendingCandidates = new JsonArray();
 
     private JsonObject mCallInviteParams = null;
@@ -99,7 +99,7 @@ public class MXJingleCall extends MXCall {
     /**
      * @return true if this stack can perform calls.
      */
-    public static Boolean isSupported() {
+    public static boolean isSupported() {
         return Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
     }
 

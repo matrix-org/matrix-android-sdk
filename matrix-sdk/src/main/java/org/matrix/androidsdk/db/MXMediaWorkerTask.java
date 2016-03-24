@@ -388,7 +388,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         return mProgress;
     }
 
-    private Boolean isBitmapDownload() {
+    private boolean isBitmapDownload() {
         return (null == mMimeType) || mMimeType.startsWith("image/");
     }
 

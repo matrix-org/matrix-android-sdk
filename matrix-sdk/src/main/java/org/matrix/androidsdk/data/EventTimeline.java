@@ -38,9 +38,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -114,7 +112,9 @@ public class EventTimeline {
      */
     private Room mRoom;
 
-
+    /**
+     * the room Id
+     */
     private String mRoomId;
 
     /**
@@ -129,17 +129,32 @@ public class EventTimeline {
     private String mForwardsPaginationToken;
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
+    /**
+     * The data hanler : used to retrieve data from the store or to trigger REST requests.
+     */
     public MXDataHandler mDataHandler;
 
+    /**
+     * Pending request statuses
+     */
     public boolean mIsBackPaginating = false;
-    public boolean mIsFordwardPaginating = false;
+    public boolean mIsForewardPaginating = false;
+
+    /**
+     * true if the back history has been retrieved.
+     */
     public boolean mCanBackPaginate = true;
-    public boolean mIsLastChunk;
 
+    /**
+     * true if the last back chunck has been received
+     */
+    public boolean mIsLastBackChunk;
 
-    // the server provides a token even for the first room message (which should never change it is the creator message)
-    // so requestHistory always triggers a remote request which returns an empty json.
-    //  try to avoid such behaviour
+    /**
+     * the server provides a token even for the first room message (which should never change it is the creator message).
+     * so requestHistory always triggers a remote request which returns an empty json.
+     * try to avoid such behaviour
+     */
     private String mBackwardTopToken = "not yet found";
 
     /**
@@ -198,7 +213,7 @@ public class EventTimeline {
         mCanBackPaginate = true;
 
         mIsBackPaginating = false;
-        mIsFordwardPaginating = false;
+        mIsForewardPaginating = false;
 
         mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
     }
@@ -264,7 +279,7 @@ public class EventTimeline {
 
                 // the roomId is not defined.
                 event.roomId = mRoomId;
-                handleForwardEvent(event, true);
+                handleLiveEvent(event, true);
             }
         }
     }
@@ -367,7 +382,7 @@ public class EventTimeline {
                     event.roomId = mRoomId;
                     try {
                         // digest the forward event
-                        handleForwardEvent(event, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
@@ -587,7 +602,7 @@ public class EventTimeline {
      * @param event the live event
      * @param withPush set to true to trigger pushes when it is required
      * */
-    private void handleForwardEvent(Event event, boolean withPush) {
+    private void handleLiveEvent(Event event, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
         // dispatch the call events to the calls manager
@@ -605,10 +620,10 @@ public class EventTimeline {
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
 
-                    Log.e(LOG_TAG, "handleForwardEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
 
                 } else {
-                    Log.e(LOG_TAG, "handleForwardEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
                 }
 
                 return;
@@ -696,7 +711,7 @@ public class EventTimeline {
                             && (bingRulesManager != null)
                             && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
                             && bingRule.shouldNotify()) {
-                        Log.d(LOG_TAG, "handleForwardEvent : onBingEvent");
+                        Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
                         mDataHandler.onBingEvent(event, mState, bingRule);
                     }
                 }
@@ -752,7 +767,7 @@ public class EventTimeline {
         Log.d(LOG_TAG, "manageEvents : commit");
         mStore.commit();
 
-        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastChunk) {
+        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastBackChunk) {
             mCanBackPaginate = false;
         }
 
@@ -848,7 +863,7 @@ public class EventTimeline {
         // enough buffered data
         if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken)) {
 
-            mIsLastChunk = TextUtils.equals(fromBackToken, mBackwardTopToken);
+            mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken);
 
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
@@ -884,9 +899,9 @@ public class EventTimeline {
 
                     Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
 
-                    mIsLastChunk = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
+                    mIsLastBackChunk = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
 
-                    if (mIsLastChunk) {
+                    if (mIsLastBackChunk) {
                         // save its token to avoid useless request
                         mBackwardTopToken = fromBackToken;
                     } else {
@@ -957,12 +972,12 @@ public class EventTimeline {
             return false;
         }
 
-        if (mIsFordwardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
-            Log.d(LOG_TAG, "forwardPaginate " + mIsFordwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
+        if (mIsForewardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
+            Log.d(LOG_TAG, "forwardPaginate " + mIsForewardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
             return false;
         }
 
-        mIsFordwardPaginating = true;
+        mIsForewardPaginating = true;
 
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
@@ -981,7 +996,7 @@ public class EventTimeline {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                mIsFordwardPaginating = false;
+                mIsForewardPaginating = false;
                 if (null != callback) {
                     callback.onMatrixError(e);
                 } else {
@@ -991,7 +1006,7 @@ public class EventTimeline {
 
             @Override
             public void onNetworkError(Exception e) {
-                mIsFordwardPaginating = false;
+                mIsForewardPaginating = false;
                 if (null != callback) {
                     callback.onNetworkError(e);
                 } else {
@@ -1001,7 +1016,7 @@ public class EventTimeline {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                mIsFordwardPaginating = false;
+                mIsForewardPaginating = false;
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 } else {
@@ -1027,6 +1042,15 @@ public class EventTimeline {
         }
     }
 
+    /**
+     * Cancel any pending pagination requests
+     */
+    public void cancelPaginationRequest() {
+        mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
+        mIsBackPaginating = false;
+        mIsForewardPaginating = false;
+    }
+
     //==============================================================================================================
     // pagination methods
     //==============================================================================================================
@@ -1037,7 +1061,6 @@ public class EventTimeline {
      * @param limit the maximum number of messages to get around the initial event.
      * @param callback the operation callbacl
      */
-
     public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
