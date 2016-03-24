@@ -828,6 +828,10 @@ public class EventTimeline {
 
         if (direction == Direction.BACKWARDS) {
             manageBackEvents(callback);
+        } else {
+            if (null != callback) {
+                callback.onSuccess(events.size());
+            }
         }
     }
 
@@ -989,6 +993,8 @@ public class EventTimeline {
                     mForwardsPaginationToken = response.end;
 
                     addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
+
+                    mIsForewardPaginating = false;
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
                 }

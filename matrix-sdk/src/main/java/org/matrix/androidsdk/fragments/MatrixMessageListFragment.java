@@ -495,6 +495,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
         }
     }
+
     @Override
     public void onPause() {
         super.onPause();
@@ -1241,6 +1242,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mUiHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
+
+                                    final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
+
                                     // refresh the list only at the end of the sync
                                     // else the one by one message refresh gives a weird UX
                                     // The application is almost frozen during the
@@ -1248,8 +1252,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                                     // do not use count because some messages are not displayed
                                     // so we compute the new pos
-                                    mMessageListView.setSelection(firstPos + (mAdapter.getCount() - countBeforeUpdate));
-                                    mIsCatchingUp = false;
+                                    mMessageListView.setSelection(expectedFirstPos);
+
+                                    mMessageListView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // check if the position is really not the expected one
+                                            if (Math.abs(expectedFirstPos - mMessageListView.getFirstVisiblePosition()) > 1) {
+                                                mMessageListView.setSelection(expectedFirstPos);
+                                            }
+
+                                            mIsCatchingUp = false;
+                                        }
+                                    });
                                 }
                             });
                         } else {
@@ -1331,12 +1346,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 // The application is almost frozen during the
                                 mAdapter.notifyDataSetChanged();
 
+                                final int expectedPos = mMessageListView.getFirstVisiblePosition() + countDiff;
+
                                 // do not use count because some messages are not displayed
                                 // so we compute the new pos
-                                mMessageListView.setSelection(mMessageListView.getFirstVisiblePosition() + countDiff);
-                            }
+                                mMessageListView.setSelection(expectedPos);
 
-                            mIsCatchingUp = false;
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        // check if the position is really not the expected one
+                                        if (Math.abs(expectedPos - mMessageListView.getFirstVisiblePosition()) > 1) {
+                                            mMessageListView.setSelection(expectedPos);
+                                        }
+
+                                        mIsCatchingUp = false;
+                                    }
+                                });
+
+                            } else {
+                                mIsCatchingUp = false;
+                            }
                         }
                     });
                 }
