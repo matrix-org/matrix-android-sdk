@@ -247,8 +247,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mLockBackPagination = false;
         mLockFwdPagination = false;
 
-        dismissLoadingBackProgress();
-        dismissLoadingForwardProgress();
+        hideInitLoading();
+        hideLoadingBackProgress();
+        hideLoadingForwardProgress();
     }
 
     @Override
@@ -1179,27 +1180,39 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Display a global spinner that back pagination is in progress.
+     * Display a spinner to warn the user that a back pagination is in progress.
      */
-    public void displayLoadingBackProgress() {
+    public void showLoadingBackProgress() {
     }
 
     /**
      * Dismiss the back pagination progress.
      */
-    public void dismissLoadingBackProgress() {
+    public void hideLoadingBackProgress() {
     }
 
     /**
-     * Display a global spinner that forward pagination is in progress.
+     * Display a spinner to warn the user that a forward pagination is in progress.
      */
-    public void displayLoadingForwardProgress() {
+    public void showLoadingForwardProgress() {
     }
 
     /**
      * Dismiss the forward pagination progress.
      */
-    public void dismissLoadingForwardProgress() {
+    public void hideLoadingForwardProgress() {
+    }
+
+    /**
+     * Display a spinner to warn the user that the initialization is in progress.
+     */
+    public void showInitLoading() {
+    }
+
+    /**
+     * Dismiss the initialization spinner.
+     */
+    public void hideInitLoading() {
     }
 
     public void refresh() {
@@ -1222,8 +1235,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
-            MatrixMessageListFragment.this.dismissLoadingBackProgress();
-            MatrixMessageListFragment.this.dismissLoadingForwardProgress();
+            hideLoadingBackProgress();
+            hideLoadingForwardProgress();
             Log.d(LOG_TAG, "requestHistory failed " + error);
             mIsBackPaginating = false;
         }
@@ -1252,7 +1265,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final String fPattern = mPattern;
         final int countBeforeUpdate = mAdapter.getCount();
 
-        MatrixMessageListFragment.this.displayLoadingBackProgress();
+        showLoadingBackProgress();
 
         List<String> roomIds = null;
 
@@ -1312,14 +1325,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mIsBackPaginating = false;
                         }
 
-                        MatrixMessageListFragment.this.dismissLoadingBackProgress();
+                       hideLoadingBackProgress();
                     }
                 }
             }
 
             private void onError() {
                 mIsBackPaginating = false;
-                MatrixMessageListFragment.this.dismissLoadingBackProgress();
+                hideLoadingBackProgress();
             }
 
             // the request will be auto restarted when a valid network will be found
@@ -1371,6 +1384,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        showLoadingForwardProgress();
+
 
         mIsFwdPaginating = mEventTimeLine.forwardPaginate(new ApiCallback<Integer>() {
             /**
@@ -1382,7 +1397,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 mIsFwdPaginating = false;
-                dismissLoadingForwardProgress();
+                hideLoadingForwardProgress();
             }
 
             @Override
@@ -1441,7 +1456,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         if (mIsFwdPaginating) {
-            displayLoadingForwardProgress();
+            showLoadingForwardProgress();
         }
     }
 
@@ -1472,7 +1487,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(final Integer count) {
-                dismissLoadingBackProgress();
+                hideLoadingBackProgress();
 
                 // Scroll the list down to where it was before adding rows to the top
                 mMessageListView.post(new Runnable() {
@@ -1535,7 +1550,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         if (mIsBackPaginating && (null != getActivity())) {
-            displayLoadingBackProgress();
+            showLoadingBackProgress();
         }
 
     }
@@ -1604,7 +1619,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                dismissLoadingBackProgress();
+                hideLoadingBackProgress();
 
                 Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
@@ -1654,13 +1669,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mAdapter.notifyDataSetChanged();
                 // center the message in the
                 mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
-
-                mMessageListView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        //mMessageListView.setOnScrollListener(mScrollListener);
-                    }
-                });
             }
         });
     }
@@ -1688,7 +1696,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
-                    dismissLoadingBackProgress();
+                    hideLoadingBackProgress();
                     // Scroll the list down to where it was before adding rows to the top
                     mUiHandler.post(new Runnable() {
                         @Override
@@ -1717,7 +1725,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
 
                     mIsBackPaginating = false;
-                    dismissLoadingBackProgress();
+                    hideLoadingBackProgress();
                 }
 
                 @Override
@@ -1737,7 +1745,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             });
 
             if (mIsBackPaginating) {
-                displayLoadingBackProgress();
+                showLoadingBackProgress();
             }
         }
     }

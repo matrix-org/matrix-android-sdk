@@ -91,10 +91,8 @@ public class MatrixMessagesFragment extends Fragment {
         void onInitialMessagesLoaded();
 
         // UI events
-        void displayLoadingBackProgress();
-        void dismissLoadingBackProgress();
-        void displayLoadingForwardProgress();
-        void dismissLoadingForwardProgress();
+        void showInitLoading();
+        void hideInitLoading();
     }
 
     // The listener to send messages back
@@ -256,29 +254,53 @@ public class MatrixMessagesFragment extends Fragment {
      * Initialize the timeline to fill the screen
      */
     private void initializeTimeline() {
+
+        Log.d(LOG_TAG, "initializeTimeline");
+
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.showInitLoading();
+        }
+
         mEventTimeline.resetPaginationAroundInitialEvent(30 * 2, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mMatrixMessagesListener.onTimelineInitialized();
-                sendInitialMessagesLoaded();
+                Log.d(LOG_TAG, "initializeTimeline is done");
+
+                if (null != getActivity()) {
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                        mMatrixMessagesListener.onTimelineInitialized();
+                    }
+                    sendInitialMessagesLoaded();
+                }
+            }
+
+            private void onError(String errorMessage) {
+                Log.d(LOG_TAG, "initializeTimeline fails " + errorMessage);
+
+                if (null != getActivity()) {
+                    Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
+
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                        mMatrixMessagesListener.onTimelineInitialized();
+                    }
+                }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Toast.makeText(mContext, getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom : " + mContext.getString(R.string.unexpected_error) + " : " + e.getMessage());
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                onError(e.getLocalizedMessage());
             }
         });
     }
@@ -287,7 +309,9 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     protected void requestInitialHistory() {
-        displayLoadingProgress();
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.showInitLoading();
+        }
 
         Log.d(LOG_TAG, "requestInitialHistory " + mRoom.getRoomId());
 
@@ -298,8 +322,11 @@ public class MatrixMessagesFragment extends Fragment {
                 Log.d(LOG_TAG, "requestInitialHistory onSuccess");
 
                 if (null != getActivity()) {
-                    MatrixMessagesFragment.this.dismissLoadingProgress();
-                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                        mMatrixMessagesListener.onTimelineInitialized();
+                        mMatrixMessagesListener.onInitialMessagesLoaded();
+                    }
                 }
             }
 
@@ -307,7 +334,10 @@ public class MatrixMessagesFragment extends Fragment {
                 Log.e(LOG_TAG, "requestInitialHistory failed" + errorMessage);
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG).show();
-                    MatrixMessagesFragment.this.dismissLoadingProgress();
+
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                    }
                 }
             }
 
@@ -326,28 +356,6 @@ public class MatrixMessagesFragment extends Fragment {
                 onError(e.getLocalizedMessage());
             }
         });
-    }
-
-    //==============================================================================================================
-    // UI Actions
-    //==============================================================================================================
-
-    /**
-     * Display the progress bar
-     */
-    private void displayLoadingProgress() {
-        if (null != mMatrixMessagesListener) {
-            mMatrixMessagesListener.displayLoadingBackProgress();
-        }
-    }
-
-    /**
-     * Dismiss the progress bar
-     */
-    private void dismissLoadingProgress() {
-        if (null != mMatrixMessagesListener) {
-            mMatrixMessagesListener.dismissLoadingBackProgress();
-        }
     }
 
     //==============================================================================================================
@@ -427,7 +435,9 @@ public class MatrixMessagesFragment extends Fragment {
      * Join the room.
      */
     private void joinRoom() {
-        displayLoadingProgress();
+        if (null != mMatrixMessagesListener) {
+            mMatrixMessagesListener.showInitLoading();
+        }
 
         Log.d(LOG_TAG, "joinRoom " + mRoom.getRoomId());
 
@@ -435,34 +445,42 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "joinRoom succeeds");
-                MatrixMessagesFragment.this.dismissLoadingProgress();
-                mMatrixMessagesListener.onInitialMessagesLoaded();
+
+                if (null != getActivity()) {
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                        mMatrixMessagesListener.onInitialMessagesLoaded();
+                    }
+                }
+            }
+
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "joinRoom error: " + errorMessage);
+                if (null != getActivity()) {
+                    Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                    }
+                }
             }
 
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
-
-                if (null != MatrixMessagesFragment.this.getActivity()) {
-                    Toast.makeText(mContext, getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
-                    MatrixMessagesFragment.this.dismissLoadingProgress();
-                }
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getLocalizedMessage());
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "joinRoom Matrix error: " + e.errcode + " - " + e.getLocalizedMessage());
-                if (null != MatrixMessagesFragment.this.getActivity()) {
-                    Toast.makeText(MatrixMessagesFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                    MatrixMessagesFragment.this.dismissLoadingProgress();
-                }
+                Log.e(LOG_TAG, "joinRoom onMatrixError : " + e.getLocalizedMessage());
+                onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom : " + mContext.getString(R.string.unexpected_error) + " : " + e.getMessage());
-                MatrixMessagesFragment.this.dismissLoadingProgress();
+                Log.e(LOG_TAG, "joinRoom Override : " + e.getLocalizedMessage());
+                onError(e.getLocalizedMessage());
             }
         });
     }
