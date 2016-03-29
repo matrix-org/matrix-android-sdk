@@ -104,8 +104,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public static final String ARG_ROOM_ID = "MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_EVENT_ID = "MatrixMessageListFragment.ARG_EVENT_ID";
 
-
-    private static final String LOG_TAG = "ErrorListener";
+    private static final String LOG_TAG = "MatrixMsgsListFrag";
 
     public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
@@ -567,7 +566,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     int lastVisibleRow = mMessageListView.getLastVisiblePosition();
                     int count = mMessageListView.getCount();
 
-                    if ((lastVisibleRow + 2) >= count) {
+                    if ((lastVisibleRow + 10) >= count) {
                         Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
                         forwardPaginate();
                     } else if (firstVisibleRow < 2) {
@@ -1386,6 +1385,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         showLoadingForwardProgress();
 
+        Log.d(LOG_TAG, "forwardPaginate starts");
+
+        final int countBeforeUpdate = mAdapter.getCount();
 
         mIsFwdPaginating = mEventTimeLine.forwardPaginate(new ApiCallback<Integer>() {
             /**
@@ -1404,39 +1406,27 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void onSuccess(Integer info) {
                 final int firstPos = mMessageListView.getFirstVisiblePosition();
 
-                // Scroll the list down to where it was before adding rows to the top
+                mLockBackPagination = true;
+
+                mAdapter.notifyDataSetChanged();
+                // trick to avoid that the list jump to the latest item.
+                mMessageListView.setAdapter(mMessageListView.getAdapter());
+
+                // keep the first position while refreshing the list
+                mMessageListView.setSelection(firstPos);
+
                 mMessageListView.post(new Runnable() {
                     @Override
                     public void run() {
-                        mLockBackPagination = true;
+                        // Scroll the list down to where it was before adding rows to the top
+                        int diff = mAdapter.getCount() - countBeforeUpdate;
+                        Log.d(LOG_TAG, "forwardPaginate ends with " +  diff + " new items.");
 
-                        mMessageListView.setSelection(firstPos);
-                        mAdapter.notifyDataSetChanged();
-
-                        mMessageListView.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                // check if the selected item is the right one
-                                // it sometimes fails
-                                if (Math.abs(firstPos - mMessageListView.getFirstVisiblePosition()) > 2) {
-                                    mMessageListView.setSelection(firstPos);
-                                    Log.d(LOG_TAG, "forward scroll : first " + mMessageListView.getFirstVisiblePosition() + " instead of " + firstPos);
-
-                                    mMessageListView.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            onEndOfPagination(null);
-                                            mLockBackPagination = false;
-                                        }
-                                    });
-                                } else {
-                                    onEndOfPagination(null);
-                                    mLockBackPagination = false;
-                                }
-                            }
-                        });
+                        onEndOfPagination(null);
+                        mLockBackPagination = false;
                     }
                 });
+
             }
 
             @Override
@@ -1482,12 +1472,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        Log.d(LOG_TAG, "requestHistory : starts");
+
         final int countBeforeUpdate = mAdapter.getCount();
 
         mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(final Integer count) {
-                hideLoadingBackProgress();
 
                 // Scroll the list down to where it was before adding rows to the top
                 mMessageListView.post(new Runnable() {
@@ -1496,6 +1487,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         mLockFwdPagination = true;
 
                         int countDiff = mAdapter.getCount() - countBeforeUpdate;
+
+                        Log.d(LOG_TAG, "requestHistory : ends with " + countDiff + " new items");
+
 
                         // check if some messages have been added
                         // do not refresh the UI if no message have been added
@@ -1514,13 +1508,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mMessageListView.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    // check if the position is really not the expected one
-                                    if (Math.abs(expectedPos - mMessageListView.getFirstVisiblePosition()) > 2) {
-                                        mMessageListView.setSelection(expectedPos);
-                                    }
-
                                     mLockFwdPagination = false;
                                     mIsBackPaginating = false;
+
+                                    mMessageListView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            hideLoadingBackProgress();
+                                        }
+                                    });
                                 }
                             });
 
