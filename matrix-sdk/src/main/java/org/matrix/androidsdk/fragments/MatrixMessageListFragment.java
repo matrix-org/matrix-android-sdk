@@ -136,9 +136,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected EventTimeline mEventTimeLine;
     protected String mEventId;
 
-    // avoid to catch up old content if the initial sync is in progress
+    // pagination statuses
     protected boolean mIsInitialSyncing = true;
-    protected boolean mIsCatchingUp = false;
+    protected boolean mIsBackPaginating = false;
+    protected boolean mIsFwdPaginating = false;
+
+    // lock the pagination while refreshing the list view to avoid having twice or thrice refreshes sequence.
+    private boolean mLockBackPagination = false;
+    private boolean mLockFwdPagination = true;
 
     protected ArrayList<Event> mResendingEventsList;
 
@@ -230,8 +235,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void cancelCatchingRequests() {
         mPattern = null;
+
+        if (null != mEventTimeLine) {
+            mEventTimeLine.cancelPaginationRequest();
+        }
+
         mIsInitialSyncing = false;
-        mIsCatchingUp = false;
+        mIsBackPaginating = false;
+        mIsFwdPaginating = false;
+
+        mLockBackPagination = false;
+        mLockFwdPagination = false;
+
+        dismissLoadingBackProgress();
+        dismissLoadingForwardProgress();
     }
 
     @Override
@@ -281,11 +298,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if (null == mEventTimeLine) {
-            mEventId =  args.getString(ARG_EVENT_ID, null);
+            mEventId =  args.getString(ARG_EVENT_ID);
 
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
-            } else {
+            } else if (null != mRoom) {
                 mEventTimeLine = mRoom.getLiveTimeLine();
             }
         }
@@ -524,6 +541,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (mSession.isActive() && (null != mRoom) && mIsLive) {
             mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
         }
+
+        cancelCatchingRequests();
     }
 
     @Override
@@ -542,29 +561,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 //check only when the user scrolls the content
                 if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
+
                     int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
+                    int lastVisibleRow = mMessageListView.getLastVisiblePosition();
                     int count = mMessageListView.getCount();
 
-                    // All the messages are displayed within the same page
-                    if ((count > 0) && (firstVisibleRow < 2) && !mIsInitialSyncing && !mIsCatchingUp) {
-                        Log.d(LOG_TAG, "onScrollStateChanged - requesthistory");
-                        requestHistory();
-                    } else {
-                        Log.d(LOG_TAG, "onScrollStateChanged mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
+                    if ((lastVisibleRow + 10) >= count) {
+                        Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
+                        forwardPaginate();
+                    } else if (firstVisibleRow < 2) {
+                        Log.d(LOG_TAG, "onScrollStateChanged - request history");
+                        backPaginate();
                     }
                 }
             }
 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                // If we scroll to the top, load more history
-                // so not load history if there is an initial sync progress
-                // or the whole room content fits in a single page
-                if ((firstVisibleItem < 2) && !mIsInitialSyncing && !mIsCatchingUp && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                     Log.d(LOG_TAG, "onScroll - requesthistory");
-                    requestHistory();
-                } else {
-                    Log.d(LOG_TAG, "onScroll mIsInitialSyncing " + mIsInitialSyncing + "mIsCatchingUp " + mIsCatchingUp);
+                    backPaginate();
+                } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
+                    Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                    forwardPaginate();
                 }
             }
         });
@@ -1206,7 +1225,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             MatrixMessageListFragment.this.dismissLoadingBackProgress();
             MatrixMessageListFragment.this.dismissLoadingForwardProgress();
             Log.d(LOG_TAG, "requestHistory failed " + error);
-            mIsCatchingUp = false;
+            mIsBackPaginating = false;
         }
     }
 
@@ -1223,11 +1242,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void requestSearchHistory() {
         // there is no more server message
         if (TextUtils.isEmpty(mNextBatch)) {
-            mIsCatchingUp = false;
+            mIsBackPaginating = false;
             return;
         }
 
-        mIsCatchingUp = true;
+        mIsBackPaginating = true;
 
         final int firstPos = mMessageListView.getFirstVisiblePosition();
         final String fPattern = mPattern;
@@ -1284,13 +1303,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                 mMessageListView.setSelection(expectedFirstPos);
                                             }
 
-                                            mIsCatchingUp = false;
+                                            mIsBackPaginating = false;
                                         }
                                     });
                                 }
                             });
                         } else {
-                            mIsCatchingUp = false;
+                            mIsBackPaginating = false;
                         }
 
                         MatrixMessageListFragment.this.dismissLoadingBackProgress();
@@ -1299,7 +1318,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             private void onError() {
-                mIsCatchingUp = false;
+                mIsBackPaginating = false;
                 MatrixMessageListFragment.this.dismissLoadingBackProgress();
             }
 
@@ -1333,88 +1352,192 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    public void requestHistory() {
-        // avoid launching catchup if there is already one in progress
-        // or during a search
-        if (!mIsCatchingUp) {
-
-            // in search mode,
-            if (!TextUtils.isEmpty(mPattern)) {
-                Log.d(LOG_TAG, "requestHistory with pattern " + mPattern);
-                requestSearchHistory();
-                return;
-            }
-
-            final int countBeforeUpdate = mAdapter.getCount();
-
-            mIsCatchingUp = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
-                @Override
-                public void onSuccess(final Integer count) {
-                    dismissLoadingBackProgress();
-
-                    // Scroll the list down to where it was before adding rows to the top
-                    mMessageListView.post(new Runnable() {
-                        @Override
-                        public void run() {
-
-                            int countDiff = mAdapter.getCount() - countBeforeUpdate;
-
-                            // check if some messages have been added
-                            // do not refresh the UI if no message have been added
-                            if (0 != countDiff) {
-                                // refresh the list only at the end of the sync
-                                // else the one by one message refresh gives a weird UX
-                                // The application is almost frozen during the
-                                mAdapter.notifyDataSetChanged();
-
-                                final int expectedPos = mMessageListView.getFirstVisiblePosition() + countDiff;
-
-                                // do not use count because some messages are not displayed
-                                // so we compute the new pos
-                                mMessageListView.setSelection(expectedPos);
-
-                                mMessageListView.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // check if the position is really not the expected one
-                                        if (Math.abs(expectedPos - mMessageListView.getFirstVisiblePosition()) > 2) {
-                                            mMessageListView.setSelection(expectedPos);
-                                        }
-
-                                        mIsCatchingUp = false;
-                                    }
-                                });
-
-                            } else {
-                                mIsCatchingUp = false;
-                            }
-                        }
-                    });
-                }
-
-                // the request will be auto restarted when a valid network will be found
-                @Override
-                public void onNetworkError(Exception e) {
-                    onPaginateRequestError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    onPaginateRequestError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    onPaginateRequestError(e);
-                }
-            });
-
-            if (mIsCatchingUp && (null != getActivity())) {
-                displayLoadingBackProgress();
-            }
-        } else {
-            Log.d(LOG_TAG, "requestHistory : ignored because there is a pending catchup");
+    /**
+     * Start a forward pagination
+     */
+    private void forwardPaginate() {
+        if (mLockFwdPagination) {
+            Log.d(LOG_TAG, "The forward pagination is locked.");
+            return;
         }
+
+        if ((null == mEventTimeLine) || mEventTimeLine.isLiveTimeline()) {
+            Log.d(LOG_TAG, "The forward pagination is not supported for the live timeline.");
+            return;
+        }
+
+        if (mIsFwdPaginating) {
+            Log.d(LOG_TAG, "A forward pagination is in progress, please wait.");
+            return;
+        }
+
+
+        mIsFwdPaginating = mEventTimeLine.forwardPaginate(new ApiCallback<Integer>() {
+            /**
+             * the forward pagination is ended.
+             */
+            private void onEndOfPagination(String errorMessage) {
+                if (null != errorMessage) {
+                    Log.e(LOG_TAG, "forwardPaginate fails : " + errorMessage);
+                }
+
+                mIsFwdPaginating = false;
+                dismissLoadingForwardProgress();
+            }
+
+            @Override
+            public void onSuccess(Integer info) {
+                final int firstPos = mMessageListView.getFirstVisiblePosition();
+
+                // Scroll the list down to where it was before adding rows to the top
+                mMessageListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mLockBackPagination = true;
+
+                        mMessageListView.setSelection(firstPos);
+                        mAdapter.notifyDataSetChanged();
+
+                        mMessageListView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // check if the selected item is the right one
+                                // it sometimes fails
+                                if (Math.abs(firstPos - mMessageListView.getFirstVisiblePosition()) > 2) {
+                                    mMessageListView.setSelection(firstPos);
+                                    Log.d(LOG_TAG, "forward scroll : first " + mMessageListView.getFirstVisiblePosition() + " instead of " + firstPos);
+
+                                    mMessageListView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            onEndOfPagination(null);
+                                            mLockBackPagination = false;
+                                        }
+                                    });
+                                } else {
+                                    onEndOfPagination(null);
+                                    mLockBackPagination = false;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onEndOfPagination(e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onEndOfPagination(e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onEndOfPagination(e.getLocalizedMessage());
+            }
+        });
+
+        if (mIsFwdPaginating) {
+            displayLoadingForwardProgress();
+        }
+    }
+
+    public void backPaginate() {
+        if (mIsBackPaginating) {
+            Log.d(LOG_TAG, "requestHistory is in progress : please wait");
+        }
+
+        if (mIsInitialSyncing) {
+            Log.d(LOG_TAG, "requestHistory : an initial sync is in progress");
+            return;
+        }
+
+        if (mLockBackPagination) {
+            Log.d(LOG_TAG, "requestHistory : The back pagination is locked.");
+            return;
+        }
+
+        // in search mode,
+        if (!TextUtils.isEmpty(mPattern)) {
+            Log.d(LOG_TAG, "requestHistory with pattern " + mPattern);
+            requestSearchHistory();
+            return;
+        }
+
+        final int countBeforeUpdate = mAdapter.getCount();
+
+        mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
+            @Override
+            public void onSuccess(final Integer count) {
+                dismissLoadingBackProgress();
+
+                // Scroll the list down to where it was before adding rows to the top
+                mMessageListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mLockFwdPagination = true;
+
+                        int countDiff = mAdapter.getCount() - countBeforeUpdate;
+
+                        // check if some messages have been added
+                        // do not refresh the UI if no message have been added
+                        if (0 != countDiff) {
+                            // refresh the list only at the end of the sync
+                            // else the one by one message refresh gives a weird UX
+                            // The application is almost frozen during the
+                            mAdapter.notifyDataSetChanged();
+
+                            final int expectedPos = mMessageListView.getFirstVisiblePosition() + countDiff;
+
+                            // do not use count because some messages are not displayed
+                            // so we compute the new pos
+                            mMessageListView.setSelection(expectedPos);
+
+                            mMessageListView.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    // check if the position is really not the expected one
+                                    if (Math.abs(expectedPos - mMessageListView.getFirstVisiblePosition()) > 2) {
+                                        mMessageListView.setSelection(expectedPos);
+                                    }
+
+                                    mLockFwdPagination = false;
+                                    mIsBackPaginating = false;
+                                }
+                            });
+
+                        } else {
+                            mIsBackPaginating = false;
+                            mLockFwdPagination = false;
+                        }
+                    }
+                });
+            }
+
+            // the request will be auto restarted when a valid network will be found
+            @Override
+            public void onNetworkError(Exception e) {
+                onPaginateRequestError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onPaginateRequestError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onPaginateRequestError(e);
+            }
+        });
+
+        if (mIsBackPaginating && (null != getActivity())) {
+            displayLoadingBackProgress();
+        }
+
     }
 
     protected void redactEvent(String eventId) {
@@ -1483,25 +1606,26 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 dismissLoadingBackProgress();
 
-                if (mAdapter.getCount() > 0) {
-                    // refresh the list only at the end of the sync
-                    // else the one by one message refresh gives a weird UX
-                    // The application is almost frozen during the
-                    mAdapter.notifyDataSetChanged();
-
-                    mMessageListView.setSelection(mAdapter.getCount() - 1);
-                }
-
                 Log.d(LOG_TAG, "onInitialMessagesLoaded");
                 mIsInitialSyncing = false;
 
-                // fill the page
-                mMessageListView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        fillHistoryPage();
+                if ((null == mEventTimeLine) || mEventTimeLine.isLiveTimeline()) {
+                    if (mAdapter.getCount() > 0) {
+                        // refresh the list only at the end of the sync
+                        // else the one by one message refresh gives a weird UX
+                        // The application is almost frozen during the
+                        mAdapter.notifyDataSetChanged();
+                        mMessageListView.setSelection(mAdapter.getCount() - 1);
                     }
-                });
+
+                    // fill the page
+                    mMessageListView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            fillHistoryPage();
+                        }
+                    });
+                }
             }
         });
     }
@@ -1514,6 +1638,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.post(new Runnable() {
             @Override
             public void run() {
+                mLockFwdPagination = false;
+                mIsInitialSyncing = false;
                 // search the event pos in the adapter
                 // some events are not displayed so the added events count cannot be used.
                 int eventPos = 0;
@@ -1558,8 +1684,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // mMessageListView.getFirstVisiblePosition() == 0
         // because getFirstVisiblePosition returns the one above the first visible on the screen
         // and when jumping to the first visible after back paginating, this cell is not yet rendering.
-        if ((mMessageListView.getVisibility() == View.VISIBLE) && !mIsCatchingUp &&  mMessageListView.getFirstVisiblePosition() < 10)  {
-            mIsCatchingUp = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
+        if ((mMessageListView.getVisibility() == View.VISIBLE) && !mIsBackPaginating &&  mMessageListView.getFirstVisiblePosition() < 10)  {
+            mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
                 @Override
                 public void onSuccess(final Integer count) {
                     dismissLoadingBackProgress();
@@ -1571,7 +1697,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // else the one by one message refresh gives a weird UX
                             // The application is almost frozen during the
                             mAdapter.notifyDataSetChanged();
-                            mIsCatchingUp = false;
+                            mIsBackPaginating = false;
 
                             if (count != 0) {
                                 mMessageListView.post(new Runnable() {
@@ -1590,7 +1716,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Toast.makeText(MatrixMessageListFragment.this.getActivity(), message, Toast.LENGTH_SHORT).show();
                     }
 
-                    mIsCatchingUp = false;
+                    mIsBackPaginating = false;
                     dismissLoadingBackProgress();
                 }
 
@@ -1610,7 +1736,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
 
-            if (mIsCatchingUp) {
+            if (mIsBackPaginating) {
                 displayLoadingBackProgress();
             }
         }
