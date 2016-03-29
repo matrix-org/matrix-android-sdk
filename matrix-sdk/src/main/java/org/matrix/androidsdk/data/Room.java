@@ -159,24 +159,34 @@ public class Room {
      * @param isInitialSync true if the room is initialized by a global initial sync.
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        mIsSyncing = true;
-
-        mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
-
-        // ephemeral events
-        if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
-            handleEphemeralEvents(roomSync.ephemeral.events);
+        if (null != mOnInitialSyncCallback) {
+            Log.d(LOG_TAG, "initial sync handleJoinedRoomSync " + getRoomId());
+        } else {
+            Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId());
         }
 
-        // Handle account data events (if any)
-        if (null != roomSync.accountData) {
-            handleAccountDataEvents(roomSync.accountData.events);
+        mIsSyncing = true;
+
+        synchronized (this) {
+            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
+
+            // ephemeral events
+            if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
+                handleEphemeralEvents(roomSync.ephemeral.events);
+            }
+
+            // Handle account data events (if any)
+            if (null != roomSync.accountData) {
+                handleAccountDataEvents(roomSync.accountData.events);
+            }
         }
 
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
         if (null != mOnInitialSyncCallback) {
             try {
+                Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+
                 mOnInitialSyncCallback.onSuccess(null);
             } catch (Exception e) {
             }
@@ -368,15 +378,27 @@ public class Room {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
+
+        Log.d(LOG_TAG, "Join the room " + getRoomId());
+
         mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(getRoomId(), new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {
+                    boolean isRoomMember;
+
+                    synchronized (this) {
+                        isRoomMember = (getState().getMember(mMyUserId) != null);
+                    }
+
                     // the join request did not get the room initial history
-                    if (getState().getMember(mMyUserId) == null) {
+                    if (!isRoomMember) {
+                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
+
                         // wait the server sends the events chunk before calling the callback
                         setOnInitialSyncCallback(callback);
                     } else {
+                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
                         // already got the initial sync
                         callback.onSuccess(null);
                     }
@@ -387,16 +409,19 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "join onNetworkError " + e.getLocalizedMessage());
                 callback.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
                 callback.onMatrixError(e);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "join onUnexpectedError " + e.getLocalizedMessage());
                 callback.onUnexpectedError(e);
             }
         });

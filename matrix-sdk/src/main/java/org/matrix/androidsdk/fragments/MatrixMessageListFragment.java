@@ -1462,6 +1462,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void backPaginate() {
         if (mIsBackPaginating) {
             Log.d(LOG_TAG, "requestHistory is in progress : please wait");
+            return;
         }
 
         if (mIsInitialSyncing) {

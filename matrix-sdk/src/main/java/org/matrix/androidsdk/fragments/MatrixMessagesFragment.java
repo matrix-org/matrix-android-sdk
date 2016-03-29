@@ -210,7 +210,7 @@ public class MatrixMessagesFragment extends Fragment {
                 mRoom.addEventListener(mEventListener);
 
                 if (!joinedRoom) {
-                    Log.i(LOG_TAG, "Joining room >> " + roomId);
+                    Log.d(LOG_TAG, "Joining room >> " + roomId);
                     joinRoom();
                 }
                 else {
@@ -448,8 +448,17 @@ public class MatrixMessagesFragment extends Fragment {
 
                 if (null != getActivity()) {
                     if (null != mMatrixMessagesListener) {
-                        mMatrixMessagesListener.hideInitLoading();
-                        mMatrixMessagesListener.onInitialMessagesLoaded();
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    mMatrixMessagesListener.hideInitLoading();
+                                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getLocalizedMessage());
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -459,7 +468,13 @@ public class MatrixMessagesFragment extends Fragment {
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
                     if (null != mMatrixMessagesListener) {
-                        mMatrixMessagesListener.hideInitLoading();
+
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mMatrixMessagesListener.hideInitLoading();
+                            }
+                        });
                     }
                 }
             }
