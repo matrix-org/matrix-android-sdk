@@ -184,6 +184,13 @@ public class EventTimeline {
     }
 
     /**
+     * @return true if this timeline is the live one
+     */
+    public boolean isLiveTimeline() {
+        return mIsLiveTimeline;
+    }
+
+    /**
      * Set the room Id
      * @param roomId the new room id.
      */
