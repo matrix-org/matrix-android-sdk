@@ -566,7 +566,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     int lastVisibleRow = mMessageListView.getLastVisiblePosition();
                     int count = mMessageListView.getCount();
 
-                    if ((lastVisibleRow + 10) >= count) {
+                    if ((lastVisibleRow + 2) >= count) {
                         Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
                         forwardPaginate();
                     } else if (firstVisibleRow < 2) {
