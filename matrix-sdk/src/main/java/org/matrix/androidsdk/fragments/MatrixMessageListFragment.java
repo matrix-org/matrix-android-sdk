@@ -1385,8 +1385,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         showLoadingForwardProgress();
 
-        Log.d(LOG_TAG, "forwardPaginate starts");
-
         final int countBeforeUpdate = mAdapter.getCount();
 
         mIsFwdPaginating = mEventTimeLine.forwardPaginate(new ApiCallback<Integer>() {
@@ -1403,30 +1401,37 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onSuccess(Integer info) {
+            public void onSuccess(Integer count) {
                 final int firstPos = mMessageListView.getFirstVisiblePosition();
 
                 mLockBackPagination = true;
 
-                mAdapter.notifyDataSetChanged();
-                // trick to avoid that the list jump to the latest item.
-                mMessageListView.setAdapter(mMessageListView.getAdapter());
+                // retrieve
+                if (0 != count) {
 
-                // keep the first position while refreshing the list
-                mMessageListView.setSelection(firstPos);
+                    mAdapter.notifyDataSetChanged();
+                    // trick to avoid that the list jump to the latest item.
+                    mMessageListView.setAdapter(mMessageListView.getAdapter());
 
-                mMessageListView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Scroll the list down to where it was before adding rows to the top
-                        int diff = mAdapter.getCount() - countBeforeUpdate;
-                        Log.d(LOG_TAG, "forwardPaginate ends with " +  diff + " new items.");
+                    // keep the first position while refreshing the list
+                    mMessageListView.setSelection(firstPos);
 
-                        onEndOfPagination(null);
-                        mLockBackPagination = false;
-                    }
-                });
+                    mMessageListView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Scroll the list down to where it was before adding rows to the top
+                            int diff = mAdapter.getCount() - countBeforeUpdate;
+                            Log.d(LOG_TAG, "forwardPaginate ends with " + diff + " new items.");
 
+                            onEndOfPagination(null);
+                            mLockBackPagination = false;
+                        }
+                    });
+                } else {
+                    Log.d(LOG_TAG, "forwardPaginate ends : nothing to add");
+                    onEndOfPagination(null);
+                    mLockBackPagination = false;
+                }
             }
 
             @Override
@@ -1446,7 +1451,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         if (mIsFwdPaginating) {
+            Log.d(LOG_TAG, "forwardPaginate starts");
             showLoadingForwardProgress();
+        } else {
+            hideLoadingForwardProgress();
+            Log.d(LOG_TAG, "forwardPaginate nothing to do");
         }
     }
 
@@ -1471,8 +1480,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             requestSearchHistory();
             return;
         }
-
-        Log.d(LOG_TAG, "requestHistory : starts");
 
         final int countBeforeUpdate = mAdapter.getCount();
 
@@ -1546,9 +1553,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         if (mIsBackPaginating && (null != getActivity())) {
+            Log.d(LOG_TAG, "requestHistory : starts");
             showLoadingBackProgress();
+        } else {
+            Log.d(LOG_TAG, "requestHistory : nothing to do");
         }
-
     }
 
     protected void redactEvent(String eventId) {
