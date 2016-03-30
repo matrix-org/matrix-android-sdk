@@ -84,7 +84,7 @@ public class EventTimeline {
          * @param roomState the room state
          */
         void onEvent(Event event, Direction direction, RoomState roomState);
-    };
+    }
 
     /**
      * The initial event id used to initialise the timeline.

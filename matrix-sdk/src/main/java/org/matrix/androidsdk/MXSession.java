@@ -111,7 +111,7 @@ public class MXSession {
         mHsConfig = hsConfig;
 
         mEventsRestClient = new EventsRestClient(hsConfig);
-        mProfileRestClient = new ProfileRestClient(hsConfig);;
+        mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mBingRulesRestClient = new BingRulesRestClient(hsConfig);
