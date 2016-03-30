@@ -54,7 +54,6 @@ public class EventsThread extends Thread {
     private boolean mKilling = false;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
-    private RestAdapterCallback mEventsFailureCallback;
     private ApiFailureCallback mFailureCallback;
 
     // avoid restarting the listener if there is no network.
@@ -103,7 +102,6 @@ public class EventsThread extends Thread {
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
-        mEventsFailureCallback = new RestAdapterCallback(new SimpleApiCallback(failureCallback));
     }
 
     /**
@@ -254,7 +252,7 @@ public class EventsThread extends Thread {
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
 
-                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                             mListener.onInvalidToken();
                         } else {
                             sleepAndUnblock();

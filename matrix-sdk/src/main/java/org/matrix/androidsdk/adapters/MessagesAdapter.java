@@ -1268,8 +1268,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
+        // cannot refresh it
+        if (null == bodyTextView) {
+            Log.e(LOG_TAG, "getTextView : invalid layout");
+            return convertView;
+        }
+
         if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
-            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
@@ -1595,6 +1601,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // display a type watermark
         final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+
+        if (null == imageTypeView) {
+            Log.e(LOG_TAG, "getImageVideoView : invalid layout");
+            return convertView;
+        }
+
         imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
         if (waterMarkResourceId > 0) {
@@ -1652,6 +1664,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+
+        if (null == noticeTextView) {
+            Log.e(LOG_TAG, "getNoticeView : invalid layout");
+            return convertView;
+        }
+
         noticeTextView.setText(notice);
         noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
@@ -1681,6 +1699,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         EventDisplay display = new EventDisplay(mContext, msg, roomState);
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
+
+        if (null == emoteTextView) {
+            Log.e(LOG_TAG, "getEmoteView : invalid layout");
+            return convertView;
+        }
+
         emoteTextView.setText(display.getTextualDisplay());
 
         int textColor;
@@ -1780,8 +1804,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         Event msg = row.getEvent();
 
         final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
-
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+
+        if (null == fileTextView) {
+            Log.e(LOG_TAG, "getFileView : invalid layout");
+            return convertView;
+        }
+
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
 

@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Browser;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
@@ -145,10 +146,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mLockFwdPagination = true;
 
     protected ArrayList<Event> mResendingEventsList;
-
-    private Handler uiThreadHandler;
-
     private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
+
+    // scroll to to the dedicated index when the device has been rotated
+    private int mFirstVisibleRow = -1;
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -172,7 +173,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         @Override
         public void onPresenceUpdate(Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
-            uiThreadHandler.post(new Runnable() {
+            mUiHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     // check first if the userID has sent some messages in the room history
@@ -216,8 +217,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreate");
+
         super.onCreate(savedInstanceState);
-        uiThreadHandler = new Handler();
         setRetainInstance(true);
     }
 
@@ -253,6 +255,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreateView");
+
         super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
 
@@ -279,8 +283,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
-        int selectionIndex = -1;
-
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = createMessagesAdapter();
@@ -288,13 +290,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
-        } else if(null != savedInstanceState){
-            if (savedInstanceState.containsKey("FIRST_VISIBLE_ROW")) {
-                selectionIndex = savedInstanceState.getInt("FIRST_VISIBLE_ROW");
-            }
-            else {
-                selectionIndex = -1;
-            }
+        } else if(null != savedInstanceState) {
+            mFirstVisibleRow = savedInstanceState.getInt("FIRST_VISIBLE_ROW", -1);
         }
 
         if (null == mEventTimeLine) {
@@ -313,18 +310,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         mMessageListView.setAdapter(mAdapter);
-
-        if (-1 != selectionIndex) {
-            final int fselectionIndex = selectionIndex;
-
-            // fill the page
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mMessageListView.setSelection(fselectionIndex);
-                }
-            });
-        }
 
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -515,22 +500,47 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     }
 
+    /**
+     * Called when the fragment is no longer in use.  This is called
+     * after {@link #onStop()} and before {@link #onDetach()}.
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        // remove listeners to prevent memory leak
+        if(null != mMatrixMessagesFragment) {
+            mMatrixMessagesFragment.setMatrixMessagesListener(null);
+        }
+        if(null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(null);
+        }
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
         Bundle args = getArguments();
         FragmentManager fm = getActivity().getSupportFragmentManager();
         mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
+            Log.d(LOG_TAG, "onActivityCreated create");
+
             // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
             fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         }
         else {
+            Log.d(LOG_TAG, "onActivityCreated - reuse");
+
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
         }
+
+        mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
+
     }
 
     @Override
@@ -1615,7 +1625,55 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onReceiptEvent(List<String> senderIds) {
-        mAdapter.notifyDataSetChanged();
+        // avoid useless refresh
+        boolean shouldRefresh = true;
+
+        try {
+            IMXStore store = mSession.getDataHandler().getStore();
+            int firstPos = mMessageListView.getFirstVisiblePosition();
+            int lastPos = mMessageListView.getLastVisiblePosition();
+
+            ArrayList<String> senders = new ArrayList<>();
+            ArrayList<String> eventIds = new ArrayList<>();
+
+            for (int index = firstPos; index <= lastPos; index++) {
+                MessageRow row = mAdapter.getItem(index);
+
+                senders.add(row.getEvent().getSender());
+                eventIds.add(row.getEvent().eventId);
+            }
+
+            shouldRefresh = false;
+
+            // check if the receipt will trigger a refresh
+            for (String sender : senderIds) {
+                if (!TextUtils.equals(sender, mSession.getMyUserId())) {
+                    ReceiptData receipt = store.getReceipt(mRoom.getRoomId(), sender);
+
+                    // sanity check
+                    if (null != receipt) {
+                        // test if the event is displayed
+                        int pos = eventIds.indexOf(receipt.eventId);
+
+                        // if displayed
+                        if (pos >= 0) {
+                            // the sender is not displayed as a reader (makes sense...)
+                            shouldRefresh = !TextUtils.equals(senders.get(pos), sender);
+
+                            if (shouldRefresh) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+        }
+
+        if (shouldRefresh) {
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     public void onInitialMessagesLoaded() {

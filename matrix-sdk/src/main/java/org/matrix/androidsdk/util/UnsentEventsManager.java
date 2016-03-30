@@ -266,7 +266,7 @@ public class UnsentEventsManager {
                         Log.e(LOG_TAG, "Matrix Error " + mxError + " " + eventDescription);
                     }
 
-                    if (TextUtils.equals(MatrixError.FORBIDDEN, mxError.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
+                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
                         dataHandler.onInvalidToken();
                     } else {
                         callback.onMatrixError(mxError);

@@ -173,7 +173,8 @@ public class MXSession {
     private void checkIfActive() {
         synchronized (this) {
             if (!mIsActiveSession) {
-                throw new AssertionError("Should not used a cleared mxsession ");
+                Log.e(LOG_TAG, "Use of a release session");
+                //throw new AssertionError("Should not used a cleared mxsession ");
             }
         }
     }

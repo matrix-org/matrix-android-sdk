@@ -23,7 +23,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
@@ -46,12 +48,13 @@ import java.util.List;
  * pagination. For a UI implementation of this, see {@link MatrixMessageListFragment}.
  */
 public class MatrixMessagesFragment extends Fragment {
+    private static final String LOG_TAG = "MatrixMessagesFragment";
+
     /**
      * The room ID to get messages for.
      * Fragment argument: String.
      */
     public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
-    private static final String LOG_TAG = "MatrixMessagesFragment";
 
     public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
@@ -119,20 +122,33 @@ public class MatrixMessagesFragment extends Fragment {
     private final EventTimeline.EventTimelineListener mEventTimelineListener = new EventTimeline.EventTimelineListener() {
         @Override
         public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-            mMatrixMessagesListener.onEvent(event, direction,roomState);
+            mMatrixMessagesListener.onEvent(event, direction, roomState);
         }
     };
 
     private Context mContext;
     private MXSession mSession;
     private Room mRoom;
+    public boolean mKeepRoomHistory;
 
     private EventTimeline mEventTimeline;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreate");
+
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreateView");
+
+        View v = super.onCreateView(inflater, container, savedInstanceState);
+
+        // the requests are done in onCreateView  instead of onActivityCreated to speed up in the events request
+        // it saves only few ms but it reduces the white screen flash.
         mContext = getActivity().getApplicationContext();
 
         String roomId = getArguments().getString(ARG_ROOM_ID);
@@ -175,7 +191,7 @@ public class MatrixMessagesFragment extends Fragment {
             mEventTimeline.addEventTimelineListener(mEventTimelineListener);
             // the room has already been initialized
             sendInitialMessagesLoaded();
-            return;
+            return v;
         }
 
         if (null != mEventTimeline) {
@@ -220,6 +236,8 @@ public class MatrixMessagesFragment extends Fragment {
                 sendInitialMessagesLoaded();
             }
         }
+
+        return v;
     }
 
     @Override
