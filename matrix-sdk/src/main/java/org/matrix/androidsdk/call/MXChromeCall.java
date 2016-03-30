@@ -48,7 +48,7 @@ public class MXChromeCall extends MXCall {
     private WebView mWebView = null;
     private CallWebAppInterface mCallWebAppInterface = null;
 
-    private Boolean mIsIncomingPrepared = false;
+    private boolean mIsIncomingPrepared = false;
 
     private JsonObject mCallInviteParams = null;
 
@@ -57,7 +57,7 @@ public class MXChromeCall extends MXCall {
     /**
      * @return true if this stack can perform calls.
      */
-    public static Boolean isSupported() {
+    public static boolean isSupported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     }
 
@@ -578,7 +578,7 @@ public class MXChromeCall extends MXCall {
                 @Override
                 public void run() {
                     try {
-                        Boolean addIt = true;
+                        boolean addIt = true;
                         JsonObject content = (JsonObject) new JsonParser().parse(jsonContent);
 
                         // merge candidates

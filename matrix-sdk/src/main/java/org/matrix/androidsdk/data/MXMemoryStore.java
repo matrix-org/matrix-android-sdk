@@ -531,7 +531,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         if (null != roomId) {
             synchronized (mRoomEvents) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -540,13 +540,12 @@ public class MXMemoryStore implements IMXStore {
                     mRoomEvents.put(roomId, events);
                 }
 
-                if (direction == Room.EventDirection.FORWARDS) {
+                if (direction == EventTimeline.Direction.FORWARDS) {
                     mRoomTokens.put(roomId, eventsResponse.start);
 
                     for (Event event : eventsResponse.chunk) {
                         events.put(event.eventId, event);
                     }
-
                 } else { // BACKWARD
                     Collection<Event> eventsList = events.values();
 

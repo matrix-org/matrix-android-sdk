@@ -83,8 +83,8 @@ public class BingRuleSet {
      * @param rule the rule to delete.
      * @return true if the rule has been deleted
      */
-    public Boolean remove(BingRule rule) {
-        Boolean res = false;
+    public boolean remove(BingRule rule) {
+        boolean res = false;
 
         if (BingRule.KIND_CONTENT.equals(rule.kind)) {
             if (null != content) {

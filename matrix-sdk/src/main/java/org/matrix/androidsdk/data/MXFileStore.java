@@ -542,12 +542,12 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction) {
+    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         boolean canStore = true;
 
         // do not flush the room messages file
         // when the user reads the room history and the events list size reaches its max size.
-        if (direction == Room.EventDirection.BACKWARDS) {
+        if (direction == EventTimeline.Direction.BACKWARDS) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             if (null != events) {
@@ -881,7 +881,7 @@ public class MXFileStore extends MXMemoryStore {
         if (null != events) {
             // create the room object
             Room room = new Room();
-            room.setRoomId(roomId);
+            room.init(roomId, null);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);
@@ -1032,9 +1032,9 @@ public class MXFileStore extends MXMemoryStore {
                 GZIPOutputStream gz = new GZIPOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
-                out.writeObject(room.getLiveState());
+                out.writeObject(room.getState());
                 out.close();
-                Log.d(LOG_TAG, "saveRoomsState " + room.getLiveState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+                Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
             }
 
         } catch (Exception e) {
@@ -1110,7 +1110,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             if (null != liveState) {
-                room.setLiveState(liveState);
+                room.getLiveTimeLine().setState(liveState);
 
                 // check if some user can be retrieved from the room members
                 Collection<RoomMember> members = liveState.getMembers();
@@ -1425,7 +1425,7 @@ public class MXFileStore extends MXMemoryStore {
             // the room state is not saved in the summary.
             // it is restored from the room
             if (null != room) {
-                summary.setLatestRoomState(room.getLiveState());
+                summary.setLatestRoomState(room.getState());
             }
 
             mRoomSummaries.put(roomId, summary);

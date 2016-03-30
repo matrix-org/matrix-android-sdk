@@ -135,7 +135,7 @@ public interface IMXStore {
      * @param eventsResponse The events to be stored.
      * @param direction the direction; forwards for live, backwards for pagination
      */
-    void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction);
+    void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction);
 
     /**
      * Store the back token of a room.

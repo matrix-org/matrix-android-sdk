@@ -55,13 +55,6 @@ public interface IMXEventListener {
     void onLiveEventsChunkProcessed();
 
     /**
-     * A back room event was received.
-     * @param event the event
-     * @param roomState the room state right before the event
-     */
-    void onBackEvent(Event event, RoomState roomState);
-
-    /**
      * A received event fulfills the bing rules
      * The first matched bing rule is provided in paramater to perform
      * dedicated action like playing a notification sound.

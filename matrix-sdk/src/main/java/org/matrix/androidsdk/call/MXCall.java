@@ -47,8 +47,8 @@ public class MXCall implements IMXCall {
 
     // the current call id
     protected String mCallId = null;
-    protected Boolean mIsVideoCall = false;
-    protected Boolean mIsIncoming = false;
+    protected boolean mIsVideoCall = false;
+    protected boolean mIsIncoming = false;
 
     protected ArrayList<Event> mPendingEvents = new ArrayList<Event>();
     protected Event mPendingEvent = null;
@@ -183,14 +183,14 @@ public class MXCall implements IMXCall {
     /**
      * @return true if the call is an incoming call.
      */
-    public Boolean isIncoming() {
+    public boolean isIncoming() {
         return mIsIncoming;
     }
 
     /**
      * @param isIncoming true if the call is an incoming one.
      */
-    public void setIsIncoming(Boolean isIncoming) {
+    public void setIsIncoming(boolean isIncoming) {
         mIsIncoming = isIncoming;
     }
 
@@ -198,14 +198,14 @@ public class MXCall implements IMXCall {
     /**
      * Defines the call type
      */
-    public void setIsVideo(Boolean isVideo) {
+    public void setIsVideo(boolean isVideo) {
         mIsVideoCall = isVideo;
     }
 
     /**
      * @return true if the call is a video call.
      */
-    public Boolean isVideo() {
+    public boolean isVideo() {
         return mIsVideoCall;
     }
 
@@ -241,7 +241,7 @@ public class MXCall implements IMXCall {
     /**
      * @return if the call is ended.
      */
-    public Boolean isCallEnded() {
+    public boolean isCallEnded() {
         return TextUtils.equals(CALL_STATE_ENDED, getCallState());
     }
 

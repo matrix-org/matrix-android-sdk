@@ -84,7 +84,7 @@ public class UnsentEventsManager {
 
         public Timer mLifeTimeTimer = null;
         // the retry is in progress
-        public Boolean mIsResending = false;
+        public boolean mIsResending = false;
         // human description of the event
         // The snapshot creator can hide some fields
         public String mEventDescription = null;
@@ -92,7 +92,7 @@ public class UnsentEventsManager {
         /**
          *
          */
-        public Boolean waitToBeResent() {
+        public boolean waitToBeResent() {
             return (null != mAutoResendTimer);
         }
 

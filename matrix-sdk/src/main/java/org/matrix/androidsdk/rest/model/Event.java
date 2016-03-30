@@ -112,7 +112,7 @@ public class Event implements java.io.Serializable {
     // The file cache uses the token as a pagination marker.
     // When the user paginates, the file cache paginate until to find X events or an event with a token.
     // This token must be used to perform a server catchup.
-    public Boolean mIsInternalPaginationToken;
+    public boolean mIsInternalPaginationToken;
 
     // store the linked matrix id
     private String mMatrixId;
@@ -317,15 +317,15 @@ public class Event implements java.io.Serializable {
         mIsInternalPaginationToken = true;
     }
 
-    public Boolean isIntenalPaginationToken() {
+    public boolean isIntenalPaginationToken() {
         return  mIsInternalPaginationToken;
     }
 
-    public Boolean hasToken() {
+    public boolean hasToken() {
         return (null != mToken) && !mIsInternalPaginationToken;
     }
 
-    public Boolean isCallEvent() {
+    public boolean isCallEvent() {
         return  EVENT_TYPE_CALL_INVITE.equals(type) ||
                 EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
                 EVENT_TYPE_CALL_ANSWER.equals(type) ||

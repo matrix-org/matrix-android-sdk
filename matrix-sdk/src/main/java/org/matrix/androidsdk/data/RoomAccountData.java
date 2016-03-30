@@ -56,7 +56,7 @@ public class RoomAccountData implements java.io.Serializable{
     /**
      * @return true if some tags are defined
      */
-    public Boolean hasTags() {
+    public boolean hasTags() {
         return (null != tags) && (tags.size() > 0);
     }
 

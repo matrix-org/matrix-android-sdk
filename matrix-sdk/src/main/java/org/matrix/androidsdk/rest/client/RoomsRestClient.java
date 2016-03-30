@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -29,6 +31,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -40,7 +43,11 @@ import org.matrix.androidsdk.rest.model.User;
 import java.util.HashMap;
 import java.util.List;
 
+import retrofit.Callback;
 import retrofit.client.Response;
+import retrofit.http.GET;
+import retrofit.http.Path;
+import retrofit.http.Query;
 
 /**
  * Class used to make requests to the rooms API.
@@ -106,29 +113,31 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Get messages for the given room starting from the given token.
      * @param roomId the room id
      * @param fromToken the token identifying the message to start from
+     * @param direction the direction
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getEarlierMessages(final String roomId, final String fromToken, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        getEarlierMessages(roomId, fromToken, DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
+    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        messagesFrom(roomId, fromToken, direction, DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
     }
 
     /**
      * Get messages for the given room starting from the given token.
      * @param roomId the room id
      * @param fromToken the token identifying the message to start from
+     * @param direction the direction
      * @param limit the maximum number of messages to retrieve.
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void getEarlierMessages(final String roomId, final String fromToken, final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        final String description = "getEarlierMessages : roomId " + roomId + " fromToken " + fromToken + " with limit " + limit;
+    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction,  final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction +  " with limit " + limit;
 
-        mApi.messagesFrom(roomId, "b", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.messagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    getEarlierMessages(roomId, fromToken, limit, callback);
+                    messagesFrom(roomId, fromToken, direction, limit, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getEarlierMessages : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend messagesFrom : failed " + e.getMessage());
                 }
             }
         }));
@@ -386,6 +395,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     initialSync(roomId, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend initialSync failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Get the context surrounding an event.
+     * @param roomId the room id
+     * @param eventId the event Id
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    public void contextOfEvent(final String roomId, final String eventId, final int limit, final ApiCallback<EventContext> callback) {
+        final String description = "contextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
+
+        mApi.contextOfEvent(roomId, eventId, limit, new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    contextOfEvent(roomId, eventId, limit, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend contextOfEvent failed " + e.getMessage());
                 }
             }
         }));

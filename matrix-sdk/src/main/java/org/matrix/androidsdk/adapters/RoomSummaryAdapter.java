@@ -352,7 +352,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
      * @param roomState the roomState
      * @param refresh true to refresh the UI
      */
-    public void setLatestEvent(int section, Event event, RoomState roomState, Boolean refresh) {
+    public void setLatestEvent(int section, Event event, RoomState roomState, boolean refresh) {
         RoomSummary summary = getSummaryByRoomId(section, event.roomId);
         if (summary != null) {
             summary.setLatestEvent(event);
@@ -529,8 +529,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 if (null == latestRoomState) {
                     Room room = roomFromRoomSummary(summary);
 
-                    if ((null != room) && (null != room.getLiveState())) {
-                        latestRoomState = room.getLiveState().deepCopy();
+                    if ((null != room) && (null != room.getState())) {
+                        latestRoomState = room.getState().deepCopy();
                         // store it to avoid retrieving it once
                         summary.setLatestRoomState(latestRoomState);
                     }

@@ -57,7 +57,7 @@ public class RoomSummary implements java.io.Serializable {
     // the roomstate is not always known
     private String mInviterUserId = null;
     // retrieved from the roomState
-    private Boolean mIsInvited = false;
+    private boolean mIsInvited = false;
     private String mInviterName = null;
 
     private String mMatrixId = null;
@@ -85,7 +85,7 @@ public class RoomSummary implements java.io.Serializable {
      */
     public static boolean isSupportedEvent(Event event) {
         String type = event.type;
-        Boolean isSupported = false;
+        boolean isSupported = false;
 
         // check if the msgtype is supported
         if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type)) {
@@ -277,7 +277,7 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * @return true if the room summay must be highlighted
      */
-    public Boolean isHighlighted() {
+    public boolean isHighlighted() {
         return mIsHighlighted || isInvited();
     }
 
@@ -286,7 +286,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param isHighlighted the new highlight status.
      * @return true if there is an update
      */
-    public boolean setHighlighted(Boolean isHighlighted) {
+    public boolean setHighlighted(boolean isHighlighted) {
         boolean isUpdated = (mIsHighlighted != isHighlighted);
 
         mIsHighlighted = isHighlighted;
@@ -310,7 +310,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param ts the ts
      * @return true if the update succeeds
      */
-    public Boolean setReadReceiptToken(String token, long ts) {
+    public boolean setReadReceiptToken(String token, long ts) {
         if ((ts > mReadReceiptTs) && !TextUtils.equals(token, mReadReceiptToken)) {
             mReadReceiptToken = token;
             mReadReceiptTs = ts;
