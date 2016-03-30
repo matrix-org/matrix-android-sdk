@@ -25,7 +25,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Browser;
 import android.provider.MediaStore;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
@@ -210,6 +209,40 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     };
 
+    AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
+        @Override
+        public void onScrollStateChanged(AbsListView view, int scrollState) {
+            mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
+
+            //check only when the user scrolls the content
+            if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
+
+                int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
+                int lastVisibleRow = mMessageListView.getLastVisiblePosition();
+                int count = mMessageListView.getCount();
+
+                if ((lastVisibleRow + 10) >= count) {
+                    Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
+                    forwardPaginate();
+                } else if (firstVisibleRow < 2) {
+                    Log.d(LOG_TAG, "onScrollStateChanged - request history");
+                    backPaginate(false);
+                }
+            }
+        }
+
+        @Override
+        public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+            if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                Log.d(LOG_TAG, "onScroll - backPaginate");
+                backPaginate(false);
+            } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
+                Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                forwardPaginate();
+            }
+        }
+    };
+
     public MessagesAdapter createMessagesAdapter() {
         return null;
     }
@@ -315,8 +348,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null != mRoom) {
             mAdapter.setTypingUsers(mRoom.getTypingUsers());
         }
-
-        mMessageListView.setAdapter(mAdapter);
 
         mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -573,40 +604,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if ((null != mRoom) && mIsLive) {
             mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventsListenener);
         }
-
-        mMessageListView.setOnScrollListener(new AbsListView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-                mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
-
-                //check only when the user scrolls the content
-                if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
-
-                    int firstVisibleRow = mMessageListView.getFirstVisiblePosition();
-                    int lastVisibleRow = mMessageListView.getLastVisiblePosition();
-                    int count = mMessageListView.getCount();
-
-                    if ((lastVisibleRow + 10) >= count) {
-                        Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
-                        forwardPaginate();
-                    } else if (firstVisibleRow < 2) {
-                        Log.d(LOG_TAG, "onScrollStateChanged - request history");
-                        backPaginate();
-                    }
-                }
-            }
-
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
-                    Log.d(LOG_TAG, "onScroll - requesthistory");
-                    backPaginate();
-                } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
-                    Log.d(LOG_TAG, "onScroll - forwardPaginate");
-                    forwardPaginate();
-                }
-            }
-        });
     }
 
     public void sendTextMessage(String body) {
@@ -1472,25 +1469,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    public void backPaginate() {
+    public void backPaginate(final boolean fillHistory) {
         if (mIsBackPaginating) {
-            Log.d(LOG_TAG, "requestHistory is in progress : please wait");
+            Log.d(LOG_TAG, "backPaginate is in progress : please wait");
             return;
         }
 
         if (mIsInitialSyncing) {
-            Log.d(LOG_TAG, "requestHistory : an initial sync is in progress");
+            Log.d(LOG_TAG, "backPaginate : an initial sync is in progress");
             return;
         }
 
         if (mLockBackPagination) {
-            Log.d(LOG_TAG, "requestHistory : The back pagination is locked.");
+            Log.d(LOG_TAG, "backPaginate : The back pagination is locked.");
             return;
         }
 
         // in search mode,
         if (!TextUtils.isEmpty(mPattern)) {
-            Log.d(LOG_TAG, "requestHistory with pattern " + mPattern);
+            Log.d(LOG_TAG, "backPaginate with pattern " + mPattern);
             requestSearchHistory();
             return;
         }
@@ -1509,18 +1506,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         int countDiff = mAdapter.getCount() - countBeforeUpdate;
 
-                        Log.d(LOG_TAG, "requestHistory : ends with " + countDiff + " new items");
-
+                        Log.d(LOG_TAG, "backPaginate : ends with " + countDiff + " new items (total : " + mAdapter.getCount() + ")");
 
                         // check if some messages have been added
                         // do not refresh the UI if no message have been added
                         if (0 != countDiff) {
-                            // refresh the list only at the end of the sync
-                            // else the one by one message refresh gives a weird UX
-                            // The application is almost frozen during the
+
                             mAdapter.notifyDataSetChanged();
 
-                            final int expectedPos = mMessageListView.getFirstVisiblePosition() + countDiff;
+                            // trick to avoid that the list jump to the latest item.
+                            mMessageListView.setAdapter(mMessageListView.getAdapter());
+
+                            final int expectedPos = fillHistory ? (mAdapter.getCount() - 1) : (mMessageListView.getFirstVisiblePosition() + countDiff);
+
+                            Log.d(LOG_TAG, "backPaginate : jump to " + expectedPos);
 
                             // do not use count because some messages are not displayed
                             // so we compute the new pos
@@ -1535,7 +1534,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     mMessageListView.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            hideLoadingBackProgress();
+                                            if (fillHistory) {
+                                                if ((mMessageListView.getVisibility() == View.VISIBLE) && mMessageListView.getFirstVisiblePosition() < 10) {
+                                                    Log.d(LOG_TAG, "backPaginate : fill history");
+                                                    backPaginate(fillHistory);
+                                                } else {
+                                                    Log.d(LOG_TAG, "backPaginate : history should be filled");
+                                                    hideLoadingBackProgress();
+                                                    mIsInitialSyncing = false;
+                                                    mMessageListView.setOnScrollListener(mScrollListener);
+                                                }
+                                            } else {
+                                                hideLoadingBackProgress();
+                                            }
                                         }
                                     });
                                 }
@@ -1567,7 +1578,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
 
         if (mIsBackPaginating && (null != getActivity())) {
-            Log.d(LOG_TAG, "requestHistory : starts");
+            Log.d(LOG_TAG, "backPaginate : starts");
             showLoadingBackProgress();
         } else {
             Log.d(LOG_TAG, "requestHistory : nothing to do");
@@ -1688,10 +1699,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             public void run() {
                 hideLoadingBackProgress();
 
-                Log.d(LOG_TAG, "onInitialMessagesLoaded");
-                mIsInitialSyncing = false;
+                if (null == mMessageListView.getAdapter()) {
+                    mMessageListView.setAdapter(mAdapter);
+                }
 
                 if ((null == mEventTimeLine) || mEventTimeLine.isLiveTimeline()) {
+
                     if (mAdapter.getCount() > 0) {
                         // refresh the list only at the end of the sync
                         // else the one by one message refresh gives a weird UX
@@ -1704,9 +1717,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mMessageListView.post(new Runnable() {
                         @Override
                         public void run() {
-                            fillHistoryPage();
+                            if ((mMessageListView.getVisibility() == View.VISIBLE) && mMessageListView.getFirstVisiblePosition() < 10) {
+                                Log.d(LOG_TAG, "onInitialMessagesLoaded : fill history");
+                                backPaginate(true);
+                            } else {
+                                Log.d(LOG_TAG, "onInitialMessagesLoaded : history should be filled");
+                                mIsInitialSyncing = false;
+                                mMessageListView.setOnScrollListener(mScrollListener);
+                            }
                         }
                     });
+                } else {
+                    Log.d(LOG_TAG, "onInitialMessagesLoaded : default behaviour");
+                    mIsInitialSyncing = false;
+                    mMessageListView.setOnScrollListener(mScrollListener);
                 }
             }
         });
@@ -1734,6 +1758,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 View parentView = (View) mMessageListView.getParent();
 
                 mAdapter.notifyDataSetChanged();
+
+                mMessageListView.setAdapter(mAdapter);
+
                 // center the message in the
                 mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
             }
@@ -1743,78 +1770,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onRoomSyncWithLimitedTimeline() {
         mAdapter.clear();
-    }
-
-    /**
-     * Paginate the room until to fill the current page or there is no more item to display.
-     */
-    private void fillHistoryPage() {
-        // does nothing if the activity has been killed
-        if (null == getActivity()) {
-            return;
-        }
-
-        // fill the room history until there are at least 10 messages to be displayed
-        // it avoid weird back pagination effects if the test is done with
-        // mMessageListView.getFirstVisiblePosition() == 0
-        // because getFirstVisiblePosition returns the one above the first visible on the screen
-        // and when jumping to the first visible after back paginating, this cell is not yet rendering.
-        if ((mMessageListView.getVisibility() == View.VISIBLE) && !mIsBackPaginating &&  mMessageListView.getFirstVisiblePosition() < 10)  {
-            mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
-                @Override
-                public void onSuccess(final Integer count) {
-                    hideLoadingBackProgress();
-                    // Scroll the list down to where it was before adding rows to the top
-                    mUiHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            // refresh the list only at the end of the sync
-                            // else the one by one message refresh gives a weird UX
-                            // The application is almost frozen during the
-                            mAdapter.notifyDataSetChanged();
-                            mIsBackPaginating = false;
-
-                            if (count != 0) {
-                                mMessageListView.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        fillHistoryPage();
-                                    }
-                                });
-                            }
-                        }
-                    });
-                }
-
-                private void onError(String message) {
-                    if (!TextUtils.isEmpty(message)) {
-                        Toast.makeText(MatrixMessageListFragment.this.getActivity(), message, Toast.LENGTH_SHORT).show();
-                    }
-
-                    mIsBackPaginating = false;
-                    hideLoadingBackProgress();
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    onError(e.getLocalizedMessage());
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    onError(e.getLocalizedMessage());
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    onError(e.getLocalizedMessage());
-                }
-            });
-
-            if (mIsBackPaginating) {
-                showLoadingBackProgress();
-            }
-        }
     }
 
     /***  MessageAdapter listener  ***/

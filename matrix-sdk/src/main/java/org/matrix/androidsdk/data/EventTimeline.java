@@ -733,7 +733,7 @@ public class EventTimeline {
     // History request
     //================================================================================
 
-    private static final int MAX_EVENT_COUNT_PER_PAGINATION = 20;
+    private static final int MAX_EVENT_COUNT_PER_PAGINATION = 30;
 
     // the storage events are buffered to provide a small bunch of events
     // the storage can provide a big bunch which slows down the UI.
