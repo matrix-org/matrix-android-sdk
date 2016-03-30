@@ -211,6 +211,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
 
+    private HashMap<String, Integer> mEventType = new HashMap<String, Integer>();
+
     protected int normalColor;
     protected int notSentColor;
     protected int sendingColor;
@@ -569,22 +571,34 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return the view type.
      */
     private int getItemViewType(Event event) {
+        String eventId = event.eventId;
+
+        if (null != eventId) {
+            Integer type = mEventType.get(eventId);
+
+            if (null != type) {
+                return type;
+            }
+        }
+
+        int viewType;
+
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             Message message = JsonUtils.toMessage(event.content);
 
             if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
-                return ROW_TYPE_TEXT;
+                viewType = ROW_TYPE_TEXT;
             } else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
-                return ROW_TYPE_IMAGE;
+                viewType = ROW_TYPE_IMAGE;
             } else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
-                return ROW_TYPE_EMOTE;
+                viewType = ROW_TYPE_EMOTE;
             } else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
-                return ROW_TYPE_FILE;
+                viewType = ROW_TYPE_FILE;
             } else if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
-                return ROW_TYPE_VIDEO;
+                viewType = ROW_TYPE_VIDEO;
             } else {
                 // Default is to display the body as text
-                return ROW_TYPE_TEXT;
+                viewType = ROW_TYPE_TEXT;
             }
         }
         else if (
@@ -594,11 +608,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
                 ) {
-            return ROW_TYPE_NOTICE;
+            viewType = ROW_TYPE_NOTICE;
         }
         else {
             throw new RuntimeException("Unknown event type: " + event.type);
         }
+
+        if (null != eventId) {
+            mEventType.put(eventId, new Integer(viewType));
+        }
+
+        return viewType;
     }
 
     @Override
@@ -1275,7 +1295,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
-             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
@@ -1623,7 +1643,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (type == ROW_TYPE_IMAGE) {
             manageUploadView(convertView, msg, ((ImageMessage)message).url);
         } else {
-            manageVideoUpload(convertView, msg, (VideoMessage)message);
+            manageVideoUpload(convertView, msg, (VideoMessage) message);
         }
 
         // dimmed when the message is not sent

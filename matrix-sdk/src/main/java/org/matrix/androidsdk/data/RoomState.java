@@ -21,7 +21,6 @@ import android.text.TextUtils;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -126,6 +125,9 @@ public class RoomState implements java.io.Serializable {
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
 
+    // member display cache
+    private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<String, String>();
+
     public String getToken() {
         return token;
     }
@@ -156,6 +158,9 @@ public class RoomState implements java.io.Serializable {
             member.setUserId(userId);
         }
         synchronized (this) {
+            if (null != mMemberDisplayNameByUserId) {
+                mMemberDisplayNameByUserId.remove(userId);
+            }
             mMembers.put(userId, member);
         }
     }
@@ -457,7 +462,6 @@ public class RoomState implements java.io.Serializable {
                         mMembersWithThirdPartyInviteTokenCache.put(member.thirdPartyInviteToken, member);
                     }
 
-
                     setMember(userId, member);
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
@@ -495,7 +499,18 @@ public class RoomState implements java.io.Serializable {
             return null;
         }
 
-        String displayName = null;
+        String displayName;
+
+        synchronized (this) {
+            if (null == mMemberDisplayNameByUserId) {
+                mMemberDisplayNameByUserId = new HashMap<String, String>();
+            }
+            displayName = mMemberDisplayNameByUserId.get(userId);
+        }
+
+        if (null != displayName) {
+            return displayName;
+        }
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
@@ -536,6 +551,8 @@ public class RoomState implements java.io.Serializable {
             // By default, use the user ID
             displayName = userId;
         }
+
+        mMemberDisplayNameByUserId.put(userId, displayName);
 
         return displayName;
     }

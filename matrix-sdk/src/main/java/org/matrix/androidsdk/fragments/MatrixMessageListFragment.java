@@ -148,6 +148,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected ArrayList<Event> mResendingEventsList;
     private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
 
+    private HashMap<String, Object> mBingRulesByEventId = new HashMap<String, Object>();
+
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
 
@@ -200,6 +202,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
                 }
             });
+        }
+
+        @Override
+        public void onBingRulesUpdate() {
+            mBingRulesByEventId.clear();
         }
     };
 
@@ -546,6 +553,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onPause() {
         super.onPause();
+
+        //
+        mBingRulesByEventId.clear();
 
         // check if the session has not been logged out
         if (mSession.isActive() && (null != mRoom) && mIsLive) {
@@ -1858,13 +1868,30 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public boolean shouldHighlightEvent(Event event) {
+        String eventId = event.eventId;
+
+        // cache the dedicated rule because it is slow to find them out
+        Object ruleAsVoid = mBingRulesByEventId.get(eventId);
+
+        if (null != ruleAsVoid) {
+            if (ruleAsVoid instanceof BingRule) {
+                return ((BingRule)ruleAsVoid).shouldHighlight();
+            }
+            return false;
+        }
+
+        boolean res = false;
+
         BingRule rule = mSession.getDataHandler().getBingRulesManager().fulfilledBingRule(event);
 
         if (null != rule) {
-            return rule.shouldHighlight();
+            res = rule.shouldHighlight();
+            mBingRulesByEventId.put(eventId, rule);
+        } else {
+            mBingRulesByEventId.put(eventId, eventId);
         }
 
-        return false;
+        return res;
     }
 
     // thumbnails management
