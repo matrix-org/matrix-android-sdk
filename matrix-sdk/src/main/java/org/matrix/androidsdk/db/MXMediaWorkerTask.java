@@ -176,7 +176,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         if (null != url) {
 
             if (null == sMemoryCache) {
-                int lruSize = Math.min(2 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
+                int lruSize = Math.min(20 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
 
                 Log.d(LOG_TAG, "bitmapForURL  lruSize : " + lruSize);
 
