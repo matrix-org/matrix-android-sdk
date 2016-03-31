@@ -584,17 +584,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int viewType;
 
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            Message message = JsonUtils.toMessage(event.content);
 
-            if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
+            String msgType = JsonUtils.getMessageMsgType(event.content);
+
+            if (Message.MSGTYPE_TEXT.equals(msgType)) {
                 viewType = ROW_TYPE_TEXT;
-            } else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_IMAGE.equals(msgType)) {
                 viewType = ROW_TYPE_IMAGE;
-            } else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_EMOTE.equals(msgType)) {
                 viewType = ROW_TYPE_EMOTE;
-            } else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
                 viewType = ROW_TYPE_FILE;
-            } else if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
                 viewType = ROW_TYPE_VIDEO;
             } else {
                 // Default is to display the body as text

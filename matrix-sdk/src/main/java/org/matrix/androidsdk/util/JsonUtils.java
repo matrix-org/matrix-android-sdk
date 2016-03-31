@@ -90,6 +90,11 @@ public class JsonUtils {
         return gson.toJsonTree(roomMember);
     }
 
+    public static String getMessageMsgType(JsonElement jsonObject) {
+        Message message = gson.fromJson(jsonObject, Message.class);
+        return message.msgtype;
+    }
+
     public static Message toMessage(JsonElement jsonObject) {
         Message message = gson.fromJson(jsonObject, Message.class);
 
