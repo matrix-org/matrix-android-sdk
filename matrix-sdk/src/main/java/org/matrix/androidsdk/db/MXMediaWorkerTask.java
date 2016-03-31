@@ -160,6 +160,23 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     }
 
     /**
+     * Tell if the media is cached
+     * @param url the media url
+     * @return true if the media is cached
+     */
+    public static boolean isUrlCached(String url) {
+        boolean res = false;
+
+        if ((null != sMemoryCache) && (null != url)) {
+            synchronized (sMemoryCache) {
+                res = (null != sMemoryCache.get(url));
+            }
+        }
+
+        return res;
+    }
+
+    /**
      * Search a cached bitmap from an url.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
