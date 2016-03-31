@@ -42,6 +42,11 @@ public class Event implements java.io.Serializable {
         UNDELIVERABLE   // The event failed to be sent
     }
 
+    // when there is no more message to be paginated in a room
+    // the server returns a null token.
+    // defines by a non null one to ben able tp store it.
+    public static final String PAGINATE_BACK_TOKEN_END = "PAGINATE_BACK_TOKEN_END";
+
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";

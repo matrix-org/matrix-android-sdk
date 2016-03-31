@@ -81,6 +81,28 @@ public class DataRetriever {
      * @param callback the callback
      */
     private void backPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        // reach the marker end
+        if (TextUtils.equals(token, Event.PAGINATE_BACK_TOKEN_END)) {
+            // nothing more to provide
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+
+            // call the callback with a delay
+            // to reproduce the same behaviour as a network request.
+            // except for the initial request.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    handler.postDelayed(new Runnable() {
+                        public void run() {
+                            callback.onSuccess(new TokensChunkResponse<Event>());
+                        }
+                    }, 100);
+                }
+            };
+
+            return;
+        }
+
         TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         putPendingToken(mPendingBackwardRequestTokenByRoomId, roomId, token);
@@ -118,6 +140,12 @@ public class DataRetriever {
 
                         if (events.chunk.size() != 0) {
                             events.chunk.get(0).mToken = events.start;
+
+                            // there is no more data on server side
+                            if (null == events.end) {
+                                events.end = Event.PAGINATE_BACK_TOKEN_END;
+                            }
+
                             events.chunk.get(events.chunk.size() - 1).mToken = events.end;
 
                             Event firstReturnedEvent = events.chunk.get(0);
@@ -125,7 +153,6 @@ public class DataRetriever {
                                     && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
                                 events.chunk.remove(0);
                             }
-
 
                             store.storeRoomEvents(roomId, events, EventTimeline.Direction.BACKWARDS);
                         }

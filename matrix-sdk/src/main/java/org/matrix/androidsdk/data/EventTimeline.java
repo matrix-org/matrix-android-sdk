@@ -368,6 +368,12 @@ public class EventTimeline {
                     }
                 }
 
+                // if the prev batch is set to null
+                // it implies there is no more data on server side.
+                if (null == roomSync.timeline.prevBatch) {
+                    roomSync.timeline.prevBatch = Event.PAGINATE_BACK_TOKEN_END;
+                }
+
                 // In case of limited timeline, update token where to start back pagination
                 mStore.storeBackToken(mRoomId, roomSync.timeline.prevBatch);
                 // reset the state back token
@@ -867,14 +873,14 @@ public class EventTimeline {
             mSnapshotedEvents.clear();
         }
 
-        mIsBackPaginating = true;
-
         final String fromBackToken = getBackState().getToken();
 
-        // enough buffered data
-        if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken)) {
+        mIsBackPaginating = true;
 
-            mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken);
+        // enough buffered data
+        if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
+
+            mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END);
 
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
@@ -910,16 +916,22 @@ public class EventTimeline {
 
                     Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
 
-                    mIsLastBackChunk = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
+                    mIsLastBackChunk = ((0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
 
-                    if (mIsLastBackChunk) {
+                    if (mIsLastBackChunk && (null != response.end)) {
                         // save its token to avoid useless request
                         mBackwardTopToken = fromBackToken;
                     } else {
-                        getBackState().setToken(response.end);
+                        // the server returns a null pagination token when there is no more available data
+                        if (null == response.end) {
+                            getBackState().setToken(Event.PAGINATE_BACK_TOKEN_END);
+                        } else {
+                            getBackState().setToken(response.end);
+                        }
                     }
 
                     addPaginationEvents(response.chunk, Direction.BACKWARDS, callback);
+
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
                 }

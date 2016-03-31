@@ -1553,6 +1553,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             });
 
                         } else {
+                            hideLoadingBackProgress();
                             mIsBackPaginating = false;
                             mLockFwdPagination = false;
                         }
