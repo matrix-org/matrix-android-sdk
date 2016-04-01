@@ -593,6 +593,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 viewType = ROW_TYPE_IMAGE;
             } else if (Message.MSGTYPE_EMOTE.equals(msgType)) {
                 viewType = ROW_TYPE_EMOTE;
+            } else if (Message.MSGTYPE_NOTICE.equals(msgType)) {
+                viewType = ROW_TYPE_NOTICE;
             } else if (Message.MSGTYPE_FILE.equals(msgType)) {
                 viewType = ROW_TYPE_FILE;
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
@@ -1692,11 +1694,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         noticeTextView.setText(notice);
-        noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
         addContentViewListeners(noticeTextView, position);
+
+        noticeTextView.setAlpha(0.6f);
 
         return convertView;
     }
