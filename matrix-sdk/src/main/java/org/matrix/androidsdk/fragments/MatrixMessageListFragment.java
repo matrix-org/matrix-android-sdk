@@ -607,7 +607,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     public void sendTextMessage(String body) {
-        sendMessage(Message.MSGTYPE_TEXT, body);
+        sendMessage(Message.MSGTYPE_TEXT, body, null, null);
+    }
+
+    public void sendTextMessage(String body, String formattedBody, String format) {
+        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
     }
 
     public void scrollToBottom() {
@@ -642,9 +646,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private void sendMessage(String msgType, String body) {
+        sendMessage(msgType, body, null, null);
+    }
+
+    private void sendMessage(String msgType, String body, String formattedBody, String format) {
         Message message = new Message();
         message.msgtype = msgType;
         message.body = body;
+
+        if (null != formattedBody) {
+            // assume that the formatted body use a custom html format
+            message.format = format;
+            message.formatted_body = formattedBody;
+        }
+
         send(message);
     }
 
