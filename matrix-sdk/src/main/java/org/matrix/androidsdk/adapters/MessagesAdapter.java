@@ -78,6 +78,8 @@ import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.view.PieFractionView;
+import org.sufficientlysecure.htmltextview.HtmlTextView;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1282,10 +1284,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
+        Message message = JsonUtils.toMessage(event.content);
         RoomState roomState = row.getRoomState();
 
-        EventDisplay display = new EventDisplay(mContext, msg, roomState);
+        EventDisplay display = new EventDisplay(mContext, event, roomState);
         CharSequence textualDisplay = display.getTextualDisplay();
 
         final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
@@ -1297,12 +1300,28 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
-            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        boolean manageHighlight = true;
+
+        if (bodyTextView instanceof HtmlTextView) {
+            // some HTML markers are not supported by the android textview
+            if (TextUtils.equals("org.matrix.custom.html", message.format)) {
+                if (!TextUtils.isEmpty(message.formatted_body)) {
+                    if ((message.formatted_body.indexOf("<ol>") >= 0) || (message.formatted_body.indexOf("<li>") >= 0) || (message.formatted_body.indexOf("<ul>") >= 0)) {
+                        manageHighlight = false;
+                        ((HtmlTextView)bodyTextView).setHtmlFromString(message.formatted_body, new HtmlTextView.LocalImageGetter());
+                    }
+                }
+            }
         }
 
-        highlightPattern(bodyTextView, body, mPattern);
+        if (manageHighlight) {
+            if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(event)) {
+                body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+
+            highlightPattern(bodyTextView, body, mPattern);
+        }
 
         int textColor;
 
@@ -1314,9 +1333,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textColor = normalColor;
 
             // sanity check
-            if (null != msg.eventId) {
+            if (null != event.eventId) {
                 synchronized (this) {
-                    if (!mTextColorByEventId.containsKey(msg.eventId)) {
+                    if (!mTextColorByEventId.containsKey(event.eventId)) {
                         String sBody = body.toString();
                         String displayName = mSession.getMyUser().displayname;
                         String userID = mSession.getMyUserId();
@@ -1327,9 +1346,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             textColor = normalColor;
                         }
 
-                        mTextColorByEventId.put(msg.eventId, textColor);
+                        mTextColorByEventId.put(event.eventId, textColor);
                     } else {
-                        textColor = mTextColorByEventId.get(msg.eventId);
+                        textColor = mTextColorByEventId.get(event.eventId);
                     }
                 }
             }
