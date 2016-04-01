@@ -96,7 +96,7 @@ public class DataRetriever {
                         public void run() {
                             callback.onSuccess(new TokensChunkResponse<Event>());
                         }
-                    }, 100);
+                    }, 0);
                 }
             };
 
@@ -123,7 +123,7 @@ public class DataRetriever {
                                 callback.onSuccess(fStorageResponse);
                             }
                         }
-                    }, (null == token) ? 0 : 100);
+                    }, 0);
                 }
             };
 

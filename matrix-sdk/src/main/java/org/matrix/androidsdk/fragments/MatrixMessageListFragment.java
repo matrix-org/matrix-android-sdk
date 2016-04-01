@@ -106,6 +106,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private static final String LOG_TAG = "MatrixMsgsListFrag";
 
+    private static final int UNDEFINED_VIEW_Y_POS = -12345678;
+
     public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
         MatrixMessageListFragment f = new MatrixMessageListFragment();
         Bundle args = new Bundle();
@@ -151,6 +153,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
+
+    // y pos of the first visible row
+    private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -233,6 +238,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         @Override
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+            // store the current Y pos to jump to the right pos when backpaginating
+            mFirstVisibleRowY = UNDEFINED_VIEW_Y_POS;
+            View v = mMessageListView.getChildAt(firstVisibleItem);
+            if (null != v) {
+                mFirstVisibleRowY = v.getTop();
+            }
+
             if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                 Log.d(LOG_TAG, "onScroll - backPaginate");
                 backPaginate(false);
@@ -1536,9 +1549,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             Log.d(LOG_TAG, "backPaginate : jump to " + expectedPos);
 
-                            // do not use count because some messages are not displayed
-                            // so we compute the new pos
-                            mMessageListView.setSelection(expectedPos);
+                            //private int mFirstVisibleRowY  = INVALID_VIEW_Y_POS;
+
+                            if (fillHistory || (UNDEFINED_VIEW_Y_POS == mFirstVisibleRowY)) {
+                                // do not use count because some messages are not displayed
+                                // so we compute the new pos
+                                mMessageListView.setSelection(expectedPos);
+                            } else {
+                                mMessageListView.setSelectionFromTop(expectedPos, -mFirstVisibleRowY);
+                            }
 
                             mMessageListView.post(new Runnable() {
                                 @Override

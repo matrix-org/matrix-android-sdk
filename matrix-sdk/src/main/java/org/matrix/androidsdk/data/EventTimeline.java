@@ -899,7 +899,7 @@ public class EventTimeline {
                         public void run() {
                             manageBackEvents(callback);
                         }
-                    }, 100);
+                    }, 0);
                 }
             };
 
