@@ -1255,14 +1255,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             if (null != htmlFormattedText) {
-                textView.setText(Html.fromHtml(htmlFormattedText, null, htmlTagHandler));
+                textView.setText(Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler));
             } else {
                 textView.setText(text);
             }
             textView.setMovementMethod(LinkMovementMethod.getInstance());
         } else {
             if (null != htmlFormattedText) {
-                textView.setText(Html.fromHtml(htmlFormattedText, null, htmlTagHandler));
+                textView.setText(Html.fromHtml( htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler));
             } else {
                 textView.setText(text);
             }
