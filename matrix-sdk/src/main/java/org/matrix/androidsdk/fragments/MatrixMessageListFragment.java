@@ -214,7 +214,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     };
 
-    AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
+   protected AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
             mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
