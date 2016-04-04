@@ -20,8 +20,10 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -78,8 +80,8 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
-import org.sufficientlysecure.htmltextview.HtmlTextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1209,13 +1211,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return new BackgroundColorSpan(searchHighlightColor);
     }
 
+    protected void highlightPattern(TextView textView, Spannable text, String pattern) {
+        highlightPattern(textView, text, null, pattern);
+    }
+
     /**
      * Highlight the pattern in the text.
      * @param textView the textView in which the text is displayed.
      * @param text the text to display.
      * @param pattern the pattern to highlight.
      */
-    protected void highlightPattern(TextView textView, Spannable text, String pattern) {
+    protected void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
         // sanity check
         if (null == textView) {
             return;
@@ -1237,18 +1243,29 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
+        final ConsoleHtmlTagHandler htmlTagHandler = new ConsoleHtmlTagHandler();
+        htmlTagHandler.mContext = mContext;
+
         SpannableStringBuilder strBuilder = new SpannableStringBuilder(text);
         URLSpan[] urls = strBuilder.getSpans(0, text.length(), URLSpan.class);
 
         if ((null != urls) && (urls.length > 0)) {
-
             for (URLSpan span : urls) {
                 makeLinkClickable(strBuilder, span);
             }
-            textView.setText(strBuilder);
+
+            if (null != htmlFormattedText) {
+                textView.setText(Html.fromHtml(htmlFormattedText, null, htmlTagHandler));
+            } else {
+                textView.setText(text);
+            }
             textView.setMovementMethod(LinkMovementMethod.getInstance());
         } else {
-            textView.setText(text);
+            if (null != htmlFormattedText) {
+                textView.setText(Html.fromHtml(htmlFormattedText, null, htmlTagHandler));
+            } else {
+                textView.setText(text);
+            }
         }
     }
 
@@ -1301,23 +1318,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        if (bodyTextView instanceof HtmlTextView) {
-            // some HTML markers are not supported by the android textview
-            if (TextUtils.equals("org.matrix.custom.html", message.format)) {
-                if (!TextUtils.isEmpty(message.formatted_body)) {
-                    HtmlTextView textView = ((HtmlTextView)bodyTextView);
-                    textView.setHtmlFromString(message.formatted_body, new HtmlTextView.LocalImageGetter());
-                    body = new SpannableString(textView.getText());
-                }
-            }
-        }
-
         if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(event)) {
             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        highlightPattern(bodyTextView, body, mPattern);
-
+        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? message.formatted_body : null, mPattern);
 
         int textColor;
 

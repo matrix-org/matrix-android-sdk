@@ -817,7 +817,7 @@ public class Room {
     /**
      * @return the number of highlighted events.
      */
-    public int gettHighlightCount() {
+    public int getHighlightCount() {
         return getState().mHighlightCount;
     }
 
