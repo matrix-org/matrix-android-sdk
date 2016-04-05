@@ -175,11 +175,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return mSession;
     }
 
+    /**
+     * @return an UI handler
+     */
+    private Handler getUiHandler() {
+        if (null == mUiHandler) {
+            mUiHandler = new Handler(Looper.getMainLooper());
+        }
+
+        return mUiHandler;
+    }
+
     private IMXEventListener mEventsListenener = new MXEventListener() {
         @Override
         public void onPresenceUpdate(Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
-            mUiHandler.post(new Runnable() {
+            getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
                     // check first if the userID has sent some messages in the room history
@@ -1378,7 +1389,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
 
                             // Scroll the list down to where it was before adding rows to the top
-                            mUiHandler.post(new Runnable() {
+                            getUiHandler().post(new Runnable() {
                                 @Override
                                 public void run() {
                                     final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
@@ -1683,7 +1694,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onEvent(final Event event, final EventTimeline.Direction direction, final RoomState roomState) {
         if (direction == EventTimeline.Direction.FORWARDS) {
-            mUiHandler.post(new Runnable() {
+            getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
                     if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
@@ -1770,7 +1781,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Log.d(LOG_TAG, "onInitialMessagesLoaded");
 
         // Jump to the bottom of the list
-        mUiHandler.post(new Runnable() {
+        getUiHandler().post(new Runnable() {
             @Override
             public void run() {
                 hideLoadingBackProgress();

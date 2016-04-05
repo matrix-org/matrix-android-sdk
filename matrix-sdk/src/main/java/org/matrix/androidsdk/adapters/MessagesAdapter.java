@@ -953,7 +953,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             final String fSenderId = event.getSender();
-            final String fDisplayName = textView.getText().toString();
+            final String fDisplayName = (null == textView.getText()) ? "" : textView.getText().toString();
 
             textView.setOnClickListener(new View.OnClickListener() {
                 @Override
