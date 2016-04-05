@@ -24,16 +24,18 @@ import retrofit.mime.TypedInput;
  */
 public class MatrixError implements java.io.Serializable {
     public static final String FORBIDDEN = "M_FORBIDDEN";
+    public static final String UNKNOWN = "M_UNKNOWN";
     public static final String UNKNOWN_TOKEN = "M_UNKNOWN_TOKEN";
     public static final String BAD_JSON = "M_BAD_JSON";
     public static final String NOT_JSON = "M_NOT_JSON";
     public static final String NOT_FOUND = "M_NOT_FOUND";
     public static final String LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED";
-    public static final String TOO_LARGE = "M_TOO_LARGE";
     public static final String USER_IN_USE = "M_USER_IN_USE";
     public static final String ROOM_IN_USE = "M_ROOM_IN_USE";
     public static final String BAD_PAGINATION = "M_BAD_PAGINATION";
-    public static final String UNKNOWN= "M_UNKNOWN";
+    public static final String UNAUTHORIZED = "M_UNAUTHORIZED";
+    public static final String THREEPID_AUTH_FAILED = "M_THREEPID_AUTH_FAILED";
+    public static final String TOO_LARGE = "M_TOO_LARGE";
 
     public String errcode;
     public String error;

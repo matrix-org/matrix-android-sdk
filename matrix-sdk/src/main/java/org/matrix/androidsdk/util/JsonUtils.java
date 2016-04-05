@@ -157,8 +157,8 @@ public class JsonUtils {
         return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
     }
 
-    public static RegistrationFlowResponse toRegistrationFlowResponsee(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, RegistrationFlowResponse.class);
+    public static RegistrationFlowResponse toRegistrationFlowResponse(String jsonString) {
+        return gson.fromJson(jsonString, RegistrationFlowResponse.class);
     }
 
     public static JsonObject toJson(Event event) {

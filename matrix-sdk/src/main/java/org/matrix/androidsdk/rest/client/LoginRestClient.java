@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.net.Uri;
-
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -24,7 +22,6 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
@@ -32,8 +29,6 @@ import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
-import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
-import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +40,12 @@ import retrofit.client.Response;
  */
 public class LoginRestClient extends RestClient<LoginApi> {
 
-    private Uri mHsUri;
+    public static final String LOGIN_FLOW_TYPE_PASSWORD = "m.login.password";
+    public static final String LOGIN_FLOW_TYPE_OAUTH2 = "m.login.oauth2";
+    public static final String LOGIN_FLOW_TYPE_EMAIL_CODE = "m.login.email.code";
+    public static final String LOGIN_FLOW_TYPE_EMAIL_URL = "m.login.email.url";
+    public static final String LOGIN_FLOW_TYPE_EMAIL_IDENTITY = "m.login.email.identity";
+    public static final String LOGIN_FLOW_TYPE_EMAIL_RECAPTCHA = "m.login.recaptcha";
 
     /**
      * Public constructor.

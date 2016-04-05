@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * Response to a POST /register call with the different flows.
  */
-public class RegistrationFlowResponse {
+public class RegistrationFlowResponse implements java.io.Serializable {
     /**
      * The list of stages the client has completed successfully.
      */
