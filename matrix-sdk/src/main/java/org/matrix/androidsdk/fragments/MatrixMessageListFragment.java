@@ -691,7 +691,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     public void run() {
                         if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
                             mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
-                            resend(messageRow.getEvent());
+
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    resend(messageRow.getEvent());
+                                }
+                            });
                         }
                     }
                 }, 1000);
@@ -1070,7 +1077,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Resend the unsent messages
+     */
     public void resendUnsentMessages() {
+        // check if the call is done in the right thread
+        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    resendUnsentMessages();
+                }
+            });
+
+            return;
+        }
+
         Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
 
         if ((null != unsent) && (unsent.size() > 0)) {
@@ -1086,12 +1110,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-
-    public void resend(Event event) {
+    /**
+     * Resend an event.
+     * @param event
+     */
+    protected void resend(final Event event) {
         // sanity check
         // should never happen but got it in a GA issue
         if (null == event.eventId) {
             Log.e(LOG_TAG, "resend : got an event with a null eventId");
+            return;
+        }
+
+        // check if the call is done in the right thread
+        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    resend(event);
+                }
+            });
+
             return;
         }
 
