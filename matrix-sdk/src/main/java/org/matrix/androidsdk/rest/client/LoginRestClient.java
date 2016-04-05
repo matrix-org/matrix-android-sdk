@@ -29,6 +29,8 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
@@ -55,24 +57,49 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Retrieve the supported flows.
+     * Retrieve the login supported flows.
      * It should be done to check before displaying a default login form.
      * @param callback the callback success and failure callback
      */
-    public void getSupportedFlows(final ApiCallback<List<LoginFlow>> callback) {
-        final String description = "getSupportedFlows";
+    public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
+        final String description = "geLoginSupportedFlows";
 
         mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        getSupportedFlows(callback);
+                        getSupportedLoginFlows(callback);
                     }
                 }
         ) {
             @Override
             public void success(LoginFlowResponse loginFlowResponse, Response response) {
                 callback.onSuccess(loginFlowResponse.flows);
+            }
+        });
+    }
+
+    /**
+     * Retrieve the registration flows.
+     * It should be done to check before displaying a default login form.
+     * @param callback the callback success and failure callback
+     */
+    public void getSupportedRegistrationFlows(final ApiCallback<RegistrationFlowResponse> callback) {
+        final String description = "getRegistrationFlows";
+
+        RegistrationParams params = new RegistrationParams();
+
+        mApi.register(params, new RestAdapterCallback<RegistrationFlowResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        getSupportedRegistrationFlows(callback);
+                    }
+                }
+        ) {
+            @Override
+            public void success(RegistrationFlowResponse registrationFlowResponse, Response response) {
+                callback.onSuccess(registrationFlowResponse);
             }
         });
     }

@@ -15,6 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import com.google.gson.JsonObject;
+
+import retrofit.mime.TypedInput;
+
 /**
  * Represents a standard error response.
  */
@@ -34,6 +38,13 @@ public class MatrixError implements java.io.Serializable {
     public String errcode;
     public String error;
     public Integer retry_after_ms;
+
+    // extracted from the error response
+    public Integer mStatus;
+    public String  mReason;
+    public TypedInput mErrorBody;
+    public String mErrorBodyAsString;
+    public String mErrorBodyMimeType;
 
     public String getLocalizedMessage() {
         String localizedMessage = "";

@@ -38,6 +38,7 @@ import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
 import java.lang.reflect.Modifier;
 
@@ -154,6 +155,10 @@ public class JsonUtils {
 
     public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
+    }
+
+    public static RegistrationFlowResponse toRegistrationFlowResponsee(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, RegistrationFlowResponse.class);
     }
 
     public static JsonObject toJson(Event event) {
