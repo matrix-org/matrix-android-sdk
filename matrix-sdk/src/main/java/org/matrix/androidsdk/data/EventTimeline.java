@@ -222,7 +222,9 @@ public class EventTimeline {
         mIsBackPaginating = false;
         mIsForewardPaginating = false;
 
-        mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
+        if (null != mDataHandler.getDataRetriever()) {
+            mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
+        }
     }
 
     /**

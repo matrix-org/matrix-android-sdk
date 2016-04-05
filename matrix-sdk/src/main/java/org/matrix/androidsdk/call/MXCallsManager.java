@@ -158,24 +158,26 @@ public class MXCallsManager {
 
                     @Override
                     public void onSuccess(JsonObject info) {
-                        if (info.has("uris")) {
-                            synchronized (LOG_TAG) {
-                                mTurnServer = info;
-                            }
-                        }
-
-                        if (info.has("ttl")) {
-                            int ttl = 60000;
-
-                            try {
-                                ttl = info.get("ttl").getAsInt();
-                                // restart a 90 % before ttl expires
-                                ttl = ttl * 9 / 10;
-                            } catch (Exception e) {
-
+                        if (null != info) {
+                            if (info.has("uris")) {
+                                synchronized (LOG_TAG) {
+                                    mTurnServer = info;
+                                }
                             }
 
-                            restartAfter(ttl);
+                            if (info.has("ttl")) {
+                                int ttl = 60000;
+
+                                try {
+                                    ttl = info.get("ttl").getAsInt();
+                                    // restart a 90 % before ttl expires
+                                    ttl = ttl * 9 / 10;
+                                } catch (Exception e) {
+
+                                }
+
+                                restartAfter(ttl);
+                            }
                         }
                     }
 

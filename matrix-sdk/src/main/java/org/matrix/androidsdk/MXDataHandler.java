@@ -175,7 +175,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle the case where the user is null by loading the user information from the server
             mMyUser.user_id = mCredentials.userId;
-        } else {
+        } else if (null != store) {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
                 // setAvatarURL && setDisplayName perform a commit if it is required.

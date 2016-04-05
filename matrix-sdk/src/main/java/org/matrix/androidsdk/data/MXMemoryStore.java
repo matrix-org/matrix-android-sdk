@@ -16,13 +16,11 @@
 
 package org.matrix.androidsdk.data;
 
-import android.app.usage.UsageEvents;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -30,7 +28,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
-import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +36,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -853,21 +849,23 @@ public class MXMemoryStore implements IMXStore {
     public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
         ArrayList<ReceiptData> receipts = new ArrayList<ReceiptData>();
 
-        if (mReceiptsByRoomId.containsKey(roomId)) {
-            String myUserID = mCredentials.userId;
+        synchronized (mReceiptsByRoomId) {
+            if (mReceiptsByRoomId.containsKey(roomId)) {
+                String myUserID = mCredentials.userId;
 
-            Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
 
-            // copy the user id list to avoid having update while looping
-            ArrayList<String> userIds = new ArrayList<String>(receiptsByUserId.keySet());
+                // copy the user id list to avoid having update while looping
+                ArrayList<String> userIds = new ArrayList<String>(receiptsByUserId.keySet());
 
-            for(String userId : userIds) {
+                for (String userId : userIds) {
 
-                if (receiptsByUserId.containsKey(userId) && (!excludeSelf || !TextUtils.equals(myUserID, userId))) {
-                    ReceiptData receipt = receiptsByUserId.get(userId);
+                    if (receiptsByUserId.containsKey(userId) && (!excludeSelf || !TextUtils.equals(myUserID, userId))) {
+                        ReceiptData receipt = receiptsByUserId.get(userId);
 
-                    if (TextUtils.equals(receipt.eventId, eventId)) {
-                        receipts.add(receipt);
+                        if (TextUtils.equals(receipt.eventId, eventId)) {
+                            receipts.add(receipt);
+                        }
                     }
                 }
             }
@@ -887,13 +885,15 @@ public class MXMemoryStore implements IMXStore {
      * @return true if the receipt has been stored
      */
     public boolean storeReceipt(ReceiptData receipt, String roomId) {
-        Map<String, ReceiptData> receiptsByUserId = null;
+        Map<String, ReceiptData> receiptsByUserId;
 
-        if (!mReceiptsByRoomId.containsKey(roomId)) {
-            receiptsByUserId = new HashMap<String, ReceiptData>();
-            mReceiptsByRoomId.put(roomId, receiptsByUserId);
-        } else {
-            receiptsByUserId = mReceiptsByRoomId.get(roomId);
+        synchronized (mReceiptsByRoomId) {
+            if (!mReceiptsByRoomId.containsKey(roomId)) {
+                receiptsByUserId = new HashMap<String, ReceiptData>();
+                mReceiptsByRoomId.put(roomId, receiptsByUserId);
+            } else {
+                receiptsByUserId = mReceiptsByRoomId.get(roomId);
+            }
         }
 
         ReceiptData curReceipt = null;
@@ -922,9 +922,11 @@ public class MXMemoryStore implements IMXStore {
 
         // sanity checks
         if (!TextUtils.isEmpty(roomId) && !TextUtils.isEmpty(userId)) {
-            if (mReceiptsByRoomId.containsKey(roomId)) {
-                Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
-                res = receipts.get(userId);
+            synchronized (mReceiptsByRoomId) {
+                if (mReceiptsByRoomId.containsKey(roomId)) {
+                    Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
+                    res = receipts.get(userId);
+                }
             }
         }
 
@@ -1000,19 +1002,21 @@ public class MXMemoryStore implements IMXStore {
 
         // sanity check
         if ((null != roomId) && (null != userId)) {
-            if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
-                Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
-                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+            synchronized (mReceiptsByRoomId) {
+                if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
+                    Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                    LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
-                // check if the event is known
-                if (events.containsKey(eventId) && receiptsByUserId.containsKey(userId)) {
-                    Event event = events.get(eventId);
-                    ReceiptData data = receiptsByUserId.get(userId);
+                    // check if the event is known
+                    if (events.containsKey(eventId) && receiptsByUserId.containsKey(userId)) {
+                        Event event = events.get(eventId);
+                        ReceiptData data = receiptsByUserId.get(userId);
 
-                    res = event.originServerTs < data.originServerTs;
-                } else if (receiptsByUserId.containsKey(userId)) {
-                    // the event is not known so assume it is has been flushed
-                    res = true;
+                        res = event.originServerTs < data.originServerTs;
+                    } else if (receiptsByUserId.containsKey(userId)) {
+                        // the event is not known so assume it is has been flushed
+                        res = true;
+                    }
                 }
             }
         }
@@ -1027,16 +1031,24 @@ public class MXMemoryStore implements IMXStore {
      * @return the unread events list.
      */
     public List<Event> unreadEvents(String roomId, List<String> types) {
-        if (mReceiptsByRoomId.containsKey(roomId)) {
-            Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+        List<Event> res = null;
 
-            if (receiptsByUserId.containsKey(mCredentials.userId)) {
-                ReceiptData data = receiptsByUserId.get(mCredentials.userId);
+        synchronized (mReceiptsByRoomId) {
+            if (mReceiptsByRoomId.containsKey(roomId)) {
+                Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
 
-                return eventsAfter(roomId, data.eventId, mCredentials.userId, types);
+                if (receiptsByUserId.containsKey(mCredentials.userId)) {
+                    ReceiptData data = receiptsByUserId.get(mCredentials.userId);
+
+                    res = eventsAfter(roomId, data.eventId, mCredentials.userId, types);
+                }
             }
         }
 
-        return new ArrayList<Event>();
+        if (null == res) {
+            res = new ArrayList<Event>();
+        }
+
+        return res;
     }
 }
