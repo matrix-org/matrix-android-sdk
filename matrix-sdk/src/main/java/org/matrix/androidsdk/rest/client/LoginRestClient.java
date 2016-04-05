@@ -53,7 +53,6 @@ public class LoginRestClient extends RestClient<LoginApi> {
      */
     public LoginRestClient(HomeserverConnectionConfig hsConfig) {
         super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
-        mHsUri = hsConfig.getHomeserverUri();
     }
 
     /**

@@ -43,5 +43,5 @@ public class RegistrationFlowResponse implements java.io.Serializable {
      * For each login stage type presented, that type may be present as a key in this dictionary.
      * For example, the public key of reCAPTCHA stage could be given here.
      */
-    public Map<Object, Object> params;
+    public Map<String, Object> params;
 }
