@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.login;
-
-import java.util.Map;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * Class to pass parameters to the different registration types for /register.
+ *  Response to a request an email validation post
  */
-public class RegistrationParams {
-    // authentification parameters
-    public Map<String, Object> auth;
+public class RequestEmailValidationResponse {
 
-    // the account username
-    public String username;
+    // the client secret key
+    public String clientSecret;
 
-    // the account password
-    public String password;
+    // the email address
+    public String email;
 
-    // With email
-    public Boolean bind_email;
+    // the attempt count
+    public Integer sendAttempt;
+
+    // the email sid
+    public String sid;
 }

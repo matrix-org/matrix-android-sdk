@@ -13,23 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.login;
 
-import java.util.Map;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * Class to pass parameters to the different registration types for /register.
+ * Parameters to add a 3Pids to an user
  */
-public class RegistrationParams {
-    // authentification parameters
-    public Map<String, Object> auth;
+public class Add3PidsParams {
 
-    // the account username
-    public String username;
+    // the 3rd party id credentials
+    ThirdPidCreds three_pid_creds;
 
-    // the account password
-    public String password;
-
-    // With email
-    public Boolean bind_email;
+    // true when the email has been binded.
+    Boolean bind;
 }

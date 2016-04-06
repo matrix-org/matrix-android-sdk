@@ -79,26 +79,25 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Retrieve the registration flows.
-     * It should be done to check before displaying a default login form.
-     * @param callback the callback success and failure callback
+     * Request an account creation
+     * @param params the registration parameters
+     * @param callback the callbacks
      */
-    public void getSupportedRegistrationFlows(final ApiCallback<RegistrationFlowResponse> callback) {
-        final String description = "getRegistrationFlows";
+    public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
+        final String description = "register";
 
-        RegistrationParams params = new RegistrationParams();
-
-        mApi.register(params, new RestAdapterCallback<RegistrationFlowResponse>(description, mUnsentEventsManager, callback,
+        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        getSupportedRegistrationFlows(callback);
+                        register(params, callback);
                     }
                 }
         ) {
             @Override
-            public void success(RegistrationFlowResponse registrationFlowResponse, Response response) {
-                callback.onSuccess(registrationFlowResponse);
+            public void success(JsonObject jsonObject, Response response) {
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
             }
         });
     }

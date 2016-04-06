@@ -43,11 +43,11 @@ public interface LoginApi {
 
 
     /**
-     * Get the different registration flows supported by the server.
+     * Try to create an account
      * @param callback the asynchronous callback called with the response
      */
     @POST("/register")
-    void register(@Body RegistrationParams params, Callback<RegistrationFlowResponse> callback);
+    void register(@Body RegistrationParams params, Callback<JsonObject> callback);
 
     /**
      * Pass params to the server for the current login phase.
