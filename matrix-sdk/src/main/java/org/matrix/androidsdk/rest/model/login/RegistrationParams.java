@@ -15,12 +15,21 @@
  */
 package org.matrix.androidsdk.rest.model.login;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * A Login flow.
+ * Class to pass parameters to the different registration types for /register.
  */
-public class LoginFlow  implements java.io.Serializable {
-    public String type;
-    public List<String> stages;
+public class RegistrationParams {
+    // authentification parameters
+    public Map<String, Object> auth;
+
+    // the account username
+    public String username;
+
+    // the account password
+    public String password;
+
+    // With email
+    public Boolean bind_email;
 }

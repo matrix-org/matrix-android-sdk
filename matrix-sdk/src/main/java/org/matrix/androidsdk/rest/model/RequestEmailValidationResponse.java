@@ -13,14 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.login;
-
-import java.util.List;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * A Login flow.
+ *  Response to a request an email validation post
  */
-public class LoginFlow  implements java.io.Serializable {
-    public String type;
-    public List<String> stages;
+public class RequestEmailValidationResponse {
+
+    // the client secret key
+    public String clientSecret;
+
+    // the email address
+    public String email;
+
+    // the attempt count
+    public Integer sendAttempt;
+
+    // the email sid
+    public String sid;
 }

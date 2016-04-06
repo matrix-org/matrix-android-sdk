@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.login;
 
-import java.util.List;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * A Login flow.
+ * Parameters to add a 3Pids to an user
  */
-public class LoginFlow  implements java.io.Serializable {
-    public String type;
-    public List<String> stages;
+public class AddThreePidsParams {
+
+    // the 3rd party id credentials
+    ThreePidCreds three_pid_creds;
+
+    // true when the email has been binded.
+    Boolean bind;
 }

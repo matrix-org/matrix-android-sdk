@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.login;
-
-import java.util.List;
-
+package org.matrix.androidsdk.rest.model;
 /**
- * A Login flow.
+ * 3 pid credentials
  */
-public class LoginFlow  implements java.io.Serializable {
-    public String type;
-    public List<String> stages;
+public class ThreePidCreds {
+
+    // the identity server URL (without the http://)
+    String id_server;
+
+    // the 3 pids sid
+    String sid;
+
+    // a secret key
+    String client_secret;
 }

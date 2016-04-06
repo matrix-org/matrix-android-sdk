@@ -17,17 +17,14 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.util.Log;
 
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.UnsentEventsManager;
-
-import java.security.cert.CertPathValidatorException;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.mime.TypedByteArray;
+import retrofit.mime.TypedInput;
 
 public class RestAdapterCallback<T> implements Callback<T> {
 
@@ -130,6 +127,26 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 MatrixError mxError;
                 try {
                     mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+
+                    mxError.mStatus = error.getResponse().getStatus();
+                    mxError.mReason = error.getResponse().getReason();
+
+                    TypedInput body = error.getResponse().getBody();
+
+                    if (null != body) {
+                        mxError.mErrorBodyMimeType = body.mimeType();
+                        mxError.mErrorBody = body;
+
+                        try {
+                            if (body instanceof TypedByteArray) {
+                                mxError.mErrorBodyAsString = new String(((TypedByteArray)body).getBytes());
+                            } else {
+                                mxError.mErrorBodyAsString = (String)error.getBodyAs(String.class);
+                            }
+                        } catch (Exception castExcep) {
+                            Log.e(LOG_TAG, "Exception MatrixError cannot cast the rresponse body" + error.getLocalizedMessage());
+                        }
+                    }
                 }
                 catch (Exception e) {
                     mxError = null;

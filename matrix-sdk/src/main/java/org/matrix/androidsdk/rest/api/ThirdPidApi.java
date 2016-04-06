@@ -16,10 +16,14 @@
 package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
+import retrofit.http.Body;
 import retrofit.http.GET;
+import retrofit.http.POST;
 import retrofit.http.Query;
 
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 
 public interface ThirdPidApi {
 
@@ -31,4 +35,21 @@ public interface ThirdPidApi {
      */
     @GET("/lookup")
     void lookup3Pid(@Query("address") String address, @Query("medium") String medium, Callback<PidResponse> callback);
+
+
+    /**
+     * Request an email validation
+     * @param params the email validations params
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/validate/email/requestToken")
+    void requestEmailValidation(@Query("clientSecret") String clientSecret, @Query("email") String email, @Query("sendAttempt") Integer sendAttempt, Callback<RequestEmailValidationResponse> callback);
+
+    /**
+     * Add an 3Pids to an user
+     * @param params the params
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/account/3pid")
+    void add3PID(@Body AddThreePidsParams params, Callback<Void> callback);
 }

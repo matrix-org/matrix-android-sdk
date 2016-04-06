@@ -19,7 +19,9 @@ import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.PidResponse;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 
 import java.util.ArrayList;
 
@@ -33,7 +35,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * {@inheritDoc}
      */
     public ThirdPidRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, ThirdPidApi.class, hsConfig.getIdentityServerUri().toString(), false);
+        super(hsConfig, ThirdPidApi.class, URI_API_PREFIX_IDENTITY, false, true);
     }
 
     /**
@@ -52,6 +54,35 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             @Override
             public void failure(RetrofitError error) {
                 callback.onUnexpectedError(error);
+            }
+        });
+    }
+
+    /**
+     * Request an email validation token.
+     * @param address the email address
+     * @param clientSecret
+     * @param attempt
+     * @param callback
+     */
+    public void requestValidationToken(final String address, final String clientSecret, final int attempt, final ApiCallback<RequestEmailValidationResponse> callback) {
+        final String description = "requestValidationToken";
+
+        mApi.requestEmailValidation(clientSecret, address, new Integer(attempt), new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        requestValidationToken(address, clientSecret, attempt, callback);
+                    }
+                }
+        ) {
+            @Override
+            public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
+                requestEmailValidationResponse.email = address;
+                requestEmailValidationResponse.clientSecret = clientSecret;
+                requestEmailValidationResponse.sendAttempt = attempt;
+
+                callback.onSuccess(requestEmailValidationResponse);
             }
         });
     }

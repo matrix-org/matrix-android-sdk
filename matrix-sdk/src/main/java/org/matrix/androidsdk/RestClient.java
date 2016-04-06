@@ -62,6 +62,10 @@ public class RestClient<T> {
     public static final String URI_API_PREFIX_PATH_V1 = "/_matrix/client/api/v1";
     public static final String URI_API_PREFIX_PATh_V2_ALPHA = "/_matrix/client/v2_alpha";
 
+    /**
+     * Prefix used in path of identity server API requests.
+     */
+    public static final String URI_API_PREFIX_IDENTITY = "/_matrix/identity/api/v1";
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
@@ -78,12 +82,15 @@ public class RestClient<T> {
 
     protected HomeserverConnectionConfig mHsConfig;
 
-
-    /**
-     * Public constructor.
-     * @param hsConfig The homeserver connection config.
-     */
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
+        this(hsConfig, type, uriPrefix, withNullSerialization, false);
+    }
+
+        /**
+         * Public constructor.
+         * @param hsConfig The homeserver connection config.
+         */
+    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
@@ -109,9 +116,11 @@ public class RestClient<T> {
             uriPrefix = uriPrefix.substring("https://".length());
         }
 
+        final String endPoint = (useIdentityServer ? hsConfig.getIdentityServerUri().toString() : hsConfig.getHomeserverUri().toString()) + uriPrefix;
+
         // Rest adapter for turning API interfaces into actual REST-calling objects
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(hsConfig.getHomeserverUri().toString() + uriPrefix)
+                .setEndpoint(endPoint)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
