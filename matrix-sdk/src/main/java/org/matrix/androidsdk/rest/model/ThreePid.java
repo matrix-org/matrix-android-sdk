@@ -25,7 +25,7 @@ import java.util.UUID;
 /**
  * 3 pid
  */
-public class ThirdPid {
+public class ThreePid {
     /**
      * Types of third party media.
      * The list is not exhautive and depends on the Identity server capabilities.
@@ -75,7 +75,7 @@ public class ThirdPid {
      * @param anAddress the address.
      * @param aMedium the address medium
      */
-    public ThirdPid(String anAddress, String aMedium) {
+    public ThreePid(String anAddress, String aMedium) {
         address = anAddress;
         medium = aMedium;
     }

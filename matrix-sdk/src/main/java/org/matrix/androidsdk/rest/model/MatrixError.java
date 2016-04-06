@@ -34,6 +34,8 @@ public class MatrixError implements java.io.Serializable {
     public static final String ROOM_IN_USE = "M_ROOM_IN_USE";
     public static final String BAD_PAGINATION = "M_BAD_PAGINATION";
     public static final String UNAUTHORIZED = "M_UNAUTHORIZED";
+
+    public static final String LOGIN_EMAIL_URL_NOT_YET = "M_LOGIN_EMAIL_URL_NOT_YET";
     public static final String THREEPID_AUTH_FAILED = "M_THREEPID_AUTH_FAILED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
 

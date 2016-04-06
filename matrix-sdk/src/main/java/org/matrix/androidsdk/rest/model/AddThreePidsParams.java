@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
+
 /**
- * 3 pid credentials
+ * Parameters to add a 3Pids to an user
  */
-public class ThirdPidCreds {
+public class AddThreePidsParams {
 
-    // the identity server URL (without the http://)
-    String id_server;
+    // the 3rd party id credentials
+    ThreePidCreds three_pid_creds;
 
-    // the 3 pids sid
-    String sid;
-
-    // a secret key
-    String client_secret;
+    // true when the email has been binded.
+    Boolean bind;
 }

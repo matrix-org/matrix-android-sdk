@@ -21,7 +21,7 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Query;
 
-import org.matrix.androidsdk.rest.model.Add3PidsParams;
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 
@@ -51,5 +51,5 @@ public interface ThirdPidApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/account/3pid")
-    void add3PID(@Body Add3PidsParams params, Callback<Void> callback);
+    void add3PID(@Body AddThreePidsParams params, Callback<Void> callback);
 }
