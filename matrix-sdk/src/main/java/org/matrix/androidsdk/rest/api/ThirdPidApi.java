@@ -36,7 +36,6 @@ public interface ThirdPidApi {
     @GET("/lookup")
     void lookup3Pid(@Query("address") String address, @Query("medium") String medium, Callback<PidResponse> callback);
 
-
     /**
      * Request an email validation
      * @param params the email validations params

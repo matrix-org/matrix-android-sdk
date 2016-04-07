@@ -28,6 +28,7 @@ import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -530,6 +532,13 @@ public class MXFileStore extends MXMemoryStore {
         Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
         mMetaDataHasChanged = true;
         super.setAvatarURL(avatarURL);
+    }
+
+    @Override
+    public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
+        Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
+        mMetaDataHasChanged = true;
+        super.setThirdPartyIdentifiers(identifiers);
     }
 
     /**

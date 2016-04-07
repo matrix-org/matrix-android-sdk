@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.ThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
@@ -81,4 +82,12 @@ public interface ProfileApi {
      */
     @POST("/tokenrefresh")
     void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
+
+    /**
+     * List all 3PIDs linked to the Matrix user account.
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/account/3pid")
+    void threePIDs(Callback<ThreePidsResponse> callback);
+
 }
