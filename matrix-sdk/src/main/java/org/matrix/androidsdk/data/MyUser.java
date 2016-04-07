@@ -259,10 +259,12 @@ public class MyUser extends User {
         }
 
         synchronized (this) {
-            for(ApiCallback<Void> listener :  mRefreshListeners) {
-                try {
-                    listener.onSuccess(null);
-                } catch (Exception e) {
+            if (null != mRefreshListeners) {
+                for (ApiCallback<Void> listener : mRefreshListeners) {
+                    try {
+                        listener.onSuccess(null);
+                    } catch (Exception e) {
+                    }
                 }
             }
 
