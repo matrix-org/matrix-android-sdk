@@ -19,10 +19,13 @@ package org.matrix.androidsdk.data;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
@@ -106,6 +109,56 @@ public class MyUser extends User {
     }
 
     /**
+     * Request a validation token for a dedicated 3Pid
+     * @param pid the pid to retrieve a token
+     * @param callback the callback when the operation is done
+     */
+    public void requestValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+        if (null != pid) {
+            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), callback);
+        }
+    }
+
+    /**
+     * Add a a new pid to the account.
+     * @param pid the pid to add.
+     * @param bind
+     * @param callback the async callback
+     */
+    public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
+        if (null != pid) {
+            mDataHandler.getThirdPidRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    // refresh the emails list
+                    refreshLinkedEmails(callback);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
      * @return the list of third party identifiers
      */
     public List<ThirdPartyIdentifier> getThirdPartyIdentifiers() {
@@ -150,6 +203,16 @@ public class MyUser extends User {
     public void refreshUserInfos(final ApiCallback<Void> callback) {
         refreshUserInfos(false, callback);
     }
+
+    /**
+     * Refresh the user data if it is required
+     * @param callback callback when the job is done.
+     */
+    public void refreshLinkedEmails(final ApiCallback<Void> callback) {
+        mAre3PIdsLoaded = false;
+        refreshUserInfos(false, callback);
+    }
+
 
     /**
      * Refresh the user data if it is required

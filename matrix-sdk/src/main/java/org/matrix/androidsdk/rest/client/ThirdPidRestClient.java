@@ -20,14 +20,19 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.ThreePid;
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
 
 import java.util.ArrayList;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.POST;
 
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
@@ -124,5 +129,33 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                 callback.onUnexpectedError(error);
             }
         });
+    }
+
+    /**
+     * Add an 3Pids to an user
+     * @param pid the 3Pid to add
+     * @param bind bind the email
+     * @param callback the asynchronous callback called with the response
+     */
+    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
+        final String description = "add3PID";
+
+        AddThreePidsParams params = new AddThreePidsParams();
+
+        params.three_pid_creds = new ThreePidCreds();
+        params.three_pid_creds.id_server = mHsConfig.getIdentityServerUri().getPath();
+        params.three_pid_creds.sid = pid.sid;
+        params.three_pid_creds.client_secret = pid.clientSecret;
+
+        params.bind = bind;
+
+        mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        add3PID(pid, bind, callback);
+                    }
+                }
+        ));
     }
 }

@@ -22,8 +22,8 @@ package org.matrix.androidsdk.rest.model;
 public class AddThreePidsParams {
 
     // the 3rd party id credentials
-    ThreePidCreds three_pid_creds;
+    public ThreePidCreds three_pid_creds;
 
     // true when the email has been binded.
-    Boolean bind;
+    public Boolean bind;
 }
