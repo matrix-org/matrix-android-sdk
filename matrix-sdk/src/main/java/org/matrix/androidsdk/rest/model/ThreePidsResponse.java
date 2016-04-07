@@ -13,17 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.matrix.androidsdk.rest.model;
 
+import java.util.List;
+
 /**
- * Parameters to add a 3Pids to an user
+ * Class representing the ThreePids response
  */
-public class AddThreePidsParams {
-
-    // the 3rd party id credentials
-    public ThreePidCreds three_pid_creds;
-
-    // true when the email has been binded.
-    public Boolean bind;
+public class ThreePidsResponse {
+    public List<ThirdPartyIdentifier> threepids;
 }

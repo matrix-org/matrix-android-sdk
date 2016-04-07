@@ -20,11 +20,11 @@ package org.matrix.androidsdk.rest.model;
 public class ThreePidCreds {
 
     // the identity server URL (without the http://)
-    String id_server;
+    public String id_server;
 
     // the 3 pids sid
-    String sid;
+    public String sid;
 
     // a secret key
-    String client_secret;
+    public String client_secret;
 }

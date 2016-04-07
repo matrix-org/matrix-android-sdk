@@ -32,6 +32,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
@@ -74,12 +75,12 @@ public class MXDataHandler implements IMXEventListener {
     private volatile boolean mInitialSyncComplete = false;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
-    private ContentManager mContentManager;
     private MXCallsManager mCallsManager;
     private MXMediasCache mMediasCache;
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
+    private ThirdPidRestClient mThirdPidRestClient;
 
     private MyUser mMyUser;
 
@@ -112,13 +113,29 @@ public class MXDataHandler implements IMXEventListener {
         return mCredentials;
     }
 
-    // some setters
+    // setters / getters
     public void setProfileRestClient(ProfileRestClient profileRestClient) {
         mProfileRestClient = profileRestClient;
     }
 
+    public ProfileRestClient getProfileRestClient() {
+        return mProfileRestClient;
+    }
+
     public void setPresenceRestClient(PresenceRestClient presenceRestClient) {
         mPresenceRestClient = presenceRestClient;
+    }
+
+    public PresenceRestClient getPresenceRestClient() {
+        return mPresenceRestClient;
+    }
+
+    public void setThirdPidRestClient(ThirdPidRestClient thirdPidRestClient) {
+        mThirdPidRestClient = thirdPidRestClient;
+    }
+
+    public ThirdPidRestClient getThirdPidRestClient() {
+        return mThirdPidRestClient;
     }
 
     private void checkIfActive() {
@@ -158,8 +175,6 @@ public class MXDataHandler implements IMXEventListener {
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
             mMyUser = new MyUser(store.getUser(mCredentials.userId));
-            mMyUser.setProfileRestClient(mProfileRestClient);
-            mMyUser.setPresenceRestClient(mPresenceRestClient);
             mMyUser.setDataHandler(this);
 
             // assume the profile is not yet initialized

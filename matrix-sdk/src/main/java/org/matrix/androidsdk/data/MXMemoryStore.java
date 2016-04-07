@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -238,6 +239,17 @@ public class MXMemoryStore implements IMXStore {
             Log.d(LOG_TAG, "setAvatarURL : commit");
             commit();
         }
+    }
+
+    public List<ThirdPartyIdentifier> thirdPartyIdentifiers() {
+        return mMetadata.mThirdPartyIdentifier;
+    }
+
+    public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
+        mMetadata.mThirdPartyIdentifier = identifiers;
+
+        Log.d(LOG_TAG, "setThirdPartyIdentifiers : commit");
+        commit();
     }
 
     @Override

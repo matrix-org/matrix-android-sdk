@@ -20,14 +20,19 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.ThreePid;
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
 
 import java.util.ArrayList;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.POST;
 
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 

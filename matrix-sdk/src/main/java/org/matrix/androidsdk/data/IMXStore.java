@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -117,6 +118,8 @@ public interface IMXStore {
     void setDisplayName(String displayName);
     String avatarURL();
     void setAvatarURL(String avatarURL);
+    List<ThirdPartyIdentifier> thirdPartyIdentifiers();
+    void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
 
     /**
      * getters.
