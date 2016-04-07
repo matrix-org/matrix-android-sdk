@@ -232,7 +232,7 @@ public class MyUser extends User {
                     mRefreshListeners = new ArrayList<ApiCallback<Void>>();
                 }
 
-                if (isPending && (null != callback)) {
+                if (null != callback) {
                     mRefreshListeners.add(callback);
                 }
             }
