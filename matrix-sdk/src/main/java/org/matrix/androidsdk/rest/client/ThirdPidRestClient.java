@@ -130,32 +130,4 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             }
         });
     }
-
-    /**
-     * Add an 3Pids to an user
-     * @param pid the 3Pid to add
-     * @param bind bind the email
-     * @param callback the asynchronous callback called with the response
-     */
-    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
-        final String description = "add3PID";
-
-        AddThreePidsParams params = new AddThreePidsParams();
-
-        params.three_pid_creds = new ThreePidCreds();
-        params.three_pid_creds.id_server = mHsConfig.getIdentityServerUri().getPath();
-        params.three_pid_creds.sid = pid.sid;
-        params.three_pid_creds.client_secret = pid.clientSecret;
-
-        params.bind = bind;
-
-        mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        add3PID(pid, bind, callback);
-                    }
-                }
-        ));
-    }
 }

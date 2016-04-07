@@ -127,7 +127,7 @@ public class MyUser extends User {
      */
     public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
-            mDataHandler.getThirdPidRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
+            mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the emails list

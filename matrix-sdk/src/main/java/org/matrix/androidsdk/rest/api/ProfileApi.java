@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.ThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -89,5 +90,13 @@ public interface ProfileApi {
      */
     @GET("/account/3pid")
     void threePIDs(Callback<ThreePidsResponse> callback);
+
+    /**
+     * Add an 3Pids to an user
+     * @param params the params
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/account/3pid")
+    void add3PID(@Body AddThreePidsParams params, Callback<Void> callback);
 
 }

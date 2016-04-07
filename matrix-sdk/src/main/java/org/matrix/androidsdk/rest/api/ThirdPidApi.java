@@ -43,12 +43,4 @@ public interface ThirdPidApi {
      */
     @POST("/validate/email/requestToken")
     void requestEmailValidation(@Query("clientSecret") String clientSecret, @Query("email") String email, @Query("sendAttempt") Integer sendAttempt, Callback<RequestEmailValidationResponse> callback);
-
-    /**
-     * Add an 3Pids to an user
-     * @param params the params
-     * @param callback the asynchronous callback called with the response
-     */
-    @POST("/account/3pid")
-    void add3PID(@Body AddThreePidsParams params, Callback<Void> callback);
 }

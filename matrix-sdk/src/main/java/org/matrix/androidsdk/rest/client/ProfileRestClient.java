@@ -20,10 +20,13 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.ThreePid;
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
 import org.matrix.androidsdk.rest.model.ThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -256,6 +259,42 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 }
             }
         });
+    }
 
+
+    /**
+     * Add an 3Pids to an user
+     * @param pid the 3Pid to add
+     * @param bind bind the email
+     * @param callback the asynchronous callback called with the response
+     */
+    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
+        final String description = "add3PID";
+
+        AddThreePidsParams params = new AddThreePidsParams();
+
+        params.three_pid_creds = new ThreePidCreds();
+
+        String identityServerHost = mHsConfig.getIdentityServerUri().toString();
+        if (identityServerHost.startsWith("http://")) {
+            identityServerHost = identityServerHost.substring("http://".length());
+        } else  if (identityServerHost.startsWith("https://")) {
+            identityServerHost = identityServerHost.substring("https://".length());
+        }
+
+        params.three_pid_creds.id_server = identityServerHost;
+        params.three_pid_creds.sid = pid.sid;
+        params.three_pid_creds.client_secret = pid.clientSecret;
+
+        params.bind = bind;
+
+        mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        add3PID(pid, bind, callback);
+                    }
+                }
+        ));
     }
 }
