@@ -54,11 +54,9 @@ public class MatrixError implements java.io.Serializable {
         String localizedMessage = "";
 
         if (null != error) {
-            localizedMessage += error;
-        }
-
-        if (null != errcode) {
-            localizedMessage += "(" +  errcode + ")";
+            localizedMessage = error;
+        } else if (null != errcode) {
+            localizedMessage = errcode;
         }
 
         return localizedMessage;
