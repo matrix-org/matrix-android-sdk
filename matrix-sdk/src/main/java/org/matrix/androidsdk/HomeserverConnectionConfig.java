@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class HomeserverConnectionConfig {
     private Uri mHsUri;
     private Uri mIdentityServerUri;
-    private ArrayList<Fingerprint> mAllowedFingerprints;
+    private ArrayList<Fingerprint> mAllowedFingerprints = new ArrayList<Fingerprint>();
     private Credentials mCredentials;
     private boolean mPin;
 
@@ -55,7 +55,11 @@ public class HomeserverConnectionConfig {
 
         this.mHsUri = hsUri;
         this.mIdentityServerUri = identityServerUri;
-        this.mAllowedFingerprints = allowedFingerprints;
+
+        if (null != allowedFingerprints) {
+            this.mAllowedFingerprints = allowedFingerprints;
+        }
+
         this.mPin = pin;
         this.mCredentials = credentials;
     }
