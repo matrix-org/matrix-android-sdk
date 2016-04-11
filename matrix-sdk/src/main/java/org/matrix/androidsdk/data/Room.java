@@ -1661,7 +1661,7 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().leaveRoom(getRoomId(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     Room.this.mIsLeaving = false;
 
                     // delete references to the room

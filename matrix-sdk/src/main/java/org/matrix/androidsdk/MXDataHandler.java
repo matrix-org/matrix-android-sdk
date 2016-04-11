@@ -88,7 +88,7 @@ public class MXDataHandler implements IMXEventListener {
     private Handler mSyncHandler;
     private Handler mUiHandler;
 
-    private boolean mIsActive = true;
+    private boolean mIsAlive = true;
 
     InvalidTokenListener mInvalidTokenListener;
 
@@ -138,18 +138,18 @@ public class MXDataHandler implements IMXEventListener {
         return mThirdPidRestClient;
     }
 
-    private void checkIfActive() {
+    private void checkIfAlive() {
         synchronized (this) {
-            if (!mIsActive) {
+            if (!mIsAlive) {
                 Log.e(LOG_TAG, "use of a released dataHandler");
                 //throw new AssertionError("Should not used a MXDataHandler");
             }
         }
     }
 
-    public boolean isActive() {
+    public boolean isAlive() {
         synchronized (this) {
-            return mIsActive;
+            return mIsAlive;
         }
     }
 
@@ -167,7 +167,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
-        checkIfActive();
+        checkIfAlive();
 
         IMXStore store = getStore();
 
@@ -212,22 +212,22 @@ public class MXDataHandler implements IMXEventListener {
      * @return true if the initial sync is completed.
      */
     public boolean isInitialSyncComplete() {
-        checkIfActive();
+        checkIfAlive();
         return mInitialSyncComplete;
     }
 
     public DataRetriever getDataRetriever() {
-        checkIfActive();
+        checkIfAlive();
         return mDataRetriever;
     }
 
     public void setDataRetriever(DataRetriever dataRetriever) {
-        checkIfActive();
+        checkIfAlive();
         mDataRetriever = dataRetriever;
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
-        if (isActive()) {
+        if (isAlive()) {
             mBingRulesManager = bingRulesManager;
 
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
@@ -240,22 +240,22 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void setCallsManager(MXCallsManager callsManager) {
-        checkIfActive();
+        checkIfAlive();
         mCallsManager = callsManager;
     }
 
     public MXCallsManager getCallsManager() {
-        checkIfActive();
+        checkIfAlive();
         return mCallsManager;
     }
 
     public void setMediasCache(MXMediasCache mediasCache) {
-        checkIfActive();
+        checkIfAlive();
         mMediasCache = mediasCache;
     }
 
     public BingRuleSet pushRules() {
-        if (isActive() && (null != mBingRulesManager)) {
+        if (isAlive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
         }
 
@@ -263,7 +263,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void refreshPushRules() {
-        if (isActive() && (null != mBingRulesManager)) {
+        if (isAlive() && (null != mBingRulesManager)) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -274,12 +274,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public BingRulesManager getBingRulesManager() {
-        checkIfActive();
+        checkIfAlive();
         return mBingRulesManager;
     }
 
     public void addListener(IMXEventListener listener) {
-        if (mIsActive) {
+        if (isAlive()) {
             synchronized (this) {
                 // avoid adding twice
                 if (mEventListeners.indexOf(listener) == -1) {
@@ -294,7 +294,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void removeListener(IMXEventListener listener) {
-        if (mIsActive) {
+        if (isAlive()) {
             synchronized (this) {
                 mEventListeners.remove(listener);
             }
@@ -303,7 +303,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void clear() {
         synchronized (this) {
-            mIsActive = false;
+            mIsAlive = false;
             // remove any listener
             mEventListeners.clear();
         }
@@ -319,7 +319,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public String getUserId() {
-        if (isActive()) {
+        if (isAlive()) {
             return mCredentials.userId;
         } else {
             return "dummy";
@@ -330,7 +330,7 @@ public class MXDataHandler implements IMXEventListener {
      * Update the missing data fields loaded from a permanent storage.
      */
     public void checkPermanentStorageData() {
-        if (!isActive()) {
+        if (!isAlive()) {
             Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");
             return;
         }
@@ -360,7 +360,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the used store.
      */
     public IMXStore getStore() {
-        if (isActive()) {
+        if (isAlive()) {
             return mStore;
         } else {
             Log.e(LOG_TAG, "getStore : the session is not anymore active");
@@ -375,7 +375,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
-        if (isActive()) {
+        if (isAlive()) {
             for (RoomMember member : members) {
                 if (TextUtils.equals(userID, member.getUserId())) {
                     return member;
@@ -412,7 +412,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        if (!isActive()) {
+        if (!isAlive()) {
             Log.e(LOG_TAG, "getRoom : the session is not anymore active");
             return null;
         }
@@ -436,7 +436,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
-        if (isActive()) {
+        if (isAlive()) {
             Room room = getRoom(event.roomId);
 
             if (null != room) {
@@ -457,7 +457,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user.
      */
     public User getUser(String userId) {
-        if (!isActive()) {
+        if (!isAlive()) {
             Log.e(LOG_TAG, "getUser : the session is not anymore active");
             return null;
         } else {

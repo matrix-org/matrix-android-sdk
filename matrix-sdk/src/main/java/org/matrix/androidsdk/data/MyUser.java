@@ -280,7 +280,7 @@ public class MyUser extends User {
         mDataHandler.getProfileRestClient().avatarUrl(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String anAvatarUrl) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     // local value
                     setAvatarUrl(anAvatarUrl);
                     // metadata file
@@ -296,7 +296,7 @@ public class MyUser extends User {
             }
 
             private void onError() {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     mUiHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
@@ -330,7 +330,7 @@ public class MyUser extends User {
         mDataHandler.getProfileRestClient().displayname(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String aDisplayname) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     // local value
                     displayname = aDisplayname;
                     // store metadata
@@ -344,7 +344,7 @@ public class MyUser extends User {
             }
 
             private void onError() {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     mUiHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
@@ -378,7 +378,7 @@ public class MyUser extends User {
         mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<ThirdPartyIdentifier>>() {
             @Override
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     // local value
                     mThirdPartyIdentifiers = identifiers;
 
@@ -393,7 +393,7 @@ public class MyUser extends User {
             }
 
             private void onError() {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     mUiHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {

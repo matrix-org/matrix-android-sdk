@@ -613,7 +613,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mBingRulesByEventId.clear();
 
         // check if the session has not been logged out
-        if (mSession.isActive() && (null != mRoom) && mIsLive) {
+        if (mSession.isAlive() && (null != mRoom) && mIsLive) {
             mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
         }
 

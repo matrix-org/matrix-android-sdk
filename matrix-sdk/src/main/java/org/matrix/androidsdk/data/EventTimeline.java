@@ -331,7 +331,7 @@ public class EventTimeline {
 
             // Build/Update first the room state corresponding to the 'start' of the timeline.
             // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
-            if (mDataHandler.isActive()) {
+            if (mDataHandler.isAlive()) {
                 for (Event event : roomSync.state.events) {
                     try {
                         processStateEvent(event, Direction.FORWARDS);
@@ -765,7 +765,7 @@ public class EventTimeline {
      */
     private void manageBackEvents(final ApiCallback<Integer> callback) {
         // check if the SDK was not logged out
-        if (!mDataHandler.isActive()) {
+        if (!mDataHandler.isAlive()) {
             Log.d(LOG_TAG, "manageEvents : mDataHandler is not anymore active.");
 
             return;
@@ -914,7 +914,7 @@ public class EventTimeline {
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, getBackState().getToken(), Direction.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
 
                     Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
 
@@ -1007,7 +1007,7 @@ public class EventTimeline {
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
-                if (mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
                     Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 
                     mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
