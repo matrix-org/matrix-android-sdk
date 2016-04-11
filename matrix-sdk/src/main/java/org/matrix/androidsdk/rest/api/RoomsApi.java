@@ -25,6 +25,7 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.MessageFeedback;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -349,4 +350,12 @@ public interface RoomsApi {
     @DELETE("/user/{userId}/rooms/{roomId}/tags/{tag}")
     void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
                    Callback<Void> callback);
+
+    /**
+     * Get the room ID corresponding to this room alias..
+     * @param roomAlias the room alias.
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/directory/room/{roomAlias}")
+    void roomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
 }

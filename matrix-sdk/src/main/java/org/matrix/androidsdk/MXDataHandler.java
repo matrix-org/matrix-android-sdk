@@ -29,11 +29,15 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -81,6 +85,7 @@ public class MXDataHandler implements IMXEventListener {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
+    private RoomsRestClient mRoomsRestClient;
 
     private MyUser mMyUser;
 
@@ -136,6 +141,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public ThirdPidRestClient getThirdPidRestClient() {
         return mThirdPidRestClient;
+    }
+
+    public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
+        mRoomsRestClient = roomsRestClient;
     }
 
     private void checkIfAlive() {
@@ -429,6 +438,71 @@ public class MXDataHandler implements IMXEventListener {
             mStore.storeRoom(room);
         }
         return room;
+    }
+
+    /**
+     * Retrieve a room Id by its alias.
+     * @param roomAlias the room alias
+     * @param callback the asynchronous callback
+     */
+    public void roomIdByAlias(final String roomAlias, final ApiCallback<String> callback) {
+        String roomId = null;
+
+        Collection<Room> rooms = getStore().getRooms();
+
+        for(Room room : rooms) {
+            if (TextUtils.equals(room.getState().alias, roomAlias)) {
+                roomId = room.getRoomId();
+                break;
+            } else {
+                List<String> aliases = room.getState().aliases;
+
+                if (null != aliases) {
+                    for(String alias : aliases) {
+                        if (TextUtils.equals(alias, roomAlias)) {
+                            roomId = room.getRoomId();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (null != roomId) {
+            final String fRoomId = roomId;
+
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(fRoomId);
+                }
+            });
+        } else {
+            mRoomsRestClient.roomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
+                @Override
+                public void onSuccess(RoomAliasDescription info) {
+                    callback.onSuccess(info.room_id);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+        }
+
     }
 
     /**

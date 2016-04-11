@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -680,4 +681,24 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         }));
     }
 
+    /**
+     * Get the room ID corresponding to this room alias.
+     * @param roomAlias the room alias.
+     * @param callback the room alias description
+     */
+    public void roomIdByAlias(final String roomAlias, final ApiCallback<RoomAliasDescription> callback) {
+        final String description = "roomIdByAlias : "+ roomAlias;
+
+
+        mApi.roomIdByAlias(roomAlias, new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    roomIdByAlias(roomAlias, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend roomIdByAlias : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
 }

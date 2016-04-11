@@ -137,6 +137,7 @@ public class MXSession {
         mDataHandler.setProfileRestClient(mProfileRestClient);
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
+        mDataHandler.setRoomsRestClient(mRoomsRestClient);
 
         // application context
         mAppContent = appContext;
