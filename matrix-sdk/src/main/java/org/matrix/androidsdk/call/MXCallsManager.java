@@ -20,11 +20,11 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -204,7 +204,7 @@ public class MXCallsManager {
      * @return true if the call feature is supported
      */
     public boolean isSupported() {
-        return MXChromeCall.isSupported() || MXJingleCall.isSupported();
+        return MXChromeCall.isSupported() || MXJingleCall.isSupported(mContext);
     }
 
     /**
@@ -217,7 +217,7 @@ public class MXCallsManager {
             list.add(CallClass.CHROME_CLASS);
         }
 
-        if (MXJingleCall.isSupported()) {
+        if (MXJingleCall.isSupported(mContext)) {
             list.add(CallClass.JINGLE_CLASS);
         }
 
@@ -235,7 +235,7 @@ public class MXCallsManager {
         }
 
         if (callClass == CallClass.JINGLE_CLASS) {
-            isUpdatable = MXJingleCall.isSupported();
+            isUpdatable = MXJingleCall.isSupported(mContext);
         }
 
         if (isUpdatable) {
@@ -310,7 +310,11 @@ public class MXCallsManager {
 
         // Jingle
         if (null == call) {
-            call = new MXJingleCall(mSession, mContext, getTurnServer());
+            try {
+                call = new MXJingleCall(mSession, mContext, getTurnServer());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "createCall " + e.getLocalizedMessage());
+            }
         }
 
         // a valid callid is provided

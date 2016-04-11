@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
@@ -89,6 +90,9 @@ public class MXJingleCall extends MXCall {
     private VideoRenderer mLargeLocalRenderer = null;
 
     private static boolean mIsInitialized = false;
+    // null -> not initialized
+    // true / false for the supported status
+    private static Boolean mIsSupported;
 
     // candidate management
     private boolean mIsIncomingPrepared = false;
@@ -99,8 +103,17 @@ public class MXJingleCall extends MXCall {
     /**
      * @return true if this stack can perform calls.
      */
-    public static boolean isSupported() {
-        return Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
+    public static boolean isSupported(Context context) {
+        if (null == mIsSupported) {
+            mIsSupported = Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
+
+            // the call initialisation is not yet done
+            if (mIsSupported) {
+                initializeAndroidGlobals(context.getApplicationContext());
+            }
+        }
+
+        return mIsSupported;
     }
 
     /**
@@ -110,7 +123,7 @@ public class MXJingleCall extends MXCall {
      * @param turnServer the turn server
      */
     public MXJingleCall(MXSession session, Context context, JsonElement turnServer) {
-        if (!isSupported()) {
+        if (!isSupported(context)) {
             throw new AssertionError("MXJingleCall : not supported with the current android version");
         }
 
@@ -131,20 +144,23 @@ public class MXJingleCall extends MXCall {
     /**
      * Initialize the jingle globals
      */
-    private void initializeAndroidGlobals() {
+    private static void initializeAndroidGlobals(Context context) {
         if (!mIsInitialized) {
-            mIsInitialized = PeerConnectionFactory.initializeAndroidGlobals(
-                    mContext,
-                    true,
-                    true,
-                    true,
-                    VideoRendererGui.getEGLContext());
+            try {
+                mIsInitialized = PeerConnectionFactory.initializeAndroidGlobals(
+                        context,
+                        true,
+                        true,
+                        true,
+                        VideoRendererGui.getEGLContext());
 
-            PeerConnectionFactory.initializeFieldTrials(null);
-        }
-
-        if (!mIsInitialized) {
-            throw new AssertionError("MXJingleCall : cannot initialize PeerConnectionFactory");
+                PeerConnectionFactory.initializeFieldTrials(null);
+                mIsSupported = true;
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "initializeAndroidGlobals " + e.getLocalizedMessage());
+                mIsInitialized = true;
+                mIsSupported = false;
+            }
         }
     }
 
@@ -153,26 +169,26 @@ public class MXJingleCall extends MXCall {
      */
     @Override
     public void createCallView() {
-        initializeAndroidGlobals();
+        if ((null != mIsSupported) && mIsSupported) {
+            onStateDidChange(CALL_STATE_CREATING_CALL_VIEW);
+            mUIThreadHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mCallView = new GLSurfaceView(mContext);
+                    mCallView.setVisibility(View.GONE);
 
-        onStateDidChange(CALL_STATE_CREATING_CALL_VIEW);
-        mUIThreadHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mCallView = new GLSurfaceView(mContext);
-                mCallView.setVisibility(View.GONE);
+                    onViewLoading(mCallView);
 
-                onViewLoading(mCallView);
-
-                mUIThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onStateDidChange(CALL_STATE_FLEDGLING);
-                        onViewReady();
-                    }
-                });
-            }
-        }, 10);
+                    mUIThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onStateDidChange(CALL_STATE_FLEDGLING);
+                            onViewReady();
+                        }
+                    });
+                }
+            }, 10);
+        }
     }
 
     /**
