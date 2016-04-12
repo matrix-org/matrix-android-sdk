@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -38,12 +40,16 @@ public class EventMatchCondition extends Condition {
         JsonObject eventJson = JsonUtils.toJson(event);
         // Extract the value that we want to match
         String fieldVal = extractField(eventJson, key);
-        if (fieldVal == null) {
+        if (TextUtils.isEmpty(fieldVal)) {
             return false;
         }
+
+        if (TextUtils.equals(pattern, fieldVal)) {
+            return true;
+        }
+
         // Process the pattern
         String patternRegex = globToRegex(pattern);
-
         return fieldVal.matches(patternRegex);
     }
 
