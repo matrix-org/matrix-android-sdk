@@ -27,8 +27,8 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         versionCode 15
-        version "0.5.4-dev"
-        versionName "0.5.4-dev"
+        version "0.5.4"
+        versionName "0.5.4"
         testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
     }
 

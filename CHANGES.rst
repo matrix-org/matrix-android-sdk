@@ -1,3 +1,48 @@
+Changes to Matrix Android Console in 0.5.4 (2016-04-14)
+=======================================================
+
+Improvements:
+* Add a method to retrieve the SDK version programmatically.
+* Add an error callback in the media downloader.
+* Improve the room history back pagination management.
+* Add method to customize the highlighted pattern in a message.
+* Refresh automatically the user account information to avoid having staled one.
+* Mark as sent a message when the SEND request succeeds (do not wait anymore the server acknowledge).
+* Simplify the room messages layout.
+* Add Room.isEventRead to tell if an event has been read.
+* Highlight a message if its content fullfills a push rule.
+* The room member events are not anymore counted as unread messages
+* The messages resending code is factorized in MatrixMessagesListFragment.
+* Improve the message html display.
+* Warn the application when the credentials are not anymore valid.
+* Fix some memory leaks
+* Improve the room activity rendering
+
+Features:
+* Add the currently_active field to User.
+* The messages search is now done on server side.
+* Add the email login support.
+* Add the message context management.
+* Add the 3rd party invitation
+* Add the markdown support.
+* Add the new registration process support.
+* Add the emails binding
+
+Bugfixes:
+* The bing rules were sometines not initialized after the application launch.
+* SYAND-90 The very first pagination jumps the scroll bar.
+* The room spinner was sometime stuck.
+* The presense was sometimes invalid.
+* MXMediasCache : delete the destinated file if it already exists.
+* The back pagination was sometimes stuck after a network error.
+* Texts sizes are now defined in SD instead of DP.
+* The medias message sending did not work properly when the application was in background.
+* Fix an issue when a room is left, joined, left and joined again.
+* The account info was sometimes resetted after receiving a membership event.
+* The filestore was not really cleared after a logout.
+* Fix an infinite back pagination while rotating the device.
+* Fix a crash when jingle_peerconnection.so is not found.
+
 Changes to Matrix Android Console in 0.5.3 (2016-02-16)
 =======================================================
 
