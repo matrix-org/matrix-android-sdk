@@ -465,6 +465,11 @@ public class MXDataHandler implements IMXEventListener {
                         }
                     }
                 }
+
+                // find one matched room id.
+                if (null != roomId) {
+                    break;
+                }
             }
         }
 
