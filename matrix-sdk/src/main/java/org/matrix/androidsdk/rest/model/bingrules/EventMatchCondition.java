@@ -64,10 +64,11 @@ public class EventMatchCondition extends Condition {
 
     private String globToRegex(String glob) {
         String res = glob.replace("*", ".*").replace("?", ".");
+
         // If no special characters were found (detected here by no replacements having been made),
-        // add asterisks to both sides
+        // add asterisks and boundaries to both sides
         if (res.equals(glob)) {
-            res = ".*" + res + ".*";
+            res = ".*\\b" + res + "\\b.*";
         }
         return res;
     }
