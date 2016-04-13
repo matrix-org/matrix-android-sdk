@@ -1252,7 +1252,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // an html format has been released
         if (null != htmlFormattedText) {
-            sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler);
+            boolean isCustomizable = htmlFormattedText.indexOf("<a href=") < 0;
+
+            // the links are not yet supported by ConsoleHtmlTagHandler
+            sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, isCustomizable ? htmlTagHandler : null);
         } else {
             sequence = text;
         }
