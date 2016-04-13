@@ -20,15 +20,17 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.text.Html;
+import android.text.Layout;
+import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
+import android.text.method.Touch;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
@@ -39,6 +41,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -54,13 +57,10 @@ import android.widget.Toast;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.squareup.okhttp.internal.Platform;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
-import org.matrix.androidsdk.data.MyUser;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -237,6 +237,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected boolean mIsSearchMode = false;
     protected String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+
+    private MatrixLinkMovementMethod mLinkMovementMethod;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -1246,26 +1248,28 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final ConsoleHtmlTagHandler htmlTagHandler = new ConsoleHtmlTagHandler();
         htmlTagHandler.mContext = mContext;
 
-        SpannableStringBuilder strBuilder = new SpannableStringBuilder(text);
+        CharSequence sequence = null;
+
+        // an html format has been released
+        if (null != htmlFormattedText) {
+            sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler);
+        } else {
+            sequence = text;
+        }
+
+        SpannableStringBuilder strBuilder = new SpannableStringBuilder(sequence);
         URLSpan[] urls = strBuilder.getSpans(0, text.length(), URLSpan.class);
 
         if ((null != urls) && (urls.length > 0)) {
             for (URLSpan span : urls) {
                 makeLinkClickable(strBuilder, span);
             }
+        }
 
-            if (null != htmlFormattedText) {
-                textView.setText(Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler));
-            } else {
-                textView.setText(text);
-            }
-            textView.setMovementMethod(LinkMovementMethod.getInstance());
-        } else {
-            if (null != htmlFormattedText) {
-                textView.setText(Html.fromHtml( htmlFormattedText.replace("\n", "<br/>"), null, htmlTagHandler));
-            } else {
-                textView.setText(text);
-            }
+        textView.setText(strBuilder);
+
+        if (null != mLinkMovementMethod) {
+            textView.setMovementMethod(mLinkMovementMethod);
         }
     }
 
@@ -1287,7 +1291,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         strBuilder.setSpan(clickable, start, end, flags);
         strBuilder.removeSpan(span);
     }
-
 
     /**
      * Text message management
@@ -2045,6 +2048,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void setMessagesAdapterEventsListener(MessagesAdapterEventsListener listener) {
         mMessagesAdapterEventsListener = listener;
+
+        if (null != listener) {
+            mLinkMovementMethod = new MatrixLinkMovementMethod(listener);
+        } else {
+            mLinkMovementMethod = null;
+        }
     }
 
     /**
@@ -2078,4 +2087,62 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // check if the user has been displayed in the room history
         return (null != userId) && mUserByUserId.containsKey(userId);
     }
+
+    public class MatrixLinkMovementMethod extends LinkMovementMethod {
+
+        MessagesAdapterEventsListener mListener = null;
+
+        public MatrixLinkMovementMethod(MessagesAdapterEventsListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        public boolean onTouchEvent(TextView widget, Spannable buffer, MotionEvent event) {
+            int action = event.getAction();
+
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+
+                x -= widget.getTotalPaddingLeft();
+                y -= widget.getTotalPaddingTop();
+
+                x += widget.getScrollX();
+                y += widget.getScrollY();
+
+                Layout layout = widget.getLayout();
+                int line = layout.getLineForVertical(y);
+                int off = layout.getOffsetForHorizontal(line, x);
+
+                ClickableSpan[] link = buffer.getSpans(
+                        off, off, ClickableSpan.class);
+
+                if (link.length != 0) {
+                    if (action == MotionEvent.ACTION_UP) {
+                        if (link[0] instanceof URLSpan) {
+                            if (null != mListener) {
+                                URLSpan span = (URLSpan) link[0];
+                                mListener.onURLClick(Uri.parse(span.getURL()));
+                            }
+                        } else {
+                            link[0].onClick(widget);
+                        }
+
+                    } else if (action == MotionEvent.ACTION_DOWN) {
+                        Selection.setSelection(buffer,
+                                buffer.getSpanStart(link[0]),
+                                buffer.getSpanEnd(link[0]));
+                    }
+
+                    return true;
+                } else {
+                    Selection.removeSelection(buffer);
+                    Touch.onTouchEvent(widget, buffer, event);
+                    return false;
+                }
+            }
+            return Touch.onTouchEvent(widget, buffer, event);
+        }
+    }
+
 }
