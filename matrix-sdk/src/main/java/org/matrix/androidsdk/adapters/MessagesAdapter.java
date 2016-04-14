@@ -633,6 +633,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public int getItemViewType(int position) {
+        // GA Crash
+        if (position >= getCount()) {
+            return ROW_TYPE_TEXT;
+        }
+
         MessageRow row = getItem(position);
         return getItemViewType(row.getEvent());
     }
@@ -1305,6 +1310,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
+        }
+
+        // GA Crash
+        if (position >= getCount()) {
+            return convertView;
         }
 
         MessageRow row = getItem(position);
