@@ -1258,6 +1258,18 @@ public class Room {
      * @param eventListener the event listener to add
      */
     public void addEventListener(final IMXEventListener eventListener) {
+        // sanity check
+        if (null == eventListener) {
+            Log.e(LOG_TAG, "addEventListener : eventListener is null");
+            return;
+        }
+
+        // GA crash : should never happen but got it.
+        if (null == mDataHandler) {
+            Log.e(LOG_TAG, "addEventListener : mDataHandler is null");
+            return;
+        }
+
         // Create a global listener that we'll add to the data handler
         IMXEventListener globalListener = new MXEventListener() {
             @Override
