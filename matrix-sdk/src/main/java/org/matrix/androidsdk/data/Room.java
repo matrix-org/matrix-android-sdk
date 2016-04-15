@@ -23,19 +23,23 @@ import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.internal.ObjectConstructor;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.db.MXMediaWorkerTask;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileInfo;
@@ -66,6 +70,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -371,6 +376,45 @@ public class Room {
      */
     public void setOnInitialSyncCallback(ApiCallback<Void> callback) {
         mOnInitialSyncCallback = callback;
+    }
+
+
+    /**
+     * Join a room with an url to post before joined the room.
+     * @param thirdPartySigned the thirdPartySigned url
+     * @param callback the callback
+     */
+    public void joinWithThirdPartySigned(final String thirdPartySigned, final ApiCallback<Void> callback) {
+        if (null == thirdPartySigned) {
+            join(callback);
+        } else {
+            String url = thirdPartySigned + "&mxid=" + mMyUserId;
+            UrlPostTask task = new UrlPostTask();
+
+            task.setListener(new UrlPostTask.IPostTaskListener() {
+                @Override
+                public void onSucceed(JsonObject object) {
+                    HashMap<String,String> map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>(){}.getType());
+
+                    if (map.size() > 0) {
+
+                    }
+                }
+                @Override
+                public void onError(String errorMessage) {
+
+                }
+            });
+
+            // avoid crash if there are too many running task
+            try {
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
+            } catch (RejectedExecutionException e) {
+
+            } catch (Exception e) {
+
+            }
+        }
     }
 
     /**
