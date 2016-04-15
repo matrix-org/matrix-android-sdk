@@ -262,20 +262,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         }));
     }
 
-
     /**
      * Join a room by its roomAlias or its roomId
      * @param roomIdOrAlias the room id or the room alias
      * @param callback the async callback
      */
     public void joinRoom(final String roomIdOrAlias, final ApiCallback<RoomResponse> callback) {
+        joinRoom(roomIdOrAlias, null, callback);
+    }
+
+    /**
+     * Join a room by its roomAlias or its roomId
+     * @param roomIdOrAlias the room id or the room alias
+     * @param callback the async callback
+     */
+    public void joinRoom(final String roomIdOrAlias, final HashMap<String, Object> params, final ApiCallback<RoomResponse> callback) {
         final String description = "joinRoom : roomId " + roomIdOrAlias;
 
-        mApi.joinRoomByAliasOrId(roomIdOrAlias, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    joinRoom(roomIdOrAlias, callback);
+                    joinRoom(roomIdOrAlias, params, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getMessage());
                 }

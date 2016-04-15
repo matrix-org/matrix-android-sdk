@@ -17,18 +17,21 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
+import android.content.res.ObbInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.internal.bind.ObjectTypeAdapter;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -36,6 +39,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileInfo;
@@ -66,6 +70,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -374,14 +379,73 @@ public class Room {
     }
 
     /**
+     * Join a room with an url to post before joined the room.
+     * @param thirdPartySignedUrl the thirdPartySigned url
+     * @param callback the callback
+     */
+    public void joinWithThirdPartySigned(final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
+        if (null == thirdPartySignedUrl) {
+            join(callback);
+        } else {
+            String url = thirdPartySignedUrl + "&mxid=" + mMyUserId;
+            UrlPostTask task = new UrlPostTask();
+
+            task.setListener(new UrlPostTask.IPostTaskListener() {
+                @Override
+                public void onSucceed(JsonObject object) {
+                    HashMap<String, Object> map = null;
+
+                    try {
+                        map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>() {}.getType());
+                    } catch (Exception e) {
+                    }
+
+                    if (null != map) {
+                        HashMap<String, Object> joinMap = new HashMap<String, Object>();
+                        joinMap.put("third_party_signed", map);
+                        join(joinMap, callback);
+                    } else {
+                        join(callback);
+                    }
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    Log.d(LOG_TAG, "joinWithThirdPartySigned failed " + errorMessage);
+
+                    // cannot validate the url
+                    // try without validating the url
+                    join(callback);
+                }
+            });
+
+            // avoid crash if there are too many running task
+            try {
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
+            } catch (RejectedExecutionException e) {
+
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
+    /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
+        join(null, callback);
+    }
 
+    /**
+     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
+     * @param callback the callback for when done
+     */
+    public void join(HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId());
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(getRoomId(), new SimpleApiCallback<RoomResponse>(callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {
