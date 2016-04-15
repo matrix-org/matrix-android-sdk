@@ -104,18 +104,32 @@ public class MatrixMessagesFragment extends Fragment {
     private final IMXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onLiveEventsChunkProcessed() {
-            mMatrixMessagesListener.onLiveEventsChunkProcessed();
+            if (null != mMatrixMessagesListener) {
+                mMatrixMessagesListener.onLiveEventsChunkProcessed();
+            }
         }
 
         @Override
         public void onReceiptEvent(String roomId, List<String> senderIds) {
-            mMatrixMessagesListener.onReceiptEvent(senderIds);
+            if (null != mMatrixMessagesListener) {
+                mMatrixMessagesListener.onReceiptEvent(senderIds);
+            }
         }
 
         @Override
         public void onRoomSyncWithLimitedTimeline(String roomId) {
-            mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
-            requestInitialHistory();
+            if (null != mMatrixMessagesListener) {
+                if (mEventTimeline.isLiveTimeline()) {
+                    // clear the history
+                    mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
+
+                    // init the timeline
+                    mEventTimeline.initHistory();
+
+                    // fill the screen
+                    requestInitialHistory();
+                }
+            }
         }
     };
 
