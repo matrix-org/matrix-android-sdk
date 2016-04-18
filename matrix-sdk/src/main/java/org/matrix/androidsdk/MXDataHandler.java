@@ -638,7 +638,12 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
-                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        Room room = getRoom(roomId);
+
+                        // sanity check
+                        if (null != room) {
+                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        }
                     }
 
                     isEmptyResponse = false;
