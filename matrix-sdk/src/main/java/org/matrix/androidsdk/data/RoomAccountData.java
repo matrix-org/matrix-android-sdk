@@ -18,7 +18,6 @@ package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.Event;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 /**

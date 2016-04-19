@@ -32,7 +32,6 @@ import android.widget.ImageView;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -74,7 +73,7 @@ public class MXMediasCache {
         void onDownloadProgress(String downloadId, int percentageProgress);
 
         /**
-         * Called when the upload is complete or has failed.
+         * Called when the download is complete or has failed.
          *
          * @param downloadId the download Identifier
          */

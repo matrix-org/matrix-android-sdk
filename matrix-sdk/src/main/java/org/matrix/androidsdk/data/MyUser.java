@@ -19,10 +19,8 @@ package org.matrix.androidsdk.data;
 import android.os.Handler;
 import android.os.Looper;
 
-import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
