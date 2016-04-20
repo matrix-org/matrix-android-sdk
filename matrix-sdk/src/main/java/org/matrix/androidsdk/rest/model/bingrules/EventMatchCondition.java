@@ -23,9 +23,14 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.util.HashMap;
+import java.util.regex.Pattern;
+
 public class EventMatchCondition extends Condition {
     public String key;
     public String pattern;
+
+    private static HashMap<String, Pattern> mPatternByRule = null;
 
     public EventMatchCondition() {
         kind = Condition.KIND_EVENT_MATCH;
@@ -48,9 +53,18 @@ public class EventMatchCondition extends Condition {
             return true;
         }
 
-        // Process the pattern
-        String patternRegex = globToRegex(pattern);
-        return fieldVal.matches(patternRegex);
+        if (null == mPatternByRule) {
+            mPatternByRule = new HashMap<String, Pattern>();
+        }
+
+        Pattern patternEx = mPatternByRule.get(pattern);
+
+        if (null == patternEx) {
+            patternEx = Pattern.compile(globToRegex(pattern), Pattern.CASE_INSENSITIVE);
+            mPatternByRule.put(pattern, patternEx);
+        }
+
+        return patternEx.matcher(fieldVal).matches();
     }
 
     private String extractField(JsonObject jsonObject, String fieldPath) {

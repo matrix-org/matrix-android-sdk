@@ -181,10 +181,11 @@ public interface RoomsApi {
     /**
      * Join the room with the given alias.
      * @param roomAliasOrId a room alias (or room id)
+     * @param params the extra join param
      * @param callback the asynchronous callback called with the response
      */
     @POST("/join/{roomAliasOrId}")
-    void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
+    void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body HashMap<String, Object> params, Callback<RoomResponse> callback);
 
     /**
      * Leave the given room.

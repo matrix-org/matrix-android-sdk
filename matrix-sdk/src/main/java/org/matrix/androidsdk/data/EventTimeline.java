@@ -711,7 +711,6 @@ public class EventTimeline {
                     BingRule bingRule;
                     boolean outOfTimeEvent = false;
                     JsonObject eventContent = event.getContentAsJsonObject();
-
                     if (eventContent.has("lifetime")) {
                         long maxlifetime = eventContent.get("lifetime").getAsLong();
                         long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
@@ -723,6 +722,12 @@ public class EventTimeline {
 
                     // If the bing rules apply, bing
                     if (!outOfTimeEvent
+                            // some events are not bingable
+                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_PRESENCE)
+                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)
+                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_REDACTION)
+                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_RECEIPT)
+                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_TAGS)
                             && (bingRulesManager != null)
                             && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
                             && bingRule.shouldNotify()) {

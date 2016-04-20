@@ -83,6 +83,18 @@ public class BingRule {
     }
 
 
+    @Override
+    public String toString() {
+        return "BingRule{" +
+                "ruleId='" + ruleId + '\'' +
+                ", conditions=" + conditions +
+                ", actions=" + actions +
+                ", isDefault=" + isDefault +
+                ", isEnabled=" + isEnabled +
+                ", kind='" + kind + '\'' +
+                '}';
+    }
+
     public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         //
         ruleId = aPattern;
@@ -111,6 +123,9 @@ public class BingRule {
 
         actions = actionsList;
     }
+
+
+
 
     public void addCondition(Condition condition) {
         if (conditions == null) {

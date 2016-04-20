@@ -45,7 +45,6 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -638,7 +637,12 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
-                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        Room room = getRoom(roomId);
+
+                        // sanity check
+                        if (null != room) {
+                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        }
                     }
 
                     isEmptyResponse = false;
@@ -677,14 +681,14 @@ public class MXDataHandler implements IMXEventListener {
             try {
                 onLiveEventsChunkProcessed();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getLocalizedMessage());
             }
 
             try {
                 // check if an incoming call has been received
                 mCallsManager.checkPendingIncomingCalls();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getLocalizedMessage());
             }
         }
     }

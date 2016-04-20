@@ -681,14 +681,17 @@ public class MXMemoryStore implements IMXStore {
             return null;
         }
 
-        LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+        Collection<Event> collection = null;
 
-        // unknown room ?
-        if (null == events) {
-            return null;
+        synchronized (mRoomEvents) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            if (null != events) {
+                collection = new ArrayList<Event>(events.values());
+            }
         }
 
-        return new ArrayList<Event>(events.values());
+        return collection;
     }
 
     @Override
@@ -696,18 +699,24 @@ public class MXMemoryStore implements IMXStore {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
         if (null != roomId) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-            if ((events == null) || (events.size() == 0)) {
-                return null;
+            ArrayList<Event> eventsList;
+
+            synchronized (mRoomEvents) {
+                LinkedHashMap<String, Event> events =mRoomEvents.get(roomId);
+                if ((events == null) || (events.size() == 0)) {
+                    return null;
+                }
+
+                // reach the end of the stored items
+                if (TextUtils.equals(mRoomTokens.get(roomId), fromToken)) {
+                    return null;
+                }
+
+                // check if the token is known in the sublist
+                eventsList = new ArrayList<>(events.values());
             }
 
-            // reach the end of the stored items
-            if (TextUtils.equals(mRoomTokens.get(roomId), fromToken)) {
-               return null;
-            }
 
-            // check if the token is known in the sublist
-            ArrayList<Event> eventsList = new ArrayList<>(events.values());
             ArrayList<Event> subEventsList = new ArrayList<>();
 
             // search from the latest to the oldest events

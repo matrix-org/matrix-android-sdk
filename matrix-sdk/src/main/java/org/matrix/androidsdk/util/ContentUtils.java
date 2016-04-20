@@ -17,7 +17,6 @@ package org.matrix.androidsdk.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;

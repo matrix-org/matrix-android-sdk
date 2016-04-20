@@ -41,7 +41,6 @@ import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
 import java.lang.reflect.Modifier;
-
 /**
  * Static methods for converting json into objects.
  */
