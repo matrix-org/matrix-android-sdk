@@ -813,7 +813,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } catch (Exception e) {
 
         }
-        this.uploadVideoContent(null, null, thumbUrl, "image/jpeg", videoUrl, body, videoMimeType);
+
+        // if the video thumbnail cannot be retrieved
+        // send it as a file
+        if (null == thumbUrl) {
+            this.uploadFileContent(videoUrl, videoMimeType, body);
+        } else {
+            this.uploadVideoContent(null, null, thumbUrl, "image/jpeg", videoUrl, body, videoMimeType);
+        }
     }
 
     /**
