@@ -370,7 +370,11 @@ public class RoomState implements java.io.Serializable {
         }
 
         if ((displayName != null) && (alias != null) && !displayName.equals(alias)) {
-            displayName += " (" + alias + ")";
+            if (TextUtils.isEmpty(displayName)) {
+                displayName = alias;
+            } else {
+                displayName += " (" + alias + ")";
+            }
         }
 
         if (displayName == null) {
