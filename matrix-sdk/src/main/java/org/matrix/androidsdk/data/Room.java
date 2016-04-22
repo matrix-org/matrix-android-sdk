@@ -873,14 +873,14 @@ public class Room {
      * @return the number of unread messages that match the push notification rules.
      */
     public int getNotificationCount() {
-        return getState().mNotificationCount;
+        return getState().getNotificationCount();
     }
 
     /**
      * @return the number of highlighted events.
      */
     public int getHighlightCount() {
-        return getState().mHighlightCount;
+        return getState().getHighlightCount();
     }
 
     /**

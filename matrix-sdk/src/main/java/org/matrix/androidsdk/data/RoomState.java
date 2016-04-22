@@ -88,13 +88,13 @@ public class RoomState implements java.io.Serializable {
      * The number of unread messages that match the push notification rules.
      * It is based on the notificationCount field in /sync response.
      */
-    public int mNotificationCount;
+    private int mNotificationCount;
 
     /**
      * The number of highlighted unread messages (subset of notifications).
      * It is based on the notificationCount field in /sync response.
      */
-    public int mHighlightCount;
+    private int mHighlightCount;
 
     // the associated token
     private String token;
@@ -207,6 +207,22 @@ public class RoomState implements java.io.Serializable {
 
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
+    }
+
+    public void setNotificationCount(int notificationCount) {
+        mNotificationCount = notificationCount;
+    }
+
+    public int getNotificationCount() {
+        return mNotificationCount;
+    }
+
+    public void setHighlightCount(int highlightCount) {
+        mHighlightCount = highlightCount;
+    }
+
+    public int getHighlightCount() {
+        return mHighlightCount;
     }
 
     /**
@@ -370,7 +386,11 @@ public class RoomState implements java.io.Serializable {
         }
 
         if ((displayName != null) && (alias != null) && !displayName.equals(alias)) {
-            displayName += " (" + alias + ")";
+            if (TextUtils.isEmpty(displayName)) {
+                displayName = alias;
+            } else {
+                displayName += " (" + alias + ")";
+            }
         }
 
         if (displayName == null) {

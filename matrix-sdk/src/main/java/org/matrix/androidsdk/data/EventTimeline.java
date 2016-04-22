@@ -501,11 +501,11 @@ public class EventTimeline {
                 notifCount = roomSync.unreadNotifications.notificationCount;
             }
 
-            boolean isUpdated = (notifCount != mState.mNotificationCount) || (mState.mHighlightCount != highlightCount);
+            boolean isUpdated = (notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount);
 
             if (isUpdated) {
-                mState.mNotificationCount = notifCount;
-                mState.mHighlightCount = highlightCount;
+                mState.setNotificationCount(notifCount);
+                mState.setHighlightCount(highlightCount);
                 mStore.storeLiveStateForRoom(mRoomId);
             }
         }
