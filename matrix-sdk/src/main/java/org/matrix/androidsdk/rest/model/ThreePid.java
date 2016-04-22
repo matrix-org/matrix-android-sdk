@@ -78,6 +78,7 @@ public class ThreePid {
     public ThreePid(String anAddress, String aMedium) {
         address = anAddress;
         medium = aMedium;
+        clientSecret =  UUID.randomUUID().toString();
     }
 
     /**
@@ -86,7 +87,7 @@ public class ThreePid {
     private void resetValidationParameters() {
         mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
 
-        clientSecret = null;
+        clientSecret = UUID.randomUUID().toString();
         sendAttempt = 1;
         sid = null;
     }
@@ -106,7 +107,6 @@ public class ThreePid {
             }
 
             if (TextUtils.equals(medium, MEDIUM_EMAIL)) {
-                clientSecret =  UUID.randomUUID().toString();
                 mValidationState = AUTH_STATE_TOKEN_REQUESTED;
 
                 restClient.requestValidationToken(address, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
