@@ -46,7 +46,7 @@ public class MyUser extends User {
     private Handler mUiHandler;
 
     // linked emails to the account
-    private List<ThirdPartyIdentifier> mThirdPartyIdentifiers;
+    private List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<ThirdPartyIdentifier>();
 
     public MyUser(User user) {
         clone(user);
@@ -311,12 +311,16 @@ public class MyUser extends User {
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsAvatarRefreshed = true;
+                refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsAvatarRefreshed = true;
+                refreshUserInfos(true, null);
             }
         });
     }
@@ -359,12 +363,16 @@ public class MyUser extends User {
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsDislayNameRefreshed = true;
+                refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsDislayNameRefreshed = true;
+                refreshUserInfos(true, null);
             }
         });
     }
@@ -408,12 +416,16 @@ public class MyUser extends User {
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mAre3PIdsLoaded = true;
+                refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mAre3PIdsLoaded = true;
+                refreshUserInfos(true, null);
             }
         });
     }
