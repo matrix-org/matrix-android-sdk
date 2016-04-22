@@ -17,7 +17,9 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.HandlerThread;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -80,6 +82,8 @@ public class MXFileStore extends MXMemoryStore {
     private boolean mIsOpening = false;
 
     private MXStoreListener mListener = null;
+
+    private String mPreferencesStatusKey;
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
@@ -173,6 +177,8 @@ public class MXFileStore extends MXMemoryStore {
 
         mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + mCredentials.userId, Thread.MIN_PRIORITY);
 
+        mPreferencesStatusKey = "MXfileStore_saved_status_" + mCredentials.userId;
+
         createDirTree(mCredentials.userId);
 
         // updated data
@@ -258,6 +264,17 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
+     * Save the committing status
+     * @param status true if the store is saving data.
+     */
+    private void committing(boolean status) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(mPreferencesStatusKey, !status);
+        editor.commit();
+    }
+
+    /**
      * Open the store.
      */
     public void open() {
@@ -291,16 +308,25 @@ public class MXFileStore extends MXMemoryStore {
                             public void run() {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
-                                String errorDescription = null;
-                                boolean succeed = true;
+                                // clear the preferences
+                                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
 
-                                succeed &= loadRoomsMessages();
+                                String errorDescription = null;
+                                boolean succeed = preferences.getBoolean(mPreferencesStatusKey, true);
 
                                 if (!succeed) {
-                                    errorDescription = "loadRoomsMessages fails";
+                                    errorDescription = "The latest save did not work properly";
                                     Log.e(LOG_TAG, errorDescription);
-                                } else {
-                                    Log.e(LOG_TAG, "loadRoomsMessages succeeds");
+                                }
+
+                                if (succeed) {
+                                    succeed &= loadRoomsMessages();
+                                    if (!succeed) {
+                                        errorDescription = "loadRoomsMessages fails";
+                                        Log.e(LOG_TAG, errorDescription);
+                                    } else {
+                                        Log.e(LOG_TAG, "loadRoomsMessages succeeds");
+                                    }
                                 }
 
                                 if (succeed) {
@@ -818,6 +844,7 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
+                                committing(true);
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForMessages) {
@@ -825,6 +852,7 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                committing(false);
                             }
                         }
                     });
@@ -1067,6 +1095,8 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
+                                committing(true);
+
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForStates) {
@@ -1074,6 +1104,8 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+
+                                committing(false);
                             }
                         }
                     });
@@ -1212,6 +1244,8 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
+                                committing(true);
+
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForAccountData) {
@@ -1235,6 +1269,8 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForAccountData.size() + " account data in " + (System.currentTimeMillis() - start) + " ms");
+
+                                committing(false);
                             }
                         }
                     });
@@ -1364,6 +1400,8 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
+                                committing(true);
+
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForSummaries) {
@@ -1390,6 +1428,8 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
+
+                                committing(false);
                             }
                         }
                     });
@@ -1525,6 +1565,8 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!mIsKilled) {
+                                committing(true);
+
                                 long start = System.currentTimeMillis();
 
                                 try {
@@ -1545,6 +1587,7 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                committing(false);
                             }
                         }
                     });
@@ -1653,6 +1696,7 @@ public class MXFileStore extends MXMemoryStore {
                 mFileStoreHandler.post(new Runnable() {
                     public void run() {
                         if (!mIsKilled) {
+                            committing(true);
 
                             File receiptFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
@@ -1676,6 +1720,8 @@ public class MXFileStore extends MXMemoryStore {
 
                                 Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
                             }
+
+                            committing(false);
                         }
                     }
                 });
