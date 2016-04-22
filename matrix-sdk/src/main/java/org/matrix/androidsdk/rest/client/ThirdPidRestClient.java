@@ -66,18 +66,19 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
     /**
      * Request an email validation token.
      * @param address the email address
-     * @param clientSecret
-     * @param attempt
+     * @param clientSecret the client secret number
+     * @param attempt the attemp count
+     * @param
      * @param callback
      */
-    public void requestValidationToken(final String address, final String clientSecret, final int attempt, final ApiCallback<RequestEmailValidationResponse> callback) {
+    public void requestValidationToken(final String address, final String clientSecret, final int attempt, final String nextLink, final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestValidationToken";
 
-        mApi.requestEmailValidation(clientSecret, address, new Integer(attempt), new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+        mApi.requestEmailValidation(clientSecret, address, new Integer(attempt), nextLink, new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        requestValidationToken(address, clientSecret, attempt, callback);
+                        requestValidationToken(address, clientSecret, attempt, nextLink, callback);
                     }
                 }
         ) {

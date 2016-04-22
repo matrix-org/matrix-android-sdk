@@ -94,9 +94,10 @@ public class ThreePid {
     /**
      * Request a validation token.
      * @param restClient the restclient to use.
+     * @param nextLink the nextLink
      * @param callback the callback when the operation is done
      */
-    public void requestValidationToken(final ThirdPidRestClient restClient, final ApiCallback<Void> callback) {
+    public void requestValidationToken(final ThirdPidRestClient restClient, String nextLink, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != restClient) && (mValidationState != AUTH_STATE_TOKEN_REQUESTED)) {
 
@@ -108,7 +109,7 @@ public class ThreePid {
                 clientSecret =  UUID.randomUUID().toString();
                 mValidationState = AUTH_STATE_TOKEN_REQUESTED;
 
-                restClient.requestValidationToken(address, clientSecret, sendAttempt, new ApiCallback<RequestEmailValidationResponse>() {
+                restClient.requestValidationToken(address, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
 
                     @Override
                     public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {

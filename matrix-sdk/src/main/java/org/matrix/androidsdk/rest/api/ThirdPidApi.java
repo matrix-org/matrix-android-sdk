@@ -42,5 +42,5 @@ public interface ThirdPidApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/validate/email/requestToken")
-    void requestEmailValidation(@Query("clientSecret") String clientSecret, @Query("email") String email, @Query("sendAttempt") Integer sendAttempt, Callback<RequestEmailValidationResponse> callback);
+    void requestEmailValidation(@Query("client_secret") String clientSecret, @Query("email") String email, @Query("send_attempt") Integer sendAttempt, @Query("next_link") String nextLink, Callback<RequestEmailValidationResponse> callback);
 }
