@@ -31,11 +31,15 @@ public class ThirdPartyIdentifier implements Serializable {
 
     /**
      * The timestamp in milliseconds when this 3PID has been validated.
+     * Define as Object because it should be Long and it is a Double.
+     * So, it might change.
      */
-    public Long validatedAt;
+    public Object validatedAt;
 
     /**
      * The timestamp in milliseconds when this 3PID has been added to the user account.
+     * Define as Object because it should be Long and it is a Double.
+     * So, it might change.
      */
-    public Long addedAt;
+    public Object addedAt;
 }
