@@ -952,7 +952,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
                 }
             }
-            else if (isMergedView || isAvatarOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
+            else if (isMergedView || isAvatarOnRightSide) {
                 textView.setVisibility(View.GONE);
             } else {
                 textView.setVisibility(View.VISIBLE);
