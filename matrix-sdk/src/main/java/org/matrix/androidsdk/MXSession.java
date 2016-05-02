@@ -46,6 +46,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -245,6 +246,55 @@ public class MXSession {
     public PresenceRestClient getPresenceApiClient() {
         checkIfAlive();
         return mPresenceRestClient;
+    }
+
+    /**
+     * Refresh the presence info of a dedicated user.
+     * @param userId the user userID.
+     * @param callback the callback.
+     */
+    public void refreshUserPresence(final String userId, final ApiCallback<Void> callback) {
+        mPresenceRestClient.getPresence(userId, new ApiCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                User currentUser = mDataHandler.getStore().getUser(userId);
+
+                if (null != currentUser) {
+                    currentUser.presence = user.presence;
+                    currentUser.currently_active = user.currently_active;
+                    currentUser.lastActiveAgo = user.lastActiveAgo;
+                } else {
+                    currentUser = user;
+                }
+
+                currentUser.lastActiveReceived();
+                mDataHandler.getStore().storeUser(currentUser);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**
