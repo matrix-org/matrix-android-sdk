@@ -1291,7 +1291,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 if (markEnd < markStart) {
                     sequence = sequence.subSequence(0, 0);
                 } else {
-                    sequence = sequence.subSequence(markStart, markEnd);
+                    sequence = sequence.subSequence(markStart, markEnd+1);
                 }
             }
         } else {
