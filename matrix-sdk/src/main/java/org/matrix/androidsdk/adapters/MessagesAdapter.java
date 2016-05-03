@@ -954,9 +954,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             else if (isMergedView || isAvatarOnRightSide) {
                 textView.setVisibility(View.GONE);
-            } else {
-                textView.setVisibility(View.VISIBLE);
-                textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
+            }
+            else {
+                // theses events are managed like notice ones
+                // but they are dedicated behaviour i.e the sender must not be displayed
+                if (event.isCallEvent() ||
+                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                            ) {
+                    textView.setVisibility(View.GONE);
+                } else {
+                    textView.setVisibility(View.VISIBLE);
+                    textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
+                }
             }
 
             final String fSenderId = event.getSender();
