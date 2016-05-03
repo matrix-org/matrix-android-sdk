@@ -1274,22 +1274,25 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // the links are not yet supported by ConsoleHtmlTagHandler
             sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, isCustomizable ? htmlTagHandler : null);
 
-            // remove trailing \n to avoid having empty lines..
-            int markStart = 0;
-            int markEnd = sequence.length() - 1;
+            // sanity check
+            if (!TextUtils.isEmpty(sequence)) {
+                // remove trailing \n to avoid having empty lines..
+                int markStart = 0;
+                int markEnd = sequence.length() - 1;
 
-            // search first non \n character
-            for (; (markStart < sequence.length() - 1) && ('\n' == sequence.charAt(markStart)); markStart++)
-                ;
+                // search first non \n character
+                for (; (markStart < sequence.length() - 1) && ('\n' == sequence.charAt(markStart)); markStart++)
+                    ;
 
-            // search latest non \n character
-            for (; (markEnd >= 0) && ('\n' == sequence.charAt(markEnd)); markEnd--) ;
+                // search latest non \n character
+                for (; (markEnd >= 0) && ('\n' == sequence.charAt(markEnd)); markEnd--) ;
 
-            // empty string ?
-            if (markEnd < markStart) {
-                sequence = sequence.subSequence(0, 0);
-            } else {
-                sequence = sequence.subSequence(markStart, markEnd);
+                // empty string ?
+                if (markEnd < markStart) {
+                    sequence = sequence.subSequence(0, 0);
+                } else {
+                    sequence = sequence.subSequence(markStart, markEnd);
+                }
             }
         } else {
             sequence = text;
