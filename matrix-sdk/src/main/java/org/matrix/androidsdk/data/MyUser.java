@@ -113,7 +113,7 @@ public class MyUser extends User {
      */
     public void requestValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), callback);
+            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
         }
     }
 
