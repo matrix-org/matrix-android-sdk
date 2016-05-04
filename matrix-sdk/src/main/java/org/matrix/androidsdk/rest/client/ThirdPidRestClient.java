@@ -102,10 +102,10 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param sid the sid for the session
      * @param callback asynchronous callback response
      */
-    public void submitEmailValidationToken(final int token, final String clientSecret, final int sid, final ApiCallback<Map<String,Object>> callback) {
+    public void submitEmailValidationToken(final String token, final String clientSecret, final String sid, final ApiCallback<Map<String,Object>> callback) {
         final String description = "submitEmailValidationToken";
 
-        mApi.requestEmailOwnershipValidation(new Integer(token), clientSecret, new Integer(sid), new Callback<Map<String,Object>> () {
+        mApi.requestEmailOwnershipValidation(token, clientSecret, sid, new Callback<Map<String,Object>> () {
             @Override
             public void success (Map<String,Object> aDataRespMap, Response response){
                 callback.onSuccess(aDataRespMap);

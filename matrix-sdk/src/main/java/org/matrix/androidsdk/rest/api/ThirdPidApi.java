@@ -55,5 +55,5 @@ public interface ThirdPidApi {
      * @param callback asynchronous callback response
      */
     @POST("/validate/email/submitToken")
-    void requestEmailOwnershipValidation(@Query("token") Integer token, @Query("client_secret") String clientSecret, @Query("sid") Integer sid, Callback<Map<String,Object>> callback);
+    void requestEmailOwnershipValidation(@Query("token") String token, @Query("client_secret") String clientSecret, @Query("sid") String sid, Callback<Map<String,Object>> callback);
 }

@@ -158,7 +158,7 @@ public class ThreePid {
      * @param sid the sid for the session
      * @param respCallback asynchronous callback response
      */
-    public void submitEmailValidationToken(final ThirdPidRestClient restClient, int token, String clientSecret, int sid, final ApiCallback<Map<String,Object>> respCallback) {
+    public void submitEmailValidationToken(final ThirdPidRestClient restClient, String token, String clientSecret, String sid, final ApiCallback<Map<String,Object>> respCallback) {
     // sanity check
     if (null != restClient) {
         restClient.submitEmailValidationToken(token, clientSecret, sid, respCallback);
