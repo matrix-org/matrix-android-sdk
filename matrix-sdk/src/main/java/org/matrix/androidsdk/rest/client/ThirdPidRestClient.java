@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -101,13 +102,13 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param sid the sid for the session
      * @param callback asynchronous callback response
      */
-    public void submitEmailValidationToken(final int token, final String clientSecret, final int sid, final ApiCallback<Void> callback) {
+    public void submitEmailValidationToken(final int token, final String clientSecret, final int sid, final ApiCallback<Map<String,Object>> callback) {
         final String description = "submitEmailValidationToken";
 
-        mApi.requestEmailOwnershipValidation(new Integer(token), clientSecret, new Integer(sid), new Callback<Void> () {
+        mApi.requestEmailOwnershipValidation(new Integer(token), clientSecret, new Integer(sid), new Callback<Map<String,Object>> () {
             @Override
-            public void success (Void voidObject, Response response){
-                callback.onSuccess(voidObject);
+            public void success (Map<String,Object> aDataRespMap, Response response){
+                callback.onSuccess(aDataRespMap);
             }
 
             @Override

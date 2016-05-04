@@ -25,6 +25,8 @@ import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 
+import java.util.Map;
+
 public interface ThirdPidApi {
 
     /**
@@ -53,5 +55,5 @@ public interface ThirdPidApi {
      * @param callback asynchronous callback response
      */
     @POST("/validate/email/submitToken")
-    void requestEmailOwnershipValidation(@Query("token") Integer token, @Query("client_secret") String clientSecret, @Query("sid") Integer sid, Callback<Void> callback);
+    void requestEmailOwnershipValidation(@Query("token") Integer token, @Query("client_secret") String clientSecret, @Query("sid") Integer sid, Callback<Map<String,Object>> callback);
 }
