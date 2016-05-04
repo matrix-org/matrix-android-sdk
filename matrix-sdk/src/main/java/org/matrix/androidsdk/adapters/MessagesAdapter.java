@@ -365,10 +365,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
-        // use the MediaStore.Images.Thumbnails MINI_KIND size.
-        // it avoid having a mix of large and small thumbnails.
-        mMaxImageWidth = 512; //Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
-        mMaxImageHeight = 384; //Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
+
+        int screenWidth = display.getWidth();
+        int screenHeight = display.getHeight();
+
+        // landscape / portrait
+        if (screenWidth < screenHeight) {
+            mMaxImageWidth = Math.round(screenWidth * 0.6f);
+            mMaxImageHeight = Math.round(screenHeight * 0.4f);
+        } else {
+            mMaxImageWidth = Math.round(screenWidth * 0.4f);
+            mMaxImageHeight = Math.round(screenHeight * 0.6f);
+        }
 
         mSession = session;
     }
@@ -1545,7 +1553,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageView.setImageBitmap(null);
 
         RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
-        final FrameLayout.LayoutParams LayoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
+        final FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
         // the thumbnails are always pre - rotated
         String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
@@ -1565,47 +1573,46 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // the tag is used to detect if the progress value is destinated to this piechart.
         downloadPieFractionView.setTag(downloadId);
 
+        int frameHeight = -1;
+        int frameWidth = -1;
+
+        // if the image size is known
+        // compute the expected thumbnail height
+        if ((thumbWidth > 0) && (thumbHeight > 0)) {
+
+            // swap width and height if the image is side oriented
+            if ((rotationAngle == 90) || (rotationAngle == 270)) {
+                int tmp = thumbWidth;
+                thumbWidth = thumbHeight;
+                thumbHeight = tmp;
+            } else if ((orientation == ExifInterface.ORIENTATION_ROTATE_90) || (orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
+                int tmp = thumbWidth;
+                thumbWidth = thumbHeight;
+                thumbHeight = tmp;
+            }
+
+            frameHeight = Math.min(maxImageWidth * thumbHeight / thumbWidth, maxImageHeight);
+            frameWidth  = frameHeight * thumbWidth / thumbHeight;
+        }
+
+        // ensure that some values are properly initialized
+        if (frameHeight < 0) {
+            frameHeight = mMaxImageHeight;
+        }
+
+        if (frameWidth < 0) {
+            frameWidth = mMaxImageWidth;
+        }
+
+        // apply it the layout
+        // it avoid row jumping when the image is downloaded
+        layoutParams.height = frameHeight;
+        layoutParams.width = frameWidth;
+
         // no download in progress
         if (null != downloadId) {
 
             downloadPieFractionView.setVisibility(View.VISIBLE);
-
-            int frameHeight = -1;
-            int frameWidth = -1;
-
-            // if the image size is known
-            // compute the expected thumbnail height
-            if ((thumbWidth > 0) && (thumbHeight > 0)) {
-
-                // swap width and height if the image is side oriented
-                if ((rotationAngle == 90) || (rotationAngle == 270)) {
-                    int tmp = thumbWidth;
-                    thumbWidth = thumbHeight;
-                    thumbHeight = tmp;
-                } else if ((orientation == ExifInterface.ORIENTATION_ROTATE_90) || (orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
-                    int tmp = thumbWidth;
-                    thumbWidth = thumbHeight;
-                    thumbHeight = tmp;
-                }
-
-                frameHeight = Math.min(maxImageWidth * thumbHeight / thumbWidth, maxImageHeight);
-                frameWidth  = frameHeight * thumbWidth / thumbHeight;
-            }
-
-            // ensure that some values are properly initialized
-            if (frameHeight < 0) {
-                frameHeight = mMaxImageHeight;
-            }
-
-            if (frameWidth < 0) {
-                frameWidth = mMaxImageWidth;
-            }
-
-            // apply it the layout
-            // it avoid row jumping when the image is downloaded
-            LayoutParams.height = frameHeight;
-            LayoutParams.width = frameWidth;
-
             mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                 @Override
                 public void onDownloadStart(String downloadId) {
@@ -1632,11 +1639,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
                         downloadPieFractionView.setVisibility(View.GONE);
 
-                        LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                        LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-
-                        downloadPieFractionView.setVisibility(View.GONE);
-
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
                         }
@@ -1646,17 +1648,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
         } else {
-            LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-
             downloadPieFractionView.setVisibility(View.GONE);
         }
 
-        // The API doesn't make any strong guarantees about the thumbnail size, so also scale
-        // locally if needed.
-        imageView.setMaxWidth(mMaxImageWidth);
-        imageView.setMaxHeight(mMaxImageHeight);
         imageView.setBackgroundColor(Color.TRANSPARENT);
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
     }
 
     /**
