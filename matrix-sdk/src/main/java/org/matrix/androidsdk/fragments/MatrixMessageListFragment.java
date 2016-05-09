@@ -626,7 +626,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // sanity check
         if ((null != mRoom) && mIsLive) {
-            mSession.getDataHandler().getRoom(mRoom.getRoomId()).addEventListener(mEventsListenener);
+            Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId());
+
+            if (null != room) {
+                room.addEventListener(mEventsListenener);
+            } else {
+                Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
+            }
         }
     }
 

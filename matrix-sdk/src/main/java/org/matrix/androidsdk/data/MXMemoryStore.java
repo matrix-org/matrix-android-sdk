@@ -288,7 +288,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     public void updateUserWithRoomMemberEvent(RoomMember roomMember) {
-        if ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership)) {
+        if (null != roomMember) {
             User user = getUser(roomMember.getUserId());
 
             if (null == user) {
