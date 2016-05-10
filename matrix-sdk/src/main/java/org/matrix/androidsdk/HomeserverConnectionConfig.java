@@ -80,6 +80,9 @@ public class HomeserverConnectionConfig {
         this.mCredentials = credentials;
     }
 
+    public void setHomeserverUri(Uri uri) {
+        mHsUri = uri;
+    }
     public Uri getHomeserverUri() { return mHsUri; }
 
     public void setIdentityServerUri(Uri uri) {
