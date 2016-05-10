@@ -61,6 +61,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -105,6 +106,7 @@ public class MXSession {
 
     /**
      * Create a basic session for direct API calls.
+     *
      * @param hsConfig the home server connection config
      */
     public MXSession(HomeserverConnectionConfig hsConfig) {
@@ -123,9 +125,10 @@ public class MXSession {
 
     /**
      * Create a user session with a data handler.
-     * @param hsConfig the home server connection config
+     *
+     * @param hsConfig    the home server connection config
      * @param dataHandler the data handler
-     * @param appContext the application context
+     * @param appContext  the application context
      */
     public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
@@ -205,6 +208,7 @@ public class MXSession {
 
     /**
      * Get the data handler.
+     *
      * @return the data handler.
      */
     public MXDataHandler getDataHandler() {
@@ -214,6 +218,7 @@ public class MXSession {
 
     /**
      * Get the user credentials.
+     *
      * @return the credentials
      */
     public Credentials getCredentials() {
@@ -223,6 +228,7 @@ public class MXSession {
 
     /**
      * Get the API client for requests to the events API.
+     *
      * @return the events API client
      */
     public EventsRestClient getEventsApiClient() {
@@ -232,6 +238,7 @@ public class MXSession {
 
     /**
      * Get the API client for requests to the profile API.
+     *
      * @return the profile API client
      */
     public ProfileRestClient getProfileApiClient() {
@@ -241,6 +248,7 @@ public class MXSession {
 
     /**
      * Get the API client for requests to the presence API.
+     *
      * @return the presence API client
      */
     public PresenceRestClient getPresenceApiClient() {
@@ -250,7 +258,8 @@ public class MXSession {
 
     /**
      * Refresh the presence info of a dedicated user.
-     * @param userId the user userID.
+     *
+     * @param userId   the user userID.
      * @param callback the callback.
      */
     public void refreshUserPresence(final String userId, final ApiCallback<Void> callback) {
@@ -299,6 +308,7 @@ public class MXSession {
 
     /**
      * Get the API client for requests to the bing rules API.
+     *
      * @return the bing rules API client
      */
     public BingRulesRestClient getBingRulesApiClient() {
@@ -323,6 +333,7 @@ public class MXSession {
 
     /**
      * Get the API client for requests to the rooms API.
+     *
      * @return the rooms API client
      */
     public RoomsRestClient getRoomsApiClient() {
@@ -402,6 +413,7 @@ public class MXSession {
 
     /**
      * Get the content manager (for uploading and downloading content) associated with the session.
+     *
      * @return the content manager
      */
     public ContentManager getContentManager() {
@@ -411,6 +423,7 @@ public class MXSession {
 
     /**
      * Get the session's current user. The MyUser object provides methods for updating user properties which are not possible for other users.
+     *
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
@@ -422,6 +435,7 @@ public class MXSession {
 
     /**
      * Get the session's current userid.
+     *
      * @return the session's MyUser id
      */
     public String getMyUserId() {
@@ -435,9 +449,10 @@ public class MXSession {
 
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
-     * @param anEventsListener the event listener or null if using a DataHandler
+     *
+     * @param anEventsListener            the event listener or null if using a DataHandler
      * @param networkConnectivityReceiver the network connectivity listener.
-     * @param initialToken the initial sync token (null to start from scratch)
+     * @param initialToken                the initial sync token (null to start from scratch)
      */
     public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
         checkIfAlive();
@@ -452,7 +467,7 @@ public class MXSession {
             return;
         }
 
-        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler): anEventsListener;
+        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
         mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
@@ -498,6 +513,7 @@ public class MXSession {
     /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
+     *
      * @param initialToken the initial sync token (null to sync from scratch).
      */
     public void startEventStream(String initialToken) {
@@ -566,6 +582,7 @@ public class MXSession {
 
     /**
      * Set a global failure callback implementation.
+     *
      * @param failureCallback the failure callback
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
@@ -579,11 +596,12 @@ public class MXSession {
 
     /**
      * Create a new room with given properties. Needs the data handler.
-     * @param name the room name
-     * @param topic the room topic
+     *
+     * @param name       the room name
+     * @param topic      the room topic
      * @param visibility the room visibility
-     * @param alias the room alias
-     * @param callback the async callback once the room is ready
+     * @param alias      the room alias
+     * @param callback   the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
         checkIfAlive();
@@ -626,8 +644,9 @@ public class MXSession {
 
     /**
      * Join a room by its roomAlias
+     *
      * @param roomIdOrAlias the room alias
-     * @param callback the async callback once the room is joined. The RoomId is provided.
+     * @param callback      the async callback once the room is joined. The RoomId is provided.
      */
     public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
         checkIfAlive();
@@ -645,8 +664,9 @@ public class MXSession {
 
     /**
      * Retrieve user matrix id from a 3rd party id.
-     * @param address the user id.
-     * @param media the media.
+     *
+     * @param address  the user id.
+     * @param media    the media.
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
@@ -657,9 +677,10 @@ public class MXSession {
 
     /**
      * Retrieve user matrix id from a 3rd party id.
+     *
      * @param addresses 3rd party ids
-     * @param mediums the medias.
-     * @param callback the 3rd parties callback
+     * @param mediums   the medias.
+     * @param callback  the 3rd parties callback
      */
     public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
         checkIfAlive();
@@ -669,12 +690,13 @@ public class MXSession {
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param text        the text to search for.
+     * @param rooms       a list of rooms to search in. nil means all rooms the user is in.
      * @param beforeLimit the number of events to get before the matching results.
-     * @param afterLimit the number of events to get after the matching results.
-     * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param afterLimit  the number of events to get after the matching results.
+     * @param nextBatch   the token to pass for doing pagination from a previous response.
+     * @param callback    the request callback
      */
     public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
@@ -685,10 +707,11 @@ public class MXSession {
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param text      the text to search for.
+     * @param rooms     a list of rooms to search in. nil means all rooms the user is in.
      * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param callback  the request callback
      */
     public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
@@ -699,9 +722,10 @@ public class MXSession {
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
+     *
+     * @param text      the text to search for.
      * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param callback  the request callback
      */
     public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
@@ -720,11 +744,12 @@ public class MXSession {
 
     /**
      * Perform a remote text search for a dedicated media types list
-     * @param name the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param name         the text to search for.
+     * @param rooms        a list of rooms to search in. nil means all rooms the user is in.
      * @param messageTypes a list of media types to search (m.image, m.video..).
-     * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param nextBatch    the token to pass for doing pagination from a previous response.
+     * @param callback     the request callback
      */
     public void searchMediaName(String name, List<String> rooms, List<String> messageTypes, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
@@ -744,6 +769,7 @@ public class MXSession {
 
     /**
      * Return the fulfilled active BingRule for the event.
+     *
      * @param event the event
      * @return the fulfilled bingRule
      */
@@ -762,14 +788,15 @@ public class MXSession {
             return false;
         }
     }
-    
+
     /**
      * Get the list of rooms that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
-     * @param tag  RoomTag.ROOM_TAG_XXX values
+     *
+     * @param tag RoomTag.ROOM_TAG_XXX values
      * @return the rooms list.
      */
-    public List<Room>roomsWithTag(final String tag) {
+    public List<Room> roomsWithTag(final String tag) {
         ArrayList<Room> taggedRooms = new ArrayList<Room>();
 
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
@@ -793,11 +820,9 @@ public class MXSession {
                         if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
                             double diff = (tag1.mOrder - tag2.mOrder);
                             res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                        }
-                        else if (null != tag1.mOrder) {
+                        } else if (null != tag1.mOrder) {
                             res = -1;
-                        }
-                        else if (null != tag2.mOrder) {
+                        } else if (null != tag2.mOrder) {
                             res = +1;
                         }
 
@@ -822,7 +847,7 @@ public class MXSession {
         } else {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
 
-            for(Room room : rooms) {
+            for (Room room : rooms) {
                 if (!room.getAccountData().hasTags()) {
                     taggedRooms.add(room);
                 }
@@ -835,15 +860,16 @@ public class MXSession {
     /**
      * Get the list of roomIds that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
-     * @param tag  RoomTag.ROOM_TAG_XXX values
+     *
+     * @param tag RoomTag.ROOM_TAG_XXX values
      * @return the room IDs list.
      */
-    public List<String>roomIdsWithTag(final String tag) {
+    public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
         ArrayList<String> roomIdsList = new ArrayList<String>();
 
-        for(Room room : roomsWithTag) {
+        for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
         }
 
@@ -853,9 +879,10 @@ public class MXSession {
     /**
      * Compute the tag order to use for a room tag so that the room will appear in the expected position
      * in the list of rooms stamped with this tag.
-     * @param index the targeted index of the room in the list of rooms with the tag `tag`.
+     *
+     * @param index       the targeted index of the room in the list of rooms with the tag `tag`.
      * @param originIndex the origin index. Integer.MAX_VALUE if there is none.
-     * @param tag the tag
+     * @param tag         the tag
      * @return the tag order to apply to get the expected position.
      */
     public Double tagOrderToBeAtIndex(int index, int originIndex, String tag) {
@@ -883,20 +910,17 @@ public class MXSession {
 
                 if (null == prevTag.mOrder) {
                     Log.e(LOG_TAG, "computeTagOrderForRoom: Previous room in sublist has no ordering metadata. This should never happen.");
-                }
-                else {
+                } else {
                     orderA = prevTag.mOrder;
                 }
             }
 
-            if (index <= roomsWithTag.size() - 1)
-            {
+            if (index <= roomsWithTag.size() - 1) {
                 RoomTag nextTag = roomsWithTag.get(index).getAccountData().roomTag(tag);
 
                 if (null == nextTag.mOrder) {
                     Log.e(LOG_TAG, "computeTagOrderForRoom: Next room in sublist has no ordering metadata. This should never happen.");
-                }
-                else {
+                } else {
                     orderB = nextTag.mOrder;
                 }
             }
@@ -907,11 +931,23 @@ public class MXSession {
 
     /**
      * Update the account password
+     *
      * @param oldPassword the former account password
      * @param newPassword the new account password
-     * @param callback the callback
+     * @param callback    the callback
      */
     public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
         mProfileRestClient.updatePassword(getMyUserId(), oldPassword, newPassword, callback);
+    }
+
+    /**
+     * Reset the password to a new one.
+     *
+     * @param newPassword    the new password
+     * @param threepid_creds the three pids.
+     * @param callback       the callback
+     */
+    public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
+        mProfileRestClient.resetPassword(newPassword, threepid_creds, callback);
     }
 }

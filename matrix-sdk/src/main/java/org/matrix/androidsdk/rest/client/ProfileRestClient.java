@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import java.util.List;
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.client.Response;
@@ -134,7 +135,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     }
 
     /**
-     * Get the user's display name.
+     * Update the password
      * @param userId the user id
      * @param oldPassword the former password
      * @param newPassword the new password
@@ -156,6 +157,33 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             public void onRetry() {
                 try {
                     updatePassword(userId, oldPassword, newPassword, callback);
+                } catch (Exception e) {
+                }
+            }
+        }));
+    }
+
+    /**
+     * Reset the password to a new one.
+     * @param newPassword the new password
+     * @param threepid_creds the three pids.
+     * @param callback the callback
+     */
+    public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
+        final String description = "Reset password : " + threepid_creds + " newPassword " + newPassword;
+
+        ChangePasswordParams passwordParams = new ChangePasswordParams();
+
+        passwordParams.auth = new AuthParams();
+        passwordParams.auth.type = "m.login.email.identity";
+        passwordParams.auth.threepid_creds = threepid_creds;
+        passwordParams.new_password = newPassword;
+
+        mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    resetPassword(newPassword, threepid_creds, callback);
                 } catch (Exception e) {
                 }
             }
