@@ -31,10 +31,12 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
+import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
@@ -43,15 +45,23 @@ import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
+import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import android.os.Handler;
+
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.Until;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -79,7 +89,6 @@ public class MXDataHandler implements IMXEventListener {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
-    private MXMediasCache mMediasCache;
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
@@ -91,6 +100,11 @@ public class MXDataHandler implements IMXEventListener {
     private HandlerThread mSyncHandlerThread;
     private Handler mSyncHandler;
     private Handler mUiHandler;
+
+    // list of ignored users
+    // null -> not initialized
+    // should be retrieved from the store
+    private List<String> mIgnoredUserIds;
 
     private boolean mIsAlive = true;
 
@@ -144,6 +158,19 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
+    }
+
+    public List<String> getIgnoredUserIds() {
+        if (null == mIgnoredUserIds) {
+            mIgnoredUserIds = mStore.getIgnoredUsers();
+        }
+
+        // avoid the null case
+        if (null == mIgnoredUserIds) {
+            mIgnoredUserIds = new ArrayList<String>();
+        }
+
+        return mIgnoredUserIds;
     }
 
     private void checkIfAlive() {
@@ -255,11 +282,6 @@ public class MXDataHandler implements IMXEventListener {
     public MXCallsManager getCallsManager() {
         checkIfAlive();
         return mCallsManager;
-    }
-
-    public void setMediasCache(MXMediasCache mediasCache) {
-        checkIfAlive();
-        mMediasCache = mediasCache;
     }
 
     public BingRuleSet pushRules() {
@@ -669,6 +691,23 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
+            // account data
+            if (null != syncResponse.accountData) {
+                List<String> newIgnoredUsers = ignoredUsersFromAccountData(syncResponse.accountData);
+                List<String> curIgnoredUsers = getIgnoredUserIds();
+
+                // check if the ignored users list has been updated
+                if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
+
+                    // update the store
+                    mStore.setIgnoredUsers(newIgnoredUsers);
+
+                    if (!isInitialSync) {
+
+                    }
+                }
+            }
+
             if (!isEmptyResponse) {
                 getStore().setEventStreamToken(syncResponse.nextBatch);
                 getStore().commit();
@@ -691,6 +730,40 @@ public class MXDataHandler implements IMXEventListener {
                 Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getLocalizedMessage());
             }
         }
+    }
+
+    /**
+     * Extract the ignored users list from the account data dictionary.
+     *
+     * @param accountData the account data dictionary.
+     * @return the ignored users list. the result cannot be null.
+     */
+    private List<String> ignoredUsersFromAccountData(Map<String, Object> accountData) {
+        List<String> ignoredUsers = new ArrayList<String>();
+
+        try {
+            if (accountData.containsKey("events")) {
+                List<Event> events = (List<Event> )accountData.get("events");
+
+                for(Event event : events) {
+                    if (TextUtils.equals(event.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
+                        Gson gson = new GsonBuilder()
+                                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                                .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                                .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+                                .create();
+
+                        Map<String, Object> usersDict = (Map<String, Object>)gson.fromJson(event.content, Map.class);
+
+                        ignoredUsers = new ArrayList<>(usersDict.keySet());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "ignoredUsersFromAccountData failed " + e.getLocalizedMessage());
+        }
+
+        return ignoredUsers;
     }
 
     /**

@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MXFileStoreMetaData implements java.io.Serializable {
@@ -38,7 +39,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
      */
     public String mUserDisplayName = null;
     public String mUserAvatarUrl = null;
-    public List<ThirdPartyIdentifier>mThirdPartyIdentifier = null;
+    public List<ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
+    public List<String> mIgnoredUsers = new ArrayList<>();
 
 
     public MXFileStoreMetaData deepCopy() {
@@ -55,7 +57,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         }
 
         copy.mUserAvatarUrl = mUserAvatarUrl;
-        copy.mThirdPartyIdentifier = mThirdPartyIdentifier;
+        copy.mThirdPartyIdentifiers = mThirdPartyIdentifiers;
+        copy.mIgnoredUsers = mIgnoredUsers;
         return copy;
     }
 

@@ -43,6 +43,11 @@ public interface IMXEventListener {
     void onAccountInfoUpdate(MyUser myUser);
 
     /**
+     * The ignored users list has been updated.
+     */
+    void onIgnoredUsersUpdate();
+
+    /**
      * A live room event was received.
      * @param event the event
      * @param roomState the room state right before the event
