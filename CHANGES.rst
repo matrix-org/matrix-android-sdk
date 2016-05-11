@@ -1,4 +1,4 @@
-Changes to Matrix Android Console in 0.5.4 (2016-04-14)
+Changes to Matrix Android Console in 0.5.4 (2016-05-11)
 =======================================================
 
 Improvements:
@@ -17,6 +17,8 @@ Improvements:
 * Warn the application when the credentials are not anymore valid.
 * Fix some memory leaks
 * Improve the room activity rendering
+* Room member events should not be displayed with sender.
+* Increase the image thumbnail.
 
 Features:
 * Add the currently_active field to User.
@@ -27,6 +29,7 @@ Features:
 * Add the markdown support.
 * Add the new registration process support.
 * Add the emails binding
+* Add reset password
 
 Bugfixes:
 * The bing rules were sometines not initialized after the application launch.
@@ -42,6 +45,8 @@ Bugfixes:
 * The filestore was not really cleared after a logout.
 * Fix an infinite back pagination while rotating the device.
 * Fix a crash when jingle_peerconnection.so is not found.
+* The network connection listener did not manage properly the data connection lost.
+
 
 Changes to Matrix Android Console in 0.5.3 (2016-02-16)
 =======================================================
