@@ -134,7 +134,9 @@ public class MatrixMessagesFragment extends Fragment {
     private final EventTimeline.EventTimelineListener mEventTimelineListener = new EventTimeline.EventTimelineListener() {
         @Override
         public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-            mMatrixMessagesListener.onEvent(event, direction, roomState);
+            if (null != mMatrixMessagesListener) {
+                mMatrixMessagesListener.onEvent(event, direction, roomState);
+            }
         }
     };
 
@@ -275,7 +277,9 @@ public class MatrixMessagesFragment extends Fragment {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mMatrixMessagesListener.onInitialMessagesLoaded();
+                if (null != mMatrixMessagesListener) {
+                    mMatrixMessagesListener.onInitialMessagesLoaded();
+                }
             }
         }, 100);
     }
