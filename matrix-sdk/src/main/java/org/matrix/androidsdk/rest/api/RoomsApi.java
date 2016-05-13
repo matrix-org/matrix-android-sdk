@@ -25,6 +25,7 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.MessageFeedback;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -308,6 +309,15 @@ public interface RoomsApi {
      */
     @POST("/rooms/{roomId}/redact/{eventId}")
     void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
+
+    /**
+     * Report an event content.
+     * @param roomId the room id
+     * @param eventId the event id of the event to redact
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/rooms/{roomId}/report/{eventId}")
+    void reportEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body ReportContentParams param, Callback<Void> callback);
 
     /**
      * Set the canonical alias name.

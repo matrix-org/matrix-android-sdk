@@ -1637,6 +1637,16 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().redact(getRoomId(), eventId, callback);
     }
 
+    /**
+     * Redact an event from the room.
+     * @param eventId the event's id
+     * @param callback the callback with the created event
+     */
+    public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().report(getRoomId(), eventId, score, reason, callback);
+    }
+
+
     //================================================================================
     // Member actions
     //================================================================================

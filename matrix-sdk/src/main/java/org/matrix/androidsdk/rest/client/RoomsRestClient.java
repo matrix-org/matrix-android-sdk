@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
@@ -41,6 +42,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -545,6 +547,38 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     redact(roomId, eventId, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend redact failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Report an event.
+     * @param roomId the room id
+     * @param eventId the event id
+     * @param score the metric to let the user rate the severity of the abuse. It ranges from -100 “most offensive” to 0 “inoffensive”
+     * @param reason the reason
+     * @param callback the callback containing the created event if successful
+     */
+    public void report(final String roomId, final String eventId, final int score, final String reason, final ApiCallback<Void> callback) {
+        final String description = "report : roomId " + roomId + " eventId " + eventId;
+
+        ReportContentParams content = new ReportContentParams();
+
+        ArrayList<Integer> scores = new ArrayList<Integer>();
+        scores.add(score);
+
+        content.score = scores;
+        content.reason = reason;
+
+
+        mApi.reportEvent(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    report(roomId, eventId, score, reason, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend report failed " + e.getMessage());
                 }
             }
         }));
