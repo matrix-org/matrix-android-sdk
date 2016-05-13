@@ -975,6 +975,19 @@ public class MXSession {
     }
 
     /**
+     * Tells if an user is in the ignored user ids list
+     * @param userId the user id to test
+     * @return true if the user is ignored
+     */
+    public boolean isUserIgnored(String userId) {
+        if (null != userId) {
+            return getDataHandler().getIgnoredUserIds().indexOf(userId) >= 0;
+        }
+
+        return false;
+    }
+
+    /**
      * Ignore a list of users.
      * @param userIds the user ids list to ignore
      * @param callback the result callback
