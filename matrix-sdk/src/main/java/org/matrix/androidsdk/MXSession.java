@@ -970,7 +970,7 @@ public class MXSession {
 
         HashMap<String, Object> params = new HashMap<String, Object>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
-        
+
         mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST,  params, callback);
     }
 

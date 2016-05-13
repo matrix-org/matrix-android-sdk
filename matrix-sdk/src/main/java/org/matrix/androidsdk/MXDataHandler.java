@@ -53,6 +53,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +105,7 @@ public class MXDataHandler implements IMXEventListener {
     // list of ignored users
     // null -> not initialized
     // should be retrieved from the store
-    private List<String> mIgnoredUserIds;
+    private List<String> mIgnoredUserIdsList;
 
     private boolean mIsAlive = true;
 
@@ -166,16 +167,16 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user Ids list
      */
     public List<String> getIgnoredUserIds() {
-        if (null == mIgnoredUserIds) {
-            mIgnoredUserIds = mStore.getIgnoredUsers();
+        if (null == mIgnoredUserIdsList) {
+            mIgnoredUserIdsList = mStore.getIgnoredUserIdsList();
         }
 
         // avoid the null case
-        if (null == mIgnoredUserIds) {
-            mIgnoredUserIds = new ArrayList<String>();
+        if (null == mIgnoredUserIdsList) {
+            mIgnoredUserIdsList = new ArrayList<String>();
         }
 
-        return mIgnoredUserIds;
+        return mIgnoredUserIdsList;
     }
 
     private void checkIfAlive() {
@@ -699,16 +700,23 @@ public class MXDataHandler implements IMXEventListener {
             // account data
             if (null != syncResponse.accountData) {
                 List<String> newIgnoredUsers = ignoredUsersFromAccountData(syncResponse.accountData);
-                List<String> curIgnoredUsers = getIgnoredUserIds();
 
-                // check if the ignored users list has been updated
-                if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
-                    // update the store
-                    mStore.setIgnoredUsers(newIgnoredUsers);
+                if (null != newIgnoredUsers) {
+                    List<String> curIgnoredUsers = getIgnoredUserIds();
 
-                    if (!isInitialSync) {
-                        // warn there is an update
-                        onIgnoredUsersListUpdate();
+                    // the both lists are not empty
+                    if ((0 != newIgnoredUsers.size()) || (0 != curIgnoredUsers.size())) {
+                        // check if the ignored users list has been updated
+                        if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
+                            // update the store
+                            mStore.setIgnoredUserIdsList(newIgnoredUsers);
+                            mIgnoredUserIdsList = newIgnoredUsers;
+
+                            if (!isInitialSync) {
+                                // warn there is an update
+                                onIgnoredUsersListUpdate();
+                            }
+                        }
                     }
                 }
             }
@@ -741,26 +749,32 @@ public class MXDataHandler implements IMXEventListener {
      * Extract the ignored users list from the account data dictionary.
      *
      * @param accountData the account data dictionary.
-     * @return the ignored users list. the result cannot be null.
+     * @return the ignored users list. null means that there is not defined user ids list.
      */
     private List<String> ignoredUsersFromAccountData(Map<String, Object> accountData) {
-        List<String> ignoredUsers = new ArrayList<String>();
+        List<String> ignoredUsers = null;
 
         try {
             if (accountData.containsKey("events")) {
-                List<Event> events = (List<Event> )accountData.get("events");
+                List<Map<String, Object>> events = (List< Map<String, Object>>)accountData.get("events");
 
-                for(Event event : events) {
-                    if (TextUtils.equals(event.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
-                        Gson gson = new GsonBuilder()
-                                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                                .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                                .registerTypeAdapter(Condition.class, new ConditionDeserializer())
-                                .create();
+                if (0 != events.size()) {
+                    for (Map<String, Object> event : events) {
+                        String type = (String)event.get("type");
 
-                        Map<String, Object> usersDict = (Map<String, Object>)gson.fromJson(event.content, Map.class);
+                        if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
+                            if (event.containsKey("content")) {
+                                Map<String, Object> contentDict = (Map<String, Object>)event.get("content");
 
-                        ignoredUsers = new ArrayList<>(usersDict.keySet());
+                                if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
+                                    Map<String, Object> ignored_users = (Map<String, Object>)contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS);
+
+                                    if (null != ignored_users) {
+                                        ignoredUsers = new ArrayList<String>(ignored_users.keySet());
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

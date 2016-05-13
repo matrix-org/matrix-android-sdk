@@ -252,13 +252,13 @@ public class MXMemoryStore implements IMXStore {
         commit();
     }
 
-    public List<String> getIgnoredUsers() {
+    public List<String> getIgnoredUserIdsList() {
         return mMetadata.mIgnoredUsers;
     }
 
-    public void setIgnoredUsers(List<String> users) {
+    public void setIgnoredUserIdsList(List<String> users) {
         mMetadata.mIgnoredUsers = users;
-        Log.d(LOG_TAG, "setIgnoredUsers : commit");
+        Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
         commit();
     }
 

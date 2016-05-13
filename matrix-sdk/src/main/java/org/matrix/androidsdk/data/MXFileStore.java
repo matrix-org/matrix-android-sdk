@@ -568,10 +568,10 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setIgnoredUsers(List<String> users) {
+    public void setIgnoredUserIdsList(List<String> users) {
         Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
         mMetaDataHasChanged = true;
-        super.setIgnoredUsers(users);
+        super.setIgnoredUserIdsList(users);
     }
 
     /**

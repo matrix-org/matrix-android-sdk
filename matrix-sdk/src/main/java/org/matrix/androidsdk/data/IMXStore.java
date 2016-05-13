@@ -120,7 +120,7 @@ public interface IMXStore {
     void setAvatarURL(String avatarURL);
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
-    void setIgnoredUsers(List<String>users);
+    void setIgnoredUserIdsList(List<String>users);
 
     /**
      * getters.
@@ -129,7 +129,7 @@ public interface IMXStore {
     Room getRoom(String roomId);
     Collection<User> getUsers();
     User getUser(String userId);
-    List<String> getIgnoredUsers();
+    List<String> getIgnoredUserIdsList();
 
     /**
      * flush methods
