@@ -281,11 +281,15 @@ public class BingRulesManager {
         return true;
     }
 
-    private void buildRules(BingRulesResponse bingRulesResponse) {
+    /**
+     * Build the internal build rules
+     * @param bingRulesResponse
+     */
+    public void buildRules(BingRulesResponse bingRulesResponse) {
         updateRules(bingRulesResponse.global);
     }
 
-    public  BingRuleSet pushRules() {
+    public BingRuleSet pushRules() {
         return mRulesSet;
     }
 
