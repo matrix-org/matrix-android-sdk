@@ -45,7 +45,7 @@ public interface IMXEventListener {
     /**
      * The ignored users list has been updated.
      */
-    void onIgnoredUsersUpdate();
+    void onIgnoredUsersListUpdate();
 
     /**
      * A live room event was received.

@@ -160,6 +160,11 @@ public class MXDataHandler implements IMXEventListener {
         mRoomsRestClient = roomsRestClient;
     }
 
+    /**
+     * Provide the list of user Ids to ignore.
+     * The result cannot be null.
+     * @return the user Ids list
+     */
     public List<String> getIgnoredUserIds() {
         if (null == mIgnoredUserIds) {
             mIgnoredUserIds = mStore.getIgnoredUsers();
@@ -698,12 +703,12 @@ public class MXDataHandler implements IMXEventListener {
 
                 // check if the ignored users list has been updated
                 if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
-
                     // update the store
                     mStore.setIgnoredUsers(newIgnoredUsers);
 
                     if (!isInitialSync) {
-
+                        // warn there is an update
+                        onIgnoredUsersListUpdate();
                     }
                 }
             }
@@ -1108,6 +1113,22 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onRoomSyncWithLimitedTimeline(roomId);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    public void onIgnoredUsersListUpdate() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
                     }
                 }
