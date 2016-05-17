@@ -30,9 +30,11 @@ import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
@@ -60,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -84,6 +87,7 @@ public class MXSession {
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
+    private AccountDataRestClient mAccountDataRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -121,6 +125,7 @@ public class MXSession {
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
+        mAccountDataRestClient = new AccountDataRestClient(hsConfig);
     }
 
     /**
@@ -169,11 +174,11 @@ public class MXSession {
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
-        mDataHandler.setMediasCache(mMediasCache);
     }
 
     private void checkIfAlive() {
@@ -949,5 +954,84 @@ public class MXSession {
      */
     public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
         mProfileRestClient.resetPassword(newPassword, threepid_creds, callback);
+    }
+
+    /**
+     * Triggers a request to update the userId to ignore
+     * @param userIds the userIds to ignoer
+     * @param callback the callback
+     */
+    private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        HashMap<String, Object> ignoredUsersDict = new HashMap<String, Object>();
+
+        for (String userId : userIds) {
+            ignoredUsersDict.put(userId, new ArrayList<>());
+        }
+
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
+
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST,  params, callback);
+    }
+
+    /**
+     * Tells if an user is in the ignored user ids list
+     * @param userId the user id to test
+     * @return true if the user is ignored
+     */
+    public boolean isUserIgnored(String userId) {
+        if (null != userId) {
+            return getDataHandler().getIgnoredUserIds().indexOf(userId) >= 0;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ignore a list of users.
+     * @param userIds the user ids list to ignore
+     * @param callback the result callback
+     */
+    public void ignoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
+        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+
+        // something to add
+        if ((null !=  userIds) && (userIds.size() > 0)) {
+            // add the new one
+            for (String userId : userIds) {
+                if (userIdsToIgnore.indexOf(userId) < 0) {
+                    userIdsToIgnore.add(userId);
+                }
+            }
+
+            // some items have been added
+            if (curUserIdsToIgnore.size() != userIdsToIgnore.size()) {
+                updateUsers(userIdsToIgnore, callback);
+            }
+        }
+    }
+
+    /**
+     * Unignore a list of users.
+     * @param userIds the user ids list to unignore
+     * @param callback the result callback
+     */
+    public void unIgnoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
+        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+
+        // something to add
+        if ((null != userIds) && (userIds.size() > 0)) {
+            // add the new one
+            for (String userId : userIds) {
+                userIdsToIgnore.remove(userId);
+            }
+
+            // some items have been added
+            if (curUserIdsToIgnore.size() != userIdsToIgnore.size()) {
+                updateUsers(userIdsToIgnore, callback);
+            }
+        }
     }
 }

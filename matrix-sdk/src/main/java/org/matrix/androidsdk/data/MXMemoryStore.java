@@ -242,13 +242,23 @@ public class MXMemoryStore implements IMXStore {
     }
 
     public List<ThirdPartyIdentifier> thirdPartyIdentifiers() {
-        return mMetadata.mThirdPartyIdentifier;
+        return mMetadata.mThirdPartyIdentifiers;
     }
 
     public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
-        mMetadata.mThirdPartyIdentifier = identifiers;
+        mMetadata.mThirdPartyIdentifiers = identifiers;
 
         Log.d(LOG_TAG, "setThirdPartyIdentifiers : commit");
+        commit();
+    }
+
+    public List<String> getIgnoredUserIdsList() {
+        return mMetadata.mIgnoredUsers;
+    }
+
+    public void setIgnoredUserIdsList(List<String> users) {
+        mMetadata.mIgnoredUsers = users;
+        Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
         commit();
     }
 

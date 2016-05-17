@@ -101,4 +101,8 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onRoomSyncWithLimitedTimeline(String roomId) {
     }
+
+    @Override
+    public void onIgnoredUsersListUpdate() {
+    }
 }

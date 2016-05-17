@@ -567,6 +567,13 @@ public class MXFileStore extends MXMemoryStore {
         super.setThirdPartyIdentifiers(identifiers);
     }
 
+    @Override
+    public void setIgnoredUserIdsList(List<String> users) {
+        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        mMetaDataHasChanged = true;
+        super.setIgnoredUserIdsList(users);
+    }
+
     /**
      * Define a MXStore listener.
      * @param listener
