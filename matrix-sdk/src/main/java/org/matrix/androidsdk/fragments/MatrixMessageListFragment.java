@@ -804,6 +804,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Compute the video thumbnail
+     * @param videoUrl the video url
+     * @return the video thumbnail
+     */
+    public String getVideoThumbailUrl(final String videoUrl) {
+        String thumbUrl = null;
+        try {
+            Uri uri = Uri.parse(videoUrl);
+            Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
+            thumbUrl = getMXMediasCache().saveBitmap(thumb, null);
+        } catch (Exception e) {
+        }
+
+        return thumbUrl;
+    }
+
+    /**
      * Upload a video message
      * The video thumbnail will be computed
      * @param videoUrl the video url
@@ -811,15 +828,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param videoMimeType the video mime type
      */
     public void uploadVideoContent(final String videoUrl, final String body, final String videoMimeType) {
-        String thumbUrl = null;
-        try {
-            Uri uri = Uri.parse(videoUrl);
-            Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
-            thumbUrl = getMXMediasCache().saveBitmap(thumb, null);
-        } catch (Exception e) {
+        uploadVideoContent(videoUrl, getVideoThumbailUrl(videoUrl), body, videoMimeType);
+    }
 
-        }
-
+    /**
+     * Upload a video message
+     * The video thumbnail will be computed
+     * @param videoUrl the video url
+     * @param thumbUrl the thumbnail Url
+     * @param body the message body
+     * @param videoMimeType the video mime type
+     */
+    public void uploadVideoContent(final String videoUrl, final String thumbUrl, final String body, final String videoMimeType) {
         // if the video thumbnail cannot be retrieved
         // send it as a file
         if (null == thumbUrl) {
