@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.api;
+package org.matrix.androidsdk.rest.model;
 
 import org.matrix.androidsdk.data.Pusher;
-import org.matrix.androidsdk.rest.model.PushersResponse;
-import org.matrix.androidsdk.rest.model.User;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
+import java.util.List;
 
 /**
- * The pusher API
+ * Class representing the pushers GET response
  */
-public interface PushersApi {
-    @POST("/pushers/set")
-    void set(@Body Pusher pusher, Callback<Void> callback);
-
-    @GET("/pushers")
-    void get(Callback<PushersResponse> callback);
+public class PushersResponse {
+    public List<Pusher> pushers;
 }
