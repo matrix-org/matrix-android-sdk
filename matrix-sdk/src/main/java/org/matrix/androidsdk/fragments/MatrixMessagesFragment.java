@@ -38,6 +38,11 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSyncState;
+import org.matrix.androidsdk.rest.model.Sync.RoomSyncTimeline;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.List;
 
@@ -191,13 +196,6 @@ public class MatrixMessagesFragment extends Fragment {
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
-
-        // retrieve the room.
-        if (null == mRoom) {
-            // check if this room has been joined, if not, join it then get messages.
-            mRoom = mSession.getDataHandler().getRoom(roomId);
-        }
-
         // get the timelime
         if (null == mEventTimeline) {
             mEventTimeline = mMatrixMessagesListener.getEventTimeLine();
@@ -210,24 +208,26 @@ public class MatrixMessagesFragment extends Fragment {
 
         if (null != mEventTimeline) {
             mEventTimeline.addEventTimelineListener(mEventTimelineListener);
+            mRoom = mEventTimeline.getRoom();
         }
 
-        // Live timeline management
-        // join the room if it was not yet joined
-        // fill the screen
-        if ((null != mEventTimeline) &&  !mEventTimeline.isLiveTimeline()) {
+        // retrieve the room.
+        if (null == mRoom) {
+            // check if this room has been joined, if not, join it then get messages.
+            mRoom = mSession.getDataHandler().getRoom(roomId);
+        }
+
+        // display the message history around a dedicated message
+        if ((null != mEventTimeline) &&  !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
             initializeTimeline();
         }
-        // Live timeline management
-        // join the room if it was not yet joined
-        // fill the screen
         else {
             boolean joinedRoom = false;
-
             // does the room already exist ?
             if (mRoom != null) {
                 // init the history
                 mEventTimeline.initHistory();
+
                 // check if some required fields are initialized
                 // else, the joining could have been half broken (network error)
                 if (null != mRoom.getState().creator) {
@@ -239,11 +239,19 @@ public class MatrixMessagesFragment extends Fragment {
 
                 mRoom.addEventListener(mEventListener);
 
-                if (!joinedRoom) {
+                // room preview mode
+                // i.e display the room messages without joining the room
+                if (!mEventTimeline.isLiveTimeline()) {
+                    previewRoom();
+                }
+                // join the room is not yet joined
+                else if (!joinedRoom) {
                     Log.d(LOG_TAG, "Joining room >> " + roomId);
                     joinRoom();
                 }
                 else {
+                    // the room is already joined
+                    // fill the messages list
                     requestInitialHistory();
                 }
             } else {
@@ -282,6 +290,56 @@ public class MatrixMessagesFragment extends Fragment {
                 }
             }
         }, 100);
+    }
+
+    /**
+     * Trigger a room preview i.e trigger an initial sync before filling the message list.
+     */
+    private void previewRoom() {
+        Log.d(LOG_TAG, "Make a room preview of " + mRoom.getRoomId());
+
+        mSession.getRoomsApiClient().initialSync(mRoom.getRoomId(), new ApiCallback<RoomResponse>() {
+            @Override
+            public void onSuccess(RoomResponse roomResponse) {
+                // initialize the timeline with the initial sync response
+                RoomSync roomSync = new RoomSync();
+                roomSync.state = new RoomSyncState();
+                roomSync.state.events = roomResponse.state;
+
+                roomSync.timeline = new RoomSyncTimeline();
+                roomSync.timeline.events = roomResponse.messages.chunk;
+
+                mEventTimeline.handleJoinedRoomSync(roomSync, true);
+
+                Log.d(LOG_TAG, "The room preview is done -> fill the room history");
+                requestInitialHistory();
+            }
+
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "The room preview of " + mRoom.getRoomId() + "failed " + errorMessage);
+
+                if (null != getActivity()) {
+                    if (null != mMatrixMessagesListener) {
+                        mMatrixMessagesListener.hideInitLoading();
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onError(e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+        });
     }
 
     /**

@@ -168,6 +168,19 @@ public class EventTimeline {
     }
 
     /**
+     * Constructor from a room Id
+     * @param dataHandler the data handler
+     * @param roomId the room Id
+     */
+    public EventTimeline(MXDataHandler dataHandler, String roomId) {
+        mDataHandler = dataHandler;
+
+        mStore = new MXMemoryStore(dataHandler.getCredentials());
+        mRoom = mDataHandler.getRoom(mStore, roomId, true);
+        setRoomId(roomId);
+    }
+
+    /**
      * Constructor from room and event Id
      * @param dataHandler the data handler
      * @param roomId the room Id
@@ -177,10 +190,23 @@ public class EventTimeline {
         mInitialEventId = eventId;
         mDataHandler = dataHandler;
 
-        mRoom = mDataHandler.getStore().getRoom(roomId);
-        setRoomId(roomId);
-
         mStore = new MXMemoryStore(dataHandler.getCredentials());
+        mRoom = mDataHandler.getRoom(mStore, roomId, true);
+        setRoomId(roomId);
+    }
+
+    /**
+     * @return the dedicated room
+     */
+    public Room getRoom() {
+        return mRoom;
+    }
+
+    /**
+     * @return the initial event id.
+     */
+    public String getInitialEventId() {
+        return mInitialEventId;
     }
 
     /**

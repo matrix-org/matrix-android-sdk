@@ -99,10 +99,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
+    // fragment parameters
     public static final String ARG_LAYOUT_ID = "MatrixMessageListFragment.ARG_LAYOUT_ID";
     public static final String ARG_MATRIX_ID = "MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_ROOM_ID = "MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_EVENT_ID = "MatrixMessageListFragment.ARG_EVENT_ID";
+    public static final String ARG_PREVIEW_MODE_ID = "MatrixMessageListFragment.ARG_PREVIEW_MODE_ID";
+
+    // default preview mode
+    public static final String PREVIEW_MODE_READ_ONLY = "PREVIEW_MODE_READ_ONLY";
 
     private static final String LOG_TAG = "MatrixMsgsListFrag";
 
@@ -361,9 +366,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null == mEventTimeLine) {
             mEventId =  args.getString(ARG_EVENT_ID);
 
+            // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
-            } else if (null != mRoom) {
+            }
+            // display a room preview
+            else if (null != args.getString(ARG_PREVIEW_MODE_ID)) {
+                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId);
+                mRoom = mEventTimeLine.getRoom();
+            }
+            // standard case
+            else if (null != mRoom) {
                 mEventTimeLine = mRoom.getLiveTimeLine();
             }
         }
