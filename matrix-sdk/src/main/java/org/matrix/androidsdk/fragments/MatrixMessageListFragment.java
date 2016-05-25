@@ -345,10 +345,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         String roomId = args.getString(ARG_ROOM_ID);
 
-        if (!TextUtils.isEmpty(roomId)) {
-            mRoom = mSession.getDataHandler().getRoom(roomId);
-        }
-
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
@@ -381,6 +377,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         }
 
+        // the room is defined, create it
+        if (null == mRoom) {
+            if (!TextUtils.isEmpty(roomId)) {
+                mRoom = mSession.getDataHandler().getRoom(roomId);
+            }
+        }
         // sanity check
         if (null != mRoom) {
             mAdapter.setTypingUsers(mRoom.getTypingUsers());
@@ -615,7 +617,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
-
     }
 
     @Override
@@ -627,7 +628,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // check if the session has not been logged out
         if (mSession.isAlive() && (null != mRoom) && mIsLive) {
-            mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+            mRoom.removeEventListener(mEventsListenener);
         }
 
         cancelCatchingRequests();
@@ -639,7 +640,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // sanity check
         if ((null != mRoom) && mIsLive) {
-            Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId());
+            Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
                 room.addEventListener(mEventsListenener);
