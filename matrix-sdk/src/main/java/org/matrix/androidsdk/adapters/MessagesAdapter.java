@@ -1206,10 +1206,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Add click and long click listener on the content view
-     * @param contentView
+     * Add click and long click listener on the content view.
+     * @param convertView the adapter cell view
+     * @param contentView the main object view
+     * @param position the event position
      */
-    protected void addContentViewListeners(View contentView, final int position) {
+    protected void addContentViewListeners(final View convertView, final View contentView, final int position) {
         contentView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1416,7 +1418,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
-        addContentViewListeners(bodyTextView, position);
+        addContentViewListeners(convertView, bodyTextView, position);
 
         return convertView;
     }
@@ -1721,7 +1723,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         this.manageSubView(position, convertView, imageLayout, type);
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
-        addContentViewListeners(imageView, position);
+        addContentViewListeners(convertView, imageView, position);
 
         return convertView;
     }
@@ -1762,7 +1764,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
-        addContentViewListeners(noticeTextView, position);
+        addContentViewListeners(convertView, noticeTextView, position);
 
         noticeTextView.setAlpha(0.6f);
 
@@ -1810,7 +1812,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
-        addContentViewListeners(emoteTextView, position);
+        addContentViewListeners(convertView, emoteTextView, position);
 
         return convertView;
     }
@@ -1909,7 +1911,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
 
-        addContentViewListeners(fileTextView, position);
+        addContentViewListeners(convertView, fileTextView, position);
 
         return convertView;
     }
