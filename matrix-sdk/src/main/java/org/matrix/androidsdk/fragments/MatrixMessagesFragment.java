@@ -30,6 +30,7 @@ import android.widget.Toast;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -99,6 +100,9 @@ public class MatrixMessagesFragment extends Fragment {
         // UI events
         void showInitLoading();
         void hideInitLoading();
+
+        // get the room preview data
+        RoomPreviewData getRoomPreviewData();
     }
 
     // The listener to send messages back
@@ -298,6 +302,40 @@ public class MatrixMessagesFragment extends Fragment {
     private void previewRoom() {
         Log.d(LOG_TAG, "Make a room preview of " + mRoom.getRoomId());
 
+        if (null != mMatrixMessagesListener) {
+            RoomPreviewData roomPreviewData = mMatrixMessagesListener.getRoomPreviewData();
+
+            if (null != roomPreviewData) {
+                if  (null != roomPreviewData.getRoomResponse()) {
+                    Log.d(LOG_TAG, "A preview data is provided with sync reponse");
+                    RoomResponse roomResponse = roomPreviewData.getRoomResponse();
+
+                    // initialize the timeline with the initial sync response
+                    RoomSync roomSync = new RoomSync();
+                    roomSync.state = new RoomSyncState();
+                    roomSync.state.events = roomResponse.state;
+
+                    roomSync.timeline = new RoomSyncTimeline();
+                    roomSync.timeline.events = roomResponse.messages.chunk;
+
+                    mEventTimeline.handleJoinedRoomSync(roomSync, true);
+
+                    Log.d(LOG_TAG, "The room preview is done -> fill the room history");
+                    requestInitialHistory();
+                } else {
+                    Log.d(LOG_TAG, "A preview data is provided with no sync reponse : assume that it is not possible to get a room preview");
+
+                    if (null != getActivity()) {
+                        if (null != mMatrixMessagesListener) {
+                            mMatrixMessagesListener.hideInitLoading();
+                        }
+                    }
+                }
+
+                return;
+            }
+        }
+
         mSession.getRoomsApiClient().initialSync(mRoom.getRoomId(), new ApiCallback<RoomResponse>() {
             @Override
             public void onSuccess(RoomResponse roomResponse) {
@@ -346,7 +384,6 @@ public class MatrixMessagesFragment extends Fragment {
      * Initialize the timeline to fill the screen
      */
     private void initializeTimeline() {
-
         Log.d(LOG_TAG, "initializeTimeline");
 
         if (null != mMatrixMessagesListener) {

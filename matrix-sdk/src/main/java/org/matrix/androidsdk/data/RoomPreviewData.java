@@ -22,7 +22,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Map;
 
@@ -51,8 +50,8 @@ public class RoomPreviewData {
     // the room state
     private RoomState mRoomState;
 
-    // The last recent messages of the room.
-    private TokensChunkResponse<Event> mMessages;
+    // the initial sync data
+    private RoomResponse mRoomResponse;
 
     // the session
     private MXSession mSession;
@@ -119,6 +118,13 @@ public class RoomPreviewData {
     }
 
     /**
+     * @return the initial sync response
+     */
+    public RoomResponse getRoomResponse() {
+        return mRoomResponse;
+    }
+
+    /**
      * @return the room invitation
      */
     public RoomEmailInvitation getRoomEmailInvitation() {
@@ -132,12 +138,14 @@ public class RoomPreviewData {
     public void fetchPreviewData(final ApiCallback<Void> apiCallback) {
         mSession.getRoomsApiClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
             @Override
-            public void onSuccess(RoomResponse info) {
+            public void onSuccess(RoomResponse roomResponse) {
+                // save the initial sync response
+                mRoomResponse = roomResponse;
 
                 mRoomState = new RoomState();
                 mRoomState.roomId = mRoomId;
 
-                for(Event event : info.state) {
+                for(Event event : roomResponse.state) {
                     mRoomState.applyState(event, EventTimeline.Direction.FORWARDS);
                 }
 

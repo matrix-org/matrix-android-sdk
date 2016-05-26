@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
@@ -47,6 +48,7 @@ import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -94,6 +96,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public interface OnSearchResultListener {
         void onSearchSucceed(int nbrMessages);
         void onSearchFailed();
+    }
+
+    public interface RoomPreviewDataListener {
+        RoomPreviewData getRoomPreviewData();
     }
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
@@ -161,6 +167,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     // y pos of the first visible row
     private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
+
+    // used to retrieve the preview data
+    protected RoomPreviewDataListener mRoomPreviewDataListener;
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -569,7 +578,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * @return the fragment tag to use to restore the matrix messages fragement
+     * @return the fragment tag to use to restore the matrix messages fragment
      */
     protected String getMatrixMessagesFragmentTag() {
         return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
@@ -1385,6 +1394,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.notifyDataSetChanged();
     }
 
+
     /**
      * Manage the request history error cases.
      * @param error the error object.
@@ -1922,6 +1932,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
             }
         });
+    }
+
+    @Override
+    public  RoomPreviewData getRoomPreviewData() {
+        if (null != getActivity()) {
+            // test if the listener has bee retrieved
+            if (null == mRoomPreviewDataListener) {
+                try {
+                    mRoomPreviewDataListener = (RoomPreviewDataListener) getActivity();
+                } catch (ClassCastException e) {
+                }
+            }
+
+            if (null != mRoomPreviewDataListener) {
+                return mRoomPreviewDataListener.getRoomPreviewData();
+            }
+        }
+
+        return null;
     }
 
     @Override
