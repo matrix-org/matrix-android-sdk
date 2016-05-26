@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.fragments;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
@@ -165,6 +164,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
 
+    // scroll to the index when loaded
+    private int mScrollToIndex = -1;
+
     // y pos of the first visible row
     private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
 
@@ -299,6 +301,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+    }
+
+    /**
+     * Scroll the listview to a dedicated index when the list is loaded.
+     * @param index the index
+     */
+    public void scrollToIndexWhenLoaded(int index) {
+        mScrollToIndex = index;
     }
 
     /**
@@ -1880,7 +1890,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         // else the one by one message refresh gives a weird UX
                         // The application is almost frozen during the
                         mAdapter.notifyDataSetChanged();
-                        mMessageListView.setSelection(mAdapter.getCount() - 1);
+
+                        if (mScrollToIndex >= 0) {
+                            mMessageListView.setSelection(mScrollToIndex);
+                            mScrollToIndex = -1;
+                        } else {
+                            mMessageListView.setSelection(mAdapter.getCount() - 1);
+                        }
                     }
 
                     // fill the page
@@ -1899,8 +1915,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 } else {
                     Log.d(LOG_TAG, "onInitialMessagesLoaded : default behaviour");
-                    mIsInitialSyncing = false;
-                    mMessageListView.setOnScrollListener(mScrollListener);
+
+                    if ((0 != mAdapter.getCount()) && (mScrollToIndex > 0)) {
+                        mAdapter.notifyDataSetChanged();
+                        mMessageListView.setSelection(mScrollToIndex);
+                        mScrollToIndex = -1;
+
+                        mMessageListView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mIsInitialSyncing = false;
+                                mMessageListView.setOnScrollListener(mScrollListener);
+                            }
+                        });
+
+                    } else {
+                        mIsInitialSyncing = false;
+                        mMessageListView.setOnScrollListener(mScrollListener);
+                    }
                 }
             }
         });
