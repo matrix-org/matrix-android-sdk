@@ -224,7 +224,7 @@ public class MatrixMessagesFragment extends Fragment {
         else {
             boolean joinedRoom = false;
             // does the room already exist ?
-            if (mRoom != null) {
+            if ((mRoom != null) && (null != mEventTimeline)) {
                 // init the history
                 mEventTimeline.initHistory();
 

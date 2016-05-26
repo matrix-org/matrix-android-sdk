@@ -365,6 +365,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
+                mRoom = mEventTimeLine.getRoom();
             }
             // display a room preview
             else if (null != args.getString(ARG_PREVIEW_MODE_ID)) {
@@ -372,17 +373,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mRoom = mEventTimeLine.getRoom();
             }
             // standard case
-            else if (null != mRoom) {
-                mEventTimeLine = mRoom.getLiveTimeLine();
+            else {
+                if (!TextUtils.isEmpty(roomId)) {
+                    mRoom = mSession.getDataHandler().getRoom(roomId);
+                    mEventTimeLine = mRoom.getLiveTimeLine();
+                }
             }
         }
 
-        // the room is defined, create it
-        if (null == mRoom) {
-            if (!TextUtils.isEmpty(roomId)) {
-                mRoom = mSession.getDataHandler().getRoom(roomId);
-            }
-        }
         // sanity check
         if (null != mRoom) {
             mAdapter.setTypingUsers(mRoom.getTypingUsers());
