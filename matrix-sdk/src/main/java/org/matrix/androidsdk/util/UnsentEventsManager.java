@@ -237,7 +237,9 @@ public class UnsentEventsManager {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
                 }
-                callback.onUnexpectedError(error);
+                if (null != callback) {
+                    callback.onUnexpectedError(error);
+                }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
             }
@@ -247,7 +249,9 @@ public class UnsentEventsManager {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Network Error " + eventDescription);
                 }
-                callback.onNetworkError(error);
+                if (null != callback) {
+                    callback.onNetworkError(error);
+                }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
             }
@@ -269,7 +273,7 @@ public class UnsentEventsManager {
 
                     if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
                         dataHandler.onInvalidToken();
-                    } else {
+                    } else if (null != callback) {
                         callback.onMatrixError(mxError);
                     }
 
@@ -283,7 +287,9 @@ public class UnsentEventsManager {
                         Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
                     }
 
-                    callback.onUnexpectedError(error);
+                    if (null != callback) {
+                        callback.onUnexpectedError(error);
+                    }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                 }
@@ -415,6 +421,7 @@ public class UnsentEventsManager {
         }
 
         if (!isManaged) {
+            Log.d(LOG_TAG, "Cannot resend it");
             triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
         }
     }

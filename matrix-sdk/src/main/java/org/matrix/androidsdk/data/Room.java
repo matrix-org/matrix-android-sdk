@@ -831,7 +831,27 @@ public class Room {
         if ((null != event) && (null != summary)) {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, null);
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                       // nop
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                    }
+                });
                 setReadReceiptToken(event.eventId, System.currentTimeMillis());
             }
         }
@@ -847,9 +867,17 @@ public class Room {
         RoomSummary summary = mStore.getSummary(getRoomId());
 
         if (summary.setReadReceiptToken(token, ts)) {
+            // reset the notification count
+            getLiveState().setHighlightCount(0);
+            getLiveState().setNotificationCount(0);
+            mStore.storeLiveStateForRoom(getRoomId());
+
+            // flish the summary
             mStore.flushSummary(summary);
+
             mStore.commit();
             refreshUnreadCounter();
+
             return true;
         }
 
