@@ -368,6 +368,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mFirstVisibleRow = savedInstanceState.getInt("FIRST_VISIBLE_ROW", -1);
         }
 
+        mAdapter.setIsPreviewMode(false);
+
         if (null == mEventTimeLine) {
             mEventId =  args.getString(ARG_EVENT_ID);
 
@@ -378,6 +380,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
             // display a room preview
             else if (null != args.getString(ARG_PREVIEW_MODE_ID)) {
+                mAdapter.setIsPreviewMode(true);
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId);
                 mRoom = mEventTimeLine.getRoom();
             }

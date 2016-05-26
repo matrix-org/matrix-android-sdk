@@ -235,6 +235,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected MXSession mSession;
 
     protected boolean mIsSearchMode = false;
+    protected boolean mIsPreviewMode = false;
     protected String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
 
@@ -379,6 +380,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         mSession = session;
+    }
+
+    /**
+     * Update the preview mode status
+     * @param isPreviewMode true to display the adapter in provew mode
+     */
+    public void setIsPreviewMode(boolean isPreviewMode) {
+        mIsPreviewMode = isPreviewMode;
     }
 
     @Override
