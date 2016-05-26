@@ -1118,10 +1118,50 @@ public class EventTimeline {
                 onEvent(eventContext.event, Direction.BACKWARDS, mState);
 
                 // add events before
-                addPaginationEvents(eventContext.eventsBefore, Direction.BACKWARDS, null);
+                addPaginationEvents(eventContext.eventsBefore, Direction.BACKWARDS, new ApiCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer info) {
+                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+                });
 
                 // add events after
-                addPaginationEvents(eventContext.eventsAfter, Direction.FORWARDS, null);
+                addPaginationEvents(eventContext.eventsAfter, Direction.FORWARDS, new ApiCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer info) {
+                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                    }
+                });
 
                 mForwardsPaginationToken = eventContext.end;
 
