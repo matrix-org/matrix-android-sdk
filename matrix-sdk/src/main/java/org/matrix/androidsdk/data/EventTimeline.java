@@ -173,12 +173,7 @@ public class EventTimeline {
      * @param roomId the room Id
      */
     public EventTimeline(MXDataHandler dataHandler, String roomId) {
-        mDataHandler = dataHandler;
-
-        mStore = new MXMemoryStore(dataHandler.getCredentials());
-        mRoom = mDataHandler.getRoom(mStore, roomId, true);
-        mRoom.setLiveTimeline(this);
-        setRoomId(roomId);
+        this(dataHandler, roomId, null);
     }
 
     /**
@@ -194,6 +189,7 @@ public class EventTimeline {
         mStore = new MXMemoryStore(dataHandler.getCredentials());
         mRoom = mDataHandler.getRoom(mStore, roomId, true);
         mRoom.setLiveTimeline(this);
+        mRoom.setReadyState(true);
         setRoomId(roomId);
     }
 
