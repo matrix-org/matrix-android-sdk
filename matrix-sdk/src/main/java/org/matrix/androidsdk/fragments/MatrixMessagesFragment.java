@@ -317,6 +317,8 @@ public class MatrixMessagesFragment extends Fragment {
 
                     roomSync.timeline = new RoomSyncTimeline();
                     roomSync.timeline.events = roomResponse.messages.chunk;
+                    roomSync.timeline.limited = true;
+                    roomSync.timeline.prevBatch = roomResponse.messages.end;
 
                     mEventTimeline.handleJoinedRoomSync(roomSync, true);
 
