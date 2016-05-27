@@ -451,6 +451,17 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
+        return  getRoom(mStore, roomId, create);
+    }
+
+    /**
+     * Get the room object for the corresponding room id.
+     * @param store the dedicated store
+     * @param roomId the room id
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(IMXStore store, String roomId, boolean create) {
         if (!isAlive()) {
             Log.e(LOG_TAG, "getRoom : the session is not anymore active");
             return null;
@@ -461,14 +472,15 @@ public class MXDataHandler implements IMXEventListener {
             return null;
         }
 
-        Room room = mStore.getRoom(roomId);
+        Room room = store.getRoom(roomId);
         if ((room == null) && create) {
             room = new Room();
             room.init(roomId, this);
-            mStore.storeRoom(room);
+            store.storeRoom(room);
         }
         return room;
     }
+
 
     /**
      * Retrieve a room Id by its alias.

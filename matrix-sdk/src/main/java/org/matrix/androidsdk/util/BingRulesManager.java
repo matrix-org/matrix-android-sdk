@@ -255,7 +255,7 @@ public class BingRulesManager {
                 }
                 else if (condition instanceof ContainsDisplayNameCondition) {
                     if (event.roomId != null) {
-                        Room room = mDataHandler.getRoom(event.roomId);
+                        Room room = mDataHandler.getRoom(event.roomId, false);
 
                         // sanity checks
                         if ((null != room) && (null != room.getMember(mMyUserId))) {
@@ -269,7 +269,8 @@ public class BingRulesManager {
                 }
                 else if (condition instanceof RoomMemberCountCondition) {
                     if (event.roomId != null) {
-                        Room room = mDataHandler.getRoom(event.roomId);
+                        Room room = mDataHandler.getRoom(event.roomId, false);
+
                         if (!((RoomMemberCountCondition) condition).isSatisfied(room)) {
                             return false;
                         }

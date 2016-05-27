@@ -168,6 +168,15 @@ public class EventTimeline {
     }
 
     /**
+     * Constructor from a room Id
+     * @param dataHandler the data handler
+     * @param roomId the room Id
+     */
+    public EventTimeline(MXDataHandler dataHandler, String roomId) {
+        this(dataHandler, roomId, null);
+    }
+
+    /**
      * Constructor from room and event Id
      * @param dataHandler the data handler
      * @param roomId the room Id
@@ -177,10 +186,32 @@ public class EventTimeline {
         mInitialEventId = eventId;
         mDataHandler = dataHandler;
 
-        mRoom = mDataHandler.getStore().getRoom(roomId);
-        setRoomId(roomId);
-
         mStore = new MXMemoryStore(dataHandler.getCredentials());
+        mRoom = mDataHandler.getRoom(mStore, roomId, true);
+        mRoom.setLiveTimeline(this);
+        mRoom.setReadyState(true);
+        setRoomId(roomId);
+    }
+
+    /**
+     * @return the dedicated room
+     */
+    public Room getRoom() {
+        return mRoom;
+    }
+
+    /**
+     * @return the used store
+     */
+    public IMXStore getStore() {
+        return mStore;
+    }
+
+    /**
+     * @return the initial event id.
+     */
+    public String getInitialEventId() {
+        return mInitialEventId;
     }
 
     /**
@@ -417,96 +448,102 @@ public class EventTimeline {
                 mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
             }
         }
-        // wait the end of the events chunk processing to detect if the user leaves the room
-        // The timeline events could contain a leave event followed by a join.
-        // so, the user does not leave.
-        // The handleLiveEvent used to warn the client that a room was left where as it should not
-        selfMember = mState.getMember(myUserId);
 
-        if (null != selfMember) {
-            membership = selfMember.membership;
+        // the EventTimeLine is used when displaying a room preview
+        // so, the following items should only be called when it is a live one.
+        if (mIsLiveTimeline) {
+            // wait the end of the events chunk processing to detect if the user leaves the room
+            // The timeline events could contain a leave event followed by a join.
+            // so, the user does not leave.
+            // The handleLiveEvent used to warn the client that a room was left where as it should not
+            selfMember = mState.getMember(myUserId);
 
-            if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
-                // check if the room still exists.
-                if (null != mStore.getRoom(mRoomId)) {
-                    mStore.deleteRoom(mRoomId);
-                    mDataHandler.onLeaveRoom(mRoomId);
-                }
-            }
-        }
+            if (null != selfMember) {
+                membership = selfMember.membership;
 
-        // check if the summary is defined
-        // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
-        if (null != mStore.getRoom(mRoomId)) {
-            RoomSummary summary = mStore.getSummary(mRoomId);
-
-            // if there is no defined summary
-            // we have to create a new one
-            if (null == summary) {
-                // define a summary if some messages are left
-                // the unsent messages are often displayed messages.
-                Event oldestEvent = mStore.getOldestEvent(mRoomId);
-
-                // if there is an oldest event, use it to set a summary
-                if (oldestEvent != null) {
-                    if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
-                        mStore.commit();
+                if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
+                    // check if the room still exists.
+                    if (null != mStore.getRoom(mRoomId)) {
+                        mStore.deleteRoom(mRoomId);
+                        mDataHandler.onLeaveRoom(mRoomId);
                     }
                 }
-                // use the latest known event
-                else if (null != currentSummary) {
-                    mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), mState, myUserId);
-                    mStore.commit();
-                }
-                // try to build a summary from the state events
-                else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-                    ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
-
-                    Collections.reverse(events);
-
-                    for (Event event : events) {
-                        event.roomId = mRoomId;
-                        if (RoomSummary.isSupportedEvent(event)) {
-                            summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
-
-                            // Watch for potential room name changes
-                            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            }
 
 
-                                if (null != summary) {
-                                    summary.setName(mRoom.getName(myUserId));
-                                }
-                            }
+            // check if the summary is defined
+            // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
+            if (null != mStore.getRoom(mRoomId)) {
+                RoomSummary summary = mStore.getSummary(mRoomId);
 
+                // if there is no defined summary
+                // we have to create a new one
+                if (null == summary) {
+                    // define a summary if some messages are left
+                    // the unsent messages are often displayed messages.
+                    Event oldestEvent = mStore.getOldestEvent(mRoomId);
+
+                    // if there is an oldest event, use it to set a summary
+                    if (oldestEvent != null) {
+                        if (RoomSummary.isSupportedEvent(oldestEvent)) {
+                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
                             mStore.commit();
-                            break;
+                        }
+                    }
+                    // use the latest known event
+                    else if (null != currentSummary) {
+                        mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), mState, myUserId);
+                        mStore.commit();
+                    }
+                    // try to build a summary from the state events
+                    else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
+                        ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
+
+                        Collections.reverse(events);
+
+                        for (Event event : events) {
+                            event.roomId = mRoomId;
+                            if (RoomSummary.isSupportedEvent(event)) {
+                                summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+
+                                // Watch for potential room name changes
+                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
+                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
+                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+
+
+                                    if (null != summary) {
+                                        summary.setName(mRoom.getName(myUserId));
+                                    }
+                                }
+
+                                mStore.commit();
+                                break;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (null != roomSync.unreadNotifications) {
-            int notifCount = 0;
-            int highlightCount = 0;
+            if (null != roomSync.unreadNotifications) {
+                int notifCount = 0;
+                int highlightCount = 0;
 
-            if (null != roomSync.unreadNotifications.highlightCount) {
-                highlightCount = roomSync.unreadNotifications.highlightCount;
-            }
+                if (null != roomSync.unreadNotifications.highlightCount) {
+                    highlightCount = roomSync.unreadNotifications.highlightCount;
+                }
 
-            if (null != roomSync.unreadNotifications.notificationCount) {
-                notifCount = roomSync.unreadNotifications.notificationCount;
-            }
+                if (null != roomSync.unreadNotifications.notificationCount) {
+                    notifCount = roomSync.unreadNotifications.notificationCount;
+                }
 
-            boolean isUpdated = (notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount);
+                boolean isUpdated = (notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount);
 
-            if (isUpdated) {
-                mState.setNotificationCount(notifCount);
-                mState.setHighlightCount(highlightCount);
-                mStore.storeLiveStateForRoom(mRoomId);
+                if (isUpdated) {
+                    mState.setNotificationCount(notifCount);
+                    mState.setHighlightCount(highlightCount);
+                    mStore.storeLiveStateForRoom(mRoomId);
+                }
             }
         }
     }

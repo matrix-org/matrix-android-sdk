@@ -47,6 +47,7 @@ import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -96,13 +97,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         void onSearchFailed();
     }
 
+    public interface RoomPreviewDataListener {
+        RoomPreviewData getRoomPreviewData();
+    }
+
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
     protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
 
+    // fragment parameters
     public static final String ARG_LAYOUT_ID = "MatrixMessageListFragment.ARG_LAYOUT_ID";
     public static final String ARG_MATRIX_ID = "MatrixMessageListFragment.ARG_MATRIX_ID";
     public static final String ARG_ROOM_ID = "MatrixMessageListFragment.ARG_ROOM_ID";
     public static final String ARG_EVENT_ID = "MatrixMessageListFragment.ARG_EVENT_ID";
+    public static final String ARG_PREVIEW_MODE_ID = "MatrixMessageListFragment.ARG_PREVIEW_MODE_ID";
+
+    // default preview mode
+    public static final String PREVIEW_MODE_READ_ONLY = "PREVIEW_MODE_READ_ONLY";
 
     private static final String LOG_TAG = "MatrixMsgsListFrag";
 
@@ -154,8 +164,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
 
+    // scroll to the index when loaded
+    private int mScrollToIndex = -1;
+
     // y pos of the first visible row
     private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
+
+    // used to retrieve the preview data
+    protected RoomPreviewDataListener mRoomPreviewDataListener;
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -288,6 +304,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Scroll the listview to a dedicated index when the list is loaded.
+     * @param index the index
+     */
+    public void scrollToIndexWhenLoaded(int index) {
+        mScrollToIndex = index;
+    }
+
+    /**
      * return true to display all the events.
      * else the unknown events will be hidden.
      */
@@ -340,10 +364,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         String roomId = args.getString(ARG_ROOM_ID);
 
-        if (!TextUtils.isEmpty(roomId)) {
-            mRoom = mSession.getDataHandler().getRoom(roomId);
-        }
-
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
 
@@ -358,13 +378,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mFirstVisibleRow = savedInstanceState.getInt("FIRST_VISIBLE_ROW", -1);
         }
 
+        mAdapter.setIsPreviewMode(false);
+
         if (null == mEventTimeLine) {
             mEventId =  args.getString(ARG_EVENT_ID);
 
+            // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
-            } else if (null != mRoom) {
-                mEventTimeLine = mRoom.getLiveTimeLine();
+                mRoom = mEventTimeLine.getRoom();
+            }
+            // display a room preview
+            else if (null != args.getString(ARG_PREVIEW_MODE_ID)) {
+                mAdapter.setIsPreviewMode(true);
+                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId);
+                mRoom = mEventTimeLine.getRoom();
+            }
+            // standard case
+            else {
+                if (!TextUtils.isEmpty(roomId)) {
+                    mRoom = mSession.getDataHandler().getRoom(roomId);
+                    mEventTimeLine = mRoom.getLiveTimeLine();
+                }
             }
         }
 
@@ -556,7 +591,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * @return the fragment tag to use to restore the matrix messages fragement
+     * @return the fragment tag to use to restore the matrix messages fragment
      */
     protected String getMatrixMessagesFragmentTag() {
         return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
@@ -602,7 +637,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
-
     }
 
     @Override
@@ -614,7 +648,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // check if the session has not been logged out
         if (mSession.isAlive() && (null != mRoom) && mIsLive) {
-            mSession.getDataHandler().getRoom(mRoom.getRoomId()).removeEventListener(mEventsListenener);
+            mRoom.removeEventListener(mEventsListenener);
         }
 
         cancelCatchingRequests();
@@ -626,7 +660,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // sanity check
         if ((null != mRoom) && mIsLive) {
-            Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId());
+            Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
                 room.addEventListener(mEventsListenener);
@@ -1373,6 +1407,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.notifyDataSetChanged();
     }
 
+
     /**
      * Manage the request history error cases.
      * @param error the error object.
@@ -1855,7 +1890,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         // else the one by one message refresh gives a weird UX
                         // The application is almost frozen during the
                         mAdapter.notifyDataSetChanged();
-                        mMessageListView.setSelection(mAdapter.getCount() - 1);
+
+                        if (mScrollToIndex >= 0) {
+                            mMessageListView.setSelection(mScrollToIndex);
+                            mScrollToIndex = -1;
+                        } else {
+                            mMessageListView.setSelection(mAdapter.getCount() - 1);
+                        }
                     }
 
                     // fill the page
@@ -1874,8 +1915,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     });
                 } else {
                     Log.d(LOG_TAG, "onInitialMessagesLoaded : default behaviour");
-                    mIsInitialSyncing = false;
-                    mMessageListView.setOnScrollListener(mScrollListener);
+
+                    if ((0 != mAdapter.getCount()) && (mScrollToIndex > 0)) {
+                        mAdapter.notifyDataSetChanged();
+                        mMessageListView.setSelection(mScrollToIndex);
+                        mScrollToIndex = -1;
+
+                        mMessageListView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mIsInitialSyncing = false;
+                                mMessageListView.setOnScrollListener(mScrollListener);
+                            }
+                        });
+
+                    } else {
+                        mIsInitialSyncing = false;
+                        mMessageListView.setOnScrollListener(mScrollListener);
+                    }
                 }
             }
         });
@@ -1910,6 +1967,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
             }
         });
+    }
+
+    @Override
+    public  RoomPreviewData getRoomPreviewData() {
+        if (null != getActivity()) {
+            // test if the listener has bee retrieved
+            if (null == mRoomPreviewDataListener) {
+                try {
+                    mRoomPreviewDataListener = (RoomPreviewDataListener) getActivity();
+                } catch (ClassCastException e) {
+                }
+            }
+
+            if (null != mRoomPreviewDataListener) {
+                return mRoomPreviewDataListener.getRoomPreviewData();
+            }
+        }
+
+        return null;
     }
 
     @Override

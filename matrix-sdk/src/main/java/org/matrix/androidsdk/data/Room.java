@@ -279,6 +279,10 @@ public class Room {
         return mLiveTimeline;
     }
 
+    public void setLiveTimeline(EventTimeline eventTimeline) {
+        mLiveTimeline = eventTimeline;
+    }
+
     public void setReadyState(boolean isReady) {
         mIsReady = isReady;
     }
