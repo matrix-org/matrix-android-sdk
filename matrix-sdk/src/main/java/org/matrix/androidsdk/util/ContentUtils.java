@@ -49,7 +49,7 @@ public class ContentUtils {
 
     public static String getMimeType(String filePath) {
         MimeTypeMap mime = MimeTypeMap.getSingleton();
-        return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1));
+        return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase());
     }
 
     /**
