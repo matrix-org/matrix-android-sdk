@@ -17,8 +17,6 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
-import com.google.gson.JsonElement;
-
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
@@ -39,7 +37,6 @@ import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,16 +52,22 @@ public class BingRulesManager {
         void onBingRuleUpdateFailure(String errorMessage);
     }
 
+    // general members
     private BingRulesRestClient mApiClient;
     private MXSession mSession = null;
     private String mMyUserId;
     private MXDataHandler mDataHandler;
 
-    private BingRuleSet mRulesSet = null;
+    // the rules set to apply
+    private BingRuleSet mRulesSet = new BingRuleSet();
+
+    // the rules list
     private List<BingRule> mRules = new ArrayList<BingRule>();
 
+    // the default bing rule
     private BingRule mDefaultBingRule = new BingRule(true);
 
+    // tell if the bing rules set is initialized
     private boolean mIsInitialized = false;
 
     // network management
@@ -72,6 +75,11 @@ public class BingRulesManager {
     private IMXNetworkEventListener mNetworkListener;
     private ApiCallback<Void> mLoadRulesCallback;
 
+    /**
+     * Constructor
+     * @param session the session
+     * @param networkConnectivityReceiver the network events listener
+     */
     public BingRulesManager(MXSession session, NetworkConnectivityReceiver networkConnectivityReceiver) {
         mSession = session;
         mApiClient = session.getBingRulesApiClient();
@@ -93,11 +101,17 @@ public class BingRulesManager {
         networkConnectivityReceiver.addEventListener(mNetworkListener);
     }
 
+    /**
+     * @return true if it is ready to be used (i.e initializedà
+     */
     public boolean isReady() {
         return mIsInitialized;
     }
 
-
+    /**
+     * Remove the network events listener.
+     * This listener is only used to initialize the rules at application launch.
+     */
     private void removeNetworkListener() {
         if ((null != mNetworkConnectivityReceiver) && (null != mNetworkListener)) {
             mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
@@ -245,6 +259,12 @@ public class BingRulesManager {
         }
     }
 
+    /**
+     * Check if an event matches a conditions set
+     * @param event the evnt to test
+     * @param conditions the conditions set
+     * @return true if the event matches all the conditions set.
+     */
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {
         if ((conditions != null) && (event != null)) {
             for (Condition condition : conditions) {
@@ -287,23 +307,37 @@ public class BingRulesManager {
      * @param bingRulesResponse
      */
     public void buildRules(BingRulesResponse bingRulesResponse) {
-        updateRules(bingRulesResponse.global);
+        if (null != bingRulesResponse) {
+            updateRules(bingRulesResponse.global);
+        }
     }
 
+    /**
+     * @return the rules set
+     */
     public BingRuleSet pushRules() {
         return mRulesSet;
     }
 
+    /**
+     * Update mRulesSet with the new one.
+     * @param ruleSet the new ruleSet to apply
+     */
     private void updateRules(BingRuleSet ruleSet) {
         synchronized (this) {
             // clear the rules list
             // it is
             mRules.clear();
 
+            // sanity check
+            if (null == ruleSet) {
+                mRulesSet = new BingRuleSet();
+                return;
+            }
+
             // Replace the list by ArrayList to be able to add/remove rules
             // Add the rule kind in each rule
             // Ensure that the null pointers are replaced by an empty list
-
             if (ruleSet.override != null) {
                 ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
                 for (BingRule rule : ruleSet.override) {
@@ -360,42 +394,61 @@ public class BingRulesManager {
         }
     }
 
+    /**
+     * Create a content EventMatchConditions list from a ContentRules list
+     * @param rules the ContentRules list
+     */
     private void addContentRules(List<ContentRule> rules) {
-        for (ContentRule rule : rules) {
-            EventMatchCondition condition = new EventMatchCondition();
-            condition.kind = Condition.KIND_EVENT_MATCH;
-            condition.key = "content.body";
-            condition.pattern = rule.pattern;
+        // sanity check
+        if (null != rules) {
+            for (ContentRule rule : rules) {
+                EventMatchCondition condition = new EventMatchCondition();
+                condition.kind = Condition.KIND_EVENT_MATCH;
+                condition.key = "content.body";
+                condition.pattern = rule.pattern;
 
-            rule.addCondition(condition);
+                rule.addCondition(condition);
 
-            mRules.add(rule);
+                mRules.add(rule);
+            }
         }
     }
 
+    /**
+     * Create a room EventMatchConditions list from a BingRule list
+     * @param rules the BingRule list
+     */
     private void addRoomRules(List<BingRule> rules) {
-        for (BingRule rule : rules) {
-            EventMatchCondition condition = new EventMatchCondition();
-            condition.kind = Condition.KIND_EVENT_MATCH;
-            condition.key = "room_id";
-            condition.pattern = rule.ruleId;
+        if (null != rules) {
+            for (BingRule rule : rules) {
+                EventMatchCondition condition = new EventMatchCondition();
+                condition.kind = Condition.KIND_EVENT_MATCH;
+                condition.key = "room_id";
+                condition.pattern = rule.ruleId;
 
-            rule.addCondition(condition);
+                rule.addCondition(condition);
 
-            mRules.add(rule);
+                mRules.add(rule);
+            }
         }
     }
 
+    /**
+     * Create a sender EventMatchConditions list from a BingRule list
+     * @param rules the BingRule list
+     */
     private void addSenderRules(List<BingRule> rules) {
-        for (BingRule rule : rules) {
-            EventMatchCondition condition = new EventMatchCondition();
-            condition.kind = Condition.KIND_EVENT_MATCH;
-            condition.key = "user_id";
-            condition.pattern = rule.ruleId;
+        if (null != rules) {
+            for (BingRule rule : rules) {
+                EventMatchCondition condition = new EventMatchCondition();
+                condition.kind = Condition.KIND_EVENT_MATCH;
+                condition.key = "user_id";
+                condition.pattern = rule.ruleId;
 
-            rule.addCondition(condition);
+                rule.addCondition(condition);
 
-            mRules.add(rule);
+                mRules.add(rule);
+            }
         }
     }
 
@@ -406,7 +459,6 @@ public class BingRulesManager {
      * @return the matched bing rule or null it doesn't exist.
      */
     public BingRule toggleRule(final BingRule rule, final onBingRuleUpdateListener listener) {
-
         if (null != rule) {
             updateEnableRuleStatus(rule.kind, rule.ruleId, !rule.isEnabled, new SimpleApiCallback<Void>() {
                 @Override
@@ -469,11 +521,25 @@ public class BingRulesManager {
      * @param listener the rule update listener.
      */
     public void deleteRule(final BingRule rule, final onBingRuleUpdateListener listener)  {
+        // null case
+        if (null == rule) {
+            if (listener != null) {
+                try {
+                    listener.onBingRuleUpdateSuccess();
+                } catch (Exception e) {
+
+                }
+            }
+            return;
+        }
+
         mApiClient.deleteRule(rule.kind, rule.ruleId, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mRulesSet.remove(rule);
-                updateRules(mRulesSet);
+                if (null != mRulesSet) {
+                    mRulesSet.remove(rule);
+                    updateRules(mRulesSet);
+                }
                 if (listener != null) {
                     try {
                         listener.onBingRuleUpdateSuccess();
@@ -526,12 +592,27 @@ public class BingRulesManager {
      * @param rule the rule to delete.
      * @param listener the rule update listener.
      */
-    public void addRule(final BingRule rule, final onBingRuleUpdateListener listener)  {
+    public void addRule(final BingRule rule, final onBingRuleUpdateListener listener) {
+        // null case
+        if (null == rule) {
+            if (listener != null) {
+                try {
+                    listener.onBingRuleUpdateSuccess();
+                } catch (Exception e) {
+
+                }
+            }
+            return;
+        }
+
         mApiClient.addRule(rule, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                mRulesSet.addAtTop(rule);
-                updateRules(mRulesSet);
+                if (null != mRulesSet) {
+                    mRulesSet.addAtTop(rule);
+                    updateRules(mRulesSet);
+                }
+
                 if (listener != null) {
                     try {
                         listener.onBingRuleUpdateSuccess();
@@ -587,7 +668,6 @@ public class BingRulesManager {
     public BingRule getPushRulesForRoom(Room room) {
         // sanity checks
         if ((null != room) && (null != mRulesSet) && (null != mRulesSet.room)) {
-
             for(BingRule roomRule : mRulesSet.room) {
                 if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
                     return roomRule;
@@ -604,7 +684,6 @@ public class BingRulesManager {
      */
     public boolean isRoomNotificationsDisabled(Room room) {
         BingRule roomRule = getPushRulesForRoom(room);
-
         return (null != roomRule) && !roomRule.shouldNotify() && roomRule.isEnabled;
     }
 
