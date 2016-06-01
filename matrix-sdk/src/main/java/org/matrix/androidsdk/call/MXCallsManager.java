@@ -468,9 +468,11 @@ public class MXCallsManager {
                                 mUIThreadHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        if (isActiveCall) {
-                                            onCallHangUp(call);
-                                        }
+                                        // must warn anyway any listener that the call has been killed
+                                        // for example, when the device is in locked screen
+                                        // the callview is not created but the device is ringing
+                                        // if the other participant ends the call, the ring should stop
+                                        onCallHangUp(call);
                                     }
                                 });
                             }
