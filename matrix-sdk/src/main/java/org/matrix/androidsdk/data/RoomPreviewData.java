@@ -83,10 +83,26 @@ public class RoomPreviewData {
     }
 
     /**
+     * Update the room state.
+     * @param roomState the new roomstate
+     */
+    public void setRoomState(RoomState roomState) {
+        mRoomState = roomState;
+    }
+
+    /**
      * @return the room name
      */
     public String getRoomName() {
         return mRoomName;
+    }
+
+    /**
+     * Set the room name.
+     * @param aRoomName the new room name
+     */
+    public void setRoomName(String aRoomName) {
+        mRoomName = aRoomName;
     }
 
     /**
@@ -157,16 +173,22 @@ public class RoomPreviewData {
 
             @Override
             public void onNetworkError(Exception e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onMatrixError(e);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onUnexpectedError(e);
             }
         });
