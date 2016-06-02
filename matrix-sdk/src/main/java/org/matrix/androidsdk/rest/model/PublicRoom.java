@@ -21,7 +21,16 @@ import org.matrix.androidsdk.data.RoomState;
  * Class representing the objects returned by /publicRooms call.
  */
 public class PublicRoom extends RoomState implements java.io.Serializable {
+
+    // number of members which have joined the room (the members list is not provided)
     public int numJoinedMembers;
 
+    // the server name
+    public String serverName;
 
+    // true when the room history is visible (room preview)
+    public Boolean worldReadable;
+
+    // a guest can join the room
+    public Boolean guestCanJoin;
 }
