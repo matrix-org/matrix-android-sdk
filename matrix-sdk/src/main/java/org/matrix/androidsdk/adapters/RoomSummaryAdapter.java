@@ -537,7 +537,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 }
 
                 // the public rooms are displayed with bold fonts
-                if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+                if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.DIRECTORY_VISIBILITY_PUBLIC)) {
                     textView.setTypeface(null, Typeface.BOLD);
                 } else {
                     textView.setTypeface(null, Typeface.NORMAL);

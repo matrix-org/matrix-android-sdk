@@ -88,7 +88,7 @@ public class EventUtils {
         }
 
         Room room = session.getDataHandler().getRoom(event.roomId);
-        return RoomState.VISIBILITY_PRIVATE.equals(room.getVisibility())
+        return RoomState.DIRECTORY_VISIBILITY_PRIVATE.equals(room.getVisibility())
                 && !TextUtils.equals(event.getSender(), session.getCredentials().userId);
     }
 
