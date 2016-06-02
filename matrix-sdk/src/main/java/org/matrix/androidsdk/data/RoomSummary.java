@@ -124,7 +124,13 @@ public class RoomSummary implements java.io.Serializable {
             if (!isSupported) {
                 // some events are known to be never traced
                 // avoid warning when it is not required.
-                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
+                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
+                        ) {
                     Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
                 }
             }
