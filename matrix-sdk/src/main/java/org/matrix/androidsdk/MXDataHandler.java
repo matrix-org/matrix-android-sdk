@@ -731,6 +731,10 @@ public class MXDataHandler implements IMXEventListener {
 
             // check if the current user has been updated
             if (mCredentials.userId.equals(user.user_id)) {
+                // always use the up-to-date information
+                getMyUser().displayname = user.displayname;
+                getMyUser().avatar_url = user.getAvatarUrl();
+
                 mStore.setAvatarURL(user.getAvatarUrl());
                 mStore.setDisplayName(user.displayname);
             }
