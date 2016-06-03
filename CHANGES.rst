@@ -1,3 +1,20 @@
+Changes to Matrix Android Console in 0.5.5 (2016-06-03)
+=======================================================
+
+Improvements:
+* The "table" markdown were badly displayed : use the default Html render
+* Remove useless roomSummary error traces (not supported event type)
+* Add missing fields in PublicRoom
+
+Features:
+* Add ignore users feature.
+* Add an API to retrieve the pusher
+* Add the room preview management
+
+Bugfixes:
+* Fixes several crashes reported by GA.
+* Incoming call did not trigger any pushes.
+
 Changes to Matrix Android Console in 0.5.4 (2016-05-11)
 =======================================================
 
