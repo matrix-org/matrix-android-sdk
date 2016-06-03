@@ -842,7 +842,7 @@ public class Room {
     /**
      * Update the join rule of the room.
      * @param aRule the join rule: {@link RoomState#JOIN_RULE_PUBLIC} or {@link RoomState#JOIN_RULE_INVITE}
-     * @param callback the async callback
+     * @param aCallBackResp the async callback
      */
     public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
         mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new ApiCallback<Void>() {
