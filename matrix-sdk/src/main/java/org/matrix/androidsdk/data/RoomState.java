@@ -269,6 +269,8 @@ public class RoomState implements java.io.Serializable {
         copy.url = url;
         copy.creator = creator;
         copy.join_rule = join_rule;
+        copy.guest_access = guest_access;
+        copy.history_visibility = history_visibility;
         copy.visibility = visibility;
         copy.roomAliasName = roomAliasName;
         copy.token = token;
