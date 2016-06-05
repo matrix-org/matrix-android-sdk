@@ -365,9 +365,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param topic the room topic
      * @param visibility the room visibility
      * @param alias an optional room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param callback the async callback
      */
-    public void createRoom(final String name, final String topic, final String visibility, final String alias, final ApiCallback<CreateRoomResponse> callback) {
+    public void createRoom(final String name, final String topic, final String visibility, final String alias, final String guestAccess, final ApiCallback<CreateRoomResponse> callback) {
         final String description = "createRoom : name " + name + " topic " + topic;
 
         RoomState roomState = new RoomState();
@@ -378,12 +379,13 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         roomState.topic = TextUtils.isEmpty(topic) ? null : topic;
         roomState.visibility = visibility;
         roomState.roomAliasName = TextUtils.isEmpty(alias) ? null : alias;
+        roomState.guest_access = TextUtils.isEmpty(guestAccess) ? null : guestAccess;
 
         mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    createRoom(name, topic, visibility, alias, callback);
+                    createRoom(name, topic, visibility, alias, guestAccess, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend createRoom failed " + e.getMessage());
                 }
