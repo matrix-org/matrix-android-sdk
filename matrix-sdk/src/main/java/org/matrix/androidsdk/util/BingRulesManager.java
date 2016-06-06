@@ -47,8 +47,19 @@ import java.util.regex.Pattern;
  */
 public class BingRulesManager {
 
+    /**
+     * Bing rule listener
+     */
     public interface onBingRuleUpdateListener {
+        /**
+         * The manager succeeds to update the bingrule enable status.
+         */
         void onBingRuleUpdateSuccess();
+
+        /**
+         * The manager fails to update the bingrule enable status.
+         * @param errorMessage
+         */
         void onBingRuleUpdateFailure(String errorMessage);
     }
 

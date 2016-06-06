@@ -633,6 +633,9 @@ public class MXDataHandler implements IMXEventListener {
                     // because BingRulesManager supports only BingRulesResponse
                     JsonElement element = gson.toJsonTree(event.get("content"));
                     getBingRulesManager().buildRules(gson.fromJson(element, BingRulesResponse.class));
+
+                    // warn the client that the push rules have been updated
+                    onBingRulesUpdate();
                 }
 
                 return;
