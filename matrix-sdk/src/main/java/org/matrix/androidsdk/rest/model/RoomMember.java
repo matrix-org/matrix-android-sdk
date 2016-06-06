@@ -32,7 +32,7 @@ public class RoomMember implements java.io.Serializable {
     public String displayname;
     public String avatarUrl;
     public String membership;
-    public String thirdPartyInviteToken;
+    public Invite thirdPartyInvite;
 
 
     private String userId = null;
@@ -63,6 +63,14 @@ public class RoomMember implements java.io.Serializable {
 
     public void setInviterId(String userId) {
         mInviter = userId;
+    }
+
+    public String getThirdPartyInviteToken() {
+        if ((null != thirdPartyInvite) && (null != thirdPartyInvite.signed)) {
+            return thirdPartyInvite.signed.token;
+        }
+
+        return null;
     }
 
     private boolean fieldsAreEqual(String s1, String s2) {
