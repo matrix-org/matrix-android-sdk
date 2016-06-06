@@ -401,7 +401,9 @@ public class MXJingleCall extends MXCall {
                                         mCallView.post(new Runnable() {
                                             @Override
                                             public void run() {
-                                                mCallView.invalidate();
+                                                if (null != mCallView) {
+                                                    mCallView.invalidate();
+                                                }
                                             }
                                         });
                                     }

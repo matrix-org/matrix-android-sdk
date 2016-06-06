@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data;
 
+import android.text.TextUtils;
+
 import org.matrix.androidsdk.MXSession;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -35,6 +37,9 @@ public class RoomPreviewData {
 
     // The id of the room to preview.
     private String mRoomId;
+
+    // the room Alias
+    private String mRoomAlias;
 
     // the id of the event to preview
     private String mEventId;
@@ -63,9 +68,10 @@ public class RoomPreviewData {
      * @param eventId the event Id to preview (optional)
      * @param emailInvitationParams the email invitation parameters (optional)
      */
-    public RoomPreviewData(MXSession session, String roomId, String eventId, Map<String, String> emailInvitationParams) {
+    public RoomPreviewData(MXSession session, String roomId, String eventId, String roomAlias, Map<String, String> emailInvitationParams) {
         mSession = session;
         mRoomId = roomId;
+        mRoomAlias = roomAlias;
         mEventId = eventId;
 
         if (null != emailInvitationParams) {
@@ -83,10 +89,26 @@ public class RoomPreviewData {
     }
 
     /**
+     * Update the room state.
+     * @param roomState the new roomstate
+     */
+    public void setRoomState(RoomState roomState) {
+        mRoomState = roomState;
+    }
+
+    /**
      * @return the room name
      */
     public String getRoomName() {
         return mRoomName;
+    }
+
+    /**
+     * Set the room name.
+     * @param aRoomName the new room name
+     */
+    public void setRoomName(String aRoomName) {
+        mRoomName = aRoomName;
     }
 
     /**
@@ -101,6 +123,17 @@ public class RoomPreviewData {
      */
     public String getRoomId() {
         return mRoomId;
+    }
+
+    /**
+     * @return the room id or the alias (alias is preferred)
+     */
+    public String getRoomIdOrAlias() {
+        if (!TextUtils.isEmpty(mRoomAlias)) {
+            return mRoomAlias;
+        } else {
+            return mRoomId;
+        }
     }
 
     /**
@@ -157,16 +190,22 @@ public class RoomPreviewData {
 
             @Override
             public void onNetworkError(Exception e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onMatrixError(e);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                mRoomState = new RoomState();
+                mRoomState.roomId = mRoomId;
                 apiCallback.onUnexpectedError(e);
             }
         });

@@ -650,6 +650,39 @@ public class EventTimeline {
     }
 
     /**
+     * Trigger a push if there is a dedicated push rules which implies it.
+     * @param event the event
+     */
+    private void triggerPush(Event event) {
+        BingRule bingRule;
+        boolean outOfTimeEvent = false;
+        JsonObject eventContent = event.getContentAsJsonObject();
+        if (eventContent.has("lifetime")) {
+            long maxlifetime = eventContent.get("lifetime").getAsLong();
+            long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+
+            outOfTimeEvent = eventLifeTime > maxlifetime;
+        }
+
+        BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
+
+        // If the bing rules apply, bing
+        if (!outOfTimeEvent
+                // some events are not bingable
+                && !TextUtils.equals(event.type, Event.EVENT_TYPE_PRESENCE)
+                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)
+                && !TextUtils.equals(event.type, Event.EVENT_TYPE_REDACTION)
+                && !TextUtils.equals(event.type, Event.EVENT_TYPE_RECEIPT)
+                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TAGS)
+                && (bingRulesManager != null)
+                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
+                && bingRule.shouldNotify()) {
+            Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
+            mDataHandler.onBingEvent(event, mState, bingRule);
+        }
+    }
+
+    /**
      * Handle events coming down from the event stream.
      * @param event the live event
      * @param withPush set to true to trigger pushes when it is required
@@ -660,6 +693,10 @@ public class EventTimeline {
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
+
+            if (withPush) {
+                triggerPush(event);
+            }
         } else {
             Event storedEvent = mStore.getEvent(event.eventId, event.roomId);
 
@@ -745,32 +782,7 @@ public class EventTimeline {
 
                 // trigger pushes when it is required
                 if (withPush) {
-                    BingRule bingRule;
-                    boolean outOfTimeEvent = false;
-                    JsonObject eventContent = event.getContentAsJsonObject();
-                    if (eventContent.has("lifetime")) {
-                        long maxlifetime = eventContent.get("lifetime").getAsLong();
-                        long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-
-                        outOfTimeEvent = eventLifeTime > maxlifetime;
-                    }
-
-                    BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
-
-                    // If the bing rules apply, bing
-                    if (!outOfTimeEvent
-                            // some events are not bingable
-                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_PRESENCE)
-                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)
-                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_REDACTION)
-                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_RECEIPT)
-                            && !TextUtils.equals(event.type, Event.EVENT_TYPE_TAGS)
-                            && (bingRulesManager != null)
-                            && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
-                            && bingRule.shouldNotify()) {
-                        Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                        mDataHandler.onBingEvent(event, mState, bingRule);
-                    }
+                    triggerPush(event);
                 }
             } else {
                 Log.e(LOG_TAG, "Unknown live event type: " + event.type);

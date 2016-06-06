@@ -28,6 +28,16 @@ public class BingRuleSet {
     public List<BingRule> underride;
 
     /**
+     * Constructor
+     */
+    public BingRuleSet() {
+        override = new ArrayList<BingRule>();
+        content = new ArrayList<ContentRule>();
+        room = new ArrayList<BingRule>();
+        sender = new ArrayList<BingRule>();
+        underride = new ArrayList<BingRule>();
+    }
+    /**
      * Find a rule from its rule ID.
      * @param rules the rules list.
      * @param ruleID the rule ID.

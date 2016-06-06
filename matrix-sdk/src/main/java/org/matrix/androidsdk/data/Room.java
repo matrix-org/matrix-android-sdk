@@ -383,12 +383,13 @@ public class Room {
 
     /**
      * Join a room with an url to post before joined the room.
+     * @param alias the room alias
      * @param thirdPartySignedUrl the thirdPartySigned url
      * @param callback the callback
      */
-    public void joinWithThirdPartySigned(final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
+    public void joinWithThirdPartySigned(final String alias, final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
         if (null == thirdPartySignedUrl) {
-            join(callback);
+            join(alias, callback);
         } else {
             String url = thirdPartySignedUrl + "&mxid=" + mMyUserId;
             UrlPostTask task = new UrlPostTask();
@@ -406,7 +407,7 @@ public class Room {
                     if (null != map) {
                         HashMap<String, Object> joinMap = new HashMap<String, Object>();
                         joinMap.put("third_party_signed", map);
-                        join(joinMap, callback);
+                        join(alias, joinMap, callback);
                     } else {
                         join(callback);
                     }
@@ -438,17 +439,39 @@ public class Room {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        join(null, callback);
+        join(null, null, callback);
     }
 
     /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
+     * @param roomAlias the room alias
+     * @param callback the callback for when done
+     */
+    public void join(String roomAlias, ApiCallback<Void> callback) {
+        join(roomAlias, null, callback);
+    }
+
+    /**
+     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
+     * @param extraParams the join extra params
      * @param callback the callback for when done
      */
     public void join(HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
-        Log.d(LOG_TAG, "Join the room " + getRoomId());
+        join(null, extraParams, callback);
+    }
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
+    /**
+     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
+     * @param roomAlias the room alias
+     * @param extraParams the join extra params
+     * @param callback the callback for when done
+     */
+    public void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
+
+        // disable the room alias management until the server manages the rooms federation properly
+        // cf https://github.com/matrix-org/synapse/issues/816
+        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(/*(null != roomAlias) ? roomAlias :*/ getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aReponse) {
                 try {

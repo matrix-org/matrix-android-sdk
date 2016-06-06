@@ -1288,9 +1288,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // an html format has been released
         if (null != htmlFormattedText) {
-            boolean isCustomizable = htmlFormattedText.indexOf("<a href=") < 0;
+            boolean isCustomizable = ((htmlFormattedText.indexOf("<a href=") < 0) && (htmlFormattedText.indexOf("<table>") < 0));
 
             // the links are not yet supported by ConsoleHtmlTagHandler
+            // the markdown tables are not properly supported
             sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, isCustomizable ? htmlTagHandler : null);
 
             // sanity check

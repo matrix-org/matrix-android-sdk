@@ -58,7 +58,7 @@ public class FileMessage extends Message {
                 String extension =  body.substring(body.lastIndexOf('.') + 1, body.length());
 
                 try {
-                    info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+                    info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
                 } catch (Exception e) {
 
                 }
