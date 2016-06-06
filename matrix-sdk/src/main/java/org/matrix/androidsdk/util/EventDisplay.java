@@ -26,6 +26,7 @@ import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
@@ -274,6 +275,14 @@ public class EventDisplay {
             if (null != eventContent.third_party_invite) {
                 return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, targetDisplayName, senderDisplayName);
             } else {
+                MXDataHandler dataHandler = roomState.getDataHandler();
+
+                if (null != dataHandler) {
+                    if (TextUtils.equals(event.stateKey, dataHandler.getUserId())) {
+                        return context.getString(R.string.notice_room_invite_you, senderDisplayName);
+                    }
+                }
+
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }

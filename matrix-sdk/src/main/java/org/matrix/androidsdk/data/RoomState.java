@@ -209,6 +209,10 @@ public class RoomState implements java.io.Serializable {
         mDataHandler = dataHandler;
     }
 
+    public MXDataHandler getDataHandler() {
+        return (MXDataHandler)mDataHandler;
+    }
+
     public void setNotificationCount(int notificationCount) {
         mNotificationCount = notificationCount;
     }
