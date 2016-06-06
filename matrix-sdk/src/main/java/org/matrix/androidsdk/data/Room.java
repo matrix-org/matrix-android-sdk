@@ -850,38 +850,52 @@ public class Room {
 
     /**
      * Send the read receipt to the latest room message id.
+     * @param aRespCallback asynchronous response callback
+     * @return true if the read receipt has been sent, false otherwise
      */
-    public void sendReadReceipt() {
+    public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
         RoomSummary summary = mStore.getSummary(getRoomId());
         Event event = mStore.getLatestEvent(getRoomId());
+        boolean isSendReadReceiptSent = false;
+        Log.d(LOG_TAG,"## sendReadReceipt(): roomId="+getRoomId());
 
         if ((null != event) && (null != summary)) {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
+                isSendReadReceiptSent = true;
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
-                       // nop
+                        if(null != aRespCallback)
+                            aRespCallback.onSuccess(info);
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                        if(null != aRespCallback)
+                            aRespCallback.onNetworkError(e);
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                        if(null != aRespCallback)
+                            aRespCallback.onMatrixError(e);
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                        if(null != aRespCallback)
+                            aRespCallback.onUnexpectedError(e);
                     }
                 });
                 setReadReceiptToken(event.eventId, System.currentTimeMillis());
             }
         }
+
+        return isSendReadReceiptSent;
     }
 
     /**
@@ -1621,7 +1635,7 @@ public class Room {
                 }
 
                 // send the dedicated read receipt asap
-                sendReadReceipt();
+                sendReadReceipt(null);
 
                 mStore.commit();
                 mDataHandler.onSentEvent(event);
