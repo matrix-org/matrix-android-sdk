@@ -1,4 +1,14 @@
-Changes to Matrix Android Console in 0.5.5 (2016-06-03)
+Changes to Matrix Android SDK in 0.5.6 (2016-06-07)
+=======================================================
+
+Bugfixes:
+* issue #176 Update the notification text when invited to a chat 
+* issue #194 Public room preview : some public rooms have no display name
+* issue #180 Some invited emails are stuck (invitation from a non matrix user)
+* issue #175 The notifications settings should be dynamically refreshed
+* issue #190 Room invitation push rules is disabled for a new account on android but enabled on the webclient interface
+
+Changes to Matrix Android SDK in 0.5.5 (2016-06-03)
 =======================================================
 
 Improvements:
@@ -15,7 +25,7 @@ Bugfixes:
 * Fixes several crashes reported by GA.
 * Incoming call did not trigger any pushes.
 
-Changes to Matrix Android Console in 0.5.4 (2016-05-11)
+Changes to Matrix Android SDK in 0.5.4 (2016-05-11)
 =======================================================
 
 Improvements:
@@ -65,7 +75,7 @@ Bugfixes:
 * The network connection listener did not manage properly the data connection lost.
 
 
-Changes to Matrix Android Console in 0.5.3 (2016-02-16)
+Changes to Matrix Android SDK in 0.5.3 (2016-02-16)
 =======================================================
 
 Improvements:
