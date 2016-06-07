@@ -39,12 +39,21 @@ import java.util.Map;
  * The state of a room.
  */
 public class RoomState implements java.io.Serializable {
-    public static final String VISIBILITY_PRIVATE = "private";
-    public static final String VISIBILITY_PUBLIC = "public";
+    public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
+    public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
+
+    public static final String JOIN_RULE_PUBLIC = "public";
+    public static final String JOIN_RULE_INVITE = "invite";
+
+    /** room access is granted to guests **/
+    public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
+    /** room access is denied to guests **/
+    public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";
     public static final String HISTORY_VISIBILITY_INVITED = "invited";
     public static final String HISTORY_VISIBILITY_JOINED = "joined";
+    public static final String HISTORY_VISIBILITY_WORLD_READABLE = "world_readable";
 
     // Public members used for JSON mapping
 
@@ -75,13 +84,16 @@ public class RoomState implements java.io.Serializable {
     // the join rule
     public String join_rule;
 
+    /** the guest access policy of the room **/
+    public String guest_access;
+
     // SPEC-134
     public String history_visibility;
 
     // the public room alias / name
     public String roomAliasName;
 
-    // the room visibility (i.e. public, private...)
+    /**  the room visibility in the directory list (i.e. public, private...) **/
     public String visibility;
 
     /**
@@ -261,6 +273,8 @@ public class RoomState implements java.io.Serializable {
         copy.url = url;
         copy.creator = creator;
         copy.join_rule = join_rule;
+        copy.guest_access = guest_access;
+        copy.history_visibility = history_visibility;
         copy.visibility = visibility;
         copy.roomAliasName = roomAliasName;
         copy.token = token;
@@ -430,6 +444,9 @@ public class RoomState implements java.io.Serializable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 join_rule = (roomState == null) ? null : roomState.join_rule;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                guest_access = (roomState == null) ? null : roomState.guest_access;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 aliases = (roomState == null) ? null : roomState.aliases;
@@ -509,7 +526,7 @@ public class RoomState implements java.io.Serializable {
      * @return true if the room is a public one
      */
     public boolean isPublic() {
-        return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
+        return TextUtils.equals((null != visibility) ? visibility : join_rule, DIRECTORY_VISIBILITY_PUBLIC);
     }
 
     /**

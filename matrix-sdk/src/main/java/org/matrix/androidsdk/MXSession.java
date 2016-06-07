@@ -26,6 +26,7 @@ import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -606,12 +607,13 @@ public class MXSession {
      * @param topic      the room topic
      * @param visibility the room visibility
      * @param alias      the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param callback   the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, final ApiCallback<String> callback) {
         checkIfAlive();
 
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, new SimpleApiCallback<CreateRoomResponse>(callback) {
+        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;

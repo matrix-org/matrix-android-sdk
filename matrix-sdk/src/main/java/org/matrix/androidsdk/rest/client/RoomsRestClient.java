@@ -365,9 +365,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param topic the room topic
      * @param visibility the room visibility
      * @param alias an optional room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param callback the async callback
      */
-    public void createRoom(final String name, final String topic, final String visibility, final String alias, final ApiCallback<CreateRoomResponse> callback) {
+    public void createRoom(final String name, final String topic, final String visibility, final String alias, final String guestAccess, final ApiCallback<CreateRoomResponse> callback) {
         final String description = "createRoom : name " + name + " topic " + topic;
 
         RoomState roomState = new RoomState();
@@ -378,12 +379,13 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         roomState.topic = TextUtils.isEmpty(topic) ? null : topic;
         roomState.visibility = visibility;
         roomState.roomAliasName = TextUtils.isEmpty(alias) ? null : alias;
+        roomState.guest_access = TextUtils.isEmpty(guestAccess) ? null : guestAccess;
 
         mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    createRoom(name, topic, visibility, alias, callback);
+                    createRoom(name, topic, visibility, alias, guestAccess, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend createRoom failed " + e.getMessage());
                 }
@@ -484,23 +486,64 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Update the room name.
      * @param roomId the room id
-     * @param visibility the visibility
+     * @param aVisibility the visibility
      * @param callback the async callback
      */
-    public void updateHistoryVisibility(final String roomId, final String visibility, final ApiCallback<Void> callback) {
-        final String description = "updateHistoryVisibility : roomId " + roomId + " visibility " + visibility;
+    public void updateHistoryVisibility(final String roomId, final String aVisibility, final ApiCallback<Void> callback) {
+        final String description = "updateHistoryVisibility : roomId " + roomId + " visibility " + aVisibility;
 
         RoomState roomState = new RoomState();
-        roomState.history_visibility = visibility;
+        roomState.history_visibility = aVisibility;
 
         mApi.historyVisibility(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    updateHistoryVisibility(roomId, visibility, callback);
+                    updateHistoryVisibility(roomId, aVisibility, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getMessage());
                 }
+            }
+        }));
+    }
+
+    /**
+     * Update the directory visibility of the room.
+     * @param aRoomId the room id
+     * @param aDirectoryVisibility the visibility of the room in the directory list
+     * @param callback the async callback response
+     */
+    public void updateDirectoryVisibility(final String aRoomId, final String aDirectoryVisibility, final ApiCallback<Void> callback) {
+        final String description = "updateRoomDirectoryVisibility : roomId=" + aRoomId + " visibility=" + aDirectoryVisibility;
+
+        RoomState roomState = new RoomState();
+        roomState.visibility = aDirectoryVisibility;
+
+        mApi.setRoomDirectoryVisibility(aRoomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+
+    /**
+     * Get the directory visibility of the room (see {@link #updateDirectoryVisibility(String, String, ApiCallback)}).
+     * @param aRoomId the room ID
+     * @param callback on success callback containing a RoomState object populated with the directory visibility
+     */
+    public void getDirectoryVisibility(final String aRoomId, final ApiCallback<RoomState> callback) {
+        final String description = "getRoomDirectoryVisibility userId=" + aRoomId;
+
+        mApi.getRoomDirectoryVisibility(aRoomId, new RestAdapterCallback<RoomState>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getDirectoryVisibility(aRoomId, callback);
             }
         }));
     }
@@ -741,6 +784,59 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     Log.e(LOG_TAG, "resend roomIdByAlias : failed " + e.getMessage());
                 }
             }
+        }));
+    }
+
+    /**
+     * Update the join rule of the room.
+     * To make the room private, the aJoinRule must be set to {@link RoomState#JOIN_RULE_INVITE}.
+     * @param aRoomId the room id
+     * @param aJoinRule the join rule: {@link RoomState#JOIN_RULE_PUBLIC} or {@link RoomState#JOIN_RULE_INVITE}
+     * @param callback the async callback response
+     */
+    public void updateJoinRules(final String aRoomId, final String aJoinRule, final ApiCallback<Void> callback) {
+        final String description = "updateJoinRules : roomId=" + aRoomId + " rule=" + aJoinRule;
+
+        // build RoomState as input parameter
+        RoomState roomStateParam = new RoomState();
+        roomStateParam.join_rule = aJoinRule;
+
+        mApi.setJoinRules(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateJoinRules(aRoomId, aJoinRule, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Update the guest access rule of the room.
+     * To deny guest access to the room, aGuestAccessRule must be set to {@link RoomState#GUEST_ACCESS_FORBIDDEN}
+     * @param aRoomId the room id
+     * @param aGuestAccessRule the guest access rule: {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN}
+     * @param callback the async callback response
+     */
+    public void updateGuestAccess(final String aRoomId, final String aGuestAccessRule, final ApiCallback<Void> callback) {
+        final String description = "updateGuestAccess : roomId=" + aRoomId + " rule=" + aGuestAccessRule;
+
+        // build RoomState as input parameter
+        RoomState roomStateParam = new RoomState();
+        roomStateParam.guest_access = aGuestAccessRule;
+
+        mApi.setGuestAccess(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updateGuestAccess(aRoomId, aGuestAccessRule, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getMessage());
+                }
+            }
+
         }));
     }
 }

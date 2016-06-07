@@ -37,6 +37,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
@@ -735,15 +736,183 @@ public class Room {
     }
 
     /**
+     * Update the room's history visibility
+     * @param historyVisibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
+     * @param callback the async callback
+     */
+    public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getState().history_visibility = historyVisibility;
+                mStore.storeLiveStateForRoom(getRoomId());
+
+                if (null != callback) {
+                    callback.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
      * Update the room's visibility
      * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
      * @param callback the async callback
      */
-    public void updateHistoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
+    public void updateDirectoryVisibility(final String visibility, final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
+                mStore.storeLiveStateForRoom(getRoomId());
+
+                if (null != callback) {
+                    callback.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Get the directory visibility of the room (see {@link #updateDirectoryVisibility(String, ApiCallback)}).
+     * The directory visibility indicates if the room is listed among the directory list.
+     * @param roomId   the user Id.
+     * @param callback the callback returning the visibility response value.
+     */
+    public void getDirectoryVisibility(final String roomId, final ApiCallback<String> callback) {
+        RoomsRestClient roomRestApi = mDataHandler.getDataRetriever().getRoomsRestClient();
+
+        if (null != roomRestApi) {
+            roomRestApi.getDirectoryVisibility(roomId, new ApiCallback<RoomState>() {
+                @Override
+                public void onSuccess(RoomState roomState) {
+                    RoomState currentRoomState = getState();
+                    if (null != currentRoomState) {
+                        currentRoomState.visibility = roomState.visibility;
+                    }
+
+                    if (null != callback) {
+                        callback.onSuccess(roomState.visibility);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Update the join rule of the room.
+     * @param aRule the join rule: {@link RoomState#JOIN_RULE_PUBLIC} or {@link RoomState#JOIN_RULE_INVITE}
+     * @param aCallBackResp the async callback
+     */
+    public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getState().join_rule = aRule;
+                mStore.storeLiveStateForRoom(getRoomId());
+
+                if (null != aCallBackResp) {
+                    aCallBackResp.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != aCallBackResp) {
+                    aCallBackResp.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != aCallBackResp) {
+                    aCallBackResp.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != aCallBackResp) {
+                    aCallBackResp.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Update the guest access rule of the room.
+     * To deny guest access to the room, aGuestAccessRule must be set to {@link RoomState#GUEST_ACCESS_FORBIDDEN}.
+     * @param aGuestAccessRule the guest access rule: {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN}
+     * @param callback the async callback
+     */
+    public void updateGuestAccess(final String aGuestAccessRule, final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getState().guest_access = aGuestAccessRule;
                 mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {
@@ -1276,7 +1445,7 @@ public class Room {
                 mAccountData.handleEvent(accountDataEvent);
 
                 if (accountDataEvent.type.equals(Event.EVENT_TYPE_TAGS)) {
-                    mDataHandler.onRoomTagEvent(accountDataEvent.roomId);
+                    mDataHandler.onRoomTagEvent(getRoomId());
                 }
             }
 

@@ -136,6 +136,24 @@ public interface RoomsApi {
     void historyVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
+     * Set the join rule for the given room.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new join rule in its {@link RoomState#join_rule} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.join_rules")
+    void setJoinRules(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
+     * Set the guest access rule for the given room.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new guest access rule in its {@link RoomState#guest_access} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.guest_access")
+    void setGuestAccess(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
      * Update the power levels
      * @param roomId the room id
      * @param powerLevels the new power levels
@@ -369,4 +387,22 @@ public interface RoomsApi {
      */
     @GET("/directory/room/{roomAlias}")
     void roomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
+
+    /**
+     * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
+     * name is listed among the directory list.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new guest access rule in its {@link RoomState#visibility} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/directory/list/room/{roomId}")
+    void setRoomDirectoryVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
+     * Get the visibility of the given room in the list directory.
+     * @param roomId the room id where to apply the request
+     * @param callback the asynchronous callback response containing the {@link RoomState#visibility} value
+     */
+    @GET("/directory/list/room/{roomId}")
+    void getRoomDirectoryVisibility(@Path("roomId") String roomId, Callback<RoomState> callback);
 }
