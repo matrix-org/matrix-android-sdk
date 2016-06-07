@@ -132,18 +132,23 @@ public class BingRuleSet {
      * @return the matched bing rule or null it doesn't exist.
      */
     public BingRule findDefaultRule(String ruleId) {
+        BingRule rule = null;
+
         // sanity check
         if (null != ruleId) {
             if (TextUtils.equals(BingRule.RULE_ID_CONTAIN_USER_NAME, ruleId)) {
-                return findContentRule(content, ruleId);
-            } else if (TextUtils.equals(BingRule.RULE_ID_DISABLE_ALL, ruleId) || TextUtils.equals(BingRule.RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS, ruleId)) {
-                return findRule(override, ruleId);
+                rule = findContentRule(content, ruleId);
             } else {
-                return findRule(underride, ruleId);
+                // assume that the ruleId is unique.
+                rule = findRule(override, ruleId);
+
+                if (null == rule) {
+                    rule = findRule(underride, ruleId);
+                }
             }
         }
 
-        return null;
+        return rule;
     }
 
     /**

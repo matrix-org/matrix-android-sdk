@@ -209,6 +209,10 @@ public class RoomState implements java.io.Serializable {
         mDataHandler = dataHandler;
     }
 
+    public MXDataHandler getDataHandler() {
+        return (MXDataHandler)mDataHandler;
+    }
+
     public void setNotificationCount(int notificationCount) {
         mNotificationCount = notificationCount;
     }
@@ -478,8 +482,8 @@ public class RoomState implements java.io.Serializable {
                     }
 
                     // Cache room member event that is successor of a third party invite event
-                    if (!TextUtils.isEmpty(member.thirdPartyInviteToken)) {
-                        mMembersWithThirdPartyInviteTokenCache.put(member.thirdPartyInviteToken, member);
+                    if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
+                        mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
                     }
 
                     setMember(userId, member);

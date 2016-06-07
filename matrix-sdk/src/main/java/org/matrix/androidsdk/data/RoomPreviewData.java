@@ -100,7 +100,13 @@ public class RoomPreviewData {
      * @return the room name
      */
     public String getRoomName() {
-        return mRoomName;
+        String roomName = mRoomName;
+
+        if (TextUtils.isEmpty(roomName)) {
+            roomName = getRoomIdOrAlias();
+        }
+
+        return roomName;
     }
 
     /**

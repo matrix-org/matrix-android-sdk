@@ -733,10 +733,11 @@ public class EventTimeline {
                         prevMembership = prevEventContent.membership;
                     }
 
-                    boolean isRedactedEvent = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
+                    boolean isRedactedEvent = (event.unsigned != null) && (event.unsigned.redacted_because != null);
 
-                    // if the membership is the same, assume that the user
-                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership)) {
+                    // if the membership keeps the same value "join".
+                    // it should mean that the user profile has been updated.
+                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
                         // check if the user updates his profile from another device.
 
                         boolean hasAccountInfoUpdated = false;

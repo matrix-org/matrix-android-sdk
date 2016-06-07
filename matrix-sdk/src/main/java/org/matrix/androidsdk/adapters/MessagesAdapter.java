@@ -1140,6 +1140,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
+                if (msgContent.has("membership")) {
+                    String memberShip = msgContent.get("membership") == JsonNull.INSTANCE ? null : msgContent.get("membership").getAsString();
+
+                    // the avatar url is the invited one not the inviter one.
+                    if (TextUtils.equals(memberShip, RoomMember.MEMBERSHIP_INVITE)) {
+                        url = null;
+
+                        if (null != sender) {
+                            url = sender.avatarUrl;
+                        }
+                    }
+                }
+
                 loadMemberAvatar(avatarImageView, sender, userId, url);
 
                 // display the typing icon when required
