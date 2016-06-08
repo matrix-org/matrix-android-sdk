@@ -946,7 +946,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow nextRow = getItem(position + 1);
 
                 if (isMergeableEvent(event) || isMergeableEvent(nextRow.getEvent())) {
-                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender());
+                    // the message will be merged if the message senders are not the same
+                    // or the message is an avatar / displayname update.
+                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender()) && isMergeableEvent(nextRow.getEvent());
                 }
             }
         }
