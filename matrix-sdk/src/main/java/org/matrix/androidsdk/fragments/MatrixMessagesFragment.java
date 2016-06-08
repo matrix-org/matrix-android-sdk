@@ -221,6 +221,12 @@ public class MatrixMessagesFragment extends Fragment {
             mRoom = mSession.getDataHandler().getRoom(roomId);
         }
 
+        // GA report issue
+        // it should never happen
+        if ((null != mEventTimeline) && (null == mEventTimeline.mDataHandler)) {
+            mEventTimeline.setDataHandler(mSession.getDataHandler());
+        }
+
         // display the message history around a dedicated message
         if ((null != mEventTimeline) &&  !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
             initializeTimeline();

@@ -130,7 +130,7 @@ public class EventTimeline {
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
     /**
-     * The data hanler : used to retrieve data from the store or to trigger REST requests.
+     * The data handler : used to retrieve data from the store or to trigger REST requests.
      */
     public MXDataHandler mDataHandler;
 
@@ -253,7 +253,8 @@ public class EventTimeline {
         mIsBackPaginating = false;
         mIsForewardPaginating = false;
 
-        if (null != mDataHandler.getDataRetriever()) {
+        // sanity check
+        if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
     }
