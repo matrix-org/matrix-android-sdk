@@ -630,6 +630,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (
                 event.isCallEvent() ||
+                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
@@ -2054,6 +2055,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
+        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+            return true;
         }
         return false;
     }

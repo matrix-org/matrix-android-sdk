@@ -118,6 +118,7 @@ public class RoomSummary implements java.io.Serializable {
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type) ||
                     (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
 
@@ -127,7 +128,6 @@ public class RoomSummary implements java.io.Serializable {
                 if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) &&
                         !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type) &&
                         !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) &&
                         !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type) &&
                         !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
                         ) {
