@@ -328,6 +328,26 @@ public class Room {
         return activeMembers;
     }
 
+
+    /**
+     * Get the list of the members who have joined the room.
+     * For these members their membership is set to {@link RoomMember.MEMBERSHIP_JOIN]}.
+     *
+     * @return the list the joined members of the room.
+     */
+    public Collection<RoomMember> getJoinedMembers() {
+        Collection<RoomMember> membersList = getState().getMembers();
+        ArrayList<RoomMember> joindedMembersList = new ArrayList<RoomMember>();
+
+        for(RoomMember member : membersList) {
+            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                joindedMembersList.add(member);
+            }
+        }
+
+        return joindedMembersList;
+    }
+
     public void setMember(String userId, RoomMember member) {
         getState().setMember(userId, member);
     }
