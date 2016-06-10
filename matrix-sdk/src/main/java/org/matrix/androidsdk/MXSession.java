@@ -107,6 +107,9 @@ public class MXSession {
 
     private boolean mIsAliveSession = true;
 
+    // online status
+    private boolean mIsOnline = true;
+
     private HomeserverConnectionConfig mHsConfig;
 
     /**
@@ -517,6 +520,27 @@ public class MXSession {
     }
 
     /**
+     * Update the online status
+     * @param isOnline true if the client must be seen as online
+     */
+    public void setIsOnline(boolean isOnline) {
+        if (isOnline != mIsOnline) {
+            mIsOnline = isOnline;
+
+            if (null != mEventsThread) {
+                mEventsThread.setIsOnline(isOnline);
+            }
+        }
+    }
+
+    /**
+     * Tell if the client is seen as "online"
+     */
+    public boolean isOnline() {
+        return mIsOnline;
+    }
+
+    /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
@@ -545,6 +569,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Pause the event stream
+     */
     public void pauseEventStream() {
         checkIfAlive();
 
@@ -560,6 +587,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Resume the event stream
+     */
     public void resumeEventStream() {
         checkIfAlive();
 
@@ -575,6 +605,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Trigger a catchup
+     */
     public void catchupEventStream() {
         checkIfAlive();
 
