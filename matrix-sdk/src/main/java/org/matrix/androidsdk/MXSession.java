@@ -603,17 +603,39 @@ public class MXSession {
     /**
      * Create a new room with given properties. Needs the data handler.
      *
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(final ApiCallback<String> callback) {
+        createRoom(null, null, null, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name       the room name
+     * @param topic      the room topic
+     * @param alias      the room alias
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
      * @param name       the room name
      * @param topic      the room topic
      * @param visibility the room visibility
      * @param alias      the room alias
      * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param historyVisibility the history visibility
      * @param callback   the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, final ApiCallback<String> callback) {
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
         checkIfAlive();
 
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, new SimpleApiCallback<CreateRoomResponse>(callback) {
+        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;

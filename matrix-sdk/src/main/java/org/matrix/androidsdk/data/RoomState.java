@@ -140,6 +140,28 @@ public class RoomState implements java.io.Serializable {
     // member display cache
     private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<String, String>();
 
+    // get the guest access
+    // avoid the null case
+    public String getGuestAccess() {
+        if (null != guest_access) {
+            return guest_access;
+        }
+
+        // retro compliancy
+        return RoomState.GUEST_ACCESS_FORBIDDEN;
+    }
+
+    // get the history visibility
+    // avoid the null case
+    public String getHistoryVisibility() {
+        if (null != history_visibility) {
+            return history_visibility;
+        }
+
+        // retro compliancy
+        return RoomState.HISTORY_VISIBILITY_SHARED;
+    }
+
     public String getToken() {
         return token;
     }
