@@ -50,6 +50,8 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
+    private boolean mIsOnline = true;
+
     private boolean mKilling = false;
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
@@ -180,6 +182,15 @@ public class EventsThread extends Thread {
 
             Log.d(LOG_TAG, "Resume the thread to kill it.");
         }
+    }
+
+    /**
+     * Update the online status
+     * @param isOnline true if the client must be seen as online
+     */
+    public void setIsOnline(boolean isOnline) {
+        Log.d(LOG_TAG, "setIsOnline to " + isOnline);
+        mIsOnline = isOnline;
     }
 
     @Override
@@ -317,7 +328,7 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
