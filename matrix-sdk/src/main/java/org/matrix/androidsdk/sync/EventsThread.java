@@ -369,7 +369,7 @@ public class EventsThread extends Thread {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                             mListener.onInvalidToken();
                         } else {
                             onError(e.getLocalizedMessage());
