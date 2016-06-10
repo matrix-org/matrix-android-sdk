@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,15 +54,53 @@ public class PowerLevels implements java.io.Serializable {
         return copy;
     }
 
+    /**
+     * Returns the user power level of a dedicated user Id
+     * @param userId the user id
+     * @return the power level
+     */
     public int getUserPowerLevel(String userId) {
-        Integer powerLevel = users.get(userId);
-        return (powerLevel != null) ? powerLevel : usersDefault;
+        // sanity check
+        if (!TextUtils.isEmpty(userId)) {
+            Integer powerLevel = users.get(userId);
+            return (powerLevel != null) ? powerLevel : usersDefault;
+        }
+
+        return usersDefault;
     }
 
+    /**
+     * Updates the user power levels of a dedicated user id
+     * @param userId the user
+     * @param powerLevel the new power level
+     */
     public void setUserPowerLevel(String userId, int powerLevel) {
         if (null != userId) {
             users.put(userId, Integer.valueOf(powerLevel));
         }
+    }
+
+    /**
+     * Tell if an user can send an event of type 'eventTypeString'.
+     * @param eventTypeString the event type  (in Event.EVENT_TYPE_XXX values)
+     * @param userId the user id
+     * @return true if the user can send the event
+     */
+    public boolean maySendEventOfType(String eventTypeString, String userId) {
+        if (!TextUtils.isEmpty(eventTypeString) && !TextUtils.isEmpty(userId)) {
+            return getUserPowerLevel(userId) >= minimumPowerLevelForSendingEventAsMessage(eventTypeString);
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells if an user can send a room message.
+     * @param userId the user id
+     * @return true if the user can send a room message
+     */
+    public boolean maySendMessage(String userId) {
+        return maySendEventOfType(Event.EVENT_TYPE_MESSAGE, userId);
     }
 
     /**
