@@ -1771,6 +1771,7 @@ public class Room {
                 }
             }
         };
+
         mEventListeners.put(eventListener, globalListener);
         mDataHandler.addListener(globalListener);
     }
@@ -1780,8 +1781,11 @@ public class Room {
      * @param eventListener the event listener to remove
      */
     public void removeEventListener(IMXEventListener eventListener) {
-        mDataHandler.removeListener(mEventListeners.get(eventListener));
-        mEventListeners.remove(eventListener);
+        // sanity check
+        if ((null != eventListener) && (null != mDataHandler) && (null != mEventListeners)) {
+            mDataHandler.removeListener(mEventListeners.get(eventListener));
+            mEventListeners.remove(eventListener);
+        }
     }
 
     //==============================================================================================================
