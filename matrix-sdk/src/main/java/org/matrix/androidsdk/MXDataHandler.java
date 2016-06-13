@@ -488,6 +488,24 @@ public class MXDataHandler implements IMXEventListener {
         return room;
     }
 
+    /**
+     * Checks if the room is properly initialized.
+     * GA reported us that some room fields are not initialized.
+     * But, i really don't know how it is possible.
+     * @param room the room check
+     */
+    public void checkRoom(Room room) {
+        // sanity check
+        if (null != room) {
+            if (null == room.getDataHandler()) {
+                Log.e(LOG_TAG, "checkRoom : the room was not initialized");
+                room.init(room.getRoomId(), this);
+            } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
+                Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
+                room.init(room.getRoomId(), this);
+            }
+        }
+    }
 
     /**
      * Retrieve a room Id by its alias.

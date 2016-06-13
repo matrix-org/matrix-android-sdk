@@ -399,19 +399,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if (!TextUtils.isEmpty(roomId)) {
                     mRoom = mSession.getDataHandler().getRoom(roomId);
                     mEventTimeLine = mRoom.getLiveTimeLine();
-
-                    // it should never happen
-                    // some GA issues report it
-                    if (null == mEventTimeLine.mDataHandler) {
-                        mEventTimeLine.setDataHandler(mSession.getDataHandler());
-                    }
                 }
             }
-        } else if (null == mEventTimeLine.mDataHandler) {
-            // it should never happen
-            // some GA issues report it
-            mEventTimeLine.setDataHandler(mSession.getDataHandler());
         }
+
+        // GA reported some weird room content
+        // so ensure that the room fields are properly initialized
+        mSession.getDataHandler().checkRoom(mRoom);
 
         // sanity check
         if (null != mRoom) {
