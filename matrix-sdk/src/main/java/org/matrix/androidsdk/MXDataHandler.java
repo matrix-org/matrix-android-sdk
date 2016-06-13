@@ -482,6 +482,7 @@ public class MXDataHandler implements IMXEventListener {
             // so ensure that it is not properly set
             Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
             room.init(roomId, this);
+            store.storeRoom(room);
         }
 
         return room;
