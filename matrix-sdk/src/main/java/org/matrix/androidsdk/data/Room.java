@@ -125,6 +125,13 @@ public class Room {
         }
     }
 
+    /**
+     * @return the used datahandler
+     */
+    public MXDataHandler getDataHandler() {
+        return mDataHandler;
+    }
+
     //================================================================================
     // Sync events
     //================================================================================

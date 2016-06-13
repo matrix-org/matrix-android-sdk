@@ -477,7 +477,13 @@ public class MXDataHandler implements IMXEventListener {
             room = new Room();
             room.init(roomId, this);
             store.storeRoom(room);
+        } else if ((null != room) && (null == room.getDataHandler())) {
+            // GA reports that some rooms have no data handler
+            // so ensure that it is not properly set
+            Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
+            room.init(roomId, this);
         }
+
         return room;
     }
 
