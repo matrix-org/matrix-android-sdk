@@ -160,6 +160,10 @@ public class MXJingleCall extends MXCall {
                 Log.e(LOG_TAG, "initializeAndroidGlobals " + e.getLocalizedMessage());
                 mIsInitialized = true;
                 mIsSupported = false;
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "initializeAndroidGlobals " + e.getLocalizedMessage());
+                mIsInitialized = true;
+                mIsSupported = false;
             }
         }
     }
