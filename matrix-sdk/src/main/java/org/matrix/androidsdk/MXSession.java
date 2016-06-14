@@ -18,6 +18,8 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -111,6 +113,10 @@ public class MXSession {
     private boolean mIsOnline = true;
 
     private HomeserverConnectionConfig mHsConfig;
+
+    // the application is launched from a notification
+    // so, mEventsThread.start might be not ready
+    private boolean mIsCatchupPending = false;
 
     /**
      * Create a basic session for direct API calls.
@@ -476,6 +482,8 @@ public class MXSession {
             return;
         }
 
+        Log.d(LOG_TAG, "startEventStream : create the event stream");
+
         final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
         mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
@@ -487,6 +495,20 @@ public class MXSession {
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
+
+            if (mIsCatchupPending) {
+                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 10 seconds");
+
+                mIsCatchupPending = false;
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "startEventStream : trigger the catchup");
+                        catchupEventStream();
+                    }
+                }, 10000);
+            }
         }
     }
 
@@ -615,7 +637,8 @@ public class MXSession {
             Log.d(LOG_TAG, "catchupEventStream");
             mEventsThread.catchup();
         } else {
-            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null");
+            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null so catchup when the thread will be created");
+            mIsCatchupPending = true;
         }
     }
 
