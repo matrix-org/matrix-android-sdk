@@ -188,12 +188,14 @@ public class MXCallsManager {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        restartAfter(60000);
+                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED)) {
+                            restartAfter(60000);
+                        }
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        restartAfter(60000);
+                        // should never happen
                     }
                 });
             }
