@@ -33,7 +33,6 @@ import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -497,17 +496,17 @@ public class MXSession {
             mEventsThread.start();
 
             if (mIsCatchupPending) {
-                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 10 seconds");
+                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
 
                 mIsCatchupPending = false;
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        Log.d(LOG_TAG, "startEventStream : trigger the catchup");
-                        catchupEventStream();
+                        Log.d(LOG_TAG, "startEventStream : pause the stream");
+                        pauseEventStream();
                     }
-                }, 10000);
+                }, 5000);
             }
         }
     }
