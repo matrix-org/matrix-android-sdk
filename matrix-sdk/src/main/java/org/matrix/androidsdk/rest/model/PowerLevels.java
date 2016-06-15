@@ -26,13 +26,13 @@ public class PowerLevels implements java.io.Serializable {
     public int invite = 50;
     public int redact = 50;
 
-    public int eventsDefault = 50;
+    public int events_default = 0;
     public Map<String, Integer> events = new HashMap<String, Integer>();
 
-    public int usersDefault = 0;
+    public int users_default = 0;
     public Map<String, Integer> users = new HashMap<String, Integer>();
 
-    public int stateDefault = 50;
+    public int state_default = 50;
 
     public PowerLevels deepCopy() {
         PowerLevels copy = new PowerLevels();
@@ -41,15 +41,15 @@ public class PowerLevels implements java.io.Serializable {
         copy.invite = invite;
         copy.redact = redact;
 
-        copy.eventsDefault = eventsDefault;
+        copy.events_default = events_default;
         copy.events = new HashMap<String, Integer>();
         copy.events.putAll(events);
 
-        copy.usersDefault = usersDefault;
+        copy.users_default = users_default;
         copy.users = new HashMap<String, Integer>();
         copy.users.putAll(users);
 
-        copy.stateDefault = stateDefault;
+        copy.state_default = state_default;
 
         return copy;
     }
@@ -63,10 +63,10 @@ public class PowerLevels implements java.io.Serializable {
         // sanity check
         if (!TextUtils.isEmpty(userId)) {
             Integer powerLevel = users.get(userId);
-            return (powerLevel != null) ? powerLevel : usersDefault;
+            return (powerLevel != null) ? powerLevel : users_default;
         }
 
-        return usersDefault;
+        return users_default;
     }
 
     /**
@@ -110,7 +110,7 @@ public class PowerLevels implements java.io.Serializable {
      * @return the required minimum power level.
      */
     public int minimumPowerLevelForSendingEventAsMessage(String eventTypeString) {
-        int minimumPowerLevel = eventsDefault;
+        int minimumPowerLevel = events_default;
 
         if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
             minimumPowerLevel = events.get(eventTypeString);
@@ -126,7 +126,7 @@ public class PowerLevels implements java.io.Serializable {
      * @return the required minimum power level.
      */
     public int minimumPowerLevelForSendingEventAsStateEvent(String eventTypeString) {
-        int minimumPowerLevel = stateDefault;
+        int minimumPowerLevel = state_default;
 
         if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
             minimumPowerLevel = events.get(eventTypeString);
