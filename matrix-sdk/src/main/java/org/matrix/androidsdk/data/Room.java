@@ -93,6 +93,8 @@ public class Room {
 
     private boolean mIsSyncing;
 
+    private boolean mRefreshUnreadAfterSync = false;
+
     private EventTimeline mLiveTimeline;
 
     private ApiCallback<Void> mOnInitialSyncCallback;
@@ -205,6 +207,11 @@ public class Room {
         }
 
         mIsSyncing = false;
+
+        if (mRefreshUnreadAfterSync) {
+            refreshUnreadCounter();
+            mRefreshUnreadAfterSync = false;
+        }
     }
 
     /**
@@ -1045,50 +1052,89 @@ public class Room {
     }
 
     /**
+     * Clear the unread message counters
+     * @param summary the room summary
+     */
+    private void clearUnreadCounters(RoomSummary summary) {
+        // reset the notification count
+        getLiveState().setHighlightCount(0);
+        getLiveState().setNotificationCount(0);
+        mStore.storeLiveStateForRoom(getRoomId());
+
+        // flish the summary
+        summary.setUnreadEventsCount(0);
+        mStore.flushSummary(summary);
+
+        mStore.commit();
+    }
+
+    /**
      * Send the read receipt to the latest room message id.
      * @param aRespCallback asynchronous response callback
      * @return true if the read receipt has been sent, false otherwise
      */
     public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
-        RoomSummary summary = mStore.getSummary(getRoomId());
-        Event event = mStore.getLatestEvent(getRoomId());
+        final RoomSummary summary = mStore.getSummary(getRoomId());
+        final Event event = mStore.getLatestEvent(getRoomId());
         boolean isSendReadReceiptSent = false;
         Log.d(LOG_TAG,"## sendReadReceipt(): roomId="+getRoomId());
 
         if ((null != event) && (null != summary)) {
             // any update
             if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
+                Log.d(LOG_TAG,"## sendReadReceipt(): send a read receipt to " + event.eventId);
+
                 isSendReadReceiptSent = true;
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
-                        if(null != aRespCallback)
+                        Log.d(LOG_TAG,"## sendReadReceipt(): succeeds");
+
+                        // save the up to date status only if the operation succeeds
+                        setReadReceiptToken(event.eventId, System.currentTimeMillis());
+
+                        if(null != aRespCallback) {
                             aRespCallback.onSuccess(info);
+                        }
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
-                        if(null != aRespCallback)
+
+                        if(null != aRespCallback) {
                             aRespCallback.onNetworkError(e);
+                        }
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
-                        if(null != aRespCallback)
+
+                        if(null != aRespCallback) {
                             aRespCallback.onMatrixError(e);
+                        }
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
                         Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
-                        if(null != aRespCallback)
+
+                        if(null != aRespCallback) {
                             aRespCallback.onUnexpectedError(e);
+                        }
                     }
                 });
-                setReadReceiptToken(event.eventId, System.currentTimeMillis());
+                // offline management
+                // clear counters until the network comes back.
+                // the user does not need to know that there is a task in progress
+                clearUnreadCounters(summary);
+            } else {
+                Log.d(LOG_TAG,"## sendReadReceipt(): already up to date");
+                clearUnreadCounters(summary);
             }
+        } else {
+            Log.d(LOG_TAG,"## sendReadReceipt(): invalid params event " + event + " summary " + summary);
         }
 
         return isSendReadReceiptSent;
@@ -1103,19 +1149,14 @@ public class Room {
     public boolean setReadReceiptToken(String token, long ts) {
         RoomSummary summary = mStore.getSummary(getRoomId());
 
+        Log.d(LOG_TAG, "setReadReceiptToken " + token + " - " +ts);
+
         if (summary.setReadReceiptToken(token, ts)) {
-            // reset the notification count
-            getLiveState().setHighlightCount(0);
-            getLiveState().setNotificationCount(0);
-            mStore.storeLiveStateForRoom(getRoomId());
-
-            // flish the summary
-            mStore.flushSummary(summary);
-
-            mStore.commit();
-            refreshUnreadCounter();
-
+            Log.d(LOG_TAG, "setReadReceiptToken : update the summary");
+            clearUnreadCounters(summary);
             return true;
+        } else {
+            Log.d(LOG_TAG, "setReadReceiptToken : not the latest message " + summary.getReadReceiptToken() + " - " + summary.getReadReceiptTs());
         }
 
         return false;
@@ -1166,6 +1207,9 @@ public class Room {
                     mStore.commit();
                 }
             }
+        } else {
+            // wait the sync end before computing is again
+            mRefreshUnreadAfterSync = true;
         }
     }
 

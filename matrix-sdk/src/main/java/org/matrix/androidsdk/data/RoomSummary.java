@@ -330,6 +330,10 @@ public class RoomSummary implements java.io.Serializable {
         return mReadReceiptToken;
     }
 
+    public long getReadReceiptTs() {
+        return mReadReceiptTs;
+    }
+
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;
 

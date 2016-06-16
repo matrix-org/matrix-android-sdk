@@ -1018,6 +1018,16 @@ public class MXMemoryStore implements IMXStore {
             }
         }
 
+        // display the unread events
+        if (0 == events.size()) {
+            Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : no unread");
+        } else {
+            Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : " + events.size() + " unreads : ");
+            for(Event event : events) {
+                Log.d(LOG_TAG, "--> " + event);
+            }
+        }
+
         return events;
     }
 
