@@ -54,6 +54,9 @@ public class EventsThread extends Thread {
 
     private boolean mKilling = false;
 
+    // avoid sync on "this" because it might differ if there is a timer.
+    private Object mSyncObject = new Object();
+
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private ApiFailureCallback mFailureCallback;
 
@@ -64,7 +67,7 @@ public class EventsThread extends Thread {
     IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
-            synchronized (this) {
+            synchronized (mSyncObject) {
                 mbIsConnected = isConnected;
             }
 
@@ -126,8 +129,8 @@ public class EventsThread extends Thread {
                 // cancel any catchup process.
                 mIsCatchingUp = false;
 
-                synchronized (this) {
-                    notify();
+                synchronized (mSyncObject) {
+                    mSyncObject.notify();
                 }
             }
         } else {
@@ -142,8 +145,8 @@ public class EventsThread extends Thread {
         Log.i(LOG_TAG, "unpause()");
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
         }
 
@@ -158,8 +161,8 @@ public class EventsThread extends Thread {
         Log.d(LOG_TAG, "catchup()");
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
         }
 
@@ -176,8 +179,8 @@ public class EventsThread extends Thread {
 
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
 
             Log.d(LOG_TAG, "Resume the thread to kill it.");
@@ -308,8 +311,8 @@ public class EventsThread extends Thread {
                 }
 
                 try {
-                    synchronized (this) {
-                        wait();
+                    synchronized (mSyncObject) {
+                        mSyncObject.wait();
                     }
                     Log.d(LOG_TAG, "Event stream woken from pause.");
 
@@ -354,7 +357,7 @@ public class EventsThread extends Thread {
                         boolean isConnected;
                         Log.d(LOG_TAG, "Got an error while polling events " + description);
 
-                        synchronized (this) {
+                        synchronized (mSyncObject) {
                             isConnected = mbIsConnected;
                         }
 
