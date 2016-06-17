@@ -695,9 +695,24 @@ public class EventTimeline {
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
 
+            storeLiveRoomEvent(event);
+
+            // the candidates events are not tracked
+            // because the users don't need to see the peer exchanges.
+            if (!TextUtils.equals(event.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                // warn the listeners
+                // general listeners
+                mDataHandler.onLiveEvent(event, mState);
+
+                // timeline listeners
+                onEvent(event, Direction.FORWARDS, mState);
+            }
+
+            // trigger pushes when it is required
             if (withPush) {
                 triggerPush(event);
             }
+
         } else {
             Event storedEvent = mStore.getEvent(event.eventId, event.roomId);
 

@@ -1772,12 +1772,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         CharSequence notice;
 
-        if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
-            notice = msg.getSender().equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
-        } else {
-            EventDisplay display = new EventDisplay(mContext, msg, roomState);
-            notice = display.getTextualDisplay();
-        }
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
+        notice = display.getTextualDisplay();
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
@@ -2048,8 +2044,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return true;
         }
         else if (event.isCallEvent()) {
-            // display only the start call
-            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
+                    ;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
             // if we can display text for it, it's valid.
