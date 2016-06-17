@@ -100,6 +100,8 @@ public class MXCallsManager {
     }
 
     public void unpauseTurnServerRefresh() {
+        Log.d(LOG_TAG, "unpauseTurnServerRefresh");
+
         mSuspendTurnServerRefresh = false;
         if (null != mTurnServerTimer) {
             mTurnServerTimer.cancel();
@@ -109,6 +111,8 @@ public class MXCallsManager {
     }
 
     public void stopTurnServerRefresh() {
+        Log.d(LOG_TAG, "stopTurnServerRefresh");
+
         mSuspendTurnServerRefresh = true;
         if (null != mTurnServerTimer) {
             mTurnServerTimer.cancel();
@@ -126,6 +130,8 @@ public class MXCallsManager {
             res = mTurnServer;
         }
 
+        Log.d(LOG_TAG, "getTurnServer " + res);
+
         return res;
     }
 
@@ -133,6 +139,8 @@ public class MXCallsManager {
         if (mSuspendTurnServerRefresh) {
             return;
         }
+
+        Log.d(LOG_TAG, "refreshTurnServer");
 
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -147,6 +155,7 @@ public class MXCallsManager {
                         mTurnServerTimer.schedule(new TimerTask() {
                             @Override
                             public void run() {
+                                Log.d(LOG_TAG, "refreshTurnServer cancelled");
                                 mTurnServerTimer.cancel();
                                 mTurnServerTimer = null;
 
@@ -158,6 +167,8 @@ public class MXCallsManager {
 
                     @Override
                     public void onSuccess(JsonObject info) {
+                        Log.d(LOG_TAG, "onSuccess " + info);
+
                         if (null != info) {
                             if (info.has("uris")) {
                                 synchronized (LOG_TAG) {
@@ -223,6 +234,8 @@ public class MXCallsManager {
             list.add(CallClass.JINGLE_CLASS);
         }
 
+        Log.d(LOG_TAG, "supportedClass " + list);
+
         return list;
     }
 
@@ -230,6 +243,8 @@ public class MXCallsManager {
      * @param callClass set the default callClass
      */
     public void setDefaultCallClass(CallClass callClass) {
+        Log.d(LOG_TAG, "setDefaultCallClass " + callClass);
+
         boolean isUpdatable = false;
 
         if (callClass == CallClass.CHROME_CLASS) {
@@ -272,6 +287,8 @@ public class MXCallsManager {
      * @param call the call
      */
     private void onIncomingCall(IMXCall call) {
+        Log.d(LOG_TAG, "onIncomingCall");
+
         synchronized (this) {
             for(MXCallsManagerListener l : mListeners) {
                 try {
@@ -287,6 +304,8 @@ public class MXCallsManager {
      * @param call the call
      */
     private void onCallHangUp(IMXCall call) {
+        Log.d(LOG_TAG, "onCallHangUp");
+
         synchronized (this) {
             for(MXCallsManagerListener l : mListeners) {
                 try {
@@ -303,6 +322,8 @@ public class MXCallsManager {
      * @return the IMXCall
      */
     private IMXCall createCall(String callId) {
+        Log.d(LOG_TAG, "createCall " + callId);
+
         IMXCall call = null;
 
         // default
@@ -360,6 +381,8 @@ public class MXCallsManager {
             }
         }
 
+        Log.d(LOG_TAG, "callWithCallId " + callId + " " + call);
+
         return call;
     }
 
@@ -373,6 +396,8 @@ public class MXCallsManager {
             res = (0 != mCallsByCallId.size());
         }
 
+        Log.d(LOG_TAG, "hasActiveCalls " + res);
+
         return res;
     }
 
@@ -382,6 +407,8 @@ public class MXCallsManager {
      */
     public void handleCallEvent(final Event event) {
         if (event.isCallEvent() && isSupported()) {
+            Log.d(LOG_TAG, "handleCallEvent " + event.type);
+
             // always run the call event in the UI thread
             // MXChromeCall does not work properly in other thread (because of the webview)
             mUIThreadHandler.post(new Runnable() {
@@ -442,6 +469,7 @@ public class MXCallsManager {
                                 // the creation / candidates /
                                 // the call has been answered on another device
                                 if (IMXCall.CALL_STATE_CREATED.equals(call.getCallState())) {
+                                    call.onAnsweredElsewhere();
                                     synchronized (this) {
                                         mCallsByCallId.remove(callId);
                                     }
@@ -489,6 +517,8 @@ public class MXCallsManager {
      * check if there is a pending incoming call
      */
     public void checkPendingIncomingCalls() {
+        Log.d(LOG_TAG, "checkPendingIncomingCalls");
+
         mUIThreadHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -523,6 +553,8 @@ public class MXCallsManager {
             }
         }
 
+        Log.d(LOG_TAG, "createCallInRoom " + RoomId);
+
         return call;
     }
 
@@ -533,6 +565,8 @@ public class MXCallsManager {
      *           false to turn it off
      */
     public static void setSpeakerphoneOn(Context context, boolean isOn) {
+        Log.d(LOG_TAG, "setSpeakerphoneOn " + isOn);
+
         AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
 
         // ignore speaker button if a bluetooth headset is connected
