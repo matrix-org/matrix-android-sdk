@@ -1023,8 +1023,12 @@ public class MXMemoryStore implements IMXStore {
             Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : no unread");
         } else {
             Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : " + events.size() + " unreads : ");
+
+            int index = 0;
+
             for(Event event : events) {
-                Log.d(LOG_TAG, "--> " + event);
+                Log.d(LOG_TAG, "- Event " + index + " : " + event.eventId);
+                index++;
             }
         }
 
