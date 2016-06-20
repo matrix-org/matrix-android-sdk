@@ -130,7 +130,7 @@ public class EventTimeline {
     private boolean mHasReachedHomeServerForwardsPaginationEnd;
 
     /**
-     * The data hanler : used to retrieve data from the store or to trigger REST requests.
+     * The data handler : used to retrieve data from the store or to trigger REST requests.
      */
     public MXDataHandler mDataHandler;
 
@@ -253,7 +253,8 @@ public class EventTimeline {
         mIsBackPaginating = false;
         mIsForewardPaginating = false;
 
-        if (null != mDataHandler.getDataRetriever()) {
+        // sanity check
+        if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
     }
@@ -694,9 +695,24 @@ public class EventTimeline {
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
 
+            storeLiveRoomEvent(event);
+
+            // the candidates events are not tracked
+            // because the users don't need to see the peer exchanges.
+            if (!TextUtils.equals(event.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                // warn the listeners
+                // general listeners
+                mDataHandler.onLiveEvent(event, mState);
+
+                // timeline listeners
+                onEvent(event, Direction.FORWARDS, mState);
+            }
+
+            // trigger pushes when it is required
             if (withPush) {
                 triggerPush(event);
             }
+
         } else {
             Event storedEvent = mStore.getEvent(event.eventId, event.roomId);
 

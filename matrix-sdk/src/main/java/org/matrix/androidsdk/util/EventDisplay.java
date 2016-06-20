@@ -24,6 +24,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -86,14 +87,45 @@ public class EventDisplay {
 
             if (mEvent.isCallEvent()) {
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(mEvent.type)) {
-                    return mContext.getString(R.string.call_invitation);
+                    boolean isVideo = false;
+                    // detect call type from the sdp
+                    try {
+                        JsonObject offer = jsonEventContent.get("offer").getAsJsonObject();
+                        JsonElement sdp = offer.get("sdp");
+                        String sdpValue = sdp.getAsString();
+                        isVideo = sdpValue.indexOf("m=video") >= 0;
+                    } catch (Exception e) {
+                    }
+
+                    if (isVideo) {
+                        return mContext.getString(R.string.notice_placed_video_call, userDisplayName);
+                    } else {
+                        return mContext.getString(R.string.notice_placed_voice_call, userDisplayName);
+                    }
                 } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(mEvent.type)) {
-                    return mContext.getString(R.string.call_answered);
+                    return mContext.getString(R.string.notice_answered_call, userDisplayName);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(mEvent.type)) {
-                    return mContext.getString(R.string.call_hungup);
+                    return mContext.getString(R.string.notice_ended_call, userDisplayName);
                 } else {
                     return mEvent.type;
                 }
+            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(mEvent.type)) {
+                CharSequence subpart;
+                String historyVisibility = (null != jsonEventContent.get("history_visibility")) ? jsonEventContent.get("history_visibility").getAsString() : RoomState.HISTORY_VISIBILITY_SHARED;
+
+                if (TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_SHARED)) {
+                    subpart = mContext.getString(R.string.notice_room_visibility_shared);
+                } else if (TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_INVITED)) {
+                    subpart = mContext.getString(R.string.notice_room_visibility_invited);
+                } else if (TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_JOINED)) {
+                    subpart = mContext.getString(R.string.notice_room_visibility_joined);
+                } else if (TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_WORLD_READABLE)) {
+                    subpart = mContext.getString(R.string.notice_room_visibility_world_readable);
+                } else {
+                    subpart = mContext.getString(R.string.notice_room_visibility_unknown, historyVisibility);
+                }
+
+                text = mContext.getString(R.string.notice_made_future_room_visibility, userDisplayName, subpart);
             } else if (Event.EVENT_TYPE_RECEIPT.equals(mEvent.type)) {
                 // the read receipt should not be displayed
                 text = "Read Receipt";

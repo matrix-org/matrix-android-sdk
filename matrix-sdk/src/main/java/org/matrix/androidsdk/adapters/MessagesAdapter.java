@@ -630,6 +630,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (
                 event.isCallEvent() ||
+                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
@@ -946,7 +947,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow nextRow = getItem(position + 1);
 
                 if (isMergeableEvent(event) || isMergeableEvent(nextRow.getEvent())) {
-                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender());
+                    // the message will be merged if the message senders are not the same
+                    // or the message is an avatar / displayname update.
+                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender()) && isMergeableEvent(nextRow.getEvent());
                 }
             }
         }
@@ -1769,12 +1772,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         CharSequence notice;
 
-        if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
-            notice = msg.getSender().equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
-        } else {
-            EventDisplay display = new EventDisplay(mContext, msg, roomState);
-            notice = display.getTextualDisplay();
-        }
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
+        notice = display.getTextualDisplay();
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
@@ -2045,13 +2044,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return true;
         }
         else if (event.isCallEvent()) {
-            // display only the start call
-            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
+                    ;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
+        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+            return true;
         }
         return false;
     }

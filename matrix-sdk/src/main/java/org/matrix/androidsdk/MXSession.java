@@ -18,6 +18,8 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -26,11 +28,11 @@ import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -106,7 +108,14 @@ public class MXSession {
 
     private boolean mIsAliveSession = true;
 
+    // online status
+    private boolean mIsOnline = true;
+
     private HomeserverConnectionConfig mHsConfig;
+
+    // the application is launched from a notification
+    // so, mEventsThread.start might be not ready
+    private boolean mIsCatchupPending = false;
 
     /**
      * Create a basic session for direct API calls.
@@ -472,6 +481,8 @@ public class MXSession {
             return;
         }
 
+        Log.d(LOG_TAG, "startEventStream : create the event stream");
+
         final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
         mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
@@ -483,6 +494,20 @@ public class MXSession {
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
+
+            if (mIsCatchupPending) {
+                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
+
+                mIsCatchupPending = false;
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "startEventStream : pause the stream");
+                        pauseEventStream();
+                    }
+                }, 5000);
+            }
         }
     }
 
@@ -516,6 +541,69 @@ public class MXSession {
     }
 
     /**
+     * Update the online status
+     * @param isOnline true if the client must be seen as online
+     */
+    public void setIsOnline(boolean isOnline) {
+        if (isOnline != mIsOnline) {
+            mIsOnline = isOnline;
+
+            if (null != mEventsThread) {
+                mEventsThread.setIsOnline(isOnline);
+            }
+        }
+    }
+
+    /**
+     * Tell if the client is seen as "online"
+     */
+    public boolean isOnline() {
+        return mIsOnline;
+    }
+
+    /**
+     * Update the heartbeat request timeout.
+     * @param ms the delay in ms
+     */
+    public void setSyncTimeout(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setServerLongPollTimeout(ms);
+        }
+    }
+
+    /**
+     * @return the heartbeat request timeout
+     */
+    public int getSyncTimeout() {
+        if (null != mEventsThread) {
+            return mEventsThread.getServerLongPollTimeout();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Set a delay between two sync requests.
+     * @param ms the delay in ms
+     */
+    public void setSyncDelay(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setSyncDelay(ms);
+        }
+    }
+
+    /**
+     * @return the delay between two sync requests.
+     */
+    public int getSyncDelay() {
+        if (null != mEventsThread) {
+            mEventsThread.getSyncDelay();
+        }
+
+        return 0;
+    }
+
+    /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
@@ -544,6 +632,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Pause the event stream
+     */
     public void pauseEventStream() {
         checkIfAlive();
 
@@ -559,6 +650,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Resume the event stream
+     */
     public void resumeEventStream() {
         checkIfAlive();
 
@@ -574,6 +668,9 @@ public class MXSession {
         }
     }
 
+    /**
+     * Trigger a catchup
+     */
     public void catchupEventStream() {
         checkIfAlive();
 
@@ -581,7 +678,8 @@ public class MXSession {
             Log.d(LOG_TAG, "catchupEventStream");
             mEventsThread.catchup();
         } else {
-            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null");
+            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null so catchup when the thread will be created");
+            mIsCatchupPending = true;
         }
     }
 
@@ -602,16 +700,39 @@ public class MXSession {
     /**
      * Create a new room with given properties. Needs the data handler.
      *
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(final ApiCallback<String> callback) {
+        createRoom(null, null, null, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name       the room name
+     * @param topic      the room topic
+     * @param alias      the room alias
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
      * @param name       the room name
      * @param topic      the room topic
      * @param visibility the room visibility
      * @param alias      the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param historyVisibility the history visibility
      * @param callback   the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
         checkIfAlive();
 
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, new SimpleApiCallback<CreateRoomResponse>(callback) {
+        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;

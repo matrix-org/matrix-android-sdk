@@ -63,6 +63,7 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE = "m.room.third_party_invite";
     public static final String EVENT_TYPE_STATE_ROOM_CREATE = "m.room.create";
     public static final String EVENT_TYPE_STATE_ROOM_JOIN_RULES = "m.room.join_rules";
+    public static final String EVENT_TYPE_STATE_ROOM_GUEST_ACCESS = "m.room.guest_access";
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
