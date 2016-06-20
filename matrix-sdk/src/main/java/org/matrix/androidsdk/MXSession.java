@@ -562,6 +562,48 @@ public class MXSession {
     }
 
     /**
+     * Update the heartbeat request timeout.
+     * @param ms the delay in ms
+     */
+    public void setSyncTimeout(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setServerLongPollTimeout(ms);
+        }
+    }
+
+    /**
+     * @return the heartbeat request timeout
+     */
+    public int getSyncTimeout() {
+        if (null != mEventsThread) {
+            return mEventsThread.getServerLongPollTimeout();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Set a delay between two sync requests.
+     * @param ms the delay in ms
+     */
+    public void setSyncDelay(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setSyncDelay(ms);
+        }
+    }
+
+    /**
+     * @return the delay between two sync requests.
+     */
+    public int getSyncDelay() {
+        if (null != mEventsThread) {
+            mEventsThread.getSyncDelay();
+        }
+
+        return 0;
+    }
+
+    /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
