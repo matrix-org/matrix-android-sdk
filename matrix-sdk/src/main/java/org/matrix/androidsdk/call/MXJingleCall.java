@@ -415,7 +415,7 @@ public class MXJingleCall extends MXCall {
                             @Override
                             public void run() {
                                 if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
-                                    if (mUsingLargeLocalRenderer && isVideo()) {
+                                    if ((null!=mLocalVideoTrack) && mUsingLargeLocalRenderer && isVideo()) {
                                         mLocalVideoTrack.setEnabled(false);
                                         VideoRendererGui.remove(mLargeLocalRendererCallbacks);
                                         mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
@@ -659,26 +659,36 @@ public class MXJingleCall extends MXCall {
      * Create the local video stack
      * @return the video track
      */
-    private VideoTrack createVideoTrack() {
+    private VideoTrack createVideoTrack() { // permission crash
         Log.d(LOG_TAG, "createVideoTrack");
 
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
 
-            if (null != mFrontCameraName) {
-                mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
+            try {
+                if (null != mFrontCameraName) {
+                    mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
 
-                if (null == mVideoCapturer) {
-                    Log.e(LOG_TAG, "Cannot create Video Capturer from front camera");
+                    if (null == mVideoCapturer) {
+                        Log.e(LOG_TAG, "Cannot create Video Capturer from front camera");
+                    }
                 }
-            }
 
-            if ((null == mVideoCapturer) && (null != mBackCameraName)) {
-                mVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
+                if ((null == mVideoCapturer) && (null != mBackCameraName)) {
+                    mVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
 
-                if (null == mVideoCapturer) {
-                    Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
+                    if (null == mVideoCapturer) {
+                        Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
+                    }
                 }
+            /*} catch(Throwable ex) {
+                // catch exception due to Android M permissions, when
+                // a call is received and the permissions (camera and audio) were not yet granted
+                Log.e(LOG_TAG, "## createVideoTrack(): Exception Msg="+ex.getMessage());*/
+            } catch(Exception ex2) {
+                // catch exception due to Android M permissions, when
+                // a call is received and the permissions (camera and audio) were not yet granted
+                Log.e(LOG_TAG, "## createVideoTrack(): Exception Msg="+ex2.getMessage());
             }
 
             if (null != mVideoCapturer) {
