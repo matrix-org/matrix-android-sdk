@@ -242,7 +242,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         mPowerLevels = powerLevels;
         if (powerLevels != null) {
             // Process power levels to find the max. The display will show power levels as a fraction of this
-            maxPowerLevel = powerLevels.usersDefault;
+            maxPowerLevel = powerLevels.users_default;
             Iterator it = powerLevels.users.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<String, Integer> pair = (Map.Entry<String, Integer>) it.next();

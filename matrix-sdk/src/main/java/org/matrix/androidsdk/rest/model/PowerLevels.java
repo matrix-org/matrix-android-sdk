@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,13 +26,13 @@ public class PowerLevels implements java.io.Serializable {
     public int invite = 50;
     public int redact = 50;
 
-    public int eventsDefault = 50;
+    public int events_default = 0;
     public Map<String, Integer> events = new HashMap<String, Integer>();
 
-    public int usersDefault = 0;
+    public int users_default = 0;
     public Map<String, Integer> users = new HashMap<String, Integer>();
 
-    public int stateDefault = 50;
+    public int state_default = 50;
 
     public PowerLevels deepCopy() {
         PowerLevels copy = new PowerLevels();
@@ -39,28 +41,66 @@ public class PowerLevels implements java.io.Serializable {
         copy.invite = invite;
         copy.redact = redact;
 
-        copy.eventsDefault = eventsDefault;
+        copy.events_default = events_default;
         copy.events = new HashMap<String, Integer>();
         copy.events.putAll(events);
 
-        copy.usersDefault = usersDefault;
+        copy.users_default = users_default;
         copy.users = new HashMap<String, Integer>();
         copy.users.putAll(users);
 
-        copy.stateDefault = stateDefault;
+        copy.state_default = state_default;
 
         return copy;
     }
 
+    /**
+     * Returns the user power level of a dedicated user Id
+     * @param userId the user id
+     * @return the power level
+     */
     public int getUserPowerLevel(String userId) {
-        Integer powerLevel = users.get(userId);
-        return (powerLevel != null) ? powerLevel : usersDefault;
+        // sanity check
+        if (!TextUtils.isEmpty(userId)) {
+            Integer powerLevel = users.get(userId);
+            return (powerLevel != null) ? powerLevel : users_default;
+        }
+
+        return users_default;
     }
 
+    /**
+     * Updates the user power levels of a dedicated user id
+     * @param userId the user
+     * @param powerLevel the new power level
+     */
     public void setUserPowerLevel(String userId, int powerLevel) {
         if (null != userId) {
             users.put(userId, Integer.valueOf(powerLevel));
         }
+    }
+
+    /**
+     * Tell if an user can send an event of type 'eventTypeString'.
+     * @param eventTypeString the event type  (in Event.EVENT_TYPE_XXX values)
+     * @param userId the user id
+     * @return true if the user can send the event
+     */
+    public boolean maySendEventOfType(String eventTypeString, String userId) {
+        if (!TextUtils.isEmpty(eventTypeString) && !TextUtils.isEmpty(userId)) {
+            return getUserPowerLevel(userId) >= minimumPowerLevelForSendingEventAsMessage(eventTypeString);
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells if an user can send a room message.
+     * @param userId the user id
+     * @return true if the user can send a room message
+     */
+    public boolean maySendMessage(String userId) {
+        return maySendEventOfType(Event.EVENT_TYPE_MESSAGE, userId);
     }
 
     /**
@@ -70,7 +110,7 @@ public class PowerLevels implements java.io.Serializable {
      * @return the required minimum power level.
      */
     public int minimumPowerLevelForSendingEventAsMessage(String eventTypeString) {
-        int minimumPowerLevel = eventsDefault;
+        int minimumPowerLevel = events_default;
 
         if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
             minimumPowerLevel = events.get(eventTypeString);
@@ -86,7 +126,7 @@ public class PowerLevels implements java.io.Serializable {
      * @return the required minimum power level.
      */
     public int minimumPowerLevelForSendingEventAsStateEvent(String eventTypeString) {
-        int minimumPowerLevel = stateDefault;
+        int minimumPowerLevel = state_default;
 
         if ((null != eventTypeString) && events.containsKey(eventTypeString)) {
             minimumPowerLevel = events.get(eventTypeString);

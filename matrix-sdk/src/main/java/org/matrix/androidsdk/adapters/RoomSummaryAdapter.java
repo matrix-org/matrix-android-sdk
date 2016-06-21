@@ -392,7 +392,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             Room room = roomFromRoomSummary(roomSummary);
             if (null != room) {
-                room.sendReadReceipt();
+                room.sendReadReceipt(null);
             }
 
             res |= roomSummary.setHighlighted(false);
@@ -414,7 +414,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         for(RoomSummary summary : summaries) {
             Room room = roomFromRoomSummary(summary);
             if (null != room) {
-                room.sendReadReceipt();
+                room.sendReadReceipt(null);
             }
 
             res |= summary.setHighlighted(false);
@@ -537,7 +537,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 }
 
                 // the public rooms are displayed with bold fonts
-                if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.VISIBILITY_PUBLIC)) {
+                if ((null != latestRoomState) && (null != latestRoomState.visibility) && latestRoomState.visibility.equals(RoomState.DIRECTORY_VISIBILITY_PUBLIC)) {
                     textView.setTypeface(null, Typeface.BOLD);
                 } else {
                     textView.setTypeface(null, Typeface.NORMAL);

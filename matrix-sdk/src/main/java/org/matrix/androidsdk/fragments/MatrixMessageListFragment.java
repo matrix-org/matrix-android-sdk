@@ -403,6 +403,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         }
 
+        // GA reported some weird room content
+        // so ensure that the room fields are properly initialized
+        mSession.getDataHandler().checkRoom(mRoom);
+
         // sanity check
         if (null != mRoom) {
             mAdapter.setTypingUsers(mRoom.getTypingUsers());
@@ -1780,6 +1784,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                  Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
                  Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
                  Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
+                 Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
                  (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
                 ;
     }
