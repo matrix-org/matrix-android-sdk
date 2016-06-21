@@ -299,6 +299,7 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
+    /**
      * Send the answer event
      * @param sessionDescription
      */
@@ -681,14 +682,10 @@ public class MXJingleCall extends MXCall {
                         Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
                     }
                 }
-            /*} catch(Throwable ex) {
-                // catch exception due to Android M permissions, when
-                // a call is received and the permissions (camera and audio) were not yet granted
-                Log.e(LOG_TAG, "## createVideoTrack(): Exception Msg="+ex.getMessage());*/
             } catch(Exception ex2) {
                 // catch exception due to Android M permissions, when
                 // a call is received and the permissions (camera and audio) were not yet granted
-                Log.e(LOG_TAG, "## createVideoTrack(): Exception Msg="+ex2.getMessage());
+                Log.e(LOG_TAG, "createVideoTrack(): Exception Msg=" + ex2.getMessage());
             }
 
             if (null != mVideoCapturer) {
