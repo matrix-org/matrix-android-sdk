@@ -1,5 +1,5 @@
 /* 
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import android.util.Log;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
@@ -37,15 +36,20 @@ import org.matrix.androidsdk.rest.model.RedactedBecause;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 
+/**
+ * Class helper to stringify an event
+ */
 public class EventDisplay {
 
     private static final String LOG_TAG = "EventDisplay";
 
+    // members
     private Event mEvent;
     private Context mContext;
-    private boolean mPrependAuthor;
     private RoomState mRoomState;
+    private boolean mPrependAuthor;
 
+    // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {
         mContext = context.getApplicationContext();
         mEvent = event;
@@ -62,6 +66,12 @@ public class EventDisplay {
         mPrependAuthor = prepend;
     }
 
+    /**
+     * Compute an "human readable" name for an user Id.
+     * @param userId the user id
+     * @param roomState the room state
+     * @return the user display name
+     */
     private static String getUserDisplayName(String userId, RoomState roomState) {
         if (null != roomState) {
             return roomState.getMemberName(userId);
@@ -69,17 +79,23 @@ public class EventDisplay {
             return userId;
         }
     }
+
     /**
-     * Get the textual body for this event.
+     * Stringify the linked event.
      * @return The text or null if it isn't possible.
      */
     public CharSequence getTextualDisplay() {
         return getTextualDisplay(null);
     }
 
+    /**
+     * Stringify the linked event.
+     * @param displayNameColor the display name highlighted color.
+     * @return The text or null if it isn't possible.
+     */
     public CharSequence getTextualDisplay(Integer displayNameColor) {
-
         CharSequence text = null;
+
         try {
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
@@ -189,6 +205,13 @@ public class EventDisplay {
         return text;
     }
 
+    /**
+     * Compute the redact text for an event.
+     * @param context the context
+     * @param event the event
+     * @param roomState the roomstate
+     * @return the redacted event text
+     */
     public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
         // Check first whether the event has been redacted
         String redactedInfo = null;
@@ -222,6 +245,13 @@ public class EventDisplay {
         return  redactedInfo;
     }
 
+    /**
+     * Compute the sender display name
+     * @param event the event
+     * @param eventContent the event content
+     * @param roomState the room state
+     * @return the "human readable" display name
+     */
     private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
         String senderDisplayName = event.getSender();
 
@@ -241,6 +271,13 @@ public class EventDisplay {
         return senderDisplayName;
     }
 
+    /**
+     * Build a membership notice text from its dedicated event.
+     * @param context the context.
+     * @param event the event.
+     * @param roomState the room state.
+     * @return the membership text.
+     */
     public static String getMembershipNotice(Context context, Event event, RoomState roomState) {
         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
         EventContent prevEventContent = event.getPrevContent();
@@ -307,12 +344,14 @@ public class EventDisplay {
             if (null != eventContent.third_party_invite) {
                 return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, targetDisplayName, senderDisplayName);
             } else {
-                MXDataHandler dataHandler = roomState.getDataHandler();
+                String selfUserId = null;
 
-                if (null != dataHandler) {
-                    if (TextUtils.equals(event.stateKey, dataHandler.getUserId())) {
-                        return context.getString(R.string.notice_room_invite_you, senderDisplayName);
-                    }
+                if ((null != roomState) && (null != roomState.getDataHandler())) {
+                    selfUserId = roomState.getDataHandler().getUserId();
+                }
+
+                if (TextUtils.equals(event.stateKey, selfUserId)) {
+                    return context.getString(R.string.notice_room_invite_you, senderDisplayName);
                 }
 
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
@@ -341,18 +380,5 @@ public class EventDisplay {
             Log.e(LOG_TAG, "Unknown membership: " + eventContent.membership);
         }
         return null;
-    }
-
-
-    private String getAvatarChangeNotice(Event msg, boolean desambigious) {
-        // TODO: Pictures!
-        return mContext.getString(R.string.notice_avatar_url_changed, getUserDisplayName(msg.getSender(), mRoomState));
-    }
-
-    private String getDisplayNameChangeNotice(Event msg) {
-        return mContext.getString(R.string.notice_display_name_changed,
-                msg.getSender(),
-                ((JsonObject)msg.content).getAsJsonPrimitive("displayname").getAsString()
-        );
     }
 }
