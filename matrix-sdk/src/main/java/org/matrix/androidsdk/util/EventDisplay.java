@@ -354,6 +354,10 @@ public class EventDisplay {
                     return context.getString(R.string.notice_room_invite_you, senderDisplayName);
                 }
 
+                if (null == event.stateKey) {
+                    return context.getString(R.string.notice_room_invite_no_invitee, senderDisplayName);
+                }
+
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }
