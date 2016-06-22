@@ -380,7 +380,13 @@ public class MXMediasCache {
             if (null != mimeType) {
                 String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
 
-                if (null != extension) {
+                if (null == extension) {
+                    if (mimeType.lastIndexOf("/") >= 0) {
+                        extension = mimeType.substring(mimeType.lastIndexOf("/") +1);
+                    }
+                }
+
+                if (!TextUtils.isEmpty(extension)) {
                     filename += "." + extension;
                 }
             }
