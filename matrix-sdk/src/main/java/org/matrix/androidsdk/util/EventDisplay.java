@@ -279,6 +279,13 @@ public class EventDisplay {
      * @return the membership text.
      */
     public static String getMembershipNotice(Context context, Event event, RoomState roomState) {
+        JsonObject content = event.getContentAsJsonObject();
+
+        // don't support redacted membership event
+        if ((null == content) || (content.entrySet().size() == 0)) {
+            return null;
+        }
+
         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
         EventContent prevEventContent = event.getPrevContent();
 
