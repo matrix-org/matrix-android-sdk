@@ -18,7 +18,6 @@ package org.matrix.androidsdk.rest.model;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 
@@ -30,12 +29,14 @@ import java.util.Map;
  * Class representing a user.
  */
 public class User {
+    // the user presence values
     public static final String PRESENCE_ONLINE = "online";
     public static final String PRESENCE_UNAVAILABLE = "unavailable";
     public static final String PRESENCE_OFFLINE = "offline";
     public static final String PRESENCE_FREE_FOR_CHAT = "free_for_chat";
     public static final String PRESENCE_HIDDEN = "hidden";
 
+    // user fields provided by the server
     public String user_id;
     public String displayname;
     public String avatar_url;
@@ -50,19 +51,26 @@ public class User {
 
     // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
     // This is needed to find the right one when removing the listener.
-    private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
+    private final Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<>();
 
+    // data handler
     protected MXDataHandler mDataHandler;
-    private ArrayList<IMXEventListener> pendingListeners = new ArrayList<IMXEventListener>();
 
+    // events listeners list
+    private ArrayList<IMXEventListener> pendingListeners = new ArrayList<>();
+
+    // avatar URLs setter / getter
     public String getAvatarUrl() {
         return avatar_url;
     }
-
     public void setAvatarUrl(String newAvatarUrl) {
         avatar_url = newAvatarUrl;
     }
 
+    /**
+     * Clone an user into this instance
+     * @param user the user to clone.
+     */
     protected void clone(User user) {
         if (user != null) {
             user_id = user.user_id;
@@ -77,6 +85,10 @@ public class User {
         }
     }
 
+    /**
+     * Create a deep copy of the current user
+     * @return
+     */
     public User deepCopy() {
         User copy = new User();
         copy.clone(this);
@@ -102,8 +114,13 @@ public class User {
      * Get the user's last active ago time by adding the one given by the server and the time since elapsed.
      * @return how long ago the user was last active (in ms)
      */
-    public long getRealLastActiveAgo() {
-        return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
+    public long getAbsoluteLastActiveAgo() {
+        // sanity check
+        if (null == lastActiveAgo) {
+            return 0;
+        } else {
+            return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
+        }
     }
 
     /**
