@@ -5,10 +5,12 @@
 
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_invitation">Room Invitation</string>
-    <string name="summary_user_invitation">%1$s\'s invitation</string>
+    <string name="summary_user_invitation">%s\'s invitation</string>
     <string name="summary_user_sent_image">%1$s sent an image.</string>
 
+    <string name="notice_room_invite_no_invitee">%s\'s invitation</string>
     <string name="notice_room_invite">%1$s invited %2$s</string>
+    <string name="notice_room_invite_you">%1$s invited you</string>
     <string name="notice_room_join">%1$s joined</string>
     <string name="notice_room_leave">%1$s left</string>
     <string name="notice_room_kick">%1$s kicked %2$s</string>
@@ -23,11 +25,21 @@
     <string name="notice_room_name_changed">%1$s changed the room name to: %2$s</string>
     <string name="notice_outgoing_call">Outgoing Call</string>
     <string name="notice_incoming_call">Incoming Call</string>
+    <string name="notice_placed_video_call">%s placed a video call.</string>
+    <string name="notice_placed_voice_call">%s placed a voice call.</string>
+    <string name="notice_answered_call">%s answered the call.</string>
+    <string name="notice_ended_call">%s ended the call.</string>
+    <string name="notice_made_future_room_visibility">%1$s made future room history visible to %2$s</string>
+    <string name="notice_room_visibility_invited">all room members, from the point they are invited.</string>
+    <string name="notice_room_visibility_joined">all room members, from the point they joined.</string>
+    <string name="notice_room_visibility_shared">all room members.</string>
+    <string name="notice_room_visibility_world_readable">anyone.</string>
+    <string name="notice_room_visibility_unknown">unknown (%s).</string>
 
     <string name="notice_avatar_changed_too">(avatar was changed too)</string>
     <string name="notice_room_name_removed">%1$s removed the room name</string>
     <string name="notice_room_topic_removed">%1$s removed the room topic</string>
-    <string name="notice_event_redacted">redacted %$1s </string>
+    <string name="notice_event_redacted">redacted %1$s </string>
     <string name="notice_event_redacted_by"> by %1$s</string>
     <string name="notice_event_redacted_reason">  [reason: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s updated their profile %2$s</string>

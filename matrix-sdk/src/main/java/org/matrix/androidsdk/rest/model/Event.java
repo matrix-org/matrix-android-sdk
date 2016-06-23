@@ -42,6 +42,11 @@ public class Event implements java.io.Serializable {
         UNDELIVERABLE   // The event failed to be sent
     }
 
+    // when there is no more message to be paginated in a room
+    // the server returns a null token.
+    // defines by a non null one to ben able tp store it.
+    public static final String PAGINATE_BACK_TOKEN_END = "PAGINATE_BACK_TOKEN_END";
+
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
@@ -58,6 +63,7 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE = "m.room.third_party_invite";
     public static final String EVENT_TYPE_STATE_ROOM_CREATE = "m.room.create";
     public static final String EVENT_TYPE_STATE_ROOM_JOIN_RULES = "m.room.join_rules";
+    public static final String EVENT_TYPE_STATE_ROOM_GUEST_ACCESS = "m.room.guest_access";
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
@@ -112,7 +118,7 @@ public class Event implements java.io.Serializable {
     // The file cache uses the token as a pagination marker.
     // When the user paginates, the file cache paginate until to find X events or an event with a token.
     // This token must be used to perform a server catchup.
-    public Boolean mIsInternalPaginationToken;
+    public boolean mIsInternalPaginationToken;
 
     // store the linked matrix id
     private String mMatrixId;
@@ -317,15 +323,15 @@ public class Event implements java.io.Serializable {
         mIsInternalPaginationToken = true;
     }
 
-    public Boolean isIntenalPaginationToken() {
+    public boolean isIntenalPaginationToken() {
         return  mIsInternalPaginationToken;
     }
 
-    public Boolean hasToken() {
+    public boolean hasToken() {
         return (null != mToken) && !mIsInternalPaginationToken;
     }
 
-    public Boolean isCallEvent() {
+    public boolean isCallEvent() {
         return  EVENT_TYPE_CALL_INVITE.equals(type) ||
                 EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
                 EVENT_TYPE_CALL_ANSWER.equals(type) ||

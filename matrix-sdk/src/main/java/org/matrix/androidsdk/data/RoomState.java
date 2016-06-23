@@ -39,12 +39,21 @@ import java.util.Map;
  * The state of a room.
  */
 public class RoomState implements java.io.Serializable {
-    public static final String VISIBILITY_PRIVATE = "private";
-    public static final String VISIBILITY_PUBLIC = "public";
+    public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
+    public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
+
+    public static final String JOIN_RULE_PUBLIC = "public";
+    public static final String JOIN_RULE_INVITE = "invite";
+
+    /** room access is granted to guests **/
+    public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
+    /** room access is denied to guests **/
+    public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";
     public static final String HISTORY_VISIBILITY_INVITED = "invited";
     public static final String HISTORY_VISIBILITY_JOINED = "joined";
+    public static final String HISTORY_VISIBILITY_WORLD_READABLE = "world_readable";
 
     // Public members used for JSON mapping
 
@@ -75,26 +84,29 @@ public class RoomState implements java.io.Serializable {
     // the join rule
     public String join_rule;
 
+    /** the guest access policy of the room **/
+    public String guest_access;
+
     // SPEC-134
     public String history_visibility;
 
     // the public room alias / name
     public String roomAliasName;
 
-    // the room visibility (i.e. public, private...)
+    /**  the room visibility in the directory list (i.e. public, private...) **/
     public String visibility;
 
     /**
-     The number of unread messages that match the push notification rules.
-     It is based on the notificationCount field in /sync response.
+     * The number of unread messages that match the push notification rules.
+     * It is based on the notificationCount field in /sync response.
      */
-    public int mNotificationCount;
+    private int mNotificationCount;
 
     /**
-     The number of highlighted unread messages (subset of notifications).
-     It is based on the notificationCount field in /sync response.
+     * The number of highlighted unread messages (subset of notifications).
+     * It is based on the notificationCount field in /sync response.
      */
-    public int mHighlightCount;
+    private int mHighlightCount;
 
     // the associated token
     private String token;
@@ -106,13 +118,49 @@ public class RoomState implements java.io.Serializable {
     private Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<String, RoomThirdPartyInvite>();
 
     /**
-     Cache for [self memberWithThirdPartyInviteToken].
-     The key is the 3pid invite token.
+     * Cache for [self memberWithThirdPartyInviteToken].
+     * The key is the 3pid invite token.
      */
     private Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<String, RoomMember>();
 
+    /**
+     * Additional and optional metadata got from initialSync
+     */
+    private String mMembership;
+
+    /**
+     * Tell if the roomstate if a live one.
+     */
+    private boolean mIsLive;
+
+
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
+
+    // member display cache
+    private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<String, String>();
+
+    // get the guest access
+    // avoid the null case
+    public String getGuestAccess() {
+        if (null != guest_access) {
+            return guest_access;
+        }
+
+        // retro compliancy
+        return RoomState.GUEST_ACCESS_FORBIDDEN;
+    }
+
+    // get the history visibility
+    // avoid the null case
+    public String getHistoryVisibility() {
+        if (null != history_visibility) {
+            return history_visibility;
+        }
+
+        // retro compliancy
+        return RoomState.HISTORY_VISIBILITY_SHARED;
+    }
 
     public String getToken() {
         return token;
@@ -144,6 +192,9 @@ public class RoomState implements java.io.Serializable {
             member.setUserId(userId);
         }
         synchronized (this) {
+            if (null != mMemberDisplayNameByUserId) {
+                mMemberDisplayNameByUserId.remove(userId);
+            }
             mMembers.put(userId, member);
         }
     }
@@ -188,21 +239,28 @@ public class RoomState implements java.io.Serializable {
         this.powerLevels = powerLevels;
     }
 
-    /**
-     * Check if some users can be created from room members
-     */
-    public void refreshUsersList() {
-        MXDataHandler dataHandler = (MXDataHandler) mDataHandler;
-
-        Collection<User> users = dataHandler.getStore().getUsers();
-
-        for(User user : users) {
-            user.setDataHandler(dataHandler);
-        }
-    }
-
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
+    }
+
+    public MXDataHandler getDataHandler() {
+        return (MXDataHandler)mDataHandler;
+    }
+
+    public void setNotificationCount(int notificationCount) {
+        mNotificationCount = notificationCount;
+    }
+
+    public int getNotificationCount() {
+        return mNotificationCount;
+    }
+
+    public void setHighlightCount(int highlightCount) {
+        mHighlightCount = highlightCount;
+    }
+
+    public int getHighlightCount() {
+        return mHighlightCount;
     }
 
     /**
@@ -210,7 +268,7 @@ public class RoomState implements java.io.Serializable {
      * @param userId the user Id.
      * @return true if the user can backpaginate.
      */
-    public Boolean canBackPaginated(String userId) {
+    public boolean canBackPaginated(String userId) {
         RoomMember member = getMember(userId);
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
@@ -237,10 +295,15 @@ public class RoomState implements java.io.Serializable {
         copy.url = url;
         copy.creator = creator;
         copy.join_rule = join_rule;
+        copy.guest_access = guest_access;
+        copy.history_visibility = history_visibility;
         copy.visibility = visibility;
         copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.mDataHandler = mDataHandler;
+        copy.mMembership = mMembership;
+        copy.mIsLive = mIsLive;
+
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -363,7 +426,11 @@ public class RoomState implements java.io.Serializable {
         }
 
         if ((displayName != null) && (alias != null) && !displayName.equals(alias)) {
-            displayName += " (" + alias + ")";
+            if (TextUtils.isEmpty(displayName)) {
+                displayName = alias;
+            } else {
+                displayName += " (" + alias + ")";
+            }
         }
 
         if (displayName == null) {
@@ -379,12 +446,12 @@ public class RoomState implements java.io.Serializable {
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public Boolean applyState(Event event, Room.EventDirection direction) {
+    public boolean applyState(Event event, EventTimeline.Direction direction) {
         if (event.stateKey == null) {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == Room.EventDirection.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
+        JsonObject contentToConsider = (direction == EventTimeline.Direction.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
@@ -399,6 +466,9 @@ public class RoomState implements java.io.Serializable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 join_rule = (roomState == null) ? null : roomState.join_rule;
+            } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(event.type)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                guest_access = (roomState == null) ? null : roomState.guest_access;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 aliases = (roomState == null) ? null : roomState.aliases;
@@ -436,7 +506,7 @@ public class RoomState implements java.io.Serializable {
                     }
 
                     // when a member leaves a room, his avatar is not anymore provided
-                    if ((direction == Room.EventDirection.FORWARDS) ) {
+                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
                         if (null != currentMember) {
                             if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
                                 if (null == member.avatarUrl) {
@@ -451,10 +521,9 @@ public class RoomState implements java.io.Serializable {
                     }
 
                     // Cache room member event that is successor of a third party invite event
-                    if (!TextUtils.isEmpty(member.thirdPartyInviteToken)) {
-                        mMembersWithThirdPartyInviteTokenCache.put(member.thirdPartyInviteToken, member);
+                    if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
+                        mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
                     }
-
 
                     setMember(userId, member);
                 }
@@ -478,14 +547,13 @@ public class RoomState implements java.io.Serializable {
     /**
      * @return true if the room is a public one
      */
-    public Boolean isPublic() {
-        return TextUtils.equals((null != visibility) ? visibility : join_rule, VISIBILITY_PUBLIC);
+    public boolean isPublic() {
+        return TextUtils.equals((null != visibility) ? visibility : join_rule, DIRECTORY_VISIBILITY_PUBLIC);
     }
 
     /**
      * Return an unique display name of the member userId.
      * @param userId the user id
-     * @param color the color of the displayname
      * @return unique display name
      */
     public String getMemberName(String userId) {
@@ -494,7 +562,18 @@ public class RoomState implements java.io.Serializable {
             return null;
         }
 
-        String displayName = null;
+        String displayName;
+
+        synchronized (this) {
+            if (null == mMemberDisplayNameByUserId) {
+                mMemberDisplayNameByUserId = new HashMap<String, String>();
+            }
+            displayName = mMemberDisplayNameByUserId.get(userId);
+        }
+
+        if (null != displayName) {
+            return displayName;
+        }
 
         // Get the user display name from the member list of the room
         RoomMember member = getMember(userId);
@@ -535,6 +614,8 @@ public class RoomState implements java.io.Serializable {
             // By default, use the user ID
             displayName = userId;
         }
+
+        mMemberDisplayNameByUserId.put(userId, displayName);
 
         return displayName;
     }

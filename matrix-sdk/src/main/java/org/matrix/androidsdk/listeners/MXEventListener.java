@@ -51,11 +51,6 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onBackEvent(Event event, RoomState roomState) {
-
-    }
-
-    @Override
     public void onBingEvent(Event event, RoomState roomState, BingRule bingRule) {
     }
 
@@ -105,5 +100,9 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onRoomSyncWithLimitedTimeline(String roomId) {
+    }
+
+    @Override
+    public void onIgnoredUsersListUpdate() {
     }
 }

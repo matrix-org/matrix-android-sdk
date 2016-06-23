@@ -19,6 +19,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -40,13 +41,28 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
+        Log.d(LOG_TAG, "onReceive");
+
         try {
             ConnectivityManager connMgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+            boolean isConnected = (networkInfo != null) && networkInfo.isConnected();
+
+            if (isConnected) {
+                Log.d(LOG_TAG, "onReceive : Connected to " + networkInfo);
+            } else if (null != networkInfo){
+                Log.d(LOG_TAG, "onReceive : there is a default connection but it is not connected " + networkInfo);
+            } else {
+                Log.d(LOG_TAG, "onReceive : there is no connection");
+            }
 
             // avoid triggering useless info
-            if (mIsConnected != (connMgr.getActiveNetworkInfo() != null)) {
-                mIsConnected = connMgr.getActiveNetworkInfo() != null;
+            if (mIsConnected != isConnected) {
+                Log.d(LOG_TAG, "onReceive : Warn there is a connection update");
+                mIsConnected = isConnected;
                 onNetworkUpdate();
+            } else {
+                Log.d(LOG_TAG, "onReceive : No network update");
             }
         }
         catch (Exception e) {
@@ -100,6 +116,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
             try {
                 listener.onNetworkConnectionUpdate(mIsConnected);
             } catch (Exception e) {
+                Log.d(LOG_TAG, "onNetworkConnectionUpdate 1 : " + e.getLocalizedMessage());
             }
         }
 
@@ -110,7 +127,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                 try {
                     listener.onNetworkConnectionUpdate(mIsConnected);
                 } catch(Exception e) {
-
+                    Log.d(LOG_TAG, "onNetworkConnectionUpdate 2 : " + e.getLocalizedMessage());
                 }
             }
             mOnNetworkConnectedEventListeners.clear();

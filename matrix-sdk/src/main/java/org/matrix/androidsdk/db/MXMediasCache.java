@@ -22,6 +22,9 @@ import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -29,7 +32,6 @@ import android.widget.ImageView;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -71,7 +73,7 @@ public class MXMediasCache {
         void onDownloadProgress(String downloadId, int percentageProgress);
 
         /**
-         * Called when the upload is complete or has failed.
+         * Called when the download is complete or has failed.
          *
          * @param downloadId the download Identifier
          */
@@ -378,7 +380,13 @@ public class MXMediasCache {
             if (null != mimeType) {
                 String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
 
-                if (null != extension) {
+                if (null == extension) {
+                    if (mimeType.lastIndexOf("/") >= 0) {
+                        extension = mimeType.substring(mimeType.lastIndexOf("/") +1);
+                    }
+                }
+
+                if (!TextUtils.isEmpty(extension)) {
                     filename += "." + extension;
                 }
             }
@@ -503,7 +511,16 @@ public class MXMediasCache {
      * @return a download identifier if the image is not cached.
      */
     public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,  null, getThumbnailsFolderFile());
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile());
+    }
+
+    /**
+     * Tells if the avatar is cached
+     * @param url the avatar url to test
+     * @return true if the avatar bitmap is cached.
+     */
+    public boolean isAvartarThumbailCached(String url, int side) {
+        return MXMediaWorkerTask.isUrlCached(downloadableUrl(url, side, side));
     }
 
     /**
@@ -655,6 +672,11 @@ public class MXMediasCache {
     }
 
     /**
+     * Handler to post events on UI thread
+     */
+    private static Handler mUIHandler = null;
+
+    /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
@@ -676,7 +698,7 @@ public class MXMediasCache {
      * @param folderFile tye folder where the media should be stored
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
         if (null == url) {
             return null;
         }
@@ -696,8 +718,10 @@ public class MXMediasCache {
             }
         }
 
+        final String fDownloadableUrl = downloadableUrl;
+
         if (null != imageView) {
-            imageView.setTag(downloadableUrl);
+            imageView.setTag(fDownloadableUrl);
         }
 
         // if the mime type is not provided, assume it is a jpeg file
@@ -706,13 +730,34 @@ public class MXMediasCache {
         }
 
         // check if the bitmap is already cached
-        Bitmap bitmap = MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
+        final Bitmap bitmap = MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
-                // display it
-                imageView.setBackgroundColor(Color.TRANSPARENT);
-                imageView.setImageBitmap(bitmap);
+                if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
+                    // display it
+                    imageView.setBackgroundColor(Color.TRANSPARENT);
+                    imageView.setImageBitmap(bitmap);
+                } else {
+                    // init
+                    if (null == mUIHandler) {
+                        mUIHandler = new Handler(Looper.getMainLooper());
+                    }
+
+                    // handle any thread management
+                    // the image should be loaded from any thread
+                    mUIHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
+                                // display it
+                                imageView.setBackgroundColor(Color.TRANSPARENT);
+                                imageView.setImageBitmap(bitmap);
+                            }
+                        }
+                    });
+                }
+
             }
             downloadableUrl = null;
         } else {

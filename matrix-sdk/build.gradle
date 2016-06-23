@@ -26,9 +26,9 @@ android {
     defaultConfig {
         minSdkVersion 11
         targetSdkVersion 21
-        versionCode 15
-        version "0.5.4-dev"
-        versionName "0.5.4-dev"
+        versionCode 18
+        version "0.5.8.dev"
+        versionName "0.5.8.dev"
         testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
     }
 
@@ -64,8 +64,7 @@ android {
                     def outputFile = output.outputFile
                     if (outputFile != null && outputFile.name.endsWith('.aar')) {
                         def fileName = outputFile.name.replace(".aar", "-${version}.aar")
-                        output.outputFile = new File(outputFile.parent, fileName)
-                    }
+                        output.outputFile = new File(outputFile.parent, fileName)                  }
                 }
             }
         }

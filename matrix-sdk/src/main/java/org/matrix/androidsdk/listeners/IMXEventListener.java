@@ -43,6 +43,11 @@ public interface IMXEventListener {
     void onAccountInfoUpdate(MyUser myUser);
 
     /**
+     * The ignored users list has been updated.
+     */
+    void onIgnoredUsersListUpdate();
+
+    /**
      * A live room event was received.
      * @param event the event
      * @param roomState the room state right before the event
@@ -53,13 +58,6 @@ public interface IMXEventListener {
      * The live events from a chunk are performed.
      */
     void onLiveEventsChunkProcessed();
-
-    /**
-     * A back room event was received.
-     * @param event the event
-     * @param roomState the room state right before the event
-     */
-    void onBackEvent(Event event, RoomState roomState);
 
     /**
      * A received event fulfills the bing rules

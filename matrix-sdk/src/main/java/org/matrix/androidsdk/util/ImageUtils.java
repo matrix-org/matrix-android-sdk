@@ -25,7 +25,6 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.db.MXMediasCache;
 
 import java.io.ByteArrayInputStream;

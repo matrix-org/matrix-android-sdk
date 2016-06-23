@@ -1,4 +1,103 @@
-Changes to Matrix Android Console in 0.5.3 (2016-02-16)
+Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
+=======================================================
+
+Improvements:
+* The room visibility messages are displayed in the room history.
+* Do not refresh the turn servers if the HS does not support it.
+* RoomState : The events_default and users_default default values are now 0.
+
+Features:
+* Add some new room settings management (list in Directory, room access, room history)
+* The background sync timeout is now configurable.
+* A sleep can be defined between two sync requests.
+
+Bugfixes:
+* #206 : There is no space between some avatars (unexpected avatar).
+* GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
+* onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
+* #186 : Start chat with a member should use the latest room instead of the first found one.
+* Fix a crash with JingleCall class (when teh libs are not found on the device).
+* The room object was not always initialized when MessagesAdapter is created (tap on a notication whereas the client is not launched).
+* Fix a crash when an incoming call is received and the dedicated permissions are not granted.
+
+Changes to Matrix Android SDK in 0.5.6 (2016-06-07)
+=======================================================
+
+Bugfixes:
+* issue #176 Update the notification text when invited to a chat 
+* issue #194 Public room preview : some public rooms have no display name
+* issue #180 Some invited emails are stuck (invitation from a non matrix user)
+* issue #175 The notifications settings should be dynamically refreshed
+* issue #190 Room invitation push rules is disabled for a new account on android but enabled on the webclient interface
+
+Changes to Matrix Android SDK in 0.5.5 (2016-06-03)
+=======================================================
+
+Improvements:
+* The "table" markdown were badly displayed : use the default Html render
+* Remove useless roomSummary error traces (not supported event type)
+* Add missing fields in PublicRoom
+
+Features:
+* Add ignore users feature.
+* Add an API to retrieve the pusher
+* Add the room preview management
+
+Bugfixes:
+* Fixes several crashes reported by GA.
+* Incoming call did not trigger any pushes.
+
+Changes to Matrix Android SDK in 0.5.4 (2016-05-11)
+=======================================================
+
+Improvements:
+* Add a method to retrieve the SDK version programmatically.
+* Add an error callback in the media downloader.
+* Improve the room history back pagination management.
+* Add method to customize the highlighted pattern in a message.
+* Refresh automatically the user account information to avoid having staled one.
+* Mark as sent a message when the SEND request succeeds (do not wait anymore the server acknowledge).
+* Simplify the room messages layout.
+* Add Room.isEventRead to tell if an event has been read.
+* Highlight a message if its content fullfills a push rule.
+* The room member events are not anymore counted as unread messages
+* The messages resending code is factorized in MatrixMessagesListFragment.
+* Improve the message html display.
+* Warn the application when the credentials are not anymore valid.
+* Fix some memory leaks
+* Improve the room activity rendering
+* Room member events should not be displayed with sender.
+* Increase the image thumbnail.
+
+Features:
+* Add the currently_active field to User.
+* The messages search is now done on server side.
+* Add the email login support.
+* Add the message context management.
+* Add the 3rd party invitation
+* Add the markdown support.
+* Add the new registration process support.
+* Add the emails binding
+* Add reset password
+
+Bugfixes:
+* The bing rules were sometines not initialized after the application launch.
+* SYAND-90 The very first pagination jumps the scroll bar.
+* The room spinner was sometime stuck.
+* The presense was sometimes invalid.
+* MXMediasCache : delete the destinated file if it already exists.
+* The back pagination was sometimes stuck after a network error.
+* Texts sizes are now defined in SD instead of DP.
+* The medias message sending did not work properly when the application was in background.
+* Fix an issue when a room is left, joined, left and joined again.
+* The account info was sometimes resetted after receiving a membership event.
+* The filestore was not really cleared after a logout.
+* Fix an infinite back pagination while rotating the device.
+* Fix a crash when jingle_peerconnection.so is not found.
+* The network connection listener did not manage properly the data connection lost.
+
+
+Changes to Matrix Android SDK in 0.5.3 (2016-02-16)
 =======================================================
 
 Improvements:

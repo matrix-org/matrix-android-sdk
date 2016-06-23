@@ -21,9 +21,12 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.MessageFeedback;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.ReportContentParams;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -133,6 +136,24 @@ public interface RoomsApi {
     void historyVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
+     * Set the join rule for the given room.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new join rule in its {@link RoomState#join_rule} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.join_rules")
+    void setJoinRules(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
+     * Set the guest access rule for the given room.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new guest access rule in its {@link RoomState#guest_access} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/rooms/{roomId}/state/m.room.guest_access")
+    void setGuestAccess(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
      * Update the power levels
      * @param roomId the room id
      * @param powerLevels the new power levels
@@ -179,10 +200,11 @@ public interface RoomsApi {
     /**
      * Join the room with the given alias.
      * @param roomAliasOrId a room alias (or room id)
+     * @param params the extra join param
      * @param callback the asynchronous callback called with the response
      */
     @POST("/join/{roomAliasOrId}")
-    void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, Callback<RoomResponse> callback);
+    void joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body HashMap<String, Object> params, Callback<RoomResponse> callback);
 
     /**
      * Leave the given room.
@@ -288,6 +310,16 @@ public interface RoomsApi {
     void initialSync(@Path("roomId") String roomId, @Query("limit") int limit, Callback<RoomResponse> callback);
 
     /**
+     * Get the context surrounding an event.
+     * @param roomId the room id
+     * @param eventId the event Id
+     * @param limit the maximum number of messages to retrieve
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/context/{eventId}")
+    void contextOfEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Query("limit") int limit, Callback<EventContext> callback);
+
+    /**
      * Redact an event from the room>.
      * @param roomId the room id
      * @param eventId the event id of the event to redact
@@ -295,6 +327,15 @@ public interface RoomsApi {
      */
     @POST("/rooms/{roomId}/redact/{eventId}")
     void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
+
+    /**
+     * Report an event content.
+     * @param roomId the room id
+     * @param eventId the event id of the event to redact
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/rooms/{roomId}/report/{eventId}")
+    void reportEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body ReportContentParams param, Callback<Void> callback);
 
     /**
      * Set the canonical alias name.
@@ -339,4 +380,29 @@ public interface RoomsApi {
     void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
                    Callback<Void> callback);
 
+    /**
+     * Get the room ID corresponding to this room alias..
+     * @param roomAlias the room alias.
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/directory/room/{roomAlias}")
+    void roomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
+
+    /**
+     * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
+     * name is listed among the directory list.
+     * @param roomId the room id where to apply the request
+     * @param state state object containing the new guest access rule in its {@link RoomState#visibility} field
+     * @param callback the asynchronous callback called when finished
+     */
+    @PUT("/directory/list/room/{roomId}")
+    void setRoomDirectoryVisibility(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
+
+    /**
+     * Get the visibility of the given room in the list directory.
+     * @param roomId the room id where to apply the request
+     * @param callback the asynchronous callback response containing the {@link RoomState#visibility} value
+     */
+    @GET("/directory/list/room/{roomId}")
+    void getRoomDirectoryVisibility(@Path("roomId") String roomId, Callback<RoomState> callback);
 }

@@ -16,36 +16,42 @@
 
 package org.matrix.androidsdk.data;
 
-import android.text.TextUtils;
+import android.os.Handler;
+import android.os.Looper;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.client.PresenceRestClient;
-import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class representing the logged-in user.
  */
 public class MyUser extends User {
 
-    private ProfileRestClient mProfileRestClient;
-    private PresenceRestClient mPresenceRestClient;
-
+    // refresh status
     private boolean mIsAvatarRefreshed = false;
     private boolean mIsDislayNameRefreshed = false;
+    private boolean mAre3PIdsLoaded = false;
+
+    // the account info is refreshed in one row
+    // so, if there is a pending refresh the listeners are added to this list.
+    private ArrayList<ApiCallback<Void>> mRefreshListeners;
+
+    private Handler mUiHandler;
+
+    // linked emails to the account
+    private List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<ThirdPartyIdentifier>();
 
     public MyUser(User user) {
         clone(user);
-    }
 
-    public void setProfileRestClient(ProfileRestClient restClient) {
-        mProfileRestClient = restClient;
-    }
-
-    public void setPresenceRestClient(PresenceRestClient restClient) {
-        mPresenceRestClient = restClient;
+        mUiHandler = new Handler(Looper.getMainLooper());
     }
 
     /**
@@ -54,7 +60,7 @@ public class MyUser extends User {
      * @param callback the async callback
      */
     public void updateDisplayName(final String displayName, ApiCallback<Void> callback) {
-        mProfileRestClient.updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -71,7 +77,7 @@ public class MyUser extends User {
      * @param callback the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, ApiCallback<Void> callback) {
-        mProfileRestClient.updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -89,7 +95,7 @@ public class MyUser extends User {
      * @param callback the async callback
      */
     public void updatePresence(final String presence, final String statusMsg, ApiCallback<Void> callback) {
-        mPresenceRestClient.setPresence(presence, statusMsg, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getPresenceRestClient().setPresence(presence, statusMsg, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -98,6 +104,90 @@ public class MyUser extends User {
                 super.onSuccess(info);
             }
         });
+    }
+
+    /**
+     * Request a validation token for a dedicated 3Pid
+     * @param pid the pid to retrieve a token
+     * @param callback the callback when the operation is done
+     */
+    public void requestValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+        if (null != pid) {
+            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+        }
+    }
+
+    /**
+     * Add a a new pid to the account.
+     * @param pid the pid to add.
+     * @param bind
+     * @param callback the async callback
+     */
+    public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
+        if (null != pid) {
+            mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    // refresh the emails list
+                    refreshLinkedEmails(callback);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * @return the list of third party identifiers
+     */
+    public List<ThirdPartyIdentifier> getThirdPartyIdentifiers() {
+        List<ThirdPartyIdentifier> list;
+
+        if (mAre3PIdsLoaded) {
+            list = mThirdPartyIdentifiers;
+        } else {
+            list = mDataHandler.getStore().thirdPartyIdentifiers();
+        }
+
+        if (null == list) {
+            list = new ArrayList<ThirdPartyIdentifier>();
+        }
+
+        return list;
+    }
+
+    /**
+     * @return the list of linked emails
+     */
+    public List<String> getlinkedEmails() {
+        List<ThirdPartyIdentifier> list = getThirdPartyIdentifiers();
+
+        ArrayList<String>emails = new ArrayList<String>();
+
+        for(ThirdPartyIdentifier identier : list) {
+            emails.add(identier.address);
+        }
+
+        return emails;
     }
 
     //================================================================================
@@ -109,45 +199,108 @@ public class MyUser extends User {
      * @param callback callback when the job is done.
      */
     public void refreshUserInfos(final ApiCallback<Void> callback) {
+        refreshUserInfos(false, callback);
+    }
+
+    /**
+     * Refresh the user data if it is required
+     * @param callback callback when the job is done.
+     */
+    public void refreshLinkedEmails(final ApiCallback<Void> callback) {
+        mAre3PIdsLoaded = false;
+        refreshUserInfos(false, callback);
+    }
+
+
+    /**
+     * Refresh the user data if it is required
+     * @param skipPendingTest true to do not check if the refreshes started (private use)
+     * @param callback callback when the job is done.
+     */
+    public void refreshUserInfos(boolean skipPendingTest, final ApiCallback<Void> callback) {
+        if (!skipPendingTest) {
+            boolean isPending;
+
+            synchronized (this) {
+                // mRefreshListeners == null => no refresh in progress
+                // mRefreshListeners != null -> a refresh is in progress
+                isPending = (null != mRefreshListeners);
+
+                if (null == mRefreshListeners) {
+                    mRefreshListeners = new ArrayList<ApiCallback<Void>>();
+                }
+
+                if (null != callback) {
+                    mRefreshListeners.add(callback);
+                }
+            }
+
+            if (isPending) {
+                // please wait
+                return;
+            }
+        }
+
         if (!mIsDislayNameRefreshed) {
-            refreshUserDisplayname(callback);
+            refreshUserDisplayname();
+            return;
         }
 
         if (!mIsAvatarRefreshed) {
-            refreshUserAvatarUrl(callback);
+            refreshUserAvatarUrl();
+            return;
         }
 
-        if (null != callback) {
-            callback.onSuccess(null);
+        if (!mAre3PIdsLoaded) {
+            refreshThirdPartyIdentifiers();
+            return;
+        }
+
+        synchronized (this) {
+            if (null != mRefreshListeners) {
+                for (ApiCallback<Void> listener : mRefreshListeners) {
+                    try {
+                        listener.onSuccess(null);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+
+            // no more pending refreshes
+            mRefreshListeners = null;
         }
     }
 
     /**
      * Refresh the avatar url
-     * @param callback callback when the job is done.
      */
-    private void refreshUserAvatarUrl(final ApiCallback<Void> callback) {
-        mProfileRestClient.avatarUrl(user_id, new SimpleApiCallback<String>() {
+    private void refreshUserAvatarUrl() {
+        mDataHandler.getProfileRestClient().avatarUrl(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String anAvatarUrl) {
-                if (MyUser.this.mDataHandler.isActive()) {
-                    MyUser.this.setAvatarUrl(anAvatarUrl);
-                    MyUser.this.mDataHandler.getStore().setAvatarURL(anAvatarUrl);
-                    mIsAvatarRefreshed = true;
-                    MyUser.this.mDataHandler.getStore().storeUser(MyUser.this);
+                if (mDataHandler.isAlive()) {
+                    // local value
+                    setAvatarUrl(anAvatarUrl);
+                    // metadata file
+                    mDataHandler.getStore().setAvatarURL(anAvatarUrl);
+                    // user
+                    mDataHandler.getStore().storeUser(MyUser.this);
 
-                    if (null != callback) {
-                        callback.onSuccess(null);
-                    }
+                    mIsAvatarRefreshed = true;
+
+                    // jump to the next items
+                    refreshUserInfos(true, null);
                 }
             }
 
             private void onError() {
-                if (MyUser.this.mDataHandler.isActive()) {
-                    // will try later
-                    if (null != callback) {
-                        callback.onSuccess(null);
-                    }
+                if (mDataHandler.isAlive()) {
+                    mUiHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            refreshUserAvatarUrl();
+                        }
+                    }, 1 * 1000);
                 }
             }
 
@@ -158,42 +311,48 @@ public class MyUser extends User {
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsAvatarRefreshed = true;
+                refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsAvatarRefreshed = true;
+                refreshUserInfos(true, null);
             }
         });
     }
 
     /**
      * Refresh the displayname.
-     * @param callback callback callback when the job is done.
      */
-    private void refreshUserDisplayname(final ApiCallback<Void> callback) {
-        mProfileRestClient.displayname(user_id, new SimpleApiCallback<String>() {
+    private void refreshUserDisplayname() {
+        mDataHandler.getProfileRestClient().displayname(user_id, new SimpleApiCallback<String>() {
             @Override
             public void onSuccess(String aDisplayname) {
-                if (MyUser.this.mDataHandler.isActive()) {
+                if (mDataHandler.isAlive()) {
+                    // local value
                     displayname = aDisplayname;
-                    MyUser.this.mDataHandler.getStore().setDisplayName(aDisplayname);
+                    // store metadata
+                    mDataHandler.getStore().setDisplayName(aDisplayname);
 
                     mIsDislayNameRefreshed = true;
+
+                    // jump to the next items
+                    refreshUserInfos(true, null);
                 }
             }
 
             private void onError() {
-                if (MyUser.this.mDataHandler.isActive()) {
-                    // will try later
-                    if (!mIsAvatarRefreshed) {
-                        refreshUserAvatarUrl(callback);
-                    } else {
-                        if (null != callback) {
-                            callback.onSuccess(null);
+                if (mDataHandler.isAlive()) {
+                    mUiHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            refreshUserDisplayname();
                         }
-                    }
+                    }, 1 * 1000);
                 }
             }
 
@@ -204,14 +363,70 @@ public class MyUser extends User {
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsDislayNameRefreshed = true;
+                refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                onError();
+                // cannot retrieve this value, jump to the next items
+                mIsDislayNameRefreshed = true;
+                refreshUserInfos(true, null);
             }
         });
     }
 
+    /**
+     * Refresh the Third party identifiers i.e. the linked email to this account
+     */
+    public void refreshThirdPartyIdentifiers() {
+        mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<ThirdPartyIdentifier>>() {
+            @Override
+            public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
+                if (mDataHandler.isAlive()) {
+                    // local value
+                    mThirdPartyIdentifiers = identifiers;
+
+                    // store
+                    mDataHandler.getStore().setThirdPartyIdentifiers(identifiers);
+
+                    mAre3PIdsLoaded = true;
+
+                    // jump to the next items
+                    refreshUserInfos(true, null);
+                }
+            }
+
+            private void onError() {
+                if (mDataHandler.isAlive()) {
+                    mUiHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            refreshThirdPartyIdentifiers();
+                        }
+                    }, 1 * 1000);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                // cannot retrieve this value, jump to the next items
+                mAre3PIdsLoaded = true;
+                refreshUserInfos(true, null);
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                // cannot retrieve this value, jump to the next items
+                mAre3PIdsLoaded = true;
+                refreshUserInfos(true, null);
+            }
+        });
+    }
 }

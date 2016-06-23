@@ -83,6 +83,18 @@ public class BingRule {
     }
 
 
+    @Override
+    public String toString() {
+        return "BingRule{" +
+                "ruleId='" + ruleId + '\'' +
+                ", conditions=" + conditions +
+                ", actions=" + actions +
+                ", isDefault=" + isDefault +
+                ", isEnabled=" + isEnabled +
+                ", kind='" + kind + '\'' +
+                '}';
+    }
+
     public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         //
         ruleId = aPattern;
@@ -111,6 +123,9 @@ public class BingRule {
 
         actions = actionsList;
     }
+
+
+
 
     public void addCondition(Condition condition) {
         if (conditions == null) {
@@ -180,7 +195,7 @@ public class BingRule {
      * @param sound the sound name.
      * @return true if the sound is the default notification sound.
      */
-    public Boolean isDefaultNotificationSound(String sound) {
+    public boolean isDefaultNotificationSound(String sound) {
         return ACTION_VALUE_DEFAULT.equals(sound);
     }
 
@@ -189,7 +204,7 @@ public class BingRule {
      * @param sound the sound name.
      * @return true if the sound is the call ring.
      */
-    public Boolean isCallRingNotificationSound(String sound) {
+    public boolean isCallRingNotificationSound(String sound) {
         return ACTION_VALUE_RING.equals(sound);
     }
 

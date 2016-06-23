@@ -28,6 +28,16 @@ public class BingRuleSet {
     public List<BingRule> underride;
 
     /**
+     * Constructor
+     */
+    public BingRuleSet() {
+        override = new ArrayList<BingRule>();
+        content = new ArrayList<ContentRule>();
+        room = new ArrayList<BingRule>();
+        sender = new ArrayList<BingRule>();
+        underride = new ArrayList<BingRule>();
+    }
+    /**
      * Find a rule from its rule ID.
      * @param rules the rules list.
      * @param ruleID the rule ID.
@@ -83,8 +93,8 @@ public class BingRuleSet {
      * @param rule the rule to delete.
      * @return true if the rule has been deleted
      */
-    public Boolean remove(BingRule rule) {
-        Boolean res = false;
+    public boolean remove(BingRule rule) {
+        boolean res = false;
 
         if (BingRule.KIND_CONTENT.equals(rule.kind)) {
             if (null != content) {
@@ -122,18 +132,23 @@ public class BingRuleSet {
      * @return the matched bing rule or null it doesn't exist.
      */
     public BingRule findDefaultRule(String ruleId) {
+        BingRule rule = null;
+
         // sanity check
         if (null != ruleId) {
             if (TextUtils.equals(BingRule.RULE_ID_CONTAIN_USER_NAME, ruleId)) {
-                return findContentRule(content, ruleId);
-            } else if (TextUtils.equals(BingRule.RULE_ID_DISABLE_ALL, ruleId) || TextUtils.equals(BingRule.RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS, ruleId)) {
-                return findRule(override, ruleId);
+                rule = findContentRule(content, ruleId);
             } else {
-                return findRule(underride, ruleId);
+                // assume that the ruleId is unique.
+                rule = findRule(override, ruleId);
+
+                if (null == rule) {
+                    rule = findRule(underride, ruleId);
+                }
             }
         }
 
-        return null;
+        return rule;
     }
 
     /**

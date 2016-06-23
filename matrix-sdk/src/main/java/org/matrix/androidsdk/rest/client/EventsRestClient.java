@@ -401,7 +401,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
                 if ((null != states) && (null != statesToMerge)) {
                     for (String key : states.keySet()) {
-                        if (!statesToMerge.containsKey(statesToMerge)) {
+                        if (!statesToMerge.containsKey(key)) {
                             statesToMerge.put(key, states.get(key));
                         }
                     }

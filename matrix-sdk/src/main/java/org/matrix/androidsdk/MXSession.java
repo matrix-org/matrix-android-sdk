@@ -18,6 +18,8 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -26,6 +28,7 @@ import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -33,6 +36,7 @@ import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
@@ -46,6 +50,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -59,7 +64,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -82,6 +89,7 @@ public class MXSession {
     private PushersRestClient mPushersRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
+    private AccountDataRestClient mAccountDataRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -98,12 +106,20 @@ public class MXSession {
 
     private BingRulesManager mBingRulesManager = null;
 
-    private boolean mIsActiveSession = true;
+    private boolean mIsAliveSession = true;
+
+    // online status
+    private boolean mIsOnline = true;
 
     private HomeserverConnectionConfig mHsConfig;
 
+    // the application is launched from a notification
+    // so, mEventsThread.start might be not ready
+    private boolean mIsCatchupPending = false;
+
     /**
      * Create a basic session for direct API calls.
+     *
      * @param hsConfig the home server connection config
      */
     public MXSession(HomeserverConnectionConfig hsConfig) {
@@ -111,20 +127,22 @@ public class MXSession {
         mHsConfig = hsConfig;
 
         mEventsRestClient = new EventsRestClient(hsConfig);
-        mProfileRestClient = new ProfileRestClient(hsConfig);;
+        mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mBingRulesRestClient = new BingRulesRestClient(hsConfig);
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
+        mAccountDataRestClient = new AccountDataRestClient(hsConfig);
     }
 
     /**
      * Create a user session with a data handler.
-     * @param hsConfig the home server connection config
+     *
+     * @param hsConfig    the home server connection config
      * @param dataHandler the data handler
-     * @param appContext the application context
+     * @param appContext  the application context
      */
     public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
@@ -136,6 +154,8 @@ public class MXSession {
         mDataHandler.setDataRetriever(mDataRetriever);
         mDataHandler.setProfileRestClient(mProfileRestClient);
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
+        mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
+        mDataHandler.setRoomsRestClient(mRoomsRestClient);
 
         // application context
         mAppContent = appContext;
@@ -149,7 +169,6 @@ public class MXSession {
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver, mDataHandler);
 
         mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
-        mDataHandler.setContentManager(mContentManager);
 
         //
         mCallsManager = new MXCallsManager(this, mAppContent);
@@ -164,16 +183,16 @@ public class MXSession {
         mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
-        mDataHandler.setMediasCache(mMediasCache);
     }
 
-    private void checkIfActive() {
+    private void checkIfAlive() {
         synchronized (this) {
-            if (!mIsActiveSession) {
+            if (!mIsAliveSession) {
                 Log.e(LOG_TAG, "Use of a release session");
                 //throw new AssertionError("Should not used a cleared mxsession ");
             }
@@ -184,7 +203,7 @@ public class MXSession {
      * @return the SDK version.
      */
     public String getVersion(boolean longFormat) {
-        checkIfActive();
+        checkIfAlive();
 
         String versionName = BuildConfig.VERSION_NAME;
 
@@ -203,109 +222,166 @@ public class MXSession {
 
     /**
      * Get the data handler.
+     *
      * @return the data handler.
      */
     public MXDataHandler getDataHandler() {
-        checkIfActive();
+        checkIfAlive();
         return mDataHandler;
     }
 
     /**
      * Get the user credentials.
+     *
      * @return the credentials
      */
     public Credentials getCredentials() {
-        checkIfActive();
+        checkIfAlive();
         return mCredentials;
     }
 
     /**
      * Get the API client for requests to the events API.
+     *
      * @return the events API client
      */
     public EventsRestClient getEventsApiClient() {
-        checkIfActive();
+        checkIfAlive();
         return mEventsRestClient;
     }
 
     /**
      * Get the API client for requests to the profile API.
+     *
      * @return the profile API client
      */
     public ProfileRestClient getProfileApiClient() {
-        checkIfActive();
+        checkIfAlive();
         return mProfileRestClient;
     }
 
     /**
      * Get the API client for requests to the presence API.
+     *
      * @return the presence API client
      */
     public PresenceRestClient getPresenceApiClient() {
-        checkIfActive();
+        checkIfAlive();
         return mPresenceRestClient;
     }
 
     /**
+     * Refresh the presence info of a dedicated user.
+     *
+     * @param userId   the user userID.
+     * @param callback the callback.
+     */
+    public void refreshUserPresence(final String userId, final ApiCallback<Void> callback) {
+        mPresenceRestClient.getPresence(userId, new ApiCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                User currentUser = mDataHandler.getStore().getUser(userId);
+
+                if (null != currentUser) {
+                    currentUser.presence = user.presence;
+                    currentUser.currently_active = user.currently_active;
+                    currentUser.lastActiveAgo = user.lastActiveAgo;
+                } else {
+                    currentUser = user;
+                }
+
+                currentUser.lastActiveReceived();
+                mDataHandler.getStore().storeUser(currentUser);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
      * Get the API client for requests to the bing rules API.
+     *
      * @return the bing rules API client
      */
     public BingRulesRestClient getBingRulesApiClient() {
-        checkIfActive();
+        checkIfAlive();
         return mBingRulesRestClient;
     }
 
     public CallRestClient getCallRestClient() {
-        checkIfActive();
+        checkIfAlive();
         return mCallRestClient;
     }
 
     public PushersRestClient getPushersRestClient() {
-        checkIfActive();
+        checkIfAlive();
         return mPushersRestClient;
     }
 
     public HomeserverConnectionConfig getHomeserverConfig() {
-        checkIfActive();
+        checkIfAlive();
         return mHsConfig;
     }
 
     /**
      * Get the API client for requests to the rooms API.
+     *
      * @return the rooms API client
      */
     public RoomsRestClient getRoomsApiClient() {
-        checkIfActive();
+        checkIfAlive();
         return mRoomsRestClient;
     }
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
-        checkIfActive();
+        checkIfAlive();
         this.mEventsRestClient = eventsRestClient;
     }
 
     protected void setProfileApiClient(ProfileRestClient profileRestClient) {
-        checkIfActive();
+        checkIfAlive();
         this.mProfileRestClient = profileRestClient;
     }
 
     protected void setPresenceApiClient(PresenceRestClient presenceRestClient) {
-        checkIfActive();
+        checkIfAlive();
         this.mPresenceRestClient = presenceRestClient;
     }
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
-        checkIfActive();
+        checkIfAlive();
         this.mRoomsRestClient = roomsRestClient;
     }
 
     public MXLatestChatMessageCache getLatestChatMessageCache() {
-        checkIfActive();
+        checkIfAlive();
         return mLatestChatMessageCache;
     }
 
     public MXMediasCache getMediasCache() {
-        checkIfActive();
+        checkIfAlive();
         return mMediasCache;
     }
 
@@ -313,10 +389,10 @@ public class MXSession {
      * Clear the session data
      */
     public void clear(Context context) {
-        checkIfActive();
+        checkIfAlive();
 
         synchronized (this) {
-            mIsActiveSession = false;
+            mIsAliveSession = false;
         }
 
         // stop events stream
@@ -343,27 +419,29 @@ public class MXSession {
     /**
      * @return true if the session is active i.e. has not been cleared after a logout.
      */
-    public Boolean isActive() {
+    public boolean isAlive() {
         synchronized (this) {
-            return mIsActiveSession;
+            return mIsAliveSession;
         }
     }
 
     /**
      * Get the content manager (for uploading and downloading content) associated with the session.
+     *
      * @return the content manager
      */
     public ContentManager getContentManager() {
-        checkIfActive();
+        checkIfAlive();
         return mContentManager;
     }
 
     /**
      * Get the session's current user. The MyUser object provides methods for updating user properties which are not possible for other users.
+     *
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
-        checkIfActive();
+        checkIfAlive();
 
         return mDataHandler.getMyUser();
     }
@@ -371,10 +449,11 @@ public class MXSession {
 
     /**
      * Get the session's current userid.
+     *
      * @return the session's MyUser id
      */
     public String getMyUserId() {
-        checkIfActive();
+        checkIfAlive();
 
         if (null != mDataHandler.getMyUser()) {
             return mDataHandler.getMyUser().user_id;
@@ -384,12 +463,13 @@ public class MXSession {
 
     /**
      * Start the event stream (events thread that listens for events) with an event listener.
-     * @param anEventsListener the event listener or null if using a DataHandler
+     *
+     * @param anEventsListener            the event listener or null if using a DataHandler
      * @param networkConnectivityReceiver the network connectivity listener.
-     * @param initialToken the initial sync token (null to start from scratch)
+     * @param initialToken                the initial sync token (null to start from scratch)
      */
     public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
-        checkIfActive();
+        checkIfAlive();
 
         if (mEventsThread != null) {
             Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
@@ -401,7 +481,9 @@ public class MXSession {
             return;
         }
 
-        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler): anEventsListener;
+        Log.d(LOG_TAG, "startEventStream : create the event stream");
+
+        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
         mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
@@ -412,6 +494,20 @@ public class MXSession {
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             mEventsThread.start();
+
+            if (mIsCatchupPending) {
+                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
+
+                mIsCatchupPending = false;
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "startEventStream : pause the stream");
+                        pauseEventStream();
+                    }
+                }, 5000);
+            }
         }
     }
 
@@ -419,7 +515,7 @@ public class MXSession {
      * Refresh the access token
      */
     public void refreshToken() {
-        checkIfActive();
+        checkIfAlive();
 
         mProfileRestClient.refreshTokens(new ApiCallback<Credentials>() {
             @Override
@@ -445,12 +541,76 @@ public class MXSession {
     }
 
     /**
+     * Update the online status
+     * @param isOnline true if the client must be seen as online
+     */
+    public void setIsOnline(boolean isOnline) {
+        if (isOnline != mIsOnline) {
+            mIsOnline = isOnline;
+
+            if (null != mEventsThread) {
+                mEventsThread.setIsOnline(isOnline);
+            }
+        }
+    }
+
+    /**
+     * Tell if the client is seen as "online"
+     */
+    public boolean isOnline() {
+        return mIsOnline;
+    }
+
+    /**
+     * Update the heartbeat request timeout.
+     * @param ms the delay in ms
+     */
+    public void setSyncTimeout(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setServerLongPollTimeout(ms);
+        }
+    }
+
+    /**
+     * @return the heartbeat request timeout
+     */
+    public int getSyncTimeout() {
+        if (null != mEventsThread) {
+            return mEventsThread.getServerLongPollTimeout();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Set a delay between two sync requests.
+     * @param ms the delay in ms
+     */
+    public void setSyncDelay(int ms) {
+        if (null != mEventsThread) {
+            mEventsThread.setSyncDelay(ms);
+        }
+    }
+
+    /**
+     * @return the delay between two sync requests.
+     */
+    public int getSyncDelay() {
+        if (null != mEventsThread) {
+            mEventsThread.getSyncDelay();
+        }
+
+        return 0;
+    }
+
+    /**
      * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
      * using a DataHandler and no specific failure callback.
+     *
      * @param initialToken the initial sync token (null to sync from scratch).
      */
     public void startEventStream(String initialToken) {
-        checkIfActive();
+        checkIfAlive();
         startEventStream(null, this.mNetworkConnectivityReceiver, initialToken);
     }
 
@@ -472,8 +632,11 @@ public class MXSession {
         }
     }
 
+    /**
+     * Pause the event stream
+     */
     public void pauseEventStream() {
-        checkIfActive();
+        checkIfAlive();
 
         if (null != mCallsManager) {
             mCallsManager.pauseTurnServerRefresh();
@@ -487,8 +650,11 @@ public class MXSession {
         }
     }
 
+    /**
+     * Resume the event stream
+     */
     public void resumeEventStream() {
-        checkIfActive();
+        checkIfAlive();
 
         if (null != mCallsManager) {
             mCallsManager.unpauseTurnServerRefresh();
@@ -502,23 +668,28 @@ public class MXSession {
         }
     }
 
+    /**
+     * Trigger a catchup
+     */
     public void catchupEventStream() {
-        checkIfActive();
+        checkIfAlive();
 
         if (null != mEventsThread) {
             Log.d(LOG_TAG, "catchupEventStream");
             mEventsThread.catchup();
         } else {
-            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null");
+            Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null so catchup when the thread will be created");
+            mIsCatchupPending = true;
         }
     }
 
     /**
      * Set a global failure callback implementation.
+     *
      * @param failureCallback the failure callback
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
-        checkIfActive();
+        checkIfAlive();
 
         mFailureCallback = failureCallback;
         if (mEventsThread != null) {
@@ -528,37 +699,83 @@ public class MXSession {
 
     /**
      * Create a new room with given properties. Needs the data handler.
-     * @param name the room name
-     * @param topic the room topic
-     * @param visibility the room visibility
-     * @param alias the room alias
-     * @param callback the async callback once the room is ready
+     *
+     * @param callback   the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, final ApiCallback<String> callback) {
-        checkIfActive();
+    public void createRoom(final ApiCallback<String> callback) {
+        createRoom(null, null, null, callback);
+    }
 
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, new SimpleApiCallback<CreateRoomResponse>(callback) {
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name       the room name
+     * @param topic      the room topic
+     * @param alias      the room alias
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name       the room name
+     * @param topic      the room topic
+     * @param visibility the room visibility
+     * @param alias      the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param historyVisibility the history visibility
+     * @param callback   the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
+        checkIfAlive();
+
+        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
                 Room createdRoom = mDataHandler.getRoom(roomId);
-                createdRoom.initialSync(new SimpleApiCallback<Void>(callback) {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        callback.onSuccess(roomId);
-                    }
-                });
+
+                // the creation events are not be called during the creation
+                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
+                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            callback.onSuccess(roomId);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            callback.onNetworkError(e);
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            callback.onMatrixError(e);
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                } else {
+                    callback.onSuccess(roomId);
+                }
             }
         });
     }
 
     /**
      * Join a room by its roomAlias
+     *
      * @param roomIdOrAlias the room alias
-     * @param callback the async callback once the room is joined. The RoomId is provided.
+     * @param callback      the async callback once the room is joined. The RoomId is provided.
      */
     public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
-        checkIfActive();
+        checkIfAlive();
 
         // sanity check
         if ((null != mDataHandler) && (null != roomIdOrAlias)) {
@@ -573,39 +790,42 @@ public class MXSession {
 
     /**
      * Retrieve user matrix id from a 3rd party id.
-     * @param address the user id.
-     * @param media the media.
+     *
+     * @param address  the user id.
+     * @param media    the media.
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
-        checkIfActive();
+        checkIfAlive();
 
         mThirdPidRestClient.lookup3Pid(address, media, callback);
     }
 
     /**
      * Retrieve user matrix id from a 3rd party id.
+     *
      * @param addresses 3rd party ids
-     * @param mediums the medias.
-     * @param callback the 3rd parties callback
+     * @param mediums   the medias.
+     * @param callback  the 3rd parties callback
      */
     public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
-        checkIfActive();
+        checkIfAlive();
 
         mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
     }
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param text        the text to search for.
+     * @param rooms       a list of rooms to search in. nil means all rooms the user is in.
      * @param beforeLimit the number of events to get before the matching results.
-     * @param afterLimit the number of events to get after the matching results.
-     * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param afterLimit  the number of events to get after the matching results.
+     * @param nextBatch   the token to pass for doing pagination from a previous response.
+     * @param callback    the request callback
      */
     public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
-        checkIfActive();
+        checkIfAlive();
         if (null != callback) {
             mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
         }
@@ -613,13 +833,14 @@ public class MXSession {
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param text      the text to search for.
+     * @param rooms     a list of rooms to search in. nil means all rooms the user is in.
      * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param callback  the request callback
      */
     public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
-        checkIfActive();
+        checkIfAlive();
         if (null != callback) {
             mEventsRestClient.searchMessageText(text, rooms, 0, 0, nextBatch, callback);
         }
@@ -627,12 +848,13 @@ public class MXSession {
 
     /**
      * Perform a remote text search.
-     * @param text the text to search for.
+     *
+     * @param text      the text to search for.
      * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param callback  the request callback
      */
     public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
-        checkIfActive();
+        checkIfAlive();
         if (null != callback) {
             mEventsRestClient.searchMessageText(text, null, 0, 0, nextBatch, callback);
         }
@@ -642,20 +864,21 @@ public class MXSession {
      * Cancel any pending search request
      */
     public void cancelSearchMessageText() {
-        checkIfActive();
+        checkIfAlive();
         mEventsRestClient.cancelSearchMessageText();
     }
 
     /**
      * Perform a remote text search for a dedicated media types list
-     * @param name the text to search for.
-     * @param rooms a list of rooms to search in. nil means all rooms the user is in.
+     *
+     * @param name         the text to search for.
+     * @param rooms        a list of rooms to search in. nil means all rooms the user is in.
      * @param messageTypes a list of media types to search (m.image, m.video..).
-     * @param nextBatch the token to pass for doing pagination from a previous response.
-     * @param callback the request callback
+     * @param nextBatch    the token to pass for doing pagination from a previous response.
+     * @param callback     the request callback
      */
     public void searchMediaName(String name, List<String> rooms, List<String> messageTypes, String nextBatch, final ApiCallback<SearchResponse> callback) {
-        checkIfActive();
+        checkIfAlive();
 
         if (null != callback) {
             mEventsRestClient.searchMediaName(name, rooms, messageTypes, 0, 0, nextBatch, callback);
@@ -666,39 +889,40 @@ public class MXSession {
      * Cancel any pending file search request
      */
     public void cancelSearchMediaName() {
-        checkIfActive();
+        checkIfAlive();
         mEventsRestClient.cancelSearchMediaName();
     }
 
     /**
      * Return the fulfilled active BingRule for the event.
+     *
      * @param event the event
      * @return the fulfilled bingRule
      */
     public BingRule fulfillRule(Event event) {
-        checkIfActive();
-
+        checkIfAlive();
         return mBingRulesManager.fulfilledBingRule(event);
     }
 
     /**
      * @return true if the calls are supported
      */
-    public Boolean isVoipCallSupported() {
+    public boolean isVoipCallSupported() {
         if (null != mCallsManager) {
             return mCallsManager.isSupported();
         } else {
             return false;
         }
     }
-    
+
     /**
      * Get the list of rooms that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
-     * @param tag  RoomTag.ROOM_TAG_XXX values
+     *
+     * @param tag RoomTag.ROOM_TAG_XXX values
      * @return the rooms list.
      */
-    public List<Room>roomsWithTag(final String tag) {
+    public List<Room> roomsWithTag(final String tag) {
         ArrayList<Room> taggedRooms = new ArrayList<Room>();
 
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
@@ -722,11 +946,9 @@ public class MXSession {
                         if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
                             double diff = (tag1.mOrder - tag2.mOrder);
                             res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                        }
-                        else if (null != tag1.mOrder) {
+                        } else if (null != tag1.mOrder) {
                             res = -1;
-                        }
-                        else if (null != tag2.mOrder) {
+                        } else if (null != tag2.mOrder) {
                             res = +1;
                         }
 
@@ -751,7 +973,7 @@ public class MXSession {
         } else {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
 
-            for(Room room : rooms) {
+            for (Room room : rooms) {
                 if (!room.getAccountData().hasTags()) {
                     taggedRooms.add(room);
                 }
@@ -764,15 +986,16 @@ public class MXSession {
     /**
      * Get the list of roomIds that are tagged the specified tag.
      * The returned array is ordered according to the room tag order.
-     * @param tag  RoomTag.ROOM_TAG_XXX values
+     *
+     * @param tag RoomTag.ROOM_TAG_XXX values
      * @return the room IDs list.
      */
-    public List<String>roomIdsWithTag(final String tag) {
+    public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
         ArrayList<String> roomIdsList = new ArrayList<String>();
 
-        for(Room room : roomsWithTag) {
+        for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
         }
 
@@ -782,9 +1005,10 @@ public class MXSession {
     /**
      * Compute the tag order to use for a room tag so that the room will appear in the expected position
      * in the list of rooms stamped with this tag.
-     * @param index the targeted index of the room in the list of rooms with the tag `tag`.
+     *
+     * @param index       the targeted index of the room in the list of rooms with the tag `tag`.
      * @param originIndex the origin index. Integer.MAX_VALUE if there is none.
-     * @param tag the tag
+     * @param tag         the tag
      * @return the tag order to apply to get the expected position.
      */
     public Double tagOrderToBeAtIndex(int index, int originIndex, String tag) {
@@ -812,20 +1036,17 @@ public class MXSession {
 
                 if (null == prevTag.mOrder) {
                     Log.e(LOG_TAG, "computeTagOrderForRoom: Previous room in sublist has no ordering metadata. This should never happen.");
-                }
-                else {
+                } else {
                     orderA = prevTag.mOrder;
                 }
             }
 
-            if (index <= roomsWithTag.size() - 1)
-            {
+            if (index <= roomsWithTag.size() - 1) {
                 RoomTag nextTag = roomsWithTag.get(index).getAccountData().roomTag(tag);
 
                 if (null == nextTag.mOrder) {
                     Log.e(LOG_TAG, "computeTagOrderForRoom: Next room in sublist has no ordering metadata. This should never happen.");
-                }
-                else {
+                } else {
                     orderB = nextTag.mOrder;
                 }
             }
@@ -836,11 +1057,102 @@ public class MXSession {
 
     /**
      * Update the account password
+     *
      * @param oldPassword the former account password
      * @param newPassword the new account password
-     * @param callback the callback
+     * @param callback    the callback
      */
     public void updatePassword(String oldPassword, String newPassword, ApiCallback<Void> callback) {
         mProfileRestClient.updatePassword(getMyUserId(), oldPassword, newPassword, callback);
+    }
+
+    /**
+     * Reset the password to a new one.
+     *
+     * @param newPassword    the new password
+     * @param threepid_creds the three pids.
+     * @param callback       the callback
+     */
+    public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
+        mProfileRestClient.resetPassword(newPassword, threepid_creds, callback);
+    }
+
+    /**
+     * Triggers a request to update the userId to ignore
+     * @param userIds the userIds to ignoer
+     * @param callback the callback
+     */
+    private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        HashMap<String, Object> ignoredUsersDict = new HashMap<String, Object>();
+
+        for (String userId : userIds) {
+            ignoredUsersDict.put(userId, new ArrayList<>());
+        }
+
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
+
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST,  params, callback);
+    }
+
+    /**
+     * Tells if an user is in the ignored user ids list
+     * @param userId the user id to test
+     * @return true if the user is ignored
+     */
+    public boolean isUserIgnored(String userId) {
+        if (null != userId) {
+            return getDataHandler().getIgnoredUserIds().indexOf(userId) >= 0;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ignore a list of users.
+     * @param userIds the user ids list to ignore
+     * @param callback the result callback
+     */
+    public void ignoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
+        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+
+        // something to add
+        if ((null !=  userIds) && (userIds.size() > 0)) {
+            // add the new one
+            for (String userId : userIds) {
+                if (userIdsToIgnore.indexOf(userId) < 0) {
+                    userIdsToIgnore.add(userId);
+                }
+            }
+
+            // some items have been added
+            if (curUserIdsToIgnore.size() != userIdsToIgnore.size()) {
+                updateUsers(userIdsToIgnore, callback);
+            }
+        }
+    }
+
+    /**
+     * Unignore a list of users.
+     * @param userIds the user ids list to unignore
+     * @param callback the result callback
+     */
+    public void unIgnoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+        List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
+        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+
+        // something to add
+        if ((null != userIds) && (userIds.size() > 0)) {
+            // add the new one
+            for (String userId : userIds) {
+                userIdsToIgnore.remove(userId);
+            }
+
+            // some items have been added
+            if (curUserIdsToIgnore.size() != userIdsToIgnore.size()) {
+                updateUsers(userIdsToIgnore, callback);
+            }
+        }
     }
 }

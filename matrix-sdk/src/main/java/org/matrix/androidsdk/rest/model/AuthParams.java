@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.util.Map;
+
 /**
  * Class to define the authentification parameters
  */
@@ -22,7 +24,10 @@ public class AuthParams {
     //
     public String type;
 
+    // update password (type = m.login.password)
     public String user;
-
     public String password;
+
+    // forget password parameters (type = m.login.email.identity)
+    public Map<String, String> threepid_creds;
 }

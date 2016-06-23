@@ -23,12 +23,13 @@ import android.util.Log;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
-import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -39,8 +40,8 @@ public class EventsThread extends Thread {
 
     private static final int RETRY_WAIT_TIME_MS = 10000;
 
-    private static final int  SERVER_TIMEOUT_MS = 30000;
-    private static final int CLIENT_TIMEOUT_MS = 120000;
+    private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
+    private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
     private EventsRestClient mEventsRestClient = null;
 
@@ -51,7 +52,18 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
+    private boolean mIsOnline = true;
+
     private boolean mKilling = false;
+
+    private int mServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+
+    // add a delay between two sync requests
+    private int mRequestDelayMs = 0;
+    private Timer mSyncDelayTimer = null;
+
+    // avoid sync on "this" because it might differ if there is a timer.
+    private Object mSyncObject = new Object();
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private ApiFailureCallback mFailureCallback;
@@ -59,11 +71,11 @@ public class EventsThread extends Thread {
     // avoid restarting the listener if there is no network.
     // wait that there is an available network.
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
-    private Boolean mbIsConnected = true;
+    private boolean mbIsConnected = true;
     IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
-            synchronized (this) {
+            synchronized (mSyncObject) {
                 mbIsConnected = isConnected;
             }
 
@@ -85,6 +97,36 @@ public class EventsThread extends Thread {
         mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
+    }
+
+    /**
+     * Update the long poll timeout.
+     * @param ms the timeout in ms
+     */
+    public void setServerLongPollTimeout(int ms) {
+        mServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
+    }
+
+    /**
+     * @return the long poll timeout
+     */
+    public int getServerLongPollTimeout() {
+        return mServerTimeoutms;
+    }
+
+    /**
+     * Set a delay between two sync requests.
+     * @param ms the delay in ms
+     */
+    public void setSyncDelay(int ms) {
+        mRequestDelayMs = Math.max(0, ms);
+    }
+
+    /**
+     * @return the delay between two sync requests.
+     */
+    public int getSyncDelay() {
+        return mRequestDelayMs;
     }
 
     /**
@@ -125,8 +167,8 @@ public class EventsThread extends Thread {
                 // cancel any catchup process.
                 mIsCatchingUp = false;
 
-                synchronized (this) {
-                    notify();
+                synchronized (mSyncObject) {
+                    mSyncObject.notify();
                 }
             }
         } else {
@@ -141,8 +183,8 @@ public class EventsThread extends Thread {
         Log.i(LOG_TAG, "unpause()");
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
         }
 
@@ -157,8 +199,8 @@ public class EventsThread extends Thread {
         Log.d(LOG_TAG, "catchup()");
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
         }
 
@@ -175,12 +217,21 @@ public class EventsThread extends Thread {
 
         if (mPaused) {
             mPaused = false;
-            synchronized (this) {
-                notify();
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
 
             Log.d(LOG_TAG, "Resume the thread to kill it.");
         }
+    }
+
+    /**
+     * Update the online status
+     * @param isOnline true if the client must be seen as online
+     */
+    public void setIsOnline(boolean isOnline) {
+        Log.d(LOG_TAG, "setIsOnline to " + isOnline);
+        mIsOnline = isOnline;
     }
 
     @Override
@@ -217,7 +268,7 @@ public class EventsThread extends Thread {
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                mEventsRestClient.syncFromToken(null, 0, CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
@@ -275,7 +326,7 @@ public class EventsThread extends Thread {
                 }
             }
 
-            serverTimeout = SERVER_TIMEOUT_MS;
+            serverTimeout = mServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -290,17 +341,42 @@ public class EventsThread extends Thread {
 
         // Then repeatedly long-poll for events
         while (!mKilling) {
-            if (mPaused || mIsNetworkSuspended) {
-                if (mIsNetworkSuspended) {
+
+            // test if a delay between two syncs
+            if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
+                mSyncDelayTimer = new Timer();
+
+                mSyncDelayTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
+
+                        synchronized (mSyncObject) {
+                            mSyncObject.notify();
+                        }
+                    }
+                }, mRequestDelayMs);
+            }
+
+            if (mPaused || mIsNetworkSuspended || (null != mSyncDelayTimer)) {
+                if (null != mSyncDelayTimer) {
+                    Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
+                } else if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
                 } else {
                     Log.d(LOG_TAG, "Event stream is paused. Waiting.");
                 }
 
                 try {
-                    synchronized (this) {
-                        wait();
+                    synchronized (mSyncObject) {
+                        mSyncObject.wait();
                     }
+
+                    if (null != mSyncDelayTimer) {
+                        mSyncDelayTimer.cancel();
+                        mSyncDelayTimer = null;
+                    }
+
                     Log.d(LOG_TAG, "Event stream woken from pause.");
 
                     // perform a catchup asap
@@ -318,7 +394,7 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, CLIENT_TIMEOUT_MS, mIsCatchingUp ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
@@ -344,7 +420,7 @@ public class EventsThread extends Thread {
                         boolean isConnected;
                         Log.d(LOG_TAG, "Got an error while polling events " + description);
 
-                        synchronized (this) {
+                        synchronized (mSyncObject) {
                             isConnected = mbIsConnected;
                         }
 
@@ -370,7 +446,7 @@ public class EventsThread extends Thread {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(MatrixError.FORBIDDEN, e.errcode) || TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
+                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                             mListener.onInvalidToken();
                         } else {
                             onError(e.getLocalizedMessage());
@@ -391,7 +467,7 @@ public class EventsThread extends Thread {
                 }
             }
 
-            serverTimeout = SERVER_TIMEOUT_MS;
+            serverTimeout = mServerTimeoutms;
         }
 
         if (null != mNetworkConnectivityReceiver) {

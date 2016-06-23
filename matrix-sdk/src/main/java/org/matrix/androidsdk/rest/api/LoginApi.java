@@ -19,6 +19,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.LoginParams;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
@@ -38,6 +40,14 @@ public interface LoginApi {
      */
     @GET("/login")
     void login(Callback<LoginFlowResponse> callback);
+
+
+    /**
+     * Try to create an account
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/register")
+    void register(@Body RegistrationParams params, Callback<JsonObject> callback);
 
     /**
      * Pass params to the server for the current login phase.

@@ -95,7 +95,10 @@ public class EventMatchConditionTest {
         assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "nice";
-        assertFalse(condition.isSatisfied(event)); // Lowercase N
+        assertTrue(condition.isSatisfied(event)); // Lowercase N
+
+        condition.pattern = "ice";
+        assertFalse(condition.isSatisfied(event)); // partial match
 
         condition.pattern = "dog";
         assertFalse(condition.isSatisfied(event));
@@ -111,7 +114,7 @@ public class EventMatchConditionTest {
         assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "value";
-        assertTrue(condition.isSatisfied(event));
+        assertFalse(condition.isSatisfied(event));
 
         condition.pattern = "?value";
         assertFalse(condition.isSatisfied(event));

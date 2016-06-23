@@ -18,7 +18,6 @@ package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.Event;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -56,7 +55,7 @@ public class RoomAccountData implements java.io.Serializable{
     /**
      * @return true if some tags are defined
      */
-    public Boolean hasTags() {
+    public boolean hasTags() {
         return (null != tags) && (tags.size() > 0);
     }
 

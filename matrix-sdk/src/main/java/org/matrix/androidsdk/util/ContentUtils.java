@@ -17,7 +17,6 @@ package org.matrix.androidsdk.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -50,7 +49,7 @@ public class ContentUtils {
 
     public static String getMimeType(String filePath) {
         MimeTypeMap mime = MimeTypeMap.getSingleton();
-        return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1));
+        return mime.getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase());
     }
 
     /**

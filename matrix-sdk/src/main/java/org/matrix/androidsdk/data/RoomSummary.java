@@ -57,7 +57,7 @@ public class RoomSummary implements java.io.Serializable {
     // the roomstate is not always known
     private String mInviterUserId = null;
     // retrieved from the roomState
-    private Boolean mIsInvited = false;
+    private boolean mIsInvited = false;
     private String mInviterName = null;
 
     private String mMatrixId = null;
@@ -85,7 +85,7 @@ public class RoomSummary implements java.io.Serializable {
      */
     public static boolean isSupportedEvent(Event event) {
         String type = event.type;
-        Boolean isSupported = false;
+        boolean isSupported = false;
 
         // check if the msgtype is supported
         if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, type)) {
@@ -118,14 +118,29 @@ public class RoomSummary implements java.io.Serializable {
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type) ||
                     (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
 
             if (!isSupported) {
                 // some events are known to be never traced
                 // avoid warning when it is not required.
-                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
+                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type) &&
+                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
+                        ) {
                     Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
+                }
+            } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
+                JsonObject eventContent = event.getContentAsJsonObject();
+
+                if (null != eventContent) {
+                    if (0 == eventContent.entrySet().size()) {
+                        isSupported = false;
+                        Log.e(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
+                    }
                 }
             }
         }
@@ -277,7 +292,7 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * @return true if the room summay must be highlighted
      */
-    public Boolean isHighlighted() {
+    public boolean isHighlighted() {
         return mIsHighlighted || isInvited();
     }
 
@@ -286,7 +301,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param isHighlighted the new highlight status.
      * @return true if there is an update
      */
-    public boolean setHighlighted(Boolean isHighlighted) {
+    public boolean setHighlighted(boolean isHighlighted) {
         boolean isUpdated = (mIsHighlighted != isHighlighted);
 
         mIsHighlighted = isHighlighted;
@@ -310,7 +325,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param ts the ts
      * @return true if the update succeeds
      */
-    public Boolean setReadReceiptToken(String token, long ts) {
+    public boolean setReadReceiptToken(String token, long ts) {
         if ((ts > mReadReceiptTs) && !TextUtils.equals(token, mReadReceiptToken)) {
             mReadReceiptToken = token;
             mReadReceiptTs = ts;
@@ -322,6 +337,10 @@ public class RoomSummary implements java.io.Serializable {
 
     public String getReadReceiptToken() {
         return mReadReceiptToken;
+    }
+
+    public long getReadReceiptTs() {
+        return mReadReceiptTs;
     }
 
     public void setUnreadEventsCount(int count) {

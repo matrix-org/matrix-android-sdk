@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -117,6 +118,9 @@ public interface IMXStore {
     void setDisplayName(String displayName);
     String avatarURL();
     void setAvatarURL(String avatarURL);
+    List<ThirdPartyIdentifier> thirdPartyIdentifiers();
+    void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
+    void setIgnoredUserIdsList(List<String>users);
 
     /**
      * getters.
@@ -125,6 +129,11 @@ public interface IMXStore {
     Room getRoom(String roomId);
     Collection<User> getUsers();
     User getUser(String userId);
+    List<String> getIgnoredUserIdsList();
+
+    /**
+     * flush methods
+     */
     void storeUser(User user);
     void updateUserWithRoomMemberEvent(RoomMember roomMember);
     void storeRoom(Room room);
@@ -135,7 +144,7 @@ public interface IMXStore {
      * @param eventsResponse The events to be stored.
      * @param direction the direction; forwards for live, backwards for pagination
      */
-    void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, Room.EventDirection direction);
+    void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction);
 
     /**
      * Store the back token of a room.

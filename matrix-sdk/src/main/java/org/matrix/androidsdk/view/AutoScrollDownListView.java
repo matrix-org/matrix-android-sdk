@@ -25,6 +25,8 @@ import android.widget.ListView;
  */
 public class AutoScrollDownListView extends ListView {
 
+    private boolean mLockSelectionOnResize = false;
+
     public AutoScrollDownListView (Context context) {
         super(context);
     }
@@ -41,15 +43,25 @@ public class AutoScrollDownListView extends ListView {
     protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld) {
         super.onSizeChanged(xNew, yNew, xOld, yOld);
 
-        // check if the keyboard is displayed
-        // we don't want that the list scrolls to the bottom when the keyboard is hidden.
-        if (yNew < yOld) {
-            this.post(new Runnable() {
-                @Override
-                public void run() {
-                    setSelection(getCount() - 1);
-                }
-            });
+        if (!mLockSelectionOnResize) {
+            // check if the keyboard is displayed
+            // we don't want that the list scrolls to the bottom when the keyboard is hidden.
+            if (yNew < yOld) {
+                this.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        setSelection(getCount() - 1);
+                    }
+                }, 100);
+            }
         }
+        mLockSelectionOnResize = false;
+    }
+
+    /**
+     * The listview selection is locked even if the view position is updated.
+     */
+    public void lockSelectionOnResize() {
+        mLockSelectionOnResize = true;
     }
 }

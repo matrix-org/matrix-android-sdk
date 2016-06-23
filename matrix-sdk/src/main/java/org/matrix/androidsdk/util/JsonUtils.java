@@ -38,9 +38,9 @@ import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
 import java.lang.reflect.Modifier;
-
 /**
  * Static methods for converting json into objects.
  */
@@ -88,6 +88,11 @@ public class JsonUtils {
 
     public static JsonElement toJson(RoomMember roomMember) {
         return gson.toJsonTree(roomMember);
+    }
+
+    public static String getMessageMsgType(JsonElement jsonObject) {
+        Message message = gson.fromJson(jsonObject, Message.class);
+        return message.msgtype;
     }
 
     public static Message toMessage(JsonElement jsonObject) {
@@ -149,6 +154,10 @@ public class JsonUtils {
 
     public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
+    }
+
+    public static RegistrationFlowResponse toRegistrationFlowResponse(String jsonString) {
+        return gson.fromJson(jsonString, RegistrationFlowResponse.class);
     }
 
     public static JsonObject toJson(Event event) {

@@ -17,17 +17,21 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.data.Pusher;
+import org.matrix.androidsdk.rest.model.PushersResponse;
 import org.matrix.androidsdk.rest.model.User;
 
 import retrofit.Callback;
 import retrofit.http.Body;
+import retrofit.http.GET;
 import retrofit.http.POST;
 
 /**
  * The pusher API
  */
 public interface PushersApi {
-
     @POST("/pushers/set")
     void set(@Body Pusher pusher, Callback<Void> callback);
+
+    @GET("/pushers")
+    void get(Callback<PushersResponse> callback);
 }

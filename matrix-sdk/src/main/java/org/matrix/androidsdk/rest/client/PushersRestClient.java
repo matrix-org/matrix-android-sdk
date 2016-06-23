@@ -22,8 +22,10 @@ import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.PushersResponse;
 
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * REST client for the Pushers API.
@@ -115,8 +117,21 @@ public class PushersRestClient extends RestClient<PushersApi> {
         }));
     }
 
+    /**
+     * Retrieve the pushers list
+     * @param callback the callback
+     */
+    public void getPushers(final ApiCallback<PushersResponse> callback) {
+        final String description = "getPushers";
 
-
-
-
+        mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getPushers(callback);
+                } catch (Exception e) {
+                }
+            }
+        }));
+    }
 }

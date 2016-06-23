@@ -27,17 +27,13 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
-import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -52,7 +48,6 @@ import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -160,6 +155,23 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     }
 
     /**
+     * Tell if the media is cached
+     * @param url the media url
+     * @return true if the media is cached
+     */
+    public static boolean isUrlCached(String url) {
+        boolean res = false;
+
+        if ((null != sMemoryCache) && (null != url)) {
+            synchronized (sMemoryCache) {
+                res = (null != sMemoryCache.get(url));
+            }
+        }
+
+        return res;
+    }
+
+    /**
      * Search a cached bitmap from an url.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
@@ -176,7 +188,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         if (null != url) {
 
             if (null == sMemoryCache) {
-                int lruSize = Math.min(2 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
+                int lruSize = Math.min(20 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
 
                 Log.d(LOG_TAG, "bitmapForURL  lruSize : " + lruSize);
 
@@ -388,7 +400,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         return mProgress;
     }
 
-    private Boolean isBitmapDownload() {
+    private boolean isBitmapDownload() {
         return (null == mMimeType) || mMimeType.startsWith("image/");
     }
 

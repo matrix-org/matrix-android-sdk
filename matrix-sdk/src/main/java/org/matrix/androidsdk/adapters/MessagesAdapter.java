@@ -22,11 +22,15 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.text.Html;
+import android.text.Layout;
+import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
+import android.text.method.Touch;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
@@ -37,6 +41,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -56,8 +61,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
-import org.matrix.androidsdk.data.MyUser;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -77,7 +80,9 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -211,6 +216,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
 
+    private HashMap<String, Integer> mEventType = new HashMap<String, Integer>();
+
     protected int normalColor;
     protected int notSentColor;
     protected int sendingColor;
@@ -227,9 +234,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
     protected MXSession mSession;
 
-    protected Boolean mIsSearchMode = false;
+    protected boolean mIsSearchMode = false;
+    protected boolean mIsPreviewMode = false;
     protected String mPattern = null;
     private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+
+    private MatrixLinkMovementMethod mLinkMovementMethod;
 
     // customization methods
     public int normalMesageColor(Context context) {
@@ -356,12 +366,28 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
-        // use the MediaStore.Images.Thumbnails MINI_KIND size.
-        // it avoid having a mix of large and small thumbnails.
-        mMaxImageWidth = 512; //Math.round(display.getWidth() * MAX_IMAGE_WIDTH_SCREEN_RATIO);
-        mMaxImageHeight = 384; //Math.round(display.getHeight() * MAX_IMAGE_HEIGHT_SCREEN_RATIO);
+
+        int screenWidth = display.getWidth();
+        int screenHeight = display.getHeight();
+
+        // landscape / portrait
+        if (screenWidth < screenHeight) {
+            mMaxImageWidth = Math.round(screenWidth * 0.6f);
+            mMaxImageHeight = Math.round(screenHeight * 0.4f);
+        } else {
+            mMaxImageWidth = Math.round(screenWidth * 0.4f);
+            mMaxImageHeight = Math.round(screenHeight * 0.6f);
+        }
 
         mSession = session;
+    }
+
+    /**
+     * Update the preview mode status
+     * @param isPreviewMode true to display the adapter in provew mode
+     */
+    public void setIsPreviewMode(boolean isPreviewMode) {
+        mIsPreviewMode = isPreviewMode;
     }
 
     @Override
@@ -466,6 +492,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public void add(MessageRow row) {
+        add(row, true);
+    }
+
+    /**
+     * Add a row and refresh the adapter if it is required.
+     * @param row the row to append
+     * @param refresh tru to refresh the display.
+     */
+    public void add(MessageRow row, boolean refresh) {
         // ensure that notifyDataSetChanged is not called
         // it seems that setNotifyOnChange is reinitialized to true;
         setNotifyOnChange(false);
@@ -480,7 +515,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mEventRowMap.put(row.getEvent().eventId, row);
             }
 
-            if (!mIsSearchMode) {
+            if ((!mIsSearchMode) && refresh) {
                 this.notifyDataSetChanged();
             }
         }
@@ -560,40 +595,67 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return the view type.
      */
     private int getItemViewType(Event event) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            Message message = JsonUtils.toMessage(event.content);
+        String eventId = event.eventId;
 
-            if (Message.MSGTYPE_TEXT.equals(message.msgtype)) {
-                return ROW_TYPE_TEXT;
-            } else if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
-                return ROW_TYPE_IMAGE;
-            } else if (Message.MSGTYPE_EMOTE.equals(message.msgtype)) {
-                return ROW_TYPE_EMOTE;
-            } else if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
-                return ROW_TYPE_FILE;
-            } else if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
-                return ROW_TYPE_VIDEO;
+        if (null != eventId) {
+            Integer type = mEventType.get(eventId);
+
+            if (null != type) {
+                return type;
+            }
+        }
+
+        int viewType;
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+
+            String msgType = JsonUtils.getMessageMsgType(event.content);
+
+            if (Message.MSGTYPE_TEXT.equals(msgType)) {
+                viewType = ROW_TYPE_TEXT;
+            } else if (Message.MSGTYPE_IMAGE.equals(msgType)) {
+                viewType = ROW_TYPE_IMAGE;
+            } else if (Message.MSGTYPE_EMOTE.equals(msgType)) {
+                viewType = ROW_TYPE_EMOTE;
+            } else if (Message.MSGTYPE_NOTICE.equals(msgType)) {
+                viewType = ROW_TYPE_NOTICE;
+            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+                viewType = ROW_TYPE_FILE;
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
+                viewType = ROW_TYPE_VIDEO;
             } else {
                 // Default is to display the body as text
-                return ROW_TYPE_TEXT;
+                viewType = ROW_TYPE_TEXT;
             }
         }
         else if (
                 event.isCallEvent() ||
+                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
                         Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
                 ) {
-            return ROW_TYPE_NOTICE;
+            viewType = ROW_TYPE_NOTICE;
         }
         else {
             throw new RuntimeException("Unknown event type: " + event.type);
         }
+
+        if (null != eventId) {
+            mEventType.put(eventId, new Integer(viewType));
+        }
+
+        return viewType;
     }
 
     @Override
     public int getItemViewType(int position) {
+        // GA Crash
+        if (position >= getCount()) {
+            return ROW_TYPE_TEXT;
+        }
+
         MessageRow row = getItem(position);
         return getItemViewType(row.getEvent());
     }
@@ -866,7 +928,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         convertView.setClickable(false);
 
-        Boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
+        boolean isAvatarOnRightSide = isAvatarDisplayedOnRightSide(event);
 
         // isMergedView -> the message is going to be merged with the previous one
         // willBeMerged ->tell if a message separator must be displayed
@@ -885,7 +947,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 MessageRow nextRow = getItem(position + 1);
 
                 if (isMergeableEvent(event) || isMergeableEvent(nextRow.getEvent())) {
-                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender());
+                    // the message will be merged if the message senders are not the same
+                    // or the message is an avatar / displayname update.
+                    willBeMerged = TextUtils.equals(nextRow.getEvent().getSender(), event.getSender()) && isMergeableEvent(nextRow.getEvent());
                 }
             }
         }
@@ -908,15 +972,27 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
                 }
             }
-            else if (isMergedView || isAvatarOnRightSide || (msgType == ROW_TYPE_NOTICE)) {
+            else if (isMergedView || isAvatarOnRightSide) {
                 textView.setVisibility(View.GONE);
-            } else {
-                textView.setVisibility(View.VISIBLE);
-                textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
+            }
+            else {
+                // theses events are managed like notice ones
+                // but they are dedicated behaviour i.e the sender must not be displayed
+                if (event.isCallEvent() ||
+                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
+                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                            ) {
+                    textView.setVisibility(View.GONE);
+                } else {
+                    textView.setVisibility(View.VISIBLE);
+                    textView.setText(getUserDisplayName(event.getSender(), row.getRoomState()));
+                }
             }
 
             final String fSenderId = event.getSender();
-            final String fDisplayName = textView.getText().toString();
+            final String fDisplayName = (null == textView.getText()) ? "" : textView.getText().toString();
 
             textView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -1067,6 +1143,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     url = msgContent.get("avatar_url") == JsonNull.INSTANCE ? null : msgContent.get("avatar_url").getAsString();
                 }
 
+                if (msgContent.has("membership")) {
+                    String memberShip = msgContent.get("membership") == JsonNull.INSTANCE ? null : msgContent.get("membership").getAsString();
+
+                    // the avatar url is the invited one not the inviter one.
+                    if (TextUtils.equals(memberShip, RoomMember.MEMBERSHIP_INVITE)) {
+                        url = null;
+
+                        if (null != sender) {
+                            url = sender.avatarUrl;
+                        }
+                    }
+                }
+
                 loadMemberAvatar(avatarImageView, sender, userId, url);
 
                 // display the typing icon when required
@@ -1142,10 +1231,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Add click and long click listener on the content view
-     * @param contentView
+     * Add click and long click listener on the content view.
+     * @param convertView the adapter cell view
+     * @param contentView the main object view
+     * @param position the event position
      */
-    protected void addContentViewListeners(View contentView, final int position) {
+    protected void addContentViewListeners(final View convertView, final View contentView, final int position) {
         contentView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1174,13 +1265,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return new BackgroundColorSpan(searchHighlightColor);
     }
 
+    protected void highlightPattern(TextView textView, Spannable text, String pattern) {
+        highlightPattern(textView, text, null, pattern);
+    }
+
     /**
      * Highlight the pattern in the text.
      * @param textView the textView in which the text is displayed.
      * @param text the text to display.
      * @param pattern the pattern to highlight.
      */
-    protected void highlightPattern(TextView textView, Spannable text, String pattern) {
+    protected void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
         // sanity check
         if (null == textView) {
             return;
@@ -1202,18 +1297,56 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
-        SpannableStringBuilder strBuilder = new SpannableStringBuilder(text);
+        final ConsoleHtmlTagHandler htmlTagHandler = new ConsoleHtmlTagHandler();
+        htmlTagHandler.mContext = mContext;
+
+        CharSequence sequence = null;
+
+        // an html format has been released
+        if (null != htmlFormattedText) {
+            boolean isCustomizable = ((htmlFormattedText.indexOf("<a href=") < 0) && (htmlFormattedText.indexOf("<table>") < 0));
+
+            // the links are not yet supported by ConsoleHtmlTagHandler
+            // the markdown tables are not properly supported
+            sequence = Html.fromHtml(htmlFormattedText.replace("\n", "<br/>"), null, isCustomizable ? htmlTagHandler : null);
+
+            // sanity check
+            if (!TextUtils.isEmpty(sequence)) {
+                // remove trailing \n to avoid having empty lines..
+                int markStart = 0;
+                int markEnd = sequence.length() - 1;
+
+                // search first non \n character
+                for (; (markStart < sequence.length() - 1) && ('\n' == sequence.charAt(markStart)); markStart++)
+                    ;
+
+                // search latest non \n character
+                for (; (markEnd >= 0) && ('\n' == sequence.charAt(markEnd)); markEnd--) ;
+
+                // empty string ?
+                if (markEnd < markStart) {
+                    sequence = sequence.subSequence(0, 0);
+                } else {
+                    sequence = sequence.subSequence(markStart, markEnd+1);
+                }
+            }
+        } else {
+            sequence = text;
+        }
+
+        SpannableStringBuilder strBuilder = new SpannableStringBuilder(sequence);
         URLSpan[] urls = strBuilder.getSpans(0, text.length(), URLSpan.class);
 
         if ((null != urls) && (urls.length > 0)) {
-
             for (URLSpan span : urls) {
                 makeLinkClickable(strBuilder, span);
             }
-            textView.setText(strBuilder);
-            textView.setMovementMethod(LinkMovementMethod.getInstance());
-        } else {
-            textView.setText(text);
+        }
+
+        textView.setText(strBuilder);
+
+        if (null != mLinkMovementMethod) {
+            textView.setMovementMethod(mLinkMovementMethod);
         }
     }
 
@@ -1236,7 +1369,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         strBuilder.removeSpan(span);
     }
 
-
     /**
      * Text message management
      * @param position the message position
@@ -1249,14 +1381,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
 
+        // GA Crash
+        if (position >= getCount()) {
+            return convertView;
+        }
+
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
+        Message message = JsonUtils.toMessage(event.content);
         RoomState roomState = row.getRoomState();
 
-        EventDisplay display = new EventDisplay(mContext, msg, roomState);
+        EventDisplay display = new EventDisplay(mContext, event, roomState);
         CharSequence textualDisplay = display.getTextualDisplay();
 
-        final SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
+        SpannableString body = new SpannableString((null == textualDisplay) ? "" : textualDisplay);
         final TextView bodyTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
         // cannot refresh it
@@ -1265,12 +1403,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        if (mMessagesAdapterEventsListener.shouldHighlightEvent(msg)) {
+        if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(event)) {
             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            body.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        highlightPattern(bodyTextView, body, mPattern);
+        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? message.formatted_body : null, mPattern);
 
         int textColor;
 
@@ -1282,9 +1419,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textColor = normalColor;
 
             // sanity check
-            if (null != msg.eventId) {
+            if (null != event.eventId) {
                 synchronized (this) {
-                    if (!mTextColorByEventId.containsKey(msg.eventId)) {
+                    if (!mTextColorByEventId.containsKey(event.eventId)) {
                         String sBody = body.toString();
                         String displayName = mSession.getMyUser().displayname;
                         String userID = mSession.getMyUserId();
@@ -1295,9 +1432,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             textColor = normalColor;
                         }
 
-                        mTextColorByEventId.put(msg.eventId, textColor);
+                        mTextColorByEventId.put(event.eventId, textColor);
                     } else {
-                        textColor = mTextColorByEventId.get(msg.eventId);
+                        textColor = mTextColorByEventId.get(event.eventId);
                     }
                 }
             }
@@ -1307,7 +1444,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
 
-        addContentViewListeners(bodyTextView, position);
+        addContentViewListeners(convertView, bodyTextView, position);
 
         return convertView;
     }
@@ -1444,7 +1581,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         imageView.setImageBitmap(null);
 
         RelativeLayout informationLayout = (RelativeLayout) convertView.findViewById(R.id.messagesAdapter_image_layout);
-        final FrameLayout.LayoutParams LayoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
+        final FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
         // the thumbnails are always pre - rotated
         String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
@@ -1464,47 +1601,46 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // the tag is used to detect if the progress value is destinated to this piechart.
         downloadPieFractionView.setTag(downloadId);
 
+        int frameHeight = -1;
+        int frameWidth = -1;
+
+        // if the image size is known
+        // compute the expected thumbnail height
+        if ((thumbWidth > 0) && (thumbHeight > 0)) {
+
+            // swap width and height if the image is side oriented
+            if ((rotationAngle == 90) || (rotationAngle == 270)) {
+                int tmp = thumbWidth;
+                thumbWidth = thumbHeight;
+                thumbHeight = tmp;
+            } else if ((orientation == ExifInterface.ORIENTATION_ROTATE_90) || (orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
+                int tmp = thumbWidth;
+                thumbWidth = thumbHeight;
+                thumbHeight = tmp;
+            }
+
+            frameHeight = Math.min(maxImageWidth * thumbHeight / thumbWidth, maxImageHeight);
+            frameWidth  = frameHeight * thumbWidth / thumbHeight;
+        }
+
+        // ensure that some values are properly initialized
+        if (frameHeight < 0) {
+            frameHeight = mMaxImageHeight;
+        }
+
+        if (frameWidth < 0) {
+            frameWidth = mMaxImageWidth;
+        }
+
+        // apply it the layout
+        // it avoid row jumping when the image is downloaded
+        layoutParams.height = frameHeight;
+        layoutParams.width = frameWidth;
+
         // no download in progress
         if (null != downloadId) {
 
             downloadPieFractionView.setVisibility(View.VISIBLE);
-
-            int frameHeight = -1;
-            int frameWidth = -1;
-
-            // if the image size is known
-            // compute the expected thumbnail height
-            if ((thumbWidth > 0) && (thumbHeight > 0)) {
-
-                // swap width and height if the image is side oriented
-                if ((rotationAngle == 90) || (rotationAngle == 270)) {
-                    int tmp = thumbWidth;
-                    thumbWidth = thumbHeight;
-                    thumbHeight = tmp;
-                } else if ((orientation == ExifInterface.ORIENTATION_ROTATE_90) || (orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
-                    int tmp = thumbWidth;
-                    thumbWidth = thumbHeight;
-                    thumbHeight = tmp;
-                }
-
-                frameHeight = Math.min(maxImageWidth * thumbHeight / thumbWidth, maxImageHeight);
-                frameWidth  = frameHeight * thumbWidth / thumbHeight;
-            }
-
-            // ensure that some values are properly initialized
-            if (frameHeight < 0) {
-                frameHeight = mMaxImageHeight;
-            }
-
-            if (frameWidth < 0) {
-                frameWidth = mMaxImageWidth;
-            }
-
-            // apply it the layout
-            // it avoid row jumping when the image is downloaded
-            LayoutParams.height = frameHeight;
-            LayoutParams.width = frameWidth;
-
             mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
                 @Override
                 public void onDownloadStart(String downloadId) {
@@ -1531,11 +1667,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
                         downloadPieFractionView.setVisibility(View.GONE);
 
-                        LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                        LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-
-                        downloadPieFractionView.setVisibility(View.GONE);
-
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
                         }
@@ -1545,17 +1676,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
         } else {
-            LayoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            LayoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-
             downloadPieFractionView.setVisibility(View.GONE);
         }
 
-        // The API doesn't make any strong guarantees about the thumbnail size, so also scale
-        // locally if needed.
-        imageView.setMaxWidth(mMaxImageWidth);
-        imageView.setMaxHeight(mMaxImageHeight);
         imageView.setBackgroundColor(Color.TRANSPARENT);
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
     }
 
     /**
@@ -1614,7 +1739,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (type == ROW_TYPE_IMAGE) {
             manageUploadView(convertView, msg, ((ImageMessage)message).url);
         } else {
-            manageVideoUpload(convertView, msg, (VideoMessage)message);
+            manageVideoUpload(convertView, msg, (VideoMessage) message);
         }
 
         // dimmed when the message is not sent
@@ -1624,7 +1749,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         this.manageSubView(position, convertView, imageLayout, type);
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image);
-        addContentViewListeners(imageView, position);
+        addContentViewListeners(convertView, imageView, position);
 
         return convertView;
     }
@@ -1647,12 +1772,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         CharSequence notice;
 
-        if (TextUtils.equals(msg.type, Event.EVENT_TYPE_CALL_INVITE)) {
-            notice = msg.getSender().equals(mSession.getCredentials().userId) ? mContext.getResources().getString(R.string.notice_outgoing_call) : mContext.getResources().getString(R.string.notice_incoming_call);
-        } else {
-            EventDisplay display = new EventDisplay(mContext, msg, roomState);
-            notice = display.getTextualDisplay();
-        }
+        EventDisplay display = new EventDisplay(mContext, msg, roomState);
+        notice = display.getTextualDisplay();
 
         TextView noticeTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
@@ -1662,11 +1783,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         noticeTextView.setText(notice);
-        noticeTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
-        addContentViewListeners(noticeTextView, position);
+        addContentViewListeners(convertView, noticeTextView, position);
+
+        noticeTextView.setAlpha(0.6f);
 
         return convertView;
     }
@@ -1712,7 +1834,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
 
-        addContentViewListeners(emoteTextView, position);
+        addContentViewListeners(convertView, emoteTextView, position);
 
         return convertView;
     }
@@ -1811,7 +1933,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
 
-        addContentViewListeners(fileTextView, position);
+        addContentViewListeners(convertView, fileTextView, position);
 
         return convertView;
     }
@@ -1922,13 +2044,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return true;
         }
         else if (event.isCallEvent()) {
-            // display only the start call
-            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
+                    Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
+                    ;
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
+        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+            return true;
         }
         return false;
     }
@@ -1992,6 +2118,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void setMessagesAdapterEventsListener(MessagesAdapterEventsListener listener) {
         mMessagesAdapterEventsListener = listener;
+
+        if (null != listener) {
+            mLinkMovementMethod = new MatrixLinkMovementMethod(listener);
+        } else {
+            mLinkMovementMethod = null;
+        }
     }
 
     /**
@@ -2021,8 +2153,66 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * @return true if the user has sent some messages in this room history.
      */
-    public Boolean isDisplayedUser(String userId) {
+    public boolean isDisplayedUser(String userId) {
         // check if the user has been displayed in the room history
         return (null != userId) && mUserByUserId.containsKey(userId);
     }
+
+    public class MatrixLinkMovementMethod extends LinkMovementMethod {
+
+        MessagesAdapterEventsListener mListener = null;
+
+        public MatrixLinkMovementMethod(MessagesAdapterEventsListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        public boolean onTouchEvent(TextView widget, Spannable buffer, MotionEvent event) {
+            int action = event.getAction();
+
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+
+                x -= widget.getTotalPaddingLeft();
+                y -= widget.getTotalPaddingTop();
+
+                x += widget.getScrollX();
+                y += widget.getScrollY();
+
+                Layout layout = widget.getLayout();
+                int line = layout.getLineForVertical(y);
+                int off = layout.getOffsetForHorizontal(line, x);
+
+                ClickableSpan[] link = buffer.getSpans(
+                        off, off, ClickableSpan.class);
+
+                if (link.length != 0) {
+                    if (action == MotionEvent.ACTION_UP) {
+                        if (link[0] instanceof URLSpan) {
+                            if (null != mListener) {
+                                URLSpan span = (URLSpan) link[0];
+                                mListener.onURLClick(Uri.parse(span.getURL()));
+                            }
+                        } else {
+                            link[0].onClick(widget);
+                        }
+
+                    } else if (action == MotionEvent.ACTION_DOWN) {
+                        Selection.setSelection(buffer,
+                                buffer.getSpanStart(link[0]),
+                                buffer.getSpanEnd(link[0]));
+                    }
+
+                    return true;
+                } else {
+                    Selection.removeSelection(buffer);
+                    Touch.onTouchEvent(widget, buffer, event);
+                    return false;
+                }
+            }
+            return Touch.onTouchEvent(widget, buffer, event);
+        }
+    }
+
 }

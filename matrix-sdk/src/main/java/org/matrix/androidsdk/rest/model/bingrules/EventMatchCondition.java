@@ -15,15 +15,22 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.text.TextUtils;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.util.HashMap;
+import java.util.regex.Pattern;
+
 public class EventMatchCondition extends Condition {
     public String key;
     public String pattern;
+
+    private static HashMap<String, Pattern> mPatternByRule = null;
 
     public EventMatchCondition() {
         kind = Condition.KIND_EVENT_MATCH;
@@ -38,13 +45,26 @@ public class EventMatchCondition extends Condition {
         JsonObject eventJson = JsonUtils.toJson(event);
         // Extract the value that we want to match
         String fieldVal = extractField(eventJson, key);
-        if (fieldVal == null) {
+        if (TextUtils.isEmpty(fieldVal)) {
             return false;
         }
-        // Process the pattern
-        String patternRegex = globToRegex(pattern);
 
-        return fieldVal.matches(patternRegex);
+        if (TextUtils.equals(pattern, fieldVal)) {
+            return true;
+        }
+
+        if (null == mPatternByRule) {
+            mPatternByRule = new HashMap<String, Pattern>();
+        }
+
+        Pattern patternEx = mPatternByRule.get(pattern);
+
+        if (null == patternEx) {
+            patternEx = Pattern.compile(globToRegex(pattern), Pattern.CASE_INSENSITIVE);
+            mPatternByRule.put(pattern, patternEx);
+        }
+
+        return patternEx.matcher(fieldVal).matches();
     }
 
     private String extractField(JsonObject jsonObject, String fieldPath) {
@@ -64,10 +84,11 @@ public class EventMatchCondition extends Condition {
 
     private String globToRegex(String glob) {
         String res = glob.replace("*", ".*").replace("?", ".");
+
         // If no special characters were found (detected here by no replacements having been made),
-        // add asterisks to both sides
+        // add asterisks and boundaries to both sides
         if (res.equals(glob)) {
-            res = ".*" + res + ".*";
+            res = ".*\\b" + res + "\\b.*";
         }
         return res;
     }

@@ -20,8 +20,6 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
@@ -31,29 +29,43 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
+import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
+import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
+import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import android.os.Handler;
+
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.annotations.Until;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -80,12 +92,12 @@ public class MXDataHandler implements IMXEventListener {
     private volatile boolean mInitialSyncComplete = false;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
-    private ContentManager mContentManager;
     private MXCallsManager mCallsManager;
-    private MXMediasCache mMediasCache;
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
+    private ThirdPidRestClient mThirdPidRestClient;
+    private RoomsRestClient mRoomsRestClient;
 
     private MyUser mMyUser;
 
@@ -93,7 +105,12 @@ public class MXDataHandler implements IMXEventListener {
     private Handler mSyncHandler;
     private Handler mUiHandler;
 
-    private boolean mIsActive = true;
+    // list of ignored users
+    // null -> not initialized
+    // should be retrieved from the store
+    private List<String> mIgnoredUserIdsList;
+
+    private boolean mIsAlive = true;
 
     InvalidTokenListener mInvalidTokenListener;
 
@@ -114,27 +131,69 @@ public class MXDataHandler implements IMXEventListener {
         mInvalidTokenListener = invalidTokenListener;
     }
 
-    // some setters
+    public Credentials getCredentials() {
+        return mCredentials;
+    }
+
+    // setters / getters
     public void setProfileRestClient(ProfileRestClient profileRestClient) {
         mProfileRestClient = profileRestClient;
+    }
+
+    public ProfileRestClient getProfileRestClient() {
+        return mProfileRestClient;
     }
 
     public void setPresenceRestClient(PresenceRestClient presenceRestClient) {
         mPresenceRestClient = presenceRestClient;
     }
 
-    private void checkIfActive() {
+    public PresenceRestClient getPresenceRestClient() {
+        return mPresenceRestClient;
+    }
+
+    public void setThirdPidRestClient(ThirdPidRestClient thirdPidRestClient) {
+        mThirdPidRestClient = thirdPidRestClient;
+    }
+
+    public ThirdPidRestClient getThirdPidRestClient() {
+        return mThirdPidRestClient;
+    }
+
+    public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
+        mRoomsRestClient = roomsRestClient;
+    }
+
+    /**
+     * Provide the list of user Ids to ignore.
+     * The result cannot be null.
+     * @return the user Ids list
+     */
+    public List<String> getIgnoredUserIds() {
+        if (null == mIgnoredUserIdsList) {
+            mIgnoredUserIdsList = mStore.getIgnoredUserIdsList();
+        }
+
+        // avoid the null case
+        if (null == mIgnoredUserIdsList) {
+            mIgnoredUserIdsList = new ArrayList<String>();
+        }
+
+        return mIgnoredUserIdsList;
+    }
+
+    private void checkIfAlive() {
         synchronized (this) {
-            if (!mIsActive) {
+            if (!mIsAlive) {
                 Log.e(LOG_TAG, "use of a released dataHandler");
                 //throw new AssertionError("Should not used a MXDataHandler");
             }
         }
     }
 
-    public boolean isActive() {
+    public boolean isAlive() {
         synchronized (this) {
-            return mIsActive;
+            return mIsAlive;
         }
     }
 
@@ -152,7 +211,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
-        checkIfActive();
+        checkIfAlive();
 
         IMXStore store = getStore();
 
@@ -160,8 +219,6 @@ public class MXDataHandler implements IMXEventListener {
         // which should be the case if this is called after the initial sync
         if (mMyUser == null) {
             mMyUser = new MyUser(store.getUser(mCredentials.userId));
-            mMyUser.setProfileRestClient(mProfileRestClient);
-            mMyUser.setPresenceRestClient(mPresenceRestClient);
             mMyUser.setDataHandler(this);
 
             // assume the profile is not yet initialized
@@ -177,7 +234,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle the case where the user is null by loading the user information from the server
             mMyUser.user_id = mCredentials.userId;
-        } else {
+        } else if (null != store) {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
                 // setAvatarURL && setDisplayName perform a commit if it is required.
@@ -199,18 +256,22 @@ public class MXDataHandler implements IMXEventListener {
      * @return true if the initial sync is completed.
      */
     public boolean isInitialSyncComplete() {
-        checkIfActive();
+        checkIfAlive();
         return mInitialSyncComplete;
     }
 
+    public DataRetriever getDataRetriever() {
+        checkIfAlive();
+        return mDataRetriever;
+    }
+
     public void setDataRetriever(DataRetriever dataRetriever) {
-        checkIfActive();
+        checkIfAlive();
         mDataRetriever = dataRetriever;
-        mDataRetriever.setStore(mStore);
     }
 
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
-        if (isActive()) {
+        if (isAlive()) {
             mBingRulesManager = bingRulesManager;
 
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
@@ -222,23 +283,18 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void setContentManager(ContentManager contentManager) {
-        checkIfActive();
-        mContentManager = contentManager;
-    }
-
     public void setCallsManager(MXCallsManager callsManager) {
-        checkIfActive();
+        checkIfAlive();
         mCallsManager = callsManager;
     }
 
-    public void setMediasCache(MXMediasCache mediasCache) {
-        checkIfActive();
-        mMediasCache = mediasCache;
+    public MXCallsManager getCallsManager() {
+        checkIfAlive();
+        return mCallsManager;
     }
 
     public BingRuleSet pushRules() {
-        if (isActive() && (null != mBingRulesManager)) {
+        if (isAlive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
         }
 
@@ -246,7 +302,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void refreshPushRules() {
-        if (isActive() && (null != mBingRulesManager)) {
+        if (isAlive() && (null != mBingRulesManager)) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -257,12 +313,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public BingRulesManager getBingRulesManager() {
-        checkIfActive();
+        checkIfAlive();
         return mBingRulesManager;
     }
 
     public void addListener(IMXEventListener listener) {
-        if (mIsActive) {
+        if (isAlive()) {
             synchronized (this) {
                 // avoid adding twice
                 if (mEventListeners.indexOf(listener) == -1) {
@@ -277,7 +333,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void removeListener(IMXEventListener listener) {
-        if (mIsActive) {
+        if (isAlive()) {
             synchronized (this) {
                 mEventListeners.remove(listener);
             }
@@ -286,7 +342,7 @@ public class MXDataHandler implements IMXEventListener {
 
     public void clear() {
         synchronized (this) {
-            mIsActive = false;
+            mIsAlive = false;
             // remove any listener
             mEventListeners.clear();
         }
@@ -300,88 +356,12 @@ public class MXDataHandler implements IMXEventListener {
             mSyncHandlerThread = null;
         }
     }
-    /**
-     * Handle the room data received from a per-room initial sync
-     * @param roomResponse the room response object
-     * @param room the associated room
-     */
-    public void handleInitialRoomResponse(RoomResponse roomResponse, Room room) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
-            return;
-        }
 
-        // Handle state events
-        if (roomResponse.state != null) {
-            room.processLiveState(roomResponse.state);
-        }
-
-        // Handle visibility
-        if (roomResponse.visibility != null) {
-            room.setVisibility(roomResponse.visibility);
-        }
-
-        // Handle messages / pagination token
-        if ((roomResponse.messages != null) && (roomResponse.messages.chunk.size() > 0)) {
-            mStore.storeRoomEvents(room.getRoomId(), roomResponse.messages, Room.EventDirection.FORWARDS);
-
-            int index = roomResponse.messages.chunk.size() - 1;
-
-            while (index >= 0) {
-                // To store the summary, we need the last event and the room state from just before
-                Event lastEvent = roomResponse.messages.chunk.get(index);
-
-                if (RoomSummary.isSupportedEvent(lastEvent)) {
-                    RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
-                    beforeLiveRoomState.applyState(lastEvent, Room.EventDirection.BACKWARDS);
-
-                    mStore.storeSummary(room.getRoomId(), lastEvent, room.getLiveState(), mCredentials.userId);
-
-                    index = -1;
-                } else {
-                    index--;
-                }
-            }
-        }
-
-        // Handle presence
-        if ((roomResponse.presence != null) && (roomResponse.presence.size() > 0)) {
-            handleLiveEvents(roomResponse.presence);
-        }
-
-        // receipts
-        if ((roomResponse.receipts != null) && (roomResponse.receipts.size() > 0)) {
-            handleLiveEvents(roomResponse.receipts);
-        }
-
-        // account data
-        if ((roomResponse.accountData != null) && (roomResponse.accountData.size() > 0)) {
-            // the room id is not defined in the events
-            // so as the room is defined here, avoid calling handleLiveEvents
-            room.handleAccountDataEvents(roomResponse.accountData);
-        }
-
-        // Handle the special case where the room is an invite
-        if (RoomMember.MEMBERSHIP_INVITE.equals(roomResponse.membership)) {
-            handleInitialSyncInvite(room.getRoomId(), roomResponse.inviter);
+    public String getUserId() {
+        if (isAlive()) {
+            return mCredentials.userId;
         } else {
-            onRoomInitialSyncComplete(room.getRoomId());
-        }
-    }
-
-    /**
-     * Handle the room data received from a global initial sync
-     * @param roomResponse the room response object
-     */
-    public void handleInitialRoomResponse(RoomResponse roomResponse) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialRoomResponse : the session is not anymore active");
-            return;
-        }
-
-        if (roomResponse.roomId != null) {
-            Room room = getRoom(roomResponse.roomId);
-            handleInitialRoomResponse(roomResponse, room);
+            return "dummy";
         }
     }
 
@@ -389,8 +369,8 @@ public class MXDataHandler implements IMXEventListener {
      * Update the missing data fields loaded from a permanent storage.
      */
     public void checkPermanentStorageData() {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");        
+        if (!isAlive()) {
+            Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");
             return;
         }
 
@@ -403,10 +383,7 @@ public class MXDataHandler implements IMXEventListener {
             Collection<Room> rooms =  mStore.getRooms();
 
             for(Room room : rooms) {
-                room.setDataHandler(this);
-                room.setDataRetriever(mDataRetriever);
-                room.setMyUserId(mCredentials.userId);
-                room.setContentManager(mContentManager);
+                room.init(room.getRoomId(), this);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
@@ -418,100 +395,15 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public String getUserId() {
-        if (isActive()) {
-            return mCredentials.userId;
-        } else {
-            return "dummy";
-        }
-    }
-
-    private void handleInitialSyncInvite(String roomId, String inviterUserId) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleInitialSyncInvite : the session is not anymore active");
-            return;
-        }
-
-        Room room = getRoom(roomId);
-
-        // add yourself
-        RoomMember member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_INVITE;
-        room.setMember(mCredentials.userId, member);
-
-        // and the inviter
-        member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_JOIN;
-        room.setMember(inviterUserId, member);
-
-        // Build a fake invite event
-        Event inviteEvent = new Event();
-        inviteEvent.roomId = roomId;
-        inviteEvent.stateKey = mCredentials.userId;
-        inviteEvent.setSender(inviterUserId);
-        inviteEvent.type = Event.EVENT_TYPE_STATE_ROOM_MEMBER;
-        inviteEvent.setOriginServerTs(System.currentTimeMillis()); // This is where it's fake
-        inviteEvent.content = JsonUtils.toJson(member);
-
-        mStore.storeSummary(roomId, inviteEvent, null, mCredentials.userId);
-
-        // Set the inviter ID
-        RoomSummary roomSummary = mStore.getSummary(roomId);
-        if (null != roomSummary) {
-            roomSummary.setInviterUserId(inviterUserId);
-        }
-    }
-
+    /**
+     * @return the used store.
+     */
     public IMXStore getStore() {
-        if (isActive()) {
+        if (isAlive()) {
             return mStore;
         } else {
             Log.e(LOG_TAG, "getStore : the session is not anymore active");
             return null;
-        }
-    }
-
-    /**
-     * Handle a list of events coming down from the event stream.
-     * @param events the live events
-     */
-    public void handleLiveEvents(List<Event> events) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleLiveEvents : the session is not anymore active");
-            return;
-        }
-
-        // check if there is something to do
-        if (0 != events.size()) {
-            Log.d(LOG_TAG, "++ handleLiveEvents : got " + events.size() + " events.");
-
-            for (Event event : events) {
-                try {
-                    handleLiveEvent(event);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "handleLiveEvent cannot process event " + e + " " + e.getStackTrace());
-                }
-            }
-
-            Log.d(LOG_TAG, "-- handleLiveEvents : " + events.size() + " events are processed.");
-
-            try {
-                onLiveEventsChunkProcessed();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
-            }
-
-            mUiHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // check if an incoming call has been received
-                        mCallsManager.checkPendingIncomingCalls();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
-                    }
-                }
-            });
         }
     }
 
@@ -522,7 +414,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
-        if (isActive()) {
+        if (isAlive()) {
             for (RoomMember member : members) {
                 if (TextUtils.equals(userID, member.getUserId())) {
                     return member;
@@ -535,203 +427,11 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Handle events coming down from the event stream.
-     * @param event the live event
-     * */
-    public void handleLiveEvent(Event event) {
-        handleLiveEvent(event, true);
-    }
-
-    /**
-     * Handle events coming down from the event stream.
-     * @param event the live event
-     * @param withPush set to true to trigger pushes when it is required
-     * */
-    public void handleLiveEvent(Event event, boolean withPush) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "handleLiveEvent : the session is not anymore active");
-            return;
-        }
-
-        // Presence event
-        if (Event.EVENT_TYPE_PRESENCE.equals(event.type)) {
-            User userPresence = JsonUtils.toUser(event.content);
-
-            // use the sender by default
-            if (!TextUtils.isEmpty(event.getSender())) {
-                userPresence.user_id = event.getSender();
-            }
-
-            User user = mStore.getUser(userPresence.user_id);
-
-            if (user == null) {
-                user = userPresence;
-                user.lastActiveReceived();
-                user.setDataHandler(this);
-                mStore.storeUser(user);
-            }
-            else {
-                user.currently_active = userPresence.currently_active;
-                user.presence = userPresence.presence;
-                user.lastActiveAgo = userPresence.lastActiveAgo;
-                user.lastActiveReceived();
-            }
-
-            // check if the current user has been updated
-            if (mCredentials.userId.equals(user.user_id)) {
-                mStore.setAvatarURL(user.getAvatarUrl());
-                mStore.setDisplayName(user.displayname);
-            }
-
-            this.onPresenceUpdate(event, user);
-
-        } else if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
-            if (event.roomId != null) {
-                final Room room = getRoom(event.roomId);
-
-                // sanity check
-                if (null != room) {
-                    List<String> senders = room.handleReceiptEvent(event);
-
-                    if ((senders.size() > 0) && (mUpdatedRoomIdList.indexOf(event.roomId) < 0)) {
-                        mUpdatedRoomIdList.add(event.roomId);
-                    }
-
-                    if ((null != senders) && (senders.size() > 0)) {
-                        onReceiptEvent(event.roomId, senders);
-                    }
-                }
-            }
-        }
-        // dispatch the call events to the calls manager
-        else if (event.isCallEvent()) {
-            mCallsManager.handleCallEvent(event);
-        }
-        // room tags
-        else if (Event.EVENT_TYPE_TAGS.equals(event.type)) {
-            if (event.roomId != null) {
-                final Room room = getRoom(event.roomId);
-
-                // sanity check
-                if (null != room) {
-                    room.handleAccountDataEvents(Arrays.asList(event));
-                }
-            }
-        } else {
-            Event storedEvent = getStore().getEvent(event.eventId, event.roomId);
-
-            // avoid processing event twice
-            if (null != storedEvent) {
-
-                // an event has been echoed
-                if (storedEvent.getAge() == Long.MAX_VALUE) {
-                    getStore().deleteEvent(storedEvent);
-                    getStore().storeLiveRoomEvent(event);
-                    getStore().commit();
-
-                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
-
-                } else {
-                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
-                }
-
-                return;
-            }
-
-            // Room event
-            if (event.roomId != null) {
-                final Room room = getRoom(event.roomId);
-
-                // check if the room has been joined
-                // the initial sync + the first requestHistory call is done here
-                // instead of being done in the application
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mCredentials.userId)) {
-                    EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
-                    EventContent prevEventContent = event.getPrevContent();
-
-                    String prevMembership = null;
-
-                    if (null != prevEventContent) {
-                        prevMembership = prevEventContent.membership;
-                    }
-
-                    boolean isRedactedEvent = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
-
-                    // if the membership is the same, assume that the user
-                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership)) {
-                        // check if the user updates his profile from another device.
-                        MyUser myUser = getMyUser();
-
-                        boolean hasAccountInfoUpdated = false;
-
-                        if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
-                            hasAccountInfoUpdated = true;
-                            myUser.displayname = eventContent.displayname;
-                            getStore().setDisplayName(myUser.displayname);
-                        }
-
-                        if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
-                            hasAccountInfoUpdated = true;
-                            myUser.setAvatarUrl(eventContent.avatar_url);
-                            getStore().setAvatarURL(myUser.avatar_url);
-                        }
-
-                        if (hasAccountInfoUpdated) {
-                            onAccountInfoUpdate(myUser);
-                        }
-                    }
-                }
-
-                if (event.stateKey != null) {
-                    // copy the live state before applying any update
-                    room.setLiveState(room.getLiveState().deepCopy());
-                    // check if the event has been processed
-                    if (!room.processStateEvent(event, Room.EventDirection.FORWARDS)) {
-                        // not processed -> do not warn the application
-                        // assume that the event is a duplicated one.
-                        return;
-                    }
-                }
-
-                storeLiveRoomEvent(event);
-                onLiveEvent(event, room.getLiveState());
-
-                // trigger pushes when it is required
-                if (withPush) {
-                    BingRule bingRule;
-                    boolean outOfTimeEvent = false;
-                    JsonObject eventContent = event.getContentAsJsonObject();
-
-                    if (eventContent.has("lifetime")) {
-                        long maxlifetime = eventContent.get("lifetime").getAsLong();
-                        long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-
-                        outOfTimeEvent = eventLifeTime > maxlifetime;
-                    }
-
-                    // If the bing rules apply, bing
-                    if (!Event.EVENT_TYPE_TYPING.equals(event.type)
-                            && !Event.EVENT_TYPE_RECEIPT.equals(event.type)
-                            && !outOfTimeEvent
-                            && (mBingRulesManager != null)
-                            && (null != (bingRule = mBingRulesManager.fulfilledBingRule(event)))
-                            && bingRule.shouldNotify()) {
-                        Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-                        onBingEvent(event, room.getLiveState(), bingRule);
-                    }
-                }
-            } else {
-                Log.e(LOG_TAG, "Unknown live event type: " + event.type);
-            }
-        }
-    }
-
-    /**
      * Check a room exists with the dedicated roomId
      * @param roomId the room ID
      * @return true it exists.
      */
-    public Boolean doesRoomExist(String roomId) {
+    public boolean doesRoomExist(String roomId) {
         return (null != roomId) && (null != mStore.getRoom(roomId));
     }
 
@@ -751,7 +451,18 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        if (!isActive()) {
+        return  getRoom(mStore, roomId, create);
+    }
+
+    /**
+     * Get the room object for the corresponding room id.
+     * @param store the dedicated store
+     * @param roomId the room id
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(IMXStore store, String roomId, boolean create) {
+        if (!isAlive()) {
             Log.e(LOG_TAG, "getRoom : the session is not anymore active");
             return null;
         }
@@ -761,108 +472,109 @@ public class MXDataHandler implements IMXEventListener {
             return null;
         }
 
-        Room room = mStore.getRoom(roomId);
+        Room room = store.getRoom(roomId);
         if ((room == null) && create) {
             room = new Room();
-            room.setRoomId(roomId);
-            room.setDataHandler(this);
-            room.setDataRetriever(mDataRetriever);
-            room.setMyUserId(mCredentials.userId);
-            room.setContentManager(mContentManager);
-            mStore.storeRoom(room);
+            room.init(roomId, this);
+            store.storeRoom(room);
+        } else if ((null != room) && (null == room.getDataHandler())) {
+            // GA reports that some rooms have no data handler
+            // so ensure that it is not properly set
+            Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
+            room.init(roomId, this);
+            store.storeRoom(room);
         }
+
         return room;
     }
 
     /**
-     * Store a live room event.
-     * @param event The event to be stored.
+     * Checks if the room is properly initialized.
+     * GA reported us that some room fields are not initialized.
+     * But, i really don't know how it is possible.
+     * @param room the room check
      */
-    public void storeLiveRoomEvent(Event event) {
-        if (!isActive()) {
-            Log.e(LOG_TAG, "storeLiveRoomEvent : the session is not anymore active");
-            return;
-        }
-
-        Room room = getRoom(event.roomId);
-
+    public void checkRoom(Room room) {
         // sanity check
         if (null != room) {
-            boolean store = false;
-            if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                if (event.getRedacts() != null) {
-                    mStore.updateEventContent(event.roomId, event.getRedacts(), event.getContentAsJsonObject());
+            if (null == room.getDataHandler()) {
+                Log.e(LOG_TAG, "checkRoom : the room was not initialized");
+                room.init(room.getRoomId(), this);
+            } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
+                Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
+                room.init(room.getRoomId(), this);
+            }
+        }
+    }
 
-                    // search the latest displayable event
-                    // to replace the summary text
-                    ArrayList<Event> events = new ArrayList<Event>(mStore.getRoomMessages(event.roomId));
-                    for(int index = events.size() - 1; index >= 0; index--) {
-                        Event anEvent = events.get(index);
+    /**
+     * Retrieve a room Id by its alias.
+     * @param roomAlias the room alias
+     * @param callback the asynchronous callback
+     */
+    public void roomIdByAlias(final String roomAlias, final ApiCallback<String> callback) {
+        String roomId = null;
 
-                        if (RoomSummary.isSupportedEvent(anEvent)) {
-                            store = true;
-                            event = anEvent;
+        Collection<Room> rooms = getStore().getRooms();
+
+        for(Room room : rooms) {
+            if (TextUtils.equals(room.getState().alias, roomAlias)) {
+                roomId = room.getRoomId();
+                break;
+            } else {
+                List<String> aliases = room.getState().aliases;
+
+                if (null != aliases) {
+                    for(String alias : aliases) {
+                        if (TextUtils.equals(alias, roomAlias)) {
+                            roomId = room.getRoomId();
                             break;
                         }
                     }
                 }
-            }  else if (!Event.EVENT_TYPE_TYPING.equals(event.type) && !Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
-                // the candidate events are not stored.
-                store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
 
-                // thread issue
-                // if the user leaves a room,
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.stateKey)) {
-                    String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
-
-                    if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                        store = false;
-                        // delete the room and warn the listener of the leave event only at the end of the events chunk processing
-                    }
-                }
-            }
-
-            if (store) {
-                // create dummy read receipt for any incoming event
-                // to avoid not synchronized read receipt and event
-                if ((null != event.getSender()) && (null != event.eventId)) {
-                    room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
-                }
-
-                mStore.storeLiveRoomEvent(event);
-
-                if (RoomSummary.isSupportedEvent(event)) {
-                    RoomSummary summary = mStore.storeSummary(event.roomId, event, room.getLiveState(), mCredentials.userId);
-
-                    // Watch for potential room name changes
-                    if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                            || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                            || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
-
-
-                        if (null != summary) {
-                            summary.setName(room.getName(mCredentials.userId));
-                        }
-                    }
-                }
-            }
-
-            // warn the listener that a new room has been created
-            if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
-                this.onNewRoom(event.roomId);
-            }
-
-            // warn the listeners that a room has been joined
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && mCredentials.userId.equals(event.stateKey)) {
-                String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
-
-                if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
-                    this.onJoinRoom(event.roomId);
-                } else if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-                    this.onNewRoom(event.roomId);
+                // find one matched room id.
+                if (null != roomId) {
+                    break;
                 }
             }
         }
+
+        if (null != roomId) {
+            final String fRoomId = roomId;
+
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(fRoomId);
+                }
+            });
+        } else {
+            mRoomsRestClient.roomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
+                @Override
+                public void onSuccess(RoomAliasDescription info) {
+                    callback.onSuccess(info.room_id);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+        }
+
     }
 
     /**
@@ -870,13 +582,13 @@ public class MXDataHandler implements IMXEventListener {
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
-        if (isActive()) {
+        if (isAlive()) {
             Room room = getRoom(event.roomId);
 
             if (null != room) {
                 mStore.deleteEvent(event);
                 Event lastEvent = mStore.getLatestEvent(event.roomId);
-                RoomState beforeLiveRoomState = room.getLiveState().deepCopy();
+                RoomState beforeLiveRoomState = room.getState().deepCopy();
 
                 mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
             }
@@ -891,7 +603,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the user.
      */
     public User getUser(String userId) {
-        if (!isActive()) {
+        if (!isAlive()) {
             Log.e(LOG_TAG, "getUser : the session is not anymore active");
             return null;
         } else {
@@ -900,8 +612,164 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     //================================================================================
+    // Account Data management
+    //================================================================================
+
+    /**
+     * Manage the sync accountData field
+     * @param accountData the account data
+     * @param isInitialSync true if it is an initial sync response
+     */
+    private void manageAccountData(Map<String, Object> accountData, boolean isInitialSync) {
+        try {
+            if (accountData.containsKey("events")) {
+                List<Map<String, Object>> events = (List<Map<String, Object>>) accountData.get("events");
+
+                if (0 != events.size()) {
+                    // ignored users list
+                    manageIgnoredUsers(events, isInitialSync);
+                    // push rules
+                    managePushRulesUpdate(events);
+                }
+            }
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "manageAccountData failed " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Refresh the push rules from the acccount data events list
+     * @param events
+     */
+    private void managePushRulesUpdate(List<Map<String, Object>> events) {
+        for (Map<String, Object> event : events) {
+            String type = (String) event.get("type");
+
+            if (TextUtils.equals(type, "m.push_rules")) {
+                if (event.containsKey("content")) {
+                    Gson gson = new GsonBuilder()
+                            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+                            .create();
+
+                    // convert the data to BingRulesResponse
+                    // because BingRulesManager supports only BingRulesResponse
+                    JsonElement element = gson.toJsonTree(event.get("content"));
+                    getBingRulesManager().buildRules(gson.fromJson(element, BingRulesResponse.class));
+
+                    // warn the client that the push rules have been updated
+                    onBingRulesUpdate();
+                }
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Check if the ignored users list is updated
+     * @param events the account data events list
+     */
+    private void manageIgnoredUsers(List<Map<String, Object>> events, boolean isInitialSync) {
+        List<String> newIgnoredUsers = ignoredUsers(events);
+
+        if (null != newIgnoredUsers) {
+            List<String> curIgnoredUsers = getIgnoredUserIds();
+
+            // the both lists are not empty
+            if ((0 != newIgnoredUsers.size()) || (0 != curIgnoredUsers.size())) {
+                // check if the ignored users list has been updated
+                if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
+                    // update the store
+                    mStore.setIgnoredUserIdsList(newIgnoredUsers);
+                    mIgnoredUserIdsList = newIgnoredUsers;
+
+                    if (!isInitialSync) {
+                        // warn there is an update
+                        onIgnoredUsersListUpdate();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Extract the ignored users list from the account data events list..
+     *
+     * @param events the account data events list.
+     * @return the ignored users list. null means that there is no defined user ids list.
+     */
+    private List<String> ignoredUsers(List<Map<String, Object>> events) {
+        List<String> ignoredUsers = null;
+
+        if (0 != events.size()) {
+            for (Map<String, Object> event : events) {
+                String type = (String) event.get("type");
+
+                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
+                    if (event.containsKey("content")) {
+                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
+
+                        if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
+                            Map<String, Object> ignored_users = (Map<String, Object>) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS);
+
+                            if (null != ignored_users) {
+                                ignoredUsers = new ArrayList<String>(ignored_users.keySet());
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        return ignoredUsers;
+    }
+
+    //================================================================================
     // Sync V2
     //================================================================================
+
+    public void handlePresenceEvent(Event presenceEvent) {
+        // Presence event
+        if (Event.EVENT_TYPE_PRESENCE.equals(presenceEvent.type)) {
+            User userPresence = JsonUtils.toUser(presenceEvent.content);
+
+            // use the sender by default
+            if (!TextUtils.isEmpty(presenceEvent.getSender())) {
+                userPresence.user_id = presenceEvent.getSender();
+            }
+
+            User user = mStore.getUser(userPresence.user_id);
+
+            if (user == null) {
+                user = userPresence;
+                user.lastActiveReceived();
+                user.setDataHandler(this);
+                mStore.storeUser(user);
+            }
+            else {
+                user.currently_active = userPresence.currently_active;
+                user.presence = userPresence.presence;
+                user.lastActiveAgo = userPresence.lastActiveAgo;
+                user.lastActiveReceived();
+            }
+
+            // check if the current user has been updated
+            if (mCredentials.userId.equals(user.user_id)) {
+                // always use the up-to-date information
+                getMyUser().displayname = user.displayname;
+                getMyUser().avatar_url = user.getAvatarUrl();
+
+                mStore.setAvatarURL(user.getAvatarUrl());
+                mStore.setDisplayName(user.displayname);
+            }
+
+            this.onPresenceUpdate(presenceEvent, user);
+        }
+    }
 
     public void onSyncReponse(final SyncResponse syncResponse, final boolean isInitialSync) {
         // perform the sync in background
@@ -958,7 +826,12 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
-                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        Room room = getRoom(roomId);
+
+                        // sanity check
+                        if (null != room) {
+                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        }
                     }
 
                     isEmptyResponse = false;
@@ -981,8 +854,13 @@ public class MXDataHandler implements IMXEventListener {
             // Handle presence of other users
             if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
                 for (Event presenceEvent : syncResponse.presence.events) {
-                    handleLiveEvent(presenceEvent);
+                    handlePresenceEvent(presenceEvent);
                 }
+            }
+
+            // account data
+            if (null != syncResponse.accountData) {
+                manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
             if (!isEmptyResponse) {
@@ -997,14 +875,14 @@ public class MXDataHandler implements IMXEventListener {
             try {
                 onLiveEventsChunkProcessed();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e + " " + e.getStackTrace());
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getLocalizedMessage());
             }
 
             try {
                 // check if an incoming call has been received
                 mCallsManager.checkPendingIncomingCalls();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getStackTrace());
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getLocalizedMessage());
             }
         }
     }
@@ -1128,23 +1006,6 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onLiveEventsChunkProcessed();
-                    } catch (Exception e) {
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onBackEvent(final Event event, final RoomState roomState) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-               for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onBackEvent(event, roomState);
                     } catch (Exception e) {
                     }
                 }
@@ -1322,6 +1183,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
+
+        // refresh the unread countres at the end of the process chunk
+        if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
+            mUpdatedRoomIdList.add(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1362,6 +1229,22 @@ public class MXDataHandler implements IMXEventListener {
                 for (IMXEventListener listener : eventListeners) {
                     try {
                         listener.onRoomSyncWithLimitedTimeline(roomId);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        });
+    }
+
+    public void onIgnoredUsersListUpdate() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
                     }
                 }

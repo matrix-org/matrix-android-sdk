@@ -27,4 +27,7 @@ public class Message {
 
     public String msgtype;
     public String body;
+
+    public String format;
+    public String formatted_body;
 }

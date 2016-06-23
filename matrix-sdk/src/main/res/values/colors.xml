@@ -13,6 +13,8 @@
 
     <color name="chat_gray_text">#FFAAAAAA</color>
 
+    <color name="markdown_code_background">#FFF7F7F7</color>
+
     <color name="presence_unknown">#aaa</color>
 
 </resources>
