@@ -84,9 +84,12 @@ import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -1407,7 +1410,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? message.formatted_body : null, mPattern);
+        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? getSanitisedHtml(message.formatted_body) : null, mPattern);
 
         int textColor;
 
@@ -2215,4 +2218,84 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    //================================================================================
+    // HTML management
+    //================================================================================
+
+    private HashMap<String, String> mHtmlMap = new HashMap<>();
+
+    /**
+     * Retrieves the sanitied html.
+     * @param html the html to sanitize
+     * @return the sanitised HTML
+     */
+    private String getSanitisedHtml(final String html) {
+        // sanity checks
+        if (TextUtils.isEmpty(html)) {
+            return null;
+        }
+
+        String res = mHtmlMap.get(html);
+
+        if (null == res) {
+            res = sanitiseHTML(html);
+            mHtmlMap.put(html, res);
+        }
+
+        return res;
+    }
+
+    private static final List<String> mAllowedHTMLTags = Arrays.asList(
+            "font", // custom to matrix for IRC-style font coloring
+            "del", // for markdown
+            // deliberately no h1/h2 to stop people shouting.
+            "h3", "h4", "h5", "h6", "blockquote", "p", "a", "ul", "ol",
+            "nl", "li", "b", "i", "u", "strong", "em", "strike", "code", "hr", "br", "div",
+            "table", "thead", "caption", "tbody", "tr", "th", "td", "pre");
+
+    private static Pattern mHtmlPatter =  Pattern.compile("<(\\w+)[^>]*>", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Sanitise the HTML.
+     * The matrix format does not allow the use some HTML tags.
+     * @param htmlString the html string
+     * @return the sanitised string.
+     */
+    public static String sanitiseHTML(final String htmlString) {
+        String html = htmlString;
+        Matcher matcher = mHtmlPatter.matcher(htmlString);
+
+        ArrayList<String> tagsToRemove = new ArrayList<>();
+
+        while (matcher.find()) {
+
+            try {
+                String tag = htmlString.substring(matcher.start(1), matcher.end(1));
+
+                // test if the tag is not allowed
+                if (mAllowedHTMLTags.indexOf(tag) < 0) {
+                    // add it once
+                    if (tagsToRemove.indexOf(tag) < 0) {
+                        tagsToRemove.add(tag);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "sanitiseHTML failed " + e.getLocalizedMessage());
+            }
+        }
+
+        // some tags to remove ?
+        if (tagsToRemove.size() > 0) {
+            // append the tags to remove
+            String tagsToRemoveString = tagsToRemove.get(0);
+
+            for (int i = 1; i < tagsToRemove.size(); i++) {
+                tagsToRemoveString += "|" + tagsToRemove.get(i);
+            }
+
+            html = html.replaceAll("<\\/?(" + tagsToRemoveString +")[^>]*>", "");
+        }
+
+        return html;
+    }
 }
