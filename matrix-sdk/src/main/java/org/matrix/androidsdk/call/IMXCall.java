@@ -250,4 +250,14 @@ public interface IMXCall {
      * Toogle the speaker
      */
     void toggleSpeaker();
+
+    /**
+     * @return the call start time in ms since epoch, -1 if not defined.
+     */
+    long getCallStartTime();
+
+    /**
+     * @return the call elapsed time in seconds, -1 if not defined.
+     */
+    long getCallElapsedTime();
 }

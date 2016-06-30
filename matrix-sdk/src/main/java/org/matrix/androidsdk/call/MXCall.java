@@ -54,6 +54,9 @@ public class MXCall implements IMXCall {
     protected Event mPendingEvent = null;
     protected Timer mCallTimeoutTimer = null;
 
+    // call start time
+    protected long mStartTime = -1;
+
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
 
@@ -257,6 +260,24 @@ public class MXCall implements IMXCall {
     }
 
     /**
+     * @return the call start time in ms since epoch, -1 if not defined.
+     */
+    public long getCallStartTime() {
+        return mStartTime;
+    }
+
+    /**
+     * @return the call elapsed time in seconds, -1 if not defined.
+     */
+    public long getCallElapsedTime() {
+        if (-1 == mStartTime) {
+            return -1;
+        }
+
+        return (System.currentTimeMillis() - mStartTime) / 1000;
+    }
+
+    /**
      * dispatch the onViewLoading callback
      * @param callView the callview
      */
@@ -319,6 +340,16 @@ public class MXCall implements IMXCall {
      */
     protected void onStateDidChange(String newState) {
         synchronized (LOG_TAG) {
+            // set the call start time
+            if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
+                mStartTime = System.currentTimeMillis();
+            }
+
+            //  the call is ended.
+            if (TextUtils.equals(CALL_STATE_ENDED, newState)) {
+                mStartTime = -1;
+            }
+
             for (MXCallListener listener : mxCallListeners) {
                 try {
                     listener.onStateDidChange(newState);
