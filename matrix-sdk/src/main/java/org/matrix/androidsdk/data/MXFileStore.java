@@ -622,19 +622,6 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
-        boolean isReplaced = super.updateEventContent(roomId, eventId, newContent);
-
-        if (isReplaced) {
-            if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
-                mRoomsToCommitForMessages.add(roomId);
-            }
-        }
-
-        return isReplaced;
-    }
-
-    @Override
     public void deleteEvent(Event event) {
         super.deleteEvent(event);
 

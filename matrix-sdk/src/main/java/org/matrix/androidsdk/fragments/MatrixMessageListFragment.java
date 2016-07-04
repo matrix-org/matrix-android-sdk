@@ -1796,8 +1796,25 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 @Override
                 public void run() {
                     if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
-                        mAdapter.removeEventById(event.getRedacts());
-                        mAdapter.notifyDataSetChanged();
+                        MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
+
+                        if (null != messageRow) {
+                            Event prunedEvent = mSession.getDataHandler().getStore().getEvent(event.getRedacts(), event.roomId);
+
+                            if (null == prunedEvent) {
+                                mAdapter.removeEventById(event.getRedacts());
+                            } else {
+                                messageRow.updateEvent(prunedEvent);
+                                JsonObject content = messageRow.getEvent().getContentAsJsonObject();
+
+                                // event is removed if it has no more content.
+                                if ((null == content) || (null == content.entrySet()) || (0 == content.entrySet().size())) {
+                                    mAdapter.removeEventById(event.getRedacts());
+                                }
+                            }
+
+                            mAdapter.notifyDataSetChanged();
+                        }
                     } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
                         if (null != mRoom) {
                             mAdapter.setTypingUsers(mRoom.getTypingUsers());

@@ -611,27 +611,6 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
-        if (null != roomId) {
-            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
-            if (events != null) {
-                Event eventToUpdate;
-
-                synchronized (mRoomEvents) {
-                    eventToUpdate = events.get(eventId);
-                }
-
-                if (eventToUpdate != null) {
-                    eventToUpdate.updateContent(newContent);
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    @Override
     public void flushSummary(RoomSummary summary) {
     }
 

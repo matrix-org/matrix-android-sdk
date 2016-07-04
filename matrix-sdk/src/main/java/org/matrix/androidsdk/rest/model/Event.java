@@ -15,24 +15,33 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.security.acl.LastOwnerException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
  * Generic event class with all possible fields for events.
  */
 public class Event implements java.io.Serializable {
+
+    private static final String LOG_TAG = "Event";
 
     public enum SentState {
         UNSENT,  // the event has not been sent
@@ -156,33 +165,56 @@ public class Event implements java.io.Serializable {
         mSentState = SentState.SENT;
     }
 
+    /**
+     * @return the sender
+     */
     public String getSender() {
         return (null == sender) ? userId : sender;
     }
 
+    /**
+     * Update the sender
+     * @param aSender the new sender
+     */
     public void setSender(String aSender) {
         sender = userId = aSender;
     }
 
+    /**
+     * Update the matrix Id.
+     * @param aMatrixId the new matrix id.
+     */
     public void setMatrixId(String aMatrixId) {
         mMatrixId = aMatrixId;
     }
 
+    /**
+     * @return the matrix id.
+     */
     public String getMatrixId() {
         return mMatrixId;
     }
 
     static final long MAX_ORIGIN_SERVER_TS = 1L << 50L;
 
+    /**
+     * @return true if originServerTs is valid.
+     */
     public boolean isValidOriginServerTs() {
-        long a = MAX_ORIGIN_SERVER_TS;
         return originServerTs < MAX_ORIGIN_SERVER_TS;
     }
 
+    /**
+     * @return the originServerTs.
+     */
     public long getOriginServerTs() {
         return originServerTs;
     }
 
+    /**
+     * Update the event content.
+     * @param newContent the new content.
+     */
     public void updateContent(JsonElement newContent) {
         content = newContent;
         contentAsString = null;
@@ -191,6 +223,9 @@ public class Event implements java.io.Serializable {
     static DateFormat mDateFormat = null;
     static long mFormatterRawOffset = 1234;
 
+    /**
+     * @return a formatted timestamp.
+     */
     public String formattedOriginServerTs() {
         // avoid displaying weird orign ts
         if (!isValidOriginServerTs()) {
@@ -207,10 +242,17 @@ public class Event implements java.io.Serializable {
         }
     }
 
+    /**
+     * Update the originServerTs.
+     * @param anOriginServer the new originServerTs.
+     */
     public void setOriginServerTs(long anOriginServer) {
         originServerTs = anOriginServer;
     }
 
+    /**
+     * @return the content casted as JsonObject.
+     */
     public JsonObject getContentAsJsonObject() {
         if ((null != content) && content.isJsonObject()) {
             return content.getAsJsonObject();
@@ -218,6 +260,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the prev_content casted as JsonObject.
+     */
     public JsonObject getPrevContentAsJsonObject() {
         if ((null != unsigned) && (null != unsigned.prev_content)) {
             // avoid getting two value for the same thing
@@ -233,6 +278,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the content formatted as EventContent.
+     */
     public EventContent getEventContent() {
         if (null != content) {
             return JsonUtils.toEventContent(content);
@@ -240,6 +288,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the content formatted as EventContent.
+     */
     public EventContent getPrevContent() {
         if (null != getPrevContentAsJsonObject()) {
             return JsonUtils.toEventContent(getPrevContentAsJsonObject());
@@ -247,6 +298,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the event age.
+     */
     public long getAge() {
         if (null != age) {
             return age;
@@ -259,6 +313,9 @@ public class Event implements java.io.Serializable {
         return Long.MAX_VALUE;
     }
 
+    /**
+     * @return the redacted event id.
+     */
     public String getRedacts() {
         if (null != redacts) {
             return redacts;
@@ -272,7 +329,6 @@ public class Event implements java.io.Serializable {
 
     /**
      * Create an event from a message.
-     *
      * @param message  the event content
      * @param anUserId the event user Id
      * @param aRoomId  the vent room Id
@@ -314,23 +370,39 @@ public class Event implements java.io.Serializable {
         age = Long.MAX_VALUE;
     }
 
+    /**
+     * @return true if the event is a dummy id i.e this event has been created with createDummyEventId.
+     */
     public boolean isDummyEvent() {
         return (roomId + "-" + originServerTs).equals(eventId);
     }
 
-    public void setIntenalPaginationToken(String token) {
+    /**
+     * Update the pagination token.
+     * @param token the new token.
+     */
+    public void setInternalPaginationToken(String token) {
         mToken = token;
         mIsInternalPaginationToken = true;
     }
 
-    public boolean isIntenalPaginationToken() {
+    /**
+     * @return true if the token has been set by setInternalPaginationToken.
+     */
+    public boolean isInternalPaginationToken() {
         return  mIsInternalPaginationToken;
     }
 
+    /**
+     * @return true if the event has a token.
+     */
     public boolean hasToken() {
         return (null != mToken) && !mIsInternalPaginationToken;
     }
 
+    /**
+     * @return true if the event if a call event.
+     */
     public boolean isCallEvent() {
         return  EVENT_TYPE_CALL_INVITE.equals(type) ||
                 EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
@@ -475,6 +547,9 @@ public class Event implements java.io.Serializable {
         return text;
     }
 
+    /**
+     * Init some internal fields to serialize the event.
+     */
     public void prepareSerialization() {
         if ((null != content) && (null == contentAsString)) {
             contentAsString = content.toString();
@@ -489,11 +564,15 @@ public class Event implements java.io.Serializable {
         }
     }
 
+    /**
+     * Deserialize the event.
+     */
     public void finalizeDeserialization() {
         if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getLocalizedMessage());
             }
         }
 
@@ -501,7 +580,80 @@ public class Event implements java.io.Serializable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getLocalizedMessage());
             }
         }
+    }
+
+    /**
+     * Filter a JsonObject to keep only the allowed keys.
+     * @param aContent the JsonObject to filter.
+     * @param allowedKeys the allowed keys list.
+     * @return the filtered JsonObject
+     */
+    private static JsonObject filterInContentWithKeys(JsonObject aContent, ArrayList<String> allowedKeys) {
+        // sanity check
+        if (null == aContent) {
+            return null;
+        }
+
+        JsonObject filteredContent = new JsonObject();
+
+        // remove any key
+        if ((null == allowedKeys) || (0 == allowedKeys.size())) {
+            return new JsonObject();
+        }
+
+        Set<Map.Entry<String, JsonElement>> entries = aContent.entrySet();
+
+        if (null != entries) {
+            for(Map.Entry<String, JsonElement> entry : entries) {
+                if (allowedKeys.indexOf(entry.getKey()) >= 0) {
+                    filteredContent.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        return filteredContent;
+    }
+
+    /**
+     Prune the event which removes all keys we don't know about or think could potentially be dodgy.
+     This is used when we "redact" an event. We want to remove all fields that the user has specified,
+     but we do want to keep necessary information like type, state_key etc.
+     */
+    public void prune() {
+        // Filter in event by keeping only the following keys
+        ArrayList<String> allowedKeys;
+
+        // Add filtered content, allowed keys in content depends on the event type
+        if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("membership"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("creator"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("join_rule"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("users",
+            "users_default",
+            "events",
+            "events_default",
+            "state_default",
+            "ban",
+            "kick",
+            "redact",
+            "invite"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("aliases"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("alias"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_FEEDBACK, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("type", "target_event_id"));
+        } else {
+            allowedKeys = null;
+        }
+
+        this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
+        this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
     }
 }

@@ -110,7 +110,7 @@ public class EventTimeline {
     /**
      * The associated room.
      */
-    private Room mRoom;
+    private final Room mRoom;
 
     /**
      * the room Id
@@ -120,7 +120,7 @@ public class EventTimeline {
     /**
      * The store.
      */
-    public IMXStore mStore;
+    private IMXStore mStore;
 
     /**
      * MXStore does only back pagination. So, the forward pagination token for
@@ -137,18 +137,18 @@ public class EventTimeline {
     /**
      * Pending request statuses
      */
-    public boolean mIsBackPaginating = false;
-    public boolean mIsForewardPaginating = false;
+    private boolean mIsBackPaginating = false;
+    private boolean mIsForwardPaginating = false;
 
     /**
      * true if the back history has been retrieved.
      */
-    public boolean mCanBackPaginate = true;
+    private boolean mCanBackPaginate = true;
 
     /**
      * true if the last back chunck has been received
      */
-    public boolean mIsLastBackChunk;
+    private boolean mIsLastBackChunk;
 
     /**
      * the server provides a token even for the first room message (which should never change it is the creator message).
@@ -251,7 +251,7 @@ public class EventTimeline {
         mCanBackPaginate = true;
 
         mIsBackPaginating = false;
-        mIsForewardPaginating = false;
+        mIsForwardPaginating = false;
 
         // sanity check
         if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
@@ -275,15 +275,14 @@ public class EventTimeline {
     }
 
     /**
-     * Make a
-     * @param direction
-     * @return
+     * Make a deep copy or the dedicated state.
+     * @param direction the room state direction to deep copy.
      */
-    public RoomState deepCopyState(Direction direction) {
+    private void deepCopyState(Direction direction) {
         if (direction == Direction.FORWARDS) {
-            return (mState = mState.deepCopy());
+            mState = mState.deepCopy();
         } else {
-            return (mBackState = mBackState.deepCopy());
+            mBackState = mBackState.deepCopy();
         }
     }
 
@@ -293,7 +292,7 @@ public class EventTimeline {
      * @param direction the direction; ie. forwards for live state, backwards for back state
      * @return true if the event has been processed.
      */
-    public boolean processStateEvent(Event event, Direction direction) {
+    private boolean processStateEvent(Event event, Direction direction) {
         RoomState affectedState = (direction ==  Direction.FORWARDS) ? mState : mBackState;
         boolean isProcessed = affectedState.applyState(event, direction);
 
@@ -498,7 +497,7 @@ public class EventTimeline {
                     }
                     // try to build a summary from the state events
                     else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-                        ArrayList<Event> events = new ArrayList<Event>(roomSync.state.events);
+                        ArrayList<Event> events = new ArrayList<>(roomSync.state.events);
 
                         Collections.reverse(events);
 
@@ -598,18 +597,26 @@ public class EventTimeline {
 
         if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
             if (event.getRedacts() != null) {
-                mStore.updateEventContent(event.roomId, event.getRedacts(), event.getContentAsJsonObject());
+                Event eventToPrune = mStore.getEvent(event.getRedacts(), event.roomId);
 
-                // search the latest displayable event
-                // to replace the summary text
-                ArrayList<Event> events = new ArrayList<Event>(mStore.getRoomMessages(event.roomId));
-                for(int index = events.size() - 1; index >= 0; index--) {
-                    Event anEvent = events.get(index);
+                // when an event is redacted, some fields must be kept.
+                if (null != eventToPrune) {
+                    store = true;
 
-                    if (RoomSummary.isSupportedEvent(anEvent)) {
-                        store = true;
-                        event = anEvent;
-                        break;
+                    // remove expected keys
+                    eventToPrune.prune();
+                    storeEvent(eventToPrune);
+
+                    // search the latest displayable event
+                    // to replace the summary text
+                    ArrayList<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
+                    for (int index = events.size() - 1; index >= 0; index--) {
+                        Event anEvent = events.get(index);
+
+                        if (RoomSummary.isSupportedEvent(anEvent)) {
+                            event = anEvent;
+                            break;
+                        }
                     }
                 }
             }
@@ -817,8 +824,8 @@ public class EventTimeline {
     // the storage events are buffered to provide a small bunch of events
     // the storage can provide a big bunch which slows down the UI.
     public class SnapshotedEvent {
-        public Event mEvent;
-        public RoomState mState;
+        public final Event mEvent;
+        public final RoomState mState;
 
         public SnapshotedEvent(Event event, RoomState state) {
             mEvent = event;
@@ -828,7 +835,7 @@ public class EventTimeline {
 
     // avoid adding to many events
     // the room history request can provide more than exxpected event.
-    private ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<SnapshotedEvent>();
+    private final ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<>();
 
     /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
@@ -1068,12 +1075,12 @@ public class EventTimeline {
             return false;
         }
 
-        if (mIsForewardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
-            Log.d(LOG_TAG, "forwardPaginate " + mIsForewardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
+        if (mIsForwardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
+            Log.d(LOG_TAG, "forwardPaginate " + mIsForwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
             return false;
         }
 
-        mIsForewardPaginating = true;
+        mIsForwardPaginating = true;
 
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
@@ -1086,7 +1093,7 @@ public class EventTimeline {
 
                     addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
 
-                    mIsForewardPaginating = false;
+                    mIsForwardPaginating = false;
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
                 }
@@ -1094,7 +1101,7 @@ public class EventTimeline {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                mIsForewardPaginating = false;
+                mIsForwardPaginating = false;
                 if (null != callback) {
                     callback.onMatrixError(e);
                 } else {
@@ -1104,7 +1111,7 @@ public class EventTimeline {
 
             @Override
             public void onNetworkError(Exception e) {
-                mIsForewardPaginating = false;
+                mIsForwardPaginating = false;
                 if (null != callback) {
                     callback.onNetworkError(e);
                 } else {
@@ -1114,7 +1121,7 @@ public class EventTimeline {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                mIsForewardPaginating = false;
+                mIsForwardPaginating = false;
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 } else {
@@ -1127,9 +1134,9 @@ public class EventTimeline {
     }
 
     /**
-     *
-     * @param direction
-     * @param callback
+     * Trigger a pagination in the expected direction.
+     * @param direction the direction.
+     * @param callback the callback.
      * @return true if the operation succeeds
      */
     public boolean paginate(Direction direction, final ApiCallback<Integer> callback) {
@@ -1146,7 +1153,7 @@ public class EventTimeline {
     public void cancelPaginationRequest() {
         mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         mIsBackPaginating = false;
-        mIsForewardPaginating = false;
+        mIsForwardPaginating = false;
     }
 
     //==============================================================================================================
@@ -1255,7 +1262,7 @@ public class EventTimeline {
     // onEvent listener management.
     //==============================================================================================================
 
-    private ArrayList<EventTimelineListener> mEventTimelineListeners = new ArrayList<EventTimelineListener>();
+    private final ArrayList<EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
 
     /**
      * Add an events listener.
@@ -1293,7 +1300,7 @@ public class EventTimeline {
         ArrayList<EventTimelineListener> listeners;
 
         synchronized (this) {
-            listeners = new ArrayList<EventTimelineListener>(mEventTimelineListeners);
+            listeners = new ArrayList<>(mEventTimelineListeners);
         }
 
         for(EventTimelineListener listener : listeners) {
@@ -1304,6 +1311,4 @@ public class EventTimeline {
             }
         }
     }
-
-
 }

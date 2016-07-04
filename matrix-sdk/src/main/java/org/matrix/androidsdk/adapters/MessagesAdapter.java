@@ -525,6 +525,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Provides the messageRow from an event Id.
+     * @param eventId the event Id.
+     * @return the message row.
+     */
+    public MessageRow getMessageRow(String eventId) {
+        if (null != eventId) {
+            return mEventRowMap.get(eventId);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Remove an event by an eventId
      * @param eventId
      */

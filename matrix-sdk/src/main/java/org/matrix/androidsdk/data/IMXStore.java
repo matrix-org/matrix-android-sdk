@@ -238,15 +238,6 @@ public interface IMXStore {
      */
     int eventsCountAfter(String roomId, String eventId);
 
-    /**
-     * Update an existing event. If the event is not stored, nothing is done.
-     * @param roomId the event's room id
-     * @param eventId the event's event id
-     * @param newContent the new content
-     * @return true if the event has been successfully replaced.
-     */
-    boolean updateEventContent(String roomId, String eventId, JsonObject newContent);
-
     // Design note: This is part of the store interface so the concrete implementation can leverage
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
     //              compared to calling getRooms() then getRoomEvents(roomId, limit=1) for each room
