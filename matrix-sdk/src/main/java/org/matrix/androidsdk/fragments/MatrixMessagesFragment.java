@@ -519,6 +519,18 @@ public class MatrixMessagesFragment extends Fragment {
     //==============================================================================================================
 
     /**
+     * Tells if a back pagination can be done.
+     * @return true if a back pagination can be done.
+     */
+    public boolean canBackPaginate() {
+        if (null != mEventTimeline) {
+            return mEventTimeline.canBackPaginate();
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Request earlier messages in this room.
      * @param callback the callback
      * @return true if the request is really started

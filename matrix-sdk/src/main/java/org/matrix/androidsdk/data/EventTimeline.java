@@ -732,10 +732,10 @@ public class EventTimeline {
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
 
-                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
+                    Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
 
                 } else {
-                    Log.e(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                    Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
                 }
 
                 return;
@@ -929,6 +929,17 @@ public class EventTimeline {
     }
 
     /**
+     * Tells if a back pagination can be triggered.
+     * @return true if a back pagination can be triggered.
+     */
+    public boolean canBackPaginate() {
+        return !mIsBackPaginating && // One at a time please
+                mState.canBackPaginated(mDataHandler.getUserId()) && // history_visibility flag management
+                mCanBackPaginate && // If we have already reached the end of history
+                mRoom.isReady(); // If the room is not finished being set up
+    }
+
+    /**
      * Request older messages. They will come down the onBackEvent callback.
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
@@ -936,13 +947,8 @@ public class EventTimeline {
     public boolean backPaginate(final ApiCallback<Integer> callback) {
         final String myUserId = mDataHandler.getUserId();
 
-        if (mIsBackPaginating // One at a time please
-                || !mState.canBackPaginated(myUserId) // history_visibility flag management
-                || !mCanBackPaginate // If we have already reached the end of history
-                || !mRoom.isReady()) { // If the room is not finished being set up
-
+        if (!canBackPaginate()) {
             Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginated(myUserId) + " " + !mCanBackPaginate + " " + !mRoom.isReady());
-
             return false;
         }
 

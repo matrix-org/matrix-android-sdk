@@ -126,7 +126,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         args.putString(ARG_MATRIX_ID, matrixId);
         return f;
     }
-
+    
     private MatrixMessagesFragment mMatrixMessagesFragment;
     protected MessagesAdapter mAdapter;
     public ListView mMessageListView;
@@ -1686,9 +1686,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Log.d(LOG_TAG, "backPaginate : ends with " + countDiff + " new items (total : " + mAdapter.getCount() + ")");
 
                         // check if some messages have been added
-                        // do not refresh the UI if no message have been added
                         if (0 != countDiff) {
-
                             mAdapter.notifyDataSetChanged();
 
                             // trick to avoid that the list jump to the latest item.
@@ -1707,6 +1705,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             } else {
                                 mMessageListView.setSelectionFromTop(expectedPos, -mFirstVisibleRowY);
                             }
+                        }
+
+                        // Test if a back pagination can be done.
+                        // countDiff == 0 is not relevant
+                        // because the server can return an empty chunk
+                        // but the start and the end tokens are not equal.
+                        // It seems often happening with the room visibility feature
+                        if (mMatrixMessagesFragment.canBackPaginate()) {
+                            Log.d(LOG_TAG, "backPaginate again");
 
                             mMessageListView.post(new Runnable() {
                                 @Override
@@ -1734,8 +1741,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     });
                                 }
                             });
-
                         } else {
+                            Log.d(LOG_TAG, "no more backPaginate");
                             hideLoadingBackProgress();
                             mIsBackPaginating = false;
                             mLockFwdPagination = false;
