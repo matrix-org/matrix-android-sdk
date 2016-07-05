@@ -49,6 +49,7 @@ public class PieFractionView extends View {
         return getResources().getColor(R.color.pie_fraction_rest);
     }
 
+    @SuppressWarnings("ResourceType")
     public PieFractionView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
