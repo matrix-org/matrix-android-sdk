@@ -377,7 +377,9 @@ public class EventDisplay {
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 return context.getString(R.string.notice_room_leave, senderDisplayName);
             } else if (null != prevMembership) {
-                if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                if (prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return context.getString(R.string.notice_room_withdraw, senderDisplayName, targetDisplayName);
+                } else if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN)) {
                     return context.getString(R.string.notice_room_kick, senderDisplayName, targetDisplayName);
                 } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
                     return context.getString(R.string.notice_room_unban, senderDisplayName, targetDisplayName);
