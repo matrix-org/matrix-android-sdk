@@ -27,7 +27,6 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -39,7 +38,6 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
@@ -55,7 +53,6 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +62,6 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.annotations.Until;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -85,10 +81,10 @@ public class MXDataHandler implements IMXEventListener {
         void onTokenCorrupted();
     }
 
-    private List<IMXEventListener> mEventListeners = new ArrayList<IMXEventListener>();
+    private final List<IMXEventListener> mEventListeners = new ArrayList<>();
 
-    private IMXStore mStore;
-    private Credentials mCredentials;
+    private final IMXStore mStore;
+    private final Credentials mCredentials;
     private volatile boolean mInitialSyncComplete = false;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
@@ -102,8 +98,8 @@ public class MXDataHandler implements IMXEventListener {
     private MyUser mMyUser;
 
     private HandlerThread mSyncHandlerThread;
-    private Handler mSyncHandler;
-    private Handler mUiHandler;
+    private final Handler mSyncHandler;
+    private final Handler mUiHandler;
 
     // list of ignored users
     // null -> not initialized
@@ -112,7 +108,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private boolean mIsAlive = true;
 
-    InvalidTokenListener mInvalidTokenListener;
+    private final InvalidTokenListener mInvalidTokenListener;
 
     /**
      * Default constructor.
@@ -176,12 +172,17 @@ public class MXDataHandler implements IMXEventListener {
 
         // avoid the null case
         if (null == mIgnoredUserIdsList) {
-            mIgnoredUserIdsList = new ArrayList<String>();
+            mIgnoredUserIdsList = new ArrayList<>();
         }
 
         return mIgnoredUserIdsList;
     }
 
+    /**
+     * Test if the current instance is still active.
+     * When the session is closed, many objects keep a reference to this class
+     * to dispatch events : isAlive() should be called before calling a method of this class.
+     */
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAlive) {
@@ -191,6 +192,12 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * Tell if the current instance is still active.
+     * When the session is closed, many objects keep a reference to this class
+     * to dispatch events : isAlive() should be called before calling a method of this class.
+     * @return true if it is active.
+     */
     public boolean isAlive() {
         synchronized (this) {
             return mIsAlive;
@@ -260,16 +267,27 @@ public class MXDataHandler implements IMXEventListener {
         return mInitialSyncComplete;
     }
 
+    /**
+     * @return the DataRetriever.
+     */
     public DataRetriever getDataRetriever() {
         checkIfAlive();
         return mDataRetriever;
     }
 
+    /**
+     * Update the dataRetriever.
+     * @param dataRetriever the dataRetriever.
+     */
     public void setDataRetriever(DataRetriever dataRetriever) {
         checkIfAlive();
         mDataRetriever = dataRetriever;
     }
 
+    /**
+     * Update the push rules manager.
+     * @param bingRulesManager the new push rules manager.
+     */
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         if (isAlive()) {
             mBingRulesManager = bingRulesManager;
@@ -283,16 +301,26 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * Update the calls manager.
+     * @param callsManager the new calls manager.
+     */
     public void setCallsManager(MXCallsManager callsManager) {
         checkIfAlive();
         mCallsManager = callsManager;
     }
 
+    /**
+     * @return the user calls manager.
+     */
     public MXCallsManager getCallsManager() {
         checkIfAlive();
         return mCallsManager;
     }
 
+    /**
+     * @return the used push rules set.
+     */
     public BingRuleSet pushRules() {
         if (isAlive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
@@ -301,6 +329,9 @@ public class MXDataHandler implements IMXEventListener {
         return null;
     }
 
+    /**
+     * Trigger a push rules refresh.
+     */
     public void refreshPushRules() {
         if (isAlive() && (null != mBingRulesManager)) {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
@@ -312,11 +343,18 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * @return the used BingRulesManager.
+     */
     public BingRulesManager getBingRulesManager() {
         checkIfAlive();
         return mBingRulesManager;
     }
 
+    /**
+     * Add a listener to the listeners list.
+     * @param listener the listener to add.
+     */
     public void addListener(IMXEventListener listener) {
         if (isAlive()) {
             synchronized (this) {
@@ -332,6 +370,10 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * Remove a listener from the listeners list.
+     * @param listener to remove.
+     */
     public void removeListener(IMXEventListener listener) {
         if (isAlive()) {
             synchronized (this) {
@@ -340,6 +382,9 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * Clear the instance data.
+     */
     public void clear() {
         synchronized (this) {
             mIsAlive = false;
@@ -357,6 +402,9 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * @return the current user id.
+     */
     public String getUserId() {
         if (isAlive()) {
             return mCredentials.userId;
@@ -639,8 +687,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Refresh the push rules from the acccount data events list
-     * @param events
+     * Refresh the push rules from the account data events list
+     * @param events the account data events.
      */
     private void managePushRulesUpdate(List<Map<String, Object>> events) {
         for (Map<String, Object> event : events) {
@@ -681,7 +729,7 @@ public class MXDataHandler implements IMXEventListener {
             // the both lists are not empty
             if ((0 != newIgnoredUsers.size()) || (0 != curIgnoredUsers.size())) {
                 // check if the ignored users list has been updated
-                if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.contains(curIgnoredUsers)) {
+                if ((newIgnoredUsers.size() != curIgnoredUsers.size()) || !newIgnoredUsers.containsAll(curIgnoredUsers)) {
                     // update the store
                     mStore.setIgnoredUserIdsList(newIgnoredUsers);
                     mIgnoredUserIdsList = newIgnoredUsers;
@@ -716,7 +764,7 @@ public class MXDataHandler implements IMXEventListener {
                             Map<String, Object> ignored_users = (Map<String, Object>) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS);
 
                             if (null != ignored_users) {
-                                ignoredUsers = new ArrayList<String>(ignored_users.keySet());
+                                ignoredUsers = new ArrayList<>(ignored_users.keySet());
                             }
                         }
                     }
@@ -732,7 +780,11 @@ public class MXDataHandler implements IMXEventListener {
     // Sync V2
     //================================================================================
 
-    public void handlePresenceEvent(Event presenceEvent) {
+    /**
+     * Handle a presence event.
+     * @param presenceEvent teh presence event.
+     */
+    private void handlePresenceEvent(Event presenceEvent) {
         // Presence event
         if (Event.EVENT_TYPE_PRESENCE.equals(presenceEvent.type)) {
             User userPresence = JsonUtils.toUser(presenceEvent.content);
@@ -746,7 +798,6 @@ public class MXDataHandler implements IMXEventListener {
 
             if (user == null) {
                 user = userPresence;
-                user.lastActiveReceived();
                 user.setDataHandler(this);
                 mStore.storeUser(user);
             }
@@ -754,8 +805,9 @@ public class MXDataHandler implements IMXEventListener {
                 user.currently_active = userPresence.currently_active;
                 user.presence = userPresence.presence;
                 user.lastActiveAgo = userPresence.lastActiveAgo;
-                user.lastActiveReceived();
             }
+
+            user.setLatestPresenceTs(System.currentTimeMillis());
 
             // check if the current user has been updated
             if (mCredentials.userId.equals(user.user_id)) {
@@ -771,7 +823,12 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    public void onSyncReponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    /**
+     * Manage a syncResponse.
+     * @param syncResponse the syncResponse to manage.
+     * @param isInitialSync  true if the sync response if an initial sync one.
+     */
+    public void onSyncResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
@@ -782,6 +839,11 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
+    /**
+     * Manage the sync response in the UI thread.
+     * @param syncResponse the syncResponse to manage.
+     * @param isInitialSync  true if the sync response if an initial sync one.
+     */
     private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
         boolean isEmptyResponse = true;
 
@@ -907,17 +969,22 @@ public class MXDataHandler implements IMXEventListener {
     // Listeners management
     //================================================================================
 
-    // Proxy IMXEventListener callbacks to everything in mEventListeners
-    List<IMXEventListener> getListenersSnapshot() {
+    /**
+     * @return the current MXEvents listeners .
+     */
+    private List<IMXEventListener> getListenersSnapshot() {
         ArrayList<IMXEventListener> eventListeners;
 
         synchronized (this) {
-            eventListeners = new ArrayList<IMXEventListener>(mEventListeners);
+            eventListeners = new ArrayList<>(mEventListeners);
         }
 
         return eventListeners;
     }
 
+    /**
+     * Dispatch that the store is ready.
+     */
     public void onStoreReady() {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -928,6 +995,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onStoreReady();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onStoreReady " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -945,6 +1013,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onAccountInfoUpdate(myUser);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -962,13 +1031,18 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onPresenceUpdate(event, user);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
-    private ArrayList<String> mUpdatedRoomIdList = new ArrayList<String>();
+    /**
+     * Stored the room id of the rooms which have received some events
+     * which imply an unread messages counter refresh.
+     */
+    private final ArrayList<String> mUpdatedRoomIdList = new ArrayList<>();
 
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
@@ -988,6 +1062,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLiveEvent(event, roomState);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLiveEvent " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1007,6 +1082,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLiveEventsChunkProcessed();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1024,6 +1100,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingEvent(event, roomState, bingRule);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onBingEvent " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1041,6 +1118,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onSentEvent(event);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onSentEvent " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1058,6 +1136,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onFailedSendingEvent(event);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onFailedSendingEvent " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1075,6 +1154,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingRulesUpdate();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getLocalizedMessage());
                     }
                 }
             }
@@ -1096,12 +1176,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onInitialSyncComplete();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onNewRoom(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1112,12 +1194,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onNewRoom(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNewRoom " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onJoinRoom(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1128,12 +1212,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onJoinRoom(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onJoinRoom " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onRoomInitialSyncComplete(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1144,12 +1230,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInitialSyncComplete(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onRoomInternalUpdate(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1160,12 +1248,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onLeaveRoom(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1176,15 +1266,16 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLeaveRoom(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLeaveRoom " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
-
-        // refresh the unread countres at the end of the process chunk
+        // refresh the unread countries at the end of the process chunk
         if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
             mUpdatedRoomIdList.add(roomId);
         }
@@ -1198,12 +1289,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReceiptEvent " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onRoomTagEvent(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1214,12 +1307,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onRoomSyncWithLimitedTimeline(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1230,12 +1325,14 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomSyncWithLimitedTimeline(roomId);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline " + e.getLocalizedMessage());
                     }
                 }
             }
         });
     }
 
+    @Override
     public void onIgnoredUsersListUpdate() {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
@@ -1246,6 +1343,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getLocalizedMessage());
                     }
                 }
             }

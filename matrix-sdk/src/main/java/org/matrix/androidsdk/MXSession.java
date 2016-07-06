@@ -290,7 +290,7 @@ public class MXSession {
                     currentUser = user;
                 }
 
-                currentUser.lastActiveReceived();
+                currentUser.setLatestPresenceTs(System.currentTimeMillis());
                 mDataHandler.getStore().storeUser(currentUser);
                 if (null != callback) {
                     callback.onSuccess(null);
