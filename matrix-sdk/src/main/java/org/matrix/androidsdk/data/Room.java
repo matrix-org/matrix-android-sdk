@@ -600,7 +600,7 @@ public class Room {
      * @param callback the async callback
      */
     public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 getState().name = name;
@@ -684,6 +684,46 @@ public class Room {
             @Override
             public void onSuccess(Void info) {
                 getState().roomAliasName = canonicalAlias;
+                mStore.storeLiveStateForRoom(getRoomId());
+
+                if (null != callback) {
+                    callback.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Update the room's aliases.
+     * @param aliases the room aliases
+     * @param callback the async callback
+     */
+    public void updateAliases(final List<String> aliases, final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateAliases(getRoomId(), aliases, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getState().aliases = aliases;
                 mStore.storeLiveStateForRoom(getRoomId());
 
                 if (null != callback) {

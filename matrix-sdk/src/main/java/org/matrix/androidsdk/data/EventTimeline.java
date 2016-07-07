@@ -1179,7 +1179,7 @@ public class EventTimeline {
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().contextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
             public void onSuccess(EventContext eventContext) {
                 // And fill the timelime with received data
