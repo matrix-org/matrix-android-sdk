@@ -49,7 +49,6 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
-import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
@@ -61,7 +60,6 @@ import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.w3c.dom.Text;
 
 import java.io.File;
 
@@ -110,7 +108,7 @@ public class Room {
     // initial sync callback.
     private ApiCallback<Void> mOnInitialSyncCallback;
 
-    // gson parszer
+    // gson parser
     private final Gson gson = new GsonBuilder().create();
 
     // This is used to block live events and history requests until the state is fully processed and ready
@@ -585,6 +583,52 @@ public class Room {
     //================================================================================
 
     /**
+     * This class dispatches the error to the dedicated callbacks.
+     * If the operation succeeds, the room state is saved because calling the callback.
+     */
+    private class RoomInfoUpdateCallback<T> implements ApiCallback<T> {
+
+        private ApiCallback<T> mCallback;
+
+        /**
+         * Constructor
+         */
+        public RoomInfoUpdateCallback(ApiCallback<T> callback) {
+            mCallback = callback;
+        }
+
+        @Override
+        public void onSuccess(T info) {
+            mStore.storeLiveStateForRoom(getRoomId());
+
+            if (null != mCallback) {
+                mCallback.onSuccess(info);
+            }
+        }
+
+        @Override
+        public void onNetworkError(Exception e) {
+            if (null != mCallback) {
+                mCallback.onNetworkError(e);
+            }
+        }
+
+        @Override
+        public void onMatrixError(final MatrixError e) {
+            if (null != mCallback) {
+                mCallback.onMatrixError(e);
+            }
+        }
+
+        @Override
+        public void onUnexpectedError(final Exception e) {
+            if (null != mCallback) {
+                mCallback.onUnexpectedError(e);
+            }
+        }
+    }
+
+    /**
      * Update the power level of the user userId
      * @param userId the user id
      * @param powerLevel the new power level
@@ -602,36 +646,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().name = name;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -642,36 +661,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String topic, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().topic = topic;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -682,42 +676,19 @@ public class Room {
      * @param callback the async callback
      */
     public void updateCanonicalAlias(final String canonicalAlias, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().roomAliasName = canonicalAlias;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
 
     /**
-     * @return the room aliases, it is never null.
+     * Provides the room aliases list.
+     * The result is never null.
+     * @return the room aliases list.
      */
     public List<String> getAliases() {
         if (null == getLiveState().aliases) {
@@ -743,7 +714,16 @@ public class Room {
             return;
         }
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
+            @Override
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.remove(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
+            }
+        });
     }
 
     /**
@@ -762,7 +742,16 @@ public class Room {
             return;
         }
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
+            @Override
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.add(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
+            }
+        });
     }
 
     /**
@@ -796,36 +785,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().url = avatarUrl;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -836,76 +800,26 @@ public class Room {
      * @param callback the async callback
      */
     public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().history_visibility = historyVisibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
 
     /**
-     * Update the room's visibility
+     * Update the directory's visibility
      * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
      * @param callback the async callback
      */
     public void updateDirectoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -963,36 +877,11 @@ public class Room {
      * @param aCallBackResp the async callback
      */
     public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new RoomInfoUpdateCallback<Void>(aCallBackResp) {
             @Override
             public void onSuccess(Void info) {
                 getState().join_rule = aRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != aCallBackResp) {
-                    aCallBackResp.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -1004,36 +893,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateGuestAccess(final String aGuestAccessRule, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule,new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().guest_access = aGuestAccessRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -1903,7 +1767,7 @@ public class Room {
      */
     public void removeEventListener(IMXEventListener eventListener) {
         // sanity check
-        if ((null != eventListener) && (null != mDataHandler) && (null != mEventListeners)) {
+        if ((null != eventListener) && (null != mDataHandler)) {
             mDataHandler.removeListener(mEventListeners.get(eventListener));
             mEventListeners.remove(eventListener);
         }
