@@ -67,6 +67,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -116,6 +117,15 @@ public class MXSession {
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
     private boolean mIsCatchupPending = false;
+
+    // regex pattern to test if a string is a valid matrix user id.
+    public static final Pattern PATTERN_MATRIX_USER_IDENTIFIER =  Pattern.compile("^@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid room alias.
+    public static final Pattern PATTERN_MATRIX_ALIAS =  Pattern.compile("^#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid matrix id.
+    public static final Pattern PATTERN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("^![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a basic session for direct API calls.
