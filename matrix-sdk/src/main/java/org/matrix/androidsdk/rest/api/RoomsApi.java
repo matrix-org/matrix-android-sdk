@@ -321,6 +321,23 @@ public interface RoomsApi {
     @GET("/directory/room/{roomAlias}")
     void getRoomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
 
+     /**
+     * Set the room ID corresponding to this room alias..
+     * @param roomAlias the room alias.
+     * @param description the alias description
+     * @param callback the asynchronous callback called with the response
+     */
+    @PUT("/directory/room/{roomAlias}")
+    void setRoomIdByAlias(@Path("roomAlias") String roomAlias, @Body RoomAliasDescription description, Callback<Void> callback);
+
+    /**
+     * Get the room ID corresponding to this room alias..
+     * @param roomAlias the room alias.
+     * @param callback the asynchronous callback called with the response
+     */
+    @DELETE("/directory/room/{roomAlias}")
+    void removeRoomAlias(@Path("roomAlias") String roomAlias, Callback<Void> callback);
+
     /**
      * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
      * name is listed among the directory list.

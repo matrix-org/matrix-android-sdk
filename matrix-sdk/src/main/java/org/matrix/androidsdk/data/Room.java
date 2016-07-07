@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
@@ -60,6 +61,7 @@ import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.w3c.dom.Text;
 
 import java.io.File;
 
@@ -715,43 +717,52 @@ public class Room {
     }
 
     /**
-     * Update the room's aliases.
-     * @param aliases the room aliases
-     * @param callback the async callback
+     * @return the room aliases, it is never null.
      */
-    public void updateAliases(final List<String> aliases, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateAliases(getRoomId(), aliases, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                getState().aliases = aliases;
-                mStore.storeLiveStateForRoom(getRoomId());
+    public List<String> getAliases() {
+        if (null == getLiveState().aliases) {
+            return new ArrayList<>();
+        } else {
+            return getLiveState().aliases;
+        }
+    }
 
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
+    /**
+     * Remove a room alias.
+     * @param alias the alias to remove
+     * @param callback the the async callback
+     */
+    public void removeAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) < 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
             }
+            return;
+        }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
+        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, callback);
+    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+    /**
+     * Try to add an alias to the aliases list.
+     * @param alias the alias to add.
+     * @param callback the the async callback
+     */
+    public void addAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) >= 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
             }
-        });
+            return;
+        }
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, callback);
     }
 
     /**

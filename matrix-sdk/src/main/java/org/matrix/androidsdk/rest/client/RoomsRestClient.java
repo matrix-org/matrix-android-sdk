@@ -741,18 +741,62 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Get the room ID corresponding to this room alias.
      * @param roomAlias the room alias.
-     * @param callback the room alias description
+     * @param callback the operation callback
      */
-    public void roomIdByAlias(final String roomAlias, final ApiCallback<RoomAliasDescription> callback) {
+    public void getRoomIdByAlias(final String roomAlias, final ApiCallback<RoomAliasDescription> callback) {
         final String description = "roomIdByAlias : "+ roomAlias;
 
         mApi.getRoomIdByAlias(roomAlias, new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    roomIdByAlias(roomAlias, callback);
+                    getRoomIdByAlias(roomAlias, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend roomIdByAlias : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Set the room ID corresponding to a room alias.
+     * @param roomId the room id.
+     * @param roomAlias the room alias.
+     * @param callback the operation callback
+     */
+    public void setRoomIdByAlias(final String roomId, final String roomAlias, final ApiCallback<Void> callback) {
+        final String description = "setRoomIdByAlias : roomAlias " + roomAlias + " - roomId : " + roomId;
+
+        RoomAliasDescription roomAliasDescription = new RoomAliasDescription();
+        roomAliasDescription.room_id = roomId;
+
+        mApi.setRoomIdByAlias(roomAlias, roomAliasDescription, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    setRoomIdByAlias(roomId, roomAlias, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend setRoomIdByAlias : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Remove the room alias.
+     * @param roomAlias the room alias.
+     * @param callback the room alias description
+     */
+    public void removeRoomAlias(final String roomAlias, final ApiCallback<Void> callback) {
+        final String description = "removeRoomAlias : "+ roomAlias;
+
+        mApi.removeRoomAlias(roomAlias, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    removeRoomAlias(roomAlias, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend removeRoomAlias : failed " + e.getMessage());
                 }
             }
         }));

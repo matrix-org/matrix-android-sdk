@@ -600,7 +600,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             });
         } else {
-            mRoomsRestClient.roomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
+            mRoomsRestClient.getRoomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
                 @Override
                 public void onSuccess(RoomAliasDescription info) {
                     callback.onSuccess(info.room_id);
