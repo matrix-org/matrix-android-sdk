@@ -60,7 +60,7 @@ public interface RoomsApi {
               Callback<Event> callback);
 
     /**
-     * Send a message for the specified room.
+     * Send a message to the specified room.
      * @param txId the transactionId
      * @param roomId the room id
      * @param message the message
@@ -151,7 +151,7 @@ public interface RoomsApi {
     void invite(@Path("roomId") String roomId, @Body User user, Callback<Void> callback);
 
     /**
-     * Trigger an invitation from a parameters set.
+     * Trigger an invitation with a parameters set.
      * @param roomId the room id
      * @param params the parameters
      * @param callback the asynchronous callback called when finished
@@ -168,7 +168,7 @@ public interface RoomsApi {
     void join(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
-     * Join the room with the given alias.
+     * Join the room with a room id or an alias.
      * @param roomAliasOrId a room alias (or room id)
      * @param params the extra join param
      * @param callback the asynchronous callback called with the response
@@ -222,7 +222,7 @@ public interface RoomsApi {
     void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
 
     /**
-     * Get a list of messages starting from a certain point.
+     * Get a list of messages starting from a reference..
      * @param roomId the room id
      * @param dir The direction to return messages from.
      * @param from the token identifying where to start
@@ -272,7 +272,7 @@ public interface RoomsApi {
     void reportEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body ReportContentParams param, Callback<Void> callback);
 
     /**
-     * Set the canonical alias name.
+     * Set the room avatar url.
      * @param roomId the room id
      * @param params the put params.
      * @param callback the asynchronous callback called when finished
@@ -314,7 +314,7 @@ public interface RoomsApi {
                    Callback<Void> callback);
 
     /**
-     * Get the room ID corresponding to this room alias..
+     * Get the room ID matching to this room alias..
      * @param roomAlias the room alias.
      * @param callback the asynchronous callback called with the response
      */
@@ -322,7 +322,7 @@ public interface RoomsApi {
     void getRoomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
 
      /**
-     * Set the room ID corresponding to this room alias..
+     * Set the room ID matching to this room alias..
      * @param roomAlias the room alias.
      * @param description the alias description
      * @param callback the asynchronous callback called with the response

@@ -866,7 +866,7 @@ public class MXDataHandler implements IMXEventListener {
                         // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
 
                         // Presently we remove the existing room from the rooms list.
-                        // FIXME SYNCV2 Archive/Display the left rooms!
+                        // FIXME SYNC V2 Archive/Display the left rooms!
                         // For that create 'handleArchivedRoomSync' method
 
                         // Retrieve existing room
