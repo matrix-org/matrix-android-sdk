@@ -16,12 +16,15 @@
 
 package org.matrix.androidsdk.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
 import android.text.Html;
 import android.text.Layout;
 import android.text.Selection;
@@ -133,27 +136,27 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap on an avatar
          * @param userId the user ID
-         * @return true if the long clik event is managed
+         * @return true if the long click event is managed
          */
         boolean onAvatarLongClick(String userId);
 
         /**
          * Define the action to perform when the user taps on the message sender
-         * @param userId
-         * @param displayName
+         * @param userId the sender user id.
+         * @param displayName the sender display name.
          */
         void onSenderNameClick(String userId, String displayName);
 
         /**
          * A media download is done
-         * @param position
+         * @param position the downloaded media list position.
          */
         void onMediaDownloaded(int position);
 
         /**
          * Define the action to perform when the user taps on the read receipt.
          * @param eventId the eventID
-         * @param userId the userId.
+         * @param userId  the userId.
          * @param receipt the receipt.
          */
         void onReadReceiptClick(String eventId, String userId, ReceiptData receipt);
@@ -161,7 +164,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap on the read receipt.
          * @param eventId the eventID
-         * @param userId the userId.
+         * @param userId  the userId.
          * @param receipt the receipt.
          * @return true if the long click event is managed
          */
@@ -176,7 +179,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap  on the more read receipts button.
          * @param eventId the eventID
-         * @return true if the long clik event is managed
+         * @return true if the long click event is managed
          */
         boolean onMoreReadReceiptLongClick(String eventId);
 
@@ -191,77 +194,78 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param event the event
          * @return true to highlight it.
          */
-         boolean shouldHighlightEvent(Event event);
+        boolean shouldHighlightEvent(Event event);
     }
 
-    protected static final int ROW_TYPE_TEXT = 0;
-    protected static final int ROW_TYPE_IMAGE = 1;
-    protected static final int ROW_TYPE_NOTICE = 2;
-    protected static final int ROW_TYPE_EMOTE = 3;
-    protected static final int ROW_TYPE_FILE = 4;
-    protected static final int ROW_TYPE_VIDEO = 5;
-    protected static final int NUM_ROW_TYPES = 6;
+    private static final int ROW_TYPE_TEXT = 0;
+    private static final int ROW_TYPE_IMAGE = 1;
+    private static final int ROW_TYPE_NOTICE = 2;
+    private static final int ROW_TYPE_EMOTE = 3;
+    private static final int ROW_TYPE_FILE = 4;
+    private static final int ROW_TYPE_VIDEO = 5;
+    private static final int NUM_ROW_TYPES = 6;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
-    protected ArrayList<String>mTypingUsers = new ArrayList<String>();
+    private ArrayList<String> mTypingUsers = new ArrayList<>();
 
-    protected Context mContext;
-    private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
-    protected LayoutInflater mLayoutInflater;
+    protected final Context mContext;
+    private final HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<>();
+    protected final LayoutInflater mLayoutInflater;
 
     // To keep track of events and avoid duplicates. For instance, we add a message event
     // when the current user sends one but it will also come down the event stream
-    private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
+    private final HashMap<String, MessageRow> mEventRowMap = new HashMap<>();
 
-    // avoid searching bingrule at each refresh
-    private HashMap<String, Integer> mTextColorByEventId = new HashMap<String, Integer>();
+    // avoid searching bing rule at each refresh
+    private HashMap<String, Integer> mTextColorByEventId = new HashMap<>();
 
-    private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
+    private final HashMap<String, User> mUserByUserId = new HashMap<>();
 
-    private HashMap<String, Integer> mEventType = new HashMap<String, Integer>();
+    private final HashMap<String, Integer> mEventType = new HashMap<>();
 
-    protected int normalColor;
-    protected int notSentColor;
-    protected int sendingColor;
-    protected int highlightColor;
-    protected int searchHighlightColor;
+    // the message text colors
+    protected int mDefaultMessageTextColor;
+    protected int mNotSentMessageTextColor;
+    protected int mSendingMessageTextColor;
+    protected int mHighlightMessageTextColor;
+    protected int mSearchHighlightMessageTextColor;
 
-    protected int mMaxImageWidth;
-    protected int mMaxImageHeight;
+    protected final int mMaxImageWidth;
+    protected final int mMaxImageHeight;
 
     // media cache
-    protected MXMediasCache mMediasCache;
+    private final  MXMediasCache mMediasCache;
 
     // events listener
-    protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
-    protected MXSession mSession;
+    protected MessagesAdapterEventsListener mMessagesAdapterEventsListener;
+    protected final MXSession mSession;
 
     protected boolean mIsSearchMode = false;
     protected boolean mIsPreviewMode = false;
-    protected String mPattern = null;
-    private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+    private String mPattern = null;
+    private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
     // customization methods
-    public int normalMesageColor(Context context) {
+    public int getDefaultMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);
     }
 
-    public int notSentMessageColor(Context context) {
+    public int getNotSentMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_not_sent);
     }
 
-    public int sendingMessageColor(Context context) {
+    public int getSendingMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_sending);
     }
 
-    public int highlightMessageColor(Context context) {
+    public int getHighlightMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
-    public int searchHighlightMessageColor(Context context) {
+    public int getSearchHighlightMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
@@ -270,7 +274,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param userId the user ID
      * @return the linked User
      */
-    protected User getUser(String userId) {
+    private User getUser(String userId) {
         if (mUserByUserId.containsKey(userId)) {
             return mUserByUserId.get(userId);
         }
@@ -287,13 +291,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // must be implemented by base class
     public abstract int presenceOfflineColor();
+
     public abstract int presenceOnlineColor();
+
     public abstract int presenceUnavailableColor();
 
     /**
      * Refresh the presence ring of an user.
+     *
      * @param presenceView the presence ring view.
-     * @param userId the user userID.
+     * @param userId       the user userID.
      */
     protected void refreshPresenceRing(ImageView presenceView, String userId) {
         String presence = null;
@@ -317,8 +324,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Default constructor.
-     * @param session the dedicated MXSession
-     * @param context the context
+     *
+     * @param session     the dedicated MXSession
+     * @param context     the context
      * @param mediasCache the medias cache
      */
     public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
@@ -330,6 +338,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 R.layout.adapter_item_message_file,
                 R.layout.adapter_item_message_image_video,
                 mediasCache);
+    }
+
+    /**
+     * Return the screen size.
+     * @param size the size to set
+     */
+    @SuppressLint("NewApi")
+    @SuppressWarnings("deprecation")
+    private void getScreenSize(Point size) {
+        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            display.getSize(size);
+        } else {
+            size.set(display.getWidth(), display.getHeight());
+        }
     }
 
     /**
@@ -361,17 +386,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // for example, retrieve the historical messages triggers a refresh for each message
         setNotifyOnChange(false);
 
-        normalColor = normalMesageColor(context);
-        notSentColor = notSentMessageColor(context);
-        sendingColor = sendingMessageColor(context);
-        highlightColor = highlightMessageColor(context);
-        searchHighlightColor = searchHighlightMessageColor(context);
+        mDefaultMessageTextColor = getDefaultMessageTextColor(context);
+        mNotSentMessageTextColor = getNotSentMessageTextColor(context);
+        mSendingMessageTextColor = getSendingMessageTextColor(context);
+        mHighlightMessageTextColor = getHighlightMessageTextColor(context);
+        mSearchHighlightMessageTextColor = getSearchHighlightMessageTextColor(context);
 
-        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
+        Point size = new Point(0, 0);
+        getScreenSize(size);
 
-        int screenWidth = display.getWidth();
-        int screenHeight = display.getHeight();
+        int screenWidth = size.x;
+        int screenHeight = size.y;
 
         // landscape / portrait
         if (screenWidth < screenHeight) {
@@ -387,7 +412,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Update the preview mode status
-     * @param isPreviewMode true to display the adapter in provew mode
+     * @param isPreviewMode true to display the adapter in preview mode
      */
     public void setIsPreviewMode(boolean isPreviewMode) {
         mIsPreviewMode = isPreviewMode;
@@ -412,18 +437,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Cancel any pending search and replace the adapter content.
-     * @param rows the new adapter content.
-     */
-    public void cancelSearchWith(ArrayList<MessageRow> rows) {
-        mPattern = null;
-        mIsSearchMode = false;
-        this.clear();
-        this.addAll(rows);
-        mLiveMessagesRowList = null;
-    }
-
-    /**
      * Defines the search pattern.
      * @param pattern the pattern to search.
      */
@@ -432,18 +445,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mPattern = pattern;
             mIsSearchMode = !TextUtils.isEmpty(mPattern);
 
-            // in search mode, the live row are backuped to store the live events
+            // in search mode, the live row are cached.
             if (mIsSearchMode) {
                 // save once
                 if (null == mLiveMessagesRowList) {
                     // backup live events
-                    mLiveMessagesRowList = new ArrayList<MessageRow>();
+                    mLiveMessagesRowList = new ArrayList<>();
                     for (int pos = 0; pos < this.getCount(); pos++) {
                         mLiveMessagesRowList.add(this.getItem(pos));
                     }
                 }
             } else if (null != mLiveMessagesRowList) {
-                // clear and restore the backuped list
+                // clear and restore the cached live events.
                 this.clear();
                 this.addAll(mLiveMessagesRowList);
                 mLiveMessagesRowList = null;
@@ -482,6 +495,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void add(Event event, RoomState roomState) {
         add(new MessageRow(event, roomState));
+    }
+
+    /**
+     * Disambiguous remove row.
+     * @param row the row to remove
+     */
+    public void removeRow(MessageRow row) {
+        this.remove(row);
     }
 
     @Override
@@ -539,7 +560,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Remove an event by an eventId
-     * @param eventId
+     * @param eventId the event id.
      */
     public void removeEventById(String eventId) {
         // ensure that notifyDataSetChanged is not called
@@ -565,7 +586,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mEventRowMap.put(event.eventId, oldRow);
             }
         } else  {
-            // the destinated eventId already exists
+            // the eventId already exists
             // remove the old display
             removeEventById(oldEventId);
         }
@@ -580,7 +601,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param row the row to check.
      * @return true if should be added
      */
-    protected boolean isSupportedRow(MessageRow row) {
+    private boolean isSupportedRow(MessageRow row) {
         boolean isSupported = isDisplayableEvent(row.getEvent(), row.getRoomState());
 
         if (isSupported) {
@@ -747,10 +768,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Load avatar thumbnail
-     * @param avatarView
-     * @param url
+     * @param avatarView the avatar view.
+     * @param url the avatar url.
      */
-    protected void loadSmallAvatar(ImageView avatarView, String url) {
+    private void loadSmallAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_small_avatar_size);
         mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
     }
@@ -769,7 +790,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Refresh the receiver thumbnails
      * @param receiversLayout the receiver layout
-     * @param leftAlign the avatars are left align i.e. they are ddisplayed from the left to the right one.
+     * @param leftAlign the avatars are left align i.e. they are displayed from the left to the right one.
      * @param eventId the event Id
      * @param roomState the roomstate.
      */
@@ -781,7 +802,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         IMXStore store = mSession.getDataHandler().getStore();
         List<ReceiptData> receipts = store.getEventReceipts(roomState.roomId, eventId, true, true);
-        ArrayList<View> imageViews = new ArrayList<View>();
+        ArrayList<View> imageViews = new ArrayList<>();
 
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
@@ -832,7 +853,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             }
 
-            TextView displayedMoreTextView = null;
+            TextView displayedMoreTextView;
 
             if (receipts.size() <= imageViews.size()) {
                 moreViewLeft.setVisibility(View.GONE);
@@ -1020,7 +1041,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        TextView tsTextView = null;
+        TextView tsTextView;
         TextView leftTsTextView = null;
         TextView rightTsTextView = null;
 
@@ -1057,7 +1078,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             if (row.getEvent().isUndeliverable()) {
-                tsTextView.setTextColor(notSentColor);
+                tsTextView.setTextColor(mNotSentMessageTextColor);
             } else {
                 tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
             }
@@ -1094,7 +1115,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
         View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
-        View avatarLayoutView = null;
+        View avatarLayoutView;
 
         if (isAvatarOnRightSide) {
             avatarLayoutView = avatarRightView;
@@ -1278,7 +1299,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Highlight text style
      */
     protected CharacterStyle getHighLightTextStyle() {
-        return new BackgroundColorSpan(searchHighlightColor);
+        return new BackgroundColorSpan(mSearchHighlightMessageTextColor);
     }
 
     protected void highlightPattern(TextView textView, Spannable text, String pattern) {
@@ -1291,7 +1312,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param text the text to display.
      * @param pattern the pattern to highlight.
      */
-    protected void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
+    private void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
         // sanity check
         if (null == textView) {
             return;
@@ -1316,11 +1337,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final ConsoleHtmlTagHandler htmlTagHandler = new ConsoleHtmlTagHandler();
         htmlTagHandler.mContext = mContext;
 
-        CharSequence sequence = null;
+        CharSequence sequence;
 
         // an html format has been released
         if (null != htmlFormattedText) {
-            boolean isCustomizable = ((htmlFormattedText.indexOf("<a href=") < 0) && (htmlFormattedText.indexOf("<table>") < 0));
+            boolean isCustomizable = !htmlFormattedText.contains("<a href=") && !htmlFormattedText.contains("<table>");
 
             // the links are not yet supported by ConsoleHtmlTagHandler
             // the markdown tables are not properly supported
@@ -1371,7 +1392,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param strBuilder the input string
      * @param span the URL
      */
-    protected void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
+    private void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
         int start = strBuilder.getSpanStart(span);
         int end = strBuilder.getSpanEnd(span);
         int flags = strBuilder.getSpanFlags(span);
@@ -1392,7 +1413,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getTextView(final int position, View convertView, ViewGroup parent) {
+    private View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
@@ -1420,7 +1441,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(event)) {
-            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            body.setSpan(new ForegroundColorSpan(mHighlightMessageTextColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
         highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? getSanitisedHtml(message.formatted_body) : null, mPattern);
@@ -1428,11 +1449,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int textColor;
 
         if (row.getEvent().isSending()) {
-            textColor = sendingColor;
+            textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
-            textColor = notSentColor;
+            textColor = mNotSentMessageTextColor;
         } else {
-            textColor = normalColor;
+            textColor = mDefaultMessageTextColor;
 
             // sanity check
             if (null != event.eventId) {
@@ -1443,9 +1464,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         String userID = mSession.getMyUserId();
 
                         if (EventUtils.caseInsensitiveFind(displayName, sBody) || EventUtils.caseInsensitiveFind(userID, sBody)) {
-                            textColor = highlightColor;
+                            textColor = mHighlightMessageTextColor;
                         } else {
-                            textColor = normalColor;
+                            textColor = mDefaultMessageTextColor;
                         }
 
                         mTextColorByEventId.put(event.eventId, textColor);
@@ -1540,7 +1561,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param message the image / video message
      * @param position the message position
      */
-    protected void manageImageVideoDownload(final View convertView, final Message message, final int position) {
+    private void manageImageVideoDownload(final View convertView, final Message message, final int position) {
         int maxImageWidth = mMaxImageWidth;
         int maxImageHeight = mMaxImageHeight;
         int rotationAngle = 0;
@@ -1602,7 +1623,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // the thumbnails are always pre - rotated
         String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
-        // for a video check if the media is downloading if there is no thumbnail downnload
+        // for a video check if the media is downloading if there is no thumbnail download
         if ((null == downloadId) && (message instanceof VideoMessage)) {
             downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
             // check the progress value
@@ -1614,7 +1635,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
 
-        // the tag is used to detect if the progress value is destinated to this piechart.
+        // the tag is used to detect if the progress value is linked to this piechart.
         downloadPieFractionView.setTag(downloadId);
 
         int frameHeight = -1;
@@ -1707,7 +1728,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getImageVideoView(int type, final int position, View convertView, ViewGroup parent) {
+    private View getImageVideoView(int type, final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(type), parent, false);
         }
@@ -1777,7 +1798,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getNoticeView(final int position, View convertView, ViewGroup parent) {
+    private View getNoticeView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
@@ -1839,11 +1860,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int textColor;
 
         if (row.getEvent().isSending()) {
-            textColor = sendingColor;
+            textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
-            textColor = notSentColor;
+            textColor = mNotSentMessageTextColor;
         } else {
-            textColor = normalColor;
+            textColor = mDefaultMessageTextColor;
         }
 
         emoteTextView.setTextColor(textColor);
@@ -1858,11 +1879,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Manage the file download items.
      * i.e. the piechart while downloading the file
-     * @param convertView
-     * @param fileMessage
-     * @param position
+     * @param convertView the message cell view.
+     * @param fileMessage the file message.
+     * @param position the position in the listview.
      */
-    protected void manageFileDownload(View convertView, FileMessage fileMessage, final int position) {
+    private void manageFileDownload(View convertView, FileMessage fileMessage, final int position) {
         String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
 
         // check the progress value
@@ -1924,7 +1945,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getFileView(final int position, View convertView, ViewGroup parent) {
+    private View getFileView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
         }
@@ -1960,7 +1981,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param videoEvent the video event
      * @param videoMessage the video message
      */
-    protected void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
+    private void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
         final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
         final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
@@ -2049,7 +2070,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the rooms state
      * @return true if the event is managed.
      */
-    protected boolean isDisplayableEvent(Event event, RoomState roomState) {
+    private boolean isDisplayableEvent(Event event, RoomState roomState) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             // A message is displayable as long as it has a body
             Message message = JsonUtils.toMessage(event.content);
@@ -2084,14 +2105,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Update the typing users list
-     * @param typingUsers
+     * @param typingUsers the typing user ids.
      */
     public void setTypingUsers(ArrayList<String> typingUsers) {
         // sanity checks
         if (null != mTypingUsers) {
             // avoid null case.
             if (null == typingUsers) {
-                typingUsers = new ArrayList<String>();
+                typingUsers = new ArrayList<>();
             }
 
             boolean refresh = mTypingUsers.size() != typingUsers.size();
@@ -2161,7 +2182,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void onBingRulesUpdate() {
         synchronized (this) {
-            mTextColorByEventId = new HashMap<String, Integer>();
+            mTextColorByEventId = new HashMap<>();
         }
         this.notifyDataSetChanged();
     }
@@ -2235,10 +2256,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     // HTML management
     //================================================================================
 
-    private HashMap<String, String> mHtmlMap = new HashMap<>();
+    private final HashMap<String, String> mHtmlMap = new HashMap<>();
 
     /**
-     * Retrieves the sanitied html.
+     * Retrieves the sanitised html.
      * @param html the html to sanitize
      * @return the sanitised HTML
      */
@@ -2266,7 +2287,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             "nl", "li", "b", "i", "u", "strong", "em", "strike", "code", "hr", "br", "div",
             "table", "thead", "caption", "tbody", "tr", "th", "td", "pre");
 
-    private static Pattern mHtmlPatter =  Pattern.compile("<(\\w+)[^>]*>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern mHtmlPatter =  Pattern.compile("<(\\w+)[^>]*>", Pattern.CASE_INSENSITIVE);
 
     /**
      * Sanitise the HTML.
@@ -2274,7 +2295,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param htmlString the html string
      * @return the sanitised string.
      */
-    public static String sanitiseHTML(final String htmlString) {
+    private static String sanitiseHTML(final String htmlString) {
         String html = htmlString;
         Matcher matcher = mHtmlPatter.matcher(htmlString);
 

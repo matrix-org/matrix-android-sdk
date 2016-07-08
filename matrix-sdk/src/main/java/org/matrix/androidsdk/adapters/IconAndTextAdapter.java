@@ -30,15 +30,15 @@ import org.matrix.androidsdk.R;
  */
 public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
 
-    private Context mContext;
-    private LayoutInflater mLayoutInflater;
-    private int mLayoutResourceId;
+    private final Context mContext;
+    private final LayoutInflater mLayoutInflater;
+    private final int mLayoutResourceId;
     private Integer mBackgroundColor = null;
     private Integer mTextColor = null;
 
     protected class Entry {
-        protected Integer mIconResId;
-        protected Integer mTextResId;
+        protected final Integer mIconResId;
+        protected final Integer mTextResId;
 
         protected Entry(Integer iconResId, Integer textResId) {
             mIconResId = iconResId;
@@ -69,10 +69,18 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
         this.add(new Entry(iconResourceId, textResourceId));
     }
 
+    /**
+     * Set the background color of the cell.
+     * @param color the background color.
+     */
     public void setBackgroundColor(Integer color) {
         mBackgroundColor = color;
     }
 
+    /**
+     * Set the cell text color.
+     * @param color the text color.
+     */
     public void setTextColor(Integer color) {
         mTextColor = color;
     }
