@@ -44,8 +44,6 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-
 /**
  * Class used to make requests to the rooms API.
  */
@@ -91,14 +89,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param content the event content
      * @param callback the callback containing the created event if successful
      */
-    public void sendEvent(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
+    public void sendEventToRoom(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
 
         mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    sendEvent(roomId, eventType, content, callback);
+                    sendEventToRoom(roomId, eventType, content, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend sendEvent : failed " + e.getMessage());
                 }
@@ -107,32 +105,21 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Get messages for the given room starting from the given token.
-     * @param roomId the room id
-     * @param fromToken the token identifying the message to start from
-     * @param direction the direction
-     * @param callback the callback called with the response. Messages will be returned in reverse order.
-     */
-    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        messagesFrom(roomId, fromToken, direction, DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
-    }
-
-    /**
-     * Get messages for the given room starting from the given token.
+     * Get a limited amount of messages, for the given room starting from the given token. The amount of message is set to {@link #DEFAULT_MESSAGES_PAGINATION_LIMIT}.
      * @param roomId the room id
      * @param fromToken the token identifying the message to start from
      * @param direction the direction
      * @param limit the maximum number of messages to retrieve.
      * @param callback the callback called with the response. Messages will be returned in reverse order.
      */
-    public void messagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction,  final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void getRoomMessagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction,  final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction +  " with limit " + limit;
 
-        mApi.messagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    messagesFrom(roomId, fromToken, direction, limit, callback);
+                    getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend messagesFrom : failed " + e.getMessage());
                 }
@@ -146,7 +133,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param userId the user id
      * @param callback the async callback
      */
-    public void inviteToRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
+    public void inviteUserToRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
         final String description = "inviteToRoom : roomId " + roomId + " userId " + userId;
 
         User user = new User();
@@ -155,7 +142,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             @Override
             public void onRetry() {
                 try {
-                    inviteToRoom(roomId, userId, callback);
+                    inviteUserToRoom(roomId, userId, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend inviteToRoom : failed " + e.getMessage());
                 }
@@ -369,7 +356,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the asynchronous callback called with the response
      */
     public void getContextOfEvent(final String roomId, final String eventId, final int limit, final ApiCallback<EventContext> callback) {
-        final String description = "contextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
+        final String description = "getContextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
 
         mApi.getContextOfEvent(roomId, eventId, limit, new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
@@ -377,7 +364,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     getContextOfEvent(roomId, eventId, limit, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend contextOfEvent failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend getContextOfEvent failed " + e.getMessage());
                 }
             }
         }));
@@ -426,30 +413,6 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateCanonicalAlias(roomId, canonicalAlias, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getMessage());
-                }
-            }
-        }));
-    }
-
-    /**
-     * Update the room aliases.
-     * @param roomId the room id
-     * @param aliases the aliases list.
-     * @param callback the async callback
-     */
-    public void updateAliases(final String roomId, final List<String> aliases, final ApiCallback<Void> callback) {
-        final String description = "updateAliases : roomId " + roomId + " aliases " + aliases;
-
-        RoomState roomState = new RoomState();
-        roomState.aliases = aliases;
-
-        mApi.setAliases(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    updateAliases(roomId, aliases, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateAliases failed " + e.getMessage());
                 }
             }
         }));
@@ -550,18 +513,18 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param eventId the event id
      * @param callback the callback containing the created event if successful
      */
-    public void redact(final String roomId, final String eventId, final ApiCallback<Event> callback) {
-        final String description = "redact : roomId " + roomId + " eventId " + eventId;
+    public void redactEvent(final String roomId, final String eventId, final ApiCallback<Event> callback) {
+        final String description = "redactEvent : roomId " + roomId + " eventId " + eventId;
 
-        mApi.redact(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.redactEvent(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                Log.e(LOG_TAG, "resend redact " + roomId);
+                Log.e(LOG_TAG, "resend redactEvent " + roomId);
 
                 try {
-                    redact(roomId, eventId, callback);
+                    redactEvent(roomId, eventId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend redact failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend redactEvent failed " + e.getMessage());
                 }
             }
         }));
@@ -575,7 +538,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param reason the reason
      * @param callback the callback containing the created event if successful
      */
-    public void report(final String roomId, final String eventId, final int score, final String reason, final ApiCallback<Void> callback) {
+    public void reportEvent(final String roomId, final String eventId, final int score, final String reason, final ApiCallback<Void> callback) {
         final String description = "report : roomId " + roomId + " eventId " + eventId;
 
         ReportContentParams content = new ReportContentParams();
@@ -591,7 +554,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             @Override
             public void onRetry() {
                 try {
-                    report(roomId, eventId, score, reason, callback);
+                    reportEvent(roomId, eventId, score, reason, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend report failed " + e.getMessage());
                 }
@@ -724,7 +687,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the operation callback
      */
     public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
-        final String description = "addTag : roomId " + roomId + " - tag " + tag;
+        final String description = "removeTag : roomId " + roomId + " - tag " + tag;
 
         mApi.removeTag(mCredentials.userId, roomId, tag, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
@@ -744,7 +707,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the operation callback
      */
     public void getRoomIdByAlias(final String roomAlias, final ApiCallback<RoomAliasDescription> callback) {
-        final String description = "roomIdByAlias : "+ roomAlias;
+        final String description = "getRoomIdByAlias : "+ roomAlias;
 
         mApi.getRoomIdByAlias(roomAlias, new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
@@ -752,7 +715,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     getRoomIdByAlias(roomAlias, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend roomIdByAlias : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend getRoomIdByAlias : failed " + e.getMessage());
                 }
             }
         }));

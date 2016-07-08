@@ -97,15 +97,6 @@ public interface RoomsApi {
     void setCanonicalAlias(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
 
     /**
-     * Set the aliases.
-     * @param roomId the room id
-     * @param state state object containing the new aliases
-     * @param callback the asynchronous callback called when finished
-     */
-    @PUT("/rooms/{roomId}/state/m.room.aliases")
-    void setAliases(@Path("roomId") String roomId, @Body RoomState state, Callback<Void> callback);
-
-    /**
      * Set the history visibility.
      * @param roomId the room id
      * @param state state object containing the new history visibility in the name field
@@ -230,7 +221,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/rooms/{roomId}/messages")
-    void messagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
+    void getRoomMessagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
                       @Query("from") String from, @Query("limit") int limit,
                       Callback<TokensChunkResponse<Event>> callback);
                       
@@ -260,7 +251,7 @@ public interface RoomsApi {
      * @param callback the asynchronous callback called with the response
      */
     @POST("/rooms/{roomId}/redact/{eventId}")
-    void redact(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
+    void redactEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body JsonObject reason, Callback<Event> callback);
 
     /**
      * Report an event content.
@@ -314,7 +305,7 @@ public interface RoomsApi {
                    Callback<Void> callback);
 
     /**
-     * Get the room ID matching to this room alias..
+     * Get the room ID associated to the room alias.
      * @param roomAlias the room alias.
      * @param callback the asynchronous callback called with the response
      */
@@ -322,16 +313,16 @@ public interface RoomsApi {
     void getRoomIdByAlias(@Path("roomAlias") String roomAlias, Callback<RoomAliasDescription> callback);
 
      /**
-     * Set the room ID matching to this room alias..
+     * Associate a room alias with a room ID.
      * @param roomAlias the room alias.
-     * @param description the alias description
+     * @param description the alias description containing the room ID
      * @param callback the asynchronous callback called with the response
      */
     @PUT("/directory/room/{roomAlias}")
     void setRoomIdByAlias(@Path("roomAlias") String roomAlias, @Body RoomAliasDescription description, Callback<Void> callback);
 
     /**
-     * Get the room ID corresponding to this room alias..
+     * Get the room ID corresponding to this room alias.
      * @param roomAlias the room alias.
      * @param callback the asynchronous callback called with the response
      */
