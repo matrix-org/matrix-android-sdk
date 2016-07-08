@@ -23,10 +23,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.User;
-
-import java.util.Collection;
 
 /**
  * A call interface
@@ -81,6 +77,37 @@ public interface IMXCall {
     // the user did not respond to the call.
     String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
 
+
+    class VideoLayoutConfiguration {
+        public final static int INVALID_VALUE = -1;
+
+        // parameters of the video of the local user (small video)
+        /** margin left in percentage of screen resolution for the local user video **/
+        public int mX;
+        /** margin top in percentage of screen resolution for the local user video **/
+        public int mY;
+
+        /** width in percentage of screen resolution for the local user video **/
+        public int mWidth;
+        /** video height in percentage of screen resolution for the local user video **/
+        public int mHeight;
+
+        public boolean isPortrait;
+
+        public VideoLayoutConfiguration(int aX, int aY, int aWidth, int aHeight) {
+            mX = aX;
+            mY = aY;
+            mWidth = aWidth;
+            mHeight = aHeight;
+        }
+
+        public VideoLayoutConfiguration() {
+            mX = INVALID_VALUE;
+            mY = INVALID_VALUE;
+            mWidth = INVALID_VALUE;
+            mHeight = INVALID_VALUE;
+        }
+    }
 
     interface MXCallListener {
         /**
@@ -150,6 +177,16 @@ public interface IMXCall {
      * The application launched the dedicated activity and expects to launch the incoming call.
      */
     void launchIncomingCall();
+
+    /**
+     * Set the layout configuration used in the video call over IP.
+     */
+    void setVideoLayoutParameters(VideoLayoutConfiguration aConfigurationToApply);
+
+    /**
+     * Force the update of the small local video renderer
+     */
+    void updateSmallLocalVideoRenderer();
 
     // events thread
     /**

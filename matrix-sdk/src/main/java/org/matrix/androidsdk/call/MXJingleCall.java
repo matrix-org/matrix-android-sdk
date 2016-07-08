@@ -28,7 +28,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
@@ -88,6 +87,9 @@ public class MXJingleCall extends MXCall {
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
     private VideoRenderer mLargeLocalRenderer = null;
+
+    /** contains the layout parameters to display the video call UI layout **/
+    private VideoLayoutConfiguration mVideoLayoutConfiguration;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -331,6 +333,50 @@ public class MXJingleCall extends MXCall {
         }
     }
 
+    @Override
+    public void updateSmallLocalVideoRenderer(){
+        if(IMXCall.CALL_STATE_CONNECTED == mCallState) {
+
+            if ((null != mLocalVideoTrack) && isVideo() && (null != mCallView)) {
+                mUIThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            mLocalVideoTrack.setEnabled(false);
+                            mLocalVideoTrack.removeRenderer(mSmallLocalRenderer);
+
+                            // compute the new layout
+                            if (null != mVideoLayoutConfiguration) {
+                                mSmallLocalRenderer = VideoRendererGui.createGui(mVideoLayoutConfiguration.mX, mVideoLayoutConfiguration.mY, mVideoLayoutConfiguration.mWidth, mVideoLayoutConfiguration.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                                Log.d(LOG_TAG, "## updateSmallLocalVideoRenderer(): X=" + mVideoLayoutConfiguration.mX + " Y=" + mVideoLayoutConfiguration.mY + " width=" + mVideoLayoutConfiguration.mWidth + " height" + mVideoLayoutConfiguration.mHeight);
+                            } else {
+                                // default layout
+                                mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                            }
+
+                            mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                            mLocalVideoTrack.setEnabled(true);
+
+                            mCallView.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (null != mCallView) {
+                                        mCallView.invalidate();
+                                    }
+                                }
+                            });
+                        } catch (Exception ex) {
+                        Log.e(LOG_TAG, "## updateLocalVideoRender(): Exception Msg="+ex.getMessage());
+                        }
+                    }
+                });
+            }
+        } else {
+            Log.w(LOG_TAG, "## updateLocalVideoRender(): Skipped due to state not in CALL_STATE_CONNECTED (state="+mCallState+")");
+        }
+    }
+
+
     /**
      * create the local stream
      */
@@ -522,7 +568,7 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onAddStream(final MediaStream mediaStream) {
-                        Log.d(LOG_TAG, "mPeerConnection onAddStream " + mediaStream);
+                        Log.d(LOG_TAG, "## set remote video - mPeerConnection onAddStream " + mediaStream);
 
                         mUIThreadHandler.post(new Runnable() {
                             @Override
@@ -755,15 +801,15 @@ public class MXJingleCall extends MXCall {
      * @param callInviteParams the invite params
      */
     private void initCallUI(final JsonObject callInviteParams) {
-        Log.d(LOG_TAG, "initCallUI");
+        Log.d(LOG_TAG, "## initCallUI(): IN");
 
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "initCallUI : call is ended");
+            Log.w(LOG_TAG, "## initCallUI(): skipped due to call is ended");
             return;
         }
 
         if (isVideo()) {
-            Log.d(LOG_TAG, "initCallUI : video call");
+            Log.d(LOG_TAG, "## initCallUI(): building UI video call");
 
             VideoRendererGui.setView(mCallView, new Runnable() {
                 @Override
@@ -772,7 +818,7 @@ public class MXJingleCall extends MXCall {
                         @Override
                         public void run() {
                             if (null == mPeerConnectionFactory) {
-                                Log.d(LOG_TAG, "initCallUI : video call and no mPeerConnectionFactory");
+                                Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
                                 mPeerConnectionFactory = new PeerConnectionFactory();
                                 createVideoTrack();
@@ -791,19 +837,30 @@ public class MXJingleCall extends MXCall {
 
             // create the renderers after the VideoRendererGui.setView
             try {
-                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+                Log.d(LOG_TAG, "## initCallUI() building UI");
+                //  create the video displaying the remote user: in full screen
+                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
 
-                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, true);
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
 
-                mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                // create the video displaying the local user: horizontal center, just above the video buttons menu
+                if(null != mVideoLayoutConfiguration) {
+                    mSmallLocalRenderer = VideoRendererGui.createGui(mVideoLayoutConfiguration.mX, mVideoLayoutConfiguration.mY, mVideoLayoutConfiguration.mWidth, mVideoLayoutConfiguration.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    Log.d(LOG_TAG, "## initCallUI(): X="+mVideoLayoutConfiguration.mX+" Y="+mVideoLayoutConfiguration.mY+" width="+mVideoLayoutConfiguration.mWidth+" height"+mVideoLayoutConfiguration.mHeight);
+                } else {
+                    // default layout
+                    mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                }
+
             } catch (Exception e) {
+                Log.e(LOG_TAG,"## initCallUI(): Exception Msg ="+e.getMessage());
             }
 
             mCallView.setVisibility(View.VISIBLE);
 
         } else {
-            Log.d(LOG_TAG, "initCallUI : audio call");
+            Log.d(LOG_TAG, "## initCallUI(): build audio call");
 
             // audio call
             mUIThreadHandler.post(new Runnable() {
@@ -957,7 +1014,7 @@ public class MXJingleCall extends MXCall {
     @Override
     public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
 
-        Log.d(LOG_TAG, "prepareIncomingCall : call state " + getCallState());
+        Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
 
         mCallId = callId;
 
@@ -997,6 +1054,17 @@ public class MXJingleCall extends MXCall {
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId);
         }
+    }
+
+    /**
+     * Set video display parameters to render the
+     * video call over IP screen. These parameters are used to create
+     * the layout of the screen, in terms of sizes and positions.
+     * @param aConfigurationToApply
+     */
+    @Override
+    public void setVideoLayoutParameters(VideoLayoutConfiguration aConfigurationToApply){
+        mVideoLayoutConfiguration = aConfigurationToApply;
     }
 
     /**

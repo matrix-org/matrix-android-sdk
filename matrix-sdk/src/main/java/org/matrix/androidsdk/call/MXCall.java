@@ -100,6 +100,16 @@ public class MXCall implements IMXCall {
     public void launchIncomingCall() {
     }
 
+    @Override
+    public void setVideoLayoutParameters(VideoLayoutConfiguration aConfigurationToApply){
+        Log.w(LOG_TAG,"## setVideoLayoutParameters(): not implemented");
+    }
+
+    @Override
+    public void updateSmallLocalVideoRenderer(){
+        Log.w(LOG_TAG,"## updateSmallLocalVideoRenderer(): not implemented");
+    }
+
     // events thread
     /**
      * Manage the call events.
