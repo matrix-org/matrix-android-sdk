@@ -18,8 +18,6 @@ package org.matrix.androidsdk.rest.model;
 import android.text.TextUtils;
 
 import java.util.Comparator;
-import java.util.regex.Pattern;
-
 /**
  * Class representing a room member: a user with membership information.
  */

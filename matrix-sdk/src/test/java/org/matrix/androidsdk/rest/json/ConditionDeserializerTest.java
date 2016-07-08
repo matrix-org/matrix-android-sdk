@@ -27,7 +27,6 @@ import org.matrix.androidsdk.rest.model.bingrules.DeviceCondition;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Modifier;
 

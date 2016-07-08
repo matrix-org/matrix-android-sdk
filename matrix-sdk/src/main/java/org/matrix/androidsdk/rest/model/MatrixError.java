@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import com.google.gson.JsonObject;
-
 import retrofit.mime.TypedInput;
 
 /**

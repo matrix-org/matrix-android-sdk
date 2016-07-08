@@ -23,10 +23,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.User;
-
-import java.util.Collection;
 
 /**
  * A call interface
