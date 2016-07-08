@@ -108,7 +108,7 @@ public class Room {
     // initial sync callback.
     private ApiCallback<Void> mOnInitialSyncCallback;
 
-    // gson parszer
+    // gson parser
     private final Gson gson = new GsonBuilder().create();
 
     // This is used to block live events and history requests until the state is fully processed and ready
@@ -289,10 +289,6 @@ public class Room {
         return getState();
     }
 
-    public RoomState getBackState() {
-        return mLiveTimeline.getBackState();
-    }
-
     public boolean isLeaving() {
         return mIsLeaving;
     }
@@ -315,26 +311,6 @@ public class Room {
 
     public boolean isReady() {
         return mIsReady;
-    }
-
-    /**
-     * @return the list of online members in a room.
-     */
-    public Collection<RoomMember> getOnlineMembers() {
-        Collection<RoomMember> members = getState().getMembers();
-        ArrayList<RoomMember> activeMembers = new ArrayList<>();
-
-        for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                User user =  mStore.getUser(member.getUserId());
-
-                if ((null != user) && user.isActive()) {
-                    activeMembers.add(member);
-                }
-            }
-        }
-
-        return activeMembers;
     }
 
     /**
@@ -371,10 +347,6 @@ public class Room {
         return joinedMembersList;
     }
 
-    public void setMember(String userId, RoomMember member) {
-        getState().setMember(userId, member);
-    }
-
     public RoomMember getMember(String userId) {
         return getState().getMember(userId);
     }
@@ -389,10 +361,6 @@ public class Room {
 
     public String getVisibility() {
         return getState().visibility;
-    }
-
-    public void setVisibility(String visibility) {
-        getState().visibility = visibility;
     }
 
     /**
@@ -491,17 +459,8 @@ public class Room {
      * @param roomAlias the room alias
      * @param callback the callback for when done
      */
-    public void join(String roomAlias, ApiCallback<Void> callback) {
+    private void join(String roomAlias, ApiCallback<Void> callback) {
         join(roomAlias, null, callback);
-    }
-
-    /**
-     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
-     * @param extraParams the join extra params
-     * @param callback the callback for when done
-     */
-    public void join(HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
-        join(null, extraParams, callback);
     }
 
     /**
@@ -510,7 +469,7 @@ public class Room {
      * @param extraParams the join extra params
      * @param callback the callback for when done
      */
-    public void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
+    private void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         // disable the room alias management until the server manages the rooms federation properly
@@ -562,16 +521,9 @@ public class Room {
     }
 
     /**
-     * Shorthand for {@link #join(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
-     */
-    public void join() {
-        join(null);
-    }
-
-    /**
      * @return true if the user joined the room
      */
-    public boolean selfJoined() {
+    private boolean selfJoined() {
         RoomMember roomMember = getMember(mMyUserId);
 
         // send the event only if the user has joined the room.
@@ -581,6 +533,51 @@ public class Room {
     //================================================================================
     // Room info (liveState) update
     //================================================================================
+
+    /**
+     * This class dispatches the error to the dedicated callbacks.
+     * If the operation succeeds, the room state is saved because calling the callback.
+     */
+    private class RoomInfoUpdateCallback<T> implements ApiCallback<T> {
+        private final ApiCallback<T> mCallback;
+
+        /**
+         * Constructor
+         */
+        public RoomInfoUpdateCallback(ApiCallback<T> callback) {
+            mCallback = callback;
+        }
+
+        @Override
+        public void onSuccess(T info) {
+            mStore.storeLiveStateForRoom(getRoomId());
+
+            if (null != mCallback) {
+                mCallback.onSuccess(info);
+            }
+        }
+
+        @Override
+        public void onNetworkError(Exception e) {
+            if (null != mCallback) {
+                mCallback.onNetworkError(e);
+            }
+        }
+
+        @Override
+        public void onMatrixError(final MatrixError e) {
+            if (null != mCallback) {
+                mCallback.onMatrixError(e);
+            }
+        }
+
+        @Override
+        public void onUnexpectedError(final Exception e) {
+            if (null != mCallback) {
+                mCallback.onUnexpectedError(e);
+            }
+        }
+    }
 
     /**
      * Update the power level of the user userId
@@ -600,36 +597,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().name = name;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -640,36 +612,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String topic, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().topic = topic;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -680,36 +627,80 @@ public class Room {
      * @param callback the async callback
      */
     public void updateCanonicalAlias(final String canonicalAlias, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().roomAliasName = canonicalAlias;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
+                super.onSuccess(info);
             }
+        });
+    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+    /**
+     * Provides the room aliases list.
+     * The result is never null.
+     * @return the room aliases list.
+     */
+    public List<String> getAliases() {
+        if (null == getLiveState().aliases) {
+            return new ArrayList<>();
+        } else {
+            return getLiveState().aliases;
+        }
+    }
+
+    /**
+     * Remove a room alias.
+     * @param alias the alias to remove
+     * @param callback the async callback
+     */
+    public void removeAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) < 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
             }
+            return;
+        }
 
+        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.remove(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
             }
+        });
+    }
 
+    /**
+     * Try to add an alias to the aliases list.
+     * @param alias the alias to add.
+     * @param callback the the async callback
+     */
+    public void addAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) >= 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+            return;
+        }
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.add(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
             }
         });
     }
@@ -745,36 +736,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().url = avatarUrl;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -785,76 +751,26 @@ public class Room {
      * @param callback the async callback
      */
     public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().history_visibility = historyVisibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
 
     /**
-     * Update the room's visibility
+     * Update the directory's visibility
      * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
      * @param callback the async callback
      */
     public void updateDirectoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -912,36 +828,11 @@ public class Room {
      * @param aCallBackResp the async callback
      */
     public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new RoomInfoUpdateCallback<Void>(aCallBackResp) {
             @Override
             public void onSuccess(Void info) {
                 getState().join_rule = aRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != aCallBackResp) {
-                    aCallBackResp.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -953,36 +844,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateGuestAccess(final String aGuestAccessRule, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule,new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().guest_access = aGuestAccessRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -1018,7 +884,7 @@ public class Room {
      * @param event the event receipts.
      * @return the sender user IDs list.
      */
-    public List<String> handleReceiptEvent(Event event) {
+    private List<String> handleReceiptEvent(Event event) {
         ArrayList<String> senderIDs = new ArrayList<>();
 
         try {
@@ -1155,9 +1021,8 @@ public class Room {
      * Update the read receipt token.
      * @param token the new token
      * @param ts the token ts
-     * @return true if the token is refreshed
      */
-    public boolean setReadReceiptToken(String token, long ts) {
+    private void setReadReceiptToken(String token, long ts) {
         RoomSummary summary = mStore.getSummary(getRoomId());
 
         Log.d(LOG_TAG, "setReadReceiptToken " + token + " - " +ts);
@@ -1165,12 +1030,9 @@ public class Room {
         if (summary.setReadReceiptToken(token, ts)) {
             Log.d(LOG_TAG, "setReadReceiptToken : update the summary");
             clearUnreadCounters(summary);
-            return true;
         } else {
             Log.d(LOG_TAG, "setReadReceiptToken : not the latest message " + summary.getReadReceiptToken() + " - " + summary.getReadReceiptTs());
         }
-
-        return false;
     }
 
     /**
@@ -1222,18 +1084,6 @@ public class Room {
             // wait the sync end before computing is again
             mRefreshUnreadAfterSync = true;
         }
-    }
-
-    /**
-     * @return the unread messages count.
-     */
-    public int getUnreadEventsCount() {
-        RoomSummary summary = mStore.getSummary(getRoomId());
-
-        if (null != summary) {
-            return summary.getUnreadEventsCount();
-        }
-        return 0;
     }
 
     //================================================================================
@@ -1472,36 +1322,6 @@ public class Room {
     }
 
     //================================================================================
-    // Unsent events
-    //================================================================================
-
-    /**
-     * Returns the unsent messages except the sending ones.
-     * @return the unsent messages list.
-     */
-    public ArrayList<Event> getUnsentEvents() {
-        Collection<Event> events = mStore.getLatestUnsentEvents(getRoomId());
-
-        ArrayList<Event> eventsList = new ArrayList<>(events);
-        ArrayList<Event> unsentEvents = new ArrayList<>();
-
-        // check if some events are already sending
-        // to avoid send them twice
-        // some network issues could happen
-        // eg connected send some unsent messages but do not send all of them
-        // disconnected -> connected : some messages could be sent twice
-        for (Event event : eventsList) {
-            if (event.mSentState == Event.SentState.WAITING_RETRY) {
-                event.mSentState = Event.SentState.SENDING;
-                unsentEvents.add(event);
-            }
-        }
-
-        return unsentEvents;
-    }
-
-
-    //================================================================================
     // Call
     //================================================================================
 
@@ -1538,7 +1358,7 @@ public class Room {
      * Handle private user data events.
      * @param accountDataEvents the account events.
      */
-    public void handleAccountDataEvents(List<Event> accountDataEvents) {
+    private void handleAccountDataEvents(List<Event> accountDataEvents) {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
@@ -1561,7 +1381,7 @@ public class Room {
      * @param order the order.
      * @param callback the operation callback
      */
-    public void addTag(String tag, Double order, final ApiCallback<Void> callback) {
+    private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
             mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
@@ -1579,7 +1399,7 @@ public class Room {
      * @param tag the new tag to add to the room.
      * @param callback the operation callback.
      */
-    public void removeTag(String tag, final ApiCallback<Void> callback) {
+    private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
             mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
@@ -1600,7 +1420,6 @@ public class Room {
      * @param callback the operation callback.
      */
     public void replaceTag(final String oldTag, final String newTag, final Double newTagOrder, final ApiCallback<Void> callback) {
-
         // remove tag
         if ((null != oldTag) && (null == newTag)) {
             removeTag(oldTag, callback);
@@ -1852,7 +1671,7 @@ public class Room {
      */
     public void removeEventListener(IMXEventListener eventListener) {
         // sanity check
-        if ((null != eventListener) && (null != mDataHandler) && (null != mEventListeners)) {
+        if ((null != eventListener) && (null != mDataHandler)) {
             mDataHandler.removeListener(mEventListeners.get(eventListener));
             mEventListeners.remove(eventListener);
         }
@@ -1956,7 +1775,7 @@ public class Room {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendEvent(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
         }
     }
 
@@ -1966,7 +1785,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redact(getRoomId(), eventId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, callback);
     }
 
     /**
@@ -1975,7 +1794,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().report(getRoomId(), eventId, score, reason, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
     }
 
 
@@ -1989,7 +1808,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void invite(String userId, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userId, callback);
     }
 
     /**
@@ -2022,7 +1841,7 @@ public class Room {
         if ((null == userIds) || (index >= userIds.size())) {
             return;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // invite the last user
