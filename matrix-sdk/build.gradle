@@ -17,7 +17,7 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         // use version to define a version code.
-        versionCode 59
+        versionCode 509
         version "0.5.9-dev"
         versionName "0.5.9-dev"
      }
