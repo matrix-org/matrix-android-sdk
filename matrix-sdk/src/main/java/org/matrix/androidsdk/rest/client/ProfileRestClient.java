@@ -36,9 +36,7 @@ import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.GET;
 
 /**
  * Class used to make requests to the profile API.

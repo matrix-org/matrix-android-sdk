@@ -16,8 +16,6 @@
 
 package org.matrix.androidsdk.data;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;

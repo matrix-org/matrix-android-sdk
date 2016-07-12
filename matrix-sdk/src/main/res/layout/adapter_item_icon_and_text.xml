@@ -16,7 +16,6 @@
         android:layout_marginRight="10dp"
         android:layout_gravity="center_vertical"
         android:src="@drawable/matrix_user"/>
-    />
 
     <TextView
         android:id="@+id/textView_icon_and_text"

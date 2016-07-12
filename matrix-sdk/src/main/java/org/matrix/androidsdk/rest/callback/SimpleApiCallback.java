@@ -17,11 +17,9 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.app.Activity;
 import android.content.Context;
-import android.media.MediaActionSound;
 import android.view.View;
 import android.widget.Toast;
 
-import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**

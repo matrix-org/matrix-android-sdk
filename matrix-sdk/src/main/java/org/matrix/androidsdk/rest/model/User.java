@@ -47,7 +47,7 @@ public class User {
 
     // Used to provide a more realistic last active time:
     // the last active ago time provided by the server + the time that has gone by since
-    private long lastPresenceTs;
+    private long mLastPresenceTs;
 
     // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
     // This is needed to find the right one when removing the listener.
@@ -86,8 +86,8 @@ public class User {
     }
 
     /**
-     * Create a deep copy of the current user
-     * @return
+     * Create a deep copy of the current user.
+     * @return a deep copy of the current object
      */
     public User deepCopy() {
         User copy = new User();
@@ -104,10 +104,18 @@ public class User {
     }
 
     /**
-     * Sets the last-active-ago-time received time to now.
+     * Set the latest presence event time.
+     * @param ts the timestamp.
      */
-    public void lastActiveReceived() {
-        lastPresenceTs = System.currentTimeMillis();
+    public void setLatestPresenceTs(long ts) {
+        mLastPresenceTs = ts;
+    }
+
+    /**
+     * @return the timestamp of the latest presence event.
+     */
+    public long getLatestPresenceTs() {
+        return mLastPresenceTs;
     }
 
     /**
@@ -119,7 +127,7 @@ public class User {
         if (null == lastActiveAgo) {
             return 0;
         } else {
-            return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
+            return lastActiveAgo + System.currentTimeMillis() - mLastPresenceTs;
         }
     }
 

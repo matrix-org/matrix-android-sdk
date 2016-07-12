@@ -43,7 +43,6 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.RoomSyncState;
 import org.matrix.androidsdk.rest.model.Sync.RoomSyncTimeline;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.List;
 

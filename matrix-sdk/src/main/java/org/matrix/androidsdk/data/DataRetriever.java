@@ -17,7 +17,6 @@ package org.matrix.androidsdk.data;
 
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -26,7 +25,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Collection;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 
 /**
@@ -131,7 +129,7 @@ public class DataRetriever {
             t.start();
         }
         else {
-            mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
                     if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
@@ -173,7 +171,7 @@ public class DataRetriever {
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingFordwardRequestTokenByRoomId, roomId, token);
 
-        mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
@@ -210,7 +208,7 @@ public class DataRetriever {
     public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
 
-        mRestClient.messagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
 

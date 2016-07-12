@@ -30,15 +30,11 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.BulletSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
-import android.text.style.TypefaceSpan;
-import android.util.Log;
 
 import org.matrix.androidsdk.R;
 import org.xml.sax.XMLReader;
 
 import java.util.Stack;
-
-import retrofit.android.AndroidLog;
 
 /**
  * Some parts of this code are based on android.text.Html

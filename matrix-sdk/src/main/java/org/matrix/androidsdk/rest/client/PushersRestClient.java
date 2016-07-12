@@ -25,7 +25,6 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.PushersResponse;
 
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * REST client for the Pushers API.

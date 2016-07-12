@@ -24,7 +24,6 @@ import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.security.acl.LastOwnerException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

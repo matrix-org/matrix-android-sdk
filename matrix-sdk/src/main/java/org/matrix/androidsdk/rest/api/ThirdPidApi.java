@@ -16,12 +16,10 @@
 package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
-import retrofit.http.Body;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Query;
 
-import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 

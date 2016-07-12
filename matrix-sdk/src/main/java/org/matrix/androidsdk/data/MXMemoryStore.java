@@ -19,8 +19,6 @@ package org.matrix.androidsdk.data;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -297,19 +295,41 @@ public class MXMemoryStore implements IMXStore {
         }
     }
 
+    /**
+     * Update the user information from a room member.
+     * @param roomMember the room member.
+     */
     public void updateUserWithRoomMemberEvent(RoomMember roomMember) {
         if (null != roomMember) {
             User user = getUser(roomMember.getUserId());
 
+            // if the user does not exist, create it
             if (null == user) {
                 user = new User();
                 user.user_id = roomMember.getUserId();
                 storeUser(user);
             }
 
-            if (!TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.avatarUrl)) {
-                user.displayname = roomMember.displayname;
-                user.setAvatarUrl(roomMember.avatarUrl);
+            // update the display name and the avatar url.
+            // the leave and ban events have no displayname and no avatar url.
+            if (!TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_LEAVE) &&
+                    !TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_BAN)) {
+
+                boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.avatarUrl);
+
+                if (hasUpdates) {
+                    // invite event does not imply that the user uses the application.
+                    // but if the presence is set to 0, it means that the user information is not initialized
+                    if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_INVITE) && (0 == user.getLatestPresenceTs())) {
+                        user.displayname = roomMember.displayname;
+                        user.setAvatarUrl(roomMember.avatarUrl);
+                    } else if (/*MEMBERSHIP_JOIN && */  user.getLatestPresenceTs() < roomMember.getOriginServerTs()) {
+                        // if the user joined the room, it implies that he used the application
+                        user.displayname = roomMember.displayname;
+                        user.setAvatarUrl(roomMember.avatarUrl);
+                        user.setLatestPresenceTs(roomMember.getOriginServerTs());
+                    }
+                }
             }
         }
     }
