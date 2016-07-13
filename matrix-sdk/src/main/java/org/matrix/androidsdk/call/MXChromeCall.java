@@ -153,7 +153,7 @@ public class MXChromeCall extends MXCall {
      * Start a call.
      */
     @Override
-    public void placeCall() {
+    public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             mIsIncoming = false;
 
@@ -170,9 +170,10 @@ public class MXChromeCall extends MXCall {
      * Prepare a call reception.
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
+     * @param aLocalVideoPosition position of the local video attendee
      */
     @Override
-    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
+    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId, VideoLayoutConfiguration aLocalVideoPosition) {
         mCallId = callId;
 
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
@@ -210,11 +211,12 @@ public class MXChromeCall extends MXCall {
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
+     * @param aLocalVideoPosition local video position
      */
     @Override
-    public void launchIncomingCall() {
+    public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
-            prepareIncomingCall(mCallInviteParams, mCallId);
+            prepareIncomingCall(mCallInviteParams, mCallId, null);
         }
     }
 

@@ -86,10 +86,8 @@ public class MXJingleCall extends MXCall {
     private VideoRenderer mSmallLocalRenderer = null;
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
+    private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
     private VideoRenderer mLargeLocalRenderer = null;
-
-    /** contains the layout parameters to display the video call UI layout **/
-    private VideoLayoutConfiguration mVideoLayoutConfiguration;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -333,49 +331,29 @@ public class MXJingleCall extends MXCall {
         }
     }
 
+
+
     @Override
-    public void updateSmallLocalVideoRenderer(){
-        if(IMXCall.CALL_STATE_CONNECTED == mCallState) {
-
-            if ((null != mLocalVideoTrack) && isVideo() && (null != mCallView)) {
-                mUIThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            mLocalVideoTrack.setEnabled(false);
-                            mLocalVideoTrack.removeRenderer(mSmallLocalRenderer);
-
-                            // compute the new layout
-                            if (null != mVideoLayoutConfiguration) {
-                                mSmallLocalRenderer = VideoRendererGui.createGui(mVideoLayoutConfiguration.mX, mVideoLayoutConfiguration.mY, mVideoLayoutConfiguration.mWidth, mVideoLayoutConfiguration.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                                Log.d(LOG_TAG, "## updateSmallLocalVideoRenderer(): X=" + mVideoLayoutConfiguration.mX + " Y=" + mVideoLayoutConfiguration.mY + " width=" + mVideoLayoutConfiguration.mWidth + " height" + mVideoLayoutConfiguration.mHeight);
-                            } else {
-                                // default layout
-                                mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                            }
-
-                            mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
-                            mLocalVideoTrack.setEnabled(true);
-
-                            mCallView.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (null != mCallView) {
-                                        mCallView.invalidate();
-                                    }
-                                }
-                            });
-                        } catch (Exception ex) {
-                        Log.e(LOG_TAG, "## updateLocalVideoRender(): Exception Msg="+ex.getMessage());
-                        }
-                    }
-                });
+    public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
+        try {
+            // compute the new layout
+            if ((null != mSmallLocalRendererCallbacks) && (null != aConfigurationToApply)) {
+                VideoRendererGui.update(mSmallLocalRendererCallbacks, aConfigurationToApply.mX, aConfigurationToApply.mY, aConfigurationToApply.mWidth, aConfigurationToApply.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                Log.d(LOG_TAG, "## updateLocalVideoRendererPosition(): X=" + aConfigurationToApply.mX + " Y=" + aConfigurationToApply.mY + " width=" + aConfigurationToApply.mWidth + " height" + aConfigurationToApply.mHeight);
+            } else {
+                Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to invalid parameters");
             }
+        } catch (Exception e) {
+            Log.e(LOG_TAG,"## updateLocalVideoRendererPosition(): Exception Msg="+e.getMessage());
+            return;
+        }
+
+        if(null != mCallView) {
+            mCallView.postInvalidate();
         } else {
-            Log.w(LOG_TAG, "## updateLocalVideoRender(): Skipped due to state not in CALL_STATE_CONNECTED (state="+mCallState+")");
+            Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to mCallView = null");
         }
     }
-
 
     /**
      * create the local stream
@@ -799,8 +777,9 @@ public class MXJingleCall extends MXCall {
     /**
      * Initialize the call UI
      * @param callInviteParams the invite params
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    private void initCallUI(final JsonObject callInviteParams) {
+    private void initCallUI(final JsonObject callInviteParams, VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "## initCallUI(): IN");
 
         if (isCallEnded()) {
@@ -845,13 +824,14 @@ public class MXJingleCall extends MXCall {
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
 
                 // create the video displaying the local user: horizontal center, just above the video buttons menu
-                if(null != mVideoLayoutConfiguration) {
-                    mSmallLocalRenderer = VideoRendererGui.createGui(mVideoLayoutConfiguration.mX, mVideoLayoutConfiguration.mY, mVideoLayoutConfiguration.mWidth, mVideoLayoutConfiguration.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                    Log.d(LOG_TAG, "## initCallUI(): X="+mVideoLayoutConfiguration.mX+" Y="+mVideoLayoutConfiguration.mY+" width="+mVideoLayoutConfiguration.mWidth+" height"+mVideoLayoutConfiguration.mHeight);
+                if(null != aLocalVideoPosition) {
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    Log.d(LOG_TAG, "## initCallUI(): "+aLocalVideoPosition);
                 } else {
                     // default layout
-                    mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
                 }
+                mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);
 
             } catch (Exception e) {
                 Log.e(LOG_TAG,"## initCallUI(): Exception Msg ="+e.getMessage());
@@ -944,11 +924,11 @@ public class MXJingleCall extends MXCall {
      * Start a call.
      */
     @Override
-    public void placeCall() {
+    public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "placeCall");
 
         onStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
-        initCallUI(null);
+        initCallUI(null, aLocalVideoPosition);
     }
 
     /**
@@ -1012,7 +992,7 @@ public class MXJingleCall extends MXCall {
      * @param callId the call ID
      */
     @Override
-    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
+    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId, final VideoLayoutConfiguration aLocalVideoPosition) {
 
         Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
 
@@ -1026,7 +1006,7 @@ public class MXJingleCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    initCallUI(callInviteParams);
+                    initCallUI(callInviteParams, aLocalVideoPosition);
                 }
             });
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
@@ -1045,26 +1025,17 @@ public class MXJingleCall extends MXCall {
 
     /**
      * The call has been detected as an incoming one.
-     * The application launched the dedicated activity and expects to launch the incoming call.
+     * The application launches the dedicated activity and expects to launch the incoming call.
+     * The local video attendee is displayed in the screen according to the values given in aLocalVideoPosition.
+     * @param aLocalVideoPosition local video position
      */
     @Override
-    public void launchIncomingCall() {
+    public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "launchIncomingCall : call state " + getCallState());
 
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
-            prepareIncomingCall(mCallInviteParams, mCallId);
+            prepareIncomingCall(mCallInviteParams, mCallId, aLocalVideoPosition);
         }
-    }
-
-    /**
-     * Set video display parameters to render the
-     * video call over IP screen. These parameters are used to create
-     * the layout of the screen, in terms of sizes and positions.
-     * @param aConfigurationToApply
-     */
-    @Override
-    public void setVideoLayoutParameters(VideoLayoutConfiguration aConfigurationToApply){
-        mVideoLayoutConfiguration = aConfigurationToApply;
     }
 
     /**

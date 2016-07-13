@@ -443,7 +443,7 @@ public class MXCallsManager {
                                     call.setRoom(room);
 
                                     if (!isMyEvent) {
-                                        call.prepareIncomingCall(eventContent, callId);
+                                        call.prepareIncomingCall(eventContent, callId, null);
                                         call.setIsIncoming(true);
                                         mxPendingIncomingCallId.add(callId);
                                     } else {
