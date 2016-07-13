@@ -18,6 +18,7 @@ package org.matrix.androidsdk.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -25,8 +26,11 @@ import android.graphics.Point;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Parcel;
+import android.provider.Browser;
 import android.text.Html;
 import android.text.Layout;
+import android.text.ParcelableSpan;
 import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -195,6 +199,30 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @return true to highlight it.
          */
         boolean shouldHighlightEvent(Event event);
+
+        /**
+         * An user id has been clicked in a message body.
+         * @param userId the user id.
+         */
+        void onMatrixUserIdClick(String userId);
+
+        /**
+         * A room alias has been clicked in a message body.
+         * @param roomAlias the roomAlias.
+         */
+        void onRoomAliasClick(String roomAlias);
+
+        /**
+         * A room id has been clicked in a message body.
+         * @param roomId the room id.
+         */
+        void onRoomIdClick(String roomId);
+
+        /**
+         * A message id has been clicked in a message body.
+         * @param messageId the message id.
+         */
+        void onMessageIdClick(String messageId);
     }
 
     private static final int ROW_TYPE_TEXT = 0;
@@ -247,6 +275,79 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
+
+    // list of patterns to find some matrix item.
+    private static final List<Pattern> mMatrixItemPatterns = Arrays.asList(
+            MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER,
+            MXSession.PATTERN_CONTAIN_MATRIX_ALIAS,
+            MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER,
+            MXSession.PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER
+            );
+
+    // private class to track some matrix items click}
+    private class MatrixURLSpan extends ClickableSpan implements ParcelableSpan {
+
+        private final String mURL;
+        private final Pattern mPattern;
+
+        public MatrixURLSpan(String url, Pattern pattern) {
+            mURL = url;
+            mPattern = pattern;
+        }
+
+        public MatrixURLSpan(Parcel src) {
+            mURL = src.readString();
+            mPattern = null;
+        }
+
+        public int getSpanTypeId() {
+            return getClass().hashCode();
+        }
+
+        public int describeContents() {
+            return 0;
+        }
+
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(mURL);
+        }
+
+        public String getURL() {
+            return mURL;
+        }
+
+        @Override
+        public void onClick(View widget) {
+            try {
+                if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onMatrixUserIdClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_ALIAS) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onRoomAliasClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onRoomIdClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onMessageIdClick(mURL);
+                    }
+                } else {
+                    Uri uri = Uri.parse(getURL());
+                    Context context = widget.getContext();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
+                    context.startActivity(intent);
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "MatrixURLSpan : on click failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
 
     // customization methods
     public int getDefaultMessageTextColor(Context context) {
@@ -1307,6 +1408,40 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Find the matrix spans i.e matrix id , user id ... to display them as URL.
+     * @param stringBuilder the text in which the matrix items has to be clickable.
+     */
+    public void refreshMatrixSpans(SpannableStringBuilder stringBuilder) {
+        // sanity checks
+        if ((null == stringBuilder) || (0 == stringBuilder.length())) {
+            return;
+        }
+
+        String text = stringBuilder.toString();
+
+        for(int index = 0; index < mMatrixItemPatterns.size(); index ++) {
+            Pattern pattern = mMatrixItemPatterns.get(index);
+
+            // room id.
+            Matcher matcher = pattern.matcher(stringBuilder);
+            while (matcher.find()) {
+
+                try {
+                    int startPos = matcher.start(0);
+
+                    if ((startPos == 0) || (text.charAt(startPos-1) != '/')) {
+                        int endPos = matcher.end(0);
+                        String url = text.substring(matcher.start(0), matcher.end(0));
+                        stringBuilder.setSpan(new MatrixURLSpan(url, pattern), startPos, endPos, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "refreshMatrixSpans " + e.getLocalizedMessage());
+                }
+            }
+        }
+    }
+
+    /**
      * Highlight the pattern in the text.
      * @param textView the textView in which the text is displayed.
      * @param text the text to display.
@@ -1379,6 +1514,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 makeLinkClickable(strBuilder, span);
             }
         }
+
+        refreshMatrixSpans(strBuilder);
 
         textView.setText(strBuilder);
 
@@ -1819,7 +1956,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        noticeTextView.setText(notice);
+        SpannableStringBuilder strBuilder = new SpannableStringBuilder(notice);
+
+        refreshMatrixSpans(strBuilder);
+
+        noticeTextView.setText(strBuilder);
 
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 

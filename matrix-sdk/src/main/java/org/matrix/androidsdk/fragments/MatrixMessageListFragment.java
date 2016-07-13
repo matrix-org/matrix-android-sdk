@@ -2041,47 +2041,59 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /***  MessageAdapter listener  ***/
+    @Override
     public void onRowClick(int position) {
     }
-
+    @Override
     public boolean onRowLongClick(int position) {
         return false;
     }
 
+    @Override
     public void onContentClick(int position) {
     }
 
+    @Override
     public boolean onContentLongClick(int position) {
         return false;
     }
 
+    @Override
     public void onAvatarClick(String userId) {
     }
 
+    @Override
     public boolean onAvatarLongClick(String userId) {
         return false;
     }
 
+    @Override
     public void onSenderNameClick(String userId, String displayName) {
     }
 
+    @Override
     public void onMediaDownloaded(int position) {
     }
 
+    @Override
     public void onReadReceiptClick(String eventId, String userId, ReceiptData receipt) {
     }
 
+    @Override
     public boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt) {
         return false;
     }
 
+    @Override
     public void onMoreReadReceiptClick(String eventId) {
     }
 
+    @Override
     public boolean onMoreReadReceiptLongClick(String eventId) {
         return false;
     }
 
+    @Override
     public void onURLClick(Uri uri) {
         if (null != uri) {
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
@@ -2090,6 +2102,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    @Override
     public boolean shouldHighlightEvent(Event event) {
         String eventId = event.eventId;
 
@@ -2115,6 +2128,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         return res;
+    }
+
+    @Override
+    public void onMatrixUserIdClick(String userId) {
+    }
+
+    @Override
+    public void onRoomAliasClick(String roomAlias) {
+    }
+
+    @Override
+    public void onRoomIdClick(String roomId) {
+    }
+
+    @Override
+    public void onMessageIdClick(String messageId) {
     }
 
     // thumbnails management
