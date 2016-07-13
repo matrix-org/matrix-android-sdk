@@ -49,6 +49,9 @@ public class EventDisplay {
     private final RoomState mRoomState;
     private boolean mPrependAuthor;
 
+    // let the application defines if the redacted events must be displayed
+    public static boolean mDisplayRedactedEvents = false;
+
     // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {
         mContext = context.getApplicationContext();
@@ -97,6 +100,7 @@ public class EventDisplay {
         CharSequence text = null;
 
         try {
+
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
             String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
@@ -182,18 +186,58 @@ public class EventDisplay {
 
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
-                // pretty print 'XXX changed the topic to YYYY'
-                text = mContext.getString(R.string.notice_topic_changed,
-                        userDisplayName, jsonEventContent.getAsJsonPrimitive("topic").getAsString());
+                String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    topic = redactedInfo;
+                }
+
+                if (!TextUtils.isEmpty(topic)) {
+                    text = mContext.getString(R.string.notice_topic_changed, userDisplayName, topic);
+                } else {
+                    text = mContext.getString(R.string.notice_room_topic_removed, userDisplayName);
+                }
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
-                // pretty print 'XXX changed the room name to YYYY'
-                text =  mContext.getString(R.string.notice_room_name_changed,
-                        userDisplayName, jsonEventContent.getAsJsonPrimitive("name").getAsString());
+                String roomName = jsonEventContent.getAsJsonPrimitive("name").getAsString();
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    roomName = redactedInfo;
+                }
+
+                if (!TextUtils.isEmpty(roomName)) {
+                    text = mContext.getString(R.string.notice_room_name_changed, userDisplayName, roomName);
+                } else {
+                    text = mContext.getString(R.string.notice_room_name_removed, userDisplayName);
+                }
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(mEvent.type)) {
                 RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.content);
-                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, invite.display_name);
+                String displayName = invite.display_name;
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    displayName = redactedInfo;
+                }
+
+                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
@@ -210,16 +254,19 @@ public class EventDisplay {
      * Compute the redact text for an event.
      * @param context the context
      * @param event the event
-     * @param roomState the roomstate
+     * @param roomState the room state
      * @return the redacted event text
      */
     public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
+        // test if the redacted event must be displayed.
+        if (!mDisplayRedactedEvents) {
+            return null;
+        }
+
         // Check first whether the event has been redacted
         String redactedInfo = null;
 
-        boolean isRedacted = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
-
-        if (isRedacted && (null != roomState)) {
+        if (event.isRedacted() && (null != roomState)) {
             RedactedBecause redactedBecause = event.unsigned.redacted_because;
             String redactedBy = redactedBecause.sender;
             String redactedReason = null;
@@ -314,7 +361,13 @@ public class EventDisplay {
             String redactedInfo = EventDisplay.getRedactionMessage(context, event, roomState);
 
             // Is redacted event?
-            if (!TextUtils.isEmpty(redactedInfo)) {
+            if (event.isRedacted()) {
+
+                // Here the event is ignored (no display)
+                if (null == redactedInfo) {
+                    return null;
+                }
+
                 return context.getString(R.string.notice_profile_change_redacted, senderDisplayName, redactedInfo);
             } else {
                 String displayText = "";

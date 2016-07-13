@@ -70,6 +70,7 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
@@ -157,9 +158,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mLockFwdPagination = true;
 
     protected ArrayList<Event> mResendingEventsList;
-    private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<String, Timer>();
+    private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
 
-    private HashMap<String, Object> mBingRulesByEventId = new HashMap<String, Object>();
+    private HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -457,7 +458,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
         List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
-        ArrayList<MessageRow> messageRows = new ArrayList<MessageRow>(searchResults.size());
+        ArrayList<MessageRow> messageRows = new ArrayList<>(searchResults.size());
 
         for(SearchResult searchResult : searchResults) {
             RoomState roomState = null;
@@ -500,6 +501,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 onSearchResultListener.onSearchSucceed(messageRows.size());
             } catch (Exception e) {
+                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getLocalizedMessage());
             }
         }
     }
@@ -549,6 +551,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             try {
                                 onSearchResultListener.onSearchFailed();
                             } catch (Exception e) {
+                                Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
                             }
                         }
                     }
@@ -798,6 +801,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "uploadFileContent failed with " + e.getLocalizedMessage());
         }
 
         // remove any displayed MessageRow with this URL
@@ -853,6 +857,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
             thumbUrl = getMXMediasCache().saveBitmap(thumb, null);
         } catch (Exception e) {
+            Log.e(LOG_TAG, "getVideoThumbailUrl failed with " + e.getLocalizedMessage());
         }
 
         return thumbUrl;
@@ -905,6 +910,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             uri = Uri.parse(videoUrl);
             thumbUri = Uri.parse(thumbnailUrl);
         } catch (Exception e) {
+            Log.e(LOG_TAG, "uploadVideoContent failed with " + e.getLocalizedMessage());
         }
 
         // the video message is not defined
@@ -1034,6 +1040,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 tmpImageMessage.body = uri.getLastPathSegment();
             }
         } catch (Exception e) {
+            Log.e(LOG_TAG, "uploadImageContent failed with " + e.getLocalizedMessage());
         }
 
         // remove any displayed MessageRow with this URL
@@ -1113,6 +1120,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 tmpLocationMessage.body = "Location";
             }
         } catch (Exception e) {
+            Log.e(LOG_TAG, "uploadLocationContent failed with " + e.getLocalizedMessage());
         }
 
         // remove any displayed MessageRow with this URL
@@ -1205,7 +1213,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
 
         if ((null != unsent) && (unsent.size() > 0)) {
-            mResendingEventsList =  new ArrayList<Event>(unsent);
+            mResendingEventsList =  new ArrayList<>(unsent);
 
             // reset the timestamp
             for (Event event : mResendingEventsList) {
@@ -1219,7 +1227,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Resend an event.
-     * @param event
+     * @param event the event to resend.
      */
     protected void resend(final Event event) {
         // sanity check
@@ -1814,9 +1822,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 messageRow.updateEvent(prunedEvent);
                                 JsonObject content = messageRow.getEvent().getContentAsJsonObject();
 
+                                boolean hasToRemoved = (null == content) || (null == content.entrySet()) || (0 == content.entrySet().size());
+
+                                // test if the event is displayable
+                                if (!hasToRemoved) {
+                                    EventDisplay eventDisplay = new EventDisplay(getActivity(), prunedEvent, roomState);
+                                    hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay());
+                                }
+
                                 // event is removed if it has no more content.
-                                if ((null == content) || (null == content.entrySet()) || (0 == content.entrySet().size())) {
-                                    mAdapter.removeEventById(event.getRedacts());
+                                if (hasToRemoved) {
+                                    mAdapter.removeEventById(prunedEvent.eventId);
                                 }
                             }
 
@@ -1892,6 +1908,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getLocalizedMessage());
         }
 
         if (shouldRefresh) {
@@ -2006,6 +2023,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mRoomPreviewDataListener = (RoomPreviewDataListener) getActivity();
                 } catch (ClassCastException e) {
+                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getLocalizedMessage());
                 }
             }
 

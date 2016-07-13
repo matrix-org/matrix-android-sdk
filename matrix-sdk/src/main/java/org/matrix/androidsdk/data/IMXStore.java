@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data;
 
+import android.content.Context;
+
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -66,6 +68,11 @@ public interface IMXStore {
      * Any pending operation must be complete in this call.
      */
     void clear();
+
+    /**
+     * @return the used context
+     */
+    Context getContext();
 
     /**
      * Indicate if the MXStore implementation stores data permanently.

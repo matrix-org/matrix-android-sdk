@@ -2078,9 +2078,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            return true;
-        }
-        else if (event.isCallEvent()) {
+            EventDisplay display = new EventDisplay(mContext, event, roomState);
+            return display.getTextualDisplay() != null;
+        } else if (event.isCallEvent()) {
             return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
                     Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
                     Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
