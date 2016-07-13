@@ -303,16 +303,18 @@ public class EventDisplay {
     private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
         String senderDisplayName = event.getSender();
 
-        if (null != roomState) {
-            // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
-            senderDisplayName = roomState.getMemberName(event.getSender());
-        }
+        if (!event.isRedacted()) {
+            if (null != roomState) {
+                // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
+                senderDisplayName = roomState.getMemberName(event.getSender());
+            }
 
-        // Check whether this sender name is updated by the current event (This happens in case of new joined member)
-        if (null != eventContent) {
-            if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
-                // Use the actual display name
-                senderDisplayName = eventContent.displayname;
+            // Check whether this sender name is updated by the current event (This happens in case of new joined member)
+            if (null != eventContent) {
+                if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
+                    // Use the actual display name
+                    senderDisplayName = eventContent.displayname;
+                }
             }
         }
 
@@ -352,7 +354,7 @@ public class EventDisplay {
 
         String targetDisplayName = event.stateKey;
 
-        if ((null != targetDisplayName) && (null != roomState)) {
+        if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
             targetDisplayName = roomState.getMemberName(targetDisplayName);
         }
 
