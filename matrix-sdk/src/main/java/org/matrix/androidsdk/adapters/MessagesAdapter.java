@@ -27,6 +27,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
+import android.os.Parcelable;
 import android.provider.Browser;
 import android.text.Html;
 import android.text.Layout;
@@ -301,16 +302,25 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         public int getSpanTypeId() {
+            return getSpanTypeIdInternal();
+        }
+
+        public int getSpanTypeIdInternal() {
             return getClass().hashCode();
+        }
+
+        public void writeToParcel(Parcel dest, int flags) {
+            writeToParcelInternal(dest, flags);
+        }
+
+        public void writeToParcelInternal(Parcel dest, int flags) {
+            dest.writeString(mURL);
         }
 
         public int describeContents() {
             return 0;
         }
 
-        public void writeToParcel(Parcel dest, int flags) {
-            dest.writeString(mURL);
-        }
 
         public String getURL() {
             return mURL;
