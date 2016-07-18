@@ -51,35 +51,96 @@ import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
+/**
+ * This class manages the media downloading in background.
+ */
 class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
     private static final String LOG_TAG = "MediaWorkerTask";
 
-    private static HashMap<String, MXMediaWorkerTask> mPendingDownloadByUrl = new HashMap<String, MXMediaWorkerTask>();
-    private static ArrayList<String> mFileNotFoundUrlsList = new ArrayList<String>();
+    /**
+     * Pending media URLs
+     */
+    private static final HashMap<String, MXMediaWorkerTask> mPendingDownloadByUrl = new HashMap<>();
 
-    private static LruCache<String, Bitmap> sMemoryCache = null;
+    /**
+     * List of unreachable media urls.
+     */
+    private static final ArrayList<String> mUnreachableUrls = new ArrayList<>();
 
-    private ArrayList<MXMediasCache.DownloadCallback> mCallbacks = new ArrayList<MXMediasCache.DownloadCallback>();
+    /**
+     * The medias cache
+     */
+    private static LruCache<String, Bitmap> mBitmapByUrlCache = null;
+
+
+    /**
+     * The downloaded media callbacks.
+     */
+    private final ArrayList<MXMediasCache.DownloadCallback> mCallbacks = new ArrayList<>();
+
+    /**
+     * The ImageView list to refresh when the media is downloaded.
+     */
     private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
+
+    /**
+     * The media URL.
+     */
     private String mUrl;
+
+    /**
+     * The media mime type
+     */
     private String mMimeType;
+
+    /**
+     * The application context
+     */
     private Context mApplicationContext;
+
+    /**
+     * The directory in which the media must be stored.
+     */
     private File mDirectoryFile = null;
+
+    /**
+     * The rotation to apply.
+     */
     private int mRotation = 0;
+
+    /**
+     * The download progress value.
+     */
     private int mProgress = 0;
+
+    /**
+     * Error message.
+     */
     private JsonElement mErrorAsJsonElement;
+
+    /**
+     * The home server config.
+     */
     private final HomeserverConnectionConfig mHsConfig;
 
+    /**
+     * The bitmap to use when the URL is unreachable.
+     */
+    private Bitmap mDefaultBitmap;
+
+    //==============================================================================================================
+    // static methods
+    //==============================================================================================================
+
+    /**
+     * Clear the internal cache.
+     */
     public static void clearBitmapsCache() {
         // sMemoryCache can be null if no bitmap have been downloaded.
-        if (null != sMemoryCache) {
-            sMemoryCache.evictAll();
+        if (null != mBitmapByUrlCache) {
+            mBitmapByUrlCache.evictAll();
         }
-    }
-
-    public String getUrl() {
-        return mUrl;
     }
 
     /**
@@ -111,6 +172,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             MessageDigest mDigest = MessageDigest.getInstance("SHA1");
             byte[] result = mDigest.digest(input.getBytes());
             StringBuffer sb = new StringBuffer();
+
             for (int i = 0; i < result.length; i++) {
                 sb.append(Integer.toString((result[i] & 0xff) + 0x100, 16).substring(1));
             }
@@ -162,9 +224,26 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     public static boolean isUrlCached(String url) {
         boolean res = false;
 
-        if ((null != sMemoryCache) && (null != url)) {
-            synchronized (sMemoryCache) {
-                res = (null != sMemoryCache.get(url));
+        if ((null != mBitmapByUrlCache) && (null != url)) {
+            synchronized (mBitmapByUrlCache) {
+                res = (null != mBitmapByUrlCache.get(url));
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Tells if the media URL is unreachable.
+     * @param url the url to test.
+     * @return true if the media URL is unreachable.
+     */
+    public static boolean isMediaUrlUnreachable(String url) {
+        boolean res = true;
+
+        if (!TextUtils.isEmpty(url)) {
+            synchronized (mUnreachableUrls) {
+                res = mUnreachableUrls.indexOf(url) >= 0;
             }
         }
 
@@ -187,12 +266,12 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         // sanity check
         if (null != url) {
 
-            if (null == sMemoryCache) {
+            if (null == mBitmapByUrlCache) {
                 int lruSize = Math.min(20 * 1024 * 1024, (int)Runtime.getRuntime().maxMemory() / 8);
 
                 Log.d(LOG_TAG, "bitmapForURL  lruSize : " + lruSize);
 
-                sMemoryCache = new LruCache<String, Bitmap>(lruSize){
+                mBitmapByUrlCache = new LruCache<String, Bitmap>(lruSize){
                     @Override
                     protected int sizeOf(String key, Bitmap bitmap) {
                         return bitmap.getRowBytes() * bitmap.getHeight(); // size in bytes
@@ -205,18 +284,13 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 return null;
             }
 
-            synchronized (sMemoryCache) {
-                bitmap = sMemoryCache.get(url);
+            // the url is invalid
+            if (isMediaUrlUnreachable(url)) {
+                return null;
             }
 
-            if (null == bitmap) {
-                // if some medias are not found
-                // do not try to reload them until the next application launch.
-                synchronized (mFileNotFoundUrlsList) {
-                    if (mFileNotFoundUrlsList.indexOf(url) >= 0) {
-                        bitmap = BitmapFactory.decodeResource(context.getResources(), android.R.drawable.ic_menu_gallery);
-                    }
-                }
+            synchronized (mBitmapByUrlCache) {
+                bitmap = mBitmapByUrlCache.get(url);
             }
 
             // check if the image has not been saved in file system
@@ -231,6 +305,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                         filename = uri.getPath();
 
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "bitmapForURL #1 : " + e.getLocalizedMessage());
                     }
 
                     // cannot extract the filename -> sorry
@@ -280,7 +355,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                         }
 
                         if (null != bitmap) {
-                            synchronized (sMemoryCache) {
+                            synchronized (mBitmapByUrlCache) {
                                 if (0 != rotation) {
                                     try {
                                         android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
@@ -290,6 +365,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                                         bitmap.recycle();
                                         bitmap =  transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
+                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getLocalizedMessage());
                                     }
                                 }
 
@@ -298,7 +374,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                                 // it would replace small ones.
                                 // let assume that the application must be faster when showing the chat history.
                                 if ((bitmap.getWidth() < 1000) && (bitmap.getHeight() < 1000)) {
-                                    sMemoryCache.put(url, bitmap);
+                                    mBitmapByUrlCache.put(url, bitmap);
                                 }
                             }
                         }
@@ -318,6 +394,16 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         return bitmap;
     }
 
+    //==============================================================================================================
+    // class methods
+    //==============================================================================================================
+
+    /**
+     * Shared initialization methods.
+     * @param appContext the application context.
+     * @param url the media URL.
+     * @param mimeType the mime type.
+     */
     private void commonInit(Context appContext,  String url, String mimeType) {
         mApplicationContext = appContext;
         mUrl = url;
@@ -331,30 +417,30 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
-     * @param hsConfig
-     * @param directoryFile the directry in which the media must be stored
+     * @param hsConfig the home server config.
+     * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
      */
     public MXMediaWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType) {
         commonInit(appContext, url, mimeType);
         mDirectoryFile = directoryFile;
-        mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        mImageViewReferences = new ArrayList<>();
         mHsConfig = hsConfig;
     }
 
     /**
      * BitmapWorkerTask creator
      * @param appContext the context
-     * @param hsConfig
-     * @param directoryFile the directry in which the media must be stored
+     * @param hsConfig the home server config
+     * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
      */
     public MXMediaWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType) {
         commonInit(appContext, url, mimeType);
-        mImageViewReferences = new ArrayList<WeakReference<ImageView>>();
+        mImageViewReferences = new ArrayList<>();
         mDirectoryFile = directoryFile;
         mRotation = rotation;
         mHsConfig = hsConfig;
@@ -377,11 +463,26 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
     }
 
     /**
+     * @return the media URL.
+     */
+    public String getUrl() {
+        return mUrl;
+    }
+
+    /**
      * Add an imageView to the list to refresh when the bitmap is downloaded.
      * @param imageView an image view instance to refresh.
      */
     public void addImageView(ImageView imageView) {
-        mImageViewReferences.add(new WeakReference<ImageView>(imageView));
+        mImageViewReferences.add(new WeakReference<>(imageView));
+    }
+
+    /**
+     * Set the default bitmap to use when the Url is unreachable.
+     * @param aBitmap the bitmap.
+     */
+    public void setDefaultBitmap(Bitmap aBitmap) {
+        mDefaultBitmap = aBitmap;
     }
 
     /**
@@ -400,6 +501,9 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         return mProgress;
     }
 
+    /**
+     * @return true if the current task is an image one.
+     */
     private boolean isBitmapDownload() {
         return (null == mMimeType) || mMimeType.startsWith("image/");
     }
@@ -454,17 +558,18 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
                         mErrorAsJsonElement = new JsonParser().parse(responseStrBuilder.toString());
                     } catch (Exception ee) {
+                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getLocalizedMessage());
                     }
                 }
 
                 Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
                 if (isBitmapDownload()) {
-                    bitmap = BitmapFactory.decodeResource(mApplicationContext.getResources(), android.R.drawable.ic_menu_gallery);
+                    bitmap = mDefaultBitmap;
 
                     // if some medias are not found
                     // do not try to reload them until the next application launch.
-                    synchronized (mFileNotFoundUrlsList) {
-                        mFileNotFoundUrlsList.add(mUrl);
+                    synchronized (mUnreachableUrls) {
+                        mUnreachableUrls.add(mUrl);
                     }
                 }
             }
@@ -488,7 +593,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
 
                         totalDownloaded += len;
 
-                        int progress = 0;
+                        int progress;
 
                         if (filelen > 0) {
                             if (totalDownloaded >= filelen) {
@@ -532,6 +637,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                     }
                     originalFile.renameTo(newFile);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "bitmapForURL : renaming error " + e.getLocalizedMessage());
                 }
             }
 
@@ -553,12 +659,25 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
         }
         catch (Exception e) {
             // remove the image from the loading one
-            // else the loading will be stucked (and never be tried again).
+            // else the loading will be stuck (and never be tried again).
             synchronized(mPendingDownloadByUrl) {
                 mPendingDownloadByUrl.remove(mUrl);
             }
             Log.e(LOG_TAG, "Unable to load bitmap: "+e);
             return null;
+        }
+    }
+
+    /**
+     * Close the stream.
+     * @param stream the stream to close.
+     */
+    private void close(InputStream stream) {
+        try {
+            stream.close();
+        }
+        catch (Exception e) {
+            Log.e(LOG_TAG, "close error " + e.getLocalizedMessage());
         }
     }
 
@@ -570,6 +689,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             try {
                 callback.onDownloadStart(mUrl);
             } catch (Exception e) {
+                Log.e(LOG_TAG, "sendStart error " + e.getLocalizedMessage());
             }
         }
     }
@@ -583,6 +703,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             try {
                 callback.onDownloadProgress(mUrl, progress);
             } catch (Exception e) {
+                Log.e(LOG_TAG, "sendProgress error " + e.getLocalizedMessage());
             }
         }
     }
@@ -596,6 +717,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             try {
                 callback.onError(mUrl, jsonElement);
             } catch (Exception e) {
+                Log.e(LOG_TAG, "sendError error " + e.getLocalizedMessage());
             }
         }
     }
@@ -608,7 +730,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             try {
                 callback.onDownloadComplete(mUrl);
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "sendDownloadComplete error " + e.getLocalizedMessage());
             }
         }
     }
@@ -639,12 +761,5 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 }
             }
         }
-    }
-
-    private void close(InputStream stream) {
-        try {
-            stream.close();
-        }
-        catch (Exception e) {} // don't care, it's being closed!
     }
 }
