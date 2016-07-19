@@ -1689,7 +1689,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     public void run() {
                         mLockFwdPagination = true;
 
-                        int countDiff = mAdapter.getCount() - countBeforeUpdate;
+                        final int countDiff = mAdapter.getCount() - countBeforeUpdate;
 
                         Log.d(LOG_TAG, "backPaginate : ends with " + countDiff + " new items (total : " + mAdapter.getCount() + ")");
 
@@ -1732,7 +1732,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     mMessageListView.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            if (fillHistory) {
+                                            // back paginate until getting something to display
+                                            if (0 == countDiff) {
+                                                Log.d(LOG_TAG, "backPaginate again because there was nothing in the current chunk");
+                                                backPaginate(fillHistory);
+                                            } else if (fillHistory) {
                                                 if ((mMessageListView.getVisibility() == View.VISIBLE) && mMessageListView.getFirstVisiblePosition() < 10) {
                                                     Log.d(LOG_TAG, "backPaginate : fill history");
                                                     backPaginate(fillHistory);

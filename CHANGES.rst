@@ -1,3 +1,53 @@
+Changes to Matrix Android SDK in 0.5.9 (2016-07-19)
+=======================================================
+
+Features:
+* The room ids, the room aliases, the event ids are now clickable.
+
+Bugfixes:
+* Update the background color of the markdown code.
+* #297 : Redact avatar / name update event should remove them from the room history.
+* #318 : Some member avatars are wrong.
+
+Changes to Matrix Android SDK in 0.5.8 (2016-07-11)
+=======================================================
+
+Improvements:
+* Improve file extension retrieving.
+* Update to gradle 1.5.0
+* Image message in the recents page: display the filename when it is known instead of XX sent an image.
+
+Features:
+* Add the requests to add/remove aliases to/from a room aliases.
+
+Bugfixes:
+* #262 : The app should not display <img> from HTML formatted_body
+* #263 : redactions shouldn't hide auth events (eg bans) from the timeline. they should only hide the human readable bits of content
+* #265 : vector-android seems to use display names for join/part when in a room, but not in the latest message display in the rooms list.
+* #271 : Accepting an invite does not get full scrollback.
+
+Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
+=======================================================
+
+Improvements:
+* The room visibility messages are displayed in the room history.
+* Do not refresh the turn servers if the HS does not support it.
+* RoomState : The events_default and users_default default values are now 0.
+
+Features:
+* Add some new room settings management (list in Directory, room access, room history)
+* The background sync timeout is now configurable.
+* A sleep can be defined between two sync requests.
+
+Bugfixes:
+* #206 : There is no space between some avatars (unexpected avatar).
+* GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
+* onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
+* #186 : Start chat with a member should use the latest room instead of the first found one.
+* Fix a crash with JingleCall class (when teh libs are not found on the device).
+* The room object was not always initialized when MessagesAdapter is created (tap on a notication whereas the client is not launched).
+* Fix a crash when an incoming call is received and the dedicated permissions are not granted.
+
 Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
 =======================================================
 
