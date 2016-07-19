@@ -543,21 +543,27 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setDisplayName(String displayName) {
-        Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        // privacy
+        //Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        Log.d(LOG_TAG, "Set setDisplayName ");
         mMetaDataHasChanged = true;
         super.setDisplayName(displayName);
     }
 
     @Override
     public void setAvatarURL(String avatarURL) {
-        Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        // privacy
+        //Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        Log.d(LOG_TAG, "Set setAvatarURL");
         mMetaDataHasChanged = true;
         super.setAvatarURL(avatarURL);
     }
 
     @Override
     public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
-        Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
+        // privacy
+        //Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
+        Log.d(LOG_TAG, "Set setThirdPartyIdentifiers");
         mMetaDataHasChanged = true;
         super.setThirdPartyIdentifiers(identifiers);
     }
@@ -1014,7 +1020,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1065,7 +1071,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             // (mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
+            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getLocalizedMessage());
         }
     }
 
@@ -1136,7 +1142,7 @@ public class MXFileStore extends MXMemoryStore {
                 }
             } catch (Exception e) {
                 succeed = false;
-                Log.e(LOG_TAG, "loadRoomState failed : " + e.getMessage());
+                Log.e(LOG_TAG, "loadRoomState failed : " + e.getLocalizedMessage());
             }
 
             if (null != liveState) {
@@ -1162,7 +1168,7 @@ public class MXFileStore extends MXMemoryStore {
                 messagesListFile.delete();
 
             } catch (Exception e) {
-                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getMessage());
+                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getLocalizedMessage());
             }
         }
 
@@ -1191,7 +1197,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1213,7 +1219,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 file.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getMessage());
+                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getLocalizedMessage());
             }
         }
     }
@@ -1253,7 +1259,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     } catch (Exception e) {
                                         //Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getMessage());
+                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getLocalizedMessage());
                                     }
                                 }
 
@@ -1330,7 +1336,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1369,7 +1375,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 statesFile.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getMessage());
+                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getLocalizedMessage());
             }
         }
     }
@@ -1411,7 +1417,7 @@ public class MXFileStore extends MXMemoryStore {
                                         }
 
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getMessage());
+                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getLocalizedMessage());
                                         // Toast.makeText(mContext, "saveSummaries failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 }
@@ -1452,7 +1458,7 @@ public class MXFileStore extends MXMemoryStore {
             ois.close();
         } catch (Exception e){
             succeed = false;
-            Log.e(LOG_TAG, "loadSummary failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadSummary failed : " + e.getLocalizedMessage());
         }
 
         if (null != summary) {
@@ -1492,7 +1498,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadSummaries failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadSummaries failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1531,7 +1537,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "loadMetaData failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadMetaData failed : " + e.getLocalizedMessage());
             mMetadata = null;
             mEventStreamToken = null;
         }
@@ -1572,7 +1578,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.close();
                                 } catch (Exception e) {
                                     // Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveMetaData failed : " + e.getMessage());
+                                    Log.e(LOG_TAG, "saveMetaData failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
@@ -1633,7 +1639,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
             // Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
             return false;
         }
 
@@ -1666,7 +1672,7 @@ public class MXFileStore extends MXMemoryStore {
         catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1704,7 +1710,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.close();
                                 } catch (Exception e) {
                                     //Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getMessage());
+                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");

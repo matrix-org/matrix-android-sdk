@@ -130,7 +130,9 @@ public class MXCallsManager {
             res = mTurnServer;
         }
 
-        Log.d(LOG_TAG, "getTurnServer " + res);
+        // privacy logs
+        //Log.d(LOG_TAG, "getTurnServer " + res);
+        Log.d(LOG_TAG, "getTurnServer ");
 
         return res;
     }
@@ -167,7 +169,9 @@ public class MXCallsManager {
 
                     @Override
                     public void onSuccess(JsonObject info) {
-                        Log.d(LOG_TAG, "onSuccess " + info);
+                        // privacy
+                        Log.d(LOG_TAG, "onSuccess ");
+                        //Log.d(LOG_TAG, "onSuccess " + info);
 
                         if (null != info) {
                             if (info.has("uris")) {

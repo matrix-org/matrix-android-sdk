@@ -685,7 +685,9 @@ public class MXMediasCache {
                 // create a new task from the existing one
                 task = new MXMediaWorkerTask(task);
                 mSuspendedTasks.add(task);
-                Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                // privacy
+                //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                Log.e(LOG_TAG, "Suspend the task " );
             }
 
         } catch (Exception e) {
@@ -707,7 +709,9 @@ public class MXMediasCache {
                 if (mSuspendedTasks.size() > 0) {
                     MXMediaWorkerTask task = mSuspendedTasks.get(0);
 
-                    Log.d(LOG_TAG, "Restart the task " + task.getUrl());
+                    // privacy
+                    //Log.d(LOG_TAG, "Restart the task " + task.getUrl());
+                    Log.d(LOG_TAG, "Restart a task ");
 
                     // avoid crash if there are too many running task
                     try {
@@ -720,7 +724,10 @@ public class MXMediasCache {
                         // create a new task from the existing one
                         task = new MXMediaWorkerTask(task);
                         mSuspendedTasks.add(task);
-                        Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
+
+                        // privacy
+                        //Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
+                        Log.d(LOG_TAG, "Suspend again the task " + task.getStatus());
 
                     } catch (Exception e) {
                         Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
@@ -903,7 +910,9 @@ public class MXMediasCache {
                         // create a new task from the existing one
                         task = new MXMediaWorkerTask(task);
                         mSuspendedTasks.add(task);
-                        Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                        // privacy
+                        //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
+                        Log.e(LOG_TAG, "Suspend a task ");
                     }
 
                 } catch (Exception e) {

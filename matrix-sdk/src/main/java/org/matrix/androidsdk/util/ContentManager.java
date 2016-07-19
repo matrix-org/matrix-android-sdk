@@ -485,7 +485,10 @@ public class ContentManager {
         @Override
         protected void onProgressUpdate(Integer... progress) {
             super.onProgressUpdate(progress);
-            Log.d(LOG_TAG, "UI Upload " + mHsConfig.getHomeserverUri().toString() + " : " + mProgress);
+
+            // privacy
+            //Log.d(LOG_TAG, "UI Upload " + mHsConfig.getHomeserverUri().toString() + " : " + mProgress);
+            Log.d(LOG_TAG, "UI Upload " + mProgress);
 
             for (UploadCallback callback : mCallbacks) {
                 try {

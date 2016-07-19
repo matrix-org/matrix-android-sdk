@@ -158,7 +158,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithToken(final String user, final String token, final String txn_id, final ApiCallback<Credentials> callback) {
-        final String description = "loginWithPassword user : " + user;
+        // privacy
+        //final String description = "loginWithPassword user : " + user;
+        final String description = "loginWithPassword user";
 
         TokenLoginParams params = new TokenLoginParams();
         params.user = user;

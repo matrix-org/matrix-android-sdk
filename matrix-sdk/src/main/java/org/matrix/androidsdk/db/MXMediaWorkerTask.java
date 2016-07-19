@@ -516,7 +516,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
             String key = mUrl;
 
             URL url = new URL(mUrl);
-            Log.d(LOG_TAG, "BitmapWorkerTask open >>>>> " + mUrl);
+            Log.d(LOG_TAG, "BitmapWorkerTask starts");
 
             InputStream stream = null;
             Bitmap bitmap = null;
@@ -562,7 +562,10 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                     }
                 }
 
-                Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
+                // privacy
+                //Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
+                Log.d(LOG_TAG, "MediaWorkerTask an url does not exist");
+
                 if (isBitmapDownload()) {
                     bitmap = mDefaultBitmap;
 
@@ -641,7 +644,7 @@ class MXMediaWorkerTask extends AsyncTask<Integer, Integer, Bitmap> {
                 }
             }
 
-            Log.d(LOG_TAG, "download is done (" + mUrl + ")");
+            Log.d(LOG_TAG, "download is done ");
 
             synchronized(mPendingDownloadByUrl) {
                 mPendingDownloadByUrl.remove(mUrl);
