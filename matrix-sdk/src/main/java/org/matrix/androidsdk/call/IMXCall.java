@@ -78,6 +78,49 @@ public interface IMXCall {
     String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
 
 
+    class VideoLayoutConfiguration {
+        public final static int INVALID_VALUE = -1;
+
+
+        @Override
+        public String toString() {
+            return "VideoLayoutConfiguration{" +
+                    "mIsPortrait=" + mIsPortrait +
+                    ", X=" + mX +
+                    ", Y=" + mY +
+                    ", Width=" + mWidth +
+                    ", Height=" + mHeight +
+                    '}';
+        }
+
+        // parameters of the video of the local user (small video)
+        /** margin left in percentage of the screen resolution for the local user video **/
+        public int mX;
+        /** margin top in percentage of the screen resolution for the local user video **/
+        public int mY;
+
+        /** width in percentage of the screen resolution for the local user video **/
+        public int mWidth;
+        /** video height in percentage of the screen resolution for the local user video **/
+        public int mHeight;
+
+        public boolean mIsPortrait;
+
+        public VideoLayoutConfiguration(int aX, int aY, int aWidth, int aHeight) {
+            mX = aX;
+            mY = aY;
+            mWidth = aWidth;
+            mHeight = aHeight;
+        }
+
+        public VideoLayoutConfiguration() {
+            mX = INVALID_VALUE;
+            mY = INVALID_VALUE;
+            mWidth = INVALID_VALUE;
+            mHeight = INVALID_VALUE;
+        }
+    }
+
     interface MXCallListener {
         /**
          * Called when the call state change
@@ -131,21 +174,30 @@ public interface IMXCall {
     // actions (must be done after onViewReady()
     /**
      * Start a call.
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    void placeCall();
+    void placeCall(VideoLayoutConfiguration aLocalVideoPosition);
 
     /**
      * Prepare a call reception.
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    void prepareIncomingCall(JsonObject callInviteParams, String callId);
+    void prepareIncomingCall(JsonObject callInviteParams, String callId, VideoLayoutConfiguration aLocalVideoPosition);
 
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    void launchIncomingCall();
+    void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition);
+
+     /**
+     * The video will be displayed according to the values set in aConfigurationToApply.
+     * @param aConfigurationToApply the new position to be applied
+     */
+    void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply);
 
     // events thread
     /**

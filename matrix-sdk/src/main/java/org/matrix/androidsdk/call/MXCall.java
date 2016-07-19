@@ -82,22 +82,29 @@ public class MXCall implements IMXCall {
     /**
      * Start a call.
      */
-    public void placeCall() {
+    public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
     }
 
     /**
      * Prepare a call reception.
      * @param callInviteParams the invitation Event content
      * @param callId the call ID
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    public void prepareIncomingCall(JsonObject callInviteParams, String callId) {
+    public void prepareIncomingCall(JsonObject callInviteParams, String callId,  VideoLayoutConfiguration aLocalVideoPosition) {
     }
 
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    public void launchIncomingCall() {
+    public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
+    }
+
+    @Override
+    public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aLocalVideoPosition){
+        Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): not implemented");
     }
 
     // events thread

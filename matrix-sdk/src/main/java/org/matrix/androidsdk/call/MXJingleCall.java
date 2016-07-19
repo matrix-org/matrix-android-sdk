@@ -86,6 +86,7 @@ public class MXJingleCall extends MXCall {
     private VideoRenderer mSmallLocalRenderer = null;
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
+    private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
     private VideoRenderer mLargeLocalRenderer = null;
 
     private static boolean mIsInitialized = false;
@@ -330,6 +331,30 @@ public class MXJingleCall extends MXCall {
         }
     }
 
+
+
+    @Override
+    public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
+        try {
+            // compute the new layout
+            if ((null != mSmallLocalRendererCallbacks) && (null != aConfigurationToApply)) {
+                VideoRendererGui.update(mSmallLocalRendererCallbacks, aConfigurationToApply.mX, aConfigurationToApply.mY, aConfigurationToApply.mWidth, aConfigurationToApply.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                Log.d(LOG_TAG, "## updateLocalVideoRendererPosition(): X=" + aConfigurationToApply.mX + " Y=" + aConfigurationToApply.mY + " width=" + aConfigurationToApply.mWidth + " height" + aConfigurationToApply.mHeight);
+            } else {
+                Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to invalid parameters");
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG,"## updateLocalVideoRendererPosition(): Exception Msg="+e.getMessage());
+            return;
+        }
+
+        if(null != mCallView) {
+            mCallView.postInvalidate();
+        } else {
+            Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to mCallView = null");
+        }
+    }
+
     /**
      * create the local stream
      */
@@ -521,7 +546,7 @@ public class MXJingleCall extends MXCall {
 
                     @Override
                     public void onAddStream(final MediaStream mediaStream) {
-                        Log.d(LOG_TAG, "mPeerConnection onAddStream " + mediaStream);
+                        Log.d(LOG_TAG, "## set remote video - mPeerConnection onAddStream " + mediaStream);
 
                         mUIThreadHandler.post(new Runnable() {
                             @Override
@@ -752,17 +777,18 @@ public class MXJingleCall extends MXCall {
     /**
      * Initialize the call UI
      * @param callInviteParams the invite params
+     * @param aLocalVideoPosition position of the local video attendee
      */
-    private void initCallUI(final JsonObject callInviteParams) {
-        Log.d(LOG_TAG, "initCallUI");
+    private void initCallUI(final JsonObject callInviteParams, VideoLayoutConfiguration aLocalVideoPosition) {
+        Log.d(LOG_TAG, "## initCallUI(): IN");
 
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "initCallUI : call is ended");
+            Log.w(LOG_TAG, "## initCallUI(): skipped due to call is ended");
             return;
         }
 
         if (isVideo()) {
-            Log.d(LOG_TAG, "initCallUI : video call");
+            Log.d(LOG_TAG, "## initCallUI(): building UI video call");
 
             VideoRendererGui.setView(mCallView, new Runnable() {
                 @Override
@@ -771,7 +797,7 @@ public class MXJingleCall extends MXCall {
                         @Override
                         public void run() {
                             if (null == mPeerConnectionFactory) {
-                                Log.d(LOG_TAG, "initCallUI : video call and no mPeerConnectionFactory");
+                                Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
                                 mPeerConnectionFactory = new PeerConnectionFactory();
                                 createVideoTrack();
@@ -790,19 +816,31 @@ public class MXJingleCall extends MXCall {
 
             // create the renderers after the VideoRendererGui.setView
             try {
-                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+                Log.d(LOG_TAG, "## initCallUI() building UI");
+                //  create the video displaying the remote user: in full screen
+                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
 
-                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, true);
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
 
-                mSmallLocalRenderer = VideoRendererGui.createGui(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                // create the video displaying the local user: horizontal center, just above the video buttons menu
+                if(null != aLocalVideoPosition) {
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    Log.d(LOG_TAG, "## initCallUI(): "+aLocalVideoPosition);
+                } else {
+                    // default layout
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                }
+                mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);
+
             } catch (Exception e) {
+                Log.e(LOG_TAG,"## initCallUI(): Exception Msg ="+e.getMessage());
             }
 
             mCallView.setVisibility(View.VISIBLE);
 
         } else {
-            Log.d(LOG_TAG, "initCallUI : audio call");
+            Log.d(LOG_TAG, "## initCallUI(): build audio call");
 
             // audio call
             mUIThreadHandler.post(new Runnable() {
@@ -886,11 +924,11 @@ public class MXJingleCall extends MXCall {
      * Start a call.
      */
     @Override
-    public void placeCall() {
+    public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "placeCall");
 
         onStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
-        initCallUI(null);
+        initCallUI(null, aLocalVideoPosition);
     }
 
     /**
@@ -954,9 +992,9 @@ public class MXJingleCall extends MXCall {
      * @param callId the call ID
      */
     @Override
-    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId) {
+    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId, final VideoLayoutConfiguration aLocalVideoPosition) {
 
-        Log.d(LOG_TAG, "prepareIncomingCall : call state " + getCallState());
+        Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
 
         mCallId = callId;
 
@@ -968,7 +1006,7 @@ public class MXJingleCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    initCallUI(callInviteParams);
+                    initCallUI(callInviteParams, aLocalVideoPosition);
                 }
             });
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
@@ -987,14 +1025,16 @@ public class MXJingleCall extends MXCall {
 
     /**
      * The call has been detected as an incoming one.
-     * The application launched the dedicated activity and expects to launch the incoming call.
+     * The application launches the dedicated activity and expects to launch the incoming call.
+     * The local video attendee is displayed in the screen according to the values given in aLocalVideoPosition.
+     * @param aLocalVideoPosition local video position
      */
     @Override
-    public void launchIncomingCall() {
+    public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "launchIncomingCall : call state " + getCallState());
 
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
-            prepareIncomingCall(mCallInviteParams, mCallId);
+            prepareIncomingCall(mCallInviteParams, mCallId, aLocalVideoPosition);
         }
     }
 
