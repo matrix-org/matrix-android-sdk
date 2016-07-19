@@ -67,8 +67,6 @@ public class MXFileStore extends MXMemoryStore {
     final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
     final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
 
-    private Context mContext = null;
-
     // the data is read from the file system
     private boolean mIsReady = false;
 
@@ -164,6 +162,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Default constructor
      * @param hsConfig the expected credentials
+     * @param context the context.
      */
     public MXFileStore(HomeserverConnectionConfig hsConfig, Context context) {
         initCommon();

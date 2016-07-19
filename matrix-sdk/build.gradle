@@ -16,9 +16,10 @@ android {
     defaultConfig {
         minSdkVersion 11
         targetSdkVersion 21
-        versionCode 19
-        version "0.5.8"
-        versionName "0.5.8"
+        // use version to define a version code.
+        versionCode 509
+        version "0.5.9"
+        versionName "0.5.9"
      }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests

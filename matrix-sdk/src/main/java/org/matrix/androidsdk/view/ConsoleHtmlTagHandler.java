@@ -30,6 +30,7 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.BulletSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
+import android.text.style.TypefaceSpan;
 
 import org.matrix.androidsdk.R;
 import org.xml.sax.XMLReader;
@@ -189,7 +190,7 @@ public class ConsoleHtmlTagHandler implements Html.TagHandler {
                     end(output, Ol.class, false, new LeadingMarginSpan.Standard(numberMargin));
                 }
             } else if (tag.equalsIgnoreCase("code")) {
-                end(output, Code.class, false, new BackgroundColorSpan(mContext.getResources().getColor(R.color.markdown_code_background)));
+                end(output, Code.class, false, new BackgroundColorSpan(mContext.getResources().getColor(R.color.markdown_code_background)), new TypefaceSpan("monospace"));
             } else if (tag.equalsIgnoreCase("center")) {
                 end(output, Center.class, true, new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER));
             } else if (tag.equalsIgnoreCase("s") || tag.equalsIgnoreCase("strike")) {

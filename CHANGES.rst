@@ -1,3 +1,14 @@
+Changes to Matrix Android SDK in 0.5.9 (2016-07-19)
+=======================================================
+
+Features:
+* The room ids, the room aliases, the event ids are now clickable.
+
+Bugfixes:
+* Update the background color of the markdown code.
+* #297 : Redact avatar / name update event should remove them from the room history.
+* #318 : Some member avatars are wrong.
+
 Changes to Matrix Android SDK in 0.5.8 (2016-07-11)
 =======================================================
 

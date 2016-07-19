@@ -105,7 +105,7 @@ public class Event implements java.io.Serializable {
     // Contains optional extra information about the event.
     public UnsignedData unsigned;
 
-    // Specific to redactions
+    // Specific to redaction
     public String redacts;
 
     // A subset of the state of the room at the time of the invite, if membership is invite
@@ -219,6 +219,14 @@ public class Event implements java.io.Serializable {
         contentAsString = null;
     }
 
+    
+    /**
+     * @return true if this event was redacted
+     */
+    public boolean isRedacted() {
+        return (null != unsigned) &&  (null != unsigned.redacted_because);
+    }
+
     static DateFormat mDateFormat = null;
     static long mFormatterRawOffset = 1234;
 
@@ -226,7 +234,7 @@ public class Event implements java.io.Serializable {
      * @return a formatted timestamp.
      */
     public String formattedOriginServerTs() {
-        // avoid displaying weird orign ts
+        // avoid displaying weird origin ts
         if (!isValidOriginServerTs()) {
             return " ";
         } else {
@@ -318,7 +326,7 @@ public class Event implements java.io.Serializable {
     public String getRedacts() {
         if (null != redacts) {
             return redacts;
-        } else  if ((null != unsigned) && (null != unsigned.redacted_because)) {
+        } else  if (isRedacted()) {
             redacts = unsigned.redacted_because.redacts;
             return redacts;
         }
@@ -617,11 +625,12 @@ public class Event implements java.io.Serializable {
     }
 
     /**
-     Prune the event which removes all keys we don't know about or think could potentially be dodgy.
-     This is used when we "redact" an event. We want to remove all fields that the user has specified,
-     but we do want to keep necessary information like type, state_key etc.
+     * Prune the event which removes all keys we don't know about or think could potentially be dodgy.
+     * This is used when we "redact" an event. We want to remove all fields that the user has specified,
+     * but we do want to keep necessary information like type, state_key etc.
+     * @param redactionEvent the event which triggers this redaction
      */
-    public void prune() {
+    public void prune(Event redactionEvent) {
         // Filter in event by keeping only the following keys
         ArrayList<String> allowedKeys;
 
@@ -654,5 +663,31 @@ public class Event implements java.io.Serializable {
 
         this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
         this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
+
+        if (null != redactionEvent) {
+            if (null == unsigned) {
+                unsigned = new UnsignedData();
+            }
+
+            unsigned.redacted_because = new RedactedBecause();
+            unsigned.redacted_because.type = redactionEvent.type;
+            unsigned.redacted_because.origin_server_ts = redactionEvent.originServerTs;
+            unsigned.redacted_because.sender = redactionEvent.sender;
+            unsigned.redacted_because.event_id = redactionEvent.eventId;
+            unsigned.redacted_because.unsigned = redactionEvent.unsigned;
+            unsigned.redacted_because.redacts = redactionEvent.redacts;
+
+            unsigned.redacted_because.content = new RedactedContent();
+
+            JsonObject contentAsJson = getContentAsJsonObject();
+            if ((null != contentAsJson) && contentAsJson.has("reason")) {
+                try {
+                    unsigned.redacted_because.content.reason = contentAsJson.get("reason").getAsString();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getLocalizedMessage());
+                }
+
+            }
+        }
     }
 }

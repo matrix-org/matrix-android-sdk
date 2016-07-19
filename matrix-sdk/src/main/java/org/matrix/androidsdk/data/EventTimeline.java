@@ -34,8 +34,10 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
+import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -186,7 +188,7 @@ public class EventTimeline {
         mInitialEventId = eventId;
         mDataHandler = dataHandler;
 
-        mStore = new MXMemoryStore(dataHandler.getCredentials());
+        mStore = new MXMemoryStore(dataHandler.getCredentials(), null);
         mRoom = mDataHandler.getRoom(mStore, roomId, true);
         mRoom.setLiveTimeline(this);
         mRoom.setReadyState(true);
@@ -604,7 +606,8 @@ public class EventTimeline {
                     store = true;
 
                     // remove expected keys
-                    eventToPrune.prune();
+                    eventToPrune.prune(event);
+
                     storeEvent(eventToPrune);
 
                     // search the latest displayable event
@@ -612,11 +615,16 @@ public class EventTimeline {
                     ArrayList<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
                     for (int index = events.size() - 1; index >= 0; index--) {
                         Event anEvent = events.get(index);
-
                         if (RoomSummary.isSupportedEvent(anEvent)) {
-                            event = anEvent;
-                            break;
+                            EventDisplay eventDisplay = new EventDisplay(mStore.getContext(), anEvent, mState);
+
+                            // ensure that message can be displayed
+                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay())) {
+                                event = anEvent;
+                                break;
+                            }
                         }
+
                     }
                 }
             }
@@ -756,11 +764,9 @@ public class EventTimeline {
                         prevMembership = prevEventContent.membership;
                     }
 
-                    boolean isRedactedEvent = (event.unsigned != null) && (event.unsigned.redacted_because != null);
-
                     // if the membership keeps the same value "join".
                     // it should mean that the user profile has been updated.
-                    if (!isRedactedEvent && TextUtils.equals(prevMembership, eventContent.membership) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
+                    if (!event.isRedacted() && TextUtils.equals(prevMembership, eventContent.membership) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
                         // check if the user updates his profile from another device.
 
                         boolean hasAccountInfoUpdated = false;

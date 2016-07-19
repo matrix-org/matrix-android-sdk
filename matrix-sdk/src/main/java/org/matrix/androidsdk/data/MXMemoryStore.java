@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -59,6 +60,9 @@ public class MXMemoryStore implements IMXStore {
     // dict of dict of MXReceiptData indexed by userId
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
+    // the context
+    protected Context mContext;
+
     //
     protected HashMap<String, Event> mTemporaryEventsList = new HashMap<String, Event>();
 
@@ -90,11 +94,17 @@ public class MXMemoryStore implements IMXStore {
      * Default constructor
      * @param credentials the expected credentials
      */
-    public MXMemoryStore(Credentials credentials) {
+    public MXMemoryStore(Credentials credentials, Context context) {
         initCommon();
+        mContext = context;
         mCredentials = credentials;
 
         mMetadata = new MXFileStoreMetaData();
+    }
+
+    @Override
+    public Context getContext() {
+        return mContext;
     }
 
     /**

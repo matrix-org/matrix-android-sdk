@@ -18,6 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -80,15 +81,29 @@ public class MXMediasCache {
         void onDownloadComplete(String downloadId);
     }
 
-    private static final String LOG_TAG = "ConsoleMediasCache";
-    static String MXMEDIA_STORE_FOLDER = "MXMediaStore";
-    static String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
-    static String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
-    static String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
+    private static final String LOG_TAG = "MXMediasCache";
 
-    private ContentManager mContentmanager = null;
+    /**
+     * The medias folders.
+     */
+    private static final String MXMEDIA_STORE_FOLDER = "MXMediaStore";
+    private static final String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
+    private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
+    private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
 
+    /**
+     * The content manager
+     */
+    private ContentManager mContentManager = null;
+
+    /**
+     * The account user ID
+     */
     private String mUserID = null;
+
+    /**
+     * The medias folders list.
+     */
     private File mMediasFolderFile = null;
     private File mImagesFolderFile = null;
     private File mOthersFolderFile = null;
@@ -100,7 +115,7 @@ public class MXMediasCache {
      *
      * @param directory The upper directory file.
      */
-    public void cleanFormerMediasCache(File directory) {
+    private void cleanFormerMediasCache(File directory) {
         File[] files = directory.listFiles();
 
         if (null != files) {
@@ -118,12 +133,13 @@ public class MXMediasCache {
     }
 
     /**
-     * constructor
-     *
-     * @param contentManager
+     * Constructor
+     * @param contentManager the content manager.
+     * @param userID the account user Id.
+     * @param context the context
      */
     public MXMediasCache(ContentManager contentManager, String userID, Context context) {
-        mContentmanager = contentManager;
+        mContentManager = contentManager;
         mUserID = userID;
 
         File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
@@ -259,15 +275,21 @@ public class MXMediasCache {
         // check if the Url is a matrix one
         if ((null != url) && url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
             if ((width > 0) && (height > 0)) {
-                return mContentmanager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+                return mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
             } else {
-                return mContentmanager.getDownloadableUrl(url);
+                return mContentManager.getDownloadableUrl(url);
             }
         } else {
             return url;
         }
     }
 
+    /**
+     * Provide the thumbnail file.
+     * @param url the thumbnail url/
+     * @param size the thumbnail size.
+     * @return the File if it exits.
+     */
     public File thumbnailCacheFile(String url, int size) {
         // sanity check
         if (null == url) {
@@ -282,24 +304,31 @@ public class MXMediasCache {
             if (file.exists()) {
                 return file;
             }
-
         } catch (Exception e) {
+            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getLocalizedMessage());
         }
 
         return null;
     }
 
     /**
-     * Return the cache file name for a media
-     *
+     * Return the cache file name for a media defined by its URL and its mimetype.
      * @param url      the media url
      * @param mimeType the mime type
-     * @return the cache file
+     * @return the media file it is found
      */
     public File mediaCacheFile(String url, String mimeType) {
         return mediaCacheFile(url, -1, -1, mimeType);
     }
 
+    /**
+     * Return the cache file name for a media defined by its URL and its mimetype.
+     * @param url the media URL
+     * @param width the media width
+     * @param height the media height
+     * @param mimeType the media mime type
+     * @return the media file it is found
+     */
     public File mediaCacheFile(String url, int width, int height, String mimeType) {
         // sanity check
         if (null == url) {
@@ -322,6 +351,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getLocalizedMessage());
         }
 
         return null;
@@ -357,6 +387,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "saveBitmap failed " + e.getLocalizedMessage());
         }
 
         return cacheURL;
@@ -412,6 +443,7 @@ public class MXMediasCache {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
+                Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
             }
 
             fos.flush();
@@ -420,6 +452,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
 
         }
 
@@ -474,6 +507,7 @@ public class MXMediasCache {
                 try {
                     destFile.delete();
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getLocalizedMessage());
                 }
             }
 
@@ -497,6 +531,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getLocalizedMessage());
         }
     }
 
@@ -504,14 +539,29 @@ public class MXMediasCache {
      * Load an avatar thumbnail.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig
+     * @param hsConfig the home server config.
      * @param imageView Ihe imageView to update with the image.
      * @param url       the image url
      * @param side      the avatar thumbnail side
      * @return a download identifier if the image is not cached.
      */
     public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile());
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), null);
+    }
+
+    /**
+     * Load an avatar thumbnail.
+     * The imageView image is updated when the bitmap is loaded or downloaded.
+     *
+     * @param hsConfig the home server config.
+     * @param imageView Ihe imageView to update with the image.
+     * @param url       the image url
+     * @param side      the avatar thumbnail side
+     * @param aDefaultAvatar the avatar to use when the Url is not reachable.
+     * @return a download identifier if the image is not cached.
+     */
+    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar);
     }
 
     /**
@@ -519,16 +569,25 @@ public class MXMediasCache {
      * @param url the avatar url to test
      * @return true if the avatar bitmap is cached.
      */
-    public boolean isAvartarThumbailCached(String url, int side) {
+    public boolean isAvatarThumbnailCached(String url, int side) {
         return MXMediaWorkerTask.isUrlCached(downloadableUrl(url, side, side));
+    }
+
+    /**
+     * Tells if the media URL is unreachable.
+     * @param url the url to test.
+     * @return true if the media URL is unreachable.
+     */
+    public static boolean isMediaUrlUnreachable(String url) {
+        return MXMediaWorkerTask.isMediaUrlUnreachable(url);
     }
 
     /**
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig
-     * @param imageView     Ihe imageView to update with the image.
+     * @param hsConfig      The home server config.
+     * @param imageView     The imageView to update with the image.
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
@@ -543,7 +602,7 @@ public class MXMediasCache {
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig
+     * @param hsConfig      The home server config.
      * @param context       The context
      * @param url           the image url
      * @param rotationAngle the rotation angle (degrees)
@@ -561,8 +620,8 @@ public class MXMediasCache {
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
-     * @param hsConfig
-     * @param imageView     the imageView to fill when the image is downloaded
+     * @param hsConfig      The home server config.
+     * @param imageView     The imageView to fill when the image is downloaded
      * @param url           the image url
      * @param width         the expected image width
      * @param height        the expected image height
@@ -576,7 +635,7 @@ public class MXMediasCache {
     }
 
     // some tasks have been stacked because there are too many running ones.
-    ArrayList<MXMediaWorkerTask> mSuspendedTasks = new ArrayList<MXMediaWorkerTask>();
+    private final ArrayList<MXMediaWorkerTask> mSuspendedTasks = new ArrayList<>();
 
     /**
      * Returns the download ID from the media URL.
@@ -590,10 +649,10 @@ public class MXMediasCache {
 
     /**
      * @param context  the application context
-     * @param hsConfig
+     * @param hsConfig the home server config.
      * @param url      the media url
      * @param mimeType the media mimetype
-     * @return
+     * @return the download identifier.
      */
     public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType) {
         // sanity checks
@@ -630,7 +689,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-
+            Log.e(LOG_TAG, "downloadMedia failed " + e.getLocalizedMessage());
         }
 
         return downloadableUrl;
@@ -677,6 +736,11 @@ public class MXMediasCache {
     private static Handler mUIHandler = null;
 
     /**
+     * The default bitmap to use when the media cannot be retrieved.
+     */
+    private static Bitmap mDefaultBitmap = null;
+
+    /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
@@ -687,7 +751,7 @@ public class MXMediasCache {
      *
      *
      * @param context the context
-     * @param hsConfig
+     * @param hsConfig the home server config
      * @param imageView the imageView to fill when the image is downloaded
      * @param url the image url
      * @param width the expected image width
@@ -695,10 +759,37 @@ public class MXMediasCache {
      * @param rotationAngle the rotation angle (degrees)
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType the mimeType.
-     * @param folderFile tye folder where the media should be stored
+     * @param folderFile the folder where the media should be stored
      * @return a download identifier if the image is not cached
      */
     public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
+        return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null);
+    }
+
+    /**
+     * Load a bitmap from an url.
+     * The imageView image is updated when the bitmap is loaded or downloaded.
+     * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     *
+     * The rotation angle is checked first.
+     * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
+     * If the orientation is defined, request the properly oriented image to the server
+     *
+     *
+     * @param context the context
+     * @param hsConfig the home server config
+     * @param imageView the imageView to fill when the image is downloaded
+     * @param url the image url
+     * @param width the expected image width
+     * @param height the expected image height
+     * @param rotationAngle the rotation angle (degrees)
+     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType the mimeType.
+     * @param folderFile the folder where the media should be stored
+     * @param aDefaultBitmap the default bitmap to use when the url media cannot be retrieved.
+     * @return a download identifier if the image is not cached
+     */
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap) {
         if (null == url) {
             return null;
         }
@@ -708,6 +799,11 @@ public class MXMediasCache {
             return null;
         }
 
+        if (null == mDefaultBitmap) {
+            mDefaultBitmap = BitmapFactory.decodeResource(context.getResources(), android.R.drawable.ic_menu_gallery);
+        }
+
+        Bitmap defaultBimap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
         String downloadableUrl = downloadableUrl(url, width, height);
 
         if ((rotationAngle == Integer.MAX_VALUE) && (orientation != ExifInterface.ORIENTATION_UNDEFINED) && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
@@ -730,7 +826,7 @@ public class MXMediasCache {
         }
 
         // check if the bitmap is already cached
-        final Bitmap bitmap = MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
+        final Bitmap bitmap = (MXMediaWorkerTask.isMediaUrlUnreachable(downloadableUrl)) ? defaultBimap : MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
@@ -775,6 +871,8 @@ public class MXMediasCache {
                     task.addImageView(imageView);
                 }
 
+                task.setDefaultBitmap(defaultBimap);
+
                 // check at the end of the download, if a suspended task can be launched again.
                 task.addCallback(new DownloadCallback() {
                     @Override
@@ -809,7 +907,7 @@ public class MXMediasCache {
                     }
 
                 } catch (Exception e) {
-                
+                    Log.e(LOG_TAG, "loadBitmap failed " + e.getLocalizedMessage());
                 }
             }
         }

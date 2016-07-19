@@ -124,8 +124,23 @@ public class MXSession {
     // regex pattern to test if a string is a valid room alias.
     public static final Pattern PATTERN_MATRIX_ALIAS =  Pattern.compile("^#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
 
-    // regex pattern to test if a string is a valid matrix id.
+    // regex pattern to test if a string is a valid room id.
     public static final Pattern PATTERN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("^![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid message id.
+    public static final Pattern PATTERN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("^\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find matrix user ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER =  Pattern.compile("@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find room aliases in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS =  Pattern.compile("#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find room ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find message ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a basic session for direct API calls.
