@@ -86,7 +86,7 @@ public class MatrixMessagesFragment extends Fragment {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
         void onLiveEventsChunkProcessed();
         void onReceiptEvent(List<String> senderIds);
-        void onRoomSyncWithLimitedTimeline();
+        void onRoomFlush();
 
         EventTimeline getEventTimeLine();
         void onTimelineInitialized();
@@ -123,11 +123,11 @@ public class MatrixMessagesFragment extends Fragment {
         }
 
         @Override
-        public void onRoomSyncWithLimitedTimeline(String roomId) {
+        public void onRoomFlush(String roomId) {
             if (null != mMatrixMessagesListener) {
                 if (mEventTimeline.isLiveTimeline()) {
                     // clear the history
-                    mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
+                    mMatrixMessagesListener.onRoomFlush();
 
                     // init the timeline
                     mEventTimeline.initHistory();

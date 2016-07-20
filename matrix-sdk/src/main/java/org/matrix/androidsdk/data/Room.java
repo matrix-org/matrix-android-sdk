@@ -1633,13 +1633,13 @@ public class Room {
             }
 
             @Override
-            public void onRoomSyncWithLimitedTimeline(String roomId) {
+            public void onRoomFlush(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
                     try {
-                        eventListener.onRoomSyncWithLimitedTimeline(roomId);
+                        eventListener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage());
                     }
                 }
             }

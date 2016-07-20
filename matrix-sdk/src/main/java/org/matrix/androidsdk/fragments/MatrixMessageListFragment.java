@@ -2040,7 +2040,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onRoomSyncWithLimitedTimeline() {
+    public void onRoomFlush() {
         mAdapter.clear();
     }
 

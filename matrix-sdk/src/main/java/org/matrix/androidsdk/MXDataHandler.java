@@ -1315,7 +1315,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onRoomSyncWithLimitedTimeline(final String roomId) {
+    public void onRoomFlush(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1323,9 +1323,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onRoomSyncWithLimitedTimeline(roomId);
+                        listener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomFlush " + e.getLocalizedMessage());
                     }
                 }
             }

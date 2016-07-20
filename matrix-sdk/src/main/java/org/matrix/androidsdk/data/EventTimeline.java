@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
@@ -321,7 +322,7 @@ public class EventTimeline {
 
                 // the roomId is not defined.
                 event.roomId = mRoomId;
-                handleLiveEvent(event, true);
+                handleLiveEvent(event, false, true);
             }
         }
     }
@@ -429,8 +430,10 @@ public class EventTimeline {
                     // the roomId is not defined.
                     event.roomId = mRoomId;
                     try {
+                        boolean isLimited = (null != roomSync.timeline) && roomSync.timeline.limited;
+
                         // digest the forward event
-                        handleLiveEvent(event, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
                     }
@@ -447,7 +450,7 @@ public class EventTimeline {
 
             if ((null != roomSync.timeline) && roomSync.timeline.limited) {
                 // The room has been synced with a limited timeline
-                mDataHandler.onRoomSyncWithLimitedTimeline(mRoomId);
+                mDataHandler.onRoomFlush(mRoomId);
             }
         }
 
@@ -590,10 +593,131 @@ public class EventTimeline {
     }
 
     /**
+     * Redact an event might require to reload the timeline
+     * because the room states has to be been updated.
+     * @param event the redacted event
+     */
+    private void checkStateEventRedaction(Event event) {
+        if (null != event.stateKey) {
+
+            Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
+
+            mState.applyState(event, Direction.FORWARDS);
+            mStore.storeLiveStateForRoom(mRoomId);
+
+            initHistory();
+
+            // warn that there was a flush
+            mDataHandler.onRoomFlush(mRoomId);
+        }
+    }
+
+    /**
+     * Redact an event might require to reload the timeline
+     * because the room states has to be been updated.
+     * @param eventId the redacted event id
+     */
+    private void checkStateEventRedaction(String eventId) {
+        Log.d(LOG_TAG, "checkStateEventRedaction from event Id " + eventId);
+
+        if (!TextUtils.isEmpty(eventId)) {
+            Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
+
+            mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, eventId, 1, new ApiCallback<EventContext>() {
+                @Override
+                public void onSuccess(EventContext eventContext) {
+                    if ((null != eventContext.event) && (null != eventContext.event.stateKey)) {
+                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
+                        forceRoomStateServerSync();
+                    } else {
+                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a not state event -> job is done");
+                    }
+                }
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+            });
+        }
+    }
+
+    /**
+     * Get a fresh room state from the server
+     */
+    private void forceRoomStateServerSync() {
+        Log.d(LOG_TAG, "forceRoomStateServerSync starts");
+
+        final RoomState curRoomState = mState;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
+            @Override
+            public void onSuccess(RoomResponse roomResponse) {
+                // test if the room state is still the same
+                // else assume the state has already been updated
+                if (curRoomState == mState) {
+                    Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
+
+                    // clear the states
+                    mState = new RoomState();
+                    mState.roomId = mRoomId;
+                    mState.setDataHandler(mDataHandler);
+
+                    if (null != roomResponse.state) {
+                        for (Event event : roomResponse.state) {
+                            try {
+                                processStateEvent(event, Direction.FORWARDS);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                            }
+                        }
+                    }
+
+                    mStore.storeLiveStateForRoom(mRoomId);
+                    initHistory();
+
+                    // warn that there was a flush
+                    mDataHandler.onRoomFlush(mRoomId);
+                } else {
+                    Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
      * Store a live room event.
      * @param event The event to be stored.
+     * @param checkRedactedStateEvent true to check if this event redacts a state event
      */
-    private void storeLiveRoomEvent(Event event) {
+    private void storeLiveRoomEvent(Event event, boolean checkRedactedStateEvent) {
         boolean store = false;
         String myUserId = mDataHandler.getCredentials().userId;
 
@@ -610,6 +734,11 @@ public class EventTimeline {
 
                     storeEvent(eventToPrune);
 
+                    if (checkRedactedStateEvent) {
+                        checkStateEventRedaction(eventToPrune.eventId);
+                        //checkStateEventRedaction(eventToPrune);
+                    }
+
                     // search the latest displayable event
                     // to replace the summary text
                     ArrayList<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
@@ -625,6 +754,10 @@ public class EventTimeline {
                             }
                         }
 
+                    }
+                } else {
+                    if (checkRedactedStateEvent) {
+                        checkStateEventRedaction(event.getRedacts());
                     }
                 }
             }
@@ -701,16 +834,17 @@ public class EventTimeline {
     /**
      * Handle events coming down from the event stream.
      * @param event the live event
+     * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
      * @param withPush set to true to trigger pushes when it is required
      * */
-    private void handleLiveEvent(Event event, boolean withPush) {
+    private void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
 
-            storeLiveRoomEvent(event);
+            storeLiveRoomEvent(event, false);
 
             // the candidates events are not tracked
             // because the users don't need to see the peer exchanges.
@@ -801,7 +935,7 @@ public class EventTimeline {
                     }
                 }
 
-                storeLiveRoomEvent(event);
+                storeLiveRoomEvent(event, checkRedactedStateEvent);
 
                 // warn the listeners
                 // general listeners
@@ -1199,7 +1333,7 @@ public class EventTimeline {
                 initHistory();
 
                 // selected event
-                storeLiveRoomEvent(eventContext.event);
+                storeLiveRoomEvent(eventContext.event, false);
                 onEvent(eventContext.event, Direction.BACKWARDS, mState);
 
                 // add events before

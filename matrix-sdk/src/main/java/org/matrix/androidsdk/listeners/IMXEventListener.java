@@ -109,6 +109,13 @@ public interface IMXEventListener {
     void onJoinRoom(String roomId);
 
     /**
+     * The messages of an existing room has been flushed during server sync.
+     * This flush may be due to a limited timeline in the room sync, or the redaction of a state event.
+     * @param roomId the room Id
+     */
+    void onRoomFlush(String roomId);
+
+    /**
      * The room initial sync is completed.
      * It is triggered after retrieving the room info and performing a first requestHistory
      *
@@ -146,10 +153,4 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     void onRoomTagEvent(String roomId);
-
-    /**
-     * A room has been resynced with a limited timeline
-     * @param roomId the room Id
-     */
-    void onRoomSyncWithLimitedTimeline(String roomId);
 }

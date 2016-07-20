@@ -99,7 +99,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onRoomSyncWithLimitedTimeline(String roomId) {
+    public void onRoomFlush(String roomId) {
     }
 
     @Override
