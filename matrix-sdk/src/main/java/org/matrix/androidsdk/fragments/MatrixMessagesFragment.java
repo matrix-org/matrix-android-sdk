@@ -310,7 +310,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             if (null != roomPreviewData) {
                 if  (null != roomPreviewData.getRoomResponse()) {
-                    Log.d(LOG_TAG, "A preview data is provided with sync reponse");
+                    Log.d(LOG_TAG, "A preview data is provided with sync response");
                     RoomResponse roomResponse = roomPreviewData.getRoomResponse();
 
                     // initialize the timeline with the initial sync response
@@ -328,7 +328,7 @@ public class MatrixMessagesFragment extends Fragment {
                     Log.d(LOG_TAG, "The room preview is done -> fill the room history");
                     requestInitialHistory();
                 } else {
-                    Log.d(LOG_TAG, "A preview data is provided with no sync reponse : assume that it is not possible to get a room preview");
+                    Log.d(LOG_TAG, "A preview data is provided with no sync response : assume that it is not possible to get a room preview");
 
                     if (null != getActivity()) {
                         if (null != mMatrixMessagesListener) {
@@ -507,7 +507,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Set the MX session
-     * @param session
+     * @param session the session.
      */
     public void setMXSession(MXSession session) {
         mSession = session;
@@ -543,7 +543,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     /**
-     * Request the next events in the timelinex
+     * Request the next events in the timeline.
      * @param callback the callback
      * @return true if the request is really started
      */

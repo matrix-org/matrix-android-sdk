@@ -158,9 +158,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mLockFwdPagination = true;
 
     protected ArrayList<Event> mResendingEventsList;
-    private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
+    private final HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
 
-    private HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
+    private final HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -203,7 +203,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return mUiHandler;
     }
 
-    private IMXEventListener mEventsListenener = new MXEventListener() {
+    private final IMXEventListener mEventsListener = new MXEventListener() {
         @Override
         public void onPresenceUpdate(Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
@@ -242,7 +242,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     };
 
-   protected AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
+   protected final AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
             mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
@@ -655,7 +655,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // check if the session has not been logged out
         if (mSession.isAlive() && (null != mRoom) && mIsLive) {
-            mRoom.removeEventListener(mEventsListenener);
+            mRoom.removeEventListener(mEventsListener);
         }
 
         cancelCatchingRequests();
@@ -670,7 +670,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
-                room.addEventListener(mEventsListenener);
+                room.addEventListener(mEventsListener);
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
@@ -776,9 +776,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Upload a file content
-     * @param mediaUrl the media Uurl
+     * @param mediaUrl the media URL
      * @param mimeType the media mime type
-     * @param mediaFilename the mediafilename
+     * @param mediaFilename the media filename
      */
     public void uploadFileContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
         // create a tmp row
@@ -820,7 +820,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -838,7 +838,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
 
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, messageRow);
+                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, messageRow);
                     }
                 });
             }
@@ -850,7 +850,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param videoUrl the video url
      * @return the video thumbnail
      */
-    public String getVideoThumbailUrl(final String videoUrl) {
+    public String getVideoThumbnailUrl(final String videoUrl) {
         String thumbUrl = null;
         try {
             Uri uri = Uri.parse(videoUrl);
@@ -871,7 +871,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param videoMimeType the video mime type
      */
     public void uploadVideoContent(final String videoUrl, final String body, final String videoMimeType) {
-        uploadVideoContent(videoUrl, getVideoThumbailUrl(videoUrl), body, videoMimeType);
+        uploadVideoContent(videoUrl, getVideoThumbnailUrl(videoUrl), body, videoMimeType);
     }
 
     /**
@@ -974,7 +974,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -1003,7 +1003,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             }
                         }
 
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, videoRow);
+                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, videoRow);
                     }
                 });
             }
@@ -1058,7 +1058,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -1083,7 +1083,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, imageRow);
+                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, imageRow);
                     }
                 });
             }
@@ -1138,7 +1138,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -1157,7 +1157,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
                         }
 
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, locationRow);
+                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, locationRow);
                     }
                 });
             }

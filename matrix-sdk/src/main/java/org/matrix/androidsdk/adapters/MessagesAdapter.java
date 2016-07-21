@@ -1966,12 +1966,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        SpannableStringBuilder strBuilder = new SpannableStringBuilder(notice);
-
-        refreshMatrixSpans(strBuilder);
-
-        noticeTextView.setText(strBuilder);
-
+        if (TextUtils.isEmpty(notice)) {
+            noticeTextView.setText("");
+        } else {
+            SpannableStringBuilder strBuilder = new SpannableStringBuilder(notice);
+            refreshMatrixSpans(strBuilder);
+            noticeTextView.setText(strBuilder);
+        }
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
         addContentViewListeners(convertView, noticeTextView, position);

@@ -35,7 +35,6 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.EventDisplay;
@@ -269,11 +268,18 @@ public class EventTimeline {
         return mState;
     }
 
+    /**
+     * Update the state.
+     * @param state the new state.
+     */
     public void setState(RoomState state) {
         mState = state;
     }
 
-    public RoomState getBackState() {
+    /**
+     * @return the back state.
+     */
+    private RoomState getBackState() {
         return mBackState;
     }
 
@@ -330,7 +336,6 @@ public class EventTimeline {
      * Manage the joined room events.
      * @param roomSync the roomSync.
      * @param isInitialSync true if the sync has been triggered by a global initial sync
-     * @return true if it is an initial sync
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
         String membership = null;
@@ -593,126 +598,6 @@ public class EventTimeline {
     }
 
     /**
-     * Redact an event might require to reload the timeline
-     * because the room states has to be been updated.
-     * @param event the redacted event
-     */
-    private void checkStateEventRedaction(Event event) {
-        if (null != event.stateKey) {
-
-            Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
-
-            mState.applyState(event, Direction.FORWARDS);
-            mStore.storeLiveStateForRoom(mRoomId);
-
-            initHistory();
-
-            // warn that there was a flush
-            mDataHandler.onRoomFlush(mRoomId);
-        }
-    }
-
-    /**
-     * Redact an event might require to reload the timeline
-     * because the room states has to be been updated.
-     * @param eventId the redacted event id
-     */
-    private void checkStateEventRedaction(String eventId) {
-        Log.d(LOG_TAG, "checkStateEventRedaction from event Id " + eventId);
-
-        if (!TextUtils.isEmpty(eventId)) {
-            Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
-
-            mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, eventId, 1, new ApiCallback<EventContext>() {
-                @Override
-                public void onSuccess(EventContext eventContext) {
-                    if ((null != eventContext.event) && (null != eventContext.event.stateKey)) {
-                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
-                        forceRoomStateServerSync();
-                    } else {
-                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a not state event -> job is done");
-                    }
-                }
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
-                }
-            });
-        }
-    }
-
-    /**
-     * Get a fresh room state from the server
-     */
-    private void forceRoomStateServerSync() {
-        Log.d(LOG_TAG, "forceRoomStateServerSync starts");
-
-        final RoomState curRoomState = mState;
-
-        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
-            @Override
-            public void onSuccess(RoomResponse roomResponse) {
-                // test if the room state is still the same
-                // else assume the state has already been updated
-                if (curRoomState == mState) {
-                    Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
-
-                    // clear the states
-                    mState = new RoomState();
-                    mState.roomId = mRoomId;
-                    mState.setDataHandler(mDataHandler);
-
-                    if (null != roomResponse.state) {
-                        for (Event event : roomResponse.state) {
-                            try {
-                                processStateEvent(event, Direction.FORWARDS);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
-                            }
-                        }
-                    }
-
-                    mStore.storeLiveStateForRoom(mRoomId);
-                    initHistory();
-
-                    // warn that there was a flush
-                    mDataHandler.onRoomFlush(mRoomId);
-                } else {
-                    Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getLocalizedMessage());
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getLocalizedMessage());
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getLocalizedMessage());
-            }
-        });
-    }
-
-    /**
      * Store a live room event.
      * @param event The event to be stored.
      * @param checkRedactedStateEvent true to check if this event redacts a state event
@@ -734,9 +619,10 @@ public class EventTimeline {
 
                     storeEvent(eventToPrune);
 
+                    // the redaction check must not be done during an initial sync
+                    // or the redacted event is received with roomSync.timeline.limited
                     if (checkRedactedStateEvent) {
-                        checkStateEventRedaction(eventToPrune.eventId);
-                        //checkStateEventRedaction(eventToPrune);
+                        checkStateEventRedaction(eventToPrune);
                     }
 
                     // search the latest displayable event
@@ -756,6 +642,8 @@ public class EventTimeline {
 
                     }
                 } else {
+                    // the redaction check must not be done during an initial sync
+                    // or the redacted event is received with roomSync.timeline.limited
                     if (checkRedactedStateEvent) {
                         checkStateEventRedaction(event.getRedacts());
                     }
@@ -923,6 +811,8 @@ public class EventTimeline {
                     }
                 }
 
+                RoomState previousState = mState;
+
                 if (event.stateKey != null) {
                     // copy the live state before applying any update
                     deepCopyState(Direction.FORWARDS);
@@ -939,10 +829,10 @@ public class EventTimeline {
 
                 // warn the listeners
                 // general listeners
-                mDataHandler.onLiveEvent(event, mState);
+                mDataHandler.onLiveEvent(event, previousState);
 
                 // timeline listeners
-                onEvent(event, Direction.FORWARDS, mState);
+                onEvent(event, Direction.FORWARDS, previousState);
 
                 // trigger pushes when it is required
                 if (withPush) {
@@ -963,19 +853,19 @@ public class EventTimeline {
 
     // the storage events are buffered to provide a small bunch of events
     // the storage can provide a big bunch which slows down the UI.
-    public class SnapshotedEvent {
+    public class SnapshotEvent {
         public final Event mEvent;
         public final RoomState mState;
 
-        public SnapshotedEvent(Event event, RoomState state) {
+        public SnapshotEvent(Event event, RoomState state) {
             mEvent = event;
             mState = state;
         }
     }
 
     // avoid adding to many events
-    // the room history request can provide more than exxpected event.
-    private final ArrayList<SnapshotedEvent> mSnapshotedEvents = new ArrayList<>();
+    // the room history request can provide more than expected event.
+    private final ArrayList<SnapshotEvent> mSnapshotEvents = new ArrayList<>();
 
     /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
@@ -989,18 +879,18 @@ public class EventTimeline {
             return;
         }
 
-        int count = Math.min(mSnapshotedEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
+        int count = Math.min(mSnapshotEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
 
         for(int i = 0; i < count; i++) {
-            SnapshotedEvent snapshotedEvent = mSnapshotedEvents.get(0);
-            mSnapshotedEvents.remove(0);
+            SnapshotEvent snapshotedEvent = mSnapshotEvents.get(0);
+            mSnapshotEvents.remove(0);
             onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
         mStore.commit();
 
-        if ((mSnapshotedEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastBackChunk) {
+        if ((mSnapshotEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastBackChunk) {
             mCanBackPaginate = false;
         }
 
@@ -1047,7 +937,7 @@ public class EventTimeline {
                             shouldCommitStore = true;
                         }
                     }
-                    mSnapshotedEvents.add(new SnapshotedEvent(event, getBackState()));
+                    mSnapshotEvents.add(new SnapshotEvent(event, getBackState()));
                     // onEvent will be called in manageBackEvents
                 } else {
                     onEvent(event, Direction.FORWARDS, getState());
@@ -1096,7 +986,7 @@ public class EventTimeline {
 
         // restart the pagination
         if (null == getBackState().getToken()) {
-            mSnapshotedEvents.clear();
+            mSnapshotEvents.clear();
         }
 
         final String fromBackToken = getBackState().getToken();
@@ -1104,13 +994,13 @@ public class EventTimeline {
         mIsBackPaginating = true;
 
         // enough buffered data
-        if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
+        if ((mSnapshotEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
 
             mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END);
 
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-            if ((mSnapshotedEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION)) {
+            if ((mSnapshotEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION)) {
                 Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
             } else {
                 Log.d(LOG_TAG, "backPaginate : reach the history top");
@@ -1310,7 +1200,7 @@ public class EventTimeline {
      * Reset the pagination timelime and start loading the context around its `initialEventId`.
      * The retrieved (backwards and forwards) events will be sent to registered listeners.
      * @param limit the maximum number of messages to get around the initial event.
-     * @param callback the operation callbacl
+     * @param callback the operation callback
      */
     public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
         // Reset the store
@@ -1400,6 +1290,134 @@ public class EventTimeline {
             @Override
             public void onUnexpectedError(Exception e) {
                 callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    //==============================================================================================================
+    // State events redactions
+    //==============================================================================================================
+
+    /**
+     * Redact an event might require to reload the timeline
+     * because the room states has to be been updated.
+     * @param event the redacted event
+     */
+    private void checkStateEventRedaction(Event event) {
+        if (null != event.stateKey) {
+            Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
+
+            // let the server provides an up to update room state.
+            // we should apply the pruned event to the latest room state
+            // because it might concern an older state.
+            // Else, the current state would be invalid.
+            // eg with this room history
+            //
+            // message_1 : A renames this room to Name1
+            // message_2 : A renames this room to Name2
+            // If message_1 is redacted, the room name must not be cleared
+            // If the messages have been room member name updates,
+            // the user must keep his latest name but his name must be updated in the history
+            checkStateEventRedaction(event.eventId);
+        }
+    }
+
+    /**
+     * Redact an event might require to reload the timeline
+     * because the room states has to be been updated.
+     * @param eventId the redacted event id
+     */
+    private void checkStateEventRedaction(String eventId) {
+        Log.d(LOG_TAG, "checkStateEventRedaction from event Id " + eventId);
+
+        if (!TextUtils.isEmpty(eventId)) {
+            Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
+
+            mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, eventId, 1, new ApiCallback<EventContext>() {
+                @Override
+                public void onSuccess(EventContext eventContext) {
+                    if ((null != eventContext.event) && (null != eventContext.event.stateKey)) {
+                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
+                        forceRoomStateServerSync();
+                    } else {
+                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a not state event -> job is done");
+                    }
+                }
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    forceRoomStateServerSync();
+                }
+            });
+        }
+    }
+
+    /**
+     * Get a fresh room state from the server
+     */
+    private void forceRoomStateServerSync() {
+        Log.d(LOG_TAG, "forceRoomStateServerSync starts");
+
+        final RoomState curRoomState = mState;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
+            @Override
+            public void onSuccess(RoomResponse roomResponse) {
+                // test if the room state is still the same
+                // else assume the state has already been updated
+                if (curRoomState == mState) {
+                    Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
+
+                    // clear the states
+                    mState = new RoomState();
+                    mState.roomId = mRoomId;
+                    mState.setDataHandler(mDataHandler);
+
+                    if (null != roomResponse.state) {
+                        for (Event event : roomResponse.state) {
+                            try {
+                                processStateEvent(event, Direction.FORWARDS);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                            }
+                        }
+                    }
+
+                    mStore.storeLiveStateForRoom(mRoomId);
+                    initHistory();
+
+                    // warn that there was a flush
+                    mDataHandler.onRoomFlush(mRoomId);
+                } else {
+                    Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getLocalizedMessage());
             }
         });
     }
