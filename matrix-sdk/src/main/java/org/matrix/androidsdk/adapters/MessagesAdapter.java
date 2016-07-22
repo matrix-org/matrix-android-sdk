@@ -71,7 +71,8 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.listeners.MXMediasDownloadListener;
+import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -1662,10 +1663,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return;
         }
 
-        int progress = mSession.getContentManager().getUploadProgress(mediaUrl);
+        int progress = mSession.getMediasCache().progressValueForUploadId(mediaUrl);
 
         if (progress >= 0) {
-            mSession.getContentManager().addUploadListener(mediaUrl, new ContentManager.UploadCallback() {
+            mSession.getMediasCache().addUploadListener(mediaUrl, new MXMediaUploadListener() {
                 @Override
                 public void onUploadStart(String uploadId) {
                 }
@@ -1826,7 +1827,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != downloadId) {
 
             downloadPieFractionView.setVisibility(View.VISIBLE);
-            mMediasCache.addDownloadListener(downloadId, new MXMediasDownloadListener() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
                 public void onDownloadStart(String downloadId) {
                 }
@@ -2052,7 +2053,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != downloadId) {
             downloadPieFractionView.setVisibility(View.VISIBLE);
 
-            mMediasCache.addDownloadListener(downloadId, new MXMediasDownloadListener() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
                 public void onDownloadStart(String downloadId) {
                 }
@@ -2157,12 +2158,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         String uploadingUrl = videoMessage.info.thumbnail_url;
 
-        int progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+        int progress = mSession.getMediasCache().progressValueForUploadId(uploadingUrl);
 
         // the thumbnail has been uploaded, upload the video
         if (progress < 0) {
             uploadingUrl = videoMessage.url;
-            progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+            progress = mSession.getMediasCache().progressValueForUploadId(uploadingUrl);
         }
 
         if (progress >= 0) {
@@ -2170,7 +2171,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             final boolean isContentUpload = TextUtils.equals(uploadingUrl, videoMessage.url);
 
-            mSession.getContentManager().addUploadListener(uploadingUrl, new ContentManager.UploadCallback() {
+            mSession.getMediasCache().addUploadListener(uploadingUrl, new MXMediaUploadListener() {
                 @Override
                 public void onUploadStart(String uploadId) {
 

@@ -53,6 +53,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
@@ -809,7 +810,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {
 
             @Override
             public void onUploadStart(String uploadId) {
@@ -958,7 +959,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
 
-        getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, filename, mimeType, uploadId, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
                 getUiHandler().post(new Runnable() {
@@ -1048,7 +1049,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
             }
@@ -1128,7 +1129,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow locationRow = addMessageRow(tmpLocationMessage);
         locationRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,11 @@ package org.matrix.androidsdk.listeners;
 
 import com.google.gson.JsonElement;
 
-import org.matrix.androidsdk.data.MyUser;
-import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-
-import java.util.List;
-
 /**
- * A no-op class implementing {@link IMXMediasDownloadListener} so listeners can just implement the methods
+ * A no-op class implementing {@link IMXMediaDownloadListener} so listeners can just implement the methods
  * that they require.
  */
-public class MXMediasDownloadListener implements IMXMediasDownloadListener {
+public class MXMediaDownloadListener implements IMXMediaDownloadListener {
 
     @Override
     public void onDownloadStart(String downloadId) {

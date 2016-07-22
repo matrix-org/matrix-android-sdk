@@ -32,7 +32,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.listeners.IMXMediasDownloadListener;
+import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
 
@@ -77,7 +78,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
     /**
      * The downloaded media callbacks.
      */
-    private final ArrayList<IMXMediasDownloadListener> mDownloadListeners = new ArrayList<>();
+    private final ArrayList<IMXMediaDownloadListener> mDownloadListeners = new ArrayList<>();
 
     /**
      * The ImageView list to refresh when the media is downloaded.
@@ -153,7 +154,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * @param url The url to check the existence
      * @return the dedicated BitmapWorkerTask if it exists.
      */
-    public static MXMediaDownloadWorkerTask mediaWorkerTaskForUrl(String url) {
+    public static MXMediaDownloadWorkerTask getMediaDownloadWorkerTaskForUrl(String url) {
         if ((url != null) &&  mPendingDownloadByUrl.containsKey(url)) {
             MXMediaDownloadWorkerTask task;
             synchronized(mPendingDownloadByUrl) {
@@ -283,7 +284,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
             }
 
             // the image is downloading in background
-            if (null != mediaWorkerTaskForUrl(url)) {
+            if (null != getMediaDownloadWorkerTaskForUrl(url)) {
                 return null;
             }
 
@@ -468,7 +469,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
     /**
      * Cancels the current download.
      */
-    public synchronized void cancel() {
+    public synchronized void cancelDownload() {
         mIsDownloadCancelled = true;
     }
 
@@ -506,7 +507,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * Add a download listener.
      * @param listener the download callback to add
      */
-    public void addDownloadListener(IMXMediasDownloadListener listener) {
+    public void addDownloadListener(IMXMediaDownloadListener listener) {
         mDownloadListeners.add(listener);
     }
 
@@ -738,7 +739,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * Dispatch start event to the callbacks.
      */
     private void dispatchDownloadStart() {
-        for(IMXMediasDownloadListener callback : mDownloadListeners) {
+        for(IMXMediaDownloadListener callback : mDownloadListeners) {
             try {
                 callback.onDownloadStart(mUrl);
             } catch (Exception e) {
@@ -752,7 +753,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * @param progress the new progress value
      */
     private void dispatchDownloadProgress(int progress) {
-        for(IMXMediasDownloadListener callback : mDownloadListeners) {
+        for(IMXMediaDownloadListener callback : mDownloadListeners) {
             try {
                 callback.onDownloadProgress(mUrl, progress);
             } catch (Exception e) {
@@ -766,7 +767,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * @param jsonElement the Json error
      */
     private void dispatchError(JsonElement jsonElement) {
-        for(IMXMediasDownloadListener callback : mDownloadListeners) {
+        for(IMXMediaDownloadListener callback : mDownloadListeners) {
             try {
                 callback.onDownloadError(mUrl, jsonElement);
             } catch (Exception e) {
@@ -779,7 +780,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * Dispatch end of download
      */
     private void dispatchDownloadComplete() {
-        for(IMXMediasDownloadListener callback : mDownloadListeners) {
+        for(IMXMediaDownloadListener callback : mDownloadListeners) {
             try {
                 callback.onDownloadComplete(mUrl);
             } catch (Exception e) {
@@ -792,7 +793,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, Integer, Void> {
      * Dispatch download cancel
      */
     private void dispatchDownloadCancel() {
-        for(IMXMediasDownloadListener callback : mDownloadListeners) {
+        for(IMXMediaDownloadListener callback : mDownloadListeners) {
             try {
                 callback.onDownloadCancel(mUrl);
             } catch (Exception e) {

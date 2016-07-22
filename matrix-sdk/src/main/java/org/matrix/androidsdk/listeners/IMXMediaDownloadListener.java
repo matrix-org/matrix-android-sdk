@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.listeners;
 
 import com.google.gson.JsonElement;
@@ -20,7 +21,7 @@ import com.google.gson.JsonElement;
 /**
  * Interface to monitor a media download.
  */
-public interface IMXMediasDownloadListener {
+public interface IMXMediaDownloadListener {
 
     /**
      * The download start

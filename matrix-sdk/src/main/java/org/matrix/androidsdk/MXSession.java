@@ -433,12 +433,8 @@ public class MXSession {
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();
 
-        // stop any pending request
-        // clear data
-        mContentManager.clear();
-
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clearCache();
+        mMediasCache.clear();
     }
 
     /**

@@ -30,11 +30,11 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
-import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.listeners.IMXMediasDownloadListener;
-import org.matrix.androidsdk.listeners.MXMediasDownloadListener;
+import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
+import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -213,11 +213,14 @@ public class MXMediasCache {
     /**
      * Clear the medias caches.
      */
-    public void clearCache() {
+    public void clear() {
         ContentUtils.deleteDirectory(getMediasFolderFile());
 
         // clear the media cache
         MXMediaDownloadWorkerTask.clearBitmapsCache();
+
+        // cancel pending uploads.
+        MXMediaUploadWorkerTask.cancelPendingUploads();
     }
 
     /**
@@ -635,7 +638,7 @@ public class MXMediasCache {
         String downloadableUrl = downloadableUrl(url, -1, -1);
 
         // is the media downloading  ?
-        if (null != MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
+        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadableUrl)) {
             return downloadableUrl;
         }
 
@@ -831,7 +834,7 @@ public class MXMediasCache {
             }
             downloadableUrl = null;
         } else {
-            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadableUrl);
+            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadableUrl);
 
             if (null != currentTask) {
                 if (null != imageView) {
@@ -848,7 +851,7 @@ public class MXMediasCache {
                 task.setDefaultBitmap(defaultBimap);
 
                 // check at the end of the download, if a suspended task can be launched again.
-                task.addDownloadListener(new MXMediasDownloadListener() {
+                task.addDownloadListener(new MXMediaDownloadListener() {
                     @Override
                     public void onDownloadComplete(String downloadId) {
                         MXMediasCache.this.launchSuspendedTask();
@@ -886,7 +889,7 @@ public class MXMediasCache {
      * @return the download progress
      */
     public int progressValueForDownloadId(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             return currentTask.getProgress();
@@ -899,11 +902,83 @@ public class MXMediasCache {
      * @param downloadId The uploadId.
      * @param listener the download listener.
      */
-    public void addDownloadListener(String downloadId, IMXMediasDownloadListener listener) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadId);
+    public void addDownloadListener(String downloadId, IMXMediaDownloadListener listener) {
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             currentTask.addDownloadListener(listener);
+        }
+    }
+
+    /**
+     * Cancel a download.
+     * @param downloadId the download id.
+     */
+    public void cancelDownload(String downloadId) {
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+
+        if (null != currentTask) {
+            currentTask.cancelDownload();
+        }
+    }
+
+    /**
+     * Upload a file
+     * @param contentStream the stream to upload
+     * @param filename the dst fileanme
+     * @param mimeType the mimetype
+     * @param uploadId the upload id
+     * @param listener the upload progress listener
+     */
+    public void uploadContent(InputStream contentStream, String filename, String mimeType, String uploadId, IMXMediaUploadListener listener) {
+        try {
+             new MXMediaUploadWorkerTask(mContentManager, contentStream, mimeType, uploadId, filename, listener).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            // cannot start the task
+            if (null != listener) {
+                listener.onUploadComplete(uploadId, null, -1, null);
+            }
+        }
+    }
+
+    /**
+     * Returns the upload progress (percentage) for a dedicated uploadId
+     * @param uploadId The uploadId.
+     * @return the upload percentage. -1 means there is no pending upload.
+     */
+    public int progressValueForUploadId(String uploadId) {
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+
+        if (null != uploadTask) {
+            return uploadTask.getProgress();
+        }
+
+        return -1;
+    }
+
+    /**
+     * Add an upload listener for an uploadId.
+     * @param uploadId The uploadId.
+     * @param listener the upload listener
+     */
+    public void addUploadListener(String uploadId, IMXMediaUploadListener listener) {
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+
+        if (null != uploadTask) {
+            uploadTask.addListener(listener);
+        }
+    }
+
+
+    /**
+     * Cancel an upload.
+     * @param uploadId the upload Id
+     */
+    public void cancelUpload(String uploadId) {
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+
+        if (null != uploadTask) {
+            uploadTask.cancelUpload();
         }
     }
 }
