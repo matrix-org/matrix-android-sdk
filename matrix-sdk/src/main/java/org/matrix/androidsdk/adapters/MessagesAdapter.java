@@ -71,6 +71,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.listeners.MXMediasDownloadListener;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -1825,13 +1826,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != downloadId) {
 
             downloadPieFractionView.setVisibility(View.VISIBLE);
-            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediasDownloadListener() {
                 @Override
                 public void onDownloadStart(String downloadId) {
                 }
 
                 @Override
-                public void onError(String downloadId, JsonElement jsonElement) {
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
                     final MatrixError error = JsonUtils.toMatrixError(jsonElement);
 
                     if ((null != error) && error.isSupportedErrorCode()) {
@@ -2051,13 +2052,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != downloadId) {
             downloadPieFractionView.setVisibility(View.VISIBLE);
 
-            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediasDownloadListener() {
                 @Override
                 public void onDownloadStart(String downloadId) {
                 }
 
                 @Override
-                public void onError(String downloadId, JsonElement jsonElement) {
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
                     final MatrixError error = JsonUtils.toMatrixError(jsonElement);
 
                     if ((null != error) && error.isSupportedErrorCode()) {

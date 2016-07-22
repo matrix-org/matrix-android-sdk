@@ -33,6 +33,8 @@ import android.widget.ImageView;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.listeners.IMXMediasDownloadListener;
+import org.matrix.androidsdk.listeners.MXMediasDownloadListener;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -45,41 +47,6 @@ import java.util.ArrayList;
 import java.util.concurrent.RejectedExecutionException;
 
 public class MXMediasCache {
-
-    /**
-     * Interface to implement to get the mxc URI of downloaded content.
-     */
-    public interface DownloadCallback {
-
-        /**
-         * The download start
-         *
-         * @param downloadId the download Identifier
-         */
-        void onDownloadStart(String downloadId);
-
-        /**
-         * An error has been returned by the server
-         * @param downloadId  the download Identifier
-         * @param jsonElement the error
-         */
-        void onError(String downloadId, JsonElement jsonElement);
-
-        /**
-         * Warn of the progress download
-         *
-         * @param downloadId         the download Identifier
-         * @param percentageProgress the progress value
-         */
-        void onDownloadProgress(String downloadId, int percentageProgress);
-
-        /**
-         * Called when the download is complete or has failed.
-         *
-         * @param downloadId the download Identifier
-         */
-        void onDownloadComplete(String downloadId);
-    }
 
     private static final String LOG_TAG = "MXMediasCache";
 
@@ -250,7 +217,7 @@ public class MXMediasCache {
         ContentUtils.deleteDirectory(getMediasFolderFile());
 
         // clear the media cache
-        MXMediaWorkerTask.clearBitmapsCache();
+        MXMediaDownloadWorkerTask.clearBitmapsCache();
     }
 
     /**
@@ -296,7 +263,7 @@ public class MXMediasCache {
             return null;
         }
 
-        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl(url, size, size), null);
+        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, size, size), null);
 
         try {
             File file = new File(getThumbnailsFolderFile(), filename);
@@ -335,7 +302,7 @@ public class MXMediasCache {
             return null;
         }
 
-        String filename = (url.startsWith("file:")) ? url : MXMediaWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
+        String filename = (url.startsWith("file:")) ? url : MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
 
         try {
             // already a local file
@@ -497,7 +464,7 @@ public class MXMediasCache {
      */
     public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
         String downloadableUrl = downloadableUrl(mediaUrl, width, height);
-        String filename = MXMediaWorkerTask.buildFileName(downloadableUrl, mimeType);
+        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
 
         try {
             // delete the current content
@@ -570,7 +537,7 @@ public class MXMediasCache {
      * @return true if the avatar bitmap is cached.
      */
     public boolean isAvatarThumbnailCached(String url, int side) {
-        return MXMediaWorkerTask.isUrlCached(downloadableUrl(url, side, side));
+        return MXMediaDownloadWorkerTask.isUrlCached(downloadableUrl(url, side, side));
     }
 
     /**
@@ -579,7 +546,7 @@ public class MXMediasCache {
      * @return true if the media URL is unreachable.
      */
     public static boolean isMediaUrlUnreachable(String url) {
-        return MXMediaWorkerTask.isMediaUrlUnreachable(url);
+        return MXMediaDownloadWorkerTask.isMediaUrlUnreachable(url);
     }
 
     /**
@@ -635,7 +602,7 @@ public class MXMediasCache {
     }
 
     // some tasks have been stacked because there are too many running ones.
-    private final ArrayList<MXMediaWorkerTask> mSuspendedTasks = new ArrayList<>();
+    private final ArrayList<MXMediaDownloadWorkerTask> mSuspendedTasks = new ArrayList<>();
 
     /**
      * Returns the download ID from the media URL.
@@ -668,12 +635,12 @@ public class MXMediasCache {
         String downloadableUrl = downloadableUrl(url, -1, -1);
 
         // is the media downloading  ?
-        if (null != MXMediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
+        if (null != MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadableUrl)) {
             return downloadableUrl;
         }
 
         // download it in background
-        MXMediaWorkerTask task = new MXMediaWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType);
+        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType);
 
         // avoid crash if there are too many running task
         try {
@@ -683,7 +650,7 @@ public class MXMediasCache {
             synchronized (mSuspendedTasks) {
                 task.cancel(true);
                 // create a new task from the existing one
-                task = new MXMediaWorkerTask(task);
+                task = new MXMediaDownloadWorkerTask(task);
                 mSuspendedTasks.add(task);
                 // privacy
                 //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
@@ -707,7 +674,7 @@ public class MXMediasCache {
             if (mSuspendedTasks.size() > 0) {
 
                 if (mSuspendedTasks.size() > 0) {
-                    MXMediaWorkerTask task = mSuspendedTasks.get(0);
+                    MXMediaDownloadWorkerTask task = mSuspendedTasks.get(0);
 
                     // privacy
                     //Log.d(LOG_TAG, "Restart the task " + task.getUrl());
@@ -722,7 +689,7 @@ public class MXMediasCache {
 
                         mSuspendedTasks.remove(task);
                         // create a new task from the existing one
-                        task = new MXMediaWorkerTask(task);
+                        task = new MXMediaDownloadWorkerTask(task);
                         mSuspendedTasks.add(task);
 
                         // privacy
@@ -833,7 +800,7 @@ public class MXMediasCache {
         }
 
         // check if the bitmap is already cached
-        final Bitmap bitmap = (MXMediaWorkerTask.isMediaUrlUnreachable(downloadableUrl)) ? defaultBimap : MXMediaWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
+        final Bitmap bitmap = (MXMediaDownloadWorkerTask.isMediaUrlUnreachable(downloadableUrl)) ? defaultBimap : MXMediaDownloadWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
 
         if (null != bitmap) {
             if (null != imageView) {
@@ -864,7 +831,7 @@ public class MXMediasCache {
             }
             downloadableUrl = null;
         } else {
-            MXMediaWorkerTask currentTask = MXMediaWorkerTask.mediaWorkerTaskForUrl(downloadableUrl);
+            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadableUrl);
 
             if (null != currentTask) {
                 if (null != imageView) {
@@ -872,7 +839,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaWorkerTask task = new MXMediaWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType);
+                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType);
 
                 if (null != imageView) {
                     task.addImageView(imageView);
@@ -881,24 +848,13 @@ public class MXMediasCache {
                 task.setDefaultBitmap(defaultBimap);
 
                 // check at the end of the download, if a suspended task can be launched again.
-                task.addCallback(new DownloadCallback() {
-                    @Override
-                    public void onError(String downloadId, JsonElement jsonElement) {
-                    }
-
-                    @Override
-                    public void onDownloadStart(String downloadId) {
-                    }
-
-                    @Override
-                    public void onDownloadProgress(String downloadId, int percentageProgress) {
-                    }
-
+                task.addDownloadListener(new MXMediasDownloadListener() {
                     @Override
                     public void onDownloadComplete(String downloadId) {
                         MXMediasCache.this.launchSuspendedTask();
                     }
                 });
+
 
                 // avoid crash if there are too many running task
                 try {
@@ -908,7 +864,7 @@ public class MXMediasCache {
                     synchronized (mSuspendedTasks) {
                         task.cancel(true);
                         // create a new task from the existing one
-                        task = new MXMediaWorkerTask(task);
+                        task = new MXMediaDownloadWorkerTask(task);
                         mSuspendedTasks.add(task);
                         // privacy
                         //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
@@ -930,7 +886,7 @@ public class MXMediasCache {
      * @return the download progress
      */
     public int progressValueForDownloadId(String downloadId) {
-        MXMediaWorkerTask currentTask = MXMediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
             return currentTask.getProgress();
@@ -941,13 +897,13 @@ public class MXMediasCache {
     /**
      * Add a download listener for an downloadId.
      * @param downloadId The uploadId.
-     * @param callback the async callback
+     * @param listener the download listener.
      */
-    public void addDownloadListener(String downloadId, DownloadCallback callback) {
-        MXMediaWorkerTask currentTask = MXMediaWorkerTask.mediaWorkerTaskForUrl(downloadId);
+    public void addDownloadListener(String downloadId, IMXMediasDownloadListener listener) {
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.mediaWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
-            currentTask.addCallback(callback);
+            currentTask.addDownloadListener(listener);
         }
     }
 }
