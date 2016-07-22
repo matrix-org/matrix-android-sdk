@@ -64,6 +64,10 @@ public class FileMessage extends Message {
                 }
             }
 
+            if (TextUtils.isEmpty(info.mimetype)) {
+                info.mimetype = "application/octet-stream";
+            }
+
             return info.mimetype;
         } else {
             return null;
