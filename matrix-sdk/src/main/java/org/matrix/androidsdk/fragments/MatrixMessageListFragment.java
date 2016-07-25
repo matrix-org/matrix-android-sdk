@@ -57,7 +57,6 @@ import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -70,7 +69,6 @@ import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -678,14 +676,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    public void sendTextMessage(String body) {
-        sendMessage(Message.MSGTYPE_TEXT, body, null, null);
-    }
-
-    public void sendTextMessage(String body, String formattedBody, String format) {
-        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
-    }
-
+    /**
+     * Scroll the listview to the last item.
+     */
     public void scrollToBottom() {
         mMessageListView.postDelayed(new Runnable() {
             @Override
@@ -717,10 +710,40 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Send a text message.
+     * @param body the text message to send.
+     */
+    public void sendTextMessage(String body) {
+        sendMessage(Message.MSGTYPE_TEXT, body, null, null);
+    }
+
+    /**
+     * Send a formatted text message.
+     * @param body the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param format the format
+     */
+    public void sendTextMessage(String body, String formattedBody, String format) {
+        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
+    }
+
+    /**
+     * Send a message of type msgType with a dedicated body.
+     * @param msgType the message type.
+     * @param body the message body
+     */
     private void sendMessage(String msgType, String body) {
         sendMessage(msgType, body, null, null);
     }
 
+    /**
+     * Send a message of type msgType with a formatted body
+     * @param msgType the message type
+     * @param body the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param format the format
+     */
     private void sendMessage(String msgType, String body, String formattedBody, String format) {
         Message message = new Message();
         message.msgtype = msgType;
@@ -735,43 +758,49 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message);
     }
 
+    /**
+     * Send an emote
+     * @param emote the emote
+     */
     public void sendEmote(String emote) {
         sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
-    private void commonMediaUpload(ContentResponse uploadResponse, int serverReponseCode, final String serverErrorMessage, final MessageRow messageRow) {
+    /**
+     * The media upload fails.
+     * @param serverResponseCode the response code.
+     * @param serverErrorMessage the error message.
+     * @param messageRow the messageRow
+     */
+    private void commonMediaUploadError(int serverResponseCode, final String serverErrorMessage, final MessageRow messageRow) {
         // warn the user that the media upload fails
-        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-            if (serverReponseCode == 500) {
-                Timer relaunchTimer = new Timer();
-                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
-                relaunchTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
-                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
+        if (serverResponseCode == 500) {
+            Timer relaunchTimer = new Timer();
+            mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
+            relaunchTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
+                        mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
 
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    resend(messageRow.getEvent());
-                                }
-                            });
-                        }
+                        Handler handler = new Handler(Looper.getMainLooper());
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                resend(messageRow.getEvent());
+                            }
+                        });
                     }
-                }, 1000);
-            } else {
-                messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
-
-                if (null != getActivity()) {
-                    Toast.makeText(getActivity(),
-                            (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                            Toast.LENGTH_LONG).show();
                 }
-            }
+            }, 1000);
         } else {
-            send(messageRow);
+            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+
+            if (null != getActivity()) {
+                Toast.makeText(getActivity(),
+                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
+                        Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -811,35 +840,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
         getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {
-
             @Override
-            public void onUploadStart(String uploadId) {
+            public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                commonMediaUploadError(serverResponseCode,serverErrorMessage, messageRow);
             }
 
             @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String uploadId, final String contentUri) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the image message
-                            FileMessage message = tmpFileMessage.deepCopy();
+                        // Build the image message
+                        FileMessage message = tmpFileMessage.deepCopy();
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
-                            message.url = uploadResponse.contentUri;
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, mediaUrl, tmpFileMessage.getMimeType());
+                        message.url = contentUri;
 
-                            // update the event content with the new message info
-                            messageRow.getEvent().content = JsonUtils.toJson(message);
+                        // update the event content with the new message info
+                        messageRow.getEvent().content = JsonUtils.toJson(message);
 
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                        }
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
-                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, messageRow);
+                        send(messageRow);
                     }
                 });
             }
@@ -971,40 +994,43 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+            public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // the video content has been uploaded
-                            if (isContentUpload) {
-                                // Build the image message
-                                VideoMessage message = fVideoMessage.deepCopy();
+                        commonMediaUploadError(serverResponseCode,serverErrorMessage, videoRow);
+                    }
+                });
+            }
 
-                                // replace the thumbnail and the media contents by the computed ones
-                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, videoUrl, videoMimeType);
-                                message.url = uploadResponse.contentUri;
+            @Override
+            public void onUploadComplete(final String uploadId, final String contentUri) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // the video content has been uploaded
+                        if (isContentUpload) {
+                            // Build the image message
+                            VideoMessage message = fVideoMessage.deepCopy();
 
-                                // update the event content with the new message info
-                                videoRow.getEvent().content = JsonUtils.toJson(message);
+                            // replace the thumbnail and the media contents by the computed ones
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, videoUrl, videoMimeType);
+                            message.url = contentUri;
 
-                                Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                            } else {
-                                // ony upload the thumbnail
-                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
-                                fVideoMessage.info.thumbnail_url = uploadResponse.contentUri;
+                            // update the event content with the new message info
+                            videoRow.getEvent().content = JsonUtils.toJson(message);
 
-                                // upload the video
-                                uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
-                                return;
-                            }
+                            Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                            send(videoRow);
+                        } else {
+                            // ony upload the thumbnail
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
+                            fVideoMessage.info.thumbnail_url = contentUri;
+
+                            // upload the video
+                            uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
                         }
-
-                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, videoRow);
                     }
                 });
             }
@@ -1051,40 +1077,36 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
             @Override
-            public void onUploadStart(String uploadId) {
+            public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                commonMediaUploadError(serverResponseCode,serverErrorMessage, imageRow);
             }
 
             @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String uploadId, final String contentUri) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the image message
-                            ImageMessage message = tmpImageMessage.deepCopy();
+                        // Build the image message
+                        ImageMessage message = tmpImageMessage.deepCopy();
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, tmpImageMessage.getMimeType());
 
-                            message.thumbnailUrl = null;
-                            message.url = uploadResponse.contentUri;
-                            message.info = tmpImageMessage.info;
+                        message.thumbnailUrl = null;
+                        message.url = contentUri;
+                        message.info = tmpImageMessage.info;
 
-                            if (TextUtils.isEmpty(message.body)) {
-                                message.body = "Image";
-                            }
-
-                            // update the event content with the new message info
-                            imageRow.getEvent().content = JsonUtils.toJson(message);
-
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+                        if (TextUtils.isEmpty(message.body)) {
+                            message.body = "Image";
                         }
-                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, imageRow);
+
+                        // update the event content with the new message info
+                        imageRow.getEvent().content = JsonUtils.toJson(message);
+
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                        send(imageRow);
                     }
                 });
             }
@@ -1131,40 +1153,40 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         getSession().getMediasCache().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new MXMediaUploadListener() {
             @Override
-            public void onUploadStart(String uploadId) {
+            public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                commonMediaUploadError(serverResponseCode,serverErrorMessage, locationRow);
             }
 
-            @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
+            public void onUploadComplete(final String uploadId, final String contentUri) {
+
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the location message
-                            LocationMessage message = tmpLocationMessage.deepCopy();
+                        // Build the location message
+                        LocationMessage message = tmpLocationMessage.deepCopy();
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
 
-                            message.thumbnail_url = uploadResponse.contentUri;
+                        message.thumbnail_url = contentUri;
 
-                            // update the event content with the new message info
-                            locationRow.getEvent().content = JsonUtils.toJson(message);
+                        // update the event content with the new message info
+                        locationRow.getEvent().content = JsonUtils.toJson(message);
 
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                        }
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
-                        commonMediaUpload(uploadResponse, serverResponseCode, serverErrorMessage, locationRow);
+                        send(locationRow);
                     }
                 });
             }
         });
     }
 
+    /**
+     * Delete the unsent (undeliverable messages).
+     */
     public void deleteUnsentMessages() {
         Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
 
@@ -1318,10 +1340,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message);
     }
 
+    /**
+     * Send a messsage in the room.
+     * @param message the message to send.
+     */
     private void send(final Message message) {
         send(addMessageRow(message));
     }
 
+    /**
+     * Send a message row in the dedicated room.
+     * @param messageRow the message row to send.
+     */
     private void send(final MessageRow messageRow)  {
         // add sanity check
         if (null == messageRow) {
@@ -1416,10 +1446,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void hideInitLoading() {
     }
 
+    /**
+     * Refresh the messages list.
+     */
     public void refresh() {
         mAdapter.notifyDataSetChanged();
     }
-
 
     /**
      * Manage the request history error cases.
@@ -1655,6 +1687,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Trigger a back pagination.
+     * @param fillHistory true to try to fill the listview height.
+     */
     public void backPaginate(final boolean fillHistory) {
         if (mIsBackPaginating) {
             Log.d(LOG_TAG, "backPaginate is in progress : please wait");
@@ -1789,12 +1825,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Redact an event from its event id.
+     * @param eventId the event id.
+     */
     protected void redactEvent(String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId,
                 new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
     }
 
+    /**
+     * Tells if an event is supported by the fragment.
+     * @param event the event to test
+     * @return true it is supported.
+     */
     private boolean canAddEvent(Event event) {
         String type = event.type;
 
@@ -2152,10 +2197,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     // thumbnails management
+
+    /**
+     * @return the max thumbnail width
+     */
     public int getMaxThumbnailWith() {
         return mAdapter.getMaxThumbnailWith();
     }
 
+    /**
+     * @return the max thumbnail height
+     */
     public int getMaxThumbnailHeight() {
         return mAdapter.getMaxThumbnailHeight();
     }

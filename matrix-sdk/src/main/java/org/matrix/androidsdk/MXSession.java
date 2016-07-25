@@ -213,6 +213,7 @@ public class MXSession {
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
+        mDataHandler.setMediasCache(mMediasCache);
     }
 
     private void checkIfAlive() {

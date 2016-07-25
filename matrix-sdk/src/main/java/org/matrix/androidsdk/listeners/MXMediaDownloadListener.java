@@ -28,7 +28,7 @@ public class MXMediaDownloadListener implements IMXMediaDownloadListener {
     }
 
     @Override
-    public void onDownloadProgress(String downloadId, int percentageProgress) {
+    public void onDownloadProgress(String downloadId, DownloadStats stats) {
     }
 
     @Override

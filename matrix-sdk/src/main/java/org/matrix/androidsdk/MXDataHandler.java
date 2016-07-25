@@ -27,7 +27,9 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -89,6 +91,7 @@ public class MXDataHandler implements IMXEventListener {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
+    private MXMediasCache mMediasCache;
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
@@ -316,6 +319,24 @@ public class MXDataHandler implements IMXEventListener {
     public MXCallsManager getCallsManager() {
         checkIfAlive();
         return mCallsManager;
+    }
+
+    /**
+     * Update the medias cache.
+     * @param mediasCache the new medias cache.
+     */
+    public void setMediasCache(MXMediasCache mediasCache) {
+        checkIfAlive();
+        mMediasCache = mediasCache;
+    }
+
+    /**
+     * Retrieve the medias cache.
+     * @return the used mediasCache
+     */
+    public MXMediasCache getMediasCache() {
+        checkIfAlive();
+        return mMediasCache;
     }
 
     /**

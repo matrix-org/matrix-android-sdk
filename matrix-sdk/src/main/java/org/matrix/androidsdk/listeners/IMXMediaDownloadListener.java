@@ -23,37 +23,64 @@ import com.google.gson.JsonElement;
  */
 public interface IMXMediaDownloadListener {
 
+    // provide some download stats
+    class DownloadStats {
+        // the download progress in percentage
+        public int mProgress;
+
+        // time in seconds since the download started
+        public int mElapsedTime;
+
+        // estimated remained time in seconds to download the media
+        public int mEstimatedRemainingTime;
+
+        // upload bit rate in KB/s
+        public int mBitRate;
+
+        @Override
+        public java.lang.String toString() {
+            String res = "";
+
+            res += "mProgress : " + mProgress + "%\n";
+            res += "mElapsedTime : " + mProgress + " seconds\n";
+            res += "mEstimatedRemainingTime : " + mEstimatedRemainingTime + " seconds\n";
+            res += "mBitRate : " + mBitRate + " KB/s\n";
+
+            return res;
+        }
+    }
+
     /**
-     * The download start
+     * The download starts.
      *
      * @param downloadId the download Identifier
      */
     void onDownloadStart(String downloadId);
 
     /**
-     * Warn of the progress download
+     * The download stats have been updated.
      *
-     * @param downloadId         the download Identifier
-     * @param percentageProgress the progress value
+     * @param downloadId the download Identifier
+     * @param stats the download stats
      */
-    void onDownloadProgress(String downloadId, int percentageProgress);
+    void onDownloadProgress(String downloadId, DownloadStats stats);
 
     /**
-     * Called when the download is complete or has failed.
+     * The download is completed.
      *
      * @param downloadId the download Identifier
      */
     void onDownloadComplete(String downloadId);
 
     /**
-     * An error has been returned by the server
+     * The download failed.
      * @param downloadId  the download Identifier
      * @param jsonElement the error
      */
     void onDownloadError(String downloadId, JsonElement jsonElement);
 
     /**
-     * A downloaded has been cancelled.
+     * The download has been cancelled.
      * @param downloadId  the download Identifier
      */
     void onDownloadCancel(String downloadId);

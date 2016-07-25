@@ -27,7 +27,6 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.provider.Browser;
 import android.text.Html;
 import android.text.Layout;
@@ -73,7 +72,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -266,7 +264,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected final int mMaxImageHeight;
 
     // media cache
-    private final  MXMediasCache mMediasCache;
+    protected final MXMediasCache mMediasCache;
 
     // events listener
     protected MessagesAdapterEventsListener mMessagesAdapterEventsListener;
@@ -1641,7 +1639,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param event teh related event
      * @param mediaUrl the media url
      */
-    private void manageUploadView(View convertView, Event event, String mediaUrl) {
+    private void manageUploadView(final View convertView, final Event event, final String mediaUrl) {
         final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
 
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
@@ -1663,38 +1661,47 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return;
         }
 
-        int progress = mSession.getMediasCache().progressValueForUploadId(mediaUrl);
+        int progress = mSession.getMediasCache().getProgressValueForUploadId(mediaUrl);
 
         if (progress >= 0) {
             mSession.getMediasCache().addUploadListener(mediaUrl, new MXMediaUploadListener() {
                 @Override
-                public void onUploadStart(String uploadId) {
-                }
-
-                @Override
-                public void onUploadProgress(String anUploadId, int percentageProgress) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        uploadPieFractionView.setFraction(percentageProgress);
+                public void onUploadProgress(String uploadId, UploadStats uploadStats) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                        uploadPieFractionView.setFraction(uploadStats.mProgress);
                     }
                 }
 
                 @Override
-                public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (null != serverErrorMessage) {
-                                Toast.makeText(MessagesAdapter.this.getContext(),
-                                        serverErrorMessage,
-                                        Toast.LENGTH_LONG).show();
-                            }
-                            uploadFailedImage.setVisibility(View.VISIBLE);
-                        } else {
-                            uploadSpinner.setVisibility(View.VISIBLE);
+                public void onUploadCancel(String uploadId) {
+                    // the message become undeliverable
+                    uploadPieFractionView.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
+                    uploadFailedImage.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                        if (null != serverErrorMessage) {
+                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                    serverErrorMessage,
+                                    Toast.LENGTH_LONG).show();
                         }
-
-                        uploadPieFractionView.setVisibility(View.GONE);
+                        uploadFailedImage.setVisibility(View.VISIBLE);
+                        uploadSpinner.setVisibility(View.GONE);
                     }
                 }
+
+
+                @Override
+                public void onUploadComplete(final String uploadId, final String contentUri) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                        uploadSpinner.setVisibility(View.VISIBLE);
+                        uploadSpinner.setVisibility(View.GONE);
+                    }
+                }
+
             });
         }
         uploadFailedImage.setVisibility(View.GONE);
@@ -1777,7 +1784,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
             // check the progress value
             // display the piechart only if the video is downloading
-            if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+            if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
                 downloadId = null;
             }
         }
@@ -1829,22 +1836,37 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             downloadPieFractionView.setVisibility(View.VISIBLE);
             mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
-                public void onDownloadStart(String downloadId) {
-                }
-
-                @Override
-                public void onDownloadError(String downloadId, JsonElement jsonElement) {
-                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                    if ((null != error) && error.isSupportedErrorCode()) {
-                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                public void onDownloadCancel(String downloadId) {
+                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                        downloadPieFractionView.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
-                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
+                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                        MatrixError error = null;
+
+                        try {
+                            error = JsonUtils.toMatrixError(jsonElement);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
+                        }
+
+                        downloadPieFractionView.setVisibility(View.GONE);
+
+                        if ((null != error) && error.isSupportedErrorCode()) {
+                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        } else if (null != jsonElement){
+                            Toast.makeText(MessagesAdapter.this.getContext(), jsonElement.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+
+                @Override
+                public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
                     if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(percentageProgress);
+                        downloadPieFractionView.setFraction(stats.mProgress);
                     }
                 }
 
@@ -1860,7 +1882,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
 
-            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+            downloadPieFractionView.setFraction(mMediasCache.getProgressValueForDownloadId(downloadId));
         } else {
             downloadPieFractionView.setVisibility(View.GONE);
         }
@@ -2042,7 +2064,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // check the progress value
         // display the piechart only if the file is downloading
-        if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+        if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
             downloadId = null;
         }
 
@@ -2055,22 +2077,37 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
-                public void onDownloadStart(String downloadId) {
-                }
-
-                @Override
-                public void onDownloadError(String downloadId, JsonElement jsonElement) {
-                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                    if ((null != error) && error.isSupportedErrorCode()) {
-                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                public void onDownloadCancel(String downloadId) {
+                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                        downloadPieFractionView.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
-                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
+                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                        MatrixError error = null;
+
+                        try {
+                            error = JsonUtils.toMatrixError(jsonElement);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
+                        }
+
+                        downloadPieFractionView.setVisibility(View.GONE);
+
+                        if ((null != error) && error.isSupportedErrorCode()) {
+                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        } else if (null != jsonElement){
+                            Toast.makeText(MessagesAdapter.this.getContext(), jsonElement.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+
+                @Override
+                public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
                     if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(percentageProgress);
+                        downloadPieFractionView.setFraction(stats.mProgress);
                     }
                 }
 
@@ -2086,7 +2123,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
 
-            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+            downloadPieFractionView.setFraction(mMediasCache.getProgressValueForDownloadId(downloadId));
         } else {
             downloadPieFractionView.setVisibility(View.GONE);
         }
@@ -2158,12 +2195,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         String uploadingUrl = videoMessage.info.thumbnail_url;
 
-        int progress = mSession.getMediasCache().progressValueForUploadId(uploadingUrl);
+        int progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
 
         // the thumbnail has been uploaded, upload the video
         if (progress < 0) {
             uploadingUrl = videoMessage.url;
-            progress = mSession.getMediasCache().progressValueForUploadId(uploadingUrl);
+            progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
         }
 
         if (progress >= 0) {
@@ -2173,19 +2210,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             mSession.getMediasCache().addUploadListener(uploadingUrl, new MXMediaUploadListener() {
                 @Override
-                public void onUploadStart(String uploadId) {
-
-                }
-
-                @Override
-                public void onUploadProgress(String anUploadId, int percentageProgress) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
+                public void onUploadProgress(String uploadId, UploadStats uploadStats) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
                         int progress;
 
                         if (isContentUpload) {
-                            progress = 10 + (percentageProgress * 90 / 100);
+                            progress = 10 + (uploadStats.mProgress * 90 / 100);
                         } else {
-                            progress = (percentageProgress * 10 / 100);
+                            progress = (uploadStats.mProgress * 10 / 100);
                         }
 
                         uploadPieFractionView.setFraction(progress);
@@ -2193,19 +2225,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 @Override
-                public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (null != serverErrorMessage) {
-                                Toast.makeText(MessagesAdapter.this.getContext(),
-                                        serverErrorMessage,
-                                        Toast.LENGTH_LONG).show();
-                            }
-                            uploadFailedImage.setVisibility(View.VISIBLE);
-                        } else {
-                            uploadSpinner.setVisibility(View.VISIBLE);
+                public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                        if (null != serverErrorMessage) {
+                            Toast.makeText(MessagesAdapter.this.getContext(),
+                                    serverErrorMessage,
+                                    Toast.LENGTH_LONG).show();
                         }
+                        uploadFailedImage.setVisibility(View.VISIBLE);
+                        uploadSpinner.setVisibility(View.GONE);
+                    }
+                }
 
+                @Override
+                public void onUploadComplete(final String uploadId, final String contentUri) {
+                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                        uploadSpinner.setVisibility(View.VISIBLE);
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }

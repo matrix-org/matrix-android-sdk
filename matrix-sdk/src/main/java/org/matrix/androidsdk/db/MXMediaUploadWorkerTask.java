@@ -21,7 +21,6 @@ import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -30,7 +29,6 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -49,7 +47,7 @@ import javax.net.ssl.SSLException;
 /**
  * Private AsyncTask used to upload files.
  */
-public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
+public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListener.UploadStats, String> {
 
     private static final String LOG_TAG = "MXMediaUploadWorkerTask";
 
@@ -59,17 +57,17 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
     // progress listener
     private ArrayList<IMXMediaUploadListener> mUploadListeners = new ArrayList<>();
 
-    // the progress rate
-    private int mProgress = 0;
+    // the upload stats
+    private IMXMediaUploadListener.UploadStats mUploadStats;
 
     // the media mimeType
-    private String mMimeType;
+    private final String mMimeType;
 
     // the media to upload
-    private InputStream mContentStream;
+    private final InputStream mContentStream;
 
     // its unique identifier
-    private String mUploadId;
+    private final String mUploadId;
 
     // the upload exception
     private Exception mFailureException;
@@ -79,6 +77,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
 
     // tells if the current upload has been cancelled.
     private boolean mIsCancelled = false;
+
 
     // dummy ApiCallback uses to be warned when the upload must be declared as "undeliverable".
     private ApiCallback mApiCallback = new ApiCallback() {
@@ -107,7 +106,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
     private String mFilename = null;
 
     // the content manager
-    private ContentManager mContentManager;
+    private final ContentManager mContentManager;
 
     /**
      * Check if there is a pending download for the url.
@@ -137,6 +136,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
             try {
                 task.cancel(true);
             } catch (Exception e) {
+                Log.e(LOG_TAG, "cancelPendingUploads " + e.getLocalizedMessage());
             }
         }
 
@@ -156,7 +156,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
         try {
             contentStream.reset();
         } catch (Exception e) {
-
+            Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getLocalizedMessage());
         }
 
         if ((null != listener) && (mUploadListeners.indexOf(listener) < 0)) {
@@ -200,7 +200,17 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
      * @return the upload progress
      */
     public int getProgress() {
-        return mProgress;
+        if (null != mUploadStats) {
+            return mUploadStats.mProgress;
+        }
+        return -1;
+    }
+
+    /**
+     * @return the upload stats
+     */
+    public IMXMediaUploadListener.UploadStats getStats() {
+        return mUploadStats;
     }
 
     /**
@@ -224,11 +234,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
 
         mResponseCode = -1;
 
-        int bytesRead, bytesAvailable, bufferSize, totalWritten, totalSize;
+        long bytesRead, bytesAvailable, totalWritten, totalSize;
+        int bufferSize;
         byte[] buffer;
-        int maxBufferSize = 1024 * 32;
+        long maxBufferSize = 1024 * 32;
 
-        String responseFromServer = null;
+        String serverResponse = null;
         String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API + "/upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
 
         if (null != mFilename) {
@@ -236,6 +247,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                 String utf8Filename =  URLEncoder.encode(mFilename, "utf-8");
                 urlString += "&filename=" + utf8Filename;
             } catch (Exception e) {
+                Log.e(LOG_TAG, "doInBackground " + e.getLocalizedMessage());
             }
         }
 
@@ -256,6 +268,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                     sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mContentManager.getHsConfig()));
                     sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mContentManager.getHsConfig()));
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "sslConn " + e.getLocalizedMessage());
                 }
             }
 
@@ -272,8 +285,14 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
 
             totalSize = bytesAvailable = mContentStream.available();
             totalWritten = 0;
-            bufferSize = Math.min(bytesAvailable, maxBufferSize);
+            bufferSize = (int)Math.min(bytesAvailable, maxBufferSize);
             buffer = new byte[bufferSize];
+
+            mUploadStats = new IMXMediaUploadListener.UploadStats();
+            // don't known yet
+            mUploadStats.mEstimatedRemainingTime = -1;
+
+            long startUploadTime = System.currentTimeMillis();
 
             Log.d(LOG_TAG, "Start Upload (" + totalSize + " bytes)");
 
@@ -286,23 +305,36 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                 dos.write(buffer, 0, bufferSize);
                 totalWritten += bufferSize;
                 bytesAvailable = mContentStream.available();
-                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                bufferSize = (int)Math.min(bytesAvailable, maxBufferSize);
 
-                // assume that the data upload is 90 % of the time
-                // closing the stream requires also some 100ms
-                mProgress = (totalWritten * 90 / totalSize) ;
+                Log.d(LOG_TAG, "totalWritten " + totalWritten + " / totalSize " + totalSize);
 
-                Log.d(LOG_TAG, "Upload " + " : " + mProgress);
-                publishProgress(mProgress);
+                mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
+                mUploadStats.mProgress = (int)(totalWritten * 90 / totalSize);
+
+                // avoid zero div
+                if (System.currentTimeMillis() != startUploadTime) {
+                    mUploadStats.mBitRate = (int)(totalWritten * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
+                }
+
+                if (0 != mUploadStats.mBitRate) {
+                    mUploadStats.mEstimatedRemainingTime = (int)(((totalSize - totalWritten) / 1024) / mUploadStats.mBitRate);
+                }
+
+                Log.d(LOG_TAG, "Upload " + " : " + mUploadStats);
+                publishProgress(mUploadStats);
 
                 bytesRead = mContentStream.read(buffer, 0, bufferSize);
             }
             if (!isUploadCancelled()) {
-                publishProgress(mProgress = 92);
+                mUploadStats.mProgress = 92;
+                publishProgress(mUploadStats);
                 dos.flush();
-                publishProgress(mProgress = 94);
+                mUploadStats.mProgress = 94;
+                publishProgress(mUploadStats);
                 dos.close();
-                publishProgress(mProgress = 96);
+                mUploadStats.mProgress = 96;
+                publishProgress(mUploadStats);
 
                 try {
                     // Read the SERVER RESPONSE
@@ -311,7 +343,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                     mResponseCode = 500;
                 }
 
-                publishProgress(mProgress = 98);
+                mUploadStats.mProgress = 98;
+                publishProgress(mUploadStats);
 
                 Log.d(LOG_TAG, "Upload is done with response code" + mResponseCode);
 
@@ -328,15 +361,16 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                 while ((ch = is.read()) != -1) {
                     b.append((char) ch);
                 }
-                responseFromServer = b.toString();
+                serverResponse = b.toString();
                 is.close();
 
                 // the server should provide an error description
                 if (mResponseCode != 200) {
                     try {
-                        JSONObject responseJSON = new JSONObject(responseFromServer);
-                        responseFromServer = responseJSON.getString("error");
+                        JSONObject responseJSON = new JSONObject(serverResponse);
+                        serverResponse = responseJSON.getString("error");
                     } catch (JSONException e) {
+                        Log.e(LOG_TAG, "Error parsing " + e.getLocalizedMessage());
                     }
                 }
             } else {
@@ -348,22 +382,22 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
             Log.e(LOG_TAG, "Error: " + e.getClass() + " - " + e.getMessage());
         }
 
-        return responseFromServer;
+        return serverResponse;
     }
     @Override
-    protected void onProgressUpdate(Integer... progress) {
+    protected void onProgressUpdate(IMXMediaUploadListener.UploadStats ... progress) {
         super.onProgressUpdate(progress);
 
-        Log.d(LOG_TAG, "Upload " + this + " : " + mProgress);
+        Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats);
 
-        dispatchUploadProgress(progress[0]);
+        dispatchUploadProgress(mUploadStats);
     }
 
     /**
      * Dispatch the result to the callbacks
-     * @param s the server response
+     * @param serverResponse the server response
      */
-    private void dispatchResult(final String s) {
+    private void dispatchResult(final String serverResponse) {
         if (null != mUploadId) {
             mPendingUploadByUploadId.remove(mUploadId);
         }
@@ -374,13 +408,19 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
         try {
             mContentStream.close();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "dispatchResult " + e.getLocalizedMessage());
         }
 
         if (isUploadCancelled()) {
             dispatchUploadCancel();
         } else {
-            ContentResponse uploadResponse = ((mResponseCode != 200) || (s == null)) ? null : JsonUtils.toContentResponse(s);
-            dispatchUploadComplete(uploadResponse, s);
+            ContentResponse uploadResponse = ((mResponseCode != 200) || (serverResponse == null)) ? null : JsonUtils.toContentResponse(serverResponse);
+
+            if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+                dispatchUploadError(mResponseCode, serverResponse);
+            } else {
+                dispatchUploadComplete(uploadResponse.contentUri);
+            }
         }
     }
 
@@ -395,7 +435,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
                 mContentManager.getUnsentEventsManager().onEventSendingFailed(null, null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        try {MXMediaUploadWorkerTask task = deepCopy();
+                        try {
+                            MXMediaUploadWorkerTask task = deepCopy();
                             mPendingUploadByUploadId.put(mUploadId, task);
                             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                         } catch (Exception e) {
@@ -430,12 +471,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
 
     /**
      * Dispatch Upload start
-     * @param progress the progress valie
+     * @param stats the upload stats
      */
-    private void dispatchUploadProgress(int progress) {
+    private void dispatchUploadProgress(IMXMediaUploadListener.UploadStats stats) {
         for(IMXMediaUploadListener listener : mUploadListeners) {
             try {
-                listener.onUploadProgress(mUploadId, progress);
+                listener.onUploadProgress(mUploadId, stats);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "dispatchUploadProgress failed " + e.getLocalizedMessage());
             }
@@ -456,14 +497,28 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Integer, String> {
     }
 
     /**
-     * Dispatch Upload complete.
-     * @param uploadResponse the upload server response.
-     * @param errorMessage the error description
+     * Dispatch Upload error.
+     * @param serverResponseCode the server response code.
+     * @param serverErrorMessage the server error message
      */
-    private void dispatchUploadComplete(ContentResponse uploadResponse, String errorMessage) {
+    private void dispatchUploadError(int serverResponseCode, String serverErrorMessage) {
         for(IMXMediaUploadListener listener : mUploadListeners) {
             try {
-                listener.onUploadComplete(mUploadId, uploadResponse, mResponseCode, (mResponseCode != 200) ? errorMessage : null);
+                listener.onUploadError(mUploadId, serverResponseCode, serverErrorMessage);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "dispatchUploadCancel failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Dispatch Upload complete.
+     * @param contentUri the media uri.
+     */
+    private void dispatchUploadComplete(String contentUri) {
+        for(IMXMediaUploadListener listener : mUploadListeners) {
+            try {
+                listener.onUploadComplete(mUploadId, contentUri);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "dispatchUploadCancel failed " + e.getLocalizedMessage());
             }

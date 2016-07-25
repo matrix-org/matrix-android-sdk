@@ -16,20 +16,17 @@
 
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.rest.model.ContentResponse;
-
 /**
  * A no-op class implementing {@link IMXMediaUploadListener} so listeners can just implement the methods
  * that they require.
  */
 public class MXMediaUploadListener implements IMXMediaUploadListener {
-
     @Override
     public void onUploadStart(String uploadId) {
     }
 
     @Override
-    public void onUploadProgress(String uploadId, int percentageProgress) {
+    public void onUploadProgress(String uploadId, UploadStats uploadStats) {
     }
 
     @Override
@@ -37,6 +34,10 @@ public class MXMediaUploadListener implements IMXMediaUploadListener {
     }
 
     @Override
-    public void  onUploadComplete(String uploadId, ContentResponse uploadResponse, int serverResponseCode, String serverErrorMessage) {
+    public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+    }
+
+    @Override
+    public void onUploadComplete(String uploadId, String contentUri) {
     }
 }

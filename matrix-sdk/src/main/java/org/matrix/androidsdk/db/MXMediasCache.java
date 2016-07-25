@@ -888,7 +888,7 @@ public class MXMediasCache {
      * @param downloadId the downloadId provided by loadBitmap;
      * @return the download progress
      */
-    public int progressValueForDownloadId(String downloadId) {
+    public int getProgressValueForDownloadId(String downloadId) {
         MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
 
         if (null != currentTask) {
@@ -936,7 +936,7 @@ public class MXMediasCache {
         } catch (Exception e) {
             // cannot start the task
             if (null != listener) {
-                listener.onUploadComplete(uploadId, null, -1, null);
+                listener.onUploadError(uploadId, -1, null);
             }
         }
     }
@@ -946,7 +946,7 @@ public class MXMediasCache {
      * @param uploadId The uploadId.
      * @return the upload percentage. -1 means there is no pending upload.
      */
-    public int progressValueForUploadId(String uploadId) {
+    public int getProgressValueForUploadId(String uploadId) {
         MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
 
         if (null != uploadTask) {
@@ -955,6 +955,22 @@ public class MXMediasCache {
 
         return -1;
     }
+
+    /**
+     * Returns the upload stats for a dedicated uploadId
+     * @param uploadId The uploadId.
+     * @return the upload stats
+     */
+    public IMXMediaUploadListener.UploadStats getStatsForUploadId(String uploadId) {
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+
+        if (null != uploadTask) {
+            return uploadTask.getStats();
+        }
+
+        return null;
+    }
+
 
     /**
      * Add an upload listener for an uploadId.
@@ -968,7 +984,6 @@ public class MXMediasCache {
             uploadTask.addListener(listener);
         }
     }
-
 
     /**
      * Cancel an upload.

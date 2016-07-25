@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -1776,6 +1777,32 @@ public class Room {
             mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
         } else {
             mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+        }
+    }
+
+    /**
+     * Cancel the event sending.
+     * Any media upload will be cancelled too.
+     * The event becomes undeliverable.
+     * @param event the message
+     */
+    public void cancelEventSending(final Event event) {
+        if (null != event) {
+            if ((Event.SentState.UNSENT == event.mSentState) ||
+                    (Event.SentState.SENDING == event.mSentState) ||
+                    (Event.SentState.WAITING_RETRY == event.mSentState)) {
+
+                // the message cannot be sent anymore
+                event.mSentState = Event.SentState.UNDELIVERABLE;
+            }
+
+            List<String> urls =  event.getMediaUrls();
+            MXMediasCache cache = mDataHandler.getMediasCache();
+
+            for(String url : urls) {
+                cache.cancelUpload(url);
+                cache.cancelDownload(cache.downloadIdFromUrl(url));
+            }
         }
     }
 

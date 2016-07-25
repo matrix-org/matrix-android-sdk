@@ -16,34 +16,69 @@
 
 package org.matrix.androidsdk.listeners;
 
-import org.matrix.androidsdk.rest.model.ContentResponse;
-
 /**
  * Interface to monitor a media upload.
  */
 public interface IMXMediaUploadListener {
+
+    // provide some upload stats
+    class UploadStats {
+        // the upload progress in percentage
+        public int mProgress;
+
+        // time in seconds since the upload started
+        public int mElapsedTime;
+
+        // estimated remained time in seconds to upload the media
+        public int mEstimatedRemainingTime;
+
+        // upload bit rate in KB/s
+        public int mBitRate;
+
+        @Override
+        public java.lang.String toString() {
+            String res = "";
+
+            res += "mProgress : " + mProgress + "%\n";
+            res += "mElapsedTime : " + mProgress + " seconds\n";
+            res += "mEstimatedRemainingTime : " + mEstimatedRemainingTime + " seconds\n";
+            res += "mBitRate : " + mBitRate + " KB/s\n";
+
+            return res;
+        }
+    }
+
     /**
-     * Warn of the upload starts
+     * The upload starts.
      * @param uploadId the upload Identifier
      */
     void onUploadStart(String uploadId);
 
     /**
-     * Warn of the progress upload
+     * The media upload is in progress.
      * @param uploadId the upload Identifier
-     * @param percentageProgress the progress value
+     * @param uploadStats the upload stats
      */
-    void onUploadProgress(String uploadId, int percentageProgress);
+    void onUploadProgress(String uploadId, UploadStats uploadStats);
 
     /**
-     * warn that an upload has been cancelled.
-     * @param uploadId
+     * The upload has been cancelled.
+     * @param uploadId the upload Identifier
      */
     void onUploadCancel(String uploadId);
 
     /**
-     * Called when the upload is complete or has failed.
-     * @param uploadResponse the ContentResponse object containing the mxc URI or null if the upload failed
+     * The upload fails.
+     * @param uploadId the upload identifier
+     * @param serverResponseCode the server response code
+     * @param serverErrorMessage the server error message.
      */
-    void onUploadComplete(String uploadId, ContentResponse uploadResponse, int serverResponseCode, String serverErrorMessage);
+    void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage);
+
+    /**
+     * The upload failed.
+     * @param uploadId the upload identifier
+     * @param contentUri the media URI on server.
+     */
+    void onUploadComplete(String uploadId, String contentUri);
 }
