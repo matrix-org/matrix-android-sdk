@@ -841,6 +841,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {
             @Override
+            public void onUploadStart(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
             public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                 commonMediaUploadError(serverResponseCode,serverErrorMessage, messageRow);
             }
@@ -1076,6 +1086,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
         getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
+
+            @Override
+            public void onUploadStart(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
             @Override
             public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                 commonMediaUploadError(serverResponseCode,serverErrorMessage, imageRow);
@@ -1153,10 +1174,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         getSession().getMediasCache().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new MXMediaUploadListener() {
             @Override
+            public void onUploadStart(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
             public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                 commonMediaUploadError(serverResponseCode,serverErrorMessage, locationRow);
             }
-
 
             @Override
             public void onUploadComplete(final String uploadId, final String contentUri) {
