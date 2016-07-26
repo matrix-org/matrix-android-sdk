@@ -898,6 +898,21 @@ public class MXMediasCache {
     }
 
     /**
+     * Returns the download  stats for a dedicated download id.
+     * @param downloadId the downloadId provided by loadBitmap;
+     * @return the download stats
+     */
+    public IMXMediaDownloadListener.DownloadStats getStatsForDownloadId(String downloadId) {
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+
+        if (null != currentTask) {
+            return currentTask.getDownloadStats();
+        }
+
+        return null;
+    }
+
+    /**
      * Add a download listener for an downloadId.
      * @param downloadId The uploadId.
      * @param listener the download listener.
