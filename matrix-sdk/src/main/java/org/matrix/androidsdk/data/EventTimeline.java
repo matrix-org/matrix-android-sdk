@@ -332,6 +332,7 @@ public class EventTimeline {
             }
         }
     }
+
     /**
      * Manage the joined room events.
      * @param roomSync the roomSync.
@@ -495,9 +496,14 @@ public class EventTimeline {
 
                     // if there is an oldest event, use it to set a summary
                     if (oldestEvent != null) {
-                        if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
-                            mStore.commit();
+                        // always defined a room summary else the room won't be displayed in the recents
+                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
+                        mStore.commit();
+
+                        // if the event is not displayable
+                        // back paginate until to find a valid one
+                        if (!RoomSummary.isSupportedEvent(oldestEvent)) {
+                            Log.e(LOG_TAG, "the room " + mRoomId + " has no valid summary, back paginate once to find a valid one");
                         }
                     }
                     // use the latest known event
@@ -881,10 +887,27 @@ public class EventTimeline {
 
         int count = Math.min(mSnapshotEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
 
+        Event latestSupportedEvent = null;
+
         for(int i = 0; i < count; i++) {
             SnapshotEvent snapshotedEvent = mSnapshotEvents.get(0);
+
+            // in some cases, there is no displayed summary
+            // https://github.com/vector-im/vector-android/pull/354
+            if ((null == latestSupportedEvent) && RoomSummary.isSupportedEvent(snapshotedEvent.mEvent)) {
+                latestSupportedEvent = snapshotedEvent.mEvent;
+            }
+
             mSnapshotEvents.remove(0);
             onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
+        }
+
+        // https://github.com/vector-im/vector-android/pull/354
+        // defines a new summary if the known is not supported
+        RoomSummary summary = mStore.getSummary(mRoomId);
+
+        if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestEvent()))) {
+            mStore.storeSummary(latestSupportedEvent.roomId, latestSupportedEvent, mState, mDataHandler.getUserId());
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");

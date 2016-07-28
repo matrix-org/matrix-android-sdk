@@ -100,7 +100,6 @@ public class EventDisplay {
         CharSequence text = null;
 
         try {
-
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
             String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
@@ -175,6 +174,8 @@ public class EventDisplay {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
                     text = "* " + userDisplayName +  " " + text;
+                } else if (TextUtils.isEmpty(text)) {
+                    text = "";
                 } else if (mPrependAuthor) {
                     text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
 
@@ -183,9 +184,7 @@ public class EventDisplay {
                         ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
-
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
                 if (mEvent.isRedacted()) {
