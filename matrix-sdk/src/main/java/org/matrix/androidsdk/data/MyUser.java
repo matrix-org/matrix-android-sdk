@@ -41,12 +41,12 @@ public class MyUser extends User {
 
     // the account info is refreshed in one row
     // so, if there is a pending refresh the listeners are added to this list.
-    private ArrayList<ApiCallback<Void>> mRefreshListeners;
+    private transient ArrayList<ApiCallback<Void>> mRefreshListeners;
 
-    private Handler mUiHandler;
+    private transient Handler mUiHandler;
 
     // linked emails to the account
-    private List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<ThirdPartyIdentifier>();
+    private transient List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<ThirdPartyIdentifier>();
 
     public MyUser(User user) {
         clone(user);
