@@ -64,7 +64,7 @@ public class MXMemoryStore implements IMXStore {
     protected Context mContext;
 
     //
-    protected HashMap<String, Event> mTemporaryEventsList = new HashMap<String, Event>();
+    private final HashMap<String, Event> mTemporaryEventsList = new HashMap<>();
 
     protected Credentials mCredentials;
 
@@ -75,14 +75,14 @@ public class MXMemoryStore implements IMXStore {
     protected MXFileStoreMetaData mMetadata = null;
 
     protected void initCommon(){
-        mRooms = new ConcurrentHashMap<String, Room>();
-        mUsers = new ConcurrentHashMap<String, User>();
-        mRoomEvents = new ConcurrentHashMap<String, LinkedHashMap<String, Event>>();
-        mRoomEventIds = new ConcurrentHashMap<String, ArrayList<String>>();
-        mRoomTokens = new ConcurrentHashMap<String, String>();
-        mRoomSummaries = new ConcurrentHashMap<String, RoomSummary>();
-        mReceiptsByRoomId = new ConcurrentHashMap<String, Map<String, ReceiptData>>();
-        mRoomAccountData = new ConcurrentHashMap<String, RoomAccountData>();
+        mRooms = new ConcurrentHashMap<>();
+        mUsers = new ConcurrentHashMap<>();
+        mRoomEvents = new ConcurrentHashMap<>();
+        mRoomEventIds = new ConcurrentHashMap<>();
+        mRoomTokens = new ConcurrentHashMap<>();
+        mRoomSummaries = new ConcurrentHashMap<>();
+        mReceiptsByRoomId = new ConcurrentHashMap<>();
+        mRoomAccountData = new ConcurrentHashMap<>();
         mEventStreamToken = null;
     }
 
@@ -196,7 +196,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Define a MXStore listener.
-     * @param listener
+     * @param listener the listener
      */
     @Override
     public void setMXStoreListener(MXStoreListener listener) {
@@ -214,7 +214,7 @@ public class MXMemoryStore implements IMXStore {
             mMetadata.mUserDisplayName = displayName;
 
             if (null != displayName) {
-                mMetadata.mUserDisplayName.trim();
+                mMetadata.mUserDisplayName = mMetadata.mUserDisplayName.trim();
             }
 
             // update the cached oneself User
@@ -272,12 +272,12 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<Room> getRooms() {
-        return new ArrayList<Room>(mRooms.values());
+        return new ArrayList<>(mRooms.values());
     }
 
     @Override
     public Collection<User> getUsers() {
-        return new ArrayList<User>(mUsers.values());
+        return new ArrayList<>(mUsers.values());
     }
 
     @Override
@@ -421,7 +421,7 @@ public class MXMemoryStore implements IMXStore {
 
                     // create the list it does not exist
                     if (null == events) {
-                        events = new LinkedHashMap<String, Event>();
+                        events = new LinkedHashMap<>();
                         mRoomEvents.put(event.roomId, events);
                     } else if (!event.isDummyEvent() && (mTemporaryEventsList.size() > 0)) {
                         // remove any waiting echo event
@@ -465,7 +465,7 @@ public class MXMemoryStore implements IMXStore {
             ArrayList<String> eventIds = mRoomEventIds.get(roomId);
 
             if (null == eventIds) {
-                eventIds = new ArrayList<String>();
+                eventIds = new ArrayList<>();
                 mRoomEventIds.put(roomId, eventIds);
             }
 
@@ -551,7 +551,7 @@ public class MXMemoryStore implements IMXStore {
 
                     if (null != eventMap) {
                         ArrayList<String> eventIds = mRoomEventIds.get(roomId);
-                        ArrayList<Event> events = new ArrayList<Event>(eventMap.values());
+                        ArrayList<Event> events = new ArrayList<>(eventMap.values());
 
                         for (Event event : events) {
                             if (event.mSentState == Event.SentState.SENT) {
@@ -584,7 +584,7 @@ public class MXMemoryStore implements IMXStore {
             synchronized (mRoomEvents) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
                 if (events == null) {
-                    events = new LinkedHashMap<String, Event>();
+                    events = new LinkedHashMap<>();
                     mRoomEvents.put(roomId, events);
                 }
 
@@ -608,7 +608,7 @@ public class MXMemoryStore implements IMXStore {
                         // define a token
                         mRoomTokens.put(roomId, eventsResponse.start);
                     } else {
-                        LinkedHashMap<String, Event> events2 = new LinkedHashMap<String, Event>();
+                        LinkedHashMap<String, Event> events2 = new LinkedHashMap<>();
 
                         // insert the catchup events in reverse order
                         for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
@@ -706,7 +706,7 @@ public class MXMemoryStore implements IMXStore {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             if (null != events) {
-                collection = new ArrayList<Event>(events.values());
+                collection = new ArrayList<>(events.values());
             }
         }
 
@@ -741,7 +741,7 @@ public class MXMemoryStore implements IMXStore {
             // search from the latest to the oldest events
             Collections.reverse(eventsList);
 
-            TokensChunkResponse<Event> response = new TokensChunkResponse<Event>();
+            TokensChunkResponse<Event> response = new TokensChunkResponse<>();
 
             // start the latest event and there is enough events to provide to the caller ?
             if ((null == fromToken) && (eventsList.size() <= limit)) {
@@ -817,7 +817,7 @@ public class MXMemoryStore implements IMXStore {
             return null;
         }
 
-        ArrayList<Event> unsentRoomEvents = new ArrayList<Event>();
+        ArrayList<Event> unsentRoomEvents = new ArrayList<>();
 
         synchronized (mRoomEvents) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -853,7 +853,7 @@ public class MXMemoryStore implements IMXStore {
             return null;
         }
 
-        ArrayList<Event> undeliverableRoomEvents = new ArrayList<Event>();
+        ArrayList<Event> undeliverableRoomEvents = new ArrayList<>();
 
         synchronized (mRoomEvents) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -887,7 +887,7 @@ public class MXMemoryStore implements IMXStore {
      * @return the receipts for an event in a dedicated room.
      */
     public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
-        ArrayList<ReceiptData> receipts = new ArrayList<ReceiptData>();
+        ArrayList<ReceiptData> receipts = new ArrayList<>();
 
         synchronized (mReceiptsByRoomId) {
             if (mReceiptsByRoomId.containsKey(roomId)) {
@@ -896,7 +896,7 @@ public class MXMemoryStore implements IMXStore {
                 Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
 
                 // copy the user id list to avoid having update while looping
-                ArrayList<String> userIds = new ArrayList<String>(receiptsByUserId.keySet());
+                ArrayList<String> userIds = new ArrayList<>(receiptsByUserId.keySet());
 
                 for (String userId : userIds) {
 
@@ -929,7 +929,7 @@ public class MXMemoryStore implements IMXStore {
 
         synchronized (mReceiptsByRoomId) {
             if (!mReceiptsByRoomId.containsKey(roomId)) {
-                receiptsByUserId = new HashMap<String, ReceiptData>();
+                receiptsByUserId = new HashMap<>();
                 mReceiptsByRoomId.put(roomId, receiptsByUserId);
             } else {
                 receiptsByUserId = mReceiptsByRoomId.get(roomId);
@@ -986,7 +986,7 @@ public class MXMemoryStore implements IMXStore {
      */
     protected List<Event> eventsAfter(String roomId, String eventId, String excludedUserId, List<String> allowedTypes) {
         // events list
-        ArrayList<Event> events = new ArrayList<Event>();
+        ArrayList<Event> events = new ArrayList<>();
 
         // sanity check
         if (null != roomId) {
@@ -994,7 +994,7 @@ public class MXMemoryStore implements IMXStore {
                 LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
 
                 if (roomEvents != null) {
-                    List<Event> linkedEvents = new ArrayList<Event>(roomEvents.values());
+                    List<Event> linkedEvents = new ArrayList<>(roomEvents.values());
 
                     // Check messages from the most recent
                     for (int i = linkedEvents.size() - 1; i >= 0 ; i--) {
@@ -1100,7 +1100,7 @@ public class MXMemoryStore implements IMXStore {
         }
 
         if (null == res) {
-            res = new ArrayList<Event>();
+            res = new ArrayList<>();
         }
 
         return res;

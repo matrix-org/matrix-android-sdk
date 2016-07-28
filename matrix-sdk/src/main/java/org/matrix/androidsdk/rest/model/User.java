@@ -62,7 +62,7 @@ public class User implements java.io.Serializable {
     protected transient MXDataHandler mDataHandler;
 
     // events listeners list
-    private transient ArrayList<IMXEventListener> pendingListeners = new ArrayList<>();
+    private transient ArrayList<IMXEventListener> mPendingListeners = new ArrayList<>();
 
     // hash key to store the user in the file system;
     private Integer mStorageHashKey = null;
@@ -91,7 +91,7 @@ public class User implements java.io.Serializable {
      * @return true if the presence should be refreshed
      */
     public boolean isPresenceObsolete() {
-        return !mIsPresenceRefreshed;
+        return !mIsPresenceRefreshed || (null == presence);
     }
 
     /**
@@ -114,7 +114,7 @@ public class User implements java.io.Serializable {
             mEventListeners = new HashMap<>(user.mEventListeners);
             mDataHandler = user.mDataHandler;
 
-            pendingListeners = user.pendingListeners;
+            mPendingListeners = user.mPendingListeners;
         }
     }
 
@@ -172,7 +172,7 @@ public class User implements java.io.Serializable {
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
 
-        for(IMXEventListener listener : pendingListeners) {
+        for(IMXEventListener listener : mPendingListeners) {
             mDataHandler.addListener(listener);
         }
     }
@@ -198,7 +198,7 @@ public class User implements java.io.Serializable {
         if (null != mDataHandler) {
             mDataHandler.addListener(globalListener);
         } else {
-            pendingListeners.add(globalListener);
+            mPendingListeners.add(globalListener);
         }
     }
 
@@ -211,7 +211,7 @@ public class User implements java.io.Serializable {
         if (null != mDataHandler) {
             mDataHandler.removeListener(mEventListeners.get(eventListener));
         } else {
-            pendingListeners.remove(mEventListeners.get(eventListener));
+            mPendingListeners.remove(mEventListeners.get(eventListener));
         }
 
         mEventListeners.remove(eventListener);

@@ -38,16 +38,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -58,21 +54,21 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    final int MXFILE_VERSION = 1;
+    private final int MXFILE_VERSION = 1;
 
     // ensure that there is enough messages to fill a tablet screen
-    final int MAX_STORED_MESSAGES_COUNT = 50;
+    private final int MAX_STORED_MESSAGES_COUNT = 50;
 
-    final String MXFILE_STORE_FOLDER = "MXFileStore";
-    final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+    private final String MXFILE_STORE_FOLDER = "MXFileStore";
+    private final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
-    final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
-    final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
-    final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
-    final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
-    final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
-    final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
-    final String MXFILE_STORE_USER_FOLDER = "users";
+    private final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
+    private final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
+    private final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
+    private final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+    private final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
+    private final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
+    private final String MXFILE_STORE_USER_FOLDER = "users";
 
     // the data is read from the file system
     private boolean mIsReady = false;
@@ -84,7 +80,7 @@ public class MXFileStore extends MXMemoryStore {
 
     private MXStoreListener mListener = null;
 
-    private String mPreferencesStatusKey;
+    private final String mPreferencesStatusKey;
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
@@ -233,7 +229,7 @@ public class MXFileStore extends MXMemoryStore {
 
     /**
      * Killed the background thread.
-     * @param isKilled
+     * @param isKilled killed status
      */
     private void setIsKilled(boolean isKilled) {
         synchronized (this) {
@@ -479,6 +475,7 @@ public class MXFileStore extends MXMemoryStore {
                 createDirTree(mCredentials.userId);
             }
         } catch(Exception e) {
+            Log.e(LOG_TAG, "deleteAllData failed " + e.getMessage());
         }
 
         if (init) {
@@ -522,7 +519,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Delete a directory with its content
      * @param directory the base directory
-     * @return
+     * @return the cache file size
      */
     private long directorySize(File directory) {
         long directorySize = 0;
@@ -609,7 +606,7 @@ public class MXFileStore extends MXMemoryStore {
 
     /**
      * Define a MXStore listener.
-     * @param listener
+     * @param listener the listener
      */
     @Override
     public void setMXStoreListener(MXStoreListener listener) {
@@ -786,7 +783,7 @@ public class MXFileStore extends MXMemoryStore {
             final ArrayList<String> fUserIds = mUserIdsToCommit;
             mUserIdsToCommit = new ArrayList<>();
 
-            final ArrayList<User> fUsers= new ArrayList<User>(mUsers.values());
+            final ArrayList<User> fUsers= new ArrayList<>(mUsers.values());
 
             Runnable r = new Runnable() {
                 @Override
@@ -870,7 +867,7 @@ public class MXFileStore extends MXMemoryStore {
                 ois.close();
             }
 
-            // update the hashmap
+            // update the hash map
             for(User user : users) {
                 mUsers.put(user.user_id, user);
             }
@@ -904,8 +901,8 @@ public class MXFileStore extends MXMemoryStore {
                 GZIPOutputStream gz = new GZIPOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
-                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
-                ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
+                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
+                ArrayList<Event> eventsList = new ArrayList<>(eventsHash.values());
 
                 int startIndex = 0;
 
@@ -973,7 +970,7 @@ public class MXFileStore extends MXMemoryStore {
         if  ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
-            mRoomsToCommitForMessages = new ArrayList<String>();
+            mRoomsToCommitForMessages = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1023,7 +1020,7 @@ public class MXFileStore extends MXMemoryStore {
                 ArrayList<String> eventIds = mRoomEventIds.get(roomId);
 
                 if (null == eventIds) {
-                    eventIds = new ArrayList<String>();
+                    eventIds = new ArrayList<>();
                     mRoomEventIds.put(roomId, eventIds);
                 }
 
@@ -1118,8 +1115,8 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
                 messagesListFile.delete();
-
             } catch (Exception e) {
+                Log.e(LOG_TAG, "loadRoomToken failed with error " + e.getMessage());
             }
         }
 
@@ -1178,12 +1175,13 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void deleteRoomStateFile(String roomId) {
         // states list
-        File statesFile = statesFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+        File statesFile = new File(mGzStoreRoomsStateFolderFile, roomId);
 
         if (statesFile.exists()) {
             try {
                 statesFile.delete();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "deleteRoomStateFile failed with error " + e.getMessage());
             }
         }
 
@@ -1224,7 +1222,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
-            mRoomsToCommitForStates = new ArrayList<String>();
+            mRoomsToCommitForStates = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1327,7 +1325,7 @@ public class MXFileStore extends MXMemoryStore {
         try {
             long start = System.currentTimeMillis();
 
-            String[] filenames = null;
+            String[] filenames;
 
             filenames = mGzStoreRoomsStateFolderFile.list();
 
@@ -1373,7 +1371,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
-            mRoomsToCommitForAccountData = new ArrayList<String>();
+            mRoomsToCommitForAccountData = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1529,7 +1527,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
-            mRoomsToCommitForSummaries = new ArrayList<String>();
+            mRoomsToCommitForSummaries = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1824,7 +1822,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the events receipts
      * @param roomId the roomId.
      */
-    public void saveReceipts(final String roomId) {
+    private void saveReceipts(final String roomId) {
         final Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
 
         Runnable r = new Runnable() {
@@ -1872,8 +1870,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Save the events receipts.
      */
-    public void saveReceipts() {
-
+    private void saveReceipts() {
         synchronized (this) {
             ArrayList<String> roomsToCommit = mRoomsToCommitForReceipts;
 
