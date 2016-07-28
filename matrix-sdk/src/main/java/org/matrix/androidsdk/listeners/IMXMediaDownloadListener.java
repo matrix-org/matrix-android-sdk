@@ -22,19 +22,28 @@ import com.google.gson.JsonElement;
  * Interface to monitor a media download.
  */
 public interface IMXMediaDownloadListener {
-
-    // provide some download stats
+    /**
+     * provide some download stats
+     */
     class DownloadStats {
-        // the download progress in percentage
+        /**
+         * the download progress in percentage
+         */
         public int mProgress;
 
-        // time in seconds since the download started
+        /**
+         * time in seconds since the download started
+         */
         public int mElapsedTime;
 
-        // estimated remained time in seconds to download the media
+        /**
+         * estimated remained time in seconds to download the media
+         */
         public int mEstimatedRemainingTime;
 
-        // upload bit rate in KB/s
+        /**
+         * upload bit rate in KB/s
+         */
         public int mBitRate;
 
         @Override

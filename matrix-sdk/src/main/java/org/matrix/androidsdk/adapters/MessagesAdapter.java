@@ -1697,7 +1697,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onUploadComplete(final String uploadId, final String contentUri) {
                     if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
-                        uploadSpinner.setVisibility(View.VISIBLE);
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }

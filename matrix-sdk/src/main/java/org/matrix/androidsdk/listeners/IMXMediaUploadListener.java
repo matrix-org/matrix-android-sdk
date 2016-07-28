@@ -21,18 +21,28 @@ package org.matrix.androidsdk.listeners;
  */
 public interface IMXMediaUploadListener {
 
-    // provide some upload stats
+    /**
+     * Provide some upload stats
+     */
     class UploadStats {
-        // the upload progress in percentage
+        /**
+         * the upload progress in percentage
+         */
         public int mProgress;
 
-        // time in seconds since the upload started
+        /**
+         * time in seconds since the upload started
+         */
         public int mElapsedTime;
 
-        // estimated remained time in seconds to upload the media
+        /**
+         * estimated remained time in seconds to upload the media
+         */
         public int mEstimatedRemainingTime;
 
-        // upload bit rate in KB/s
+        /**
+         * upload bit rate in KB/s
+         */
         public int mBitRate;
 
         @Override

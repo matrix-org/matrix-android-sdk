@@ -618,6 +618,7 @@ public class MXMediasCache {
     }
 
     /**
+     * Download a media.
      * @param context  the application context
      * @param hsConfig the home server config.
      * @param url      the media url
@@ -638,7 +639,7 @@ public class MXMediasCache {
         String downloadableUrl = downloadableUrl(url, -1, -1);
 
         // is the media downloading  ?
-        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadableUrl)) {
+        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl)) {
             return downloadableUrl;
         }
 
@@ -834,7 +835,7 @@ public class MXMediasCache {
             }
             downloadableUrl = null;
         } else {
-            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadableUrl);
+            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
 
             if (null != currentTask) {
                 if (null != imageView) {
@@ -889,7 +890,7 @@ public class MXMediasCache {
      * @return the download progress
      */
     public int getProgressValueForDownloadId(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
         if (null != currentTask) {
             return currentTask.getProgress();
@@ -903,7 +904,7 @@ public class MXMediasCache {
      * @return the download stats
      */
     public IMXMediaDownloadListener.DownloadStats getStatsForDownloadId(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
         if (null != currentTask) {
             return currentTask.getDownloadStats();
@@ -918,7 +919,7 @@ public class MXMediasCache {
      * @param listener the download listener.
      */
     public void addDownloadListener(String downloadId, IMXMediaDownloadListener listener) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
         if (null != currentTask) {
             currentTask.addDownloadListener(listener);
@@ -930,7 +931,7 @@ public class MXMediasCache {
      * @param downloadId the download id.
      */
     public void cancelDownload(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTaskForUrl(downloadId);
+        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
         if (null != currentTask) {
             currentTask.cancelDownload();
@@ -962,7 +963,7 @@ public class MXMediasCache {
      * @return the upload percentage. -1 means there is no pending upload.
      */
     public int getProgressValueForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
         if (null != uploadTask) {
             return uploadTask.getProgress();
@@ -977,7 +978,7 @@ public class MXMediasCache {
      * @return the upload stats
      */
     public IMXMediaUploadListener.UploadStats getStatsForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
         if (null != uploadTask) {
             return uploadTask.getStats();
@@ -993,7 +994,7 @@ public class MXMediasCache {
      * @param listener the upload listener
      */
     public void addUploadListener(String uploadId, IMXMediaUploadListener listener) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
         if (null != uploadTask) {
             uploadTask.addListener(listener);
@@ -1005,7 +1006,7 @@ public class MXMediasCache {
      * @param uploadId the upload Id
      */
     public void cancelUpload(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTaskForId(uploadId);
+        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
         if (null != uploadTask) {
             uploadTask.cancelUpload();
