@@ -1793,6 +1793,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
 
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
         // the tag is used to detect if the progress value is linked to this layout
         downloadProgressLayout.setTag(downloadId);
 
@@ -2071,6 +2075,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
+
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
         downloadProgressLayout.setTag(downloadId);
 
         // no download in progress
