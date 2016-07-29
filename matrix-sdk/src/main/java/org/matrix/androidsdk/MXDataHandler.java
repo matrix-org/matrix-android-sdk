@@ -820,7 +820,6 @@ public class MXDataHandler implements IMXEventListener {
             if (user == null) {
                 user = userPresence;
                 user.setDataHandler(this);
-                mStore.storeUser(user);
             }
             else {
                 user.currently_active = userPresence.currently_active;
@@ -840,6 +839,7 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.setDisplayName(user.displayname);
             }
 
+            mStore.storeUser(user);
             this.onPresenceUpdate(presenceEvent, user);
         }
     }
