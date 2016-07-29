@@ -80,10 +80,12 @@ import java.util.Arrays;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 
 import retrofit.RetrofitError;
 
@@ -110,13 +112,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * A message has been successfully sent.
          * @param event the event
          */
-        public void onMessageSendingSucceeded(Event event);
+        void onMessageSendingSucceeded(Event event);
 
         /**
          * A message sending has failed.
          * @param event the event
          */
-        public void onMessageSendingFailed(Event event);
+        void onMessageSendingFailed(Event event);
+
+        /**
+         * An event has been successfully redacted by the user.
+         * @param event the event
+         */
+        void onMessageRedacted(Event event);
     }
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
@@ -643,8 +651,37 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     protected void redactEvent(String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
-        mMatrixMessagesFragment.redact(eventId,
-                new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
+        mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                if (null != mEventSendingListener) {
+                    try {
+                        mEventSendingListener.onMessageRedacted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                    }
+                }
+            }
+
+            private void onError() {
+                Toast.makeText(getActivity(), getActivity().getString(R.string.could_not_redact), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError();
+            }
+        });
     }
 
     /**
