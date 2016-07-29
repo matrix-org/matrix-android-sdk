@@ -213,6 +213,7 @@ public class MXSession {
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
+        mDataHandler.setMediasCache(mMediasCache);
     }
 
     private void checkIfAlive() {
@@ -433,12 +434,8 @@ public class MXSession {
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();
 
-        // stop any pending request
-        // clear data
-        mContentManager.clear();
-
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clearCache();
+        mMediasCache.clear();
     }
 
     /**
