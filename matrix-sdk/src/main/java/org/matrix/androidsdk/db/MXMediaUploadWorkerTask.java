@@ -311,6 +311,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
                 Log.d(LOG_TAG, "doInBackground : totalWritten " + totalWritten + " / totalSize " + totalSize);
 
+                mUploadStats.mUploadedSize = (int)totalWritten;
+                mUploadStats.mFileSize = (int)totalSize;
+
                 mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
                 // Uploading data is 90% of the job
                 // the other 10s is the end of the connection related actions

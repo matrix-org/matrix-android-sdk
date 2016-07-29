@@ -31,6 +31,16 @@ public interface IMXMediaUploadListener {
         public int mProgress;
 
         /**
+         * The uploaded size in bytes
+         */
+        public int mUploadedSize;
+
+        /**
+         * The file size in bytes.
+         */
+        public int mFileSize;
+
+        /**
          * time in seconds since the upload started
          */
         public int mElapsedTime;
@@ -50,6 +60,8 @@ public interface IMXMediaUploadListener {
             String res = "";
 
             res += "mProgress : " + mProgress + "%\n";
+            res += "mUploadedSize : " + mUploadedSize + "%\n";
+            res += "mFileSize : " + mFileSize + "%\n";
             res += "mElapsedTime : " + mProgress + " seconds\n";
             res += "mEstimatedRemainingTime : " + mEstimatedRemainingTime + " seconds\n";
             res += "mBitRate : " + mBitRate + " KB/s\n";
