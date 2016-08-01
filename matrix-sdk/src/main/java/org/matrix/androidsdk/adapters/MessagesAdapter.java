@@ -229,13 +229,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         void onMessageIdClick(String messageId);
     }
 
-    private static final int ROW_TYPE_TEXT = 0;
-    private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_NOTICE = 2;
-    private static final int ROW_TYPE_EMOTE = 3;
-    private static final int ROW_TYPE_FILE = 4;
-    private static final int ROW_TYPE_VIDEO = 5;
-    private static final int NUM_ROW_TYPES = 6;
+    protected static final int ROW_TYPE_TEXT = 0;
+    protected static final int ROW_TYPE_IMAGE = 1;
+    protected static final int ROW_TYPE_NOTICE = 2;
+    protected static final int ROW_TYPE_EMOTE = 3;
+    protected static final int ROW_TYPE_FILE = 4;
+    protected static final int ROW_TYPE_VIDEO = 5;
+    protected static final int NUM_ROW_TYPES = 6;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -2543,6 +2543,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return html;
     }
 
+    /**
+     * Format a second time range.
+     * @param seconds the seconds time
+     * @return the formatted string
+     */
     private static String remainingTimeToString(int seconds) {
         if (seconds <= 1) {
             return "< 1s";
