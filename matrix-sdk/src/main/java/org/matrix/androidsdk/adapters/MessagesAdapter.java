@@ -1635,19 +1635,41 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Show the upload failure items
+     * @param convertView the cell view
+     * @param event the event
+     * @param type the media type
+     * @param show true to show the failure items
+     */
+    protected void showUploadFailure(View convertView, Event event, int type, boolean show) {
+        if (ROW_TYPE_FILE == type) {
+            TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+
+            if (null != fileTextView) {
+                fileTextView.setTextColor(show ? mNotSentMessageTextColor : mDefaultMessageTextColor);
+            }
+        } else if ((ROW_TYPE_IMAGE == type) || (ROW_TYPE_VIDEO == type)) {
+            View failedLayout = convertView.findViewById(R.id.media_upload_failed);
+
+            if (null != failedLayout) {
+                failedLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    /**
      * Check if there is a linked upload.
      * @param convertView the media view
      * @param event teh related event
+     * @param type the media type
      * @param mediaUrl the media url
      */
-    private void managePendingUpload(final View convertView, final Event event, final String mediaUrl) {
+    private void managePendingUpload(final View convertView, final Event event, final int type, final String mediaUrl) {
         final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
-
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
         // the dedicated UI items are not found
-        if ((null == uploadProgressLayout) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
@@ -1658,7 +1680,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (!mSession.getMyUserId().equals(event.getSender()) || !event.isSending()) {
             uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, event, type, event.isUndeliverable());
             return;
         }
 
@@ -1679,7 +1701,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         // the message become undeliverable
                         uploadProgressLayout.setVisibility(View.GONE);
                         uploadSpinner.setVisibility(View.GONE);
-                        uploadFailedImage.setVisibility(View.VISIBLE);
+                        showUploadFailure(convertView, event, type, true);
                     }
                 }
 
@@ -1691,7 +1713,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                                     serverErrorMessage,
                                     Toast.LENGTH_LONG).show();
                         }
-                        uploadFailedImage.setVisibility(View.VISIBLE);
+                        showUploadFailure(convertView, event, type, true);
+                        uploadProgressLayout.setVisibility(View.GONE);
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
@@ -1707,7 +1730,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        uploadFailedImage.setVisibility(View.GONE);
+        showUploadFailure(convertView, event, type, false);
         uploadSpinner.setVisibility((null == uploadStats) ? View.VISIBLE : View.GONE);
         refreshUploadViews(event, uploadStats, uploadProgressLayout);
     }
@@ -1951,7 +1974,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // upload management
         if (type == ROW_TYPE_IMAGE) {
-            managePendingUpload(convertView, event, ((ImageMessage)message).url);
+            managePendingUpload(convertView, event, type, ((ImageMessage)message).url);
         } else {
             managePendingVideoUpload(convertView, event, (VideoMessage) message);
         }
@@ -2166,7 +2189,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         fileTextView.setText("\n" + fileMessage.body + "\n");
 
         managePendingFileDownload(convertView, event, fileMessage, position);
-        managePendingUpload(convertView, event, fileMessage.url);
+        managePendingUpload(convertView, event, ROW_TYPE_FILE, fileMessage.url);
 
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
@@ -2182,14 +2205,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param videoEvent the video event
      * @param videoMessage the video message
      */
-    private void managePendingVideoUpload(View convertView, final Event videoEvent, VideoMessage videoMessage) {
+    private void managePendingVideoUpload(final View convertView, final Event videoEvent, VideoMessage videoMessage) {
         final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
-
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
 
         // the dedicated UI items are not found
-        if ((null == uploadProgressLayout) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
@@ -2200,7 +2222,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (!mSession.getMyUserId().equals(videoEvent.getSender()) || videoEvent.isUndeliverable() || (null == videoMessage.info)) {
             uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(videoEvent.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, videoEvent.isUndeliverable());
             return;
         }
 
@@ -2238,6 +2260,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
 
                 @Override
+                public void onUploadCancel(String uploadId) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        // the message become undeliverable
+                        uploadProgressLayout.setVisibility(View.GONE);
+                        uploadSpinner.setVisibility(View.GONE);
+                        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                    }
+                }
+
+                @Override
                 public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
                         if (null != serverErrorMessage) {
@@ -2245,7 +2277,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                                     serverErrorMessage,
                                     Toast.LENGTH_LONG).show();
                         }
-                        uploadFailedImage.setVisibility(View.VISIBLE);
+                        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                        uploadProgressLayout.setVisibility(View.GONE);
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
@@ -2253,14 +2286,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onUploadComplete(final String uploadId, final String contentUri) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        uploadSpinner.setVisibility(View.VISIBLE);
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
             });
         }
 
-        uploadFailedImage.setVisibility(View.GONE);
+        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, false);
         uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
         refreshUploadViews(videoEvent, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
 

@@ -165,7 +165,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         mMimeType = mimeType;
         mContentStream = contentStream;
         mUploadId = uploadId;
-        mFailureException = null;
         mFilename = filename;
         mContentManager = contentManager;
 
