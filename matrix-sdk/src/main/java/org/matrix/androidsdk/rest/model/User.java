@@ -22,7 +22,6 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -77,6 +76,32 @@ public class User implements java.io.Serializable {
     }
 
     /**
+     * Check if mEventListeners has been initialized before providing it.
+     * The users are now serialized and the transient fields are not initialized.
+     * @return the events listener
+     */
+    private Map<IMXEventListener, IMXEventListener> getEventListeners() {
+        if (null == mEventListeners) {
+            mEventListeners = new HashMap<>();
+        }
+
+        return mEventListeners;
+    }
+
+    /**
+     * Check if mPendingListeners has been initialized before providing it.
+     * The users are now serialized and the transient fields are not initialized.
+     * @return the pending listener
+     */
+    private ArrayList<IMXEventListener> getPendingListeners() {
+        if (null == mPendingListeners) {
+            mPendingListeners = new ArrayList<>();
+        }
+
+        return mPendingListeners;
+    }
+
+    /**
      * @return the user hash key
      */
     public int getStorageHashKey() {
@@ -111,10 +136,10 @@ public class User implements java.io.Serializable {
             mIsPresenceRefreshed = user.mIsPresenceRefreshed;
             mLastPresenceTs = user.mLastPresenceTs;
 
-            mEventListeners = new HashMap<>(user.mEventListeners);
+            mEventListeners = new HashMap<>(user.getEventListeners());
             mDataHandler = user.mDataHandler;
 
-            mPendingListeners = user.mPendingListeners;
+            mPendingListeners = user.getPendingListeners();
         }
     }
 
@@ -172,7 +197,7 @@ public class User implements java.io.Serializable {
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
 
-        for(IMXEventListener listener : mPendingListeners) {
+        for(IMXEventListener listener : getPendingListeners()) {
             mDataHandler.addListener(listener);
         }
     }
@@ -192,13 +217,13 @@ public class User implements java.io.Serializable {
                 }
             }
         };
-        mEventListeners.put(eventListener, globalListener);
+        getEventListeners().put(eventListener, globalListener);
 
         // the handler could be set later
         if (null != mDataHandler) {
             mDataHandler.addListener(globalListener);
         } else {
-            mPendingListeners.add(globalListener);
+            getPendingListeners().add(globalListener);
         }
     }
 
@@ -209,11 +234,11 @@ public class User implements java.io.Serializable {
     public void removeEventListener(IMXEventListener eventListener) {
 
         if (null != mDataHandler) {
-            mDataHandler.removeListener(mEventListeners.get(eventListener));
+            mDataHandler.removeListener(getEventListeners().get(eventListener));
         } else {
-            mPendingListeners.remove(mEventListeners.get(eventListener));
+            getPendingListeners().remove(getEventListeners().get(eventListener));
         }
 
-        mEventListeners.remove(eventListener);
+        getEventListeners().remove(eventListener);
     }
 }

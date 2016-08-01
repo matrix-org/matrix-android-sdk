@@ -34,9 +34,11 @@ import java.util.List;
  */
 public class MyUser extends User {
 
+    private static final String LOG_TAG = "MyUser";
+
     // refresh status
     private boolean mIsAvatarRefreshed = false;
-    private boolean mIsDislayNameRefreshed = false;
+    private boolean mIsDisplayNameRefreshed = false;
     private boolean mAre3PIdsLoaded = false;
 
     // the account info is refreshed in one row
@@ -46,7 +48,7 @@ public class MyUser extends User {
     private transient Handler mUiHandler;
 
     // linked emails to the account
-    private transient List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<ThirdPartyIdentifier>();
+    private transient List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<>();
 
     public MyUser(User user) {
         clone(user);
@@ -169,7 +171,7 @@ public class MyUser extends User {
         }
 
         if (null == list) {
-            list = new ArrayList<ThirdPartyIdentifier>();
+            list = new ArrayList<>();
         }
 
         return list;
@@ -181,10 +183,10 @@ public class MyUser extends User {
     public List<String> getlinkedEmails() {
         List<ThirdPartyIdentifier> list = getThirdPartyIdentifiers();
 
-        ArrayList<String>emails = new ArrayList<String>();
+        ArrayList<String>emails = new ArrayList<>();
 
-        for(ThirdPartyIdentifier identier : list) {
-            emails.add(identier.address);
+        for(ThirdPartyIdentifier identifier : list) {
+            emails.add(identifier.address);
         }
 
         return emails;
@@ -227,7 +229,7 @@ public class MyUser extends User {
                 isPending = (null != mRefreshListeners);
 
                 if (null == mRefreshListeners) {
-                    mRefreshListeners = new ArrayList<ApiCallback<Void>>();
+                    mRefreshListeners = new ArrayList<>();
                 }
 
                 if (null != callback) {
@@ -241,7 +243,7 @@ public class MyUser extends User {
             }
         }
 
-        if (!mIsDislayNameRefreshed) {
+        if (!mIsDisplayNameRefreshed) {
             refreshUserDisplayname();
             return;
         }
@@ -262,6 +264,7 @@ public class MyUser extends User {
                     try {
                         listener.onSuccess(null);
                     } catch (Exception e) {
+
                     }
                 }
             }
@@ -338,7 +341,7 @@ public class MyUser extends User {
                     // store metadata
                     mDataHandler.getStore().setDisplayName(aDisplayname);
 
-                    mIsDislayNameRefreshed = true;
+                    mIsDisplayNameRefreshed = true;
 
                     // jump to the next items
                     refreshUserInfos(true, null);
@@ -364,14 +367,14 @@ public class MyUser extends User {
             @Override
             public void onMatrixError(final MatrixError e) {
                 // cannot retrieve this value, jump to the next items
-                mIsDislayNameRefreshed = true;
+                mIsDisplayNameRefreshed = true;
                 refreshUserInfos(true, null);
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
                 // cannot retrieve this value, jump to the next items
-                mIsDislayNameRefreshed = true;
+                mIsDisplayNameRefreshed = true;
                 refreshUserInfos(true, null);
             }
         });
