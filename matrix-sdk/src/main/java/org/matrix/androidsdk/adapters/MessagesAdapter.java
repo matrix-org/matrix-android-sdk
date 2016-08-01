@@ -1695,30 +1695,31 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 }
 
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, event, type, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
+                }
+
                 @Override
                 public void onUploadCancel(String uploadId) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        // the message become undeliverable
-                        uploadProgressLayout.setVisibility(View.GONE);
-                        uploadSpinner.setVisibility(View.GONE);
-                        showUploadFailure(convertView, event, type, true);
+                        onUploadStop(null);;
                     }
                 }
 
                 @Override
                 public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        if (null != serverErrorMessage) {
-                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                    serverErrorMessage,
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        showUploadFailure(convertView, event, type, true);
-                        uploadProgressLayout.setVisibility(View.GONE);
-                        uploadSpinner.setVisibility(View.GONE);
+                        onUploadStop(serverErrorMessage);
                     }
                 }
-
 
                 @Override
                 public void onUploadComplete(final String uploadId, final String contentUri) {
@@ -2259,27 +2260,29 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 }
 
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
+                }
+
                 @Override
                 public void onUploadCancel(String uploadId) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        // the message become undeliverable
-                        uploadProgressLayout.setVisibility(View.GONE);
-                        uploadSpinner.setVisibility(View.GONE);
-                        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                        onUploadStop(null);
                     }
                 }
 
                 @Override
                 public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        if (null != serverErrorMessage) {
-                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                    serverErrorMessage,
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
-                        uploadProgressLayout.setVisibility(View.GONE);
-                        uploadSpinner.setVisibility(View.GONE);
+                        onUploadStop(serverErrorMessage);
                     }
                 }
 
