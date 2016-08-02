@@ -75,12 +75,15 @@ public class EventsThread extends Thread {
     IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
+            Log.d(LOG_TAG, "onNetworkConnectionUpdate : before " + mbIsConnected + " now " + isConnected);
+
             synchronized (mSyncObject) {
                 mbIsConnected = isConnected;
             }
 
             // the thread has been suspended and there is an available network
             if (isConnected && !mKilling) {
+                Log.d(LOG_TAG, "onNetworkConnectionUpdate : call onNetworkAvailable");
                 onNetworkAvailable();
             }
         }
@@ -105,6 +108,8 @@ public class EventsThread extends Thread {
      */
     public void setServerLongPollTimeout(int ms) {
         mServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
+        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mServerTimeoutms);
+
     }
 
     /**
@@ -120,6 +125,19 @@ public class EventsThread extends Thread {
      */
     public void setSyncDelay(int ms) {
         mRequestDelayMs = Math.max(0, ms);
+
+        Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
+
+        // cancel any pending delay timer
+        if (null != mSyncDelayTimer) {
+            Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+
+            mSyncDelayTimer.cancel();
+            // and sync asap
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
+            }
+        }
     }
 
     /**
@@ -150,20 +168,23 @@ public class EventsThread extends Thread {
      * Pause the thread. It will resume where it left off when unpause()d.
      */
     public void pause() {
-        Log.i(LOG_TAG, "pause()");
+        Log.d(LOG_TAG, "pause()");
         mPaused = true;
         mIsCatchingUp = false;
     }
 
+    /**
+     * A network connection has been retrieved.
+     */
     public void onNetworkAvailable() {
-        Log.i(LOG_TAG, "onNetWorkAvailable()");
+        Log.d(LOG_TAG, "onNetWorkAvailable()");
         if (mIsNetworkSuspended) {
             mIsNetworkSuspended = false;
 
             if (mPaused) {
-                Log.i(LOG_TAG, "the event thread is still suspended");
+                Log.d(LOG_TAG, "the event thread is still suspended");
             } else {
-                Log.i(LOG_TAG, "Resume the thread");
+                Log.d(LOG_TAG, "Resume the thread");
                 // cancel any catchup process.
                 mIsCatchingUp = false;
 
@@ -172,7 +193,7 @@ public class EventsThread extends Thread {
                 }
             }
         } else {
-            Log.i(LOG_TAG, "onNetWorkAvailable() : nothing to do");
+            Log.d(LOG_TAG, "onNetWorkAvailable() : nothing to do");
         }
     }
 
@@ -180,8 +201,11 @@ public class EventsThread extends Thread {
      * Unpause the thread if it had previously been paused. If not, this does nothing.
      */
     public void unpause() {
-        Log.i(LOG_TAG, "unpause()");
+        Log.d(LOG_TAG, "unpause()");
+
         if (mPaused) {
+            Log.d(LOG_TAG, "unpause : the thread was paused so resume it.");
+
             mPaused = false;
             synchronized (mSyncObject) {
                 mSyncObject.notify();
@@ -197,7 +221,10 @@ public class EventsThread extends Thread {
      */
     public void catchup() {
         Log.d(LOG_TAG, "catchup()");
+
         if (mPaused) {
+            Log.d(LOG_TAG, "unpause : the thread was paused so wake it up");
+
             mPaused = false;
             synchronized (mSyncObject) {
                 mSyncObject.notify();
@@ -216,6 +243,8 @@ public class EventsThread extends Thread {
         mKilling = true;
 
         if (mPaused) {
+            Log.d(LOG_TAG, "killing : the thread was pause so wake it up");
+
             mPaused = false;
             synchronized (mSyncObject) {
                 mSyncObject.notify();
@@ -346,6 +375,8 @@ public class EventsThread extends Thread {
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
                 mSyncDelayTimer = new Timer();
 
+                Log.d(LOG_TAG, "startSync : start a delay timer");
+
                 mSyncDelayTimer.schedule(new TimerTask() {
                     @Override
                     public void run() {
@@ -368,6 +399,8 @@ public class EventsThread extends Thread {
                 }
 
                 try {
+                    Log.d(LOG_TAG, "startSync : wait ...");
+
                     synchronized (mSyncObject) {
                         mSyncObject.wait();
                     }
