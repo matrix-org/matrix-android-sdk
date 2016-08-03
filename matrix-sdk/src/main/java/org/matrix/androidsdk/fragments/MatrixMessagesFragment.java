@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -386,6 +387,25 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     /**
+     * Display the InitializeTimeline error.
+     * @param error the error
+     */
+    protected void displayInitializeTimelineError(Object error) {
+        String errorMessage = "";
+
+        if (error instanceof MatrixError) {
+            errorMessage = ((MatrixError)error).getLocalizedMessage();
+        } else if (error instanceof Exception) {
+            errorMessage = ((Exception)error).getLocalizedMessage();
+        }
+
+        if (!TextUtils.isEmpty(errorMessage)) {
+            Log.d(LOG_TAG, "displayInitializeTimelineError : " + errorMessage);
+            Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
      * Initialize the timeline to fill the screen
      */
     private void initializeTimeline() {
@@ -409,12 +429,10 @@ public class MatrixMessagesFragment extends Fragment {
                 }
             }
 
-            private void onError(String errorMessage) {
-                Log.d(LOG_TAG, "initializeTimeline fails " + errorMessage);
+            private void onError() {
+                Log.d(LOG_TAG, "initializeTimeline fails");
 
                 if (null != getActivity()) {
-                    Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
-
                     if (null != mMatrixMessagesListener) {
                         mMatrixMessagesListener.hideInitLoading();
                         mMatrixMessagesListener.onTimelineInitialized();
@@ -424,17 +442,20 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onNetworkError(Exception e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
         });
     }

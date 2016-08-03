@@ -56,6 +56,7 @@ import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
@@ -1809,10 +1810,49 @@ public class Room {
     /**
      * Redact an event from the room.
      * @param eventId the event's id
-     * @param callback the callback with the created event
+     * @param callback the callback with the redacted event
      */
-    public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, callback);
+    public void redact(final String eventId, final ApiCallback<Event> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                Event redactedEvent = mStore.getEvent(eventId, getRoomId());
+
+                // test if the redacted event has been echoed
+                // it it was not echoed, the event must be pruned to remove useless data
+                // the room summary will be updated when the server will echo the redacted event
+                if ((null != redactedEvent) && ((null == redactedEvent.unsigned) || (null == redactedEvent.unsigned.redacted_because))) {
+                    redactedEvent.prune(null);
+                    mStore.storeLiveRoomEvent(redactedEvent);
+                    mStore.commit();
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(redactedEvent);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**
