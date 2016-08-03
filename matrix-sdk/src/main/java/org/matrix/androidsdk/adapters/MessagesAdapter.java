@@ -2657,21 +2657,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param downloadProgressLayout the download parent UI
      */
     protected void refreshDownloadViews(Event event, IMXMediaDownloadListener.DownloadStats downloadStats, View downloadProgressLayout) {
-        if (null != downloadStats) {
-            downloadProgressLayout.setVisibility(View.VISIBLE);
+        if (null != downloadProgressLayout) {
+            if (null != downloadStats) {
+                downloadProgressLayout.setVisibility(View.VISIBLE);
 
-            TextView downloadProgressStatsTextView = (TextView) downloadProgressLayout.findViewById(R.id.content_download_progress_stats);
-            PieFractionView downloadProgressPieFractionView = (PieFractionView) downloadProgressLayout.findViewById(R.id.content_download_progress_piechart);
+                TextView downloadProgressStatsTextView = (TextView) downloadProgressLayout.findViewById(R.id.content_download_progress_stats);
+                PieFractionView downloadProgressPieFractionView = (PieFractionView) downloadProgressLayout.findViewById(R.id.content_download_progress_piechart);
 
-            if (null != downloadProgressStatsTextView) {
-                downloadProgressStatsTextView.setText(formatDownloadStats(mContext, downloadStats));
+                if (null != downloadProgressStatsTextView) {
+                    downloadProgressStatsTextView.setText(formatDownloadStats(mContext, downloadStats));
+                }
+
+                if (null != downloadProgressPieFractionView) {
+                    downloadProgressPieFractionView.setFraction(downloadStats.mProgress);
+                }
+            } else {
+                downloadProgressLayout.setVisibility(View.GONE);
             }
-
-            if (null != downloadProgressPieFractionView) {
-                downloadProgressPieFractionView.setFraction(downloadStats.mProgress);
-            }
-        } else {
-            downloadProgressLayout.setVisibility(View.GONE);
         }
     }
 
@@ -2695,20 +2697,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param uploadProgressLayout the upload parent UI
      */
     protected void refreshUploadViews(Event event, IMXMediaUploadListener.UploadStats uploadStats, View uploadProgressLayout) {
-        if (null != uploadStats) {
-            uploadProgressLayout.setVisibility(View.VISIBLE);
-            final TextView uploadProgressStatsTextView = (TextView) uploadProgressLayout.findViewById(R.id.content_upload_progress_stats);
-            final PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
+        if (null != uploadProgressLayout) {
+            if (null != uploadStats) {
+                uploadProgressLayout.setVisibility(View.VISIBLE);
+                final TextView uploadProgressStatsTextView = (TextView) uploadProgressLayout.findViewById(R.id.content_upload_progress_stats);
+                final PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
 
-            if (null != uploadProgressStatsTextView) {
-                uploadProgressStatsTextView.setText(formatUploadStats(mContext, uploadStats));
-            }
+                if (null != uploadProgressStatsTextView) {
+                    uploadProgressStatsTextView.setText(formatUploadStats(mContext, uploadStats));
+                }
 
-            if (null != uploadProgressPieFractionView) {
-                uploadProgressPieFractionView.setFraction(uploadStats.mProgress);
+                if (null != uploadProgressPieFractionView) {
+                    uploadProgressPieFractionView.setFraction(uploadStats.mProgress);
+                }
+            } else {
+                uploadProgressLayout.setVisibility(View.GONE);
             }
-        } else {
-            uploadProgressLayout.setVisibility(View.GONE);
         }
     }
 }
