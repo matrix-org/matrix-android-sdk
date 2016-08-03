@@ -69,9 +69,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     // its unique identifier
     private final String mUploadId;
 
-    // the upload exception
-    private Exception mFailureException;
-
     // store the server response to provide it the listeners
     private String mResponseFromServer = null;
 
@@ -168,7 +165,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         mMimeType = mimeType;
         mContentStream = contentStream;
         mUploadId = uploadId;
-        mFailureException = null;
         mFilename = filename;
         mContentManager = contentManager;
 
@@ -311,6 +307,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
                 Log.d(LOG_TAG, "doInBackground : totalWritten " + totalWritten + " / totalSize " + totalSize);
 
+                mUploadStats.mUploadedSize = (int)totalWritten;
+                mUploadStats.mFileSize = (int)totalSize;
+
                 mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
                 // Uploading data is 90% of the job
                 // the other 10s is the end of the connection related actions
@@ -386,12 +385,13 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                 conn.disconnect();
             }
         } catch (Exception e) {
-            mFailureException = e;
+            serverResponse = e.getLocalizedMessage();
             Log.e(LOG_TAG, "doInBackground ; failed with error " + e.getClass() + " - " + e.getMessage());
         }
 
         return serverResponse;
     }
+    
     @Override
     protected void onProgressUpdate(IMXMediaUploadListener.UploadStats ... progress) {
         super.onProgressUpdate(progress);
@@ -433,29 +433,10 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     }
 
     @Override
-    protected void onPostExecute(final String s) {
+    protected void onPostExecute(final String serverResponseMessage) {
         // do not call the callback if cancelled.
         if (!isCancelled()) {
-            // connection error
-            if ((null != mFailureException) && ((mFailureException instanceof UnknownHostException) || (mFailureException instanceof SSLException))) {
-                mResponseFromServer = s;
-                // public void onEventSendingFailed(final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
-                mContentManager.getUnsentEventsManager().onEventSendingFailed(null, null, mApiCallback,  new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        try {
-                            MXMediaUploadWorkerTask task = deepCopy();
-                            mPendingUploadByUploadId.put(mUploadId, task);
-                            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                        } catch (Exception e) {
-                            // cannot start the task
-                            dispatchResult(s);
-                        }
-                    }
-                });
-            } else {
-                dispatchResult(s);
-            }
+            dispatchResult(serverResponseMessage);
         }
     }
 

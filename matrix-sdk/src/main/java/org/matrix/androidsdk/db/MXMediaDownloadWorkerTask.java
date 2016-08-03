@@ -628,6 +628,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                         totalDownloaded += len;
 
+                        mDownloadStats.mDownloadedSize = (int)totalDownloaded;
+                        mDownloadStats.mFileSize = (int)filelen;
+
                         mDownloadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
 
                         if (filelen > 0) {

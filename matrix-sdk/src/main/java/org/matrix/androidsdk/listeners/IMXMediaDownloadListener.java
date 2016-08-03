@@ -32,6 +32,16 @@ public interface IMXMediaDownloadListener {
         public int mProgress;
 
         /**
+         * The downloaded size in bytes
+         */
+        public int mDownloadedSize;
+
+        /**
+         * The file size in bytes.
+         */
+        public int mFileSize;
+
+        /**
          * time in seconds since the download started
          */
         public int mElapsedTime;
@@ -42,7 +52,7 @@ public interface IMXMediaDownloadListener {
         public int mEstimatedRemainingTime;
 
         /**
-         * upload bit rate in KB/s
+         * download bit rate in KB/s
          */
         public int mBitRate;
 
@@ -51,6 +61,8 @@ public interface IMXMediaDownloadListener {
             String res = "";
 
             res += "mProgress : " + mProgress + "%\n";
+            res += "mDownloadedSize : " + mDownloadedSize + "%\n";
+            res += "mFileSize : " + mFileSize + "%\n";
             res += "mElapsedTime : " + mProgress + " seconds\n";
             res += "mEstimatedRemainingTime : " + mEstimatedRemainingTime + " seconds\n";
             res += "mBitRate : " + mBitRate + " KB/s\n";

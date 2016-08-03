@@ -36,6 +36,7 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.method.Touch;
 import android.text.style.BackgroundColorSpan;
@@ -70,6 +71,8 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.model.Event;
@@ -226,13 +229,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         void onMessageIdClick(String messageId);
     }
 
-    private static final int ROW_TYPE_TEXT = 0;
-    private static final int ROW_TYPE_IMAGE = 1;
-    private static final int ROW_TYPE_NOTICE = 2;
-    private static final int ROW_TYPE_EMOTE = 3;
-    private static final int ROW_TYPE_FILE = 4;
-    private static final int ROW_TYPE_VIDEO = 5;
-    private static final int NUM_ROW_TYPES = 6;
+    protected static final int ROW_TYPE_TEXT = 0;
+    protected static final int ROW_TYPE_IMAGE = 1;
+    protected static final int ROW_TYPE_NOTICE = 2;
+    protected static final int ROW_TYPE_EMOTE = 3;
+    protected static final int ROW_TYPE_FILE = 4;
+    protected static final int ROW_TYPE_VIDEO = 5;
+    protected static final int NUM_ROW_TYPES = 6;
 
     private static final String LOG_TAG = "MessagesAdapter";
 
@@ -535,11 +538,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     @Override
-    public void notifyDataSetChanged() {
-        super.notifyDataSetChanged();
-    }
-
-    @Override
     public void clear() {
         super.clear();
         if (!mIsSearchMode) {
@@ -685,6 +683,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Update the message row to a new event id.
+     * @param event the new event
+     * @param oldEventId the old message row event id.
+     */
     public void updateEventById(Event event, String oldEventId) {
         MessageRow row = mEventRowMap.get(event.eventId);
 
@@ -703,9 +706,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         notifyDataSetChanged();
-
     }
-
 
     /**
      * Check if the row must be added to the list.
@@ -1634,89 +1635,115 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * manage the upload piechart
+     * Show the upload failure items
+     * @param convertView the cell view
+     * @param event the event
+     * @param type the media type
+     * @param show true to show the failure items
+     */
+    protected void showUploadFailure(View convertView, Event event, int type, boolean show) {
+        if (ROW_TYPE_FILE == type) {
+            TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+
+            if (null != fileTextView) {
+                fileTextView.setTextColor(show ? mNotSentMessageTextColor : mDefaultMessageTextColor);
+            }
+        } else if ((ROW_TYPE_IMAGE == type) || (ROW_TYPE_VIDEO == type)) {
+            View failedLayout = convertView.findViewById(R.id.media_upload_failed);
+
+            if (null != failedLayout) {
+                failedLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Check if there is a linked upload.
      * @param convertView the media view
      * @param event teh related event
+     * @param type the media type
      * @param mediaUrl the media url
      */
-    private void manageUploadView(final View convertView, final Event event, final String mediaUrl) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
-
+    private void managePendingUpload(final View convertView, final Event event, final int type, final String mediaUrl) {
+        final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
         // the dedicated UI items are not found
-        if ((null == uploadPieFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
-        // refresh the pie chart only if it is the expected URL
-        uploadPieFractionView.setTag(mediaUrl);
+        // Mark the upload layout as
+        uploadProgressLayout.setTag(mediaUrl);
 
         // no upload in progress
         if (!mSession.getMyUserId().equals(event.getSender()) || !event.isSending()) {
-            uploadPieFractionView.setVisibility(View.GONE);
+            uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, event, type, event.isUndeliverable());
             return;
         }
 
-        int progress = mSession.getMediasCache().getProgressValueForUploadId(mediaUrl);
+        IMXMediaUploadListener.UploadStats uploadStats = mSession.getMediasCache().getStatsForUploadId(mediaUrl);
 
-        if (progress >= 0) {
+        if (null != uploadStats) {
             mSession.getMediasCache().addUploadListener(mediaUrl, new MXMediaUploadListener() {
                 @Override
                 public void onUploadProgress(String uploadId, UploadStats uploadStats) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
-                        uploadPieFractionView.setFraction(uploadStats.mProgress);
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        refreshUploadViews(event, uploadStats, uploadProgressLayout);
                     }
+                }
+
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, event, type, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
                 }
 
                 @Override
                 public void onUploadCancel(String uploadId) {
-                    // the message become undeliverable
-                    uploadPieFractionView.setVisibility(View.GONE);
-                    uploadSpinner.setVisibility(View.GONE);
-                    uploadFailedImage.setVisibility(View.VISIBLE);
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(null);;
+                    }
                 }
 
                 @Override
                 public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
-                        if (null != serverErrorMessage) {
-                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                    serverErrorMessage,
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        uploadFailedImage.setVisibility(View.VISIBLE);
-                        uploadSpinner.setVisibility(View.GONE);
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(serverErrorMessage);
                     }
                 }
 
-
                 @Override
                 public void onUploadComplete(final String uploadId, final String contentUri) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
 
             });
         }
-        uploadFailedImage.setVisibility(View.GONE);
-        uploadSpinner.setVisibility((progress < 0) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setFraction(progress);
+
+        showUploadFailure(convertView, event, type, false);
+        uploadSpinner.setVisibility((null == uploadStats) ? View.VISIBLE : View.GONE);
+        refreshUploadViews(event, uploadStats, uploadProgressLayout);
     }
 
     /**
      * Manage the image/video download.
-     * It displays the pie chart when it is required.
      * @param convertView the parent view.
+     * @param event the event
      * @param message the image / video message
      * @param position the message position
      */
-    private void manageImageVideoDownload(final View convertView, final Message message, final int position) {
+    private void managePendingImageVideoDownload(final View convertView, final Event event, final Message message, final int position) {
         int maxImageWidth = mMaxImageWidth;
         int maxImageHeight = mMaxImageHeight;
         int rotationAngle = 0;
@@ -1782,16 +1809,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if ((null == downloadId) && (message instanceof VideoMessage)) {
             downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
             // check the progress value
-            // display the piechart only if the video is downloading
+            // display the progress layout only if the video is downloading
             if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
                 downloadId = null;
             }
         }
 
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
+        final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
 
-        // the tag is used to detect if the progress value is linked to this piechart.
-        downloadPieFractionView.setTag(downloadId);
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
+        // the tag is used to detect if the progress value is linked to this layout
+        downloadProgressLayout.setTag(downloadId);
 
         int frameHeight = -1;
         int frameWidth = -1;
@@ -1831,19 +1862,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // no download in progress
         if (null != downloadId) {
+            downloadProgressLayout.setVisibility(View.VISIBLE);
 
-            downloadPieFractionView.setVisibility(View.VISIBLE);
             mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
                 public void onDownloadCancel(String downloadId) {
-                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
                 public void onDownloadError(String downloadId, JsonElement jsonElement) {
-                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
                         MatrixError error = null;
 
                         try {
@@ -1852,7 +1883,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
                         }
 
-                        downloadPieFractionView.setVisibility(View.GONE);
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if ((null != error) && error.isSupportedErrorCode()) {
                             Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1864,15 +1895,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 @Override
                 public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(stats.mProgress);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        refreshDownloadViews(event, stats, downloadProgressLayout);
                     }
                 }
 
                 @Override
                 public void onDownloadComplete(String aDownloadId) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
@@ -1881,9 +1912,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
 
-            downloadPieFractionView.setFraction(mMediasCache.getProgressValueForDownloadId(downloadId));
+            refreshDownloadViews(event, mMediasCache.getStatsForDownloadId(downloadId), downloadProgressLayout);
         } else {
-            downloadPieFractionView.setVisibility(View.GONE);
+            downloadProgressLayout.setVisibility(View.GONE);
         }
 
         imageView.setBackgroundColor(Color.TRANSPARENT);
@@ -1904,13 +1935,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
 
         Message message;
         int waterMarkResourceId = -1;
 
         if (type == ROW_TYPE_IMAGE) {
-            ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
+            ImageMessage imageMessage = JsonUtils.toImageMessage(event.content);
 
             if ("image/gif".equals(imageMessage.getMimeType())) {
                 waterMarkResourceId = R.drawable.filetype_gif;
@@ -1918,7 +1949,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             message = imageMessage;
 
         } else {
-            message = JsonUtils.toVideoMessage(msg.content);
+            message = JsonUtils.toVideoMessage(event.content);
             waterMarkResourceId = R.drawable.filetype_video;
         }
 
@@ -1940,18 +1971,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         // download management
-        manageImageVideoDownload(convertView, message, position);
+        managePendingImageVideoDownload(convertView, event, message, position);
 
         // upload management
         if (type == ROW_TYPE_IMAGE) {
-            manageUploadView(convertView, msg, ((ImageMessage)message).url);
+            managePendingUpload(convertView, event, type, ((ImageMessage)message).url);
         } else {
-            manageVideoUpload(convertView, msg, (VideoMessage) message);
+            managePendingVideoUpload(convertView, event, (VideoMessage) message);
         }
 
         // dimmed when the message is not sent
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
-        imageLayout.setAlpha(msg.isSent() ? 1.0f : 0.5f);
+        imageLayout.setAlpha(event.isSent() ? 1.0f : 0.5f);
 
         this.manageSubView(position, convertView, imageLayout, type);
 
@@ -2053,38 +2084,43 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Manage the file download items.
-     * i.e. the piechart while downloading the file
      * @param convertView the message cell view.
+     * @param event the event
      * @param fileMessage the file message.
      * @param position the position in the listview.
      */
-    private void manageFileDownload(View convertView, FileMessage fileMessage, final int position) {
+    private void managePendingFileDownload(View convertView, final Event event, FileMessage fileMessage, final int position) {
         String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
 
         // check the progress value
-        // display the piechart only if the file is downloading
+        // display the progress layout only if the file is downloading
         if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
             downloadId = null;
         }
 
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
-        downloadPieFractionView.setTag(downloadId);
+        final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
+
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
+        downloadProgressLayout.setTag(downloadId);
 
         // no download in progress
         if (null != downloadId) {
-            downloadPieFractionView.setVisibility(View.VISIBLE);
+            downloadProgressLayout.setVisibility(View.VISIBLE);
 
             mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
                 public void onDownloadCancel(String downloadId) {
-                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
                 public void onDownloadError(String downloadId, JsonElement jsonElement) {
-                    if (TextUtils.equals(downloadId, (String)downloadPieFractionView.getTag())) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
                         MatrixError error = null;
 
                         try {
@@ -2093,7 +2129,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
                         }
 
-                        downloadPieFractionView.setVisibility(View.GONE);
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if ((null != error) && error.isSupportedErrorCode()) {
                             Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -2105,15 +2141,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                 @Override
                 public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(stats.mProgress);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        refreshDownloadViews(event, stats, downloadProgressLayout);
                     }
                 }
 
                 @Override
                 public void onDownloadComplete(String aDownloadId) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
@@ -2121,10 +2157,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 }
             });
-
-            downloadPieFractionView.setFraction(mMediasCache.getProgressValueForDownloadId(downloadId));
+            refreshDownloadViews(event, mMediasCache.getStatsForDownloadId(downloadId), downloadProgressLayout);
         } else {
-            downloadPieFractionView.setVisibility(View.GONE);
+            downloadProgressLayout.setVisibility(View.GONE);
         }
     }
 
@@ -2141,9 +2176,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
 
-        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
+        final FileMessage fileMessage = JsonUtils.toFileMessage(event.content);
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
 
         if (null == fileTextView) {
@@ -2154,8 +2189,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
 
-        manageFileDownload(convertView, fileMessage, position);
-        manageUploadView(convertView, msg, fileMessage.url);
+        managePendingFileDownload(convertView, event, fileMessage, position);
+        managePendingUpload(convertView, event, ROW_TYPE_FILE, fileMessage.url);
 
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
@@ -2171,24 +2206,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param videoEvent the video event
      * @param videoMessage the video message
      */
-    private void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
+    private void managePendingVideoUpload(final View convertView, final Event videoEvent, VideoMessage videoMessage) {
+        final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
 
         // the dedicated UI items are not found
-        if ((null == uploadPieFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
-        // refresh the piechart only if it is the expected URL
-        uploadPieFractionView.setTag(null);
+        // refresh the progress only if it is the expected URL
+        uploadProgressLayout.setTag(null);
 
         // not the sender ?
         if (!mSession.getMyUserId().equals(videoEvent.getSender()) || videoEvent.isUndeliverable() || (null == videoMessage.info)) {
-            uploadPieFractionView.setVisibility(View.GONE);
+            uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(videoEvent.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, videoEvent.isUndeliverable());
             return;
         }
 
@@ -2203,14 +2238,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if (progress >= 0) {
-            uploadPieFractionView.setTag(uploadingUrl);
+            uploadProgressLayout.setTag(uploadingUrl);
 
             final boolean isContentUpload = TextUtils.equals(uploadingUrl, videoMessage.url);
 
             mSession.getMediasCache().addUploadListener(uploadingUrl, new MXMediaUploadListener() {
                 @Override
                 public void onUploadProgress(String uploadId, UploadStats uploadStats) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        refreshUploadViews(videoEvent, uploadStats, uploadProgressLayout);
+
                         int progress;
 
                         if (isContentUpload) {
@@ -2219,37 +2256,57 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             progress = (uploadStats.mProgress * 10 / 100);
                         }
 
-                        uploadPieFractionView.setFraction(progress);
+                        updateUploadProgress(uploadProgressLayout, progress);
+                    }
+                }
+
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onUploadCancel(String uploadId) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(null);
                     }
                 }
 
                 @Override
                 public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
-                        if (null != serverErrorMessage) {
-                            Toast.makeText(MessagesAdapter.this.getContext(),
-                                    serverErrorMessage,
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        uploadFailedImage.setVisibility(View.VISIBLE);
-                        uploadSpinner.setVisibility(View.GONE);
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(serverErrorMessage);
                     }
                 }
 
                 @Override
                 public void onUploadComplete(final String uploadId, final String contentUri) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), uploadId)) {
-                        uploadSpinner.setVisibility(View.VISIBLE);
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
             });
         }
 
-        uploadFailedImage.setVisibility(View.GONE);
+        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, false);
         uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setVisibility(((progress >= 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setFraction(progress);
+        refreshUploadViews(videoEvent, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
+
+        if (TextUtils.equals(uploadingUrl, videoMessage.url)) {
+            progress = 10 + (progress * 90 / 100);
+        } else {
+            progress = (progress * 10 / 100);
+        }
+        updateUploadProgress(uploadProgressLayout, progress);
+
+        uploadProgressLayout.setVisibility(((progress >= 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -2519,5 +2576,143 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         return html;
+    }
+
+    /**
+     * Format a second time range.
+     * @param seconds the seconds time
+     * @return the formatted string
+     */
+    private static String remainingTimeToString(int seconds) {
+        if (seconds <= 1) {
+            return "< 1s";
+        } else if (seconds < 60) {
+            return seconds + "s";
+        } else {
+            return DateUtils.formatElapsedTime(seconds);
+        }
+    }
+
+    //==============================================================================================================
+    // Download / upload progress management
+    //==============================================================================================================
+
+    /**
+     * Format the download stats.
+     * @param context the context.
+     * @param stats the download stats
+     * @return the formatted string
+     */
+    private static String formatDownloadStats(Context context, IMXMediaDownloadListener.DownloadStats stats) {
+        String formattedString = "";
+
+        if (stats.mFileSize > 0) {
+            if (stats.mDownloadedSize >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mDownloadedSize);
+                formattedString += "/" + android.text.format.Formatter.formatShortFileSize(context, stats.mFileSize);
+                formattedString += "\n";
+            }
+
+            if (stats.mBitRate >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mBitRate * 1024) + "/s\n";
+            }
+
+            formattedString += remainingTimeToString(stats.mEstimatedRemainingTime);
+        }
+
+        return formattedString;
+    }
+
+    /**
+     * Format the upload stats.
+     * @param context the context.
+     * @param stats the upload stats
+     * @return the formatted string
+     */
+    private static String formatUploadStats(Context context, IMXMediaUploadListener.UploadStats stats) {
+        String formattedString = "";
+
+        if (stats.mFileSize > 0) {
+
+            if (stats.mUploadedSize >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mUploadedSize);
+                formattedString += "/" + android.text.format.Formatter.formatShortFileSize(context, stats.mFileSize);
+                formattedString += "\n";
+            }
+
+            if (stats.mBitRate >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mBitRate * 1024) + "/s\n";
+            }
+
+            formattedString += remainingTimeToString(stats.mEstimatedRemainingTime);
+        }
+
+        return formattedString;
+    }
+
+    /**
+     * Update the download UI items
+     * @param event the event
+     * @param downloadStats the download stats
+     * @param downloadProgressLayout the download parent UI
+     */
+    protected void refreshDownloadViews(Event event, IMXMediaDownloadListener.DownloadStats downloadStats, View downloadProgressLayout) {
+        if (null != downloadProgressLayout) {
+            if (null != downloadStats) {
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+
+                TextView downloadProgressStatsTextView = (TextView) downloadProgressLayout.findViewById(R.id.content_download_progress_stats);
+                PieFractionView downloadProgressPieFractionView = (PieFractionView) downloadProgressLayout.findViewById(R.id.content_download_progress_piechart);
+
+                if (null != downloadProgressStatsTextView) {
+                    downloadProgressStatsTextView.setText(formatDownloadStats(mContext, downloadStats));
+                }
+
+                if (null != downloadProgressPieFractionView) {
+                    downloadProgressPieFractionView.setFraction(downloadStats.mProgress);
+                }
+            } else {
+                downloadProgressLayout.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Update the upload progress value.
+     * @param uploadProgressLayout the progress layout
+     * @param progress the new progress value.
+     */
+    protected void updateUploadProgress(View uploadProgressLayout, int progress) {
+        PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
+
+        if (null != uploadProgressPieFractionView) {
+            uploadProgressPieFractionView.setFraction(progress);
+        }
+    }
+
+    /**
+     * Update the upload UI items
+     * @param event the event
+     * @param uploadStats the upload stats
+     * @param uploadProgressLayout the upload parent UI
+     */
+    protected void refreshUploadViews(Event event, IMXMediaUploadListener.UploadStats uploadStats, View uploadProgressLayout) {
+        if (null != uploadProgressLayout) {
+            if (null != uploadStats) {
+                uploadProgressLayout.setVisibility(View.VISIBLE);
+                final TextView uploadProgressStatsTextView = (TextView) uploadProgressLayout.findViewById(R.id.content_upload_progress_stats);
+                final PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
+
+                if (null != uploadProgressStatsTextView) {
+                    uploadProgressStatsTextView.setText(formatUploadStats(mContext, uploadStats));
+                }
+
+                if (null != uploadProgressPieFractionView) {
+                    uploadProgressPieFractionView.setFraction(uploadStats.mProgress);
+                }
+            } else {
+                uploadProgressLayout.setVisibility(View.GONE);
+            }
+        }
     }
 }
