@@ -653,10 +653,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
             @Override
-            public void onSuccess(Event event) {
+            public void onSuccess(Event redactedEvent) {
+
+                // create a dummy redacted event to manage the redation.
+                // some redatec events are not removed from the history but they are pruned.
+                Event redacterEvent = new Event();
+                redacterEvent.roomId = redactedEvent.roomId;
+                redacterEvent.redacts = redactedEvent.eventId;
+                redacterEvent.type = Event.EVENT_TYPE_REDACTION;
+
+                onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+
                 if (null != mEventSendingListener) {
                     try {
-                        mEventSendingListener.onMessageRedacted(event);
+                        mEventSendingListener.onMessageRedacted(redactedEvent);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
                     }
