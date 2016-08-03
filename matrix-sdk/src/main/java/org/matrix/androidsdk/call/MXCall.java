@@ -107,6 +107,17 @@ public class MXCall implements IMXCall {
         Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): not implemented");
     }
 
+    @Override
+    public boolean switchRearFrontCamera(){
+        Log.w(LOG_TAG,"## switchRearFrontCamera(): not implemented");
+        return false;
+    }
+
+    @Override
+    public boolean isCameraSwitched() {
+        Log.w(LOG_TAG,"## isCameraSwitched(): not implemented");
+        return false;
+    }
     // events thread
     /**
      * Manage the call events.
@@ -256,7 +267,7 @@ public class MXCall implements IMXCall {
     }
 
     /**
-     * Toogle the speaker
+     * Toggle the speaker
      */
     public void toggleSpeaker() {
         AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
@@ -501,5 +512,16 @@ public class MXCall implements IMXCall {
             });
 
         }
+    }
+
+    @Override
+    public void muteVideoRecording(boolean isVideoMuted){
+        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented");
+    }
+
+    @Override
+    public boolean isVideoRecordingMuted() {
+        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented - default value = false");
+        return false;
     }
 }

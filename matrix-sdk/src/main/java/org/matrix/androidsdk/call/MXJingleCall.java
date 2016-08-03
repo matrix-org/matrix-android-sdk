@@ -68,6 +68,7 @@ public class MXJingleCall extends MXCall {
 
     private GLSurfaceView mCallView = null;
 
+    private boolean mIsCameraSwitched;
     private boolean mIsVideoSourceStopped = false;
     private VideoSource mVideoSource = null;
     private VideoTrack  mLocalVideoTrack = null;
@@ -331,8 +332,6 @@ public class MXJingleCall extends MXCall {
         }
     }
 
-
-
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
         try {
@@ -353,6 +352,112 @@ public class MXJingleCall extends MXCall {
         } else {
             Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to mCallView = null");
         }
+    }
+
+
+    /**
+     * Switch between the front and the rear camera.
+     * If the camera used in the voice call is the front one, calling
+     * switchRearFrontCamera(), will make the rear one to be used, and vice versa.
+     * If only one camera is available, nothing is done.
+     */
+    @Override
+    public boolean switchRearFrontCamera(){
+        // reset before attempting the switch
+        mIsCameraSwitched = false;
+
+        if ((null != mLocalVideoTrack) && (null != mLocalMediaStream) && (null != mVideoCapturer)) {
+            VideoCapturer frontVideoCapturer = null;
+            VideoCapturer rearVideoCapturer = null;
+
+            if (null != mFrontCameraName) {
+                frontVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
+
+                if (null == frontVideoCapturer) {
+                    Log.e(LOG_TAG, "## switchRearFrontCamera(): front camera not available");
+                }
+            }
+
+            if (null != mBackCameraName) {
+                rearVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
+
+                if (null == rearVideoCapturer) {
+                    Log.e(LOG_TAG, "## switchRearFrontCamera(): rear camera not available");
+                }
+            }
+
+            if((null != frontVideoCapturer) && (null != rearVideoCapturer)) {
+                // toggle the video capturer instance
+                mVideoCapturer = mVideoCapturer.equals(frontVideoCapturer)?rearVideoCapturer:frontVideoCapturer;
+
+                // camera constraints
+                MediaConstraints videoConstraints = new MediaConstraints();
+                videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
+
+                // stop transmitting
+                mLocalVideoTrack.setEnabled(false);
+                mLocalMediaStream.removeTrack(mLocalVideoTrack);
+                mLocalVideoTrack = null;
+
+                // setup new video track
+                mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
+                mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
+                mLocalVideoTrack.setEnabled(true);
+                mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
+                mLocalMediaStream.addTrack(mLocalVideoTrack);
+                mIsCameraSwitched = true;
+
+                if(null != mCallView) {
+                    mCallView.postInvalidate();
+                } else {
+                    Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): Skipped due to mCallView = null");
+                }
+            } else {
+                Log.w(LOG_TAG,"## switchRearFrontCamera(): failure - only one camera is available");
+            }
+        } else {
+            Log.w(LOG_TAG,"## switchRearFrontCamera(): failure - invalid values");
+        }
+        return mIsCameraSwitched;
+    }
+
+    @Override
+    public void muteVideoRecording(boolean muteValue){
+        Log.d(LOG_TAG,"## muteVideoRecording(): muteValue="+ muteValue);
+
+        if(null != mLocalVideoTrack) {
+            mLocalVideoTrack.setEnabled(!muteValue);
+
+            /*if(muteValue) {
+                mVideoSource.stop();
+                mIsVideoSourceStopped = true;
+            }
+            else {
+                mVideoSource.restart();
+                mIsVideoSourceStopped = false;
+            }*/
+        } else {
+            Log.w(LOG_TAG,"## muteVideoRecording(): failure - invalid value");
+        }
+    }
+
+    @Override
+    public boolean isVideoRecordingMuted(){
+        boolean isMuted = false;
+
+        if(null != mLocalVideoTrack) {
+            isMuted = !mLocalVideoTrack.enabled();
+        } else {
+            Log.w(LOG_TAG,"## isVideoRecordingMuted(): failure - invalid value");
+        }
+
+        Log.d(LOG_TAG,"## isVideoRecordingMuted() = "+ isMuted);
+        return isMuted;
+    }
+
+    @Override
+    public boolean isCameraSwitched(){
+        return mIsCameraSwitched;
     }
 
     /**
@@ -675,7 +780,7 @@ public class MXJingleCall extends MXCall {
             Log.e(LOG_TAG, "hasCameraDevice " + e.getLocalizedMessage());
         }
 
-        Log.d(LOG_TAG, "hasCameraDevice " + mFrontCameraName + " " + mBackCameraName);
+        Log.d(LOG_TAG, "hasCameraDevice():  frontCamera=" + mFrontCameraName + " backCamera=" + mBackCameraName);
 
         return (null != mFrontCameraName) || (null != mBackCameraName);
     }
@@ -879,9 +984,10 @@ public class MXJingleCall extends MXCall {
 
                 if (null != mCallView) {
                     mCallView.onPause();
+                    //mCallView.postInvalidate();
                 }
 
-                if (mVideoSource != null) {
+                if (mVideoSource != null && !mIsVideoSourceStopped) {
                     mVideoSource.stop();
                     mIsVideoSourceStopped = true;
                 }
@@ -1322,7 +1428,7 @@ public class MXJingleCall extends MXCall {
     public void hangup(String reason) {
         Log.d(LOG_TAG, "hangup " + reason);
 
-        if (!isCallEnded() && (null != mPeerConnection)) {
+        if (!isCallEnded()) {
             sendHangup(reason);
             terminate();
         }

@@ -134,9 +134,9 @@ public interface IMXCall {
 
         /**
          * The callview must be added to a layout
-         * @param callview the callview
+         * @param callView the callview
          */
-        void onViewLoading(View callview);
+        void onViewLoading(View callView);
 
         /**
          * Warn when the call view is ready
@@ -222,8 +222,14 @@ public interface IMXCall {
      */
     void hangup(String reason);
 
-    // listener managemenent
+    /**
+     * Add a listener to the call manager.
+     */
     void addListener(MXCallListener callListener);
+
+    /**
+     * Remove a listener from the call manager.
+     */
     void removeListener(MXCallListener callListener);
 
     // getters / setters
@@ -264,7 +270,8 @@ public interface IMXCall {
     void setIsIncoming(boolean isIncoming);
 
     /**
-     * Defines the call type
+     * Set the call type: video or voice
+     * @param isVideo true for video call, false for VoIP
      */
     void setIsVideo(boolean isVideo);
 
@@ -295,7 +302,7 @@ public interface IMXCall {
     boolean setVisibility(int visibility);
 
     /**
-     * Toogle the speaker
+     * Toggle the speaker
      */
     void toggleSpeaker();
 
@@ -308,4 +315,41 @@ public interface IMXCall {
      * @return the call elapsed time in seconds, -1 if not defined.
      */
     long getCallElapsedTime();
+
+    /**
+     * Switch between the front and the rear camera.
+     * If the camera used in the video call is the front one, calling
+     * switchRearFrontCamera(), will make the rear one to be used, and vice versa.
+     * If only one camera is available, nothing is done and the method returns false.
+     * @return true if camera switch was performed, false otherwise
+     */
+    boolean switchRearFrontCamera();
+
+    /**
+     * Indicate if a camera switch was performed or not.
+     * For some reason switching the camera from front to rear and
+     * vice versa, could not be performed (ie. only one camera is available).
+     *
+     * <br>See {@link #switchRearFrontCamera()}.
+     * @return true if camera was switched, false otherwise
+     */
+    boolean isCameraSwitched();
+
+    /**
+     * Mute/Unmute the recording of the local video attendee. Set isVideoMuted
+     * to true to enable the recording of the video, if set to false no recording
+     * is performed.
+     * @param isVideoMuted true to mute the video recording, false to unmute
+     */
+    void muteVideoRecording(boolean isVideoMuted);
+
+    /**
+     * Return the recording mute status of the local video attendee.
+     *
+     * <br>See {@link #muteVideoRecording(boolean)}.
+     * @return true if video recording is muted, false otherwise
+     */
+    boolean isVideoRecordingMuted();
+
+
 }
