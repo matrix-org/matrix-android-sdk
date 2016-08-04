@@ -123,6 +123,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     private boolean mIsDownloadCancelled = false;
 
     /**
+     * Tells if the download has been completed
+     */
+    private boolean mIsDone = false;
+
+    /**
      * Error message.
      */
     private JsonElement mErrorAsJsonElement;
@@ -656,6 +661,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 String filename = MXMediaDownloadWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
                 FileOutputStream fos = new FileOutputStream(new File(mDirectoryFile, filename));
 
+                mDownloadStats.mDownloadId = mUrl;
                 mDownloadStats.mProgress = 0;
                 mDownloadStats.mDownloadedSize = 0;
                 mDownloadStats.mFileSize = filelen;
@@ -676,7 +682,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                                 uiHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        publishProgress(startDownloadTime);
+                                        if (!mIsDone) {
+                                            publishProgress(startDownloadTime);
+                                        }
                                     }
                                 });
                             }
@@ -700,6 +708,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "doInBackground fail to read image " + e.getMessage());
                 }
+
+                mIsDone = true;
 
                 close(stream);
                 fos.flush();

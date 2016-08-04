@@ -75,6 +75,11 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     // tells if the current upload has been cancelled.
     private boolean mIsCancelled = false;
 
+    /**
+     * Tells if the upload has been completed
+     */
+    private boolean mIsDone = false;
+
     // upload const
     private static final int UPLOAD_BUFFER_READ_SIZE = 1024 * 32;
 
@@ -299,10 +304,13 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             buffer = new byte[bufferSize];
 
             mUploadStats = new IMXMediaUploadListener.UploadStats();
-            // don't known yet
-            mUploadStats.mEstimatedRemainingTime = -1;
-            mUploadStats.mFileSize = totalSize;
+            mUploadStats.mUploadId = mUploadId;
+            mUploadStats.mProgress = 0;
             mUploadStats.mUploadedSize = 0;
+            mUploadStats.mFileSize = totalSize;
+            mUploadStats.mElapsedTime = 0;
+            mUploadStats.mEstimatedRemainingTime = -1;
+            mUploadStats.mBitRate = 0;
 
             final long startUploadTime = System.currentTimeMillis();
 
@@ -326,7 +334,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                             uiHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    publishProgress(startUploadTime);
+                                    if (!mIsDone) {
+                                        publishProgress(startUploadTime);
+                                    }
                                 }
                             });
                         }
@@ -345,7 +355,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                 mUploadStats.mUploadedSize = totalWritten;
                 bytesRead = mContentStream.read(buffer, 0, bufferSize);
             }
-
+            mIsDone = true;
             uiHandler.post(new Runnable() {
                 @Override
                 public void run() {

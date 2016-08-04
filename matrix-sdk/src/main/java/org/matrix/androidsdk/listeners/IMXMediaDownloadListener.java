@@ -27,6 +27,11 @@ public interface IMXMediaDownloadListener {
      */
     class DownloadStats {
         /**
+         * The download id
+         */
+        public String mDownloadId;
+
+        /**
          * the download progress in percentage
          */
         public int mProgress;

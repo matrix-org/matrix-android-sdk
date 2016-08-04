@@ -26,6 +26,11 @@ public interface IMXMediaUploadListener {
      */
     class UploadStats {
         /**
+         * The upload id
+         */
+        public String mUploadId;
+
+        /**
          * the upload progress in percentage
          */
         public int mProgress;
