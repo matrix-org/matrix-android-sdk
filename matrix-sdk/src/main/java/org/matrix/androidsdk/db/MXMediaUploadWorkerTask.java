@@ -17,13 +17,13 @@
 package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.ssl.CertUtil;
@@ -36,13 +36,13 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLException;
 
 /**
  * Private AsyncTask used to upload files.
@@ -184,18 +184,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     }
 
     /**
-     * Create a deep of the current instance.
-     * @return the deep copy.
-     */
-    private MXMediaUploadWorkerTask deepCopy() {
-        MXMediaUploadWorkerTask copy = new MXMediaUploadWorkerTask(mContentManager, mContentStream, mMimeType, mUploadId, mFilename, null);
-        copy.mUploadListeners = new ArrayList<>(mUploadListeners);
-        copy.mApiCallback = mApiCallback;
-
-        return copy;
-    }
-
-    /**
      * @return the upload progress
      */
     public int getProgress() {
@@ -215,7 +203,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     /**
      * @return true if the current upload has been cancelled.
      */
-    public synchronized boolean isUploadCancelled() {
+    private synchronized boolean isUploadCancelled() {
         return mIsCancelled;
     }
 
@@ -226,6 +214,31 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         mIsCancelled = true;
     }
 
+    /**
+     * refresh the progress info
+     */
+    private void publishProgress(long startUploadTime) {
+        mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
+        // Uploading data is 90% of the job
+        // the other 10s is the end of the connection related actions
+        mUploadStats.mProgress = (int)(((long)mUploadStats.mUploadedSize) * 96 / mUploadStats.mFileSize);
+
+        // avoid zero div
+        if (System.currentTimeMillis() != startUploadTime) {
+            mUploadStats.mBitRate = (int)(((long)mUploadStats.mUploadedSize)  * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
+        } else {
+            mUploadStats.mBitRate = 0;
+        }
+
+        if (0 != mUploadStats.mBitRate) {
+            mUploadStats.mEstimatedRemainingTime = (mUploadStats.mFileSize - mUploadStats.mUploadedSize) / 1024 / mUploadStats.mBitRate;
+        } else {
+            mUploadStats.mEstimatedRemainingTime = -1;
+        }
+
+        publishProgress(mUploadStats);
+    }
+
     @Override
     protected String doInBackground(Void... params) {
         HttpURLConnection conn;
@@ -234,7 +247,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         mResponseCode = -1;
 
         int bytesRead, bytesAvailable;
-        long totalWritten, totalSize;
+        int totalWritten, totalSize;
         int bufferSize;
         byte[] buffer;
 
@@ -280,7 +293,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             dos = new DataOutputStream(conn.getOutputStream());
 
             // create a buffer of maximum size
-
             totalSize = bytesAvailable = mContentStream.available();
             totalWritten = 0;
             bufferSize = Math.min(bytesAvailable, UPLOAD_BUFFER_READ_SIZE);
@@ -289,8 +301,10 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             mUploadStats = new IMXMediaUploadListener.UploadStats();
             // don't known yet
             mUploadStats.mEstimatedRemainingTime = -1;
+            mUploadStats.mFileSize = totalSize;
+            mUploadStats.mUploadedSize = 0;
 
-            long startUploadTime = System.currentTimeMillis();
+            final long startUploadTime = System.currentTimeMillis();
 
             Log.d(LOG_TAG, "doInBackground : start Upload (" + totalSize + " bytes)");
 
@@ -299,6 +313,28 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
             dispatchOnUploadStart();
 
+            final android.os.Handler uiHandler = new android.os.Handler(Looper.getMainLooper());
+
+            final Timer refreshTimer = new Timer();
+
+            uiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    refreshTimer.scheduleAtFixedRate(new TimerTask() {
+                        @Override
+                        public void run() {
+                            uiHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    publishProgress(startUploadTime);
+                                }
+                            });
+                        }
+                    }, new java.util.Date(), 100);
+
+                }
+            });
+
             while ((bytesRead > 0) && !isUploadCancelled()) {
                 dos.write(buffer, 0, bytesRead);
                 totalWritten += bytesRead;
@@ -306,38 +342,26 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                 bufferSize = Math.min(bytesAvailable, UPLOAD_BUFFER_READ_SIZE);
 
                 Log.d(LOG_TAG, "doInBackground : totalWritten " + totalWritten + " / totalSize " + totalSize);
-
-                mUploadStats.mUploadedSize = (int)totalWritten;
-                mUploadStats.mFileSize = (int)totalSize;
-
-                mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
-                // Uploading data is 90% of the job
-                // the other 10s is the end of the connection related actions
-                mUploadStats.mProgress = (int)(totalWritten * 90 / totalSize);
-
-                // avoid zero div
-                if (System.currentTimeMillis() != startUploadTime) {
-                    mUploadStats.mBitRate = (int)(totalWritten * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
-                }
-
-                if (0 != mUploadStats.mBitRate) {
-                    mUploadStats.mEstimatedRemainingTime = (int)(((totalSize - totalWritten) / 1024) / mUploadStats.mBitRate);
-                }
-
-                Log.d(LOG_TAG, "doInBackground - stats" + " : " + mUploadStats);
-                publishProgress(mUploadStats);
-
+                mUploadStats.mUploadedSize = totalWritten;
                 bytesRead = mContentStream.read(buffer, 0, bufferSize);
             }
+
+            uiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    refreshTimer.cancel();
+                }
+            });
+
             if (!isUploadCancelled()) {
-                mUploadStats.mProgress = 92;
-                publishProgress(mUploadStats);
-                dos.flush();
-                mUploadStats.mProgress = 94;
-                publishProgress(mUploadStats);
-                dos.close();
                 mUploadStats.mProgress = 96;
-                publishProgress(mUploadStats);
+                publishProgress(startUploadTime);
+                dos.flush();
+                mUploadStats.mProgress = 97;
+                publishProgress(startUploadTime);
+                dos.close();
+                mUploadStats.mProgress = 98;
+                publishProgress(startUploadTime);
 
                 try {
                     // Read the SERVER RESPONSE
@@ -346,10 +370,10 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                     mResponseCode = HttpURLConnection.HTTP_INTERNAL_ERROR;
                 }
 
-                mUploadStats.mProgress = 98;
-                publishProgress(mUploadStats);
+                mUploadStats.mProgress = 99;
+                publishProgress(startUploadTime);
 
-                Log.d(LOG_TAG, "doInBackground : Upload is done with response code" + mResponseCode);
+                Log.d(LOG_TAG, "doInBackground : Upload is done with response code " + mResponseCode);
 
                 InputStream is;
 
@@ -389,6 +413,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             Log.e(LOG_TAG, "doInBackground ; failed with error " + e.getClass() + " - " + e.getMessage());
         }
 
+        mResponseFromServer = serverResponse;
+
         return serverResponse;
     }
     
@@ -396,7 +422,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     protected void onProgressUpdate(IMXMediaUploadListener.UploadStats ... progress) {
         super.onProgressUpdate(progress);
 
-        Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats);
+        Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats.mProgress);
 
         dispatchOnUploadProgress(mUploadStats);
     }
