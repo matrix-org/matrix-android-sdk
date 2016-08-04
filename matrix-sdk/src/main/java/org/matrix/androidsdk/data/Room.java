@@ -511,6 +511,13 @@ public class Room {
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
+
+                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                    // 'Error when trying to join an empty room should be more explicit
+                    e.error = mStore.getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                }
+
                 callback.onMatrixError(e);
             }
 
