@@ -27,6 +27,11 @@ public interface IMXMediaDownloadListener {
      */
     class DownloadStats {
         /**
+         * The download id
+         */
+        public String mDownloadId;
+
+        /**
          * the download progress in percentage
          */
         public int mProgress;
@@ -61,8 +66,8 @@ public interface IMXMediaDownloadListener {
             String res = "";
 
             res += "mProgress : " + mProgress + "%\n";
-            res += "mDownloadedSize : " + mDownloadedSize + "%\n";
-            res += "mFileSize : " + mFileSize + "%\n";
+            res += "mDownloadedSize : " + mDownloadedSize + " bytes\n";
+            res += "mFileSize : " + mFileSize + "bytes\n";
             res += "mElapsedTime : " + mProgress + " seconds\n";
             res += "mEstimatedRemainingTime : " + mEstimatedRemainingTime + " seconds\n";
             res += "mBitRate : " + mBitRate + " KB/s\n";

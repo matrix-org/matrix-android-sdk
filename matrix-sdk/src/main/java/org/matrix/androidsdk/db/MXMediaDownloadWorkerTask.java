@@ -22,6 +22,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
 import android.util.Log;
@@ -49,6 +50,8 @@ import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -118,6 +121,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * Tells the download has been cancelled.
      */
     private boolean mIsDownloadCancelled = false;
+
+    /**
+     * Tells if the download has been completed
+     */
+    private boolean mIsDone = false;
 
     /**
      * Error message.
@@ -543,6 +551,41 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
         return (null != mMimeType) && mMimeType.startsWith("image/");
     }
 
+    /**
+     * Push the download progress.
+     * @param startDownloadTime
+     */
+    private void publishProgress(long startDownloadTime) {
+        mDownloadStats.mElapsedTime = (int) ((System.currentTimeMillis() - startDownloadTime) / 1000);
+
+        if (mDownloadStats.mFileSize > 0) {
+            if (mDownloadStats.mDownloadedSize >= mDownloadStats.mFileSize) {
+                mDownloadStats.mProgress = 99;
+            } else {
+                mDownloadStats.mProgress = (int)(mDownloadStats.mDownloadedSize  * 100L / mDownloadStats.mFileSize);
+            }
+        } else {
+            mDownloadStats.mProgress = -1;
+        }
+
+        // avoid zero div
+        if (System.currentTimeMillis() != startDownloadTime) {
+            mDownloadStats.mBitRate = (int) (mDownloadStats.mDownloadedSize * 1000L / (System.currentTimeMillis() - startDownloadTime) / 1024);
+        } else {
+            mDownloadStats.mBitRate = -1;
+        }
+
+        if ((0 != mDownloadStats.mBitRate) && (mDownloadStats.mFileSize > 0) && (mDownloadStats.mFileSize > mDownloadStats.mDownloadedSize)) {
+            mDownloadStats.mEstimatedRemainingTime = (mDownloadStats.mFileSize - mDownloadStats.mDownloadedSize) / 1024 / mDownloadStats.mBitRate;
+        } else {
+            mDownloadStats.mEstimatedRemainingTime = -1;
+        }
+
+        Log.d(LOG_TAG, "publishProgress " + this + " : " + mDownloadStats.mProgress);
+
+        publishProgress(mDownloadStats);
+    }
+
     // Decode image in background.
     @Override
     protected Void doInBackground(Integer... params) {
@@ -556,7 +599,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
             InputStream stream = null;
 
-            long filelen = -1;
+            int filelen = -1;
             URLConnection connection = null;
             
             try {
@@ -613,49 +656,48 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             // test if the download has not been cancelled
             if (!isDownloadCancelled() && (null == mErrorAsJsonElement)) {
 
-                long startUploadTime = System.currentTimeMillis();
+                final long startDownloadTime = System.currentTimeMillis();
 
                 String filename = MXMediaDownloadWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
                 FileOutputStream fos = new FileOutputStream(new File(mDirectoryFile, filename));
 
-                try {
-                    long totalDownloaded = 0;
+                mDownloadStats.mDownloadId = mUrl;
+                mDownloadStats.mProgress = 0;
+                mDownloadStats.mDownloadedSize = 0;
+                mDownloadStats.mFileSize = filelen;
+                mDownloadStats.mElapsedTime = 0;
+                mDownloadStats.mEstimatedRemainingTime = -1;
+                mDownloadStats.mBitRate = 0;
 
+                final android.os.Handler uiHandler = new android.os.Handler(Looper.getMainLooper());
+
+                final Timer refreshTimer = new Timer();
+
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                uiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (!mIsDone) {
+                                            publishProgress(startDownloadTime);
+                                        }
+                                    }
+                                });
+                            }
+                        }, new java.util.Date(), 100);
+                    }
+                });
+
+                try {
                     byte[] buf = new byte[DOWNLOAD_BUFFER_READ_SIZE];
                     int len;
                     while (!isDownloadCancelled() && (len = stream.read(buf)) != -1) {
                         fos.write(buf, 0, len);
-
-                        totalDownloaded += len;
-
-                        mDownloadStats.mDownloadedSize = (int)totalDownloaded;
-                        mDownloadStats.mFileSize = (int)filelen;
-
-                        mDownloadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
-
-                        if (filelen > 0) {
-                            if (totalDownloaded >= filelen) {
-                                mDownloadStats.mProgress = 99;
-                            } else {
-                                mDownloadStats.mProgress = (int) (totalDownloaded * 100 / filelen);
-                            }
-                        } else {
-                            mDownloadStats.mProgress = -1;
-                        }
-
-                        // avoid zero div
-                        if (System.currentTimeMillis() != startUploadTime) {
-                            mDownloadStats.mBitRate = (int)(totalDownloaded * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
-                        }
-
-                        if ((0 != mDownloadStats.mBitRate) && (filelen > 0) && (filelen > totalDownloaded)) {
-                            mDownloadStats.mEstimatedRemainingTime = (int)(((filelen - totalDownloaded) / 1024) / mDownloadStats.mBitRate);
-                        }
-
-
-                        Log.d(LOG_TAG, "download " + this + " : "  + mDownloadStats);
-
-                        publishProgress(mDownloadStats);
+                        mDownloadStats.mDownloadedSize += len;
                     }
 
                     if (!isDownloadCancelled()) {
@@ -667,9 +709,18 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                     Log.e(LOG_TAG, "doInBackground fail to read image " + e.getMessage());
                 }
 
+                mIsDone = true;
+
                 close(stream);
                 fos.flush();
                 fos.close();
+
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshTimer.cancel();
+                    }
+                });
 
                 if ((null != connection) && (connection instanceof HttpsURLConnection)) {
                     ((HttpsURLConnection) connection).disconnect();

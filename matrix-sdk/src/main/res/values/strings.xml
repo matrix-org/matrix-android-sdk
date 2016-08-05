@@ -96,9 +96,7 @@
     <string name="call_error_user_media_failed">Camera initialization error.</string>
     <string name="call_error_ice_failed">Connection failed..</string>
 
-
-
-
-
+    <!-- room error messages -->
+    <string name="room_error_join_failed_empty_room">It is not currently possible to re-join an empty room.</string>
 
 </resources>

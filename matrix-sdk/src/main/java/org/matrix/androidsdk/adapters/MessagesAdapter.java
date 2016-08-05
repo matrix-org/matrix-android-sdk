@@ -1805,9 +1805,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // the thumbnails are always pre - rotated
         String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
-        // for a video check if the media is downloading if there is no thumbnail download
-        if ((null == downloadId) && (message instanceof VideoMessage)) {
-            downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
+        // test if the media is downloading the thumbnail is not downloading
+        if (null == downloadId) {
+            if (message instanceof VideoMessage) {
+                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).url);
+            } else {
+                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).url);
+            }
+
             // check the progress value
             // display the progress layout only if the video is downloading
             if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
