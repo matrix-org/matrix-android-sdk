@@ -33,6 +33,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -450,7 +451,9 @@ public class MXCallsManager {
                                 // sanity check
                                 if (null != call) {
                                     // init the information
-                                    call.setRoom(room);
+                                    if (null == call.getRoom()) {
+                                        call.setRooms(room, room);
+                                    }
 
                                     if (!isMyEvent) {
                                         call.prepareIncomingCall(eventContent, callId, null);
@@ -467,7 +470,9 @@ public class MXCallsManager {
                                 IMXCall call = callWithCallId(callId);
 
                                 if (null != call) {
-                                    call.setRoom(room);
+                                    if (null == call.getRoom()) {
+                                        call.setRooms(room, room);
+                                    }
                                     call.handleCallEvent(event);
                                 }
                             }
@@ -484,7 +489,9 @@ public class MXCallsManager {
                                         mCallsByCallId.remove(callId);
                                     }
                                 } else {
-                                    call.setRoom(room);
+                                    if (null == call.getRoom()) {
+                                        call.setRooms(room, room);
+                                    }
                                     call.handleCallEvent(event);
                                 }
                             }
@@ -494,7 +501,9 @@ public class MXCallsManager {
                                 // trigger call events only if the call is active
                                 final boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
 
-                                call.setRoom(room);
+                                if (null == call.getRoom()) {
+                                    call.setRooms(room, room);
+                                }
 
                                 if (isActiveCall) {
                                     call.handleCallEvent(event);
@@ -565,7 +574,7 @@ public class MXCallsManager {
 
                     if (joinedMembers == 2) {
                         final IMXCall call = callWithCallId(null, true);
-                        call.setRoom(room);
+                        call.setRooms(room, room);
 
                         if (null != callback) {
                             mUIThreadHandler.post(new Runnable() {
@@ -701,7 +710,7 @@ public class MXCallsManager {
     // This isn't permanent and will be customisable in the future: see the proposal
     // at docs/conferencing.md for more info.
     private static final String USER_PREFIX = "fs_";
-    private static final String DOMAIN ="matrix.org";
+    private static final String DOMAIN = "matrix.org";
 
     /**
      * Return the id of the conference user dedicated for a room Id
@@ -717,7 +726,7 @@ public class MXCallsManager {
             Log.e(LOG_TAG, "conferenceUserIdForRoom failed " + e.getMessage());
         }
 
-        String base64 = Base64.encodeToString(data, Base64.DEFAULT).replace("=", "");
+        String base64 = Base64.encodeToString(data, Base64.NO_WRAP | Base64.URL_SAFE).replace("=", "");
 
         return "@" + USER_PREFIX + base64 + ":" + DOMAIN;
     }
@@ -730,8 +739,9 @@ public class MXCallsManager {
      */
     private void inviteConferenceUser(final Room room, final ApiCallback<Void> callback) {
         String conferenceUserId = getConferenceUserId(room.getRoomId());
+        RoomMember conferenceMember = room.getMember(conferenceUserId);
 
-        if (null != room.getMember(conferenceUserId)) {
+        if ((null != conferenceMember) && TextUtils.equals(conferenceMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {

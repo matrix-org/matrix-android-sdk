@@ -246,7 +246,7 @@ public interface IMXCall {
      * Set the linked room
      * @param room the room
      */
-    void setRoom(Room room);
+    //void setRoom(Room room);
 
     /**
      * Set the linked rooms (conference call)

@@ -189,9 +189,9 @@ public class MXCall implements IMXCall {
      * Set the linked room
      * @param room the room
      */
-    public void setRoom(Room room) {
+    /*public void setRoom(Room room) {
         setRooms(room, room);
-    }
+    }*/
 
     /**
      * Set the linked rooms.

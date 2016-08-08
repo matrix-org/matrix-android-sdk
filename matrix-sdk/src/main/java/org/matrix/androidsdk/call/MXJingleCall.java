@@ -331,8 +331,6 @@ public class MXJingleCall extends MXCall {
         }
     }
 
-
-
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
         try {
