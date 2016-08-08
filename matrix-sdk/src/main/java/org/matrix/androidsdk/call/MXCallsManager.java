@@ -29,11 +29,15 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +62,18 @@ public class MXCallsManager {
          * Called when a called has been hung up
          */
         void onCallHangUp(IMXCall call);
+
+        /**
+         * A voip conference started in a room.
+         * @param roomId the room id
+         */
+        void onVoipConferenceStarted(String roomId);
+
+        /**
+         * A voip conference finhised in a room.
+         * @param roomId the room id
+         */
+        void onVoipConferenceFinished(String roomId);
     }
 
     /**
@@ -98,6 +114,25 @@ public class MXCallsManager {
         mUIThreadHandler = new Handler(Looper.getMainLooper());
 
         mCallResClient = mSession.getCallRestClient();
+
+        mSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                    // check on the conference user
+                    if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                        EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
+
+                        if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                            onVoipConferenceFinished(event.roomId);
+                        } if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                            onVoipConferenceStarted(event.roomId);
+                        }
+                    }
+                }
+            }
+        });
+
         refreshTurnServer();
     }
 
@@ -323,6 +358,40 @@ public class MXCallsManager {
             for(MXCallsManagerListener l : mListeners) {
                 try {
                     l.onCallHangUp(call);
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
+    /**
+     * dispatch the onVoipConferenceStarted event to the listeners
+     * @param roomId the room Id
+     */
+    private void onVoipConferenceStarted(String roomId) {
+        Log.d(LOG_TAG, "onVoipConferenceStarted : " + roomId);
+
+        synchronized (this) {
+            for(MXCallsManagerListener l : mListeners) {
+                try {
+                    l.onVoipConferenceStarted(roomId);
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
+    /**
+     * dispatch the onVoipConferenceFinished event to the listeners
+     * @param roomId the room Id
+     */
+    private void onVoipConferenceFinished(String roomId) {
+        Log.d(LOG_TAG, "onVoipConferenceFinished : " + roomId);
+
+        synchronized (this) {
+            for(MXCallsManagerListener l : mListeners) {
+                try {
+                    l.onVoipConferenceFinished(roomId);
                 } catch (Exception e) {
                 }
             }
