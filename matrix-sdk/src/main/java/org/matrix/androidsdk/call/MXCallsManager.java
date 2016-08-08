@@ -362,6 +362,27 @@ public class MXCallsManager {
     }
 
     /**
+     * Search a call from its dedicated room id.
+     * @param roomId the room id
+     * @return the IMXCall if it exists
+     */
+    public IMXCall callWithRoomId(String roomId) {
+        Collection<IMXCall> calls;
+
+        synchronized (this) {
+            calls = mCallsByCallId.values();
+        }
+
+        for(IMXCall call : calls) {
+            if (TextUtils.equals(roomId, call.getRoom().getRoomId())) {
+                return call;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Returns the IMXCall from its callId.
      * @param callId the call Id
      * @return the IMXCall if it exists

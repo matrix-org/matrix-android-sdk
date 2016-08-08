@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -161,6 +162,15 @@ public class Room {
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
         getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
+    }
+
+    /**
+     * Test if there is an ongoing conference call.
+     * @return true if there is one.
+     */
+    public boolean isOngoingConferenceCall() {
+        RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
+        return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
     //================================================================================
