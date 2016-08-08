@@ -270,7 +270,7 @@ public class MXJingleCall extends MXCall {
         offerContent.addProperty("type", sessionDescription.type.canonicalForm());
         inviteContent.add("offer", offerContent);
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
         if (null != event) {
             mPendingEvents.add(event);
@@ -323,7 +323,7 @@ public class MXJingleCall extends MXCall {
         offerContent.addProperty("type", sessionDescription.type.canonicalForm());
         answerContent.add("answer", offerContent);
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_ANSWER, answerContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_ANSWER, answerContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
         if (null != event) {
             mPendingEvents.add(event);
@@ -532,7 +532,7 @@ public class MXJingleCall extends MXCall {
                                     }
 
                                     if (addIt) {
-                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mRoom.getRoomId());
+                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
                                         if (null != event) {
                                             mPendingEvents.add(event);

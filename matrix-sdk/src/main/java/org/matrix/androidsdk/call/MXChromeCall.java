@@ -440,7 +440,7 @@ public class MXChromeCall extends MXCall {
         private Timer mCallTimeoutTimer = null;
 
         CallWebAppInterface()  {
-            if (null == mRoom) {
+            if (null == mCallingRoom) {
                 throw new AssertionError("MXChromeCall : room cannot be null");
             }
         }
@@ -453,7 +453,7 @@ public class MXChromeCall extends MXCall {
 
         @JavascriptInterface
         public String wgetRoomId() {
-            return mRoom.getRoomId();
+            return mCallSignalingRoom.getRoomId();
         }
 
         @JavascriptInterface
@@ -553,7 +553,7 @@ public class MXChromeCall extends MXCall {
 
             mPendingEvents.clear();
 
-            mRoom.sendEvent(event, new ApiCallback<Void>() {
+            mCallSignalingRoom.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                 }
@@ -607,7 +607,7 @@ public class MXChromeCall extends MXCall {
                         }
 
                         if (addIt) {
-                            Event event = new Event(eventType, content, mSession.getCredentials().userId, mRoom.getRoomId());
+                            Event event = new Event(eventType, content, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
                             if (null != event) {
                                 // receive an hangup -> close the window asap

@@ -19,7 +19,9 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
@@ -33,8 +35,10 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -72,9 +76,6 @@ public class MXCallsManager {
 
     private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
 
-    // UI thread handler
-    final Handler mUIThreadHandler = new Handler();
-
     // active calls
     private HashMap<String, IMXCall> mCallsByCallId = new HashMap<String, IMXCall>();
 
@@ -84,9 +85,14 @@ public class MXCallsManager {
     // incoming calls
     private ArrayList<String> mxPendingIncomingCallId = new ArrayList<String>();
 
+    // UI handler
+    private Handler mUIThreadHandler;
+
     public MXCallsManager(MXSession session, Context context) {
         mSession = session;
         mContext = context;
+
+        mUIThreadHandler = new Handler(Looper.getMainLooper());
 
         mCallResClient = mSession.getCallRestClient();
         refreshTurnServer();
@@ -542,24 +548,114 @@ public class MXCallsManager {
 
     /**
      * Create an IMXCall in the room RoomId
-     * @param RoomId the roomId of the room
-     * @return the IMXCall if it can be done
+     * @param roomId the room roomId
+     * @param callback the async callback
      */
-    public IMXCall createCallInRoom(String RoomId) {
-        IMXCall call = null;
-        Room room = mSession.getDataHandler().getRoom(RoomId);
+    public void createCallInRoom(final String roomId, final ApiCallback<IMXCall> callback) {
+        Log.d(LOG_TAG, "createCallInRoom " + roomId);
+
+        final Room room = mSession.getDataHandler().getRoom(roomId);
 
         // sanity check
         if (null != room) {
             if (isSupported()) {
-                call = callWithCallId(null, true);
-                call.setRoom(room);
+                int joinedMembers = room.getJoinedMembers().size();
+
+                if (joinedMembers > 1) {
+
+                    if (joinedMembers == 2) {
+                        final IMXCall call = callWithCallId(null, true);
+                        call.setRoom(room);
+
+                        if (null != callback) {
+                            mUIThreadHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    callback.onSuccess(call);
+                                }
+                            });
+                        }
+                    } else {
+                        inviteConferenceUser(room, new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                getConferenceUserRoom(room.getRoomId(), new ApiCallback<Room>() {
+                                    @Override
+                                    public void onSuccess(Room conferenceRoom) {
+                                        final IMXCall call = callWithCallId(null, true);
+                                        call.setRooms(room, conferenceRoom);
+                                        call.setIsConference(true);
+
+                                        if (null != callback) {
+                                            mUIThreadHandler.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    callback.onSuccess(call);
+                                                }
+                                            });
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onNetworkError(Exception e) {
+                                        if (null != callback) {
+                                            callback.onNetworkError(e);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onMatrixError(MatrixError e) {
+                                        if (null != callback) {
+                                            callback.onMatrixError(e);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onUnexpectedError(Exception e) {
+                                        if (null != callback) {
+                                            callback.onUnexpectedError(e);
+                                        }
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                if (null != callback) {
+                                    callback.onNetworkError(e);
+                                }
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                if (null != callback) {
+                                    callback.onMatrixError(e);
+                                }
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                if (null != callback) {
+                                    callback.onUnexpectedError(e);
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    if (null != callback) {
+                        callback.onMatrixError(new MatrixError(MatrixError.NOT_SUPPORTED, "too few users"));
+                    }
+                }
+            } else {
+                if (null != callback) {
+                    callback.onMatrixError(new MatrixError(MatrixError.NOT_SUPPORTED, "VOIP is not supported"));
+                }
+            }
+        } else {
+            if (null != callback) {
+                callback.onMatrixError(new MatrixError(MatrixError.NOT_FOUND, "room not found"));
             }
         }
-
-        Log.d(LOG_TAG, "createCallInRoom " + RoomId);
-
-        return call;
     }
 
     /**
@@ -591,6 +687,121 @@ public class MXCallsManager {
             if (isOn != audioManager.isSpeakerphoneOn()) {
                 audioManager.setSpeakerphoneOn(isOn);
             }
+        }
+    }
+
+    //==============================================================================================================
+    // Conference call
+    //==============================================================================================================
+
+
+    // Copied from vector-web:
+    // FIXME: This currently forces Vector to try to hit the matrix.org AS for conferencing.
+    // This is bad because it prevents people running their own ASes from being used.
+    // This isn't permanent and will be customisable in the future: see the proposal
+    // at docs/conferencing.md for more info.
+    private static final String USER_PREFIX = "fs_";
+    private static final String DOMAIN ="matrix.org";
+
+    /**
+     * Return the id of the conference user dedicated for a room Id
+     * @param roomId the room id
+     * @return the conference user id
+     */
+    private static final String getConferenceUserId(String roomId) {
+        byte[] data = null;
+
+        try {
+            data = roomId.getBytes("UTF-8");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "conferenceUserIdForRoom failed " + e.getMessage());
+        }
+
+        String base64 = Base64.encodeToString(data, Base64.DEFAULT).replace("=", "");
+
+        return "@" + USER_PREFIX + base64 + ":" + DOMAIN;
+    }
+
+    /**
+     * Invite the conference user to a room.
+     * It is mandatory before starting a conference call.
+     * @param room the room
+     * @param callback the async callback
+     */
+    private void inviteConferenceUser(final Room room, final ApiCallback<Void> callback) {
+        String conferenceUserId = getConferenceUserId(room.getRoomId());
+
+        if (null != room.getMember(conferenceUserId)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(null);
+                }
+            });
+        } else {
+            room.invite(conferenceUserId, callback);
+        }
+    }
+
+    /**
+     * Get the room with the conference user dedicated for the passed room.
+     * @param roomId the room id.
+     * @param callback the async callback.
+     */
+    private void getConferenceUserRoom(final String roomId, final ApiCallback<Room> callback) {
+        String conferenceUserId = getConferenceUserId(roomId);
+
+        Room conferenceRoom = null;
+        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
+
+        // Use an existing 1:1 with the conference user; else make one
+        for(Room room : rooms) {
+            if (room.isCallConference() && (2 == room.getMembers().size()) && (null != room.getMember(conferenceUserId))) {
+                conferenceRoom = room;
+                break;
+            }
+        }
+
+        if (null != conferenceRoom) {
+            final Room fConferenceRoom = conferenceRoom;
+
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(fConferenceRoom);
+                }
+            });
+        } else {
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("preset", "private_chat");
+            params.put("invite", Arrays.asList(conferenceUserId));
+
+            mSession.createRoom(params, new ApiCallback<String>() {
+                @Override
+                public void onSuccess(String roomId) {
+                    Room room = mSession.getDataHandler().getRoom(roomId);
+
+                    if (null != room) {
+                        room.setIsCallConference(true);
+                        callback.onSuccess(room);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
         }
     }
 }

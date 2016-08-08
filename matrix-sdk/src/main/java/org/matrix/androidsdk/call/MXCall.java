@@ -42,13 +42,16 @@ public class MXCall implements IMXCall {
     protected MXSession mSession = null;
     protected Context mContext = null;
     protected JsonElement mTurnServer = null;
-    protected Room mRoom = null;
+    protected Room mCallingRoom = null;
+    protected Room mCallSignalingRoom = null;
+
     protected ArrayList<MXCallListener> mxCallListeners = new ArrayList<MXCallListener>();
 
     // the current call id
     protected String mCallId = null;
     protected boolean mIsVideoCall = false;
     protected boolean mIsIncoming = false;
+    protected boolean mIsConference = false;
 
     protected ArrayList<Event> mPendingEvents = new ArrayList<Event>();
     protected Event mPendingEvent = null;
@@ -172,15 +175,32 @@ public class MXCall implements IMXCall {
      * @return the linked room
      */
     public Room getRoom() {
-        return mRoom;
+        return mCallingRoom;
     }
 
     /**
-     * Set the linked room.
+     * @return the call signaling room
+     */
+    public Room getCallSignalingRoom() {
+        return mCallSignalingRoom;
+    }
+
+    /**
+     * Set the linked room
      * @param room the room
      */
     public void setRoom(Room room) {
-        mRoom = room;
+        setRooms(room, room);
+    }
+
+    /**
+     * Set the linked rooms.
+     * @param room the room
+     * @param callSignalingRoom the call signaling room.
+     */
+    public void setRooms(Room room, Room callSignalingRoom) {
+        mCallingRoom = room;
+        mCallSignalingRoom = callSignalingRoom;
     }
 
     /**
@@ -217,6 +237,20 @@ public class MXCall implements IMXCall {
      */
     public boolean isVideo() {
         return mIsVideoCall;
+    }
+
+    /**
+     * Defines the call conference status
+     */
+    public void setIsConference(boolean isConference) {
+        mIsConference = isConference;
+    }
+
+    /**
+     * @return true if the call is a conference call.
+     */
+    public boolean isConference() {
+        return mIsConference;
     }
 
     /**
@@ -411,7 +445,7 @@ public class MXCall implements IMXCall {
                     mPendingEvent = mPendingEvents.get(0);
                     mPendingEvents.remove(mPendingEvent);
 
-                    mRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
+                    mCallSignalingRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
                             mUIThreadHandler.post(new Runnable() {
@@ -472,7 +506,7 @@ public class MXCall implements IMXCall {
             hangupContent.add("reason", new JsonPrimitive(reason));
         }
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
         if (null != event) {
             mUIThreadHandler.post(new Runnable() {
@@ -482,7 +516,7 @@ public class MXCall implements IMXCall {
                 }
             });
 
-            mRoom.sendEvent(event, new ApiCallback<Void>() {
+            mCallSignalingRoom.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                 }

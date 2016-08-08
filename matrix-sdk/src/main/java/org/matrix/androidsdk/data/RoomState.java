@@ -136,6 +136,11 @@ public class RoomState implements java.io.Serializable {
      */
     private boolean mIsLive;
 
+    // set to true when the room is a call conference one.
+    /**
+     * Tell if the room is a call conference one
+     */
+    private boolean mIsCallConference = false;
 
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
@@ -197,6 +202,23 @@ public class RoomState implements java.io.Serializable {
         }
 
         return res;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isCallConference() {
+        return mIsCallConference;
+    }
+
+    /**
+     * Update the call conference status
+     * @param isCallConference true when it is a call conference room
+     */
+    public void setIsCallConference(boolean isCallConference) {
+        mIsCallConference = isCallConference;
     }
 
     /**
@@ -371,7 +393,7 @@ public class RoomState implements java.io.Serializable {
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
-
+        copy.mIsCallConference = mIsCallConference;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();

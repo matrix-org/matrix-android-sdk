@@ -146,6 +146,23 @@ public class Room {
         return mDataHandler;
     }
 
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isCallConference() {
+        return getLiveState().isCallConference();
+    }
+
+    /**
+     * Update the call conference status
+     * @param isCallConference true when it is a call conference room
+     */
+    public void setIsCallConference(boolean isCallConference) {
+        getLiveState().setIsCallConference(isCallConference);
+    }
+
     //================================================================================
     // Sync events
     //================================================================================
@@ -1339,7 +1356,7 @@ public class Room {
      * @return true if a call can be performed.
      */
     public boolean canPerformCall() {
-        return 1 == callees().size();
+        return getActiveMembers().size() > 1;
     }
 
     /**

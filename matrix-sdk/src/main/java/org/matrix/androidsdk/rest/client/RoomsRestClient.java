@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
+import com.google.gson.internal.ObjectConstructor;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
@@ -44,6 +45,8 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Class used to make requests to the rooms API.
  */
@@ -329,6 +332,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             public void onRetry() {
                 try {
                     createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Create a new room.
+     * @param parameters the room creation parameters
+     * @param callback the async callback
+     */
+    public void createRoom(final Map<String, Object> parameters, final ApiCallback<CreateRoomResponse> callback) {
+        // privacy
+        //final String description = "createRoom : name " + name + " topic " + topic;
+        final String description = "createRoom";
+
+        mApi.createRoom(parameters, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    createRoom(parameters, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
                 }
