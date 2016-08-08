@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MXCallsManager {
     private static final String LOG_TAG = "MXCallsManager";
@@ -711,24 +713,72 @@ public class MXCallsManager {
     // at docs/conferencing.md for more info.
     private static final String USER_PREFIX = "fs_";
     private static final String DOMAIN = "matrix.org";
-
+    private static final HashMap<String, String> mConferenceUserIdByRoomId = new HashMap<>();
     /**
      * Return the id of the conference user dedicated for a room Id
      * @param roomId the room id
      * @return the conference user id
      */
-    private static final String getConferenceUserId(String roomId) {
-        byte[] data = null;
-
-        try {
-            data = roomId.getBytes("UTF-8");
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "conferenceUserIdForRoom failed " + e.getMessage());
+    public static final String getConferenceUserId(String roomId) {
+        // sanity check
+        if (null == roomId) {
+            return null;
         }
 
-        String base64 = Base64.encodeToString(data, Base64.NO_WRAP | Base64.URL_SAFE).replace("=", "");
+        String conferenceUserId = mConferenceUserIdByRoomId.get(roomId);
 
-        return "@" + USER_PREFIX + base64 + ":" + DOMAIN;
+        // it does not exist, compute it.
+        if (null == conferenceUserId) {
+            byte[] data = null;
+
+            try {
+                data = roomId.getBytes("UTF-8");
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "conferenceUserIdForRoom failed " + e.getMessage());
+            }
+
+            if (null == data) {
+                return null;
+            }
+
+            String base64 = Base64.encodeToString(data, Base64.NO_WRAP | Base64.URL_SAFE).replace("=", "");
+            conferenceUserId = "@" + USER_PREFIX + base64 + ":" + DOMAIN;
+
+            mConferenceUserIdByRoomId.put(roomId, conferenceUserId);
+        }
+
+        return conferenceUserId;
+    }
+
+    /**
+     * Test if the provided user is a valid conference user Id
+     * @param userId the user id to test
+     * @return true if it is a valid conference user id
+     */
+    public static boolean isConferenceUserId(String userId) {
+        // test first if it a known conference user id
+        if (mConferenceUserIdByRoomId.values().contains(userId)) {
+            return true;
+        }
+
+        boolean res = false;
+
+        String prefix = "@" + USER_PREFIX;
+        String suffix = ":" + DOMAIN;
+
+        if (!TextUtils.isEmpty(userId) && userId.startsWith(prefix) && userId.endsWith(suffix)) {
+            String roomIdBase64 = userId.substring(prefix.length(), userId.length() - suffix.length());
+
+            try {
+                byte[] data = Base64.decode(roomIdBase64, Base64.NO_WRAP | Base64.URL_SAFE);
+                String roomId = new String(data, "UTF-8");
+                res = MXSession.PATTERN_MATRIX_ROOM_IDENTIFIER.matcher(roomId).matches();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "isConferenceUserId : failed " + e.getMessage());
+            }
+        }
+
+        return res;
     }
 
     /**
@@ -766,7 +816,7 @@ public class MXCallsManager {
 
         // Use an existing 1:1 with the conference user; else make one
         for(Room room : rooms) {
-            if (room.isCallConference() && (2 == room.getMembers().size()) && (null != room.getMember(conferenceUserId))) {
+            if (room.isConferenceUserRoom() && (2 == room.getMembers().size()) && (null != room.getMember(conferenceUserId))) {
                 conferenceRoom = room;
                 break;
             }
@@ -774,6 +824,7 @@ public class MXCallsManager {
 
         if (null != conferenceRoom) {
             final Room fConferenceRoom = conferenceRoom;
+            mSession.getDataHandler().getStore().commit();
 
             mUIThreadHandler.post(new Runnable() {
                 @Override
@@ -792,7 +843,8 @@ public class MXCallsManager {
                     Room room = mSession.getDataHandler().getRoom(roomId);
 
                     if (null != room) {
-                        room.setIsCallConference(true);
+                        room.setIsConferenceUserRoom(true);
+                        mSession.getDataHandler().getStore().commit();
                         callback.onSuccess(room);
                     }
                 }

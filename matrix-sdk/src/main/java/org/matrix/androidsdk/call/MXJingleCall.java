@@ -442,7 +442,11 @@ public class MXJingleCall extends MXCall {
                                         mLocalVideoTrack.setEnabled(false);
                                         VideoRendererGui.remove(mLargeLocalRendererCallbacks);
                                         mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
-                                        mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+
+                                        // in conference call, the local preview is managed by the server.
+                                        if (!isConference()) {
+                                            mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                        }
                                         mLocalVideoTrack.setEnabled(true);
                                         mUsingLargeLocalRenderer = false;
 
@@ -816,7 +820,11 @@ public class MXJingleCall extends MXCall {
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
                 //  create the video displaying the remote user: in full screen
-                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+                if (isConference()) {
+                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+                } else {
+                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+                }
 
                 mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, true);
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);

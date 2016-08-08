@@ -151,16 +151,16 @@ public class Room {
      * i.e. this room has been created to manage the call conference
      * @return true if it is a call conference room.
      */
-    public boolean isCallConference() {
-        return getLiveState().isCallConference();
+    public boolean isConferenceUserRoom() {
+        return getLiveState().isConferenceUserRoom();
     }
 
     /**
-     * Update the call conference status
-     * @param isCallConference true when it is a call conference room
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
      */
-    public void setIsCallConference(boolean isCallConference) {
-        getLiveState().setIsCallConference(isCallConference);
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
     }
 
     //================================================================================

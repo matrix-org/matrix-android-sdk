@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -420,13 +421,28 @@ public class EventDisplay {
                     return context.getString(R.string.notice_room_invite_no_invitee, senderDisplayName);
                 }
 
+                // conference call case
+                if (targetDisplayName.equals(MXCallsManager.getConferenceUserId(event.roomId))) {
+                    return context.getString(R.string.notice_requested_voip_conference, senderDisplayName);
+                }
+
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_started);
+            }
+
             return context.getString(R.string.notice_room_join, senderDisplayName);
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_finished);
+            }
+
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 return context.getString(R.string.notice_room_leave, senderDisplayName);
