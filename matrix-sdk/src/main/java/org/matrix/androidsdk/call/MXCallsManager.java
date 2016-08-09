@@ -490,6 +490,32 @@ public class MXCallsManager {
     }
 
     /**
+     * Test if a call is in progress
+     * @return true if the call is in progress
+     */
+    public static boolean isCallInProgress(IMXCall call) {
+        boolean res = false;
+
+        if (null != call) {
+            String callState = call.getCallState();
+            res =
+                    TextUtils.equals(callState, IMXCall.CALL_STATE_CREATED) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_CREATING_CALL_VIEW) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_FLEDGLING) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_CREATE_OFFER) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_INVITE_SENT) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_RINGING) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_CREATE_ANSWER) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_RINGING) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTING) ||
+                            TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTED);
+        }
+
+        return res;
+    }
+
+    /**
      * @return true if there are some active calls.
      */
     public boolean hasActiveCalls() {
