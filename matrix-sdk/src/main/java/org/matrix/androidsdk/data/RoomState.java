@@ -206,6 +206,25 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * Provides a list of displayable members.
+     * Some dummy members are created to internal stuff.
+     * @return a copy of the displayable room members list.
+     */
+    public Collection<RoomMember> getDisplayableMembers() {
+        Collection<RoomMember> members = getMembers();
+
+        RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+
+        if (null != conferenceUserId) {
+            ArrayList<RoomMember> membersList = new ArrayList<>(members);
+            membersList.remove(conferenceUserId);
+            members = membersList;
+        }
+
+        return members;
+    }
+
+    /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
      * @return true if it is a call conference room.

@@ -348,10 +348,13 @@ public class Room {
     public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = getState().getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<>();
+        String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
         for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) ||TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                activeMembers.add(member);
+            if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
+                if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                    activeMembers.add(member);
+                }
             }
         }
 

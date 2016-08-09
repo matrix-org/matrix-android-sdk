@@ -46,8 +46,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MXCallsManager {
     private static final String LOG_TAG = "MXCallsManager";
@@ -70,7 +68,7 @@ public class MXCallsManager {
         void onVoipConferenceStarted(String roomId);
 
         /**
-         * A voip conference finhised in a room.
+         * A voip conference finished in a room.
          * @param roomId the room id
          */
         void onVoipConferenceFinished(String roomId);
@@ -96,17 +94,22 @@ public class MXCallsManager {
     private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
 
     // active calls
-    private HashMap<String, IMXCall> mCallsByCallId = new HashMap<String, IMXCall>();
+    private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
 
     // listeners
-    private ArrayList<MXCallsManagerListener> mListeners = new ArrayList<MXCallsManagerListener>();
+    private final ArrayList<MXCallsManagerListener> mListeners = new ArrayList<>();
 
     // incoming calls
-    private ArrayList<String> mxPendingIncomingCallId = new ArrayList<String>();
+    private final ArrayList<String> mxPendingIncomingCallId = new ArrayList<>();
 
     // UI handler
-    private Handler mUIThreadHandler;
+    private final Handler mUIThreadHandler;
 
+    /**
+     * Constructor
+     * @param session the session
+     * @param context the context
+     */
     public MXCallsManager(MXSession session, Context context) {
         mSession = session;
         mContext = context;
@@ -124,9 +127,9 @@ public class MXCallsManager {
                         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
 
                         if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_LEAVE)) {
-                            onVoipConferenceFinished(event.roomId);
+                            disoatchOnVoipConferenceFinished(event.roomId);
                         } if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                            onVoipConferenceStarted(event.roomId);
+                            dispatchOnVoipConferenceStarted(event.roomId);
                         }
                     }
                 }
@@ -134,131 +137,6 @@ public class MXCallsManager {
         });
 
         refreshTurnServer();
-    }
-
-    /**
-     * Turn timer management
-     */
-    public void pauseTurnServerRefresh() {
-        mSuspendTurnServerRefresh = true;
-    }
-
-    public void unpauseTurnServerRefresh() {
-        Log.d(LOG_TAG, "unpauseTurnServerRefresh");
-
-        mSuspendTurnServerRefresh = false;
-        if (null != mTurnServerTimer) {
-            mTurnServerTimer.cancel();
-            mTurnServerTimer = null;
-        }
-        refreshTurnServer();
-    }
-
-    public void stopTurnServerRefresh() {
-        Log.d(LOG_TAG, "stopTurnServerRefresh");
-
-        mSuspendTurnServerRefresh = true;
-        if (null != mTurnServerTimer) {
-            mTurnServerTimer.cancel();
-            mTurnServerTimer = null;
-        }
-    }
-
-    /**
-     * @return the turn server
-     */
-    public JsonElement getTurnServer() {
-        JsonElement res;
-
-        synchronized (LOG_TAG) {
-            res = mTurnServer;
-        }
-
-        // privacy logs
-        //Log.d(LOG_TAG, "getTurnServer " + res);
-        Log.d(LOG_TAG, "getTurnServer ");
-
-        return res;
-    }
-
-    public void refreshTurnServer() {
-        if (mSuspendTurnServerRefresh) {
-            return;
-        }
-
-        Log.d(LOG_TAG, "refreshTurnServer");
-
-        mUIThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
-                    private void restartAfter(int msDelay) {
-                        if (null != mTurnServerTimer) {
-                            mTurnServerTimer.cancel();
-                        }
-
-                        mTurnServerTimer = new Timer();
-                        mTurnServerTimer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                Log.d(LOG_TAG, "refreshTurnServer cancelled");
-                                mTurnServerTimer.cancel();
-                                mTurnServerTimer = null;
-
-                                refreshTurnServer();
-                            }
-                        }, msDelay);
-                    }
-
-
-                    @Override
-                    public void onSuccess(JsonObject info) {
-                        // privacy
-                        Log.d(LOG_TAG, "onSuccess ");
-                        //Log.d(LOG_TAG, "onSuccess " + info);
-
-                        if (null != info) {
-                            if (info.has("uris")) {
-                                synchronized (LOG_TAG) {
-                                    mTurnServer = info;
-                                }
-                            }
-
-                            if (info.has("ttl")) {
-                                int ttl = 60000;
-
-                                try {
-                                    ttl = info.get("ttl").getAsInt();
-                                    // restart a 90 % before ttl expires
-                                    ttl = ttl * 9 / 10;
-                                } catch (Exception e) {
-
-                                }
-
-                                restartAfter(ttl);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        restartAfter(60000);
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED)) {
-                            restartAfter(60000);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        // should never happen
-                    }
-                });
-            }
-        });
     }
 
     /**
@@ -272,7 +150,7 @@ public class MXCallsManager {
      * @return the list of supported classes
      */
     public Collection<CallClass> supportedClass() {
-        ArrayList<CallClass> list = new ArrayList<CallClass>();
+        ArrayList<CallClass> list = new ArrayList<>();
 
         if (MXChromeCall.isSupported()) {
             list.add(CallClass.CHROME_CLASS);
@@ -305,96 +183,6 @@ public class MXCallsManager {
 
         if (isUpdatable) {
             mPreferredCallClass = callClass;
-        }
-    }
-
-    /**
-     * listeners management
-     **/
-
-    public void addListener(MXCallsManagerListener listener) {
-        synchronized (this) {
-            if (null != listener) {
-                if (mListeners.indexOf(listener) < 0) {
-                    mListeners.add(listener);
-                }
-            }
-        }
-    }
-
-    public void removeListener(MXCallsManagerListener listener) {
-        synchronized (this) {
-            if (null != listener) {
-                mListeners.remove(listener);
-            }
-        }
-    }
-
-    /**
-     * dispatch the onIncomingCall event to the listeners
-     * @param call the call
-     */
-    private void onIncomingCall(IMXCall call) {
-        Log.d(LOG_TAG, "onIncomingCall");
-
-        synchronized (this) {
-            for(MXCallsManagerListener l : mListeners) {
-                try {
-                    l.onIncomingCall(call);
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    /**
-     * dispatch the onCallHangUp event to the listeners
-     * @param call the call
-     */
-    private void onCallHangUp(IMXCall call) {
-        Log.d(LOG_TAG, "onCallHangUp");
-
-        synchronized (this) {
-            for(MXCallsManagerListener l : mListeners) {
-                try {
-                    l.onCallHangUp(call);
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    /**
-     * dispatch the onVoipConferenceStarted event to the listeners
-     * @param roomId the room Id
-     */
-    private void onVoipConferenceStarted(String roomId) {
-        Log.d(LOG_TAG, "onVoipConferenceStarted : " + roomId);
-
-        synchronized (this) {
-            for(MXCallsManagerListener l : mListeners) {
-                try {
-                    l.onVoipConferenceStarted(roomId);
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    /**
-     * dispatch the onVoipConferenceFinished event to the listeners
-     * @param roomId the room Id
-     */
-    private void onVoipConferenceFinished(String roomId) {
-        Log.d(LOG_TAG, "onVoipConferenceFinished : " + roomId);
-
-        synchronized (this) {
-            for(MXCallsManagerListener l : mListeners) {
-                try {
-                    l.onVoipConferenceFinished(roomId);
-                } catch (Exception e) {
-                }
-            }
         }
     }
 
@@ -490,7 +278,7 @@ public class MXCallsManager {
     }
 
     /**
-     * Test if a call is in progress
+     * Tell if a call is in progress
      * @return true if the call is in progress
      */
     public static boolean isCallInProgress(IMXCall call) {
@@ -553,7 +341,7 @@ public class MXCallsManager {
                         eventContent = event.getContentAsJsonObject();
                         callId = eventContent.getAsJsonPrimitive("call_id").getAsString();
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "handleCallEvent : fail to retrieve call_id " + e.getMessage());
                     }
                     // sanity check
                     if ((null != callId) && (null != room)) {
@@ -639,7 +427,7 @@ public class MXCallsManager {
                                         // for example, when the device is in locked screen
                                         // the callview is not created but the device is ringing
                                         // if the other participant ends the call, the ring should stop
-                                        onCallHangUp(call);
+                                        dispatchOnCallHangUp(call);
                                     }
                                 });
                             }
@@ -664,7 +452,7 @@ public class MXCallsManager {
                         IMXCall call = callWithCallId(callId);
 
                         if (null != call) {
-                            onIncomingCall(call);
+                            dispatchOnIncomingCall(call);
                         }
                     }
                     mxPendingIncomingCallId.clear();
@@ -679,7 +467,7 @@ public class MXCallsManager {
      * @param callback the async callback
      */
     public void createCallInRoom(final String roomId, final ApiCallback<IMXCall> callback) {
-        Log.d(LOG_TAG, "createCallInRoom " + roomId);
+        Log.d(LOG_TAG, "createCallInRoom in " + roomId);
 
         final Room room = mSession.getDataHandler().getRoom(roomId);
 
@@ -688,9 +476,12 @@ public class MXCallsManager {
             if (isSupported()) {
                 int joinedMembers = room.getJoinedMembers().size();
 
-                if (joinedMembers > 1) {
+                Log.d(LOG_TAG, "createCallInRoom : the room has " + joinedMembers + " joined members");
 
+                if (joinedMembers > 1) {
                     if (joinedMembers == 2) {
+                        Log.d(LOG_TAG, "createCallInRoom : Standard 1:1 call");
+
                         final IMXCall call = callWithCallId(null, true);
                         call.setRooms(room, room);
 
@@ -703,12 +494,19 @@ public class MXCallsManager {
                             });
                         }
                     } else {
+                        Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser");
+
                         inviteConferenceUser(room, new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser succeeds");
+
                                 getConferenceUserRoom(room.getRoomId(), new ApiCallback<Room>() {
                                     @Override
                                     public void onSuccess(Room conferenceRoom) {
+
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom succeeds");
+
                                         final IMXCall call = callWithCallId(null, true);
                                         call.setRooms(room, conferenceRoom);
                                         call.setIsConference(true);
@@ -725,6 +523,8 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onNetworkError(Exception e) {
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+
                                         if (null != callback) {
                                             callback.onNetworkError(e);
                                         }
@@ -732,6 +532,9 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onMatrixError(MatrixError e) {
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+
+
                                         if (null != callback) {
                                             callback.onMatrixError(e);
                                         }
@@ -739,6 +542,8 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onUnexpectedError(Exception e) {
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+
                                         if (null != callback) {
                                             callback.onUnexpectedError(e);
                                         }
@@ -748,6 +553,8 @@ public class MXCallsManager {
 
                             @Override
                             public void onNetworkError(Exception e) {
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+
                                 if (null != callback) {
                                     callback.onNetworkError(e);
                                 }
@@ -755,6 +562,8 @@ public class MXCallsManager {
 
                             @Override
                             public void onMatrixError(MatrixError e) {
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+
                                 if (null != callback) {
                                     callback.onMatrixError(e);
                                 }
@@ -762,6 +571,8 @@ public class MXCallsManager {
 
                             @Override
                             public void onUnexpectedError(Exception e) {
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+
                                 if (null != callback) {
                                     callback.onUnexpectedError(e);
                                 }
@@ -818,6 +629,143 @@ public class MXCallsManager {
     }
 
     //==============================================================================================================
+    // Turn servers management
+    //==============================================================================================================
+
+    /**
+     * Suspend the turn server  refresh
+     */
+    public void pauseTurnServerRefresh() {
+        mSuspendTurnServerRefresh = true;
+    }
+
+    /**
+     * Refresh the turn servers until it succeeds.
+     */
+    public void unpauseTurnServerRefresh() {
+        Log.d(LOG_TAG, "unpauseTurnServerRefresh");
+
+        mSuspendTurnServerRefresh = false;
+        if (null != mTurnServerTimer) {
+            mTurnServerTimer.cancel();
+            mTurnServerTimer = null;
+        }
+        refreshTurnServer();
+    }
+
+    /**
+     * Stop the turn servers refresh.
+     */
+    public void stopTurnServerRefresh() {
+        Log.d(LOG_TAG, "stopTurnServerRefresh");
+
+        mSuspendTurnServerRefresh = true;
+        if (null != mTurnServerTimer) {
+            mTurnServerTimer.cancel();
+            mTurnServerTimer = null;
+        }
+    }
+
+    /**
+     * @return the turn server
+     */
+    private JsonElement getTurnServer() {
+        JsonElement res;
+
+        synchronized (LOG_TAG) {
+            res = mTurnServer;
+        }
+
+        // privacy logs
+        //Log.d(LOG_TAG, "getTurnServer " + res);
+        Log.d(LOG_TAG, "getTurnServer ");
+
+        return res;
+    }
+
+    /**
+     * Refresh the turn servers.
+     */
+    private void refreshTurnServer() {
+        if (mSuspendTurnServerRefresh) {
+            return;
+        }
+
+        Log.d(LOG_TAG, "refreshTurnServer");
+
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
+                    private void restartAfter(int msDelay) {
+                        if (null != mTurnServerTimer) {
+                            mTurnServerTimer.cancel();
+                        }
+
+                        mTurnServerTimer = new Timer();
+                        mTurnServerTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                Log.d(LOG_TAG, "refreshTurnServer cancelled");
+                                mTurnServerTimer.cancel();
+                                mTurnServerTimer = null;
+
+                                refreshTurnServer();
+                            }
+                        }, msDelay);
+                    }
+
+                    @Override
+                    public void onSuccess(JsonObject info) {
+                        // privacy
+                        Log.d(LOG_TAG, "onSuccess ");
+                        //Log.d(LOG_TAG, "onSuccess " + info);
+
+                        if (null != info) {
+                            if (info.has("uris")) {
+                                synchronized (LOG_TAG) {
+                                    mTurnServer = info;
+                                }
+                            }
+
+                            if (info.has("ttl")) {
+                                int ttl = 60000;
+
+                                try {
+                                    ttl = info.get("ttl").getAsInt();
+                                    // restart a 90 % before ttl expires
+                                    ttl = ttl * 9 / 10;
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage());
+                                }
+
+                                restartAfter(ttl);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        restartAfter(60000);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED)) {
+                            restartAfter(60000);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        // should never happen
+                    }
+                });
+            }
+        });
+    }
+
+    //==============================================================================================================
     // Conference call
     //==============================================================================================================
 
@@ -835,7 +783,7 @@ public class MXCallsManager {
      * @param roomId the room id
      * @return the conference user id
      */
-    public static final String getConferenceUserId(String roomId) {
+    public static String getConferenceUserId(String roomId) {
         // sanity check
         if (null == roomId) {
             return null;
@@ -904,6 +852,8 @@ public class MXCallsManager {
      * @param callback the async callback
      */
     private void inviteConferenceUser(final Room room, final ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "inviteConferenceUser " + room.getRoomId());
+
         String conferenceUserId = getConferenceUserId(room.getRoomId());
         RoomMember conferenceMember = room.getMember(conferenceUserId);
 
@@ -925,6 +875,8 @@ public class MXCallsManager {
      * @param callback the async callback.
      */
     private void getConferenceUserRoom(final String roomId, final ApiCallback<Room> callback) {
+        Log.d(LOG_TAG, "getConferenceUserRoom with room id " + roomId);
+
         String conferenceUserId = getConferenceUserId(roomId);
 
         Room conferenceRoom = null;
@@ -939,6 +891,8 @@ public class MXCallsManager {
         }
 
         if (null != conferenceRoom) {
+            Log.d(LOG_TAG, "getConferenceUserRoom : the room already exists");
+
             final Room fConferenceRoom = conferenceRoom;
             mSession.getDataHandler().getStore().commit();
 
@@ -949,6 +903,8 @@ public class MXCallsManager {
                 }
             });
         } else {
+            Log.d(LOG_TAG, "getConferenceUserRoom : create the room");
+
             HashMap<String, Object> params = new HashMap<>();
             params.put("preset", "private_chat");
             params.put("invite", Arrays.asList(conferenceUserId));
@@ -956,6 +912,8 @@ public class MXCallsManager {
             mSession.createRoom(params, new ApiCallback<String>() {
                 @Override
                 public void onSuccess(String roomId) {
+                    Log.d(LOG_TAG, "getConferenceUserRoom : the room creation succeeds");
+
                     Room room = mSession.getDataHandler().getRoom(roomId);
 
                     if (null != room) {
@@ -967,19 +925,138 @@ public class MXCallsManager {
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage());
                     callback.onNetworkError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getLocalizedMessage());
                     callback.onMatrixError(e);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getLocalizedMessage());
                     callback.onUnexpectedError(e);
                 }
             });
         }
+    }
+
+    //==============================================================================================================
+    // listeners management
+    //==============================================================================================================
+
+    /**
+     * Add a listener
+     * @param listener the listener to add
+     */
+    public void addListener(MXCallsManagerListener listener) {
+        if (null != listener) {
+            synchronized (this) {
+                if (mListeners.indexOf(listener) < 0) {
+                    mListeners.add(listener);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove a listener
+     * @param listener the listener to remove
+     */
+    public void removeListener(MXCallsManagerListener listener) {
+        if (null != listener) {
+            synchronized (this) {
+                mListeners.remove(listener);
+            }
+        }
+    }
+
+    /**
+     * @return a copy of the listeners
+     */
+    private List<MXCallsManagerListener> getListeners() {
+        ArrayList<MXCallsManagerListener> listeners;
+
+        synchronized (this) {
+            listeners = new ArrayList<>(mListeners);
+        }
+
+        return listeners;
+    }
+
+    /**
+     * dispatch the onIncomingCall event to the listeners
+     * @param call the call
+     */
+    private void dispatchOnIncomingCall(IMXCall call) {
+        Log.d(LOG_TAG, "dispatchOnIncomingCall " + call.getCallId());
+
+        List<MXCallsManagerListener> listeners = getListeners();
+
+        for(MXCallsManagerListener l : listeners) {
+            try {
+                l.onIncomingCall(call);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "dispatchOnIncomingCall " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * dispatch the onCallHangUp event to the listeners
+     * @param call the call
+     */
+    private void dispatchOnCallHangUp(IMXCall call) {
+        Log.d(LOG_TAG, "dispatchOnCallHangUp");
+
+        List<MXCallsManagerListener> listeners = getListeners();
+
+        for(MXCallsManagerListener l : listeners) {
+            try {
+                l.onCallHangUp(call);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "dispatchOnCallHangUp " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * dispatch the onVoipConferenceStarted event to the listeners
+     * @param roomId the room Id
+     */
+    private void dispatchOnVoipConferenceStarted(String roomId) {
+        Log.d(LOG_TAG, "dispatchOnVoipConferenceStarted : " + roomId);
+
+        List<MXCallsManagerListener> listeners = getListeners();
+
+        for(MXCallsManagerListener l : listeners) {
+            try {
+                l.onVoipConferenceStarted(roomId);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "dispatchOnVoipConferenceStarted " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * dispatch the onVoipConferenceFinished event to the listeners
+     * @param roomId the room Id
+     */
+    private void disoatchOnVoipConferenceFinished(String roomId) {
+        Log.d(LOG_TAG, "onVoipConferenceFinished : " + roomId);
+
+        List<MXCallsManagerListener> listeners = getListeners();
+
+        for(MXCallsManagerListener l : listeners) {
+                try {
+                    l.onVoipConferenceFinished(roomId);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "disoatchOnVoipConferenceFinished " + e.getMessage());
+                }
+            }
+
     }
 }
