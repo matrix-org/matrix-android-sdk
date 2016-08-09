@@ -43,23 +43,71 @@ import java.util.Timer;
 public class MXCall implements IMXCall {
     private static final String LOG_TAG = "MXCall";
 
-    protected MXSession mSession = null;
-    protected Context mContext = null;
-    protected JsonElement mTurnServer = null;
-    protected Room mCallingRoom = null;
-    protected Room mCallSignalingRoom = null;
+    /**
+     * The session
+     */
+    protected MXSession mSession;
 
+    /**
+     * The context
+     */
+    protected Context mContext;
+
+    /**
+     * the turn servers
+     */
+    protected JsonElement mTurnServer;
+
+    /**
+     * The room in which the call is performed.
+     */
+    protected Room mCallingRoom;
+
+    /**
+     * The room in which the call events are sent.
+     * It might differ from mCallingRoom if it is a conference call.
+     */
+    protected Room mCallSignalingRoom;
+
+    /**
+     * The call events listeners
+     */
     private final ArrayList<MXCallListener> mCallListeners = new ArrayList<>();
 
-    // the current call id
-    protected String mCallId = null;
+    /**
+     * the call id
+     */
+    protected String mCallId;
+
+    /**
+     * Tells if it is a video call
+     */
     protected boolean mIsVideoCall = false;
+
+    /**
+     * Tells if it is an incoming call
+     */
     protected boolean mIsIncoming = false;
+
+    /**
+     * Tells if it is a conference call.
+     */
     private boolean mIsConference = false;
 
+    /**
+     * List of events to sends to mCallSignalingRoom
+     */
     protected final ArrayList<Event> mPendingEvents = new ArrayList<>();
-    private Event mPendingEvent = null;
-    protected Timer mCallTimeoutTimer = null;
+
+    /**
+     * The sending eevent.
+     */
+    private Event mPendingEvent;
+
+    /**
+     * The not responding timer
+     */
+    protected Timer mCallTimeoutTimer;
 
     // call start time
     private long mStartTime = -1;
