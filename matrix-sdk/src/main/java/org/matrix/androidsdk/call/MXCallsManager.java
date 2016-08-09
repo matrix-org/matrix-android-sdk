@@ -562,28 +562,51 @@ public class MXCallsManager {
         return call;
     }
 
+    static Integer mAudioMode = null;
+    static Boolean mIsSpeakerOn = null;
+
+    public static void prepareCallAudio(Context context) {
+        AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+
+        mAudioMode = audioManager.getMode();
+        mIsSpeakerOn = audioManager.isSpeakerphoneOn();
+    }
+
+    public static void restoreCallAudio(Context context) {
+        if ((null != mAudioMode) && (null != mIsSpeakerOn)) {
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+
+            // ignore speaker button if a headset is connected
+            if (!audioManager.isBluetoothA2dpOn() && !audioManager.isWiredHeadsetOn()) {
+                audioManager.setMode(mAudioMode);
+                audioManager.setSpeakerphoneOn(mIsSpeakerOn);
+            }
+
+            mAudioMode = null;
+            mIsSpeakerOn = null;
+        }
+    }
+
+
     /**
      * Sets the speakerphone on or off.
      *
      * @param isOn true to turn on speakerphone;
      *           false to turn it off
      */
-    public static void setSpeakerphoneOn(Context context, boolean isOn) {
-        Log.d(LOG_TAG, "setSpeakerphoneOn " + isOn);
+    public static void setCallSpeakerphoneOn(Context context, boolean isOn) {
+        Log.d(LOG_TAG, "setCallSpeakerphoneOn " + isOn);
+
+        if ((null == mAudioMode) || (null == mIsSpeakerOn)) {
+            prepareCallAudio(context);
+        }
 
         AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
 
-        // ignore speaker button if a bluetooth headset is connected
-        if (!audioManager.isBluetoothA2dpOn()) {
-            int audioMode = audioManager.getMode();
+        // ignore speaker button if a headset is connected
+        if (!audioManager.isBluetoothA2dpOn() && !audioManager.isWiredHeadsetOn()) {
+            int audioMode = AudioManager.MODE_IN_COMMUNICATION;
 
-            // do not update the mode in VOip mode (Chrome call)
-            if (audioMode != AudioManager.MODE_IN_COMMUNICATION) {
-                audioMode = isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL;
-            }
-
-            // update only if there is an update
-            // MXChromecall crashes if there is an update whereas nothing has been updated
             if (audioManager.getMode() != audioMode) {
                 audioManager.setMode(audioMode);
             }

@@ -262,7 +262,7 @@ public class MXCall implements IMXCall {
         AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
 
         if (null != audioManager) {
-            MXCallsManager.setSpeakerphoneOn(mContext, !audioManager.isSpeakerphoneOn());
+            MXCallsManager.setCallSpeakerphoneOn(mContext, !audioManager.isSpeakerphoneOn());
         }
     }
 
