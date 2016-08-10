@@ -33,6 +33,7 @@ import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -211,6 +212,14 @@ public interface RoomsApi {
      */
     @POST("/createRoom")
     void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
+
+    /**
+     * Create a room.
+     * @param params parameters to create the room
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/createRoom")
+    void createRoom(@Body Map<String, Object> params, Callback<CreateRoomResponse> callback);
 
     /**
      * Get a list of messages starting from a reference..

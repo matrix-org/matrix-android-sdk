@@ -22,6 +22,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -31,6 +32,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -136,6 +138,10 @@ public class RoomState implements java.io.Serializable {
      */
     private boolean mIsLive;
 
+    /**
+     * Tell if the room is a user conference user one
+     */
+    private Boolean mIsConferenceUserRoom = null;
 
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
@@ -197,6 +203,60 @@ public class RoomState implements java.io.Serializable {
         }
 
         return res;
+    }
+
+    /**
+     * Provides a list of displayable members.
+     * Some dummy members are created to internal stuff.
+     * @return a copy of the displayable room members list.
+     */
+    public Collection<RoomMember> getDisplayableMembers() {
+        Collection<RoomMember> members = getMembers();
+
+        RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+
+        if (null != conferenceUserId) {
+            ArrayList<RoomMember> membersList = new ArrayList<>(members);
+            membersList.remove(conferenceUserId);
+            members = membersList;
+        }
+
+        return members;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isConferenceUserRoom() {
+        // test if it is not yet initialized
+        if (null == mIsConferenceUserRoom) {
+
+            mIsConferenceUserRoom = false;
+
+            Collection<RoomMember> members = getMembers();
+
+            // works only with 1:1 room
+            if (2 == members.size()) {
+                for(RoomMember member : members) {
+                    if (MXCallsManager.isConferenceUserId(member.getUserId())) {
+                        mIsConferenceUserRoom = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return mIsConferenceUserRoom;
+    }
+
+    /**
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
+     */
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        mIsConferenceUserRoom = isConferenceUserRoom;
     }
 
     /**
@@ -371,7 +431,7 @@ public class RoomState implements java.io.Serializable {
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
-
+        copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();

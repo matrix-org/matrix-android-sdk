@@ -54,8 +54,8 @@ public class MXJingleCall extends MXCall {
 
     private static final String LOG_TAG = "MXJingleCall";
 
-    public static final String VIDEO_TRACK_ID = "ARDAMSv0";
-    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
+    private static final String VIDEO_TRACK_ID = "ARDAMSv0";
+    private static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
 
@@ -64,10 +64,10 @@ public class MXJingleCall extends MXCall {
     private static final int CAMERA_TYPE_REAR = 2;
     private static final int CAMERA_TYPE_UNDEFINED = -1;
 
-    static PeerConnectionFactory mPeerConnectionFactory = null;
-    static String mFrontCameraName = null;
-    static String mBackCameraName = null;
-    static VideoCapturer mVideoCapturer = null;
+    static private PeerConnectionFactory mPeerConnectionFactory = null;
+    static private String mFrontCameraName = null;
+    static private String mBackCameraName = null;
+    static private VideoCapturer mVideoCapturer = null;
 
     private GLSurfaceView mCallView = null;
 
@@ -83,7 +83,7 @@ public class MXJingleCall extends MXCall {
     private PeerConnection mPeerConnection = null;
 
     // default value
-    public String mCallState = CALL_STATE_CREATED;
+    private String mCallState = CALL_STATE_CREATED;
 
     private boolean mUsingLargeLocalRenderer = true;
     private VideoRenderer mLargeRemoteRenderer = null;
@@ -165,13 +165,9 @@ public class MXJingleCall extends MXCall {
 
                 PeerConnectionFactory.initializeFieldTrials(null);
                 mIsSupported = true;
-                Log.d(LOG_TAG,"## initializeAndroidGlobals(): returns "+mIsInitialized);
+                Log.d(LOG_TAG,"## initializeAndroidGlobals(): mIsInitialized="+mIsInitialized);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "initializeAndroidGlobals " + e.getLocalizedMessage());
-                mIsInitialized = true;
-                mIsSupported = false;
-            } catch (UnsatisfiedLinkError e) {
-                Log.e(LOG_TAG, "initializeAndroidGlobals " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;
                 mIsSupported = false;
             }
@@ -212,7 +208,7 @@ public class MXJingleCall extends MXCall {
      * @param endCallReasonId the reason of the call ending
      */
     private void terminate(final int endCallReasonId) {
-        Log.d(LOG_TAG, "## terminate(): EndOrigin = "+endCallReasonId);
+        Log.d(LOG_TAG, "## terminate(): reason= "+endCallReasonId);
 
         if (isCallEnded()) {
             return;
@@ -277,38 +273,35 @@ public class MXJingleCall extends MXCall {
         offerContent.addProperty("type", sessionDescription.type.canonicalForm());
         inviteContent.add("offer", offerContent);
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
-        if (null != event) {
-            mPendingEvents.add(event);
-                mCallTimeoutTimer = new Timer();
-                mCallTimeoutTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        try {
-                            if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
-                                Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
-                                dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
-                                hangup(null);
-                            }
-
-                            // cancel the timer
-                            mCallTimeoutTimer.cancel();
-                            mCallTimeoutTimer = null;
-                        } catch (Exception e) {
-
+        mPendingEvents.add(event);
+            mCallTimeoutTimer = new Timer();
+            mCallTimeoutTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                            Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
+                            dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
+                            hangup(null);
                         }
-                    }
-                }, 60 * 1000);
 
-            sendNextEvent();
-        }
+                        // cancel the timer
+                        mCallTimeoutTimer.cancel();
+                        mCallTimeoutTimer = null;
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+                    }
+                }
+            }, 60 * 1000);
+
+        sendNextEvent();
     }
 
     /**
-    /**
      * Send the answer event
-     * @param sessionDescription
+     * @param sessionDescription the session description
      */
     private void sendAnswer(final SessionDescription sessionDescription) {
         // check if the call has not been killed
@@ -330,12 +323,10 @@ public class MXJingleCall extends MXCall {
         offerContent.addProperty("type", sessionDescription.type.canonicalForm());
         answerContent.add("answer", offerContent);
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_ANSWER, answerContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_ANSWER, answerContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
-        if (null != event) {
-            mPendingEvents.add(event);
-            sendNextEvent();
-        }
+        mPendingEvents.add(event);
+        sendNextEvent();
     }
 
     @Override
@@ -366,8 +357,7 @@ public class MXJingleCall extends MXCall {
     }
 
     @Override
-    public boolean switchRearFrontCamera(){
-        // reset before attempting the switch
+    public boolean switchRearFrontCamera() {
         boolean isCameraSwitched = false;
 
         if ((null != mVideoCapturer) && (isSwitchCameraSupported())){
@@ -398,15 +388,6 @@ public class MXJingleCall extends MXCall {
 
         if(null != mLocalVideoTrack) {
             mLocalVideoTrack.setEnabled(!muteValue);
-
-            /*if(muteValue) {
-                mVideoSource.stop();
-                mIsVideoSourceStopped = true;
-            }
-            else {
-                mVideoSource.restart();
-                mIsVideoSourceStopped = false;
-            }*/
         } else {
             Log.w(LOG_TAG,"## muteVideoRecording(): failure - invalid value");
         }
@@ -459,7 +440,8 @@ public class MXJingleCall extends MXCall {
         }
 
         // build ICE servers list
-        ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
+        ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<>();
+
         if (null != mTurnServer) {
             try {
                 String username = null;
@@ -520,7 +502,13 @@ public class MXJingleCall extends MXCall {
                                         mLocalVideoTrack.setEnabled(false);
                                         VideoRendererGui.remove(mLargeLocalRendererCallbacks);
                                         mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
-                                        mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+
+                                        // in conference call, there is no local preview,
+                                        // the local attendee video is sent by the server among the others conference attendees.
+                                        if (!isConference()) {
+                                            // add local preview, only for 1:1 call
+                                            mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                        }
                                         mLocalVideoTrack.setEnabled(true);
                                         mUsingLargeLocalRenderer = false;
 
@@ -609,11 +597,9 @@ public class MXJingleCall extends MXCall {
                                     }
 
                                     if (addIt) {
-                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mRoom.getRoomId());
+                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
-                                        if (null != event) {
-                                            mPendingEvents.add(event);
-                                        }
+                                        mPendingEvents.add(event);
                                         sendNextEvent();
                                     }
                                 }
@@ -739,7 +725,6 @@ public class MXJingleCall extends MXCall {
             }, constraints);
 
             dispatchOnStateDidChange(IMXCall.CALL_STATE_WAIT_CREATE_OFFER);
-        } else {
         }
     }
 
@@ -904,8 +889,12 @@ public class MXJingleCall extends MXCall {
             // create the renderers after the VideoRendererGui.setView
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
-                //  create the video displaying the remote user: in full screen
-                mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+                //  create the video displaying the remote view sent by the server
+                if (isConference()) {
+                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+                } else {
+                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+                }
 
                 mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, true);
                 mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
@@ -966,7 +955,6 @@ public class MXJingleCall extends MXCall {
 
                 if (null != mCallView) {
                     mCallView.onPause();
-                    //mCallView.postInvalidate();
                 }
 
                 if (mVideoSource != null && !mIsVideoSourceStopped) {
@@ -1106,8 +1094,9 @@ public class MXJingleCall extends MXCall {
                 JsonObject offer = mCallInviteParams.get("offer").getAsJsonObject();
                 JsonElement sdp = offer.get("sdp");
                 String sdpValue = sdp.getAsString();
-                setIsVideo(sdpValue.indexOf("m=video") >= 0);
+                setIsVideo(sdpValue.contains("m=video"));
             } catch (Exception e) {
+                Log.e(LOG_TAG, "## prepareIncomingCall(): Exception Msg=" + e.getMessage());
             }
         }
     }
@@ -1190,9 +1179,10 @@ public class MXJingleCall extends MXCall {
     /**
      * The other call member hangs up the call.
      * @param event the event
+     * @param hangUpReasonId hang up reason
      */
     private void onCallHangup(final Event event, final int hangUpReasonId) {
-        Log.d(LOG_TAG, "onCallHangup : call state " + getCallState());
+        Log.d(LOG_TAG, "## onCallHangup(): call state=" + getCallState());
         String state = getCallState();
 
         if (!CALL_STATE_CREATED.equals(state) && (null != mPeerConnection)) {
@@ -1203,8 +1193,9 @@ public class MXJingleCall extends MXCall {
                 }
             });
         } else if(CALL_STATE_WAIT_LOCAL_MEDIA.equals(state) && isVideo()){
-            // specific case to fix: a video call hung up by the calling side
+            // specific case fixing: a video call hung up by the calling side
             // when the callee is still displaying the InComingCallActivity dialog.
+            // If terminate() was not called, the dialog was never dismissed.
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -1216,13 +1207,13 @@ public class MXJingleCall extends MXCall {
 
     /**
      * A new Ice candidate is received
-     * @param candidates
+     * @param candidates the channel candidates
      */
-    public void onNewCandidates(final JsonArray candidates) {
-        Log.d(LOG_TAG, "onNewCandidates : call state " + getCallState() + " with candidates " + candidates);
+    private void onNewCandidates(final JsonArray candidates) {
+        Log.d(LOG_TAG, "## onNewCandidates(): call state " + getCallState() + " with candidates " + candidates);
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
-            ArrayList<IceCandidate> candidatesList = new  ArrayList<IceCandidate>();
+            ArrayList<IceCandidate> candidatesList = new  ArrayList<>();
 
             // convert the JSON to IceCandidate
             for (int index = 0; index < candidates.size(); index++) {
@@ -1234,12 +1225,12 @@ public class MXJingleCall extends MXCall {
 
                     candidatesList.add(new IceCandidate(sdpMid, sdpLineIndex, candidate));
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "onNewCandidates fails " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## onNewCandidates(): Exception Msg=" + e.getMessage());
                 }
             }
 
             for(IceCandidate cand : candidatesList) {
-                Log.d(LOG_TAG, "onNewCandidates : addIceCandidate " + cand);
+                Log.d(LOG_TAG, "## onNewCandidates(): addIceCandidate " + cand);
                 mPeerConnection.addIceCandidate(cand);
             }
         }
@@ -1265,7 +1256,7 @@ public class MXJingleCall extends MXCall {
      * Some Ice candidates could have been received while creating the call view.
      * Check if some of them have been defined.
      */
-    public void checkPendingCandidates() {
+    private void checkPendingCandidates() {
         Log.d(LOG_TAG, "checkPendingCandidates");
 
         synchronized (LOG_TAG) {
@@ -1296,6 +1287,7 @@ public class MXJingleCall extends MXCall {
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
                     onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP);
                 }
+
             } else { // event from the current member, but sent from another device
                 switch (event.type) {
                     case Event.EVENT_TYPE_CALL_INVITE:
@@ -1319,6 +1311,7 @@ public class MXJingleCall extends MXCall {
                         break;
 
                     case Event.EVENT_TYPE_CALL_HANGUP:
+                        // current member answered elsewhere
                         onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP_ELSEWHERE);
                         break;
 
@@ -1427,13 +1420,14 @@ public class MXJingleCall extends MXCall {
      */
     @Override
     public void hangup(String reason) {
-        Log.d(LOG_TAG, "hangup " + reason);
+        Log.d(LOG_TAG, "## hangup(): reason=" + reason);
 
         if (!isCallEnded()) {
             sendHangup(reason);
             terminate(IMXCall.END_CALL_REASON_UNDEFINED);
         }
     }
+
     /**
      * @return the callstate (must be a CALL_STATE_XX value)
      */
@@ -1463,9 +1457,9 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
-     * The call has been has answered on another device.
+     * The call has been answered on another device.
      * We distinguish the case where an account is active on
-     * multiple devices and a video call is launched. In this case
+     * multiple devices and a video call is launched on the account. In this case
      * the callee who did not answer must display a "answered elsewhere" message.
      */
     @Override
@@ -1474,14 +1468,13 @@ public class MXJingleCall extends MXCall {
         String state = getCallState();
 
         if (TextUtils.equals(state,IMXCall.CALL_STATE_RINGING /*if in ringing state on this side*/) ||
-           /* specific case to fix: a video call answered elsewhere by a callee side
-           when this callee is still displaying the InComingCallActivity dialog.*/
+           /* specific case to fix: a video call answered elsewhere by another callee side
+           when this local callee is still displaying the InComingCallActivity dialog.*/
            (TextUtils.equals(state,CALL_STATE_WAIT_LOCAL_MEDIA) && isVideo())) {
                 dispatchAnsweredElsewhere();
                 terminate(IMXCall.END_CALL_REASON_UNDEFINED);
         }
     }
-
 
     @Override
     protected void dispatchOnStateDidChange(String newState) {

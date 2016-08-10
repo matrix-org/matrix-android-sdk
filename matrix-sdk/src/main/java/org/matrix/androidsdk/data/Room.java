@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -144,6 +145,32 @@ public class Room {
      */
     public MXDataHandler getDataHandler() {
         return mDataHandler;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isConferenceUserRoom() {
+        return getLiveState().isConferenceUserRoom();
+    }
+
+    /**
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
+     */
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
+    }
+
+    /**
+     * Test if there is an ongoing conference call.
+     * @return true if there is one.
+     */
+    public boolean isOngoingConferenceCall() {
+        RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
+        return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
     //================================================================================
@@ -321,10 +348,13 @@ public class Room {
     public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = getState().getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<>();
+        String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
         for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) ||TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                activeMembers.add(member);
+            if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
+                if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                    activeMembers.add(member);
+                }
             }
         }
 
@@ -1339,7 +1369,7 @@ public class Room {
      * @return true if a call can be performed.
      */
     public boolean canPerformCall() {
-        return 1 == callees().size();
+        return getActiveMembers().size() > 1;
     }
 
     /**

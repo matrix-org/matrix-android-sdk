@@ -261,10 +261,16 @@ public interface IMXCall {
     Room getRoom();
 
     /**
-     * Set the linked room.
+     * Set the linked rooms (conference call)
      * @param room the room
+     * @param callSignalingRoom the call signaling room.
      */
-    void setRoom(Room room);
+    void setRooms(Room room, Room callSignalingRoom);
+
+    /**
+     * @return the call signaling room
+     */
+    Room getCallSignalingRoom();
 
     /**
      * @return the session
@@ -291,6 +297,16 @@ public interface IMXCall {
      * @return true if the call is a video call.
      */
     boolean isVideo();
+
+    /**
+     * Defines the call conference status
+     */
+    void setIsConference(boolean isConference);
+
+    /**
+     * @return true if the call is a conference call.
+     */
+    boolean isConference();
 
     /**
      * @return the callstate (must be a CALL_STATE_XX value)

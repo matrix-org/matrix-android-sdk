@@ -34,34 +34,90 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 
+/**
+ * This class is the default implementation
+ */
 public class MXCall implements IMXCall {
     private static final String LOG_TAG = "MXCall";
 
-    protected MXSession mSession = null;
-    protected Context mContext = null;
-    protected JsonElement mTurnServer = null;
-    protected Room mRoom = null;
-    protected ArrayList<MXCallListener> mxCallListeners = new ArrayList<MXCallListener>();
+    /**
+     * The session
+     */
+    protected MXSession mSession;
 
-    // the current call id
-    protected String mCallId = null;
+    /**
+     * The context
+     */
+    protected Context mContext;
+
+    /**
+     * the turn servers
+     */
+    protected JsonElement mTurnServer;
+
+    /**
+     * The room in which the call is performed.
+     */
+    protected Room mCallingRoom;
+
+    /**
+     * The room in which the call events are sent.
+     * It might differ from mCallingRoom if it is a conference call.
+     * For a 1:1 call, it will be equal to mCallingRoom.
+     */
+    protected Room mCallSignalingRoom;
+
+    /**
+     * The call events listeners
+     */
+    private final ArrayList<MXCallListener> mCallListeners = new ArrayList<>();
+
+    /**
+     * the call id
+     */
+    protected String mCallId;
+
+    /**
+     * Tells if it is a video call
+     */
     protected boolean mIsVideoCall = false;
+
+    /**
+     * Tells if it is an incoming call
+     */
     protected boolean mIsIncoming = false;
 
-    protected ArrayList<Event> mPendingEvents = new ArrayList<Event>();
-    protected Event mPendingEvent = null;
-    protected Timer mCallTimeoutTimer = null;
+    /**
+     * Tells if it is a conference call.
+     */
+    private boolean mIsConference = false;
+
+    /**
+     * List of events to sends to mCallSignalingRoom
+     */
+    protected final ArrayList<Event> mPendingEvents = new ArrayList<>();
+
+    /**
+     * The sending eevent.
+     */
+    private Event mPendingEvent;
+
+    /**
+     * The not responding timer
+     */
+    protected Timer mCallTimeoutTimer;
 
     // call start time
-    protected long mStartTime = -1;
+    private long mStartTime = -1;
 
     // UI thread handler
     final Handler mUIThreadHandler = new Handler();
 
     /**
-     * Create the callview
+     * Create the call view
      */
     public void createCallView() {
     }
@@ -151,25 +207,6 @@ public class MXCall implements IMXCall {
     public void hangup(String reason) {
     }
 
-    // listener managemenent
-    public void addListener(MXCallListener callListener){
-        synchronized (LOG_TAG) {
-            mxCallListeners.add(callListener);
-        }
-    }
-
-    public void removeListener(MXCallListener callListener) {
-        synchronized (LOG_TAG) {
-            mxCallListeners.remove(callListener);
-        }
-    }
-
-    public void clearListeners() {
-        synchronized (LOG_TAG) {
-            mxCallListeners.clear();
-        }
-    }
-
     // getters / setters
     /**
      * @return the callId
@@ -189,15 +226,32 @@ public class MXCall implements IMXCall {
      * @return the linked room
      */
     public Room getRoom() {
-        return mRoom;
+        return mCallingRoom;
     }
 
     /**
-     * Set the linked room.
+     * @return the call signaling room
+     */
+    public Room getCallSignalingRoom() {
+        return mCallSignalingRoom;
+    }
+
+    /**
+     * Set the linked room
      * @param room the room
      */
-    public void setRoom(Room room) {
-        mRoom = room;
+    /*public void setRoom(Room room) {
+        setRooms(room, room);
+    }*/
+
+    /**
+     * Set the linked rooms.
+     * @param room the room where the conference take place
+     * @param callSignalingRoom the call signaling room.
+     */
+    public void setRooms(Room room, Room callSignalingRoom) {
+        mCallingRoom = room;
+        mCallSignalingRoom = callSignalingRoom;
     }
 
     /**
@@ -234,6 +288,20 @@ public class MXCall implements IMXCall {
      */
     public boolean isVideo() {
         return mIsVideoCall;
+    }
+
+    /**
+     * Defines the call conference status
+     */
+    public void setIsConference(boolean isConference) {
+        mIsConference = isConference;
+    }
+
+    /**
+     * @return true if the call is a conference call.
+     */
+    public boolean isConference() {
+        return mIsConference;
     }
 
     /**
@@ -301,24 +369,76 @@ public class MXCall implements IMXCall {
         return (System.currentTimeMillis() - mStartTime) / 1000;
     }
 
+    //==============================================================================================================
+    // call events listener
+    //==============================================================================================================
+
+    /**
+     * Add a listener.
+     * @param callListener the listener to add
+     */
+    public void addListener(MXCallListener callListener) {
+        if (null != callListener) {
+            synchronized (LOG_TAG) {
+                mCallListeners.add(callListener);
+            }
+        }
+    }
+
+    /**
+     * Remove a listener
+     * @param callListener the listener to remove
+     */
+    public void removeListener(MXCallListener callListener) {
+        if (null != callListener) {
+            synchronized (LOG_TAG) {
+                mCallListeners.remove(callListener);
+            }
+        }
+    }
+
+    /**
+     * Remove the listeners
+     */
+    public void clearListeners() {
+        synchronized (LOG_TAG) {
+            mCallListeners.clear();
+        }
+    }
+
+    /**
+     * @return the call listeners
+     */
+    private List<MXCallListener> getCallListeners() {
+        ArrayList<MXCallListener> listeners;
+
+        synchronized (LOG_TAG) {
+            listeners = new ArrayList<>(mCallListeners);
+        }
+
+        return listeners;
+    }
+
     /**
      * Dispatch the onViewLoading event to the listeners.
      * @param callView the callview
      */
     protected void dispatchOnViewLoading(View callView) {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
+            Log.d(LOG_TAG, "## dispatchOnViewLoading(): the call is ended");
             return;
         }
 
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onViewLoading(callView);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchOnViewLoading(): Exception Msg="+e.getMessage());
-                }
-            }
+        Log.d(LOG_TAG, "## dispatchOnViewLoading()");
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onViewLoading(callView);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnViewLoading(): Exception Msg="+e.getMessage());
+           }
         }
     }
 
@@ -327,17 +447,19 @@ public class MXCall implements IMXCall {
      */
     protected void dispatchOnViewReady() {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
+            Log.d(LOG_TAG, "## dispatchOnViewReady() : the call is ended");
             return;
         }
 
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onViewReady();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchOnViewReady(): Exception Msg="+e.getMessage());
-                }
+        Log.d(LOG_TAG, "## dispatchOnViewReady()");
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onViewReady();
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnViewReady(): Exception Msg="+e.getMessage());
             }
         }
     }
@@ -348,17 +470,19 @@ public class MXCall implements IMXCall {
      */
     protected void dispatchOnCallError(String error) {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
+            Log.d(LOG_TAG, "## dispatchOnCallError() : the call is ended");
             return;
         }
 
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallError(error);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchOnCallError(): Exception Msg="+e.getMessage());
-                }
+        Log.d(LOG_TAG, "## dispatchOnCallError()");
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onCallError(error);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## dispatchOnCallError(): " + e.getMessage());
             }
         }
     }
@@ -368,23 +492,25 @@ public class MXCall implements IMXCall {
      * @param newState the new state
      */
     protected void dispatchOnStateDidChange(String newState) {
-        synchronized (LOG_TAG) {
-            // set the call start time
-            if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
-                mStartTime = System.currentTimeMillis();
-            }
+    Log.d(LOG_TAG, "## dispatchOnCallErrorOnStateDidChange(): " + newState);
 
-            //  the call is ended.
-            if (TextUtils.equals(CALL_STATE_ENDED, newState)) {
-                mStartTime = -1;
-            }
+        // set the call start time
+        if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
+            mStartTime = System.currentTimeMillis();
+        }
 
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onStateDidChange(newState);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchOnStateDidChange(): Exception Msg="+e.getMessage());
-                }
+        //  the call is ended.
+        if (TextUtils.equals(CALL_STATE_ENDED, newState)) {
+            mStartTime = -1;
+        }
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onStateDidChange(newState);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnStateDidChange(): Exception Msg="+e.getMessage());
             }
         }
     }
@@ -393,13 +519,15 @@ public class MXCall implements IMXCall {
      * Dispatch the onCallAnsweredElsewhere event to the listeners.
      */
     protected void dispatchAnsweredElsewhere() {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallAnsweredElsewhere();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchAnsweredElsewhere(): Exception Msg="+e.getMessage());
-                }
+        Log.d(LOG_TAG, "## dispatchAnsweredElsewhere()");
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onCallAnsweredElsewhere();
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchAnsweredElsewhere(): Exception Msg="+e.getMessage());
             }
         }
     }
@@ -409,13 +537,15 @@ public class MXCall implements IMXCall {
      * @param aEndCallReasonId the reason of the call ending
      */
     protected void dispatchOnCallEnd(int aEndCallReasonId) {
-        synchronized (LOG_TAG) {
-            for (MXCallListener listener : mxCallListeners) {
-                try {
-                    listener.onCallEnd(aEndCallReasonId);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG,"## dispatchOnCallEnd(): Exception Msg="+e.getMessage());
-                }
+        Log.d(LOG_TAG, "## dispatchOnCallEnd(): endReason="+aEndCallReasonId);
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onCallEnd(aEndCallReasonId);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnCallEnd(): Exception Msg="+e.getMessage());
             }
         }
     }
@@ -437,7 +567,7 @@ public class MXCall implements IMXCall {
                     mPendingEvent = mPendingEvents.get(0);
                     mPendingEvents.remove(mPendingEvent);
 
-                    mRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
+                    mCallSignalingRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
                             mUIThreadHandler.post(new Runnable() {
@@ -498,38 +628,40 @@ public class MXCall implements IMXCall {
             hangupContent.add("reason", new JsonPrimitive(reason));
         }
 
-        Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mRoom.getRoomId());
+        Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
-        if (null != event) {
+		// local notification to indicate the end of call
+        mUIThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                dispatchOnCallEnd(END_CALL_REASON_USER_HIMSELF);
+            }
+        });
 
-            // local notification to indicate the end of call
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    dispatchOnCallEnd(END_CALL_REASON_USER_HIMSELF);
-                }
-            });
+        Log.d(LOG_TAG, "## sendHangup(): reason=" + reason);
 
-            // send hang up event to the server
-            mRoom.sendEvent(event, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                }
+        // send hang up event to the server
+        mCallSignalingRoom.sendEvent(event, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## sendHangup(): onSuccess");
+            }
 
-                @Override
-                public void onNetworkError(Exception e) {
-                }
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.d(LOG_TAG, "## sendHangup(): onNetworkError Msg=" + e.getMessage());
+            }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                }
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.d(LOG_TAG, "## sendHangup(): onMatrixError Msg=" + e.getLocalizedMessage());
+            }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                }
-            });
-
-        }
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.d(LOG_TAG, "## sendHangup(): onUnexpectedError Msg=" + e.getMessage());
+            }
+        });
     }
 
     @Override
