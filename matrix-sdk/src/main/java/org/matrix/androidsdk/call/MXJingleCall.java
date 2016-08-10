@@ -208,7 +208,7 @@ public class MXJingleCall extends MXCall {
      * @param endCallReasonId the reason of the call ending
      */
     private void terminate(final int endCallReasonId) {
-        Log.d(LOG_TAG, "## terminate(): EndOrigin = "+endCallReasonId);
+        Log.d(LOG_TAG, "## terminate(): reason= "+endCallReasonId);
 
         if (isCallEnded()) {
             return;
