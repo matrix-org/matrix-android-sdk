@@ -295,11 +295,6 @@ public interface IMXCall {
     boolean setVisibility(int visibility);
 
     /**
-     * Toogle the speaker
-     */
-    void toggleSpeaker();
-
-    /**
      * @return the call start time in ms since epoch, -1 if not defined.
      */
     long getCallStartTime();

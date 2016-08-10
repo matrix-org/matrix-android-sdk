@@ -256,17 +256,6 @@ public class MXCall implements IMXCall {
     }
 
     /**
-     * Toogle the speaker
-     */
-    public void toggleSpeaker() {
-        AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
-
-        if (null != audioManager) {
-            MXCallsManager.setCallSpeakerphoneOn(mContext, !audioManager.isSpeakerphoneOn());
-        }
-    }
-
-    /**
      * @return the call start time in ms since epoch, -1 if not defined.
      */
     public long getCallStartTime() {
