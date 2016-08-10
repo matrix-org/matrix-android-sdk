@@ -78,7 +78,7 @@ public class MXCall implements IMXCall {
     public void onResume() {
     }
 
-    // actions (must be done after onViewReady()
+    // actions (must be done after dispatchOnViewReady()
     /**
      * Start a call.
      */
@@ -87,11 +87,11 @@ public class MXCall implements IMXCall {
 
     /**
      * Prepare a call reception.
-     * @param callInviteParams the invitation Event content
-     * @param callId the call ID
+     * @param aCallInviteParams the invitation Event content
+     * @param aCallId the call ID
      * @param aLocalVideoPosition position of the local video attendee
      */
-    public void prepareIncomingCall(JsonObject callInviteParams, String callId,  VideoLayoutConfiguration aLocalVideoPosition) {
+    public void prepareIncomingCall(JsonObject aCallInviteParams, String aCallId, VideoLayoutConfiguration aLocalVideoPosition) {
     }
 
     /**
@@ -107,6 +107,23 @@ public class MXCall implements IMXCall {
         Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): not implemented");
     }
 
+    @Override
+    public boolean switchRearFrontCamera(){
+        Log.w(LOG_TAG,"## switchRearFrontCamera(): not implemented");
+        return false;
+    }
+
+    @Override
+    public boolean isCameraSwitched() {
+        Log.w(LOG_TAG,"## isCameraSwitched(): not implemented");
+        return false;
+    }
+
+    @Override
+    public boolean isSwitchCameraSupported() {
+        Log.w(LOG_TAG,"## isSwitchCameraSupported(): not implemented");
+        return false;
+    }
     // events thread
     /**
      * Manage the call events.
@@ -256,7 +273,7 @@ public class MXCall implements IMXCall {
     }
 
     /**
-     * Toogle the speaker
+     * Toggle the speaker
      */
     public void toggleSpeaker() {
         AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
@@ -285,12 +302,12 @@ public class MXCall implements IMXCall {
     }
 
     /**
-     * dispatch the onViewLoading callback
+     * Dispatch the onViewLoading event to the listeners.
      * @param callView the callview
      */
-    protected void onViewLoading(View callView) {
+    protected void dispatchOnViewLoading(View callView) {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
             return;
         }
 
@@ -299,17 +316,18 @@ public class MXCall implements IMXCall {
                 try {
                     listener.onViewLoading(callView);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchOnViewLoading(): Exception Msg="+e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * dispatch the onViewReady event
+     * Dispatch the onViewReady event to the listeners.
      */
-    protected void onViewReady() {
+    protected void dispatchOnViewReady() {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
             return;
         }
 
@@ -318,17 +336,19 @@ public class MXCall implements IMXCall {
                 try {
                     listener.onViewReady();
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchOnViewReady(): Exception Msg="+e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * dispatch the onViewReady event
+     * Dispatch the onCallError event to the listeners.
+     * @param error error message
      */
-    protected void onCallError(String error) {
+    protected void dispatchOnCallError(String error) {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "onCallError : the call is ended");
+            Log.d(LOG_TAG, "dispatchOnCallError : the call is ended");
             return;
         }
 
@@ -337,15 +357,17 @@ public class MXCall implements IMXCall {
                 try {
                     listener.onCallError(error);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchOnCallError(): Exception Msg="+e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * dispatch the onViewReady event
+     * Dispatch the onStateDidChange event to the listeners.
+     * @param newState the new state
      */
-    protected void onStateDidChange(String newState) {
+    protected void dispatchOnStateDidChange(String newState) {
         synchronized (LOG_TAG) {
             // set the call start time
             if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
@@ -361,13 +383,14 @@ public class MXCall implements IMXCall {
                 try {
                     listener.onStateDidChange(newState);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchOnStateDidChange(): Exception Msg="+e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * dispatch the onViewReady event
+     * Dispatch the onCallAnsweredElsewhere event to the listeners.
      */
     protected void dispatchAnsweredElsewhere() {
         synchronized (LOG_TAG) {
@@ -375,20 +398,23 @@ public class MXCall implements IMXCall {
                 try {
                     listener.onCallAnsweredElsewhere();
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchAnsweredElsewhere(): Exception Msg="+e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * dispatch the onViewReady event
+     * Dispatch the onCallEnd event to the listeners.
+     * @param aEndCallReasonId the reason of the call ending
      */
-    protected void onCallEnd() {
+    protected void dispatchOnCallEnd(int aEndCallReasonId) {
         synchronized (LOG_TAG) {
             for (MXCallListener listener : mxCallListeners) {
                 try {
-                    listener.onCallEnd();
+                    listener.onCallEnd(aEndCallReasonId);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG,"## dispatchOnCallEnd(): Exception Msg="+e.getMessage());
                 }
             }
         }
@@ -475,13 +501,16 @@ public class MXCall implements IMXCall {
         Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mRoom.getRoomId());
 
         if (null != event) {
+
+            // local notification to indicate the end of call
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    onCallEnd();
+                    dispatchOnCallEnd(END_CALL_REASON_USER_HIMSELF);
                 }
             });
 
+            // send hang up event to the server
             mRoom.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -501,5 +530,16 @@ public class MXCall implements IMXCall {
             });
 
         }
+    }
+
+    @Override
+    public void muteVideoRecording(boolean isVideoMuted){
+        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented");
+    }
+
+    @Override
+    public boolean isVideoRecordingMuted() {
+        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented - default value = false");
+        return false;
     }
 }
