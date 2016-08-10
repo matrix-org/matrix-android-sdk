@@ -25,9 +25,20 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 
 /**
- * A call interface
+ * Audio/video call interface.
+ * See {@link MXJingleCall} and {@link MXChromeCall}.
  */
 public interface IMXCall {
+
+    // call ending use cases (see {@link #dispatchOnCallEnd}):
+    final static int END_CALL_REASON_UNDEFINED = -1;
+    /** the callee has rejected the incoming call **/
+    final static int END_CALL_REASON_PEER_HANG_UP = 0;
+    /** the callee has rejected the incoming call from another device **/
+    final static int END_CALL_REASON_PEER_HANG_UP_ELSEWHERE = 1;
+    /** call ended by the local user himself **/
+    final static int END_CALL_REASON_USER_HIMSELF = 2;
+
     // call state events
     // the call is an empty shell nothing has been initialized
     String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
@@ -134,9 +145,9 @@ public interface IMXCall {
 
         /**
          * The callview must be added to a layout
-         * @param callview the callview
+         * @param callView the callview
          */
-        void onViewLoading(View callview);
+        void onViewLoading(View callView);
 
         /**
          * Warn when the call view is ready
@@ -149,9 +160,10 @@ public interface IMXCall {
         void onCallAnsweredElsewhere();
 
         /**
-         * Warn that the call isEnded
+         * Warn that the call is ended
+         * @param aReasonId the reason of the call ending
          */
-        void onCallEnd();
+        void onCallEnd(final int aReasonId);
     }
 
     // creator
@@ -171,7 +183,7 @@ public interface IMXCall {
      */
     void onResume();
 
-    // actions (must be done after onViewReady()
+    // actions (must be done after dispatchOnViewReady()
     /**
      * Start a call.
      * @param aLocalVideoPosition position of the local video attendee
@@ -180,11 +192,11 @@ public interface IMXCall {
 
     /**
      * Prepare a call reception.
-     * @param callInviteParams the invitation Event content
-     * @param callId the call ID
+     * @param aCallInviteParams the invitation Event content
+     * @param aCallId the call ID
      * @param aLocalVideoPosition position of the local video attendee
      */
-    void prepareIncomingCall(JsonObject callInviteParams, String callId, VideoLayoutConfiguration aLocalVideoPosition);
+    void prepareIncomingCall(JsonObject aCallInviteParams, String aCallId, VideoLayoutConfiguration aLocalVideoPosition);
 
     /**
      * The call has been detected as an incoming one.
@@ -222,8 +234,14 @@ public interface IMXCall {
      */
     void hangup(String reason);
 
-    // listener managemenent
+    /**
+     * Add a listener to the call manager.
+     */
     void addListener(MXCallListener callListener);
+
+    /**
+     * Remove a listener from the call manager.
+     */
     void removeListener(MXCallListener callListener);
 
     // getters / setters
@@ -270,7 +288,8 @@ public interface IMXCall {
     void setIsIncoming(boolean isIncoming);
 
     /**
-     * Defines the call type
+     * Set the call type: video or voice
+     * @param isVideo true for video call, false for VoIP
      */
     void setIsVideo(boolean isVideo);
 
@@ -311,7 +330,7 @@ public interface IMXCall {
     boolean setVisibility(int visibility);
 
     /**
-     * Toogle the speaker
+     * Toggle the speaker
      */
     void toggleSpeaker();
 
@@ -324,4 +343,49 @@ public interface IMXCall {
      * @return the call elapsed time in seconds, -1 if not defined.
      */
     long getCallElapsedTime();
+
+    /**
+     * Switch between device cameras. The transmitted stream is modified
+     * according to the new camera in use.
+     * If the camera used in the video call is the front one, calling
+     * switchRearFrontCamera(), will make the rear one to be used, and vice versa.
+     * If only one camera is available, nothing is done.
+     * @return true if the switch succeed, false otherwise.
+     */
+    boolean switchRearFrontCamera();
+
+    /**
+     * Indicate if a camera switch was performed or not.
+     * For some reason switching the camera from front to rear and
+     * vice versa, could not be performed (ie. only one camera is available).
+     *
+     * <br>See {@link #switchRearFrontCamera()}.
+     * @return true if camera was switched, false otherwise
+     */
+    boolean isCameraSwitched();
+
+    /**
+     * Indicate if the device supports camera switching.
+     * <p>See {@link #switchRearFrontCamera()}.
+     * @return true if switch camera is supported, false otherwise
+     */
+    boolean isSwitchCameraSupported();
+
+    /**
+     * Mute/Unmute the recording of the local video attendee. Set isVideoMuted
+     * to true to enable the recording of the video, if set to false no recording
+     * is performed.
+     * @param isVideoMuted true to mute the video recording, false to unmute
+     */
+    void muteVideoRecording(boolean isVideoMuted);
+
+    /**
+     * Return the recording mute status of the local video attendee.
+     *
+     * <br>See {@link #muteVideoRecording(boolean)}.
+     * @return true if video recording is muted, false otherwise
+     */
+    boolean isVideoRecordingMuted();
+
+
 }

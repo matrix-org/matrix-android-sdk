@@ -168,13 +168,13 @@ public class MXChromeCall extends MXCall {
 
     /**
      * Prepare a call reception.
-     * @param callInviteParams the invitation Event content
-     * @param callId the call ID
+     * @param aCallInviteParams the invitation Event content
+     * @param aCallId the call ID
      * @param aLocalVideoPosition position of the local video attendee
      */
     @Override
-    public void prepareIncomingCall(final JsonObject callInviteParams, final String callId, VideoLayoutConfiguration aLocalVideoPosition) {
-        mCallId = callId;
+    public void prepareIncomingCall(final JsonObject aCallInviteParams, final String aCallId, VideoLayoutConfiguration aLocalVideoPosition) {
+        mCallId = aCallId;
 
         if (CALL_STATE_FLEDGLING.equals(getCallState())) {
             mIsIncoming = true;
@@ -182,7 +182,7 @@ public class MXChromeCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.loadUrl("javascript:initWithInvite('" + callId + "'," + callInviteParams.toString() + ")");
+                    mWebView.loadUrl("javascript:initWithInvite('" + aCallId + "'," + aCallInviteParams.toString() + ")");
                     mIsIncomingPrepared = true;
 
                     mWebView.post(new Runnable() {
@@ -194,7 +194,7 @@ public class MXChromeCall extends MXCall {
                 }
             });
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
-            mCallInviteParams = callInviteParams;
+            mCallInviteParams = aCallInviteParams;
 
             // detect call type from the sdp
             try {
@@ -249,7 +249,7 @@ public class MXChromeCall extends MXCall {
                     mWebView.post(new Runnable() {
                         @Override
                         public void run() {
-                            dispatchOnCallEnd();
+                            dispatchOnCallEnd(END_CALL_REASON_PEER_HANG_UP);
                         }
                     });
                 }
@@ -547,7 +547,7 @@ public class MXChromeCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    dispatchOnCallEnd();
+                    dispatchOnCallEnd(END_CALL_REASON_UNDEFINED);
                 }
             });
 
