@@ -216,9 +216,13 @@ public class MXJingleCall extends MXCall {
 
         dispatchOnStateDidChange(CALL_STATE_ENDED);
 
+        boolean isPeerConnectionFactoryAllowed = false;
+
         if (null != mPeerConnection) {
             mPeerConnection.dispose();
             mPeerConnection = null;
+            // the call has been initialized so mPeerConnectionFactory can be released
+            isPeerConnectionFactoryAllowed = true;
         }
 
         if (null != mVideoSource) {
@@ -231,7 +235,9 @@ public class MXJingleCall extends MXCall {
             mAudioSource = null;
         }
 
-        if (null != mPeerConnectionFactory) {
+        // mPeerConnectionFactory is static so it might be used by another call
+        // so we test that the current has been created
+        if (isPeerConnectionFactoryAllowed && (null != mPeerConnectionFactory)) {
             mPeerConnectionFactory.dispose();
             mPeerConnectionFactory = null;
         }
