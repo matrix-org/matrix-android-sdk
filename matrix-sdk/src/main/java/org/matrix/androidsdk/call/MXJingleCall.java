@@ -584,6 +584,8 @@ public class MXJingleCall extends MXCall {
                                             Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
                                             if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                                // return the content cast as a JsonObject
+                                                // it is not a copy
                                                 JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                                 JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
@@ -593,8 +595,12 @@ public class MXJingleCall extends MXCall {
 
                                                 lastContentCandidates.addAll(newContentCandidates);
 
+                                                // replace the candidates list
                                                 lastContent.remove("candidates");
                                                 lastContent.add("candidates", lastContentCandidates);
+
+                                                // don't need to save anything, lastContent is a reference not a copy
+
                                                 addIt = false;
                                             }
                                         } catch (Exception e) {
