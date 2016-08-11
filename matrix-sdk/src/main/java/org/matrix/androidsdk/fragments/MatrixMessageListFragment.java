@@ -308,10 +308,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
-                Log.d(LOG_TAG, "onScroll - backPaginate");
+                // Log.d(LOG_TAG, "onScroll - backPaginate");
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
-                Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                // Log.d(LOG_TAG, "onScroll - forwardPaginate");
                 forwardPaginate();
             }
         }
@@ -1629,7 +1629,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if ((null == mEventTimeLine) || mEventTimeLine.isLiveTimeline()) {
-            Log.d(LOG_TAG, "The forward pagination is not supported for the live timeline.");
+            //Log.d(LOG_TAG, "The forward pagination is not supported for the live timeline.");
             return;
         }
 
