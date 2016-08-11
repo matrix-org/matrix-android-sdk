@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
-import android.media.AudioManager;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
@@ -338,17 +337,6 @@ public class MXCall implements IMXCall {
      */
     public boolean isCallEnded() {
         return TextUtils.equals(CALL_STATE_ENDED, getCallState());
-    }
-
-    /**
-     * Toggle the speaker
-     */
-    public void toggleSpeaker() {
-        AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
-
-        if (null != audioManager) {
-            MXCallsManager.setSpeakerphoneOn(mContext, !audioManager.isSpeakerphoneOn());
-        }
     }
 
     /**

@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
-import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -122,12 +121,13 @@ public class MXCallsManager {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
-                    // check on the conference user
+                    // Listen to the membership join/leave events to detect the conference user activity.
+                    // This mechanism detects the presence of an established conf call
                     if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
                         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
 
                         if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_LEAVE)) {
-                            disoatchOnVoipConferenceFinished(event.roomId);
+                            dispatchOnVoipConferenceFinished(event.roomId);
                         } if (TextUtils.equals(eventContent.membership, RoomMember.MEMBERSHIP_JOIN)) {
                             dispatchOnVoipConferenceStarted(event.roomId);
                         }
@@ -223,7 +223,7 @@ public class MXCallsManager {
      * @param roomId the room id
      * @return the IMXCall if it exists
      */
-    public IMXCall callWithRoomId(String roomId) {
+    public IMXCall getCallWithRoomId(String roomId) {
         Collection<IMXCall> calls;
 
         synchronized (this) {
@@ -244,8 +244,8 @@ public class MXCallsManager {
      * @param callId the call Id
      * @return the IMXCall if it exists
      */
-    public IMXCall callWithCallId(String callId) {
-        return callWithCallId(callId, false);
+    public IMXCall getCallWithCallId(String callId) {
+        return getCallWithCallId(callId, false);
     }
 
     /**
@@ -254,7 +254,7 @@ public class MXCallsManager {
      * @param create create the IMXCall if it does not exist
      * @return the IMXCall if it exists
      */
-    private IMXCall callWithCallId(String callId, boolean create) {
+    private IMXCall getCallWithCallId(String callId, boolean create) {
         IMXCall call = null;
 
         // check if the call exists
@@ -272,7 +272,7 @@ public class MXCallsManager {
             }
         }
 
-        Log.d(LOG_TAG, "callWithCallId " + callId + " " + call);
+        Log.d(LOG_TAG, "getCallWithCallId " + callId + " " + call);
 
         return call;
     }
@@ -352,7 +352,7 @@ public class MXCallsManager {
                             // ignore older call messages
                             if (lifeTime < 30000) {
                                 // create the call only it is triggered from someone else
-                                IMXCall call = callWithCallId(callId, !isMyEvent);
+                                IMXCall call = getCallWithCallId(callId, !isMyEvent);
 
                                 // sanity check
                                 if (null != call) {
@@ -373,7 +373,7 @@ public class MXCallsManager {
 
                         } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
                             if (!isMyEvent) {
-                                IMXCall call = callWithCallId(callId);
+                                IMXCall call = getCallWithCallId(callId);
 
                                 if (null != call) {
                                     if (null == call.getRoom()) {
@@ -383,7 +383,7 @@ public class MXCallsManager {
                                 }
                             }
                         } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
-                            IMXCall call = callWithCallId(callId);
+                            IMXCall call = getCallWithCallId(callId);
 
                             if (null != call) {
                                 // assume it is a catch up call.
@@ -402,7 +402,7 @@ public class MXCallsManager {
                                 }
                             }
                         } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
-                            final IMXCall call = callWithCallId(callId);
+                            final IMXCall call = getCallWithCallId(callId);
                             if (null != call) {
                                 // trigger call events only if the call is active
                                 final boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
@@ -449,7 +449,7 @@ public class MXCallsManager {
             public void run() {
                 if (mxPendingIncomingCallId.size() > 0) {
                     for (String callId : mxPendingIncomingCallId) {
-                        IMXCall call = callWithCallId(callId);
+                        IMXCall call = getCallWithCallId(callId);
 
                         if (null != call) {
                             dispatchOnIncomingCall(call);
@@ -462,7 +462,13 @@ public class MXCallsManager {
     }
 
     /**
-     * Create an IMXCall in the room RoomId
+     * Create an IMXCall in the room defines by its room Id.
+     * -> for a 1:1 call, it is a standard call.
+     * -> for a conference call,
+     * ----> the conference user is invited to the room (if it was not yet invited)
+     * ----> the call signaling room is created (or retrieved) with the conference
+     * ----> and the call is started
+     *
      * @param roomId the room roomId
      * @param callback the async callback
      */
@@ -482,7 +488,7 @@ public class MXCallsManager {
                     if (joinedMembers == 2) {
                         Log.d(LOG_TAG, "createCallInRoom : Standard 1:1 call");
 
-                        final IMXCall call = callWithCallId(null, true);
+                        final IMXCall call = getCallWithCallId(null, true);
                         call.setRooms(room, room);
 
                         if (null != callback) {
@@ -507,7 +513,7 @@ public class MXCallsManager {
 
                                         Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom succeeds");
 
-                                        final IMXCall call = callWithCallId(null, true);
+                                        final IMXCall call = getCallWithCallId(null, true);
                                         call.setRooms(room, conferenceRoom);
                                         call.setIsConference(true);
 
@@ -592,38 +598,6 @@ public class MXCallsManager {
         } else {
             if (null != callback) {
                 callback.onMatrixError(new MatrixError(MatrixError.NOT_FOUND, "room not found"));
-            }
-        }
-    }
-
-    /**
-     * Sets the speakerphone on or off.
-     *
-     * @param isOn true to turn on speakerphone;
-     *           false to turn it off
-     */
-    public static void setSpeakerphoneOn(Context context, boolean isOn) {
-        Log.d(LOG_TAG, "setSpeakerphoneOn " + isOn);
-
-        AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-
-        // ignore speaker button if a bluetooth headset is connected
-        if (!audioManager.isBluetoothA2dpOn()) {
-            int audioMode = audioManager.getMode();
-
-            // do not update the mode in VOip mode (Chrome call)
-            if (audioMode != AudioManager.MODE_IN_COMMUNICATION) {
-                audioMode = isOn ? AudioManager.MODE_NORMAL : AudioManager.MODE_IN_CALL;
-            }
-
-            // update only if there is an update
-            // MXChromecall crashes if there is an update whereas nothing has been updated
-            if (audioManager.getMode() != audioMode) {
-                audioManager.setMode(audioMode);
-            }
-
-            if (isOn != audioManager.isSpeakerphoneOn()) {
-                audioManager.setSpeakerphoneOn(isOn);
             }
         }
     }
@@ -1045,7 +1019,7 @@ public class MXCallsManager {
      * dispatch the onVoipConferenceFinished event to the listeners
      * @param roomId the room Id
      */
-    private void disoatchOnVoipConferenceFinished(String roomId) {
+    private void dispatchOnVoipConferenceFinished(String roomId) {
         Log.d(LOG_TAG, "onVoipConferenceFinished : " + roomId);
 
         List<MXCallsManagerListener> listeners = getListeners();
@@ -1054,7 +1028,7 @@ public class MXCallsManager {
                 try {
                     l.onVoipConferenceFinished(roomId);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "disoatchOnVoipConferenceFinished " + e.getMessage());
+                    Log.e(LOG_TAG, "dispatchOnVoipConferenceFinished " + e.getMessage());
                 }
             }
 
