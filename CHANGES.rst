@@ -1,3 +1,22 @@
+Changes to Matrix Android SDK in 0.6.0 (2016-08-11)
+=======================================================
+
+Improvements:
+* #351 : VoIP Checklist (add the end of call reason, receive a call while already in call).
+
+Features:
+* Add the attachment upload/download detailled information (progress, mean bitrate, estimated remaining time...)
+* Add the conference call management.
+
+Bugfixes:
+* #290 : Redacting membership events should immediately reset the displayname & avatar of room members
+* #320 : Sanitise the logs to remove private data
+* #330 : some medias are not downloadable
+* #352 : some rooms are not displayed in the recents when the 10 last messages are redacted ones after performing an initial sync 
+* #358 : Update the event not found message when clicking on permalink
+* #359 : Redacting a video during sending goes wrong 
+* #364 : Profile changes shouldn't reorder the room list.
+
 Changes to Matrix Android SDK in 0.5.9 (2016-07-19)
 =======================================================
 

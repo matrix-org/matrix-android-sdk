@@ -17,9 +17,9 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         // use version to define a version code.
-        versionCode 509
-        version "0.5.9"
-        versionName "0.5.9"
+        versionCode 600
+        version "0.6.0"
+        versionName "0.6.0"
      }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
