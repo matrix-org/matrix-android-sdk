@@ -1265,7 +1265,6 @@ public class MXFileStore extends MXMemoryStore {
         // should always be true
         if (null != room) {
             RoomState liveState = null;
-            boolean shouldSave = false;
 
             try {
                 // the room state is not zipped
@@ -1287,18 +1286,6 @@ public class MXFileStore extends MXMemoryStore {
 
             if (null != liveState) {
                 room.getLiveTimeLine().setState(liveState);
-
-                // check if some user can be retrieved from the room members
-                Collection<RoomMember> members = liveState.getMembers();
-
-                for(RoomMember member : members) {
-                    updateUserWithRoomMemberEvent(member);
-                }
-
-                // force to use the new format
-                if (shouldSave) {
-                    saveRoomState(roomId);
-                }
             } else {
                 deleteRoom(roomId);
             }

@@ -322,18 +322,13 @@ public class MXMemoryStore implements IMXStore {
 
             // update the display name and the avatar url.
             // the leave and ban events have no displayname and no avatar url.
-            if (!TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_LEAVE) &&
-                    !TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_BAN)) {
-
+            if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
                 boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.avatarUrl);
 
                 if (hasUpdates) {
                     // invite event does not imply that the user uses the application.
                     // but if the presence is set to 0, it means that the user information is not initialized
-                    if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_INVITE) && (0 == user.getLatestPresenceTs())) {
-                        user.displayname = roomMember.displayname;
-                        user.setAvatarUrl(roomMember.avatarUrl);
-                    } else if (/*MEMBERSHIP_JOIN && */  user.getLatestPresenceTs() < roomMember.getOriginServerTs()) {
+                        if (user.getLatestPresenceTs() < roomMember.getOriginServerTs()) {
                         // if the user joined the room, it implies that he used the application
                         user.displayname = roomMember.displayname;
                         user.setAvatarUrl(roomMember.avatarUrl);
