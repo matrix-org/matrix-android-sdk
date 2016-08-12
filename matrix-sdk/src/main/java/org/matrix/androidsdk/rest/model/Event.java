@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.text.DateFormat;
@@ -173,6 +174,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the sender
+     *
      * @param aSender the new sender
      */
     public void setSender(String aSender) {
@@ -181,6 +183,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the matrix Id.
+     *
      * @param aMatrixId the new matrix id.
      */
     public void setMatrixId(String aMatrixId) {
@@ -212,6 +215,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the event content.
+     *
      * @param newContent the new content.
      */
     public void updateContent(JsonElement newContent) {
@@ -219,12 +223,11 @@ public class Event implements java.io.Serializable {
         contentAsString = null;
     }
 
-    
     /**
      * @return true if this event was redacted
      */
     public boolean isRedacted() {
-        return (null != unsigned) &&  (null != unsigned.redacted_because);
+        return (null != unsigned) && (null != unsigned.redacted_because);
     }
 
     static DateFormat mDateFormat = null;
@@ -251,6 +254,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the originServerTs.
+     *
      * @param anOriginServer the new originServerTs.
      */
     public void setOriginServerTs(long anOriginServer) {
@@ -326,7 +330,7 @@ public class Event implements java.io.Serializable {
     public String getRedacts() {
         if (null != redacts) {
             return redacts;
-        } else  if (isRedacted()) {
+        } else if (isRedacted()) {
             redacts = unsigned.redacted_because.redacts;
             return redacts;
         }
@@ -336,6 +340,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Create an event from a message.
+     *
      * @param message  the event content
      * @param anUserId the event user Id
      * @param aRoomId  the vent room Id
@@ -353,7 +358,7 @@ public class Event implements java.io.Serializable {
     /**
      * Create an event from a content and a type.
      *
-     * @param aType  the event type
+     * @param aType    the event type
      * @param aContent the event content
      * @param anUserId the event user Id
      * @param aRoomId  the vent room Id
@@ -386,6 +391,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the pagination token.
+     *
      * @param token the new token.
      */
     public void setInternalPaginationToken(String token) {
@@ -397,7 +403,7 @@ public class Event implements java.io.Serializable {
      * @return true if the token has been set by setInternalPaginationToken.
      */
     public boolean isInternalPaginationToken() {
-        return  mIsInternalPaginationToken;
+        return mIsInternalPaginationToken;
     }
 
     /**
@@ -411,7 +417,7 @@ public class Event implements java.io.Serializable {
      * @return true if the event if a call event.
      */
     public boolean isCallEvent() {
-        return  EVENT_TYPE_CALL_INVITE.equals(type) ||
+        return EVENT_TYPE_CALL_INVITE.equals(type) ||
                 EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
                 EVENT_TYPE_CALL_ANSWER.equals(type) ||
                 EVENT_TYPE_CALL_HANGUP.equals(type);
@@ -489,6 +495,77 @@ public class Event implements java.io.Serializable {
      */
     public boolean isSent() {
         return (mSentState == SentState.SENT);
+    }
+
+    /**
+     * @return the media URLs defined in the event.
+     */
+    public List<String> getMediaUrls() {
+        ArrayList<String> urls = new ArrayList<>();
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(type)) {
+            String msgType = JsonUtils.getMessageMsgType(content);
+
+            if (Message.MSGTYPE_IMAGE.equals(msgType)) {
+                ImageMessage imageMessage = JsonUtils.toImageMessage(content);
+
+                if (null != imageMessage.url) {
+                    urls.add(imageMessage.url);
+                }
+
+                if (null != imageMessage.thumbnailUrl) {
+                    urls.add(imageMessage.thumbnailUrl);
+                }
+            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+                FileMessage fileMessage = JsonUtils.toFileMessage(content);
+
+                if (null != fileMessage.url) {
+                    urls.add(fileMessage.url);
+                }
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
+                VideoMessage videoMessage = JsonUtils.toVideoMessage(content);
+
+                if (null != videoMessage.url) {
+                    urls.add(videoMessage.url);
+                }
+            }
+        }
+
+        return urls;
+    }
+
+    /**
+     * Tells if the current event is uploading a media.
+     * @param mediasCache the media cache
+     * @return true if the event is uploading a media.
+     */
+    public boolean isUploadingMedias(MXMediasCache mediasCache) {
+        List<String> urls = getMediaUrls();
+
+        for(String url : urls) {
+            if (mediasCache.getProgressValueForUploadId(url) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells if the current event is downloading a media.
+     * @param mediasCache the media cache
+     * @return true if the event is downloading a media.
+     */
+    public boolean isDownloadingMedias(MXMediasCache mediasCache) {
+        List<String> urls = getMediaUrls();
+
+        for(String url : urls) {
+            if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

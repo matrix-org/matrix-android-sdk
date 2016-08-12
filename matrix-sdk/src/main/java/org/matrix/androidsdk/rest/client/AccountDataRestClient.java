@@ -48,7 +48,9 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * @param callback the asynchronous callback called when finished
      */
     public void setAccountData(final String userId, final String type, final HashMap<String, Object> params, final ApiCallback<Void> callback) {
-        final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
+        // privacy
+        //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
+        final String description = "setAccountData userId : " + userId + " type " + type;
 
         mApi.setAccountData(userId, type, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override

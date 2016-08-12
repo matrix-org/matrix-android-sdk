@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
+import com.google.gson.internal.ObjectConstructor;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
@@ -44,6 +45,8 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Class used to make requests to the rooms API.
  */
@@ -67,7 +70,9 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendMessage(final String transactionId, final String roomId, final Message message, final ApiCallback<Event> callback) {
-        final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
+        // privacy
+        // final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
+        final String description = "SendMessage : roomId " + roomId;
 
         // the messages have their dedicated method in MXSession to be resent if there is no available network
         mApi.sendMessage(transactionId, roomId, message, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
@@ -76,7 +81,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     sendMessage(transactionId, roomId, message, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendMessage : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend sendMessage : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -90,7 +95,9 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendEventToRoom(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
-        final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
+        // privacy
+        //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
+        final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
 
         mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
@@ -98,7 +105,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     sendEventToRoom(roomId, eventType, content, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendEvent : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -121,7 +128,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend messagesFrom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend messagesFrom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -144,7 +151,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     inviteUserToRoom(roomId, userId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend inviteToRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend inviteToRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -168,7 +175,9 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the async callback
      */
     private void inviteThreePidToRoom(final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
-        final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
+        // privacy
+        //final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
+        final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
         // This request must not have the protocol part
         String identityServer = mHsConfig.getIdentityServerUri().toString();
@@ -190,7 +199,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     inviteThreePidToRoom(medium, address, roomId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend inviteThreePidToRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend inviteThreePidToRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -220,7 +229,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     joinRoom(roomIdOrAlias, params, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -240,7 +249,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     leaveRoom(roomId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend leaveRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend leaveRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -265,7 +274,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     kickFromRoom(roomId, userId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend kickFromRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend kickFromRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -286,7 +295,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     banFromRoom(roomId, user, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend banFromRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend banFromRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -303,7 +312,9 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the async callback
      */
     public void createRoom(final String name, final String topic, final String visibility, final String alias, final String guestAccess, final String historyVisibility, final ApiCallback<CreateRoomResponse> callback) {
-        final String description = "createRoom : name " + name + " topic " + topic;
+        // privacy
+        //final String description = "createRoom : name " + name + " topic " + topic;
+        final String description = "createRoom";
 
         RoomState roomState = new RoomState();
         // avoid empty strings
@@ -322,7 +333,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend createRoom failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Create a new room.
+     * @param parameters the room creation parameters
+     * @param callback the async callback
+     */
+    public void createRoom(final Map<String, Object> parameters, final ApiCallback<CreateRoomResponse> callback) {
+        // privacy
+        //final String description = "createRoom : name " + name + " topic " + topic;
+        final String description = "createRoom";
+
+        mApi.createRoom(parameters, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    createRoom(parameters, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -342,7 +375,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     initialSync(roomId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend initialSync failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend initialSync failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -364,7 +397,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     getContextOfEvent(roomId, eventId, limit, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getContextOfEvent failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend getContextOfEvent failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -388,7 +421,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateRoomName(roomId, name, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateName failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateName failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -412,7 +445,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateCanonicalAlias(roomId, canonicalAlias, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -436,7 +469,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateHistoryVisibility(roomId, aVisibility, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -460,7 +493,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -501,7 +534,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateTopic(roomId, topic, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateTopic failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateTopic failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -524,7 +557,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     redactEvent(roomId, eventId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend redactEvent failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend redactEvent failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -556,7 +589,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     reportEvent(roomId, eventId, score, reason, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend report failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend report failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -577,7 +610,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updatePowerLevels(roomId, powerLevels, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updatePowerLevels failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updatePowerLevels failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -622,7 +655,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateAvatarUrl(roomId, avatarUrl, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateAvatarUrl failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateAvatarUrl failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -646,7 +679,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     sendReadReceipt(roomId, eventId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -673,7 +706,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     addTag(roomId, tag, order, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend addTag : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend addTag : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -695,7 +728,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     removeTag(roomId, tag, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend removeTag : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend removeTag : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -715,7 +748,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     getRoomIdByAlias(roomAlias, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getRoomIdByAlias : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend getRoomIdByAlias : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -739,7 +772,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     setRoomIdByAlias(roomId, roomAlias, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend setRoomIdByAlias : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend setRoomIdByAlias : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -759,7 +792,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     removeRoomAlias(roomAlias, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend removeRoomAlias : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend removeRoomAlias : failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -785,7 +818,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateJoinRules(aRoomId, aJoinRule, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getLocalizedMessage());
                 }
             }
         }));
@@ -811,7 +844,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 try {
                     updateGuestAccess(aRoomId, aGuestAccessRule, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getMessage());
+                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getLocalizedMessage());
                 }
             }
 

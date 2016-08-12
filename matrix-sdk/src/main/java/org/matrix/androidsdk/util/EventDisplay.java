@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -100,7 +101,6 @@ public class EventDisplay {
         CharSequence text = null;
 
         try {
-
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
             String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
@@ -175,6 +175,8 @@ public class EventDisplay {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
                     text = "* " + userDisplayName +  " " + text;
+                } else if (TextUtils.isEmpty(text)) {
+                    text = "";
                 } else if (mPrependAuthor) {
                     text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
 
@@ -183,9 +185,7 @@ public class EventDisplay {
                         ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
-
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
                 if (mEvent.isRedacted()) {
@@ -244,7 +244,7 @@ public class EventDisplay {
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "getTextualDisplay() " + e);
+            Log.e(LOG_TAG, "getTextualDisplay() " + e.getLocalizedMessage());
         }
 
         return text;
@@ -421,13 +421,28 @@ public class EventDisplay {
                     return context.getString(R.string.notice_room_invite_no_invitee, senderDisplayName);
                 }
 
+                // conference call case
+                if (targetDisplayName.equals(MXCallsManager.getConferenceUserId(event.roomId))) {
+                    return context.getString(R.string.notice_requested_voip_conference, senderDisplayName);
+                }
+
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_started);
+            }
+
             return context.getString(R.string.notice_room_join, senderDisplayName);
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_finished);
+            }
+
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 return context.getString(R.string.notice_room_leave, senderDisplayName);

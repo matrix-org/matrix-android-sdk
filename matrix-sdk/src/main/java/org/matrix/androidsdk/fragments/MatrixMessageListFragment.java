@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
@@ -53,10 +54,10 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
-import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -69,7 +70,6 @@ import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -80,10 +80,12 @@ import java.util.Arrays;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 
 import retrofit.RetrofitError;
 
@@ -93,13 +95,36 @@ import retrofit.RetrofitError;
  */
 public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
 
+    // search interface
     public interface OnSearchResultListener {
         void onSearchSucceed(int nbrMessages);
         void onSearchFailed();
     }
 
-    public interface RoomPreviewDataListener {
+    // room preview interface
+    public interface IRoomPreviewDataListener {
         RoomPreviewData getRoomPreviewData();
+    }
+
+    // be warned when a message sending failed or succeeded
+    public interface IEventSendingListener {
+        /**
+         * A message has been successfully sent.
+         * @param event the event
+         */
+        void onMessageSendingSucceeded(Event event);
+
+        /**
+         * A message sending has failed.
+         * @param event the event
+         */
+        void onMessageSendingFailed(Event event);
+
+        /**
+         * An event has been successfully redacted by the user.
+         * @param event the event
+         */
+        void onMessageRedacted(Event event);
     }
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
@@ -158,9 +183,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mLockFwdPagination = true;
 
     protected ArrayList<Event> mResendingEventsList;
-    private HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
+    private final HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
 
-    private HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
+    private final HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -172,7 +197,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
 
     // used to retrieve the preview data
-    protected RoomPreviewDataListener mRoomPreviewDataListener;
+    protected IRoomPreviewDataListener mRoomPreviewDataListener;
+
+    // be warned that an event sending has failed.
+    protected IEventSendingListener mEventSendingListener;
 
     public MXMediasCache getMXMediasCache() {
         return null;
@@ -203,7 +231,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return mUiHandler;
     }
 
-    private IMXEventListener mEventsListenener = new MXEventListener() {
+    private final IMXEventListener mEventsListener = new MXEventListener() {
         @Override
         public void onPresenceUpdate(Event event, final User user) {
             // Someone's presence has changed, reprocess the whole list
@@ -242,7 +270,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     };
 
-   protected AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
+    /**
+     * Customize the scrolls behaviour.
+     * -> scroll over the top triggers a back pagination
+     * -> scroll over the bottom triggers a forward pagination
+     */
+    protected final AbsListView.OnScrollListener mScrollListener = new AbsListView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
             mCheckSlideToHide = (scrollState == SCROLL_STATE_TOUCH_SCROLL);
@@ -275,26 +308,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
-                Log.d(LOG_TAG, "onScroll - backPaginate");
+                // Log.d(LOG_TAG, "onScroll - backPaginate");
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
-                Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                // Log.d(LOG_TAG, "onScroll - forwardPaginate");
                 forwardPaginate();
             }
         }
     };
-
-    public MessagesAdapter createMessagesAdapter() {
-        return null;
-    }
-
-    /**
-     * The user scrolls the list.
-     * Apply an expected behaviour
-     * @param event the scroll event
-     */
-    public void onListTouch(MotionEvent event) {
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -302,44 +323,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-    }
-
-    /**
-     * Scroll the listview to a dedicated index when the list is loaded.
-     * @param index the index
-     */
-    public void scrollToIndexWhenLoaded(int index) {
-        mScrollToIndex = index;
-    }
-
-    /**
-     * return true to display all the events.
-     * else the unknown events will be hidden.
-     */
-    public boolean isDisplayAllEvents() {
-        return true;
-    }
-
-    /**
-     * Cancel the catching requests.
-     */
-    public void cancelCatchingRequests() {
-        mPattern = null;
-
-        if (null != mEventTimeLine) {
-            mEventTimeLine.cancelPaginationRequest();
-        }
-
-        mIsInitialSyncing = false;
-        mIsBackPaginating = false;
-        mIsFwdPaginating = false;
-
-        mLockBackPagination = false;
-        mLockFwdPagination = false;
-
-        hideInitLoading();
-        hideLoadingBackProgress();
-        hideLoadingForwardProgress();
     }
 
     @Override
@@ -435,6 +418,33 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return v;
     }
 
+    /**
+     * Called when a fragment is first attached to its activity.
+     * {@link #onCreate(Bundle)} will be called after this.
+     *
+     * @param aHostActivity parent activity
+     */
+    @Override
+    public void onAttach(Activity aHostActivity) {
+        super.onAttach(aHostActivity);
+        try {
+            mEventSendingListener = (IEventSendingListener) aHostActivity;
+        } catch(ClassCastException e) {
+            // if host activity does not provide the implementation, just ignore it
+            Log.w(LOG_TAG,"## onAttach(): host activity does not implement IEventSendingListener " + aHostActivity);
+        }
+    }
+
+    /**
+     * Called when the fragment is no longer attached to its activity.  This
+     * is called after {@link #onDestroy()}.
+     */
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mEventSendingListener = null;
+    }
+
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -449,159 +459,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             outState.putInt("FIRST_VISIBLE_ROW", selected);
         }
-    }
-
-    /**
-     * Manage the search response.
-     * @param searchResponse the search response
-     * @param onSearchResultListener the search result listener
-     */
-    protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
-        List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
-        ArrayList<MessageRow> messageRows = new ArrayList<>(searchResults.size());
-
-        for(SearchResult searchResult : searchResults) {
-            RoomState roomState = null;
-
-            if (null != mRoom) {
-                roomState = mRoom.getState();
-            }
-
-            if (null == roomState) {
-                Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
-
-                if (null != room) {
-                    roomState = room.getState();
-                }
-            }
-
-            boolean isValidMessage = false;
-
-            if ((null != searchResult.result) && (null != searchResult.result.content)) {
-                JsonObject object = searchResult.result.getContentAsJsonObject();
-
-                if (null != object) {
-                    isValidMessage = (0 != object.entrySet().size());
-                }
-            }
-
-            if (isValidMessage) {
-                messageRows.add(new MessageRow(searchResult.result, roomState));
-            }
-        }
-
-        Collections.reverse(messageRows);
-
-        mAdapter.clear();
-        mAdapter.addAll(messageRows);
-
-        mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-        if (null != onSearchResultListener) {
-            try {
-                onSearchResultListener.onSearchSucceed(messageRows.size());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getLocalizedMessage());
-            }
-        }
-    }
-
-    /**
-     * Search a pattern in the messages.
-     * @param pattern the pattern to search
-     * @param onSearchResultListener the search callback
-     */
-    public void searchPattern(final String pattern, final OnSearchResultListener onSearchResultListener) {
-        searchPattern(pattern, false, onSearchResultListener);
-    }
-
-    /**
-     * Search a pattern in the messages.
-     * @param pattern the pattern to search (filename for a media message)
-     * @param isMediaSearch true if is it is a media search.
-     * @param onSearchResultListener the search callback
-     */
-    public void searchPattern(final String pattern, boolean isMediaSearch, final OnSearchResultListener onSearchResultListener) {
-        if (!TextUtils.equals(mPattern, pattern)) {
-            mPattern = pattern;
-            mIsMediaSearch = isMediaSearch;
-            mAdapter.setSearchPattern(mPattern);
-
-            // something to search
-            if (!TextUtils.isEmpty(mPattern)) {
-                List<String> roomIds = null;
-
-                // sanity checks
-                if (null != mRoom) {
-                    roomIds = Arrays.asList(mRoom.getRoomId());
-                }
-
-                //
-                ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
-                    @Override
-                    public void onSuccess(final SearchResponse searchResponse) {
-                        // check that the pattern was not modified before the end of the search
-                        if (TextUtils.equals(mPattern, pattern)) {
-                            onSearchResponse(searchResponse, onSearchResultListener);
-                        }
-                    }
-
-                    private void onError() {
-                        if (null != onSearchResultListener) {
-                            try {
-                                onSearchResultListener.onSearchFailed();
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
-                            }
-                        }
-                    }
-
-                    // the request will be auto restarted when a valid network will be found
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
-                        onError();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
-                        onError();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
-                        onError();
-                    }
-                };
-
-                if (isMediaSearch) {
-                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
-                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
-
-                } else {
-                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
-                }
-            }
-        }
-    }
-
-    /**
-     * Create the messageFragment.
-     * Should be inherited.
-     * @param roomId the roomID
-     * @return the MatrixMessagesFragment
-     */
-    public MatrixMessagesFragment createMessagesFragmentInstance(String roomId) {
-        return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
-    }
-
-    /**
-     * @return the fragment tag to use to restore the matrix messages fragment
-     */
-    protected String getMatrixMessagesFragmentTag() {
-        return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     }
 
     /**
@@ -655,7 +512,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // check if the session has not been logged out
         if (mSession.isAlive() && (null != mRoom) && mIsLive) {
-            mRoom.removeEventListener(mEventsListenener);
+            mRoom.removeEventListener(mEventsListener);
         }
 
         cancelCatchingRequests();
@@ -670,21 +527,93 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
-                room.addEventListener(mEventsListenener);
+                room.addEventListener(mEventsListener);
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
         }
     }
 
-    public void sendTextMessage(String body) {
-        sendMessage(Message.MSGTYPE_TEXT, body, null, null);
+    //==============================================================================================================
+    // general methods
+    //==============================================================================================================
+
+    /**
+     * Create the messageFragment.
+     * Should be inherited.
+     * @param roomId the roomID
+     * @return the MatrixMessagesFragment
+     */
+    public MatrixMessagesFragment createMessagesFragmentInstance(String roomId) {
+        return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
     }
 
-    public void sendTextMessage(String body, String formattedBody, String format) {
-        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
+    /**
+     * @return the fragment tag to use to restore the matrix messages fragment
+     */
+    protected String getMatrixMessagesFragmentTag() {
+        return "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MATRIX_MESSAGES";
     }
 
+    /**
+     * Create the messages adapter.
+     * This method must be overriden to provide a valid creation
+     * @return the messages adapter.
+     */
+    public MessagesAdapter createMessagesAdapter() {
+        return null;
+    }
+
+    /**
+     * The user scrolls the list.
+     * Apply an expected behaviour
+     * @param event the scroll event
+     */
+    public void onListTouch(MotionEvent event) {
+    }
+
+    /**
+     * Scroll the listview to a dedicated index when the list is loaded.
+     * @param index the index
+     */
+    public void scrollToIndexWhenLoaded(int index) {
+        mScrollToIndex = index;
+    }
+
+    /**
+     * return true to display all the events.
+     * else the unknown events will be hidden.
+     */
+    public boolean isDisplayAllEvents() {
+        return true;
+    }
+
+
+
+    /**
+     * @return the max thumbnail width
+     */
+    public int getMaxThumbnailWith() {
+        return mAdapter.getMaxThumbnailWith();
+    }
+
+    /**
+     * @return the max thumbnail height
+     */
+    public int getMaxThumbnailHeight() {
+        return mAdapter.getMaxThumbnailHeight();
+    }
+
+    /**
+     * Notify the fragment that some bing rules could have been updated.
+     */
+    public void onBingRulesUpdate() {
+        mAdapter.onBingRulesUpdate();
+    }
+
+    /**
+     * Scroll the listview to the last item.
+     */
     public void scrollToBottom() {
         mMessageListView.postDelayed(new Runnable() {
             @Override
@@ -716,10 +645,213 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Redact an event from its event id.
+     * @param eventId the event id.
+     */
+    protected void redactEvent(String eventId) {
+        // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
+        mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event redactedEvent) {
+
+                // create a dummy redacted event to manage the redation.
+                // some redatec events are not removed from the history but they are pruned.
+                Event redacterEvent = new Event();
+                redacterEvent.roomId = redactedEvent.roomId;
+                redacterEvent.redacts = redactedEvent.eventId;
+                redacterEvent.type = Event.EVENT_TYPE_REDACTION;
+
+                onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+
+                if (null != mEventSendingListener) {
+                    try {
+                        mEventSendingListener.onMessageRedacted(redactedEvent);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                    }
+                }
+            }
+
+            private void onError() {
+                Toast.makeText(getActivity(), getActivity().getString(R.string.could_not_redact), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError();
+            }
+        });
+    }
+
+    /**
+     * Tells if an event is supported by the fragment.
+     * @param event the event to test
+     * @return true it is supported.
+     */
+    private boolean canAddEvent(Event event) {
+        String type = event.type;
+
+        return mDisplayAllEvents ||
+                Event.EVENT_TYPE_MESSAGE.equals(type)          ||
+                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
+                Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
+                Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
+                Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
+                Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
+                (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
+                ;
+    }
+
+    //==============================================================================================================
+    // Messages sending method.
+    //==============================================================================================================
+
+    /**
+     * Warns that a message sending has failed.
+     * @param event the event
+     */
+    private void onMessageSendingFailed(Event event) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onMessageSendingFailed(event);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Warns that a message sending succeeds.
+     * @param event the events
+     */
+    private void onMessageSendingSucceeded(Event event) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onMessageSendingSucceeded(event);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Send a messsage in the room.
+     * @param message the message to send.
+     */
+    private void send(final Message message) {
+        send(addMessageRow(message));
+    }
+
+    /**
+     * Send a message row in the dedicated room.
+     * @param messageRow the message row to send.
+     */
+    private void send(final MessageRow messageRow)  {
+        // add sanity check
+        if (null == messageRow) {
+            return;
+        }
+
+        final Event event = messageRow.getEvent();
+
+        if (!event.isUndeliverable()) {
+            final String prevEventId = event.eventId;
+
+            mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    onMessageSendingSucceeded(event);
+                    mAdapter.updateEventById(event, prevEventId);
+
+                    // pending resending ?
+                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                        resend(mResendingEventsList.get(0));
+                        mResendingEventsList.remove(0);
+                    }
+                }
+
+                private void commonFailure(final Event event) {
+                    if (null != MatrixMessageListFragment.this.getActivity()) {
+                        // display the error message only if the message cannot be resent
+                        if ((null != event.unsentException) && (event.isUndeliverable())) {
+                            if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        } else if (null != event.unsentMatrixError) {
+                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                        }
+
+                        mAdapter.notifyDataSetChanged();
+
+                        onMessageSendingFailed(event);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    commonFailure(event);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    commonFailure(event);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    commonFailure(event);
+                }
+            });
+        }
+    }
+
+    /**
+     * Send a text message.
+     * @param body the text message to send.
+     */
+    public void sendTextMessage(String body) {
+        sendMessage(Message.MSGTYPE_TEXT, body, null, null);
+    }
+
+    /**
+     * Send a formatted text message.
+     * @param body the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param format the format
+     */
+    public void sendTextMessage(String body, String formattedBody, String format) {
+        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
+    }
+
+    /**
+     * Send a message of type msgType with a dedicated body.
+     * @param msgType the message type.
+     * @param body the message body
+     */
     private void sendMessage(String msgType, String body) {
         sendMessage(msgType, body, null, null);
     }
 
+    /**
+     * Send a message of type msgType with a formatted body
+     * @param msgType the message type
+     * @param body the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param format the format
+     */
     private void sendMessage(String msgType, String body, String formattedBody, String format) {
         Message message = new Message();
         message.msgtype = msgType;
@@ -734,51 +866,58 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message);
     }
 
+    /**
+     * Send an emote
+     * @param emote the emote
+     */
     public void sendEmote(String emote) {
         sendMessage(Message.MSGTYPE_EMOTE, emote);
     }
 
-    private void commonMediaUpload(ContentResponse uploadResponse, int serverReponseCode, final String serverErrorMessage, final MessageRow messageRow) {
+    /**
+     * The media upload fails.
+     * @param serverResponseCode the response code.
+     * @param serverErrorMessage the error message.
+     * @param messageRow the messageRow
+     */
+    private void commonMediaUploadError(int serverResponseCode, final String serverErrorMessage, final MessageRow messageRow) {
         // warn the user that the media upload fails
-        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-            if (serverReponseCode == 500) {
-                Timer relaunchTimer = new Timer();
-                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
-                relaunchTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
-                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
+        if (serverResponseCode == 500) {
+            Timer relaunchTimer = new Timer();
+            mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
+            relaunchTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
+                        mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
 
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    resend(messageRow.getEvent());
-                                }
-                            });
-                        }
+                        Handler handler = new Handler(Looper.getMainLooper());
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                resend(messageRow.getEvent());
+                            }
+                        });
                     }
-                }, 1000);
-            } else {
-                messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
-
-                if (null != getActivity()) {
-                    Toast.makeText(getActivity(),
-                            (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
-                            Toast.LENGTH_LONG).show();
                 }
-            }
+            }, 1000);
         } else {
-            send(messageRow);
+            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+            onMessageSendingFailed(messageRow.getEvent());
+
+            if (null != getActivity()) {
+                Toast.makeText(getActivity(),
+                        (null != serverErrorMessage) ? serverErrorMessage : getString(R.string.message_failed_to_upload),
+                        Toast.LENGTH_LONG).show();
+            }
         }
     }
 
     /**
      * Upload a file content
-     * @param mediaUrl the media Uurl
+     * @param mediaUrl the media URL
      * @param mimeType the media mime type
-     * @param mediaFilename the mediafilename
+     * @param mediaFilename the media filename
      */
     public void uploadFileContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
         // create a tmp row
@@ -809,36 +948,57 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new ContentManager.UploadCallback() {
-
+        getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
-            }
-
-            @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the image message
-                            FileMessage message = tmpFileMessage.deepCopy();
+                        onMessageSendingSucceeded(messageRow.getEvent());
+                        // display the pie chart.
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, mediaUrl, tmpFileMessage.getMimeType());
-                            message.url = uploadResponse.contentUri;
+            @Override
+            public void onUploadCancel(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onMessageSendingFailed(messageRow.getEvent());
+                    }
+                });
+            }
 
-                            // update the event content with the new message info
-                            messageRow.getEvent().content = JsonUtils.toJson(message);
+            @Override
+            public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        commonMediaUploadError(serverResponseCode,serverErrorMessage, messageRow);
+                    }
+                });
+            }
 
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                        }
+            @Override
+            public void onUploadComplete(final String uploadId, final String contentUri) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Build the image message
+                        FileMessage message = tmpFileMessage.deepCopy();
 
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, messageRow);
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, mediaUrl, tmpFileMessage.getMimeType());
+                        message.url = contentUri;
+
+                        // update the event content with the new message info
+                        messageRow.getEvent().content = JsonUtils.toJson(message);
+
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                        send(messageRow);
                     }
                 });
             }
@@ -850,7 +1010,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param videoUrl the video url
      * @return the video thumbnail
      */
-    public String getVideoThumbailUrl(final String videoUrl) {
+    public String getVideoThumbnailUrl(final String videoUrl) {
         String thumbUrl = null;
         try {
             Uri uri = Uri.parse(videoUrl);
@@ -871,7 +1031,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param videoMimeType the video mime type
      */
     public void uploadVideoContent(final String videoUrl, final String body, final String videoMimeType) {
-        uploadVideoContent(videoUrl, getVideoThumbailUrl(videoUrl), body, videoMimeType);
+        uploadVideoContent(videoUrl, getVideoThumbnailUrl(videoUrl), body, videoMimeType);
     }
 
     /**
@@ -958,52 +1118,67 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
 
-        getSession().getContentManager().uploadContent(imageStream, filename, mimeType, uploadId, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, filename, mimeType, uploadId, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
+                        onMessageSendingSucceeded(videoRow.getEvent());
                         mAdapter.notifyDataSetChanged();
                     }
                 });
             }
 
-            @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
 
             @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
+            public void onUploadCancel(String uploadId) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // the video content has been uploaded
-                            if (isContentUpload) {
-                                // Build the image message
-                                VideoMessage message = fVideoMessage.deepCopy();
+                        onMessageSendingFailed(videoRow.getEvent());
+                    }
+                });
+            }
 
-                                // replace the thumbnail and the media contents by the computed ones
-                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, videoUrl, videoMimeType);
-                                message.url = uploadResponse.contentUri;
+            @Override
+            public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        commonMediaUploadError(serverResponseCode,serverErrorMessage, videoRow);
+                    }
+                });
+            }
 
-                                // update the event content with the new message info
-                                videoRow.getEvent().content = JsonUtils.toJson(message);
+            @Override
+            public void onUploadComplete(final String uploadId, final String contentUri) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // the video content has been uploaded
+                        if (isContentUpload) {
+                            // Build the image message
+                            VideoMessage message = fVideoMessage.deepCopy();
 
-                                Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                            } else {
-                                // ony upload the thumbnail
-                                getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
-                                fVideoMessage.info.thumbnail_url = uploadResponse.contentUri;
+                            // replace the thumbnail and the media contents by the computed ones
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, videoUrl, videoMimeType);
+                            message.url = contentUri;
 
-                                // upload the video
-                                uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
-                                return;
-                            }
+                            // update the event content with the new message info
+                            videoRow.getEvent().content = JsonUtils.toJson(message);
+
+                            Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                            send(videoRow);
+                        } else {
+                            // ony upload the thumbnail
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
+                            fVideoMessage.info.thumbnail_url = contentUri;
+
+                            // upload the video
+                            uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
                         }
-
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, videoRow);
                     }
                 });
             }
@@ -1048,42 +1223,65 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
+
             @Override
             public void onUploadStart(String uploadId) {
-            }
-
-            @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the image message
-                            ImageMessage message = tmpImageMessage.deepCopy();
+                        onMessageSendingSucceeded(imageRow.getEvent());
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, imageUrl, tmpImageMessage.getMimeType());
+            @Override
+            public void onUploadCancel(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onMessageSendingFailed(imageRow.getEvent());
+                    }
+                });
+            }
 
-                            message.thumbnailUrl = null;
-                            message.url = uploadResponse.contentUri;
-                            message.info = tmpImageMessage.info;
+            @Override
+            public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        commonMediaUploadError(serverResponseCode, serverErrorMessage, imageRow);
+                    }
+                });
+            }
 
-                            if (TextUtils.isEmpty(message.body)) {
-                                message.body = "Image";
-                            }
+            @Override
+            public void onUploadComplete(final String uploadId, final String contentUri) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Build the image message
+                        ImageMessage message = tmpImageMessage.deepCopy();
 
-                            // update the event content with the new message info
-                            imageRow.getEvent().content = JsonUtils.toJson(message);
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, tmpImageMessage.getMimeType());
 
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
+                        message.thumbnailUrl = null;
+                        message.url = contentUri;
+                        message.info = tmpImageMessage.info;
+
+                        if (TextUtils.isEmpty(message.body)) {
+                            message.body = "Image";
                         }
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, imageRow);
+
+                        // update the event content with the new message info
+                        imageRow.getEvent().content = JsonUtils.toJson(message);
+
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                        send(imageRow);
                     }
                 });
             }
@@ -1128,42 +1326,72 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow locationRow = addMessageRow(tmpLocationMessage);
         locationRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        getSession().getContentManager().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new ContentManager.UploadCallback() {
+        getSession().getMediasCache().uploadContent(imageStream, tmpLocationMessage.body, thumbnailMimeType, thumbnailUrl, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
-            }
-
-            @Override
-            public void onUploadProgress(String anUploadId, int percentageProgress) {
-            }
-
-            @Override
-            public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverReponseCode, final String serverErrorMessage) {
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if ((null != uploadResponse) && (null != uploadResponse.contentUri)) {
-                            // Build the location message
-                            LocationMessage message = tmpLocationMessage.deepCopy();
+                        onMessageSendingSucceeded(locationRow.getEvent());
+                        mAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
 
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(uploadResponse.contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
 
-                            message.thumbnail_url = uploadResponse.contentUri;
+            @Override
+            public void onUploadCancel(String uploadId) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onMessageSendingFailed(locationRow.getEvent());
+                    }
+                });
+            }
 
-                            // update the event content with the new message info
-                            locationRow.getEvent().content = JsonUtils.toJson(message);
+            @Override
+            public void onUploadError(String uploadId, final int serverResponseCode, final String serverErrorMessage) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        commonMediaUploadError(serverResponseCode,serverErrorMessage, locationRow);
+                    }
+                });
+            }
 
-                            Log.d(LOG_TAG, "Uploaded to " + uploadResponse.contentUri);
-                        }
+            @Override
+            public void onUploadComplete(final String uploadId, final String contentUri) {
 
-                        commonMediaUpload(uploadResponse, serverReponseCode, serverErrorMessage, locationRow);
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Build the location message
+                        LocationMessage message = tmpLocationMessage.deepCopy();
+
+                        // replace the thumbnail and the media contents by the computed ones
+                        getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+
+                        message.thumbnail_url = contentUri;
+
+                        // update the event content with the new message info
+                        locationRow.getEvent().content = JsonUtils.toJson(message);
+
+                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                        send(locationRow);
                     }
                 });
             }
         });
     }
 
+    //==============================================================================================================
+    // Unsent messages management
+    //==============================================================================================================
+
+    /**
+     * Delete the unsent (undeliverable messages).
+     */
     public void deleteUnsentMessages() {
         Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
 
@@ -1317,67 +1545,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         send(message);
     }
 
-    private void send(final Message message) {
-        send(addMessageRow(message));
-    }
-
-    private void send(final MessageRow messageRow)  {
-        // add sanity check
-        if (null == messageRow) {
-            return;
-        }
-
-        final Event event = messageRow.getEvent();
-
-        if (!event.isUndeliverable()) {
-            final String prevEventId = event.eventId;
-
-            mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    mAdapter.updateEventById(event, prevEventId);
-
-                    // pending resending ?
-                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
-                        resend(mResendingEventsList.get(0));
-                        mResendingEventsList.remove(0);
-                    }
-                }
-
-                private void commonFailure(final Event event) {
-                    if (null != MatrixMessageListFragment.this.getActivity()) {
-                        // display the error message only if the message cannot be resent
-                        if ((null != event.unsentException) && (event.isUndeliverable())) {
-                            if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        } else if (null != event.unsentMatrixError) {
-                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
-                        }
-
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    commonFailure(event);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    commonFailure(event);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    commonFailure(event);
-                }
-            });
-        }
-    }
+    //==============================================================================================================
+    // UI stuff
+    //==============================================================================================================
 
     /**
      * Display a spinner to warn the user that a back pagination is in progress.
@@ -1415,10 +1585,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void hideInitLoading() {
     }
 
+    /**
+     * Refresh the messages list.
+     */
     public void refresh() {
         mAdapter.notifyDataSetChanged();
     }
 
+    //==============================================================================================================
+    // pagination methods
+    //==============================================================================================================
 
     /**
      * Manage the request history error cases.
@@ -1444,122 +1620,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Cancel the current search
-     */
-    protected void cancelSearch() {
-        mPattern = null;
-    }
-
-    /**
-     * Search the pattern on a pagination server side.
-     */
-    public void requestSearchHistory() {
-        // there is no more server message
-        if (TextUtils.isEmpty(mNextBatch)) {
-            mIsBackPaginating = false;
-            return;
-        }
-
-        mIsBackPaginating = true;
-
-        final int firstPos = mMessageListView.getFirstVisiblePosition();
-        final String fPattern = mPattern;
-        final int countBeforeUpdate = mAdapter.getCount();
-
-        showLoadingBackProgress();
-
-        List<String> roomIds = null;
-
-        if (null != mRoom) {
-            roomIds = Arrays.asList(mRoom.getRoomId());
-        }
-
-        ApiCallback<SearchResponse> callback = new ApiCallback<SearchResponse>() {
-            @Override
-            public void onSuccess(final SearchResponse searchResponse) {
-                if (TextUtils.equals(mPattern, fPattern)) {
-                    // check that the pattern was not modified before the end of the search
-                    if (TextUtils.equals(mPattern, fPattern)) {
-                        List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
-
-                        // is there any result to display
-                        if (0 != searchResults.size()) {
-                            mAdapter.setNotifyOnChange(false);
-
-                            for (SearchResult searchResult : searchResults) {
-                                MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getState());
-                                mAdapter.insert(row, 0);
-                            }
-
-                            mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                            // Scroll the list down to where it was before adding rows to the top
-                            getUiHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
-
-                                    mAdapter.notifyDataSetChanged();
-                                    // trick to avoid that the list jump to the latest item.
-                                    mMessageListView.setAdapter(mMessageListView.getAdapter());
-
-                                    // do not use count because some messages are not displayed
-                                    // so we compute the new pos
-                                    mMessageListView.setSelection(expectedFirstPos);
-
-                                    mMessageListView.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mIsBackPaginating = false;
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            mIsBackPaginating = false;
-                        }
-
-                       hideLoadingBackProgress();
-                    }
-                }
-            }
-
-            private void onError() {
-                mIsBackPaginating = false;
-                hideLoadingBackProgress();
-            }
-
-            // the request will be auto restarted when a valid network will be found
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "Network error: " + e.getMessage());
-                onError();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
-                onError();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
-                onError();
-            }
-        };
-
-
-        if (mIsMediaSearch) {
-            String[] mediaTypes = {"m.image", "m.video", "m.file"};
-            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
-
-        } else {
-            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
-        }
-    }
-
-    /**
      * Start a forward pagination
      */
     private void forwardPaginate() {
@@ -1569,7 +1629,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if ((null == mEventTimeLine) || mEventTimeLine.isLiveTimeline()) {
-            Log.d(LOG_TAG, "The forward pagination is not supported for the live timeline.");
+            //Log.d(LOG_TAG, "The forward pagination is not supported for the live timeline.");
             return;
         }
 
@@ -1654,6 +1714,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * Trigger a back pagination.
+     * @param fillHistory true to try to fill the listview height.
+     */
     public void backPaginate(final boolean fillHistory) {
         if (mIsBackPaginating) {
             Log.d(LOG_TAG, "backPaginate is in progress : please wait");
@@ -1788,25 +1852,31 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
-    protected void redactEvent(String eventId) {
-        // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
-        mMatrixMessagesFragment.redact(eventId,
-                new SimpleApiCallback<Event>(new ToastErrorHandler(getActivity(), getActivity().getString(R.string.could_not_redact))));
+    /**
+     * Cancel the catching requests.
+     */
+    public void cancelCatchingRequests() {
+        mPattern = null;
+
+        if (null != mEventTimeLine) {
+            mEventTimeLine.cancelPaginationRequest();
+        }
+
+        mIsInitialSyncing = false;
+        mIsBackPaginating = false;
+        mIsFwdPaginating = false;
+
+        mLockBackPagination = false;
+        mLockFwdPagination = false;
+
+        hideInitLoading();
+        hideLoadingBackProgress();
+        hideLoadingForwardProgress();
     }
 
-    private boolean canAddEvent(Event event) {
-        String type = event.type;
-
-        return mDisplayAllEvents ||
-                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
-                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
-                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
-                 Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
-                 Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
-                 (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
-                ;
-    }
+    //==============================================================================================================
+    // MatrixMessagesFrament methods
+    //==============================================================================================================
 
     @Override
     public void onEvent(final Event event, final EventTimeline.Direction direction, final RoomState roomState) {
@@ -1920,6 +1990,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    @Override
     public void onInitialMessagesLoaded() {
         Log.d(LOG_TAG, "onInitialMessagesLoaded");
 
@@ -1988,11 +2059,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         });
     }
 
-    @Override public EventTimeline getEventTimeLine() {
+    @Override
+    public EventTimeline getEventTimeLine() {
         return mEventTimeLine;
     }
 
-    @Override public void onTimelineInitialized() {
+    @Override
+    public void onTimelineInitialized() {
         mMessageListView.post(new Runnable() {
             @Override
             public void run() {
@@ -2025,7 +2098,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // test if the listener has bee retrieved
             if (null == mRoomPreviewDataListener) {
                 try {
-                    mRoomPreviewDataListener = (RoomPreviewDataListener) getActivity();
+                    mRoomPreviewDataListener = (IRoomPreviewDataListener) getActivity();
                 } catch (ClassCastException e) {
                     Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getLocalizedMessage());
                 }
@@ -2040,7 +2113,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onRoomSyncWithLimitedTimeline() {
+    public void onRoomFlush() {
         mAdapter.clear();
     }
 
@@ -2150,19 +2223,259 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onMessageIdClick(String messageId) {
     }
 
-    // thumbnails management
-    public int getMaxThumbnailWith() {
-        return mAdapter.getMaxThumbnailWith();
-    }
+    //==============================================================================================================
+    // search methods
+    //==============================================================================================================
 
-    public int getMaxThumbnailHeight() {
-        return mAdapter.getMaxThumbnailHeight();
+    /**
+     * Cancel the current search
+     */
+    protected void cancelSearch() {
+        mPattern = null;
     }
 
     /**
-     * Notify the fragment that some bing rules could have been updated.
+     * Search the pattern on a pagination server side.
      */
-    public void onBingRulesUpdate() {
-        mAdapter.onBingRulesUpdate();
+    public void requestSearchHistory() {
+        // there is no more server message
+        if (TextUtils.isEmpty(mNextBatch)) {
+            mIsBackPaginating = false;
+            return;
+        }
+
+        mIsBackPaginating = true;
+
+        final int firstPos = mMessageListView.getFirstVisiblePosition();
+        final String fPattern = mPattern;
+        final int countBeforeUpdate = mAdapter.getCount();
+
+        showLoadingBackProgress();
+
+        List<String> roomIds = null;
+
+        if (null != mRoom) {
+            roomIds = Arrays.asList(mRoom.getRoomId());
+        }
+
+        ApiCallback<SearchResponse> callback = new ApiCallback<SearchResponse>() {
+            @Override
+            public void onSuccess(final SearchResponse searchResponse) {
+                if (TextUtils.equals(mPattern, fPattern)) {
+                    // check that the pattern was not modified before the end of the search
+                    if (TextUtils.equals(mPattern, fPattern)) {
+                        List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
+
+                        // is there any result to display
+                        if (0 != searchResults.size()) {
+                            mAdapter.setNotifyOnChange(false);
+
+                            for (SearchResult searchResult : searchResults) {
+                                MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getState());
+                                mAdapter.insert(row, 0);
+                            }
+
+                            mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+                            // Scroll the list down to where it was before adding rows to the top
+                            getUiHandler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
+
+                                    mAdapter.notifyDataSetChanged();
+                                    // trick to avoid that the list jump to the latest item.
+                                    mMessageListView.setAdapter(mMessageListView.getAdapter());
+
+                                    // do not use count because some messages are not displayed
+                                    // so we compute the new pos
+                                    mMessageListView.setSelection(expectedFirstPos);
+
+                                    mMessageListView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mIsBackPaginating = false;
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
+                            mIsBackPaginating = false;
+                        }
+
+                        hideLoadingBackProgress();
+                    }
+                }
+            }
+
+            private void onError() {
+                mIsBackPaginating = false;
+                hideLoadingBackProgress();
+            }
+
+            // the request will be auto restarted when a valid network will be found
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                onError();
+            }
+        };
+
+
+        if (mIsMediaSearch) {
+            String[] mediaTypes = {"m.image", "m.video", "m.file"};
+            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
+
+        } else {
+            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
+        }
+    }
+
+    /**
+     * Manage the search response.
+     * @param searchResponse the search response
+     * @param onSearchResultListener the search result listener
+     */
+    protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
+        List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
+        ArrayList<MessageRow> messageRows = new ArrayList<>(searchResults.size());
+
+        for(SearchResult searchResult : searchResults) {
+            RoomState roomState = null;
+
+            if (null != mRoom) {
+                roomState = mRoom.getState();
+            }
+
+            if (null == roomState) {
+                Room room = mSession.getDataHandler().getStore().getRoom(searchResult.result.roomId);
+
+                if (null != room) {
+                    roomState = room.getState();
+                }
+            }
+
+            boolean isValidMessage = false;
+
+            if ((null != searchResult.result) && (null != searchResult.result.content)) {
+                JsonObject object = searchResult.result.getContentAsJsonObject();
+
+                if (null != object) {
+                    isValidMessage = (0 != object.entrySet().size());
+                }
+            }
+
+            if (isValidMessage) {
+                messageRows.add(new MessageRow(searchResult.result, roomState));
+            }
+        }
+
+        Collections.reverse(messageRows);
+
+        mAdapter.clear();
+        mAdapter.addAll(messageRows);
+
+        mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+        if (null != onSearchResultListener) {
+            try {
+                onSearchResultListener.onSearchSucceed(messageRows.size());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, final OnSearchResultListener onSearchResultListener) {
+        searchPattern(pattern, false, onSearchResultListener);
+    }
+
+    /**
+     * Search a pattern in the messages.
+     * @param pattern the pattern to search (filename for a media message)
+     * @param isMediaSearch true if is it is a media search.
+     * @param onSearchResultListener the search callback
+     */
+    public void searchPattern(final String pattern, boolean isMediaSearch, final OnSearchResultListener onSearchResultListener) {
+        if (!TextUtils.equals(mPattern, pattern)) {
+            mPattern = pattern;
+            mIsMediaSearch = isMediaSearch;
+            mAdapter.setSearchPattern(mPattern);
+
+            // something to search
+            if (!TextUtils.isEmpty(mPattern)) {
+                List<String> roomIds = null;
+
+                // sanity checks
+                if (null != mRoom) {
+                    roomIds = Arrays.asList(mRoom.getRoomId());
+                }
+
+                //
+                ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
+                    @Override
+                    public void onSuccess(final SearchResponse searchResponse) {
+                        // check that the pattern was not modified before the end of the search
+                        if (TextUtils.equals(mPattern, pattern)) {
+                            onSearchResponse(searchResponse, onSearchResultListener);
+                        }
+                    }
+
+                    private void onError() {
+                        if (null != onSearchResultListener) {
+                            try {
+                                onSearchResultListener.onSearchFailed();
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                            }
+                        }
+                    }
+
+                    // the request will be auto restarted when a valid network will be found
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                        onError();
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                        onError();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                        onError();
+                    }
+                };
+
+                if (isMediaSearch) {
+                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
+                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
+
+                } else {
+                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
+                }
+            }
+        }
     }
 }

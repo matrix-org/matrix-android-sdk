@@ -33,6 +33,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -55,6 +57,7 @@ import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
@@ -142,6 +145,32 @@ public class Room {
      */
     public MXDataHandler getDataHandler() {
         return mDataHandler;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isConferenceUserRoom() {
+        return getLiveState().isConferenceUserRoom();
+    }
+
+    /**
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
+     */
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
+    }
+
+    /**
+     * Test if there is an ongoing conference call.
+     * @return true if there is one.
+     */
+    public boolean isOngoingConferenceCall() {
+        RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
+        return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
     //================================================================================
@@ -319,10 +348,13 @@ public class Room {
     public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = getState().getMembers();
         ArrayList<RoomMember> activeMembers = new ArrayList<>();
+        String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
         for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) ||TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                activeMembers.add(member);
+            if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
+                if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                    activeMembers.add(member);
+                }
             }
         }
 
@@ -509,6 +541,13 @@ public class Room {
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
+
+                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                    // 'Error when trying to join an empty room should be more explicit
+                    e.error = mStore.getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                }
+
                 callback.onMatrixError(e);
             }
 
@@ -1330,7 +1369,7 @@ public class Room {
      * @return true if a call can be performed.
      */
     public boolean canPerformCall() {
-        return 1 == callees().size();
+        return getActiveMembers().size() > 1;
     }
 
     /**
@@ -1633,13 +1672,13 @@ public class Room {
             }
 
             @Override
-            public void onRoomSyncWithLimitedTimeline(String roomId) {
+            public void onRoomFlush(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
                     try {
-                        eventListener.onRoomSyncWithLimitedTimeline(roomId);
+                        eventListener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage());
                     }
                 }
             }
@@ -1780,12 +1819,77 @@ public class Room {
     }
 
     /**
+     * Cancel the event sending.
+     * Any media upload will be cancelled too.
+     * The event becomes undeliverable.
+     * @param event the message
+     */
+    public void cancelEventSending(final Event event) {
+        if (null != event) {
+            if ((Event.SentState.UNSENT == event.mSentState) ||
+                    (Event.SentState.SENDING == event.mSentState) ||
+                    (Event.SentState.WAITING_RETRY == event.mSentState)) {
+
+                // the message cannot be sent anymore
+                event.mSentState = Event.SentState.UNDELIVERABLE;
+            }
+
+            List<String> urls =  event.getMediaUrls();
+            MXMediasCache cache = mDataHandler.getMediasCache();
+
+            for(String url : urls) {
+                cache.cancelUpload(url);
+                cache.cancelDownload(cache.downloadIdFromUrl(url));
+            }
+        }
+    }
+
+    /**
      * Redact an event from the room.
      * @param eventId the event's id
-     * @param callback the callback with the created event
+     * @param callback the callback with the redacted event
      */
-    public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, callback);
+    public void redact(final String eventId, final ApiCallback<Event> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                Event redactedEvent = mStore.getEvent(eventId, getRoomId());
+
+                // test if the redacted event has been echoed
+                // it it was not echoed, the event must be pruned to remove useless data
+                // the room summary will be updated when the server will echo the redacted event
+                if ((null != redactedEvent) && ((null == redactedEvent.unsigned) || (null == redactedEvent.unsigned.redacted_because))) {
+                    redactedEvent.prune(null);
+                    mStore.storeLiveRoomEvent(redactedEvent);
+                    mStore.commit();
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(redactedEvent);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**

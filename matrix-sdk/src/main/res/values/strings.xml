@@ -37,6 +37,10 @@
     <string name="notice_room_visibility_world_readable">anyone.</string>
     <string name="notice_room_visibility_unknown">unknown (%s).</string>
 
+    <string name="notice_requested_voip_conference">%1$s requested a VoIP conference</string>
+    <string name="notice_voip_started">VoIP conference started</string>
+    <string name="notice_voip_finished">VoIP conference finished</string>
+
     <string name="notice_avatar_changed_too">(avatar was changed too)</string>
     <string name="notice_room_name_removed">%1$s removed the room name</string>
     <string name="notice_room_topic_removed">%1$s removed the room topic</string>
@@ -96,9 +100,7 @@
     <string name="call_error_user_media_failed">Camera initialization error.</string>
     <string name="call_error_ice_failed">Connection failed..</string>
 
-
-
-
-
+    <!-- room error messages -->
+    <string name="room_error_join_failed_empty_room">It is not currently possible to re-join an empty room.</string>
 
 </resources>

@@ -17,10 +17,12 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -30,6 +32,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +42,8 @@ import java.util.Map;
  * The state of a room.
  */
 public class RoomState implements java.io.Serializable {
+    private static final String LOG_TAG = "RoomState";
+
     public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
     public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
 
@@ -112,16 +117,16 @@ public class RoomState implements java.io.Serializable {
     private String token;
 
     // the room members
-    private Map<String, RoomMember> mMembers = new HashMap<String, RoomMember>();
+    private final Map<String, RoomMember> mMembers = new HashMap<>();
 
     // the third party invite members
-    private Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<String, RoomThirdPartyInvite>();
+    private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
 
     /**
      * Cache for [self memberWithThirdPartyInviteToken].
      * The key is the 3pid invite token.
      */
-    private Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<String, RoomMember>();
+    private final Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<>();
 
     /**
      * Additional and optional metadata got from initialSync
@@ -133,12 +138,16 @@ public class RoomState implements java.io.Serializable {
      */
     private boolean mIsLive;
 
+    /**
+     * Tell if the room is a user conference user one
+     */
+    private Boolean mIsConferenceUserRoom = null;
 
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
 
     // member display cache
-    private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<String, String>();
+    private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<>();
 
     // get the guest access
     // avoid the null case
@@ -162,10 +171,17 @@ public class RoomState implements java.io.Serializable {
         return RoomState.HISTORY_VISIBILITY_SHARED;
     }
 
+    /**
+     * @return the state token
+     */
     public String getToken() {
         return token;
     }
 
+    /**
+     * Update the token.
+     * @param token the new token
+     */
     public void setToken(String token) {
         this.token = token;
     }
@@ -175,6 +191,9 @@ public class RoomState implements java.io.Serializable {
         return url;
     }
 
+    /**
+     * @return a copy of the room members list.
+     */
     public Collection<RoomMember> getMembers() {
         ArrayList<RoomMember> res;
 
@@ -186,6 +205,65 @@ public class RoomState implements java.io.Serializable {
         return res;
     }
 
+    /**
+     * Provides a list of displayable members.
+     * Some dummy members are created to internal stuff.
+     * @return a copy of the displayable room members list.
+     */
+    public Collection<RoomMember> getDisplayableMembers() {
+        Collection<RoomMember> members = getMembers();
+
+        RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+
+        if (null != conferenceUserId) {
+            ArrayList<RoomMember> membersList = new ArrayList<>(members);
+            membersList.remove(conferenceUserId);
+            members = membersList;
+        }
+
+        return members;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isConferenceUserRoom() {
+        // test if it is not yet initialized
+        if (null == mIsConferenceUserRoom) {
+
+            mIsConferenceUserRoom = false;
+
+            Collection<RoomMember> members = getMembers();
+
+            // works only with 1:1 room
+            if (2 == members.size()) {
+                for(RoomMember member : members) {
+                    if (MXCallsManager.isConferenceUserId(member.getUserId())) {
+                        mIsConferenceUserRoom = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return mIsConferenceUserRoom;
+    }
+
+    /**
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
+     */
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        mIsConferenceUserRoom = isConferenceUserRoom;
+    }
+
+    /**
+     * Update the room member from its user id.
+     * @param userId the user id.
+     * @param member the new member value.
+     */
     public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
@@ -199,6 +277,11 @@ public class RoomState implements java.io.Serializable {
         }
     }
 
+    /**
+     * Retrieve a room member from its user id.
+     * @param userId the user id.
+     * @return the linked member it exists.
+     */
     public RoomMember getMember(String userId) {
         RoomMember member;
 
@@ -209,24 +292,44 @@ public class RoomState implements java.io.Serializable {
         return member;
     }
 
+    /**
+     * Remove a member defines by its user id.
+     * @param userId the user id.
+     */
     public void removeMember(String userId) {
         synchronized (this) {
             mMembers.remove(userId);
         }
     }
 
+    /**
+     * Retrieve a member from an invitation token.
+     * @param thirdPartyInviteToken the third party invitation token.
+     * @return the member it exists.
+     */
     public RoomMember memberWithThirdPartyInviteToken(String thirdPartyInviteToken) {
         return mMembersWithThirdPartyInviteTokenCache.get(thirdPartyInviteToken);
     }
 
+    /**
+     * Retrieve a RoomThirdPartyInvite from its token.
+     * @param thirdPartyInviteToken the third party invitation token.
+     * @return the linked RoomThirdPartyInvite if it exists
+     */
     public RoomThirdPartyInvite thirdPartyInviteWithToken(String thirdPartyInviteToken) {
         return mThirdPartyInvites.get(thirdPartyInviteToken);
     }
 
+    /**
+     * @return the third party invite list.
+     */
     public Collection<RoomThirdPartyInvite> thirdPartyInvites() {
         return mThirdPartyInvites.values();
     }
 
+    /**
+     * @return the power levels (it can be null).
+     */
     public PowerLevels getPowerLevels() {
         if (null != powerLevels) {
             return powerLevels.deepCopy();
@@ -235,30 +338,55 @@ public class RoomState implements java.io.Serializable {
         }
     }
 
+    /**
+     * Update the power levels.
+     * @param powerLevels the new power levels
+     */
     public void setPowerLevels(PowerLevels powerLevels) {
         this.powerLevels = powerLevels;
     }
 
+    /**
+     * Update the linked dataHandler.
+     * @param dataHandler the new dataHandler
+     */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
     }
 
+    /**
+     * @return the user dataHandler
+     */
     public MXDataHandler getDataHandler() {
         return (MXDataHandler)mDataHandler;
     }
 
+    /**
+     * Update the notified messages count.
+     * @param notificationCount the new notified messages count.
+     */
     public void setNotificationCount(int notificationCount) {
         mNotificationCount = notificationCount;
     }
 
+    /**
+     * @return the notified messages count.
+     */
     public int getNotificationCount() {
         return mNotificationCount;
     }
 
+    /**
+     * Update the highlighted messages count.
+     * @param highlightCount the new highlighted messages count.
+     */
     public void setHighlightCount(int highlightCount) {
         mHighlightCount = highlightCount;
     }
 
+    /**
+     * @return the highlighted messages count.
+     */
     public int getHighlightCount() {
         return mHighlightCount;
     }
@@ -288,7 +416,7 @@ public class RoomState implements java.io.Serializable {
         RoomState copy = new RoomState();
         copy.roomId = roomId;
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
-        copy.aliases = (aliases == null) ? null : new ArrayList<String>(aliases);
+        copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
         copy.alias = this.alias;
         copy.name = name;
         copy.topic = topic;
@@ -303,7 +431,7 @@ public class RoomState implements java.io.Serializable {
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
-
+        copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -539,6 +667,7 @@ public class RoomState implements java.io.Serializable {
                 }
             }
         } catch (Exception e) {
+            Log.e(LOG_TAG, "applyState failed with error " + e.getLocalizedMessage());
         }
 
         return true;
@@ -566,7 +695,7 @@ public class RoomState implements java.io.Serializable {
 
         synchronized (this) {
             if (null == mMemberDisplayNameByUserId) {
-                mMemberDisplayNameByUserId = new HashMap<String, String>();
+                mMemberDisplayNameByUserId = new HashMap<>();
             }
             displayName = mMemberDisplayNameByUserId.get(userId);
         }
@@ -579,30 +708,26 @@ public class RoomState implements java.io.Serializable {
         RoomMember member = getMember(userId);
 
         // Do not consider null display name
-        if ((null != member) &&  !TextUtils.isEmpty(member.displayname)) {
+        if ((null != member)  && !TextUtils.isEmpty(member.displayname)) {
             displayName = member.displayname;
 
             synchronized (this) {
-                ArrayList<String> matrixIds = new ArrayList<String>();
+                ArrayList<String> matrixIds = new ArrayList<>();
 
-                // Disambiguate users who have the same displayname in the room
+                // Disambiguate users who have the same display name in the room
                 for (RoomMember aMember : mMembers.values()) {
                     if (displayName.equals(aMember.displayname)) {
                         matrixIds.add(aMember.getUserId());
                     }
                 }
 
-                // if several users have the same displayname
+                // if several users have the same display name
                 // index it i.e bob (<Matrix id>)
                 if (matrixIds.size() > 1) {
                     displayName += " (" + userId + ")";
                 }
             }
-        }
-
-        // The user may not have joined the room yet. So try to resolve display name from presence data
-        // Note: This data may not be available
-        if ((null == displayName) && (null != mDataHandler)) {
+        } else if ((null == member) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
             User user = ((MXDataHandler)mDataHandler).getUser(userId);
 
             if (null != user) {

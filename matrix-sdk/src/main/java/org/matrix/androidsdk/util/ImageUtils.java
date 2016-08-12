@@ -93,7 +93,7 @@ public class ImageUtils {
             catch (Exception e) {
                 // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
                 // eg IOException from trying to parse the returned path as a file when it is an http uri.
-                Log.e(LOG_TAG, "Cannot get orientation for bitmap: "+e);
+                Log.e(LOG_TAG, "Cannot get orientation for bitmap: " + e.getLocalizedMessage());
             }
             finally {
                 if (cursor != null) {
@@ -107,7 +107,7 @@ public class ImageUtils {
                 orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
             }
             catch (Exception e) {
-                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because "+e);
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because " + e.getLocalizedMessage());
             }
         }
 
@@ -255,9 +255,9 @@ public class ImageUtils {
                     bitmap = BitmapFactory.decodeStream(imageStream, null, options);
                     imageStream.close();
                 } catch (OutOfMemoryError e) {
-                    Log.e(LOG_TAG, "applyExifRotation BitmapFactory.decodeStream : " + e.getMessage());
+                    Log.e(LOG_TAG, "applyExifRotation BitmapFactory.decodeStream : " + e.getLocalizedMessage());
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+                    Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
                 }
 
                 android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
@@ -273,9 +273,9 @@ public class ImageUtils {
             }
 
         } catch (OutOfMemoryError e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
         }
 
         return rotatedBitmap;
@@ -303,7 +303,7 @@ public class ImageUtils {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
         }
 
         return rotatedBitmap;
@@ -326,7 +326,7 @@ public class ImageUtils {
                 url = mediasCache.saveMedia(scaledStream, null, mimeType);
                 rotateImage(context, url, rotationAngle, mediasCache);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "rotateAndScale " + e.getMessage());
+                Log.e(LOG_TAG, "rotateAndScale " + e.getLocalizedMessage());
             }
         }
         return url;

@@ -229,7 +229,9 @@ public class UnsentEventsManager {
      */
     public static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
         if (null != error) {
-            Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
+            // privacy
+            //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
+            Log.e(LOG_TAG, error.getLocalizedMessage());
         }
 
         if (null == error) {
@@ -241,7 +243,9 @@ public class UnsentEventsManager {
                     callback.onUnexpectedError(error);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                // privacy
+                //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
             }
         }
         else if (error.isNetworkError()) {
@@ -253,7 +257,9 @@ public class UnsentEventsManager {
                     callback.onNetworkError(error);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+                // privacy
+                //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+                Log.e(LOG_TAG, "Exception NetworkError " + e.getLocalizedMessage());
             }
         }
         else {
@@ -278,7 +284,9 @@ public class UnsentEventsManager {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                    // privacy
+                    //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                    Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage());
                 }
             }
             else {
@@ -291,7 +299,9 @@ public class UnsentEventsManager {
                         callback.onUnexpectedError(error);
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                    // privacy
+                    //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
                 }
             }
         }

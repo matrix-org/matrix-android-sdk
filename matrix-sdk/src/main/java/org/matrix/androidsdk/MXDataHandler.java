@@ -27,7 +27,9 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -89,6 +91,7 @@ public class MXDataHandler implements IMXEventListener {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
+    private MXMediasCache mMediasCache;
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
@@ -316,6 +319,24 @@ public class MXDataHandler implements IMXEventListener {
     public MXCallsManager getCallsManager() {
         checkIfAlive();
         return mCallsManager;
+    }
+
+    /**
+     * Update the medias cache.
+     * @param mediasCache the new medias cache.
+     */
+    public void setMediasCache(MXMediasCache mediasCache) {
+        checkIfAlive();
+        mMediasCache = mediasCache;
+    }
+
+    /**
+     * Retrieve the medias cache.
+     * @return the used mediasCache
+     */
+    public MXMediasCache getMediasCache() {
+        checkIfAlive();
+        return mMediasCache;
     }
 
     /**
@@ -799,7 +820,6 @@ public class MXDataHandler implements IMXEventListener {
             if (user == null) {
                 user = userPresence;
                 user.setDataHandler(this);
-                mStore.storeUser(user);
             }
             else {
                 user.currently_active = userPresence.currently_active;
@@ -819,6 +839,7 @@ public class MXDataHandler implements IMXEventListener {
                 mStore.setDisplayName(user.displayname);
             }
 
+            mStore.storeUser(user);
             this.onPresenceUpdate(presenceEvent, user);
         }
     }
@@ -1315,7 +1336,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onRoomSyncWithLimitedTimeline(final String roomId) {
+    public void onRoomFlush(final String roomId) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1323,9 +1344,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onRoomSyncWithLimitedTimeline(roomId);
+                        listener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomFlush " + e.getLocalizedMessage());
                     }
                 }
             }

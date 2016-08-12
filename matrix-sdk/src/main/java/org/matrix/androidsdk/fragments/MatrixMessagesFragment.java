@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -86,7 +87,7 @@ public class MatrixMessagesFragment extends Fragment {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
         void onLiveEventsChunkProcessed();
         void onReceiptEvent(List<String> senderIds);
-        void onRoomSyncWithLimitedTimeline();
+        void onRoomFlush();
 
         EventTimeline getEventTimeLine();
         void onTimelineInitialized();
@@ -123,11 +124,11 @@ public class MatrixMessagesFragment extends Fragment {
         }
 
         @Override
-        public void onRoomSyncWithLimitedTimeline(String roomId) {
+        public void onRoomFlush(String roomId) {
             if (null != mMatrixMessagesListener) {
                 if (mEventTimeline.isLiveTimeline()) {
                     // clear the history
-                    mMatrixMessagesListener.onRoomSyncWithLimitedTimeline();
+                    mMatrixMessagesListener.onRoomFlush();
 
                     // init the timeline
                     mEventTimeline.initHistory();
@@ -310,7 +311,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             if (null != roomPreviewData) {
                 if  (null != roomPreviewData.getRoomResponse()) {
-                    Log.d(LOG_TAG, "A preview data is provided with sync reponse");
+                    Log.d(LOG_TAG, "A preview data is provided with sync response");
                     RoomResponse roomResponse = roomPreviewData.getRoomResponse();
 
                     // initialize the timeline with the initial sync response
@@ -328,7 +329,7 @@ public class MatrixMessagesFragment extends Fragment {
                     Log.d(LOG_TAG, "The room preview is done -> fill the room history");
                     requestInitialHistory();
                 } else {
-                    Log.d(LOG_TAG, "A preview data is provided with no sync reponse : assume that it is not possible to get a room preview");
+                    Log.d(LOG_TAG, "A preview data is provided with no sync response : assume that it is not possible to get a room preview");
 
                     if (null != getActivity()) {
                         if (null != mMatrixMessagesListener) {
@@ -386,6 +387,25 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     /**
+     * Display the InitializeTimeline error.
+     * @param error the error
+     */
+    protected void displayInitializeTimelineError(Object error) {
+        String errorMessage = "";
+
+        if (error instanceof MatrixError) {
+            errorMessage = ((MatrixError)error).getLocalizedMessage();
+        } else if (error instanceof Exception) {
+            errorMessage = ((Exception)error).getLocalizedMessage();
+        }
+
+        if (!TextUtils.isEmpty(errorMessage)) {
+            Log.d(LOG_TAG, "displayInitializeTimelineError : " + errorMessage);
+            Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
      * Initialize the timeline to fill the screen
      */
     private void initializeTimeline() {
@@ -409,12 +429,10 @@ public class MatrixMessagesFragment extends Fragment {
                 }
             }
 
-            private void onError(String errorMessage) {
-                Log.d(LOG_TAG, "initializeTimeline fails " + errorMessage);
+            private void onError() {
+                Log.d(LOG_TAG, "initializeTimeline fails");
 
                 if (null != getActivity()) {
-                    Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
-
                     if (null != mMatrixMessagesListener) {
                         mMatrixMessagesListener.hideInitLoading();
                         mMatrixMessagesListener.onTimelineInitialized();
@@ -424,17 +442,20 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onNetworkError(Exception e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                onError(e.getLocalizedMessage());
+                displayInitializeTimelineError(e);
+                onError();
             }
         });
     }
@@ -507,7 +528,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Set the MX session
-     * @param session
+     * @param session the session.
      */
     public void setMXSession(MXSession session) {
         mSession = session;
@@ -543,7 +564,7 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     /**
-     * Request the next events in the timelinex
+     * Request the next events in the timeline.
      * @param callback the callback
      * @return true if the request is really started
      */
