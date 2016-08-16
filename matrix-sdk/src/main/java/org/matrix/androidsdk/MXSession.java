@@ -67,6 +67,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -116,6 +117,30 @@ public class MXSession {
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
     private boolean mIsCatchupPending = false;
+
+    // regex pattern to test if a string is a valid matrix user id.
+    public static final Pattern PATTERN_MATRIX_USER_IDENTIFIER =  Pattern.compile("^@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid room alias.
+    public static final Pattern PATTERN_MATRIX_ALIAS =  Pattern.compile("^#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid room id.
+    public static final Pattern PATTERN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("^![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to test if a string is a valid message id.
+    public static final Pattern PATTERN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("^\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find matrix user ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER =  Pattern.compile("@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find room aliases in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS =  Pattern.compile("#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find room ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find message ids in a string.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a basic session for direct API calls.
@@ -188,6 +213,7 @@ public class MXSession {
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
+        mDataHandler.setMediasCache(mMediasCache);
     }
 
     private void checkIfAlive() {
@@ -290,7 +316,7 @@ public class MXSession {
                     currentUser = user;
                 }
 
-                currentUser.lastActiveReceived();
+                currentUser.setLatestPresenceTs(System.currentTimeMillis());
                 mDataHandler.getStore().storeUser(currentUser);
                 if (null != callback) {
                     callback.onSuccess(null);
@@ -408,12 +434,8 @@ public class MXSession {
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();
 
-        // stop any pending request
-        // clear data
-        mContentManager.clear();
-
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clearCache();
+        mMediasCache.clear();
     }
 
     /**
@@ -698,12 +720,56 @@ public class MXSession {
     }
 
     /**
-     * Create a new room with given properties. Needs the data handler.
+     * Create a new room.
      *
      * @param callback   the async callback once the room is ready
      */
     public void createRoom(final ApiCallback<String> callback) {
         createRoom(null, null, null, callback);
+    }
+
+    /**
+     * Create a new room with given properties.
+     *
+     * @param params the creation parameters.
+     * @param callback the async callback once the room is ready
+     */
+    public void createRoom(final Map<String, Object> params, final ApiCallback<String> callback) {
+        mRoomsRestClient.createRoom(params, new SimpleApiCallback<CreateRoomResponse>(callback) {
+            @Override
+            public void onSuccess(CreateRoomResponse info) {
+                final String roomId = info.roomId;
+                Room createdRoom = mDataHandler.getRoom(roomId);
+
+                // the creation events are not be called during the creation
+                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
+                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            callback.onSuccess(roomId);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            callback.onNetworkError(e);
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            callback.onMatrixError(e);
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                } else {
+                    callback.onSuccess(roomId);
+                }
+            }
+        });
+
     }
 
     /**

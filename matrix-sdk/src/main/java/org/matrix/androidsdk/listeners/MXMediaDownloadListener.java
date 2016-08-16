@@ -13,30 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.matrix.androidsdk.listeners;
 
-package org.matrix.androidsdk.sync;
-
-import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import com.google.gson.JsonElement;
 
 /**
- * Listener for the events thread that sends data back to a data handler.
+ * A no-op class implementing {@link IMXMediaDownloadListener} so listeners can just implement the methods
+ * that they require.
  */
-public class DefaultEventsThreadListener implements EventsThreadListener {
+public class MXMediaDownloadListener implements IMXMediaDownloadListener {
 
-    private MXDataHandler mData;
-
-    public DefaultEventsThreadListener(MXDataHandler data) {
-        mData = data;
+    @Override
+    public void onDownloadStart(String downloadId) {
     }
 
     @Override
-    public void onSyncResponse(SyncResponse syncResponse, boolean isInitialSync) {
-        mData.onSyncResponse(syncResponse, isInitialSync);
+    public void onDownloadProgress(String downloadId, DownloadStats stats) {
     }
 
     @Override
-    public void onInvalidToken() {
-        mData.onInvalidToken();
+    public void onDownloadComplete(String downloadId) {
+    }
+
+    @Override
+    public void onDownloadError(String downloadId, JsonElement jsonElement) {
+    }
+
+    @Override
+    public void onDownloadCancel(String downloadId) {
     }
 }

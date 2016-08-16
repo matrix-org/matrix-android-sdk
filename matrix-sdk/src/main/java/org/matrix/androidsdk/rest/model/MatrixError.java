@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import com.google.gson.JsonObject;
-
 import retrofit.mime.TypedInput;
 
 /**
@@ -39,6 +37,9 @@ public class MatrixError implements java.io.Serializable {
     public static final String THREEPID_AUTH_FAILED = "M_THREEPID_AUTH_FAILED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
 
+    // custom ones
+    public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
+
     public String errcode;
     public String error;
     public Integer retry_after_ms;
@@ -49,6 +50,22 @@ public class MatrixError implements java.io.Serializable {
     public TypedInput mErrorBody;
     public String mErrorBodyAsString;
     public String mErrorBodyMimeType;
+
+    /**
+     * Default creator
+     */
+    public MatrixError() {
+    }
+
+    /**
+     * Creator with error description
+     * @param anErrcode
+     * @param anError
+     */
+    public MatrixError(String anErrcode, String anError) {
+        errcode = anErrcode;
+        error = anError;
+    }
 
     public String getLocalizedMessage() {
         String localizedMessage = "";

@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
@@ -46,6 +47,7 @@ import java.util.regex.Pattern;
  * Object that gets and processes bing rules from the server.
  */
 public class BingRulesManager {
+    private static final String LOG_TAG = "BingRulesManager";
 
     /**
      * Bing rule listener
@@ -196,8 +198,16 @@ public class BingRulesManager {
             return false;
         }
 
-        Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
-        return pattern.matcher(longString).find();
+        boolean found = false;
+
+        try {
+            Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
+            found = pattern.matcher(longString).find();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getLocalizedMessage());
+        }
+
+        return found;
     }
 
     /**

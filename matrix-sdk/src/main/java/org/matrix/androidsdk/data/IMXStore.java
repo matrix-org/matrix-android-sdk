@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
-import com.google.gson.JsonObject;
+import android.content.Context;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -68,6 +68,11 @@ public interface IMXStore {
      * Any pending operation must be complete in this call.
      */
     void clear();
+
+    /**
+     * @return the used context
+     */
+    Context getContext();
 
     /**
      * Indicate if the MXStore implementation stores data permanently.
@@ -237,15 +242,6 @@ public interface IMXStore {
      * @return the events count after this event if
      */
     int eventsCountAfter(String roomId, String eventId);
-
-    /**
-     * Update an existing event. If the event is not stored, nothing is done.
-     * @param roomId the event's room id
-     * @param eventId the event's event id
-     * @param newContent the new content
-     * @return true if the event has been successfully replaced.
-     */
-    boolean updateEventContent(String roomId, String eventId, JsonObject newContent);
 
     // Design note: This is part of the store interface so the concrete implementation can leverage
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)

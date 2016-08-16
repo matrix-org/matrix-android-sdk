@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 
@@ -29,13 +29,15 @@ import java.util.Map;
 /**
  * Class representing a user.
  */
-public class User {
+public class User implements java.io.Serializable {
+    // the user presence values
     public static final String PRESENCE_ONLINE = "online";
     public static final String PRESENCE_UNAVAILABLE = "unavailable";
     public static final String PRESENCE_OFFLINE = "offline";
     public static final String PRESENCE_FREE_FOR_CHAT = "free_for_chat";
     public static final String PRESENCE_HIDDEN = "hidden";
 
+    // user fields provided by the server
     public String user_id;
     public String displayname;
     public String avatar_url;
@@ -44,17 +46,27 @@ public class User {
     public Long lastActiveAgo;
     public String statusMsg;
 
+    // tell if the information has been refreshed
+    private transient boolean mIsPresenceRefreshed;
+
     // Used to provide a more realistic last active time:
     // the last active ago time provided by the server + the time that has gone by since
-    private long lastPresenceTs;
+    private long mLastPresenceTs;
 
     // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
     // This is needed to find the right one when removing the listener.
-    private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
+    private transient Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<>();
 
-    protected MXDataHandler mDataHandler;
-    private ArrayList<IMXEventListener> pendingListeners = new ArrayList<IMXEventListener>();
+    // data handler
+    protected transient MXDataHandler mDataHandler;
 
+    // events listeners list
+    private transient ArrayList<IMXEventListener> mPendingListeners = new ArrayList<>();
+
+    // hash key to store the user in the file system;
+    private Integer mStorageHashKey = null;
+
+    // avatar URLs setter / getter
     public String getAvatarUrl() {
         return avatar_url;
     }
@@ -63,20 +75,78 @@ public class User {
         avatar_url = newAvatarUrl;
     }
 
+    /**
+     * Check if mEventListeners has been initialized before providing it.
+     * The users are now serialized and the transient fields are not initialized.
+     * @return the events listener
+     */
+    private Map<IMXEventListener, IMXEventListener> getEventListeners() {
+        if (null == mEventListeners) {
+            mEventListeners = new HashMap<>();
+        }
+
+        return mEventListeners;
+    }
+
+    /**
+     * Check if mPendingListeners has been initialized before providing it.
+     * The users are now serialized and the transient fields are not initialized.
+     * @return the pending listener
+     */
+    private ArrayList<IMXEventListener> getPendingListeners() {
+        if (null == mPendingListeners) {
+            mPendingListeners = new ArrayList<>();
+        }
+
+        return mPendingListeners;
+    }
+
+    /**
+     * @return the user hash key
+     */
+    public int getStorageHashKey() {
+        if (null == mStorageHashKey) {
+            mStorageHashKey = Math.abs(user_id.hashCode() % 100);
+        }
+
+        return mStorageHashKey;
+    }
+
+    /**
+     * @return true if the presence should be refreshed
+     */
+    public boolean isPresenceObsolete() {
+        return !mIsPresenceRefreshed || (null == presence);
+    }
+
+    /**
+     * Clone an user into this instance
+     * @param user the user to clone.
+     */
     protected void clone(User user) {
         if (user != null) {
             user_id = user.user_id;
             displayname = user.displayname;
             avatar_url = user.avatar_url;
             presence = user.presence;
+            currently_active = user.currently_active;
             lastActiveAgo = user.lastActiveAgo;
             statusMsg = user.statusMsg;
-            pendingListeners = user.pendingListeners;
 
+            mIsPresenceRefreshed = user.mIsPresenceRefreshed;
+            mLastPresenceTs = user.mLastPresenceTs;
+
+            mEventListeners = new HashMap<>(user.getEventListeners());
             mDataHandler = user.mDataHandler;
+
+            mPendingListeners = user.getPendingListeners();
         }
     }
 
+    /**
+     * Create a deep copy of the current user.
+     * @return a deep copy of the current object
+     */
     public User deepCopy() {
         User copy = new User();
         copy.clone(this);
@@ -92,18 +162,32 @@ public class User {
     }
 
     /**
-     * Sets the last-active-ago-time received time to now.
+     * Set the latest presence event time.
+     * @param ts the timestamp.
      */
-    public void lastActiveReceived() {
-        lastPresenceTs = System.currentTimeMillis();
+    public void setLatestPresenceTs(long ts) {
+        mIsPresenceRefreshed = true;
+        mLastPresenceTs = ts;
+    }
+
+    /**
+     * @return the timestamp of the latest presence event.
+     */
+    public long getLatestPresenceTs() {
+        return mLastPresenceTs;
     }
 
     /**
      * Get the user's last active ago time by adding the one given by the server and the time since elapsed.
      * @return how long ago the user was last active (in ms)
      */
-    public long getRealLastActiveAgo() {
-        return lastActiveAgo + System.currentTimeMillis() - lastPresenceTs;
+    public long getAbsoluteLastActiveAgo() {
+        // sanity check
+        if (null == lastActiveAgo) {
+            return 0;
+        } else {
+            return System.currentTimeMillis() - (mLastPresenceTs - lastActiveAgo);
+        }
     }
 
     /**
@@ -113,7 +197,7 @@ public class User {
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
 
-        for(IMXEventListener listener : pendingListeners) {
+        for(IMXEventListener listener : getPendingListeners()) {
             mDataHandler.addListener(listener);
         }
     }
@@ -133,13 +217,13 @@ public class User {
                 }
             }
         };
-        mEventListeners.put(eventListener, globalListener);
+        getEventListeners().put(eventListener, globalListener);
 
         // the handler could be set later
         if (null != mDataHandler) {
             mDataHandler.addListener(globalListener);
         } else {
-            pendingListeners.add(globalListener);
+            getPendingListeners().add(globalListener);
         }
     }
 
@@ -150,11 +234,11 @@ public class User {
     public void removeEventListener(IMXEventListener eventListener) {
 
         if (null != mDataHandler) {
-            mDataHandler.removeListener(mEventListeners.get(eventListener));
+            mDataHandler.removeListener(getEventListeners().get(eventListener));
         } else {
-            pendingListeners.remove(mEventListeners.get(eventListener));
+            getPendingListeners().remove(getEventListeners().get(eventListener));
         }
 
-        mEventListeners.remove(eventListener);
+        getEventListeners().remove(eventListener);
     }
 }

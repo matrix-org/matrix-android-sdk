@@ -18,7 +18,6 @@ package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.model.PushersResponse;
-import org.matrix.androidsdk.rest.model.User;
 
 import retrofit.Callback;
 import retrofit.http.Body;

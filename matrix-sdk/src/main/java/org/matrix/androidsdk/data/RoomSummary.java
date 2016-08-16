@@ -23,8 +23,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.Collection;
 
@@ -134,12 +136,33 @@ public class RoomSummary implements java.io.Serializable {
                     Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
                 }
             } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
-                JsonObject eventContent = event.getContentAsJsonObject();
+                JsonObject eventContentAsJsonObject = event.getContentAsJsonObject();
 
-                if (null != eventContent) {
-                    if (0 == eventContent.entrySet().size()) {
+                if (null != eventContentAsJsonObject) {
+                    if (0 == eventContentAsJsonObject.entrySet().size()) {
                         isSupported = false;
-                        Log.e(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
+                        Log.d(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
+                    } else {
+                        // do not display the avatar / display name update
+                        EventContent prevEventContent = event.getPrevContent();
+                        EventContent eventContent = event.getEventContent();
+
+                        String membership = null;
+                        String preMembership = null;
+
+                        if (null != prevEventContent) {
+                            membership = eventContent.membership;
+                        }
+
+                        if (null != prevEventContent) {
+                            preMembership = prevEventContent.membership;
+                        }
+
+                        isSupported = (null == membership) || !TextUtils.equals(membership, preMembership);
+
+                        if (!isSupported) {
+                            Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
+                        }
                     }
                 }
             }

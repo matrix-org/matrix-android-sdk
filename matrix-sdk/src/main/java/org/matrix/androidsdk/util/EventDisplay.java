@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -44,10 +45,13 @@ public class EventDisplay {
     private static final String LOG_TAG = "EventDisplay";
 
     // members
-    private Event mEvent;
-    private Context mContext;
-    private RoomState mRoomState;
+    private final Event mEvent;
+    private final Context mContext;
+    private final RoomState mRoomState;
     private boolean mPrependAuthor;
+
+    // let the application defines if the redacted events must be displayed
+    public static boolean mDisplayRedactedEvents = false;
 
     // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {
@@ -60,7 +64,7 @@ public class EventDisplay {
      * <p>Prepend the text with the author's name if they have not been mentioned in the text.</p>
      * This will prepend text messages with the author's name. This will NOT prepend things like
      * emote, room topic changes, etc which already mention the author's name in the message.
-     * @param prepend
+     * @param prepend true to prepend the message author.
      */
     public void setPrependMessagesWithAuthor(boolean prepend) {
         mPrependAuthor = prepend;
@@ -109,8 +113,9 @@ public class EventDisplay {
                         JsonObject offer = jsonEventContent.get("offer").getAsJsonObject();
                         JsonElement sdp = offer.get("sdp");
                         String sdpValue = sdp.getAsString();
-                        isVideo = sdpValue.indexOf("m=video") >= 0;
+                        isVideo = sdpValue.contains("m=video");
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "getTextualDisplay : " + e.getLocalizedMessage());
                     }
 
                     if (isVideo) {
@@ -148,58 +153,98 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
                 String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
 
-                if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE)) {
-                    text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
-                } else {
-                    // all m.room.message events should support the 'body' key fallback, so use it.
-                    text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+                // all m.room.message events should support the 'body' key fallback, so use it.
+                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
 
-                    // check for html formatting
-                    if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
-                        String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
-                        if ("org.matrix.custom.html".equals(format)) {
-                            String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
+                // check for html formatting
+                if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
+                    String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
+                    if ("org.matrix.custom.html".equals(format)) {
+                        String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
 
-                            // some markers are not supported so fallback on an ascii display until to find the right way to manage them
-                            // an issue has been created https://github.com/vector-im/vector-android/issues/38
-                            if (!TextUtils.isEmpty(htmlBody) && (htmlBody.indexOf("<ol>") < 0) && (htmlBody.indexOf("<li>") < 0)) {
-                                text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
-                            }
-                        }
-                    }
-
-                    if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
-                        text = "* " + userDisplayName +  " " + text;
-                    } else if (mPrependAuthor) {
-                        text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
-
-                        if (null != displayNameColor) {
-                            ((SpannableStringBuilder)text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        // some markers are not supported so fallback on an ascii display until to find the right way to manage them
+                        // an issue has been created https://github.com/vector-im/vector-android/issues/38
+                        if (!TextUtils.isEmpty(htmlBody) && !htmlBody.contains("<ol>") && !htmlBody.contains("<li>")) {
+                            text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
                         }
                     }
                 }
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
-                // pretty print 'XXX changed the topic to YYYY'
-                text = mContext.getString(R.string.notice_topic_changed,
-                        userDisplayName, jsonEventContent.getAsJsonPrimitive("topic").getAsString());
+
+                // avoid empty image name
+                if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE) && TextUtils.isEmpty(text)) {
+                    text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
+                } else if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
+                    text = "* " + userDisplayName +  " " + text;
+                } else if (TextUtils.isEmpty(text)) {
+                    text = "";
+                } else if (mPrependAuthor) {
+                    text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
+
+                    if (null != displayNameColor) {
+                        ((SpannableStringBuilder)text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
+                String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    topic = redactedInfo;
+                }
+
+                if (!TextUtils.isEmpty(topic)) {
+                    text = mContext.getString(R.string.notice_topic_changed, userDisplayName, topic);
+                } else {
+                    text = mContext.getString(R.string.notice_room_topic_removed, userDisplayName);
+                }
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
-                // pretty print 'XXX changed the room name to YYYY'
-                text =  mContext.getString(R.string.notice_room_name_changed,
-                        userDisplayName, jsonEventContent.getAsJsonPrimitive("name").getAsString());
+                String roomName = jsonEventContent.getAsJsonPrimitive("name").getAsString();
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    roomName = redactedInfo;
+                }
+
+                if (!TextUtils.isEmpty(roomName)) {
+                    text = mContext.getString(R.string.notice_room_name_changed, userDisplayName, roomName);
+                } else {
+                    text = mContext.getString(R.string.notice_room_name_removed, userDisplayName);
+                }
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(mEvent.type)) {
                 RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.content);
-                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, invite.display_name);
+                String displayName = invite.display_name;
+
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    }
+
+                    displayName = redactedInfo;
+                }
+
+                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "getTextualDisplay() " + e);
+            Log.e(LOG_TAG, "getTextualDisplay() " + e.getLocalizedMessage());
         }
 
         return text;
@@ -209,16 +254,19 @@ public class EventDisplay {
      * Compute the redact text for an event.
      * @param context the context
      * @param event the event
-     * @param roomState the roomstate
+     * @param roomState the room state
      * @return the redacted event text
      */
     public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
+        // test if the redacted event must be displayed.
+        if (!mDisplayRedactedEvents) {
+            return null;
+        }
+
         // Check first whether the event has been redacted
         String redactedInfo = null;
 
-        boolean isRedacted = (event.unsigned != null) &&  (event.unsigned.redacted_because != null);
-
-        if (isRedacted && (null != roomState)) {
+        if (event.isRedacted() && (null != roomState)) {
             RedactedBecause redactedBecause = event.unsigned.redacted_because;
             String redactedBy = redactedBecause.sender;
             String redactedReason = null;
@@ -255,16 +303,18 @@ public class EventDisplay {
     private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
         String senderDisplayName = event.getSender();
 
-        if (null != roomState) {
-            // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
-            senderDisplayName = roomState.getMemberName(event.getSender());
-        }
+        if (!event.isRedacted()) {
+            if (null != roomState) {
+                // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
+                senderDisplayName = roomState.getMemberName(event.getSender());
+            }
 
-        // Check whether this sender name is updated by the current event (This happens in case of new joined member)
-        if (null != eventContent) {
-            if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
-                // Use the actual display name
-                senderDisplayName = eventContent.displayname;
+            // Check whether this sender name is updated by the current event (This happens in case of new joined member)
+            if (null != eventContent) {
+                if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
+                    // Use the actual display name
+                    senderDisplayName = eventContent.displayname;
+                }
             }
         }
 
@@ -304,7 +354,7 @@ public class EventDisplay {
 
         String targetDisplayName = event.stateKey;
 
-        if ((null != targetDisplayName) && (null != roomState)) {
+        if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
             targetDisplayName = roomState.getMemberName(targetDisplayName);
         }
 
@@ -313,7 +363,13 @@ public class EventDisplay {
             String redactedInfo = EventDisplay.getRedactionMessage(context, event, roomState);
 
             // Is redacted event?
-            if (!TextUtils.isEmpty(redactedInfo)) {
+            if (event.isRedacted()) {
+
+                // Here the event is ignored (no display)
+                if (null == redactedInfo) {
+                    return null;
+                }
+
                 return context.getString(R.string.notice_profile_change_redacted, senderDisplayName, redactedInfo);
             } else {
                 String displayText = "";
@@ -336,7 +392,7 @@ public class EventDisplay {
                     prevAvatar = prevEventContent.avatar_url;
                 }
 
-                if (!TextUtils.equals(prevAvatar, avatar) && (prevAvatar != avatar)) {
+                if (!TextUtils.equals(prevAvatar, avatar)) {
                     if (!TextUtils.isEmpty(displayText)) {
                         displayText = displayText + " " + context.getString(R.string.notice_avatar_changed_too);
                     } else {
@@ -365,18 +421,35 @@ public class EventDisplay {
                     return context.getString(R.string.notice_room_invite_no_invitee, senderDisplayName);
                 }
 
+                // conference call case
+                if (targetDisplayName.equals(MXCallsManager.getConferenceUserId(event.roomId))) {
+                    return context.getString(R.string.notice_requested_voip_conference, senderDisplayName);
+                }
+
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
         }
         else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_started);
+            }
+
             return context.getString(R.string.notice_room_join, senderDisplayName);
         }
         else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
+            // conference call case
+            if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
+                return context.getString(R.string.notice_voip_finished);
+            }
+
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 return context.getString(R.string.notice_room_leave, senderDisplayName);
             } else if (null != prevMembership) {
-                if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN) || prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                if (prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
+                    return context.getString(R.string.notice_room_withdraw, senderDisplayName, targetDisplayName);
+                } else if (prevMembership.equals(RoomMember.MEMBERSHIP_JOIN)) {
                     return context.getString(R.string.notice_room_kick, senderDisplayName, targetDisplayName);
                 } else if (prevMembership.equals(RoomMember.MEMBERSHIP_BAN)) {
                     return context.getString(R.string.notice_room_unban, senderDisplayName, targetDisplayName);

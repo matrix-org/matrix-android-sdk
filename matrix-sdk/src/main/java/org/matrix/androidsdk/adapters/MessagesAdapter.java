@@ -16,19 +16,27 @@
 
 package org.matrix.androidsdk.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Parcel;
+import android.provider.Browser;
 import android.text.Html;
 import android.text.Layout;
+import android.text.ParcelableSpan;
 import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.method.Touch;
 import android.text.style.BackgroundColorSpan;
@@ -63,7 +71,10 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.rest.model.ContentResponse;
+import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
+import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -84,9 +95,12 @@ import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * An adapter which can display events. Events are not limited to m.room.message event types, but
@@ -130,27 +144,27 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap on an avatar
          * @param userId the user ID
-         * @return true if the long clik event is managed
+         * @return true if the long click event is managed
          */
         boolean onAvatarLongClick(String userId);
 
         /**
          * Define the action to perform when the user taps on the message sender
-         * @param userId
-         * @param displayName
+         * @param userId the sender user id.
+         * @param displayName the sender display name.
          */
         void onSenderNameClick(String userId, String displayName);
 
         /**
          * A media download is done
-         * @param position
+         * @param position the downloaded media list position.
          */
         void onMediaDownloaded(int position);
 
         /**
          * Define the action to perform when the user taps on the read receipt.
          * @param eventId the eventID
-         * @param userId the userId.
+         * @param userId  the userId.
          * @param receipt the receipt.
          */
         void onReadReceiptClick(String eventId, String userId, ReceiptData receipt);
@@ -158,7 +172,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap on the read receipt.
          * @param eventId the eventID
-         * @param userId the userId.
+         * @param userId  the userId.
          * @param receipt the receipt.
          * @return true if the long click event is managed
          */
@@ -173,7 +187,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         /**
          * Define the action to perform when the user performs a long tap  on the more read receipts button.
          * @param eventId the eventID
-         * @return true if the long clik event is managed
+         * @return true if the long click event is managed
          */
         boolean onMoreReadReceiptLongClick(String eventId);
 
@@ -188,7 +202,31 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param event the event
          * @return true to highlight it.
          */
-         boolean shouldHighlightEvent(Event event);
+        boolean shouldHighlightEvent(Event event);
+
+        /**
+         * An user id has been clicked in a message body.
+         * @param userId the user id.
+         */
+        void onMatrixUserIdClick(String userId);
+
+        /**
+         * A room alias has been clicked in a message body.
+         * @param roomAlias the roomAlias.
+         */
+        void onRoomAliasClick(String roomAlias);
+
+        /**
+         * A room id has been clicked in a message body.
+         * @param roomId the room id.
+         */
+        void onRoomIdClick(String roomId);
+
+        /**
+         * A message id has been clicked in a message body.
+         * @param messageId the message id.
+         */
+        void onMessageIdClick(String messageId);
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -201,64 +239,147 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
-    protected ArrayList<String>mTypingUsers = new ArrayList<String>();
+    private ArrayList<String> mTypingUsers = new ArrayList<>();
 
-    protected Context mContext;
-    private HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<Integer, Integer>();
-    protected LayoutInflater mLayoutInflater;
+    protected final Context mContext;
+    private final HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<>();
+    protected final LayoutInflater mLayoutInflater;
 
     // To keep track of events and avoid duplicates. For instance, we add a message event
     // when the current user sends one but it will also come down the event stream
-    private HashMap<String, MessageRow> mEventRowMap = new HashMap<String, MessageRow>();
+    private final HashMap<String, MessageRow> mEventRowMap = new HashMap<>();
 
-    // avoid searching bingrule at each refresh
-    private HashMap<String, Integer> mTextColorByEventId = new HashMap<String, Integer>();
+    // avoid searching bing rule at each refresh
+    private HashMap<String, Integer> mTextColorByEventId = new HashMap<>();
 
-    private HashMap<String, User> mUserByUserId = new HashMap<String, User>();
+    private final HashMap<String, User> mUserByUserId = new HashMap<>();
 
-    private HashMap<String, Integer> mEventType = new HashMap<String, Integer>();
+    private final HashMap<String, Integer> mEventType = new HashMap<>();
 
-    protected int normalColor;
-    protected int notSentColor;
-    protected int sendingColor;
-    protected int highlightColor;
-    protected int searchHighlightColor;
+    // the message text colors
+    protected int mDefaultMessageTextColor;
+    protected int mNotSentMessageTextColor;
+    protected int mSendingMessageTextColor;
+    protected int mHighlightMessageTextColor;
+    protected int mSearchHighlightMessageTextColor;
 
-    protected int mMaxImageWidth;
-    protected int mMaxImageHeight;
+    protected final int mMaxImageWidth;
+    protected final int mMaxImageHeight;
 
     // media cache
-    protected MXMediasCache mMediasCache;
+    protected final MXMediasCache mMediasCache;
 
     // events listener
-    protected MessagesAdapterEventsListener mMessagesAdapterEventsListener = null;
-    protected MXSession mSession;
+    protected MessagesAdapterEventsListener mMessagesAdapterEventsListener;
+    protected final MXSession mSession;
 
     protected boolean mIsSearchMode = false;
     protected boolean mIsPreviewMode = false;
-    protected String mPattern = null;
-    private ArrayList<MessageRow>  mLiveMessagesRowList = null;
+    private String mPattern = null;
+    private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
+    // list of patterns to find some matrix item.
+    private static final List<Pattern> mMatrixItemPatterns = Arrays.asList(
+            MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER,
+            MXSession.PATTERN_CONTAIN_MATRIX_ALIAS,
+            MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER,
+            MXSession.PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER
+            );
+
+    // private class to track some matrix items click}
+    private class MatrixURLSpan extends ClickableSpan implements ParcelableSpan {
+
+        private final String mURL;
+        private final Pattern mPattern;
+
+        public MatrixURLSpan(String url, Pattern pattern) {
+            mURL = url;
+            mPattern = pattern;
+        }
+
+        public MatrixURLSpan(Parcel src) {
+            mURL = src.readString();
+            mPattern = null;
+        }
+
+        public int getSpanTypeId() {
+            return getSpanTypeIdInternal();
+        }
+
+        public int getSpanTypeIdInternal() {
+            return getClass().hashCode();
+        }
+
+        public void writeToParcel(Parcel dest, int flags) {
+            writeToParcelInternal(dest, flags);
+        }
+
+        public void writeToParcelInternal(Parcel dest, int flags) {
+            dest.writeString(mURL);
+        }
+
+        public int describeContents() {
+            return 0;
+        }
+
+
+        public String getURL() {
+            return mURL;
+        }
+
+        @Override
+        public void onClick(View widget) {
+            try {
+                if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onMatrixUserIdClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_ALIAS) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onRoomAliasClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onRoomIdClick(mURL);
+                    }
+                } else if (mPattern == MXSession.PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onMessageIdClick(mURL);
+                    }
+                } else {
+                    Uri uri = Uri.parse(getURL());
+                    Context context = widget.getContext();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
+                    context.startActivity(intent);
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "MatrixURLSpan : on click failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+
     // customization methods
-    public int normalMesageColor(Context context) {
+    public int getDefaultMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_normal);
     }
 
-    public int notSentMessageColor(Context context) {
+    public int getNotSentMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_not_sent);
     }
 
-    public int sendingMessageColor(Context context) {
+    public int getSendingMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_sending);
     }
 
-    public int highlightMessageColor(Context context) {
+    public int getHighlightMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
-    public int searchHighlightMessageColor(Context context) {
+    public int getSearchHighlightMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_highlighted);
     }
 
@@ -267,7 +388,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param userId the user ID
      * @return the linked User
      */
-    protected User getUser(String userId) {
+    private User getUser(String userId) {
         if (mUserByUserId.containsKey(userId)) {
             return mUserByUserId.get(userId);
         }
@@ -284,13 +405,16 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // must be implemented by base class
     public abstract int presenceOfflineColor();
+
     public abstract int presenceOnlineColor();
+
     public abstract int presenceUnavailableColor();
 
     /**
      * Refresh the presence ring of an user.
+     *
      * @param presenceView the presence ring view.
-     * @param userId the user userID.
+     * @param userId       the user userID.
      */
     protected void refreshPresenceRing(ImageView presenceView, String userId) {
         String presence = null;
@@ -314,8 +438,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Default constructor.
-     * @param session the dedicated MXSession
-     * @param context the context
+     *
+     * @param session     the dedicated MXSession
+     * @param context     the context
      * @param mediasCache the medias cache
      */
     public MessagesAdapter(MXSession session, Context context, MXMediasCache mediasCache) {
@@ -327,6 +452,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 R.layout.adapter_item_message_file,
                 R.layout.adapter_item_message_image_video,
                 mediasCache);
+    }
+
+    /**
+     * Return the screen size.
+     * @param size the size to set
+     */
+    @SuppressLint("NewApi")
+    @SuppressWarnings("deprecation")
+    private void getScreenSize(Point size) {
+        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            display.getSize(size);
+        } else {
+            size.set(display.getWidth(), display.getHeight());
+        }
     }
 
     /**
@@ -358,17 +500,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // for example, retrieve the historical messages triggers a refresh for each message
         setNotifyOnChange(false);
 
-        normalColor = normalMesageColor(context);
-        notSentColor = notSentMessageColor(context);
-        sendingColor = sendingMessageColor(context);
-        highlightColor = highlightMessageColor(context);
-        searchHighlightColor = searchHighlightMessageColor(context);
+        mDefaultMessageTextColor = getDefaultMessageTextColor(context);
+        mNotSentMessageTextColor = getNotSentMessageTextColor(context);
+        mSendingMessageTextColor = getSendingMessageTextColor(context);
+        mHighlightMessageTextColor = getHighlightMessageTextColor(context);
+        mSearchHighlightMessageTextColor = getSearchHighlightMessageTextColor(context);
 
-        WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
+        Point size = new Point(0, 0);
+        getScreenSize(size);
 
-        int screenWidth = display.getWidth();
-        int screenHeight = display.getHeight();
+        int screenWidth = size.x;
+        int screenHeight = size.y;
 
         // landscape / portrait
         if (screenWidth < screenHeight) {
@@ -384,7 +526,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Update the preview mode status
-     * @param isPreviewMode true to display the adapter in provew mode
+     * @param isPreviewMode true to display the adapter in preview mode
      */
     public void setIsPreviewMode(boolean isPreviewMode) {
         mIsPreviewMode = isPreviewMode;
@@ -396,28 +538,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     @Override
-    public void notifyDataSetChanged() {
-        super.notifyDataSetChanged();
-    }
-
-    @Override
     public void clear() {
         super.clear();
         if (!mIsSearchMode) {
             mEventRowMap.clear();
         }
-    }
-
-    /**
-     * Cancel any pending search and replace the adapter content.
-     * @param rows the new adapter content.
-     */
-    public void cancelSearchWith(ArrayList<MessageRow> rows) {
-        mPattern = null;
-        mIsSearchMode = false;
-        this.clear();
-        this.addAll(rows);
-        mLiveMessagesRowList = null;
     }
 
     /**
@@ -429,18 +554,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mPattern = pattern;
             mIsSearchMode = !TextUtils.isEmpty(mPattern);
 
-            // in search mode, the live row are backuped to store the live events
+            // in search mode, the live row are cached.
             if (mIsSearchMode) {
                 // save once
                 if (null == mLiveMessagesRowList) {
                     // backup live events
-                    mLiveMessagesRowList = new ArrayList<MessageRow>();
+                    mLiveMessagesRowList = new ArrayList<>();
                     for (int pos = 0; pos < this.getCount(); pos++) {
                         mLiveMessagesRowList.add(this.getItem(pos));
                     }
                 }
             } else if (null != mLiveMessagesRowList) {
-                // clear and restore the backuped list
+                // clear and restore the cached live events.
                 this.clear();
                 this.addAll(mLiveMessagesRowList);
                 mLiveMessagesRowList = null;
@@ -479,6 +604,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void add(Event event, RoomState roomState) {
         add(new MessageRow(event, roomState));
+    }
+
+    /**
+     * Disambiguous remove row.
+     * @param row the row to remove
+     */
+    public void removeRow(MessageRow row) {
+        this.remove(row);
     }
 
     @Override
@@ -522,8 +655,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Provides the messageRow from an event Id.
+     * @param eventId the event Id.
+     * @return the message row.
+     */
+    public MessageRow getMessageRow(String eventId) {
+        if (null != eventId) {
+            return mEventRowMap.get(eventId);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Remove an event by an eventId
-     * @param eventId
+     * @param eventId the event id.
      */
     public void removeEventById(String eventId) {
         // ensure that notifyDataSetChanged is not called
@@ -537,6 +683,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    /**
+     * Update the message row to a new event id.
+     * @param event the new event
+     * @param oldEventId the old message row event id.
+     */
     public void updateEventById(Event event, String oldEventId) {
         MessageRow row = mEventRowMap.get(event.eventId);
 
@@ -549,22 +700,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 mEventRowMap.put(event.eventId, oldRow);
             }
         } else  {
-            // the destinated eventId already exists
+            // the eventId already exists
             // remove the old display
             removeEventById(oldEventId);
         }
 
         notifyDataSetChanged();
-
     }
-
 
     /**
      * Check if the row must be added to the list.
      * @param row the row to check.
      * @return true if should be added
      */
-    protected boolean isSupportedRow(MessageRow row) {
+    private boolean isSupportedRow(MessageRow row) {
         boolean isSupported = isDisplayableEvent(row.getEvent(), row.getRoomState());
 
         if (isSupported) {
@@ -731,10 +880,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Load avatar thumbnail
-     * @param avatarView
-     * @param url
+     * @param avatarView the avatar view.
+     * @param url the avatar url.
      */
-    protected void loadSmallAvatar(ImageView avatarView, String url) {
+    private void loadSmallAvatar(ImageView avatarView, String url) {
         int size = getContext().getResources().getDimensionPixelSize(R.dimen.chat_small_avatar_size);
         mMediasCache.loadAvatarThumbnail(mSession.getHomeserverConfig(), avatarView, url, size);
     }
@@ -753,7 +902,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Refresh the receiver thumbnails
      * @param receiversLayout the receiver layout
-     * @param leftAlign the avatars are left align i.e. they are ddisplayed from the left to the right one.
+     * @param leftAlign the avatars are left align i.e. they are displayed from the left to the right one.
      * @param eventId the event Id
      * @param roomState the roomstate.
      */
@@ -765,7 +914,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         IMXStore store = mSession.getDataHandler().getStore();
         List<ReceiptData> receipts = store.getEventReceipts(roomState.roomId, eventId, true, true);
-        ArrayList<View> imageViews = new ArrayList<View>();
+        ArrayList<View> imageViews = new ArrayList<>();
 
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar1).findViewById(R.id.avatar_img));
         imageViews.add(receiversLayout.findViewById(R.id.messagesAdapter_avatar2).findViewById(R.id.avatar_img));
@@ -816,7 +965,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             }
 
-            TextView displayedMoreTextView = null;
+            TextView displayedMoreTextView;
 
             if (receipts.size() <= imageViews.size()) {
                 moreViewLeft.setVisibility(View.GONE);
@@ -1004,7 +1153,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             });
         }
 
-        TextView tsTextView = null;
+        TextView tsTextView;
         TextView leftTsTextView = null;
         TextView rightTsTextView = null;
 
@@ -1041,7 +1190,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
 
             if (row.getEvent().isUndeliverable()) {
-                tsTextView.setTextColor(notSentColor);
+                tsTextView.setTextColor(mNotSentMessageTextColor);
             } else {
                 tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
             }
@@ -1078,7 +1227,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         View avatarLeftView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_left);
         View avatarRightView = convertView.findViewById(R.id.messagesAdapter_roundAvatar_right);
-        View avatarLayoutView = null;
+        View avatarLayoutView;
 
         if (isAvatarOnRightSide) {
             avatarLayoutView = avatarRightView;
@@ -1262,11 +1411,45 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Highlight text style
      */
     protected CharacterStyle getHighLightTextStyle() {
-        return new BackgroundColorSpan(searchHighlightColor);
+        return new BackgroundColorSpan(mSearchHighlightMessageTextColor);
     }
 
     protected void highlightPattern(TextView textView, Spannable text, String pattern) {
         highlightPattern(textView, text, null, pattern);
+    }
+
+    /**
+     * Find the matrix spans i.e matrix id , user id ... to display them as URL.
+     * @param stringBuilder the text in which the matrix items has to be clickable.
+     */
+    public void refreshMatrixSpans(SpannableStringBuilder stringBuilder) {
+        // sanity checks
+        if ((null == stringBuilder) || (0 == stringBuilder.length())) {
+            return;
+        }
+
+        String text = stringBuilder.toString();
+
+        for(int index = 0; index < mMatrixItemPatterns.size(); index ++) {
+            Pattern pattern = mMatrixItemPatterns.get(index);
+
+            // room id.
+            Matcher matcher = pattern.matcher(stringBuilder);
+            while (matcher.find()) {
+
+                try {
+                    int startPos = matcher.start(0);
+
+                    if ((startPos == 0) || (text.charAt(startPos-1) != '/')) {
+                        int endPos = matcher.end(0);
+                        String url = text.substring(matcher.start(0), matcher.end(0));
+                        stringBuilder.setSpan(new MatrixURLSpan(url, pattern), startPos, endPos, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "refreshMatrixSpans " + e.getLocalizedMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -1275,7 +1458,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param text the text to display.
      * @param pattern the pattern to highlight.
      */
-    protected void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
+    private void highlightPattern(TextView textView, Spannable text, String htmlFormattedText, String pattern) {
         // sanity check
         if (null == textView) {
             return;
@@ -1300,11 +1483,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final ConsoleHtmlTagHandler htmlTagHandler = new ConsoleHtmlTagHandler();
         htmlTagHandler.mContext = mContext;
 
-        CharSequence sequence = null;
+        CharSequence sequence;
 
         // an html format has been released
         if (null != htmlFormattedText) {
-            boolean isCustomizable = ((htmlFormattedText.indexOf("<a href=") < 0) && (htmlFormattedText.indexOf("<table>") < 0));
+            boolean isCustomizable = !htmlFormattedText.contains("<a href=") && !htmlFormattedText.contains("<table>");
 
             // the links are not yet supported by ConsoleHtmlTagHandler
             // the markdown tables are not properly supported
@@ -1343,6 +1526,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
         }
 
+        refreshMatrixSpans(strBuilder);
+
         textView.setText(strBuilder);
 
         if (null != mLinkMovementMethod) {
@@ -1355,7 +1540,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param strBuilder the input string
      * @param span the URL
      */
-    protected void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
+    private void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
         int start = strBuilder.getSpanStart(span);
         int end = strBuilder.getSpanEnd(span);
         int flags = strBuilder.getSpanFlags(span);
@@ -1376,7 +1561,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getTextView(final int position, View convertView, ViewGroup parent) {
+    private View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
         }
@@ -1404,19 +1589,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if ((null != mMessagesAdapterEventsListener) && mMessagesAdapterEventsListener.shouldHighlightEvent(event)) {
-            body.setSpan(new ForegroundColorSpan(highlightColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            body.setSpan(new ForegroundColorSpan(mHighlightMessageTextColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? message.formatted_body : null, mPattern);
+        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? getSanitisedHtml(message.formatted_body) : null, mPattern);
 
         int textColor;
 
         if (row.getEvent().isSending()) {
-            textColor = sendingColor;
+            textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
-            textColor = notSentColor;
+            textColor = mNotSentMessageTextColor;
         } else {
-            textColor = normalColor;
+            textColor = mDefaultMessageTextColor;
 
             // sanity check
             if (null != event.eventId) {
@@ -1427,9 +1612,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         String userID = mSession.getMyUserId();
 
                         if (EventUtils.caseInsensitiveFind(displayName, sBody) || EventUtils.caseInsensitiveFind(userID, sBody)) {
-                            textColor = highlightColor;
+                            textColor = mHighlightMessageTextColor;
                         } else {
-                            textColor = normalColor;
+                            textColor = mDefaultMessageTextColor;
                         }
 
                         mTextColorByEventId.put(event.eventId, textColor);
@@ -1450,81 +1635,115 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * manage the upload piechart
+     * Show the upload failure items
+     * @param convertView the cell view
+     * @param event the event
+     * @param type the media type
+     * @param show true to show the failure items
+     */
+    protected void showUploadFailure(View convertView, Event event, int type, boolean show) {
+        if (ROW_TYPE_FILE == type) {
+            TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
+
+            if (null != fileTextView) {
+                fileTextView.setTextColor(show ? mNotSentMessageTextColor : mDefaultMessageTextColor);
+            }
+        } else if ((ROW_TYPE_IMAGE == type) || (ROW_TYPE_VIDEO == type)) {
+            View failedLayout = convertView.findViewById(R.id.media_upload_failed);
+
+            if (null != failedLayout) {
+                failedLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Check if there is a linked upload.
      * @param convertView the media view
      * @param event teh related event
+     * @param type the media type
      * @param mediaUrl the media url
      */
-    private void manageUploadView(View convertView, Event event, String mediaUrl) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
-
+    private void managePendingUpload(final View convertView, final Event event, final int type, final String mediaUrl) {
+        final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
 
         // the dedicated UI items are not found
-        if ((null == uploadPieFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
-        // refresh the pie chart only if it is the expected URL
-        uploadPieFractionView.setTag(mediaUrl);
+        // Mark the upload layout as
+        uploadProgressLayout.setTag(mediaUrl);
 
         // no upload in progress
         if (!mSession.getMyUserId().equals(event.getSender()) || !event.isSending()) {
-            uploadPieFractionView.setVisibility(View.GONE);
+            uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(event.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, event, type, event.isUndeliverable());
             return;
         }
 
-        int progress = mSession.getContentManager().getUploadProgress(mediaUrl);
+        IMXMediaUploadListener.UploadStats uploadStats = mSession.getMediasCache().getStatsForUploadId(mediaUrl);
 
-        if (progress >= 0) {
-            mSession.getContentManager().addUploadListener(mediaUrl, new ContentManager.UploadCallback() {
+        if (null != uploadStats) {
+            mSession.getMediasCache().addUploadListener(mediaUrl, new MXMediaUploadListener() {
                 @Override
-                public void onUploadStart(String uploadId) {
+                public void onUploadProgress(String uploadId, UploadStats uploadStats) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        refreshUploadViews(event, uploadStats, uploadProgressLayout);
+                    }
+                }
+
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, event, type, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
                 }
 
                 @Override
-                public void onUploadProgress(String anUploadId, int percentageProgress) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        uploadPieFractionView.setFraction(percentageProgress);
+                public void onUploadCancel(String uploadId) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(null);;
                     }
                 }
 
                 @Override
-                public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (null != serverErrorMessage) {
-                                Toast.makeText(MessagesAdapter.this.getContext(),
-                                        serverErrorMessage,
-                                        Toast.LENGTH_LONG).show();
-                            }
-                            uploadFailedImage.setVisibility(View.VISIBLE);
-                        } else {
-                            uploadSpinner.setVisibility(View.VISIBLE);
-                        }
-
-                        uploadPieFractionView.setVisibility(View.GONE);
+                public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(serverErrorMessage);
                     }
                 }
+
+                @Override
+                public void onUploadComplete(final String uploadId, final String contentUri) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        uploadSpinner.setVisibility(View.GONE);
+                    }
+                }
+
             });
         }
-        uploadFailedImage.setVisibility(View.GONE);
-        uploadSpinner.setVisibility((progress < 0) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setVisibility((progress >= 0) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setFraction(progress);
+
+        showUploadFailure(convertView, event, type, false);
+        uploadSpinner.setVisibility((null == uploadStats) ? View.VISIBLE : View.GONE);
+        refreshUploadViews(event, uploadStats, uploadProgressLayout);
     }
 
     /**
      * Manage the image/video download.
-     * It displays the pie chart when it is required.
      * @param convertView the parent view.
+     * @param event the event
      * @param message the image / video message
      * @param position the message position
      */
-    protected void manageImageVideoDownload(final View convertView, final Message message, final int position) {
+    private void managePendingImageVideoDownload(final View convertView, final Event event, final Message message, final int position) {
         int maxImageWidth = mMaxImageWidth;
         int maxImageHeight = mMaxImageHeight;
         int rotationAngle = 0;
@@ -1586,20 +1805,29 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // the thumbnails are always pre - rotated
         String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
 
-        // for a video check if the media is downloading if there is no thumbnail downnload
-        if ((null == downloadId) && (message instanceof VideoMessage)) {
-            downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage)message).url);
+        // test if the media is downloading the thumbnail is not downloading
+        if (null == downloadId) {
+            if (message instanceof VideoMessage) {
+                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).url);
+            } else {
+                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).url);
+            }
+
             // check the progress value
-            // display the piechart only if the video is downloading
-            if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+            // display the progress layout only if the video is downloading
+            if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
                 downloadId = null;
             }
         }
 
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
+        final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
 
-        // the tag is used to detect if the progress value is destinated to this piechart.
-        downloadPieFractionView.setTag(downloadId);
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
+        // the tag is used to detect if the progress value is linked to this layout
+        downloadProgressLayout.setTag(downloadId);
 
         int frameHeight = -1;
         int frameWidth = -1;
@@ -1639,33 +1867,48 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // no download in progress
         if (null != downloadId) {
+            downloadProgressLayout.setVisibility(View.VISIBLE);
 
-            downloadPieFractionView.setVisibility(View.VISIBLE);
-            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
-                public void onDownloadStart(String downloadId) {
-                }
-
-                @Override
-                public void onError(String downloadId, JsonElement jsonElement) {
-                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                    if ((null != error) && error.isSupportedErrorCode()) {
-                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                public void onDownloadCancel(String downloadId) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
-                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(percentageProgress);
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        MatrixError error = null;
+
+                        try {
+                            error = JsonUtils.toMatrixError(jsonElement);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
+                        }
+
+                        downloadProgressLayout.setVisibility(View.GONE);
+
+                        if ((null != error) && error.isSupportedErrorCode()) {
+                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        } else if (null != jsonElement){
+                            Toast.makeText(MessagesAdapter.this.getContext(), jsonElement.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+
+                @Override
+                public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        refreshDownloadViews(event, stats, downloadProgressLayout);
                     }
                 }
 
                 @Override
                 public void onDownloadComplete(String aDownloadId) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
@@ -1674,9 +1917,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
 
-            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+            refreshDownloadViews(event, mMediasCache.getStatsForDownloadId(downloadId), downloadProgressLayout);
         } else {
-            downloadPieFractionView.setVisibility(View.GONE);
+            downloadProgressLayout.setVisibility(View.GONE);
         }
 
         imageView.setBackgroundColor(Color.TRANSPARENT);
@@ -1691,19 +1934,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getImageVideoView(int type, final int position, View convertView, ViewGroup parent) {
+    private View getImageVideoView(int type, final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(type), parent, false);
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
 
         Message message;
         int waterMarkResourceId = -1;
 
         if (type == ROW_TYPE_IMAGE) {
-            ImageMessage imageMessage = JsonUtils.toImageMessage(msg.content);
+            ImageMessage imageMessage = JsonUtils.toImageMessage(event.content);
 
             if ("image/gif".equals(imageMessage.getMimeType())) {
                 waterMarkResourceId = R.drawable.filetype_gif;
@@ -1711,7 +1954,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             message = imageMessage;
 
         } else {
-            message = JsonUtils.toVideoMessage(msg.content);
+            message = JsonUtils.toVideoMessage(event.content);
             waterMarkResourceId = R.drawable.filetype_video;
         }
 
@@ -1733,18 +1976,18 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         // download management
-        manageImageVideoDownload(convertView, message, position);
+        managePendingImageVideoDownload(convertView, event, message, position);
 
         // upload management
         if (type == ROW_TYPE_IMAGE) {
-            manageUploadView(convertView, msg, ((ImageMessage)message).url);
+            managePendingUpload(convertView, event, type, ((ImageMessage)message).url);
         } else {
-            manageVideoUpload(convertView, msg, (VideoMessage) message);
+            managePendingVideoUpload(convertView, event, (VideoMessage) message);
         }
 
         // dimmed when the message is not sent
         View imageLayout =  convertView.findViewById(R.id.messagesAdapter_image_layout);
-        imageLayout.setAlpha(msg.isSent() ? 1.0f : 0.5f);
+        imageLayout.setAlpha(event.isSent() ? 1.0f : 0.5f);
 
         this.manageSubView(position, convertView, imageLayout, type);
 
@@ -1761,7 +2004,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getNoticeView(final int position, View convertView, ViewGroup parent) {
+    private View getNoticeView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_NOTICE), parent, false);
         }
@@ -1782,8 +2025,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        noticeTextView.setText(notice);
-
+        if (TextUtils.isEmpty(notice)) {
+            noticeTextView.setText("");
+        } else {
+            SpannableStringBuilder strBuilder = new SpannableStringBuilder(notice);
+            refreshMatrixSpans(strBuilder);
+            noticeTextView.setText(strBuilder);
+        }
         this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
 
         addContentViewListeners(convertView, noticeTextView, position);
@@ -1823,11 +2071,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int textColor;
 
         if (row.getEvent().isSending()) {
-            textColor = sendingColor;
+            textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
-            textColor = notSentColor;
+            textColor = mNotSentMessageTextColor;
         } else {
-            textColor = normalColor;
+            textColor = mDefaultMessageTextColor;
         }
 
         emoteTextView.setTextColor(textColor);
@@ -1841,52 +2089,72 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Manage the file download items.
-     * i.e. the piechart while downloading the file
-     * @param convertView
-     * @param fileMessage
-     * @param position
+     * @param convertView the message cell view.
+     * @param event the event
+     * @param fileMessage the file message.
+     * @param position the position in the listview.
      */
-    protected void manageFileDownload(View convertView, FileMessage fileMessage, final int position) {
+    private void managePendingFileDownload(View convertView, final Event event, FileMessage fileMessage, final int position) {
         String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
 
         // check the progress value
-        // display the piechart only if the file is downloading
-        if (mMediasCache.progressValueForDownloadId(downloadId) < 0) {
+        // display the progress layout only if the file is downloading
+        if (mMediasCache.getProgressValueForDownloadId(downloadId) < 0) {
             downloadId = null;
         }
 
-        final PieFractionView downloadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_download_piechart);
-        downloadPieFractionView.setTag(downloadId);
+        final View downloadProgressLayout = convertView.findViewById(R.id.content_download_progress_layout);
+
+        if (null == downloadProgressLayout) {
+            return;
+        }
+
+        downloadProgressLayout.setTag(downloadId);
 
         // no download in progress
         if (null != downloadId) {
-            downloadPieFractionView.setVisibility(View.VISIBLE);
+            downloadProgressLayout.setVisibility(View.VISIBLE);
 
-            mMediasCache.addDownloadListener(downloadId, new MXMediasCache.DownloadCallback() {
+            mMediasCache.addDownloadListener(downloadId, new MXMediaDownloadListener() {
                 @Override
-                public void onDownloadStart(String downloadId) {
-                }
-
-                @Override
-                public void onError(String downloadId, JsonElement jsonElement) {
-                    final MatrixError error = JsonUtils.toMatrixError(jsonElement);
-
-                    if ((null != error) && error.isSupportedErrorCode()) {
-                        Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                public void onDownloadCancel(String downloadId) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
-                public void onDownloadProgress(String aDownloadId, int percentageProgress) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setFraction(percentageProgress);
+                public void onDownloadError(String downloadId, JsonElement jsonElement) {
+                    if (TextUtils.equals(downloadId, (String)downloadProgressLayout.getTag())) {
+                        MatrixError error = null;
+
+                        try {
+                            error = JsonUtils.toMatrixError(jsonElement);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Cannot cast to Matrix error " + e.getLocalizedMessage());
+                        }
+
+                        downloadProgressLayout.setVisibility(View.GONE);
+
+                        if ((null != error) && error.isSupportedErrorCode()) {
+                            Toast.makeText(MessagesAdapter.this.getContext(), error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        } else if (null != jsonElement){
+                            Toast.makeText(MessagesAdapter.this.getContext(), jsonElement.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+
+                @Override
+                public void onDownloadProgress(String aDownloadId, DownloadStats stats) {
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        refreshDownloadViews(event, stats, downloadProgressLayout);
                     }
                 }
 
                 @Override
                 public void onDownloadComplete(String aDownloadId) {
-                    if (TextUtils.equals(aDownloadId, (String)downloadPieFractionView.getTag())) {
-                        downloadPieFractionView.setVisibility(View.GONE);
+                    if (TextUtils.equals(aDownloadId, (String)downloadProgressLayout.getTag())) {
+                        downloadProgressLayout.setVisibility(View.GONE);
 
                         if (null != mMessagesAdapterEventsListener) {
                             mMessagesAdapterEventsListener.onMediaDownloaded(position);
@@ -1894,10 +2162,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 }
             });
-
-            downloadPieFractionView.setFraction(mMediasCache.progressValueForDownloadId(downloadId));
+            refreshDownloadViews(event, mMediasCache.getStatsForDownloadId(downloadId), downloadProgressLayout);
         } else {
-            downloadPieFractionView.setVisibility(View.GONE);
+            downloadProgressLayout.setVisibility(View.GONE);
         }
     }
 
@@ -1908,15 +2175,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param parent the parent view
      * @return the updated text view.
      */
-    protected View getFileView(final int position, View convertView, ViewGroup parent) {
+    private View getFileView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_FILE), parent, false);
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
 
-        final FileMessage fileMessage = JsonUtils.toFileMessage(msg.content);
+        final FileMessage fileMessage = JsonUtils.toFileMessage(event.content);
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
 
         if (null == fileTextView) {
@@ -1927,8 +2194,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
 
-        manageFileDownload(convertView, fileMessage, position);
-        manageUploadView(convertView, msg, fileMessage.url);
+        managePendingFileDownload(convertView, event, fileMessage, position);
+        managePendingUpload(convertView, event, ROW_TYPE_FILE, fileMessage.url);
 
         View fileLayout =  convertView.findViewById(R.id.messagesAdapter_file_layout);
         this.manageSubView(position, convertView, fileLayout, ROW_TYPE_FILE);
@@ -1944,87 +2211,107 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param videoEvent the video event
      * @param videoMessage the video message
      */
-    protected void manageVideoUpload(View convertView, Event videoEvent, VideoMessage videoMessage) {
-        final PieFractionView uploadPieFractionView = (PieFractionView) convertView.findViewById(R.id.content_upload_piechart);
+    private void managePendingVideoUpload(final View convertView, final Event videoEvent, VideoMessage videoMessage) {
+        final View uploadProgressLayout = convertView.findViewById(R.id.content_upload_progress_layout);
         final ProgressBar uploadSpinner = (ProgressBar) convertView.findViewById(R.id.upload_event_spinner);
-        final ImageView uploadFailedImage = (ImageView) convertView.findViewById(R.id.upload_event_failed);
+
 
         // the dedicated UI items are not found
-        if ((null == uploadPieFractionView) || (null == uploadSpinner) || (null == uploadFailedImage)) {
+        if ((null == uploadProgressLayout) || (null == uploadSpinner)) {
             return;
         }
 
-        // refresh the piechart only if it is the expected URL
-        uploadPieFractionView.setTag(null);
+        // refresh the progress only if it is the expected URL
+        uploadProgressLayout.setTag(null);
 
         // not the sender ?
         if (!mSession.getMyUserId().equals(videoEvent.getSender()) || videoEvent.isUndeliverable() || (null == videoMessage.info)) {
-            uploadPieFractionView.setVisibility(View.GONE);
+            uploadProgressLayout.setVisibility(View.GONE);
             uploadSpinner.setVisibility(View.GONE);
-            uploadFailedImage.setVisibility(videoEvent.isUndeliverable() ? View.VISIBLE : View.GONE);
+            showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, videoEvent.isUndeliverable());
             return;
         }
 
         String uploadingUrl = videoMessage.info.thumbnail_url;
 
-        int progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+        int progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
 
         // the thumbnail has been uploaded, upload the video
         if (progress < 0) {
             uploadingUrl = videoMessage.url;
-            progress = mSession.getContentManager().getUploadProgress(uploadingUrl);
+            progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
         }
 
         if (progress >= 0) {
-            uploadPieFractionView.setTag(uploadingUrl);
+            uploadProgressLayout.setTag(uploadingUrl);
 
             final boolean isContentUpload = TextUtils.equals(uploadingUrl, videoMessage.url);
 
-            mSession.getContentManager().addUploadListener(uploadingUrl, new ContentManager.UploadCallback() {
+            mSession.getMediasCache().addUploadListener(uploadingUrl, new MXMediaUploadListener() {
                 @Override
-                public void onUploadStart(String uploadId) {
+                public void onUploadProgress(String uploadId, UploadStats uploadStats) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        refreshUploadViews(videoEvent, uploadStats, uploadProgressLayout);
 
-                }
-
-                @Override
-                public void onUploadProgress(String anUploadId, int percentageProgress) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
                         int progress;
 
                         if (isContentUpload) {
-                            progress = 10 + (percentageProgress * 90 / 100);
+                            progress = 10 + (uploadStats.mProgress * 90 / 100);
                         } else {
-                            progress = (percentageProgress * 10 / 100);
+                            progress = (uploadStats.mProgress * 10 / 100);
                         }
 
-                        uploadPieFractionView.setFraction(progress);
+                        updateUploadProgress(uploadProgressLayout, progress);
+                    }
+                }
+
+                private void onUploadStop(String message) {
+                    if (!TextUtils.isEmpty(message)) {
+                        Toast.makeText(MessagesAdapter.this.getContext(),
+                                message,
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, true);
+                    uploadProgressLayout.setVisibility(View.GONE);
+                    uploadSpinner.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onUploadCancel(String uploadId) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(null);
                     }
                 }
 
                 @Override
-                public void onUploadComplete(final String anUploadId, final ContentResponse uploadResponse, final int serverResponseCode, final String serverErrorMessage) {
-                    if (TextUtils.equals((String)uploadPieFractionView.getTag(), anUploadId)) {
-                        if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
-                            if (null != serverErrorMessage) {
-                                Toast.makeText(MessagesAdapter.this.getContext(),
-                                        serverErrorMessage,
-                                        Toast.LENGTH_LONG).show();
-                            }
-                            uploadFailedImage.setVisibility(View.VISIBLE);
-                        } else {
-                            uploadSpinner.setVisibility(View.VISIBLE);
-                        }
+                public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
+                        onUploadStop(serverErrorMessage);
+                    }
+                }
 
+                @Override
+                public void onUploadComplete(final String uploadId, final String contentUri) {
+                    if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
                         uploadSpinner.setVisibility(View.GONE);
                     }
                 }
             });
         }
 
-        uploadFailedImage.setVisibility(View.GONE);
+        showUploadFailure(convertView, videoEvent, ROW_TYPE_VIDEO, false);
         uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setVisibility(((progress >= 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
-        uploadPieFractionView.setFraction(progress);
+        refreshUploadViews(videoEvent, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
+
+        if (TextUtils.equals(uploadingUrl, videoMessage.url)) {
+            progress = 10 + (progress * 90 / 100);
+        } else {
+            progress = (progress * 10 / 100);
+        }
+        updateUploadProgress(uploadProgressLayout, progress);
+
+        uploadProgressLayout.setVisibility(((progress >= 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -2033,7 +2320,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param roomState the rooms state
      * @return true if the event is managed.
      */
-    protected boolean isDisplayableEvent(Event event, RoomState roomState) {
+    private boolean isDisplayableEvent(Event event, RoomState roomState) {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             // A message is displayable as long as it has a body
             Message message = JsonUtils.toMessage(event.content);
@@ -2041,9 +2328,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
         else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
-            return true;
-        }
-        else if (event.isCallEvent()) {
+            EventDisplay display = new EventDisplay(mContext, event, roomState);
+            return display.getTextualDisplay() != null;
+        } else if (event.isCallEvent()) {
             return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
                     Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
                     Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
@@ -2068,14 +2355,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Update the typing users list
-     * @param typingUsers
+     * @param typingUsers the typing user ids.
      */
     public void setTypingUsers(ArrayList<String> typingUsers) {
         // sanity checks
         if (null != mTypingUsers) {
             // avoid null case.
             if (null == typingUsers) {
-                typingUsers = new ArrayList<String>();
+                typingUsers = new ArrayList<>();
             }
 
             boolean refresh = mTypingUsers.size() != typingUsers.size();
@@ -2145,7 +2432,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void onBingRulesUpdate() {
         synchronized (this) {
-            mTextColorByEventId = new HashMap<String, Integer>();
+            mTextColorByEventId = new HashMap<>();
         }
         this.notifyDataSetChanged();
     }
@@ -2215,4 +2502,222 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
     }
 
+    //================================================================================
+    // HTML management
+    //================================================================================
+
+    private final HashMap<String, String> mHtmlMap = new HashMap<>();
+
+    /**
+     * Retrieves the sanitised html.
+     * @param html the html to sanitize
+     * @return the sanitised HTML
+     */
+    private String getSanitisedHtml(final String html) {
+        // sanity checks
+        if (TextUtils.isEmpty(html)) {
+            return null;
+        }
+
+        String res = mHtmlMap.get(html);
+
+        if (null == res) {
+            res = sanitiseHTML(html);
+            mHtmlMap.put(html, res);
+        }
+
+        return res;
+    }
+
+    private static final List<String> mAllowedHTMLTags = Arrays.asList(
+            "font", // custom to matrix for IRC-style font coloring
+            "del", // for markdown
+            // deliberately no h1/h2 to stop people shouting.
+            "h3", "h4", "h5", "h6", "blockquote", "p", "a", "ul", "ol",
+            "nl", "li", "b", "i", "u", "strong", "em", "strike", "code", "hr", "br", "div",
+            "table", "thead", "caption", "tbody", "tr", "th", "td", "pre");
+
+    private static final Pattern mHtmlPatter =  Pattern.compile("<(\\w+)[^>]*>", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Sanitise the HTML.
+     * The matrix format does not allow the use some HTML tags.
+     * @param htmlString the html string
+     * @return the sanitised string.
+     */
+    private static String sanitiseHTML(final String htmlString) {
+        String html = htmlString;
+        Matcher matcher = mHtmlPatter.matcher(htmlString);
+
+        ArrayList<String> tagsToRemove = new ArrayList<>();
+
+        while (matcher.find()) {
+
+            try {
+                String tag = htmlString.substring(matcher.start(1), matcher.end(1));
+
+                // test if the tag is not allowed
+                if (mAllowedHTMLTags.indexOf(tag) < 0) {
+                    // add it once
+                    if (tagsToRemove.indexOf(tag) < 0) {
+                        tagsToRemove.add(tag);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "sanitiseHTML failed " + e.getLocalizedMessage());
+            }
+        }
+
+        // some tags to remove ?
+        if (tagsToRemove.size() > 0) {
+            // append the tags to remove
+            String tagsToRemoveString = tagsToRemove.get(0);
+
+            for (int i = 1; i < tagsToRemove.size(); i++) {
+                tagsToRemoveString += "|" + tagsToRemove.get(i);
+            }
+
+            html = html.replaceAll("<\\/?(" + tagsToRemoveString +")[^>]*>", "");
+        }
+
+        return html;
+    }
+
+    /**
+     * Format a second time range.
+     * @param seconds the seconds time
+     * @return the formatted string
+     */
+    private static String remainingTimeToString(int seconds) {
+        if (seconds <= 1) {
+            return "< 1s";
+        } else if (seconds < 60) {
+            return seconds + "s";
+        } else {
+            return DateUtils.formatElapsedTime(seconds);
+        }
+    }
+
+    //==============================================================================================================
+    // Download / upload progress management
+    //==============================================================================================================
+
+    /**
+     * Format the download stats.
+     * @param context the context.
+     * @param stats the download stats
+     * @return the formatted string
+     */
+    private static String formatDownloadStats(Context context, IMXMediaDownloadListener.DownloadStats stats) {
+        String formattedString = "";
+
+        if (stats.mFileSize > 0) {
+            if (stats.mDownloadedSize >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mDownloadedSize);
+                formattedString += "/" + android.text.format.Formatter.formatShortFileSize(context, stats.mFileSize);
+                formattedString += "\n";
+            }
+
+            if (stats.mBitRate >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mBitRate * 1024) + "/s\n";
+            }
+
+            formattedString += remainingTimeToString(stats.mEstimatedRemainingTime);
+        }
+
+        return formattedString;
+    }
+
+    /**
+     * Format the upload stats.
+     * @param context the context.
+     * @param stats the upload stats
+     * @return the formatted string
+     */
+    private static String formatUploadStats(Context context, IMXMediaUploadListener.UploadStats stats) {
+        String formattedString = "";
+
+        if (stats.mFileSize > 0) {
+
+            if (stats.mUploadedSize >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mUploadedSize);
+                formattedString += "/" + android.text.format.Formatter.formatShortFileSize(context, stats.mFileSize);
+                formattedString += "\n";
+            }
+
+            if (stats.mBitRate >= 0) {
+                formattedString += android.text.format.Formatter.formatShortFileSize(context, stats.mBitRate * 1024) + "/s\n";
+            }
+
+            formattedString += remainingTimeToString(stats.mEstimatedRemainingTime);
+        }
+
+        return formattedString;
+    }
+
+    /**
+     * Update the download UI items
+     * @param event the event
+     * @param downloadStats the download stats
+     * @param downloadProgressLayout the download parent UI
+     */
+    protected void refreshDownloadViews(Event event, IMXMediaDownloadListener.DownloadStats downloadStats, View downloadProgressLayout) {
+        if (null != downloadProgressLayout) {
+            if (null != downloadStats) {
+                downloadProgressLayout.setVisibility(View.VISIBLE);
+
+                TextView downloadProgressStatsTextView = (TextView) downloadProgressLayout.findViewById(R.id.content_download_progress_stats);
+                PieFractionView downloadProgressPieFractionView = (PieFractionView) downloadProgressLayout.findViewById(R.id.content_download_progress_piechart);
+
+                if (null != downloadProgressStatsTextView) {
+                    downloadProgressStatsTextView.setText(formatDownloadStats(mContext, downloadStats));
+                }
+
+                if (null != downloadProgressPieFractionView) {
+                    downloadProgressPieFractionView.setFraction(downloadStats.mProgress);
+                }
+            } else {
+                downloadProgressLayout.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Update the upload progress value.
+     * @param uploadProgressLayout the progress layout
+     * @param progress the new progress value.
+     */
+    protected void updateUploadProgress(View uploadProgressLayout, int progress) {
+        PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
+
+        if (null != uploadProgressPieFractionView) {
+            uploadProgressPieFractionView.setFraction(progress);
+        }
+    }
+
+    /**
+     * Update the upload UI items
+     * @param event the event
+     * @param uploadStats the upload stats
+     * @param uploadProgressLayout the upload parent UI
+     */
+    protected void refreshUploadViews(Event event, IMXMediaUploadListener.UploadStats uploadStats, View uploadProgressLayout) {
+        if (null != uploadProgressLayout) {
+            if (null != uploadStats) {
+                uploadProgressLayout.setVisibility(View.VISIBLE);
+                final TextView uploadProgressStatsTextView = (TextView) uploadProgressLayout.findViewById(R.id.content_upload_progress_stats);
+                final PieFractionView uploadProgressPieFractionView = (PieFractionView) uploadProgressLayout.findViewById(R.id.content_upload_progress_piechart);
+
+                if (null != uploadProgressStatsTextView) {
+                    uploadProgressStatsTextView.setText(formatUploadStats(mContext, uploadStats));
+                }
+
+                if (null != uploadProgressPieFractionView) {
+                    uploadProgressPieFractionView.setFraction(uploadStats.mProgress);
+                }
+            } else {
+                uploadProgressLayout.setVisibility(View.GONE);
+            }
+        }
+    }
 }

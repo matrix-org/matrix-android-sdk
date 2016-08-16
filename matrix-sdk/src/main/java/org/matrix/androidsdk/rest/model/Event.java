@@ -15,24 +15,33 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
  * Generic event class with all possible fields for events.
  */
 public class Event implements java.io.Serializable {
+
+    private static final String LOG_TAG = "Event";
 
     public enum SentState {
         UNSENT,  // the event has not been sent
@@ -97,7 +106,7 @@ public class Event implements java.io.Serializable {
     // Contains optional extra information about the event.
     public UnsignedData unsigned;
 
-    // Specific to redactions
+    // Specific to redaction
     public String redacts;
 
     // A subset of the state of the room at the time of the invite, if membership is invite
@@ -156,43 +165,79 @@ public class Event implements java.io.Serializable {
         mSentState = SentState.SENT;
     }
 
+    /**
+     * @return the sender
+     */
     public String getSender() {
         return (null == sender) ? userId : sender;
     }
 
+    /**
+     * Update the sender
+     *
+     * @param aSender the new sender
+     */
     public void setSender(String aSender) {
         sender = userId = aSender;
     }
 
+    /**
+     * Update the matrix Id.
+     *
+     * @param aMatrixId the new matrix id.
+     */
     public void setMatrixId(String aMatrixId) {
         mMatrixId = aMatrixId;
     }
 
+    /**
+     * @return the matrix id.
+     */
     public String getMatrixId() {
         return mMatrixId;
     }
 
     static final long MAX_ORIGIN_SERVER_TS = 1L << 50L;
 
+    /**
+     * @return true if originServerTs is valid.
+     */
     public boolean isValidOriginServerTs() {
-        long a = MAX_ORIGIN_SERVER_TS;
         return originServerTs < MAX_ORIGIN_SERVER_TS;
     }
 
+    /**
+     * @return the originServerTs.
+     */
     public long getOriginServerTs() {
         return originServerTs;
     }
 
+    /**
+     * Update the event content.
+     *
+     * @param newContent the new content.
+     */
     public void updateContent(JsonElement newContent) {
         content = newContent;
         contentAsString = null;
     }
 
+    /**
+     * @return true if this event was redacted
+     */
+    public boolean isRedacted() {
+        return (null != unsigned) && (null != unsigned.redacted_because);
+    }
+
     static DateFormat mDateFormat = null;
     static long mFormatterRawOffset = 1234;
 
+    /**
+     * @return a formatted timestamp.
+     */
     public String formattedOriginServerTs() {
-        // avoid displaying weird orign ts
+        // avoid displaying weird origin ts
         if (!isValidOriginServerTs()) {
             return " ";
         } else {
@@ -207,10 +252,18 @@ public class Event implements java.io.Serializable {
         }
     }
 
+    /**
+     * Update the originServerTs.
+     *
+     * @param anOriginServer the new originServerTs.
+     */
     public void setOriginServerTs(long anOriginServer) {
         originServerTs = anOriginServer;
     }
 
+    /**
+     * @return the content casted as JsonObject.
+     */
     public JsonObject getContentAsJsonObject() {
         if ((null != content) && content.isJsonObject()) {
             return content.getAsJsonObject();
@@ -218,6 +271,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the prev_content casted as JsonObject.
+     */
     public JsonObject getPrevContentAsJsonObject() {
         if ((null != unsigned) && (null != unsigned.prev_content)) {
             // avoid getting two value for the same thing
@@ -233,6 +289,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the content formatted as EventContent.
+     */
     public EventContent getEventContent() {
         if (null != content) {
             return JsonUtils.toEventContent(content);
@@ -240,6 +299,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the content formatted as EventContent.
+     */
     public EventContent getPrevContent() {
         if (null != getPrevContentAsJsonObject()) {
             return JsonUtils.toEventContent(getPrevContentAsJsonObject());
@@ -247,6 +309,9 @@ public class Event implements java.io.Serializable {
         return null;
     }
 
+    /**
+     * @return the event age.
+     */
     public long getAge() {
         if (null != age) {
             return age;
@@ -259,10 +324,13 @@ public class Event implements java.io.Serializable {
         return Long.MAX_VALUE;
     }
 
+    /**
+     * @return the redacted event id.
+     */
     public String getRedacts() {
         if (null != redacts) {
             return redacts;
-        } else  if ((null != unsigned) && (null != unsigned.redacted_because)) {
+        } else if (isRedacted()) {
             redacts = unsigned.redacted_because.redacts;
             return redacts;
         }
@@ -290,7 +358,7 @@ public class Event implements java.io.Serializable {
     /**
      * Create an event from a content and a type.
      *
-     * @param aType  the event type
+     * @param aType    the event type
      * @param aContent the event content
      * @param anUserId the event user Id
      * @param aRoomId  the vent room Id
@@ -314,25 +382,42 @@ public class Event implements java.io.Serializable {
         age = Long.MAX_VALUE;
     }
 
+    /**
+     * @return true if the event is a dummy id i.e this event has been created with createDummyEventId.
+     */
     public boolean isDummyEvent() {
         return (roomId + "-" + originServerTs).equals(eventId);
     }
 
-    public void setIntenalPaginationToken(String token) {
+    /**
+     * Update the pagination token.
+     *
+     * @param token the new token.
+     */
+    public void setInternalPaginationToken(String token) {
         mToken = token;
         mIsInternalPaginationToken = true;
     }
 
-    public boolean isIntenalPaginationToken() {
-        return  mIsInternalPaginationToken;
+    /**
+     * @return true if the token has been set by setInternalPaginationToken.
+     */
+    public boolean isInternalPaginationToken() {
+        return mIsInternalPaginationToken;
     }
 
+    /**
+     * @return true if the event has a token.
+     */
     public boolean hasToken() {
         return (null != mToken) && !mIsInternalPaginationToken;
     }
 
+    /**
+     * @return true if the event if a call event.
+     */
     public boolean isCallEvent() {
-        return  EVENT_TYPE_CALL_INVITE.equals(type) ||
+        return EVENT_TYPE_CALL_INVITE.equals(type) ||
                 EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
                 EVENT_TYPE_CALL_ANSWER.equals(type) ||
                 EVENT_TYPE_CALL_HANGUP.equals(type);
@@ -412,6 +497,77 @@ public class Event implements java.io.Serializable {
         return (mSentState == SentState.SENT);
     }
 
+    /**
+     * @return the media URLs defined in the event.
+     */
+    public List<String> getMediaUrls() {
+        ArrayList<String> urls = new ArrayList<>();
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(type)) {
+            String msgType = JsonUtils.getMessageMsgType(content);
+
+            if (Message.MSGTYPE_IMAGE.equals(msgType)) {
+                ImageMessage imageMessage = JsonUtils.toImageMessage(content);
+
+                if (null != imageMessage.url) {
+                    urls.add(imageMessage.url);
+                }
+
+                if (null != imageMessage.thumbnailUrl) {
+                    urls.add(imageMessage.thumbnailUrl);
+                }
+            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+                FileMessage fileMessage = JsonUtils.toFileMessage(content);
+
+                if (null != fileMessage.url) {
+                    urls.add(fileMessage.url);
+                }
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
+                VideoMessage videoMessage = JsonUtils.toVideoMessage(content);
+
+                if (null != videoMessage.url) {
+                    urls.add(videoMessage.url);
+                }
+            }
+        }
+
+        return urls;
+    }
+
+    /**
+     * Tells if the current event is uploading a media.
+     * @param mediasCache the media cache
+     * @return true if the event is uploading a media.
+     */
+    public boolean isUploadingMedias(MXMediasCache mediasCache) {
+        List<String> urls = getMediaUrls();
+
+        for(String url : urls) {
+            if (mediasCache.getProgressValueForUploadId(url) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells if the current event is downloading a media.
+     * @param mediasCache the media cache
+     * @return true if the event is downloading a media.
+     */
+    public boolean isDownloadingMedias(MXMediasCache mediasCache) {
+        List<String> urls = getMediaUrls();
+
+        for(String url : urls) {
+            if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public java.lang.String toString() {
 
@@ -475,6 +631,9 @@ public class Event implements java.io.Serializable {
         return text;
     }
 
+    /**
+     * Init some internal fields to serialize the event.
+     */
     public void prepareSerialization() {
         if ((null != content) && (null == contentAsString)) {
             contentAsString = content.toString();
@@ -489,11 +648,15 @@ public class Event implements java.io.Serializable {
         }
     }
 
+    /**
+     * Deserialize the event.
+     */
     public void finalizeDeserialization() {
         if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getLocalizedMessage());
             }
         }
 
@@ -501,6 +664,106 @@ public class Event implements java.io.Serializable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Filter a JsonObject to keep only the allowed keys.
+     * @param aContent the JsonObject to filter.
+     * @param allowedKeys the allowed keys list.
+     * @return the filtered JsonObject
+     */
+    private static JsonObject filterInContentWithKeys(JsonObject aContent, ArrayList<String> allowedKeys) {
+        // sanity check
+        if (null == aContent) {
+            return null;
+        }
+
+        JsonObject filteredContent = new JsonObject();
+
+        // remove any key
+        if ((null == allowedKeys) || (0 == allowedKeys.size())) {
+            return new JsonObject();
+        }
+
+        Set<Map.Entry<String, JsonElement>> entries = aContent.entrySet();
+
+        if (null != entries) {
+            for(Map.Entry<String, JsonElement> entry : entries) {
+                if (allowedKeys.indexOf(entry.getKey()) >= 0) {
+                    filteredContent.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        return filteredContent;
+    }
+
+    /**
+     * Prune the event which removes all keys we don't know about or think could potentially be dodgy.
+     * This is used when we "redact" an event. We want to remove all fields that the user has specified,
+     * but we do want to keep necessary information like type, state_key etc.
+     * @param redactionEvent the event which triggers this redaction
+     */
+    public void prune(Event redactionEvent) {
+        // Filter in event by keeping only the following keys
+        ArrayList<String> allowedKeys;
+
+        // Add filtered content, allowed keys in content depends on the event type
+        if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("membership"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("creator"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("join_rule"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("users",
+            "users_default",
+            "events",
+            "events_default",
+            "state_default",
+            "ban",
+            "kick",
+            "redact",
+            "invite"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("aliases"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("alias"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_FEEDBACK, type)) {
+            allowedKeys = new ArrayList<>(Arrays.asList("type", "target_event_id"));
+        } else {
+            allowedKeys = null;
+        }
+
+        this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
+        this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
+
+        if (null != redactionEvent) {
+            if (null == unsigned) {
+                unsigned = new UnsignedData();
+            }
+
+            unsigned.redacted_because = new RedactedBecause();
+            unsigned.redacted_because.type = redactionEvent.type;
+            unsigned.redacted_because.origin_server_ts = redactionEvent.originServerTs;
+            unsigned.redacted_because.sender = redactionEvent.sender;
+            unsigned.redacted_because.event_id = redactionEvent.eventId;
+            unsigned.redacted_because.unsigned = redactionEvent.unsigned;
+            unsigned.redacted_because.redacts = redactionEvent.redacts;
+
+            unsigned.redacted_because.content = new RedactedContent();
+
+            JsonObject contentAsJson = getContentAsJsonObject();
+            if ((null != contentAsJson) && contentAsJson.has("reason")) {
+                try {
+                    unsigned.redacted_because.content.reason = contentAsJson.get("reason").getAsString();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getLocalizedMessage());
+                }
+
             }
         }
     }

@@ -85,7 +85,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
+            // privacy
+            //Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
+            Log.e(LOG_TAG, "Exception in success " + e.getLocalizedMessage());
         }
     }
 
@@ -119,7 +121,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         }
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+                    // privacy
+                    //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
+                    Log.e(LOG_TAG, "Exception NetworkError " + e.getLocalizedMessage());
                 }
             }
             else {
@@ -157,7 +161,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
                             mApiCallback.onMatrixError(mxError);
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                        // privacy
+                        //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                        Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage());
                     }
                 }
                 else {
@@ -166,7 +172,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
                             mApiCallback.onUnexpectedError(error);
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                        // privacy
+                        //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
+                        Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
                     }
                 }
             }

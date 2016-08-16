@@ -17,11 +17,8 @@ package org.matrix.androidsdk.rest.model.login;
 
 import android.text.TextUtils;
 
-import com.google.gson.JsonObject;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 
 /**
  * The user's credentials.

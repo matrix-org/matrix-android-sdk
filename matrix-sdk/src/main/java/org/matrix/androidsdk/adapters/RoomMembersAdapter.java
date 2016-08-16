@@ -50,28 +50,95 @@ import java.util.Map;
  */
 public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
+    // the context
     protected Context mContext;
+
+    // the layout
     private LayoutInflater mLayoutInflater;
     private int mLayoutResourceId;
 
+    // the power levels information
     private PowerLevels mPowerLevels;
-    private int maxPowerLevel;
+    private int mMaxPowerLevel;
 
+    // the room state
     private RoomState mRoomState;
 
-    private HashMap<String, String> mMembershipStrings = new HashMap<String, String>();
+    // membership description by MEMBERSHIP_XXX
+    private HashMap<String, String> mMembershipStrings = new HashMap<>();
 
-    private Map<String, User> mUserMap = new HashMap<String, User>();
+    // User by user id
+    private Map<String, User> mUserMap = new HashMap<>();
 
+    // sort method
     private boolean mSortByLastActive = true;
+
+    // display the membership
     private boolean mDisplayMembership = true;
 
+    // the used medias cache
     private MXMediasCache mMediasCache = null;
 
-    private HashMap<String, String> mMembersSortMemberNameByUserId = new HashMap<String, String>();
+    // member display name by user id
+    private HashMap<String, String> mMembersSortMemberNameByUserId = new HashMap<>();
 
+    // the home server config
     private final HomeserverConnectionConfig mHsConfig;
 
+    // abstract methods
+    public abstract int lastSeenTextColor();
+    public abstract int presenceOfflineColor();
+    public abstract int presenceOnlineColor();
+    public abstract int presenceUnavailableColor();
+
+    /**
+     * Construct an adapter which will display a list of room members.
+     * @param context Activity context
+     * @param hsConfig teh home server config
+     * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
+     *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
+     *                         an ImageView with the ID avatar_img.
+     * @param roomState the roomState.
+     * @param mediasCache the media cache
+     * @param membershipStrings  the membership strings by RoomMember.MEMBERSHIP_XX value
+     */
+    public RoomMembersAdapter(Context context, HomeserverConnectionConfig hsConfig, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
+        super(context, layoutResourceId);
+        mContext = context;
+        mLayoutResourceId = layoutResourceId;
+        mLayoutInflater = LayoutInflater.from(mContext);
+        mRoomState = roomState;
+
+        // left the caller manages the refresh
+        setNotifyOnChange(false);
+
+        mMembershipStrings = membershipStrings;
+        mMediasCache = mediasCache;
+
+        mHsConfig = hsConfig;
+    }
+
+    /**
+     * Set the sort method.
+     * @param useLastActive  true to sort by last active ts, false to sort by alphabetical order
+     */
+    public void sortByLastActivePresence(boolean useLastActive) {
+        mSortByLastActive = useLastActive;
+    }
+
+    /**
+     * Tell if the membership must be displayed in the cells
+     * @param withMembership
+     */
+    public void displayMembership(boolean withMembership) {
+        mDisplayMembership = withMembership;
+    }
+
+    /**
+     * Return the cached member display name by its user id
+     * @param userId the user id
+     * @return the display name
+     */
     private String getCachedMemberName(String userId) {
         // sanity check
         if (null == userId) {
@@ -152,8 +219,8 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
                 }
 
                 // Non-null cases
-                long lLastActive = lUser.getRealLastActiveAgo();
-                long rLastActive = rUser.getRealLastActiveAgo();
+                long lLastActive = lUser.getAbsoluteLastActiveAgo();
+                long rLastActive = rUser.getAbsoluteLastActiveAgo();
                 if (lLastActive < rLastActive) return -1;
                 if (lLastActive > rLastActive) return 1;
 
@@ -185,51 +252,13 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
     };
 
-    // abstract methods
-    public abstract int lastSeenTextColor();
-    public abstract int presenceOfflineColor();
-    public abstract int presenceOnlineColor();
-    public abstract int presenceUnavailableColor();
-
     /**
-     * Construct an adapter which will display a list of room members.
-     * @param context Activity context
-     * @param hsConfig
-     * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
-     *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
-     *                         an ImageView with the ID avatar_img.
-     * @param roomState the roomState.
-     * @param mediasCache the media cache
-     * @param membershipStrings  the membership strings by RoomMember.MEMBERSHIP_XX value
+     * Sort the members list with the dedicated sort methods (last presence or alphabetical).
      */
-    public RoomMembersAdapter(Context context, HomeserverConnectionConfig hsConfig, int layoutResourceId, RoomState roomState, MXMediasCache mediasCache, HashMap<String, String> membershipStrings) {
-        super(context, layoutResourceId);
-        mContext = context;
-        mLayoutResourceId = layoutResourceId;
-        mLayoutInflater = LayoutInflater.from(mContext);
-        mRoomState = roomState;
-
-        // left the caller manages the refresh
-        setNotifyOnChange(false);
-
-        mMembershipStrings = membershipStrings;
-        mMediasCache = mediasCache;
-
-        mHsConfig = hsConfig;
-    }
-
-    public void sortByLastActivePresence(boolean useLastActive) {
-        mSortByLastActive = useLastActive;
-    }
-
-    public void displayMembership(boolean withMembership) {
-        mDisplayMembership = withMembership;
-    }
-
     public void sortMembers() {
         // create a dictionnary to avoid computing the member name at each sort step.
         // mRoomState.getMemberName(userId) can be complex
-        mMembersSortMemberNameByUserId = new HashMap<String, String>();
+        mMembersSortMemberNameByUserId = new HashMap<>();
 
         if (mSortByLastActive) {
             sort(lastActiveComparator);
@@ -238,21 +267,29 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
     }
 
+    /**
+     * Update the power levels information (to display each a member is administrator...).
+     * @param powerLevels the new power levels.
+     */
     public void setPowerLevels(PowerLevels powerLevels) {
         mPowerLevels = powerLevels;
         if (powerLevels != null) {
             // Process power levels to find the max. The display will show power levels as a fraction of this
-            maxPowerLevel = powerLevels.users_default;
+            mMaxPowerLevel = powerLevels.users_default;
             Iterator it = powerLevels.users.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<String, Integer> pair = (Map.Entry<String, Integer>) it.next();
-                if (pair.getValue() > maxPowerLevel) maxPowerLevel = pair.getValue();
+                if (pair.getValue() > mMaxPowerLevel) mMaxPowerLevel = pair.getValue();
             }
         }
         notifyDataSetChanged();
     }
 
-    // return true if the user has been added
+    /**
+     * Store the user in the known users dictionnary.
+     * @param user the user to add.
+     * @return true if the user is added.
+     */
     public boolean saveUser(User user) {
         if (user != null) {
             if(!mUserMap.containsKey(user.user_id)) {
@@ -264,6 +301,10 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         return false;
     }
 
+    /**
+     * Delete an user from the known users list.
+     * @param user the user to remove
+     */
     public void deleteUser(User user) {
         if (user != null) {
             if(mUserMap.containsKey(user.user_id)) {
@@ -272,6 +313,11 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
     }
 
+    /**
+     * Update the user information of a known user.
+     * @param userId the user id
+     * @param member its new room memeber definition.
+     */
     public void updateMember(String userId, RoomMember member) {
         for (int i = 0; i < getCount(); i++) {
             RoomMember m = getItem(i);
@@ -303,7 +349,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         }
         else {
             String memberName = member.getName();
-            String lastActiveDisplay = "(" + buildLastActiveDisplay(mContext, user.getRealLastActiveAgo()) + ")";
+            String lastActiveDisplay = "(" + buildLastActiveDisplay(mContext, user.getAbsoluteLastActiveAgo()) + ")";
 
             SpannableStringBuilder ssb = new SpannableStringBuilder(memberName + " " + lastActiveDisplay);
             int lastSeenTextColor = lastSeenTextColor();
@@ -355,13 +401,13 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
         // The power level disc
         PieFractionView pieFractionView = (PieFractionView) convertView.findViewById(R.id.powerDisc);
-        if ((mPowerLevels == null) || (0 == maxPowerLevel)) {
+        if ((mPowerLevels == null) || (0 == mMaxPowerLevel)) {
             pieFractionView.setVisibility(View.GONE);
         }
         else {
             int powerLevel = mPowerLevels.getUserPowerLevel(member.getUserId());
             pieFractionView.setVisibility((powerLevel == 0) ? View.GONE : View.VISIBLE);
-            pieFractionView.setFraction(powerLevel * 100 / maxPowerLevel);
+            pieFractionView.setFraction(powerLevel * 100 / mMaxPowerLevel);
         }
 
         // the invited members are displayed with alpha 0.5
@@ -380,6 +426,12 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         return convertView;
     }
 
+    /**
+     * Stringify the member last active ago.
+     * @param context the context
+     * @param lastActiveAgo the last active ago.
+     * @return the stringify value.
+     */
     public static String buildLastActiveDisplay(Context context, long lastActiveAgo) {
         lastActiveAgo /= 1000; // In seconds
         if (lastActiveAgo < 60) {

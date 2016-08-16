@@ -33,6 +33,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -55,6 +57,7 @@ import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
@@ -78,28 +81,38 @@ public class Room {
 
     private static final String LOG_TAG = "Room";
 
+    // Account data
     private RoomAccountData mAccountData = new RoomAccountData();
 
+    // handler
     private MXDataHandler mDataHandler;
+
+    // store
     private IMXStore mStore;
 
     private String mMyUserId = null;
 
     // Map to keep track of the listeners the client adds vs. the ones we actually register to the global data handler.
     // This is needed to find the right one when removing the listener.
-    private Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<IMXEventListener, IMXEventListener>();
+    private final Map<IMXEventListener, IMXEventListener> mEventListeners = new HashMap<>();
 
+    // the user is leaving the room
     private boolean mIsLeaving = false;
 
+    // the room is syncing
     private boolean mIsSyncing;
 
+    // the unread messages count must be refreshed when the current sync is done.
     private boolean mRefreshUnreadAfterSync = false;
 
+    // the time line
     private EventTimeline mLiveTimeline;
 
+    // initial sync callback.
     private ApiCallback<Void> mOnInitialSyncCallback;
 
-    private Gson gson = new GsonBuilder().create();
+    // gson parser
+    private final Gson gson = new GsonBuilder().create();
 
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
@@ -132,6 +145,32 @@ public class Room {
      */
     public MXDataHandler getDataHandler() {
         return mDataHandler;
+    }
+
+    /**
+     * Tells if the room is a call conference one
+     * i.e. this room has been created to manage the call conference
+     * @return true if it is a call conference room.
+     */
+    public boolean isConferenceUserRoom() {
+        return getLiveState().isConferenceUserRoom();
+    }
+
+    /**
+     * Set this room as a conference user room
+     * @param isConferenceUserRoom true when it is an user conference room.
+     */
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
+    }
+
+    /**
+     * Test if there is an ongoing conference call.
+     * @return true if there is one.
+     */
+    public boolean isOngoingConferenceCall() {
+        RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
+        return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
     //================================================================================
@@ -202,6 +241,7 @@ public class Room {
 
                 mOnInitialSyncCallback.onSuccess(null);
             } catch (Exception e) {
+                Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
             }
             mOnInitialSyncCallback = null;
         }
@@ -278,10 +318,6 @@ public class Room {
         return getState();
     }
 
-    public RoomState getBackState() {
-        return mLiveTimeline.getBackState();
-    }
-
     public boolean isLeaving() {
         return mIsLeaving;
     }
@@ -307,17 +343,16 @@ public class Room {
     }
 
     /**
-     * @return the list of online members in a room.
+     * @return the list of active members in a room ie joined or invited ones.
      */
-    public Collection<RoomMember> getOnlineMembers() {
+    public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = getState().getMembers();
-        ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
+        ArrayList<RoomMember> activeMembers = new ArrayList<>();
+        String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
         for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                User user =  mStore.getUser(member.getUserId());
-
-                if ((null != user) && user.isActive()) {
+            if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
+                if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
                     activeMembers.add(member);
                 }
             }
@@ -327,43 +362,21 @@ public class Room {
     }
 
     /**
-     * @return the list of active members in a room ie joined or invited ones.
-     */
-    public Collection<RoomMember> getActiveMembers() {
-        Collection<RoomMember> members = getState().getMembers();
-        ArrayList<RoomMember> activeMembers = new ArrayList<RoomMember>();
-
-        for(RoomMember member : members) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) ||TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                activeMembers.add(member);
-            }
-        }
-
-        return activeMembers;
-    }
-
-
-    /**
      * Get the list of the members who have joined the room.
-     * For these members their membership is set to {@link RoomMember.MEMBERSHIP_JOIN]}.
      *
      * @return the list the joined members of the room.
      */
     public Collection<RoomMember> getJoinedMembers() {
         Collection<RoomMember> membersList = getState().getMembers();
-        ArrayList<RoomMember> joindedMembersList = new ArrayList<RoomMember>();
+        ArrayList<RoomMember> joinedMembersList = new ArrayList<>();
 
         for(RoomMember member : membersList) {
             if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                joindedMembersList.add(member);
+                joinedMembersList.add(member);
             }
         }
 
-        return joindedMembersList;
-    }
-
-    public void setMember(String userId, RoomMember member) {
-        getState().setMember(userId, member);
+        return joinedMembersList;
     }
 
     public RoomMember getMember(String userId) {
@@ -380,10 +393,6 @@ public class Room {
 
     public String getVisibility() {
         return getState().visibility;
-    }
-
-    public void setVisibility(String visibility) {
-        getState().visibility = visibility;
     }
 
     /**
@@ -409,7 +418,7 @@ public class Room {
 
     /**
      * Defines the initial sync callback
-     * @param callback tyhe new callback.
+     * @param callback the new callback.
      */
     public void setOnInitialSyncCallback(ApiCallback<Void> callback) {
         mOnInitialSyncCallback = callback;
@@ -436,10 +445,11 @@ public class Room {
                     try {
                         map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>() {}.getType());
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getLocalizedMessage());
                     }
 
                     if (null != map) {
-                        HashMap<String, Object> joinMap = new HashMap<String, Object>();
+                        HashMap<String, Object> joinMap = new HashMap<>();
                         joinMap.put("third_party_signed", map);
                         join(alias, joinMap, callback);
                     } else {
@@ -460,10 +470,10 @@ public class Room {
             // avoid crash if there are too many running task
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
-            } catch (RejectedExecutionException e) {
-
+            } catch (RejectedExecutionException rejectedExecutionException) {
+                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + rejectedExecutionException.getLocalizedMessage());
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getLocalizedMessage());
             }
         }
     }
@@ -481,17 +491,8 @@ public class Room {
      * @param roomAlias the room alias
      * @param callback the callback for when done
      */
-    public void join(String roomAlias, ApiCallback<Void> callback) {
+    private void join(String roomAlias, ApiCallback<Void> callback) {
         join(roomAlias, null, callback);
-    }
-
-    /**
-     * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
-     * @param extraParams the join extra params
-     * @param callback the callback for when done
-     */
-    public void join(HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
-        join(null, extraParams, callback);
     }
 
     /**
@@ -500,14 +501,14 @@ public class Room {
      * @param extraParams the join extra params
      * @param callback the callback for when done
      */
-    public void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
+    private void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         // disable the room alias management until the server manages the rooms federation properly
         // cf https://github.com/matrix-org/synapse/issues/816
         mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(/*(null != roomAlias) ? roomAlias :*/ getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
-            public void onSuccess(final RoomResponse aReponse) {
+            public void onSuccess(final RoomResponse aResponse) {
                 try {
                     boolean isRoomMember;
 
@@ -540,6 +541,13 @@ public class Room {
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
+
+                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                    // 'Error when trying to join an empty room should be more explicit
+                    e.error = mStore.getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                }
+
                 callback.onMatrixError(e);
             }
 
@@ -552,16 +560,9 @@ public class Room {
     }
 
     /**
-     * Shorthand for {@link #join(org.matrix.androidsdk.rest.callback.ApiCallback)} with a null callback.
-     */
-    public void join() {
-        join(null);
-    }
-
-    /**
      * @return true if the user joined the room
      */
-    public boolean selfJoined() {
+    private boolean selfJoined() {
         RoomMember roomMember = getMember(mMyUserId);
 
         // send the event only if the user has joined the room.
@@ -571,6 +572,51 @@ public class Room {
     //================================================================================
     // Room info (liveState) update
     //================================================================================
+
+    /**
+     * This class dispatches the error to the dedicated callbacks.
+     * If the operation succeeds, the room state is saved because calling the callback.
+     */
+    private class RoomInfoUpdateCallback<T> implements ApiCallback<T> {
+        private final ApiCallback<T> mCallback;
+
+        /**
+         * Constructor
+         */
+        public RoomInfoUpdateCallback(ApiCallback<T> callback) {
+            mCallback = callback;
+        }
+
+        @Override
+        public void onSuccess(T info) {
+            mStore.storeLiveStateForRoom(getRoomId());
+
+            if (null != mCallback) {
+                mCallback.onSuccess(info);
+            }
+        }
+
+        @Override
+        public void onNetworkError(Exception e) {
+            if (null != mCallback) {
+                mCallback.onNetworkError(e);
+            }
+        }
+
+        @Override
+        public void onMatrixError(final MatrixError e) {
+            if (null != mCallback) {
+                mCallback.onMatrixError(e);
+            }
+        }
+
+        @Override
+        public void onUnexpectedError(final Exception e) {
+            if (null != mCallback) {
+                mCallback.onUnexpectedError(e);
+            }
+        }
+    }
 
     /**
      * Update the power level of the user userId
@@ -590,36 +636,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateName(getRoomId(), name, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().name = name;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -630,36 +651,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String topic, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().topic = topic;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -670,36 +666,80 @@ public class Room {
      * @param callback the async callback
      */
     public void updateCanonicalAlias(final String canonicalAlias, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().roomAliasName = canonicalAlias;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
+                super.onSuccess(info);
             }
+        });
+    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+    /**
+     * Provides the room aliases list.
+     * The result is never null.
+     * @return the room aliases list.
+     */
+    public List<String> getAliases() {
+        if (null == getLiveState().aliases) {
+            return new ArrayList<>();
+        } else {
+            return getLiveState().aliases;
+        }
+    }
+
+    /**
+     * Remove a room alias.
+     * @param alias the alias to remove
+     * @param callback the async callback
+     */
+    public void removeAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) < 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
             }
+            return;
+        }
 
+        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.remove(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
             }
+        });
+    }
 
+    /**
+     * Try to add an alias to the aliases list.
+     * @param alias the alias to add.
+     * @param callback the the async callback
+     */
+    public void addAlias(final String alias, final ApiCallback<Void> callback) {
+        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+
+        // nothing to do
+        if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) >= 0)) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+            return;
+        }
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+            public void onSuccess(Void info) {
+                ArrayList<String> aliases = new ArrayList<>(getAliases());
+                aliases.add(alias);
+
+                getState().aliases = aliases;
+                super.onSuccess(info);
             }
         });
     }
@@ -735,36 +775,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().url = avatarUrl;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -775,76 +790,26 @@ public class Room {
      * @param callback the async callback
      */
     public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateHistoryVisibility(getRoomId(), historyVisibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().history_visibility = historyVisibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
 
     /**
-     * Update the room's visibility
+     * Update the directory's visibility
      * @param visibility the visibility (should be one of RoomState.HISTORY_VISIBILITY_XX values)
      * @param callback the async callback
      */
     public void updateDirectoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -902,36 +867,11 @@ public class Room {
      * @param aCallBackResp the async callback
      */
     public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new RoomInfoUpdateCallback<Void>(aCallBackResp) {
             @Override
             public void onSuccess(Void info) {
                 getState().join_rule = aRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != aCallBackResp) {
-                    aCallBackResp.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != aCallBackResp) {
-                    aCallBackResp.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -943,36 +883,11 @@ public class Room {
      * @param callback the async callback
      */
     public void updateGuestAccess(final String aGuestAccessRule, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule,new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().guest_access = aGuestAccessRule;
-                mStore.storeLiveStateForRoom(getRoomId());
-
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                super.onSuccess(info);
             }
         });
     }
@@ -990,7 +905,7 @@ public class Room {
         boolean isUpdated = mStore.storeReceipt(receiptData, getRoomId());
 
         // check oneself receipts
-        // if there is an update, it means that the messages have been read from andother client
+        // if there is an update, it means that the messages have been read from another client
         // it requires to update the summary to display valid information.
         if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
             RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1008,11 +923,11 @@ public class Room {
      * @param event the event receipts.
      * @return the sender user IDs list.
      */
-    public List<String> handleReceiptEvent(Event event) {
-        ArrayList<String> senderIDs = new ArrayList<String>();
+    private List<String> handleReceiptEvent(Event event) {
+        ArrayList<String> senderIDs = new ArrayList<>();
 
         try {
-            // the receipts dicts
+            // the receipts dictionnaries
             // key   : $EventId
             // value : dict key $UserId
             //              value dict key ts
@@ -1046,6 +961,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
+            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getLocalizedMessage());
         }
 
         return senderIDs;
@@ -1061,7 +977,7 @@ public class Room {
         getLiveState().setNotificationCount(0);
         mStore.storeLiveStateForRoom(getRoomId());
 
-        // flish the summary
+        // flush the summary
         summary.setUnreadEventsCount(0);
         mStore.flushSummary(summary);
 
@@ -1144,9 +1060,8 @@ public class Room {
      * Update the read receipt token.
      * @param token the new token
      * @param ts the token ts
-     * @return true if the token is refreshed
      */
-    public boolean setReadReceiptToken(String token, long ts) {
+    private void setReadReceiptToken(String token, long ts) {
         RoomSummary summary = mStore.getSummary(getRoomId());
 
         Log.d(LOG_TAG, "setReadReceiptToken " + token + " - " +ts);
@@ -1154,12 +1069,9 @@ public class Room {
         if (summary.setReadReceiptToken(token, ts)) {
             Log.d(LOG_TAG, "setReadReceiptToken : update the summary");
             clearUnreadCounters(summary);
-            return true;
         } else {
             Log.d(LOG_TAG, "setReadReceiptToken : not the latest message " + summary.getReadReceiptToken() + " - " + summary.getReadReceiptTs());
         }
-
-        return false;
     }
 
     /**
@@ -1213,24 +1125,12 @@ public class Room {
         }
     }
 
-    /**
-     * @return the unread messages count.
-     */
-    public int getUnreadEventsCount() {
-        RoomSummary summary = mStore.getSummary(getRoomId());
-
-        if (null != summary) {
-            return summary.getUnreadEventsCount();
-        }
-        return 0;
-    }
-
     //================================================================================
     // typing events
     //================================================================================
 
     // userIds list
-    private ArrayList<String>mTypingUsers = new ArrayList<String>();
+    private ArrayList<String>mTypingUsers = new ArrayList<>();
 
     /**
      * Get typing users
@@ -1241,7 +1141,7 @@ public class Room {
         ArrayList<String> typingUsers;
 
         synchronized (Room.this) {
-            typingUsers = (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<String>(mTypingUsers);
+            typingUsers = (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<>(mTypingUsers);
         }
 
         return typingUsers;
@@ -1290,10 +1190,11 @@ public class Room {
                     thumbInfo.h = Integer.parseInt(sHeight);
                 }
 
-                thumbInfo.size = new Long(thumbnailFile.length());
+                thumbInfo.size = Long.valueOf(thumbnailFile.length());
                 thumbInfo.mimetype = thumbMimeType;
                 locationMessage.thumbnail_info = thumbInfo;
             } catch (Exception e) {
+                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getLocalizedMessage());
             }
         }
     }
@@ -1310,13 +1211,12 @@ public class Room {
     public static void fillVideoInfo(Context context, VideoMessage videoMessage, Uri fileUri, String videoMimeType, Uri thumbnailUri, String thumbMimeType) {
         try {
             VideoInfo videoInfo = new VideoInfo();
-
             File file = new File(fileUri.getPath());
 
             MediaMetadataRetriever retriever = new  MediaMetadataRetriever();
-            Bitmap bmp = null;
             retriever.setDataSource(file.getAbsolutePath());
-            bmp = retriever.getFrameAtTime();
+
+            Bitmap bmp = retriever.getFrameAtTime();
             videoInfo.h = bmp.getHeight();
             videoInfo.w = bmp.getWidth();
             videoInfo.mimetype = videoMimeType;
@@ -1324,10 +1224,11 @@ public class Room {
             try {
                 MediaPlayer mp = MediaPlayer.create(context, fileUri);
                 if (null != mp) {
-                    videoInfo.duration = new Long(mp.getDuration());
+                    videoInfo.duration = Long.valueOf(mp.getDuration());
                     mp.release();
                 }
             } catch (Exception e) {
+                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getLocalizedMessage());
             }
             videoInfo.size = file.length();
 
@@ -1350,13 +1251,14 @@ public class Room {
                     thumbInfo.h = Integer.parseInt(sHeight);
                 }
 
-                thumbInfo.size = new Long(thumbnailFile.length());
+                thumbInfo.size = Long.valueOf(thumbnailFile.length());
                 thumbInfo.mimetype = thumbMimeType;
                 videoInfo.thumbnail_info = thumbInfo;
             }
 
             videoMessage.info = videoInfo;
         } catch (Exception e) {
+            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getLocalizedMessage());
         }
     }
 
@@ -1380,6 +1282,7 @@ public class Room {
             fileMessage.info = fileInfo;
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getLocalizedMessage());
         }
     }
 
@@ -1387,9 +1290,8 @@ public class Room {
      * Fills the imageMessage imageInfo.
      * @param context Application context for the content resolver.
      * @param imageMessage The imageMessage to fill.
-     * @param imageUri The fullsize image uri.
+     * @param imageUri The full size image uri.
      * @param mimeType The image mimeType
-     * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
      */
     public static void fillImageInfo(Context context, ImageMessage imageMessage, Uri imageUri, String mimeType) {
         try {
@@ -1438,6 +1340,7 @@ public class Room {
                     }
 
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
                 }
             }
 
@@ -1453,38 +1356,9 @@ public class Room {
             imageMessage.info = imageInfo;
 
         } catch (Exception e) {
+            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
         }
     }
-
-    //================================================================================
-    // Unsent events
-    //================================================================================
-
-    /**
-     * Returns the unsent messages except the sending ones.
-     * @return the unsent messages list.
-     */
-    public ArrayList<Event> getUnsentEvents() {
-        Collection<Event> events = mStore.getLatestUnsentEvents(getRoomId());
-
-        ArrayList<Event> eventsList = new ArrayList<Event>(events);
-        ArrayList<Event> unsentEvents = new ArrayList<Event>();
-
-        // check if some events are already sending
-        // to avoid send them twice
-        // some network issues could happen
-        // eg connected send some unsent messages but do not send all of them
-        // deconnected -> connected : some messages could be sent twice
-        for (Event event : eventsList) {
-            if (event.mSentState == Event.SentState.WAITING_RETRY) {
-                event.mSentState = Event.SentState.SENDING;
-                unsentEvents.add(event);
-            }
-        }
-
-        return unsentEvents;
-    }
-
 
     //================================================================================
     // Call
@@ -1495,14 +1369,14 @@ public class Room {
      * @return true if a call can be performed.
      */
     public boolean canPerformCall() {
-        return 1 == callees().size();
+        return getActiveMembers().size() > 1;
     }
 
     /**
      * @return a list of callable members.
      */
     public ArrayList<RoomMember> callees() {
-        ArrayList<RoomMember> res = new ArrayList<RoomMember>();
+        ArrayList<RoomMember> res = new ArrayList<>();
 
         Collection<RoomMember> members = getMembers();
 
@@ -1523,7 +1397,7 @@ public class Room {
      * Handle private user data events.
      * @param accountDataEvents the account events.
      */
-    public void handleAccountDataEvents(List<Event> accountDataEvents) {
+    private void handleAccountDataEvents(List<Event> accountDataEvents) {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
@@ -1546,7 +1420,7 @@ public class Room {
      * @param order the order.
      * @param callback the operation callback
      */
-    public void addTag(String tag, Double order, final ApiCallback<Void> callback) {
+    private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
             mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
@@ -1564,7 +1438,7 @@ public class Room {
      * @param tag the new tag to add to the room.
      * @param callback the operation callback.
      */
-    public void removeTag(String tag, final ApiCallback<Void> callback) {
+    private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
             mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
@@ -1585,7 +1459,6 @@ public class Room {
      * @param callback the operation callback.
      */
     public void replaceTag(final String oldTag, final String newTag, final Double newTagOrder, final ApiCallback<Void> callback) {
-
         // remove tag
         if ((null != oldTag) && (null == newTag)) {
             removeTag(oldTag, callback);
@@ -1679,7 +1552,7 @@ public class Room {
 
                                 // avoid null list
                                 if (null == mTypingUsers) {
-                                    mTypingUsers = new ArrayList<String>();
+                                    mTypingUsers = new ArrayList<>();
                                 }
                             }
                         }
@@ -1799,13 +1672,13 @@ public class Room {
             }
 
             @Override
-            public void onRoomSyncWithLimitedTimeline(String roomId) {
+            public void onRoomFlush(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
                     try {
-                        eventListener.onRoomSyncWithLimitedTimeline(roomId);
+                        eventListener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomSyncWithLimitedTimeline exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage());
                     }
                 }
             }
@@ -1824,7 +1697,11 @@ public class Room {
         };
 
         mEventListeners.put(eventListener, globalListener);
-        mDataHandler.addListener(globalListener);
+
+        // GA crash
+        if (null != mDataHandler) {
+            mDataHandler.addListener(globalListener);
+        }
     }
 
     /**
@@ -1833,7 +1710,7 @@ public class Room {
      */
     public void removeEventListener(IMXEventListener eventListener) {
         // sanity check
-        if ((null != eventListener) && (null != mDataHandler) && (null != mEventListeners)) {
+        if ((null != eventListener) && (null != mDataHandler)) {
             mDataHandler.removeListener(mEventListeners.get(eventListener));
             mEventListeners.remove(eventListener);
         }
@@ -1937,17 +1814,82 @@ public class Room {
         if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
             mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendEvent(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+        }
+    }
+
+    /**
+     * Cancel the event sending.
+     * Any media upload will be cancelled too.
+     * The event becomes undeliverable.
+     * @param event the message
+     */
+    public void cancelEventSending(final Event event) {
+        if (null != event) {
+            if ((Event.SentState.UNSENT == event.mSentState) ||
+                    (Event.SentState.SENDING == event.mSentState) ||
+                    (Event.SentState.WAITING_RETRY == event.mSentState)) {
+
+                // the message cannot be sent anymore
+                event.mSentState = Event.SentState.UNDELIVERABLE;
+            }
+
+            List<String> urls =  event.getMediaUrls();
+            MXMediasCache cache = mDataHandler.getMediasCache();
+
+            for(String url : urls) {
+                cache.cancelUpload(url);
+                cache.cancelDownload(cache.downloadIdFromUrl(url));
+            }
         }
     }
 
     /**
      * Redact an event from the room.
      * @param eventId the event's id
-     * @param callback the callback with the created event
+     * @param callback the callback with the redacted event
      */
-    public void redact(String eventId, ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redact(getRoomId(), eventId, callback);
+    public void redact(final String eventId, final ApiCallback<Event> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                Event redactedEvent = mStore.getEvent(eventId, getRoomId());
+
+                // test if the redacted event has been echoed
+                // it it was not echoed, the event must be pruned to remove useless data
+                // the room summary will be updated when the server will echo the redacted event
+                if ((null != redactedEvent) && ((null == redactedEvent.unsigned) || (null == redactedEvent.unsigned.redacted_because))) {
+                    redactedEvent.prune(null);
+                    mStore.storeLiveRoomEvent(redactedEvent);
+                    mStore.commit();
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(redactedEvent);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**
@@ -1956,7 +1898,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().report(getRoomId(), eventId, score, reason, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
     }
 
 
@@ -1970,12 +1912,12 @@ public class Room {
      * @param callback the callback for when done
      */
     public void invite(String userId, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userId, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userId, callback);
     }
 
     /**
      * Invite an user to a room based on their email address to this room.
-     * @param email the email adress
+     * @param email the email address
      * @param callback the callback for when done
      */
     public void inviteByEmail(String email, ApiCallback<Void> callback) {
@@ -2003,7 +1945,7 @@ public class Room {
         if ((null == userIds) || (index >= userIds.size())) {
             return;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // invite the last user
@@ -2129,7 +2071,7 @@ public class Room {
     /**
      * Ban a user from the room.
      * @param userId the user id
-     * @param reason ban readon
+     * @param reason ban reason
      * @param callback the async callback
      */
     public void ban(String userId, String reason, ApiCallback<Void> callback) {

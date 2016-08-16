@@ -22,9 +22,6 @@ import android.os.HandlerThread;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
-
-import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.rest.model.Event;
@@ -32,6 +29,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
 
 import java.io.EOFException;
@@ -56,22 +54,21 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    final int MXFILE_VERSION = 1;
+    private final int MXFILE_VERSION = 3;
 
     // ensure that there is enough messages to fill a tablet screen
-    final int MAX_STORED_MESSAGES_COUNT = 50;
+    private final int MAX_STORED_MESSAGES_COUNT = 50;
 
-    final String MXFILE_STORE_FOLDER = "MXFileStore";
-    final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+    private final String MXFILE_STORE_FOLDER = "MXFileStore";
+    private final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
-    final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
-    final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
-    final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
-    final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
-    final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
-    final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
-
-    private Context mContext = null;
+    private final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
+    private final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
+    private final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
+    private final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+    private final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
+    private final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
+    private final String MXFILE_STORE_USER_FOLDER = "users";
 
     // the data is read from the file system
     private boolean mIsReady = false;
@@ -83,7 +80,7 @@ public class MXFileStore extends MXMemoryStore {
 
     private MXStoreListener mListener = null;
 
-    private String mPreferencesStatusKey;
+    private final String mPreferencesStatusKey;
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
@@ -92,6 +89,7 @@ public class MXFileStore extends MXMemoryStore {
     private ArrayList<String> mRoomsToCommitForSummaries;
     private ArrayList<String> mRoomsToCommitForAccountData;
     private ArrayList<String> mRoomsToCommitForReceipts;
+    private ArrayList<String> mUserIdsToCommit;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -104,6 +102,7 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreRoomsSummaryFolderFile = null;
     private File mStoreRoomsMessagesReceiptsFolderFile = null;
     private File mStoreRoomsAccountDataFolderFile = null;
+    private File mStoreUserFolderFile = null;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -126,6 +125,7 @@ public class MXFileStore extends MXMemoryStore {
         // MXFileStore/userID/Summaries/
         // MXFileStore/userID/receipt/<room Id>/receipts
         // MXFileStore/userID/accountData/
+        // MXFileStore/userID/users/
 
         // create the dirtree
         mStoreFolderFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_STORE_FOLDER), userId);
@@ -163,11 +163,17 @@ public class MXFileStore extends MXMemoryStore {
         if (!mStoreRoomsAccountDataFolderFile.exists()) {
             mStoreRoomsAccountDataFolderFile.mkdirs();
         }
+
+        mStoreUserFolderFile = new File(mStoreFolderFile, MXFILE_STORE_USER_FOLDER);
+        if (!mStoreUserFolderFile.exists()) {
+            mStoreUserFolderFile.mkdirs();
+        }
     }
 
     /**
      * Default constructor
      * @param hsConfig the expected credentials
+     * @param context the context.
      */
     public MXFileStore(HomeserverConnectionConfig hsConfig, Context context) {
         initCommon();
@@ -182,11 +188,12 @@ public class MXFileStore extends MXMemoryStore {
         createDirTree(mCredentials.userId);
 
         // updated data
-        mRoomsToCommitForMessages = new ArrayList<String>();
-        mRoomsToCommitForStates = new ArrayList<String>();
-        mRoomsToCommitForSummaries = new ArrayList<String>();
-        mRoomsToCommitForAccountData = new ArrayList<String>();
-        mRoomsToCommitForReceipts = new ArrayList<String>();
+        mRoomsToCommitForMessages = new ArrayList<>();
+        mRoomsToCommitForStates = new ArrayList<>();
+        mRoomsToCommitForSummaries = new ArrayList<>();
+        mRoomsToCommitForAccountData = new ArrayList<>();
+        mRoomsToCommitForReceipts = new ArrayList<>();
+        mUserIdsToCommit = new ArrayList<>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -222,7 +229,7 @@ public class MXFileStore extends MXMemoryStore {
 
     /**
      * Killed the background thread.
-     * @param isKilled
+     * @param isKilled killed status
      */
     private void setIsKilled(boolean isKilled) {
         synchronized (this) {
@@ -253,6 +260,7 @@ public class MXFileStore extends MXMemoryStore {
         // Save data only if metaData exists
         if ((null != mMetadata) && !isKilled()) {
             Log.d(LOG_TAG, "++ Commit");
+            saveUsers();
             saveRoomsMessages();
             saveRoomStates();
             saveSummaries();
@@ -317,6 +325,13 @@ public class MXFileStore extends MXMemoryStore {
                                 if (!succeed) {
                                     errorDescription = "The latest save did not work properly";
                                     Log.e(LOG_TAG, errorDescription);
+                                }
+
+                                if (succeed) {
+                                    // load the users
+                                    // don't test if the operation succeeds
+                                    // it is not required
+                                    loadUsers();
                                 }
 
                                 if (succeed) {
@@ -386,10 +401,10 @@ public class MXFileStore extends MXMemoryStore {
 
                                     deleteAllData(true);
 
-                                    mRoomsToCommitForMessages = new ArrayList<String>();
-                                    mRoomsToCommitForStates = new ArrayList<String>();
-                                    mRoomsToCommitForSummaries = new ArrayList<String>();
-                                    mRoomsToCommitForReceipts = new ArrayList<String>();
+                                    mRoomsToCommitForMessages = new ArrayList<>();
+                                    mRoomsToCommitForStates = new ArrayList<>();
+                                    mRoomsToCommitForSummaries = new ArrayList<>();
+                                    mRoomsToCommitForReceipts = new ArrayList<>();
 
                                     mMetadata = tmpMetadata;
                                     mMetadata.mEventStreamToken = null;
@@ -460,6 +475,7 @@ public class MXFileStore extends MXMemoryStore {
                 createDirTree(mCredentials.userId);
             }
         } catch(Exception e) {
+            Log.e(LOG_TAG, "deleteAllData failed " + e.getMessage());
         }
 
         if (init) {
@@ -503,7 +519,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Delete a directory with its content
      * @param directory the base directory
-     * @return
+     * @return the cache file size
      */
     private long directorySize(File directory) {
         long directorySize = 0;
@@ -548,21 +564,27 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setDisplayName(String displayName) {
-        Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        // privacy
+        //Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
+        Log.d(LOG_TAG, "Set setDisplayName ");
         mMetaDataHasChanged = true;
         super.setDisplayName(displayName);
     }
 
     @Override
     public void setAvatarURL(String avatarURL) {
-        Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        // privacy
+        //Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
+        Log.d(LOG_TAG, "Set setAvatarURL");
         mMetaDataHasChanged = true;
         super.setAvatarURL(avatarURL);
     }
 
     @Override
     public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
-        Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
+        // privacy
+        //Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
+        Log.d(LOG_TAG, "Set setThirdPartyIdentifiers");
         mMetaDataHasChanged = true;
         super.setThirdPartyIdentifiers(identifiers);
     }
@@ -574,9 +596,17 @@ public class MXFileStore extends MXMemoryStore {
         super.setIgnoredUserIdsList(users);
     }
 
+    @Override
+    public void storeUser(User user) {
+        if (!TextUtils.equals(mCredentials.userId, user.user_id)) {
+            mUserIdsToCommit.add(user.user_id);
+        }
+        super.storeUser(user);
+    }
+
     /**
      * Define a MXStore listener.
-     * @param listener
+     * @param listener the listener
      */
     @Override
     public void setMXStoreListener(MXStoreListener listener) {
@@ -619,19 +649,6 @@ public class MXFileStore extends MXMemoryStore {
         if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
             mRoomsToCommitForMessages.add(event.roomId);
         }
-    }
-
-    @Override
-    public boolean updateEventContent(String roomId, String eventId, JsonObject newContent) {
-        boolean isReplaced = super.updateEventContent(roomId, eventId, newContent);
-
-        if (isReplaced) {
-            if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
-                mRoomsToCommitForMessages.add(roomId);
-            }
-        }
-
-        return isReplaced;
     }
 
     @Override
@@ -753,6 +770,116 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     //================================================================================
+    // users management
+    //================================================================================
+
+    /**
+     * Flush users list
+     */
+    private void saveUsers() {
+        // some updated rooms ?
+        if  ((mUserIdsToCommit.size() > 0) && (null != mFileStoreHandler)) {
+            // get the list
+            final ArrayList<String> fUserIds = mUserIdsToCommit;
+            mUserIdsToCommit = new ArrayList<>();
+
+            final ArrayList<User> fUsers= new ArrayList<>(mUsers.values());
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            if (!isKilled()) {
+                                Log.d(LOG_TAG, "saveUsers " + fUserIds.size()  + " users (" + fUsers.size() + " known ones)");
+
+                                long start = System.currentTimeMillis();
+
+                                // the users are split into groups to save time
+                                HashMap<Integer, ArrayList<User>> usersGroups = new HashMap<>();
+
+                                // finds the group for each updated user
+                                for(String userId : fUserIds) {
+                                    User user = mUsers.get(userId);
+                                    if (null != user) {
+                                        int hashCode = user.getStorageHashKey();
+
+                                        if (!usersGroups.containsKey(hashCode)) {
+                                            usersGroups.put(hashCode, new ArrayList<User>());
+                                        }
+                                    }
+                                }
+
+                                // gather the user to the dedicated group if they need to be updated
+                                for(User user : fUsers) {
+                                    if(usersGroups.containsKey(user.getStorageHashKey())) {
+                                        usersGroups.get(user.getStorageHashKey()).add(user);
+                                    }
+                                }
+
+                                // save the groups
+                                for(int hashKey : usersGroups.keySet()) {
+
+                                    File presenceFile = new File(mStoreUserFolderFile, hashKey + "");
+
+                                    try {
+                                        FileOutputStream fos = new FileOutputStream(presenceFile);
+                                        GZIPOutputStream gz = new GZIPOutputStream(fos);
+                                        ObjectOutputStream out = new ObjectOutputStream(gz);
+
+                                        out.writeObject(usersGroups.get(hashKey));
+                                        out.close();
+
+                                    } catch (Exception e) {
+                                        Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
+                                    }
+                                }
+
+                                Log.d(LOG_TAG, "saveUsers done in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
+    /**
+     * Load the user information from the filesystem..
+     */
+    private void loadUsers() {
+        try {
+            String[] filenames = mStoreUserFolderFile.list();
+            long start = System.currentTimeMillis();
+
+            ArrayList<User> users = new ArrayList<>();
+
+            // list the files
+            for(int index = 0; index < filenames.length; index++) {
+                File messagesListFile = new File(mStoreUserFolderFile, filenames[index]);
+                FileInputStream fis = new FileInputStream(messagesListFile);
+                GZIPInputStream gz = new GZIPInputStream(fis);
+                ObjectInputStream ois = new ObjectInputStream(gz);
+                users.addAll((List<User>) ois.readObject());
+                ois.close();
+            }
+
+            // update the hash map
+            for(User user : users) {
+                mUsers.put(user.user_id, user);
+            }
+
+            Log.e(LOG_TAG, "loadUsers : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
+
+        } catch (Exception e){
+            Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
+        }
+    }
+
+    //================================================================================
     // Room messages management
     //================================================================================
 
@@ -774,8 +901,8 @@ public class MXFileStore extends MXMemoryStore {
                 GZIPOutputStream gz = new GZIPOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
-                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<String, Event>();
-                ArrayList<Event> eventsList = new ArrayList<Event>(eventsHash.values());
+                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
+                ArrayList<Event> eventsList = new ArrayList<>(eventsHash.values());
 
                 int startIndex = 0;
 
@@ -843,7 +970,7 @@ public class MXFileStore extends MXMemoryStore {
         if  ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
-            mRoomsToCommitForMessages = new ArrayList<String>();
+            mRoomsToCommitForMessages = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -893,7 +1020,7 @@ public class MXFileStore extends MXMemoryStore {
                 ArrayList<String> eventIds = mRoomEventIds.get(roomId);
 
                 if (null == eventIds) {
-                    eventIds = new ArrayList<String>();
+                    eventIds = new ArrayList<>();
                     mRoomEventIds.put(roomId, eventIds);
                 }
 
@@ -988,8 +1115,8 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
                 messagesListFile.delete();
-
             } catch (Exception e) {
+                Log.e(LOG_TAG, "loadRoomToken failed with error " + e.getMessage());
             }
         }
 
@@ -1032,7 +1159,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1048,12 +1175,13 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void deleteRoomStateFile(String roomId) {
         // states list
-        File statesFile = statesFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+        File statesFile = new File(mGzStoreRoomsStateFolderFile, roomId);
 
         if (statesFile.exists()) {
             try {
                 statesFile.delete();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "deleteRoomStateFile failed with error " + e.getMessage());
             }
         }
 
@@ -1083,7 +1211,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             // (mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getMessage());
+            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getLocalizedMessage());
         }
     }
 
@@ -1094,7 +1222,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
-            mRoomsToCommitForStates = new ArrayList<String>();
+            mRoomsToCommitForStates = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1137,7 +1265,6 @@ public class MXFileStore extends MXMemoryStore {
         // should always be true
         if (null != room) {
             RoomState liveState = null;
-            boolean shouldSave = false;
 
             try {
                 // the room state is not zipped
@@ -1154,23 +1281,11 @@ public class MXFileStore extends MXMemoryStore {
                 }
             } catch (Exception e) {
                 succeed = false;
-                Log.e(LOG_TAG, "loadRoomState failed : " + e.getMessage());
+                Log.e(LOG_TAG, "loadRoomState failed : " + e.getLocalizedMessage());
             }
 
             if (null != liveState) {
                 room.getLiveTimeLine().setState(liveState);
-
-                // check if some user can be retrieved from the room members
-                Collection<RoomMember> members = liveState.getMembers();
-
-                for(RoomMember member : members) {
-                    updateUserWithRoomMemberEvent(member);
-                }
-
-                // force to use the new format
-                if (shouldSave) {
-                    saveRoomState(roomId);
-                }
             } else {
                 deleteRoom(roomId);
             }
@@ -1180,7 +1295,7 @@ public class MXFileStore extends MXMemoryStore {
                 messagesListFile.delete();
 
             } catch (Exception e) {
-                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getMessage());
+                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getLocalizedMessage());
             }
         }
 
@@ -1197,7 +1312,7 @@ public class MXFileStore extends MXMemoryStore {
         try {
             long start = System.currentTimeMillis();
 
-            String[] filenames = null;
+            String[] filenames;
 
             filenames = mGzStoreRoomsStateFolderFile.list();
 
@@ -1209,7 +1324,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1231,7 +1346,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 file.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getMessage());
+                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getLocalizedMessage());
             }
         }
     }
@@ -1243,7 +1358,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
-            mRoomsToCommitForAccountData = new ArrayList<String>();
+            mRoomsToCommitForAccountData = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1271,7 +1386,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     } catch (Exception e) {
                                         //Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getMessage());
+                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getLocalizedMessage());
                                     }
                                 }
 
@@ -1348,7 +1463,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1387,7 +1502,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 statesFile.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getMessage());
+                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getLocalizedMessage());
             }
         }
     }
@@ -1399,7 +1514,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
-            mRoomsToCommitForSummaries = new ArrayList<String>();
+            mRoomsToCommitForSummaries = new ArrayList<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1429,7 +1544,7 @@ public class MXFileStore extends MXMemoryStore {
                                         }
 
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getMessage());
+                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getLocalizedMessage());
                                         // Toast.makeText(mContext, "saveSummaries failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 }
@@ -1470,7 +1585,7 @@ public class MXFileStore extends MXMemoryStore {
             ois.close();
         } catch (Exception e){
             succeed = false;
-            Log.e(LOG_TAG, "loadSummary failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadSummary failed : " + e.getLocalizedMessage());
         }
 
         if (null != summary) {
@@ -1510,7 +1625,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadSummaries failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadSummaries failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1549,7 +1664,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "loadMetaData failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadMetaData failed : " + e.getLocalizedMessage());
             mMetadata = null;
             mEventStreamToken = null;
         }
@@ -1590,7 +1705,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.close();
                                 } catch (Exception e) {
                                     // Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveMetaData failed : " + e.getMessage());
+                                    Log.e(LOG_TAG, "saveMetaData failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
@@ -1651,7 +1766,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         catch (Exception e) {
             // Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
             return false;
         }
 
@@ -1684,7 +1799,7 @@ public class MXFileStore extends MXMemoryStore {
         catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
         }
 
         return succeed;
@@ -1694,7 +1809,7 @@ public class MXFileStore extends MXMemoryStore {
      * Flush the events receipts
      * @param roomId the roomId.
      */
-    public void saveReceipts(final String roomId) {
+    private void saveReceipts(final String roomId) {
         final Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
 
         Runnable r = new Runnable() {
@@ -1722,7 +1837,7 @@ public class MXFileStore extends MXMemoryStore {
                                     out.close();
                                 } catch (Exception e) {
                                     //Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getMessage());
+                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
@@ -1742,8 +1857,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Save the events receipts.
      */
-    public void saveReceipts() {
-
+    private void saveReceipts() {
         synchronized (this) {
             ArrayList<String> roomsToCommit = mRoomsToCommitForReceipts;
 

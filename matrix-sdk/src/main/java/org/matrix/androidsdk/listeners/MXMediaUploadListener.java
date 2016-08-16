@@ -14,29 +14,30 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.sync;
-
-import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+package org.matrix.androidsdk.listeners;
 
 /**
- * Listener for the events thread that sends data back to a data handler.
+ * A no-op class implementing {@link IMXMediaUploadListener} so listeners can just implement the methods
+ * that they require.
  */
-public class DefaultEventsThreadListener implements EventsThreadListener {
-
-    private MXDataHandler mData;
-
-    public DefaultEventsThreadListener(MXDataHandler data) {
-        mData = data;
+public class MXMediaUploadListener implements IMXMediaUploadListener {
+    @Override
+    public void onUploadStart(String uploadId) {
     }
 
     @Override
-    public void onSyncResponse(SyncResponse syncResponse, boolean isInitialSync) {
-        mData.onSyncResponse(syncResponse, isInitialSync);
+    public void onUploadProgress(String uploadId, UploadStats uploadStats) {
     }
 
     @Override
-    public void onInvalidToken() {
-        mData.onInvalidToken();
+    public void onUploadCancel(String uploadId) {
+    }
+
+    @Override
+    public void onUploadError(String uploadId, int serverResponseCode, String serverErrorMessage) {
+    }
+
+    @Override
+    public void onUploadComplete(String uploadId, String contentUri) {
     }
 }

@@ -36,9 +36,7 @@ import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.GET;
 
 /**
  * Class used to make requests to the profile API.
@@ -58,7 +56,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback to return the name on success
      */
     public void displayname(final String userId, final ApiCallback<String> callback) {
-        final String description = "displayname userId : " + userId;
+        final String description = "display name userId : " + userId;
 
         mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
@@ -79,7 +77,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback if the call succeeds
      */
     public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
-        final String description = "updateDisplayname newName : " + newName;
+        // privacy
+        //final String description = "updateDisplayname newName : " + newName;
+        final String description = "update Displayname";
 
         User user = new User();
         user.displayname = newName;
@@ -121,7 +121,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback if the call succeeds
      */
     public void updateAvatarUrl(final String newUrl, final ApiCallback<Void> callback) {
-        final String description = "updateAvatarUrl newUrl : " + newUrl;
+        // privacy
+        //final String description = "updateAvatarUrl newUrl : " + newUrl;
+        final String description = "updateAvatarUrl";
 
         User user = new User();
         user.setAvatarUrl(newUrl);
@@ -142,7 +144,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback
      */
     public void updatePassword(final String userId, final String oldPassword, final String newPassword, final ApiCallback<Void> callback) {
-        final String description = "update password : " + userId + " oldPassword " + oldPassword + " newPassword " + newPassword;
+        // privacy
+        //final String description = "update password : " + userId + " oldPassword " + oldPassword + " newPassword " + newPassword;
+        final String description = "update password";
 
         ChangePasswordParams passwordParams = new ChangePasswordParams();
 
@@ -170,7 +174,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param callback the callback
      */
     public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
-        final String description = "Reset password : " + threepid_creds + " newPassword " + newPassword;
+        // privacy
+        //final String description = "Reset password : " + threepid_creds + " newPassword " + newPassword;
+        final String description = "Reset password";
 
         ChangePasswordParams passwordParams = new ChangePasswordParams();
 

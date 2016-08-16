@@ -17,8 +17,6 @@ package org.matrix.androidsdk.rest.model;
 
 import com.google.gson.JsonElement;
 
-import java.util.Map;
-
 /**
  * Contains optional extra information about the event.
  */
