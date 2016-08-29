@@ -266,7 +266,7 @@ public class MXMediasCache {
             return null;
         }
 
-        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, size, size), null);
+        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, size, size), "image/jpeg");
 
         try {
             File file = new File(getThumbnailsFolderFile(), filename);
