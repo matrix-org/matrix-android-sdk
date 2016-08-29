@@ -405,7 +405,7 @@ public class EventDisplay {
         }
         else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
             if (null != eventContent.third_party_invite) {
-                return context.getString(R.string.notice_room_third_party_registered_invite, eventContent.third_party_invite.display_name, targetDisplayName, senderDisplayName);
+                return context.getString(R.string.notice_room_third_party_registered_invite, targetDisplayName, eventContent.third_party_invite.display_name);
             } else {
                 String selfUserId = null;
 
