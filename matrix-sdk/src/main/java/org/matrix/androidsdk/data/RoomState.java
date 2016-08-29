@@ -68,8 +68,14 @@ public class RoomState implements java.io.Serializable {
     // The power level of room members
     private PowerLevels powerLevels;
 
-    // The aliases of this room.
+    // The aliases of this room by state_key (domain)
     public List<String> aliases;
+
+    // the aliases are defined for each home server url
+    private HashMap<String, List<String>> mAliasesByDomain = new HashMap();
+
+    // merged from mAliasesByHomeServerUrl
+    private ArrayList<String> mMergedAliasesList;
 
     // Informs which alias is the canonical one.
     public String alias;
@@ -417,6 +423,7 @@ public class RoomState implements java.io.Serializable {
         copy.roomId = roomId;
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
         copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
+        copy.mAliasesByDomain = new HashMap<>(mAliasesByDomain);
         copy.alias = this.alias;
         copy.name = name;
         copy.topic = topic;
@@ -474,11 +481,37 @@ public class RoomState implements java.io.Serializable {
      * @return the first room alias
      */
     private String getFirstAlias() {
-        if ((aliases != null) && (aliases.size() != 0)) {
-            return aliases.get(0);
+        List<String> mergedAliases = getAliases();
+
+        if (mergedAliases.size() != 0) {
+            return mergedAliases.get(0);
         }
 
         return null;
+    }
+
+    /**
+     * Provides the aliases for any known domains
+     * @return the aliases list
+     */
+    public List<String> getAliases() {
+        if (null == mMergedAliasesList) {
+            mMergedAliasesList = new ArrayList<>();
+
+            for (String url : mAliasesByDomain.keySet()) {
+                mMergedAliasesList.addAll(mAliasesByDomain.get(url));
+            }
+        }
+
+        return mMergedAliasesList;
+    }
+
+    /**
+     * Provides the aliases by domain
+     * @return the aliases list map
+     */
+    public Map<String, List<String>> getAliasesByDomain() {
+        return new HashMap<>(mAliasesByDomain);
     }
 
     /**
@@ -598,8 +631,10 @@ public class RoomState implements java.io.Serializable {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 guest_access = (roomState == null) ? null : roomState.guest_access;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                aliases = (roomState == null) ? null : roomState.aliases;
+                if (!TextUtils.isEmpty(event.stateKey)) {
+                    RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                    mAliasesByDomain.put(event.stateKey, (null == roomState) ? null : roomState.aliases);
+                }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
                 // SPEC-125
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);

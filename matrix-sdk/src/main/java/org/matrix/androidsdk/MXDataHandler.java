@@ -591,7 +591,7 @@ public class MXDataHandler implements IMXEventListener {
                 roomId = room.getRoomId();
                 break;
             } else {
-                List<String> aliases = room.getState().aliases;
+                List<String> aliases = room.getState().getAliases();
 
                 if (null != aliases) {
                     for(String alias : aliases) {

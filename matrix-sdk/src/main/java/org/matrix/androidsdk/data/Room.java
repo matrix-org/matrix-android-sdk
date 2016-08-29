@@ -681,11 +681,7 @@ public class Room {
      * @return the room aliases list.
      */
     public List<String> getAliases() {
-        if (null == getLiveState().aliases) {
-            return new ArrayList<>();
-        } else {
-            return getLiveState().aliases;
-        }
+        return getLiveState().getAliases();
     }
 
     /**
