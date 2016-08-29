@@ -501,6 +501,16 @@ public class RoomState implements java.io.Serializable {
             for (String url : mAliasesByDomain.keySet()) {
                 mMergedAliasesList.addAll(mAliasesByDomain.get(url));
             }
+
+            // ensure that the current aliases have been added.
+            // for example for the public rooms because there is no applystate call.
+            if (null != aliases) {
+                for(String anAlias : aliases) {
+                    if (mMergedAliasesList.indexOf(anAlias) < 0) {
+                        mMergedAliasesList.add(anAlias);
+                    }
+                }
+            }
         }
 
         return mMergedAliasesList;
@@ -512,6 +522,35 @@ public class RoomState implements java.io.Serializable {
      */
     public Map<String, List<String>> getAliasesByDomain() {
         return new HashMap<>(mAliasesByDomain);
+    }
+
+    /**
+     * Remove an alias.
+     * @param alias the alias to remove
+     */
+    public void removeAlias(String alias) {
+        if (getAliases().indexOf(alias) >= 0) {
+            if (null != aliases) {
+                aliases.remove(alias);
+            }
+
+            for(String host : mAliasesByDomain.keySet()) {
+                mAliasesByDomain.get(host).remove(alias);
+            }
+
+            mMergedAliasesList = null;
+        }
+    }
+
+    /**
+     * Add an alias.
+     * @param alias the alias to add
+     */
+    public void addAlias(String alias) {
+        if (getAliases().indexOf(alias) < 0) {
+            // patch until the server echoes the alias addition.
+            mMergedAliasesList.add(alias);
+        }
     }
 
     /**
@@ -633,7 +672,16 @@ public class RoomState implements java.io.Serializable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
                     RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                    mAliasesByDomain.put(event.stateKey, (null == roomState) ? null : roomState.aliases);
+
+                    // backward compatibility
+                    aliases = (null == roomState) ? null : roomState.aliases;
+
+                    // sanity check
+                    if (null != aliases) {
+                        mAliasesByDomain.put(event.stateKey, aliases);
+                    } else {
+                        mAliasesByDomain.put(event.stateKey, new ArrayList<String>());
+                    }
                 }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
                 // SPEC-125

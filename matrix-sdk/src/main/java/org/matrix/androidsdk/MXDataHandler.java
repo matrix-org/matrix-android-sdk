@@ -591,14 +591,13 @@ public class MXDataHandler implements IMXEventListener {
                 roomId = room.getRoomId();
                 break;
             } else {
+                // getAliases cannot be null
                 List<String> aliases = room.getState().getAliases();
 
-                if (null != aliases) {
-                    for(String alias : aliases) {
-                        if (TextUtils.equals(alias, roomAlias)) {
-                            roomId = room.getRoomId();
-                            break;
-                        }
+                for(String alias : aliases) {
+                    if (TextUtils.equals(alias, roomAlias)) {
+                        roomId = room.getRoomId();
+                        break;
                     }
                 }
 

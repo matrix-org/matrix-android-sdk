@@ -703,10 +703,7 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                ArrayList<String> aliases = new ArrayList<>(getAliases());
-                aliases.remove(alias);
-
-                getState().aliases = aliases;
+                getState().removeAlias(alias);
                 super.onSuccess(info);
             }
         });
@@ -731,10 +728,7 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                ArrayList<String> aliases = new ArrayList<>(getAliases());
-                aliases.add(alias);
-
-                getState().aliases = aliases;
+                getState().addAlias(alias);
                 super.onSuccess(info);
             }
         });
