@@ -873,30 +873,36 @@ public class MXJingleCall extends MXCall {
         if (isVideo()) {
             Log.d(LOG_TAG, "## initCallUI(): building UI video call");
 
-            // pass a runnable to be run once the surface view is ready
-            VideoRendererGui.setView(mCallView, new Runnable() {
-                @Override
-                public void run() {
-                    mUIThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (null == mPeerConnectionFactory) {
-                                Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
+            try {
+                // pass a runnable to be run once the surface view is ready
+                VideoRendererGui.setView(mCallView, new Runnable() {
+                    @Override
+                    public void run() {
+                        mUIThreadHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (null == mPeerConnectionFactory) {
+                                    Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
-                                mPeerConnectionFactory = new PeerConnectionFactory();
-                                createVideoTrack();
-                                createAudioTrack();
-                                createLocalStream();
+                                    mPeerConnectionFactory = new PeerConnectionFactory();
+                                    createVideoTrack();
+                                    createAudioTrack();
+                                    createLocalStream();
 
-                                if (null != callInviteParams) {
-                                    dispatchOnStateDidChange(CALL_STATE_RINGING);
-                                    setRemoteDescription(callInviteParams);
+                                    if (null != callInviteParams) {
+                                        dispatchOnStateDidChange(CALL_STATE_RINGING);
+                                        setRemoteDescription(callInviteParams);
+                                    }
                                 }
                             }
-                        }
-                    });
-                }
-            });
+                        });
+                    }
+                });
+            } catch (Exception e) {
+                // GA issue
+                // it seems that setView triggers some exception like "setRenderer has already been called"
+                Log.e(LOG_TAG,"## initCallUI(): VideoRendererGui.setView : Exception Msg ="+e.getMessage());
+            }
 
             // create the renderers after the VideoRendererGui.setView
             try {
