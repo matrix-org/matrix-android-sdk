@@ -228,10 +228,10 @@ public class UnsentEventsManager {
      * @param callback the callback.
      */
     public static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
-        if (null != error) {
+        if ((null != error) && !TextUtils.isEmpty(error.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-            Log.e(LOG_TAG, error.getLocalizedMessage());
+            Log.e(LOG_TAG, error.getLocalizedMessage());  
         }
 
         if (null == error) {
