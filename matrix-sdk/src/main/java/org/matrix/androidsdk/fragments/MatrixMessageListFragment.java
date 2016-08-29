@@ -674,7 +674,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             private void onError() {
-                Toast.makeText(getActivity(), getActivity().getString(R.string.could_not_redact), Toast.LENGTH_SHORT).show();
+                if (null != getActivity()) {
+                    Toast.makeText(getActivity(), getActivity().getString(R.string.could_not_redact), Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
@@ -1899,7 +1901,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 boolean hasToRemoved = (null == content) || (null == content.entrySet()) || (0 == content.entrySet().size());
 
                                 // test if the event is displayable
-                                if (!hasToRemoved) {
+                                // GA issue : the activity can be null
+                                if (!hasToRemoved && (null != getActivity())) {
                                     EventDisplay eventDisplay = new EventDisplay(getActivity(), prunedEvent, roomState);
                                     hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay());
                                 }
