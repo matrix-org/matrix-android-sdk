@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCall;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -116,6 +117,9 @@ public class Room {
 
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
+
+    // call conference user id
+    private String mCallConferenceUserId;
 
     /**
      * Default room creator
@@ -887,25 +891,40 @@ public class Room {
     //================================================================================
 
     /**
+     * @return the call conference user id
+     */
+    private String getCallConferenceUserId() {
+        if (null == mCallConferenceUserId) {
+            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());;
+        }
+
+        return mCallConferenceUserId;
+    }
+    
+    /**
      * Handle a receiptData.
      * @param receiptData the receiptData.
      * @return true if there a store update.
      */
     public boolean handleReceiptData(ReceiptData receiptData) {
-        boolean isUpdated = mStore.storeReceipt(receiptData, getRoomId());
+        if (!TextUtils.equals(receiptData.userId, getCallConferenceUserId())) {
+            boolean isUpdated = mStore.storeReceipt(receiptData, getRoomId());
 
-        // check oneself receipts
-        // if there is an update, it means that the messages have been read from another client
-        // it requires to update the summary to display valid information.
-        if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
-            RoomSummary summary = mStore.getSummary(getRoomId());
-            if (null != summary) {
-                summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
+            // check oneself receipts
+            // if there is an update, it means that the messages have been read from another client
+            // it requires to update the summary to display valid information.
+            if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
+                RoomSummary summary = mStore.getSummary(getRoomId());
+                if (null != summary) {
+                    summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
+                }
+                refreshUnreadCounter();
             }
-            refreshUnreadCounter();
-        }
 
-        return isUpdated;
+            return isUpdated;
+        } else {
+            return false;
+        }
     }
 
     /**
