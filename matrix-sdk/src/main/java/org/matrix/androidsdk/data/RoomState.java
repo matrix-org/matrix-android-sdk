@@ -407,7 +407,8 @@ public class RoomState implements java.io.Serializable {
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return  visibility.equals(HISTORY_VISIBILITY_SHARED) ||
+        return  visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
+                visibility.equals(HISTORY_VISIBILITY_SHARED) ||
                 (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
                 (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
                 ;
