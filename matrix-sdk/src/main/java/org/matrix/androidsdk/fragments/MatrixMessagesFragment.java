@@ -464,14 +464,11 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     protected void requestInitialHistory() {
-        if (null != mMatrixMessagesListener) {
-            mMatrixMessagesListener.showInitLoading();
-        }
 
         Log.d(LOG_TAG, "requestInitialHistory " + mRoom.getRoomId());
 
         // the initial sync will be retrieved when a network connection will be found
-        backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
+        boolean start = backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
             @Override
             public void onSuccess(Integer info) {
                 Log.d(LOG_TAG, "requestInitialHistory onSuccess");
@@ -511,6 +508,12 @@ public class MatrixMessagesFragment extends Fragment {
                 onError(e.getLocalizedMessage());
             }
         });
+
+        if (start) {
+            if (null != mMatrixMessagesListener) {
+                mMatrixMessagesListener.showInitLoading();
+            }
+        }
     }
 
     //==============================================================================================================
