@@ -1805,6 +1805,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (!mMatrixMessagesFragment.canBackPaginate()) {
             Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
+            // ensure that the listener is defined.
+            mMessageListView.setOnScrollListener(mScrollListener);
             return;
         }
             // in search mode,
