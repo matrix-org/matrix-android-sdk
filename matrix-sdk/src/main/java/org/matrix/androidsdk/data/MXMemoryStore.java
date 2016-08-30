@@ -60,6 +60,9 @@ public class MXMemoryStore implements IMXStore {
     // dict of dict of MXReceiptData indexed by userId
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
+    // common context
+    protected static Context mSharedContext = null;
+
     // the context
     protected Context mContext;
 
@@ -74,6 +77,10 @@ public class MXMemoryStore implements IMXStore {
     // When nil, nothing is stored on the file system.
     protected MXFileStoreMetaData mMetadata = null;
 
+    /**
+     * Initialization method.
+     * @param context the context
+     */
     protected void initCommon(){
         mRooms = new ConcurrentHashMap<>();
         mUsers = new ConcurrentHashMap<>();
@@ -91,12 +98,29 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Set the application context
+     * @param context the context
+     */
+    protected void setContext(Context context) {
+        if (null == mSharedContext) {
+            if (null != context) {
+                mSharedContext = context.getApplicationContext();
+            } else {
+                throw new RuntimeException("MXMemoryStore : context cannot be null");
+            }
+        }
+
+        mContext = mSharedContext;
+    }
+
+    /**
      * Default constructor
      * @param credentials the expected credentials
      */
     public MXMemoryStore(Credentials credentials, Context context) {
         initCommon();
-        mContext = context;
+
+        setContext(context);
         mCredentials = credentials;
 
         mMetadata = new MXFileStoreMetaData();

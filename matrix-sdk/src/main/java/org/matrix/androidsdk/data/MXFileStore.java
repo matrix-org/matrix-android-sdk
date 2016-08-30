@@ -177,7 +177,8 @@ public class MXFileStore extends MXMemoryStore {
      */
     public MXFileStore(HomeserverConnectionConfig hsConfig, Context context) {
         initCommon();
-        mContext = context;
+        setContext(context);
+
         mIsReady = false;
         mCredentials = hsConfig.getCredentials();
 
