@@ -183,6 +183,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mDisplayAllEvents = true;
     public boolean mCheckSlideToHide = false;
 
+    private boolean mIsScrollListenerSet;
+
     // timeline management
     protected boolean mIsLive = true;
 
@@ -408,6 +410,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
+        mIsScrollListenerSet = false;
 
         if (mAdapter == null) {
             // only init the adapter if it wasn't before, so we can preserve messages/position.
@@ -655,8 +658,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return true;
     }
 
-
-
     /**
      * @return the max thumbnail width
      */
@@ -679,15 +680,38 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Scroll the listview to the last item.
+     * Scroll the listView to the last item.
+     * @param delayMs the delay before jumping to the latest event.
      */
-    public void scrollToBottom() {
+    public void scrollToBottom(int delayMs) {
         mMessageListView.postDelayed(new Runnable() {
             @Override
             public void run() {
                 mMessageListView.setSelection(mAdapter.getCount() - 1);
             }
-        }, 300);
+        }, Math.max(delayMs, 0));
+    }
+
+    /**
+     * Scroll the listview to the last item.
+     */
+    public void scrollToBottom() {
+        scrollToBottom(300);
+    }
+
+    /**
+     * Provides the event for a dedicated row.
+     * @param row the row
+     * @return the event
+     */
+    public Event getEvent(int row) {
+        Event event = null;
+
+        if (mAdapter.getCount() > row) {
+            event = mAdapter.getItem(row).getEvent();
+        }
+
+        return event;
     }
 
     // create a dummy message row for the message
@@ -722,8 +746,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void onSuccess(Event redactedEvent) {
 
-                // create a dummy redacted event to manage the redation.
-                // some redatec events are not removed from the history but they are pruned.
+                // create a dummy redacted event to manage the redaction.
+                // some redated events are not removed from the history but they are pruned.
                 Event redacterEvent = new Event();
                 redacterEvent.roomId = redactedEvent.roomId;
                 redacterEvent.redacts = redactedEvent.eventId;
@@ -1784,6 +1808,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Set the scroll listener to mMessageListView
+     */
+    private void setMessageListViewScrollListener() {
+        // ensure that the listener is set only once
+        // else it triggers an inifinite loop with backPaginate.
+        if (!mIsScrollListenerSet) {
+            mIsScrollListenerSet = true;
+            mMessageListView.setOnScrollListener(mScrollListener);
+        }
+    }
+
+    /**
      * Trigger a back pagination.
      * @param fillHistory true to try to fill the listview height.
      */
@@ -1805,8 +1841,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (!mMatrixMessagesFragment.canBackPaginate()) {
             Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
-            // ensure that the listener is defined.
-            mMessageListView.setOnScrollListener(mScrollListener);
+            setMessageListViewScrollListener();
             return;
         }
             // in search mode,
@@ -1883,7 +1918,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                                     Log.d(LOG_TAG, "backPaginate : history should be filled");
                                                     hideLoadingBackProgress();
                                                     mIsInitialSyncing = false;
-                                                    mMessageListView.setOnScrollListener(mScrollListener);
+                                                    setMessageListViewScrollListener();
                                                 }
                                             } else {
                                                 hideLoadingBackProgress();
@@ -1894,7 +1929,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             });
                         } else {
                             Log.d(LOG_TAG, "no more backPaginate");
-                            mMessageListView.setOnScrollListener(mScrollListener);
+                            setMessageListViewScrollListener();
                             hideLoadingBackProgress();
                             mIsBackPaginating = false;
                             mLockFwdPagination = false;
@@ -2107,7 +2142,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             } else {
                                 Log.d(LOG_TAG, "onInitialMessagesLoaded : history should be filled");
                                 mIsInitialSyncing = false;
-                                mMessageListView.setOnScrollListener(mScrollListener);
+                                setMessageListViewScrollListener();
                             }
                         }
                     });
@@ -2123,13 +2158,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             @Override
                             public void run() {
                                 mIsInitialSyncing = false;
-                                mMessageListView.setOnScrollListener(mScrollListener);
+                                setMessageListViewScrollListener();
                             }
                         });
 
                     } else {
                         mIsInitialSyncing = false;
-                        mMessageListView.setOnScrollListener(mScrollListener);
+                        setMessageListViewScrollListener();
                     }
                 }
             }
