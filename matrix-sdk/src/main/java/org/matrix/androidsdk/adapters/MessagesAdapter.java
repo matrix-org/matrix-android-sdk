@@ -857,10 +857,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Refresh the avatar thumbnail.
      * @param avatarView the avatar view
      * @param member the member
+     * @param displayName the preferred display name
      * @param userId the member id.
      * @param url the avatar url
      */
-    protected void loadMemberAvatar(ImageView avatarView, RoomMember member, String userId, String url) {
+    protected void loadMemberAvatar(ImageView avatarView, RoomMember member, String userId, String displayName, String url) {
         if ((member != null) && (null == url)) {
             url = member.avatarUrl;
         }
@@ -1284,6 +1285,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 avatarImageView.setTag(null);
 
                 String url = null;
+                String displayName = null;
 
                 // Check whether this avatar url is updated by the current event (This happens in case of new joined member)
                 JsonObject msgContent = event.getContentAsJsonObject();
@@ -1305,7 +1307,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 }
 
-                loadMemberAvatar(avatarImageView, sender, userId, url);
+                // in some cases, the displayname cannot be retrieved because the user member joined the room with this event
+                // without being invited (a public room for example)
+                if (msgContent.has("displayname")) {
+                    displayName = msgContent.get("displayname") == JsonNull.INSTANCE ? null : msgContent.get("displayname").getAsString();
+                }
+
+                loadMemberAvatar(avatarImageView, sender, userId, displayName, url);
 
                 // display the typing icon when required
                 setTypingVisibility(avatarLayoutView, (!isAvatarOnRightSide && (mTypingUsers.indexOf(event.getSender()) >= 0)) ? View.VISIBLE : View.GONE);
