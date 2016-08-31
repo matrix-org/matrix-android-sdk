@@ -69,7 +69,9 @@ import java.io.File;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -999,24 +1001,51 @@ public class Room {
      * @return true if the read receipt has been sent, false otherwise
      */
     public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
-        final RoomSummary summary = mStore.getSummary(getRoomId());
-        final Event event = mStore.getLatestEvent(getRoomId());
-        boolean isSendReadReceiptSent = false;
-        Log.d(LOG_TAG,"## sendReadReceipt(): roomId="+getRoomId());
+        return sendReadReceipt(null, aRespCallback);
+    }
 
-        if ((null != event) && (null != summary)) {
+    /**
+     * Send the read receipt to a dedicated event.
+     * @param anEvent the event to acknowledge
+     * @param aRespCallback asynchronous response callback
+     * @return true if the read receipt has been sent, false otherwise
+     */
+    public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
+        final RoomSummary summary = mStore.getSummary(getRoomId());
+        final Event fEvent;
+
+        // the event is provided
+        if (null != anEvent) {
+
+            Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to " + anEvent.eventId);
+
+            // test if the message has already be read
+            if (getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), anEvent.eventId)) {
+                Log.d(LOG_TAG, "## sendReadReceipt(): the message was already read");
+                fEvent = null;
+            } else {
+                fEvent = anEvent;
+            }
+        } else {
+            Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to the latest event");
+            fEvent = mStore.getLatestEvent(getRoomId());
+        }
+
+        boolean isSendReadReceiptSent = false;
+
+        if ((null != fEvent) && (null != summary)) {
             // any update
-            if (!TextUtils.equals(summary.getReadReceiptToken(), event.eventId)) {
-                Log.d(LOG_TAG,"## sendReadReceipt(): send a read receipt to " + event.eventId);
+            if (!TextUtils.equals(summary.getReadReceiptToken(), fEvent.eventId)) {
+                Log.d(LOG_TAG,"## sendReadReceipt(): send a read receipt to " + fEvent.eventId);
 
                 isSendReadReceiptSent = true;
-                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), event.eventId, new ApiCallback<Void>() {
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
                         Log.d(LOG_TAG,"## sendReadReceipt(): succeeds");
 
                         // save the up to date status only if the operation succeeds
-                        setReadReceiptToken(event.eventId, System.currentTimeMillis());
+                        setReadReceiptToken(fEvent.eventId, System.currentTimeMillis());
 
                         if(null != aRespCallback) {
                             aRespCallback.onSuccess(info);
@@ -1059,7 +1088,7 @@ public class Room {
                 clearUnreadCounters(summary);
             }
         } else {
-            Log.d(LOG_TAG,"## sendReadReceipt(): invalid params event " + event + " summary " + summary);
+            Log.d(LOG_TAG,"## sendReadReceipt(): invalid params event " + fEvent + " summary " + summary);
         }
 
         return isSendReadReceiptSent;
@@ -1077,7 +1106,7 @@ public class Room {
 
         if (summary.setReadReceiptToken(token, ts)) {
             Log.d(LOG_TAG, "setReadReceiptToken : update the summary");
-            clearUnreadCounters(summary);
+            refreshUnreadCounter();
         } else {
             Log.d(LOG_TAG, "setReadReceiptToken : not the latest message " + summary.getReadReceiptToken() + " - " + summary.getReadReceiptTs());
         }
