@@ -305,6 +305,10 @@ public class RoomState implements java.io.Serializable {
     public void removeMember(String userId) {
         synchronized (this) {
             mMembers.remove(userId);
+            // remove the cached display name
+            if (null != mMemberDisplayNameByUserId) {
+                mMemberDisplayNameByUserId.remove(userId);
+            }
         }
     }
 
@@ -723,6 +727,11 @@ public class RoomState implements java.io.Serializable {
                             if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
                                 if (null == member.avatarUrl) {
                                     member.avatarUrl = currentMember.avatarUrl;
+                                }
+
+                                // remove the cached display name
+                                if (null != mMemberDisplayNameByUserId) {
+                                    mMemberDisplayNameByUserId.remove(userId);
                                 }
                             }
                         }
