@@ -1305,12 +1305,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                             url = sender.avatarUrl;
                         }
                     }
-                }
 
-                // in some cases, the displayname cannot be retrieved because the user member joined the room with this event
-                // without being invited (a public room for example)
-                if (msgContent.has("displayname")) {
-                    displayName = msgContent.get("displayname") == JsonNull.INSTANCE ? null : msgContent.get("displayname").getAsString();
+                    if (TextUtils.equals(memberShip, RoomMember.MEMBERSHIP_JOIN)) {
+                        // in some cases, the displayname cannot be retrieved because the user member joined the room with this event
+                        // without being invited (a public room for example)
+                        if (msgContent.has("displayname")) {
+                            displayName = msgContent.get("displayname") == JsonNull.INSTANCE ? null : msgContent.get("displayname").getAsString();
+                        }
+                    }
                 }
 
                 loadMemberAvatar(avatarImageView, sender, userId, displayName, url);
