@@ -1486,9 +1486,12 @@ public class MXJingleCall extends MXCall {
         String state = getCallState();
 
         if (TextUtils.equals(state,IMXCall.CALL_STATE_RINGING /*if in ringing state on this side*/) ||
+                /* the UI is not ready but the call has been stopped
+                   because the screen is locked for example */
+                TextUtils.equals(state,IMXCall.CALL_STATE_FLEDGLING) ||
            /* specific case to fix: a video call answered elsewhere by another callee side
            when this local callee is still displaying the InComingCallActivity dialog.*/
-           (TextUtils.equals(state,CALL_STATE_WAIT_LOCAL_MEDIA) && isVideo())) {
+                (TextUtils.equals(state,CALL_STATE_WAIT_LOCAL_MEDIA) && isVideo())) {
                 dispatchAnsweredElsewhere();
                 terminate(IMXCall.END_CALL_REASON_UNDEFINED);
         }
