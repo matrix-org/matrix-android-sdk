@@ -1008,7 +1008,7 @@ public class Room {
      * Send the read receipt to a dedicated event.
      * @param anEvent the event to acknowledge
      * @param aRespCallback asynchronous response callback
-     * @return true if the read receipt has been sent, false otherwise
+     * @return true if the read receipt request is sent, false otherwise
      */
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
         final RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1022,7 +1022,7 @@ public class Room {
             // test if the message has already be read
             if (getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), anEvent.eventId)) {
                 Log.d(LOG_TAG, "## sendReadReceipt(): the message was already read");
-                fEvent = null;
+                return false;
             } else {
                 fEvent = anEvent;
             }
