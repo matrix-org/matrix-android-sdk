@@ -1038,14 +1038,17 @@ public class Room {
             if (!TextUtils.equals(summary.getReadReceiptToken(), fEvent.eventId)) {
                 Log.d(LOG_TAG,"## sendReadReceipt(): send a read receipt to " + fEvent.eventId);
 
+                // save the up to date status
+                // don't wait that the operation is done
+                // because it could display invalid unread messages counters
+                // while sending it.
+                setReadReceiptToken(fEvent.eventId, System.currentTimeMillis());
+
                 isSendReadReceiptSent = true;
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
                         Log.d(LOG_TAG,"## sendReadReceipt(): succeeds");
-
-                        // save the up to date status only if the operation succeeds
-                        setReadReceiptToken(fEvent.eventId, System.currentTimeMillis());
 
                         if(null != aRespCallback) {
                             aRespCallback.onSuccess(info);
