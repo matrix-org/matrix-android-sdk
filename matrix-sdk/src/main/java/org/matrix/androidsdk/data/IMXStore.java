@@ -316,7 +316,8 @@ public interface IMXStore {
     List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort);
 
     /**
-     * Store the receipt for an user in a room
+     * Store the receipt for an user in a room.
+     * The receipt validity is checked i.e the receipt is not for an already read message.
      * @param receipt The event
      * @param roomId The roomId
      * @return true if the receipt has been stored

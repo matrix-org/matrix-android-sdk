@@ -679,7 +679,7 @@ public class MXMemoryStore implements IMXStore {
                     summary = new RoomSummary();
                 }
                 summary.setMatrixId(mCredentials.userId);
-                summary.setLatestEvent(event);
+                summary.setLatestReceivedEvent(event);
                 summary.setLatestRoomState(roomState);
                 summary.setName(room.getName(selfUserId));
                 summary.setRoomId(room.getRoomId());
@@ -938,13 +938,21 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Store the receipt for an user in a room
+     * Store the receipt for an user in a room.
+     * The receipt validity is checked i.e the receipt is not for an already read message.
      * @param receipt The event
      * @param roomId The roomId
      * @return true if the receipt has been stored
      */
     public boolean storeReceipt(ReceiptData receipt, String roomId) {
+        // sanity check
+        if (TextUtils.isEmpty(roomId) || (null == receipt)) {
+            return false;
+        }
+
         Map<String, ReceiptData> receiptsByUserId;
+
+        Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
 
         synchronized (mReceiptsByRoomId) {
             if (!mReceiptsByRoomId.containsKey(roomId)) {
@@ -961,13 +969,45 @@ public class MXMemoryStore implements IMXStore {
             curReceipt = receiptsByUserId.get(receipt.userId);
         }
 
-        // not yet defined or a new event
-        if ((null == curReceipt) || (!TextUtils.equals(receipt.eventId,curReceipt.eventId) && (receipt.originServerTs > curReceipt.originServerTs))) {
+        if (null == curReceipt) {
+            Log.d(LOG_TAG, "## storeReceipt() : there was no receipt from this user");
             receiptsByUserId.put(receipt.userId, receipt);
             return true;
         }
 
-        return false;
+        if (TextUtils.equals(receipt.eventId,curReceipt.eventId)) {
+            Log.d(LOG_TAG, "## storeReceipt() : receipt for the same event");
+            return false;
+        }
+
+        if (receipt.originServerTs < curReceipt.originServerTs) {
+            Log.d(LOG_TAG, "## storeReceipt() : the receipt is older that the current one");
+            return false;
+        }
+
+        // check if the read receipt is not for an already read message
+        if (TextUtils.equals(receipt.userId, mCredentials.userId)) {
+            synchronized (mReceiptsByRoomId) {
+                LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
+
+                // test if the event is know
+                if (eventsMap.containsKey(receipt.eventId)) {
+                    ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+
+                    int curEventPos = eventIds.indexOf(curReceipt.eventId);
+                    int newEventPos = eventIds.indexOf(receipt.eventId);
+
+                    if (curEventPos >= newEventPos) {
+                        Log.d(LOG_TAG, "## storeReceipt() : the read message is already read (cur pos " + curEventPos + " receipt event pos " + newEventPos + ")");
+                        return false;
+                    }
+                }
+            }
+        }
+
+        Log.d(LOG_TAG, "## storeReceipt() : updated");
+        receiptsByUserId.put(receipt.userId, receipt);
+        return true;
     }
 
     /**

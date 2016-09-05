@@ -26,9 +26,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.JsonUtils;
-
-import java.util.Collection;
 
 /**
  * Stores summarised information about the room.
@@ -40,17 +37,15 @@ public class RoomSummary implements java.io.Serializable {
     private String mRoomId = null;
     private String mName = null;
     private String mTopic = null;
-    private Event mLatestEvent = null;
+    private Event mLatestReceivedEvent = null;
 
     // the room state is only used to check
     // 1- the invitation status
     // 2- the members display name
     private transient RoomState mLatestRoomState = null;
 
-    // save the latest read receipt token
-    // null if there is no known one
-    private String mReadReceiptToken;
-    private long mReadReceiptTs;
+    // defines the late
+    private String mLatestReadEventId;
 
     private int mUnreadEventsCount;
 
@@ -68,15 +63,20 @@ public class RoomSummary implements java.io.Serializable {
 
     public RoomSummary() {}
 
-    public RoomSummary(String roomId, String name, String topic, Event msg,
-                       Collection<RoomMember> members) {
-        mLatestEvent = msg;
+    /**
+     * Create a room summary
+     * @param roomId the room id
+     * @param name the room display name
+     * @param topic the topic
+     * @param event the latest received event
+     */
+    public RoomSummary(String roomId, String name, String topic, Event event) {
+        mLatestReceivedEvent = event;
         mRoomId = roomId;
         mName = name;
         mTopic = topic;
 
-        mReadReceiptToken = null;
-        mReadReceiptTs = -1;
+        mLatestReadEventId = null;
     }
 
     /**
@@ -113,7 +113,7 @@ public class RoomSummary implements java.io.Serializable {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
             }
         } else if (!TextUtils.isEmpty(type)){
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
@@ -171,25 +171,35 @@ public class RoomSummary implements java.io.Serializable {
         return isSupported;
     }
 
+    /**
+     * @return the matrix id
+     */
     public String getMatrixId() {
         return mMatrixId;
     }
 
+    /**
+     * @return the room id
+     */
     public String getRoomId() {
         return mRoomId;
     }
 
+    /**
+     * Compute the room summary display name.
+     * @return the room summary display name.
+     */
     public String getRoomName() {
         String name = mName;
 
         // when invited, the only received message should be the invitation one
         if (isInvited()) {
-            if (null != mLatestEvent) {
+            if (null != mLatestReceivedEvent) {
                 String inviterName;
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    inviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
+                    inviterName = mLatestRoomState.getMemberName(mLatestReceivedEvent.getSender());
                 } else {
                     // use the stored one
                     inviterName = mInviterName;
@@ -214,8 +224,8 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * @return the room summary event.
      */
-    public Event getLatestEvent() {
-        return mLatestEvent;
+    public Event getLatestReceivedEvent() {
+        return mLatestReceivedEvent;
     }
 
     /**
@@ -232,10 +242,17 @@ public class RoomSummary implements java.io.Serializable {
         return mIsInvited || (mInviterUserId != null);
     }
 
+    /**
+     * @return the inviter user id.
+     */
     public String getInviterUserId() {
         return mInviterUserId;
     }
 
+    /**
+     * Update the linked matrix id.
+     * @param matrixId the new matrix id.
+     */
     public void setMatrixId(String matrixId) {
         mMatrixId = matrixId;
     }
@@ -275,8 +292,8 @@ public class RoomSummary implements java.io.Serializable {
      * @param event The most-recent event.
      * @return This summary for chaining calls.
      */
-    public RoomSummary setLatestEvent(Event event) {
-        mLatestEvent = event;
+    public RoomSummary setLatestReceivedEvent(Event event) {
+        mLatestReceivedEvent = event;
         return this;
     }
 
@@ -297,12 +314,12 @@ public class RoomSummary implements java.io.Serializable {
         if (mIsInvited) {
             mInviterName = null;
 
-            if (null != mLatestEvent) {
-                mInviterName = mInviterUserId = mLatestEvent.getSender();
+            if (null != mLatestReceivedEvent) {
+                mInviterName = mInviterUserId = mLatestReceivedEvent.getSender();
 
                 // try to retrieve a display name
                 if (null != mLatestRoomState) {
-                    mInviterName = mLatestRoomState.getMemberName(mLatestEvent.getSender());
+                    mInviterName = mLatestRoomState.getMemberName(mLatestReceivedEvent.getSender());
                 }
             }
         } else {
@@ -343,29 +360,24 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Tries to update the read receipts
-     * @param token the latest token
-     * @param ts the ts
-     * @return true if the update succeeds
+     * Update the latest read event Id
+     * @param eventId
      */
-    public boolean setReadReceiptToken(String token, long ts) {
-        if ((ts > mReadReceiptTs) && !TextUtils.equals(token, mReadReceiptToken)) {
-            mReadReceiptToken = token;
-            mReadReceiptTs = ts;
-            return true;
-        }
-
-        return false;
+    public void setLatestReadEventId(String eventId) {
+        mLatestReadEventId = eventId;
     }
 
-    public String getReadReceiptToken() {
-        return mReadReceiptToken;
+    /**
+     * @return the latest event id
+     */
+    public String getLatestReadEventId() {
+        return mLatestReadEventId;
     }
 
-    public long getReadReceiptTs() {
-        return mReadReceiptTs;
-    }
-
+    /**
+     * Update the unread message counter
+     * @param count
+     */
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;
 
@@ -374,6 +386,9 @@ public class RoomSummary implements java.io.Serializable {
         }
     }
 
+    /**
+     * @return the unread events count
+     */
     public int getUnreadEventsCount() {
         return mUnreadEventsCount;
     }

@@ -1535,7 +1535,7 @@ public class MXFileStore extends MXMemoryStore {
                                         RoomSummary roomSummary = mRoomSummaries.get(roomId);
 
                                         if (null != roomSummary) {
-                                            roomSummary.getLatestEvent().prepareSerialization();
+                                            roomSummary.getLatestReceivedEvent().prepareSerialization();
 
                                             FileOutputStream fos = new FileOutputStream(roomSummaryFile);
                                             ObjectOutputStream out = new ObjectOutputStream(fos);
@@ -1590,7 +1590,7 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         if (null != summary) {
-            summary.getLatestEvent().finalizeDeserialization();
+            summary.getLatestReceivedEvent().finalizeDeserialization();
 
             Room room = getRoom(summary.getRoomId());
 

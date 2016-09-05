@@ -75,8 +75,8 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     private String mSearchedPattern = "";
 
-    private ArrayList<String> mHighLightedRooms = new ArrayList<String>();
-    protected ArrayList<HashMap<String, RoomSummary>> mSummaryMapsBySection = new ArrayList<HashMap<String, RoomSummary>>();
+    private ArrayList<String> mHighLightedRooms = new ArrayList<>();
+    protected ArrayList<HashMap<String, RoomSummary>> mSummaryMapsBySection = new ArrayList<>();
 
     // abstract methods
     public abstract int getUnreadMessageBackgroundColor();
@@ -118,7 +118,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         mLayoutInflater = LayoutInflater.from(mContext);
         //setNotifyOnChange(false);
 
-        mRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
+        mRecentsSummariesList = new ArrayList<>();
         for(int section = 0; section < nbrSections; section++) {
             mRecentsSummariesList.add(new ArrayList<RoomSummary>());
             mSummaryMapsBySection.add(new HashMap<String, RoomSummary>());
@@ -153,26 +153,26 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public void notifyDataSetChanged() {
         Log.d(LOG_TAG, "notifyDataSetChanged ");
 
-        mFilteredRecentsSummariesList = new ArrayList<ArrayList<RoomSummary>>();
-        mFilteredPublicRoomsList = new ArrayList<ArrayList<PublicRoom>>();
+        mFilteredRecentsSummariesList = new ArrayList<>();
+        mFilteredPublicRoomsList = new ArrayList<>();
 
         // there is a pattern to search
         if (mSearchedPattern.length() > 0) {
 
             for(int index = 0; index < mRecentsSummariesList.size(); index++) {
                 ArrayList<RoomSummary> roomSummaries = mRecentsSummariesList.get(index);
-                ArrayList<RoomSummary> filteredRes = new ArrayList<RoomSummary>();
+                ArrayList<RoomSummary> filteredRes = new ArrayList<>();
 
                 // search in the recent rooms
                 for (RoomSummary summary : roomSummaries) {
                     String roomName = summary.getRoomName();
 
-                    if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                    if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().contains(mSearchedPattern))) {
                         filteredRes.add(summary);
                     } else {
                         String topic = summary.getRoomTopic();
 
-                        if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        if (!TextUtils.isEmpty(topic) && (topic.toLowerCase().contains(mSearchedPattern))) {
                             filteredRes.add(summary);
                         }
                     }
@@ -184,19 +184,19 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             if (null != mPublicRoomsLists) {
                 for(List<PublicRoom> publicRoomslist : mPublicRoomsLists) {
 
-                    ArrayList<PublicRoom> fiteredList = new ArrayList<PublicRoom>();
+                    ArrayList<PublicRoom> fiteredList = new ArrayList<>();
                     mFilteredPublicRoomsList.add(fiteredList);
 
 
                     for (PublicRoom publicRoom : publicRoomslist) {
                         String roomName = publicRoom.name;
 
-                        if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                        if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().contains(mSearchedPattern))) {
                             fiteredList.add(publicRoom);
                         } else {
                             String alias = publicRoom.roomAliasName;
 
-                            if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
+                            if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().contains(mSearchedPattern))) {
                                 fiteredList.add(publicRoom);
                             }
                         }
@@ -355,7 +355,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
     public void setLatestEvent(int section, Event event, RoomState roomState, boolean refresh) {
         RoomSummary summary = getSummaryByRoomId(section, event.roomId);
         if (summary != null) {
-            summary.setLatestEvent(event);
+            summary.setLatestReceivedEvent(event);
             summary.setLatestRoomState(roomState);
 
             // refresh on demand
@@ -435,15 +435,15 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             Collections.sort(summariesList, new Comparator<RoomSummary>() {
                 @Override
                 public int compare(RoomSummary lhs, RoomSummary rhs) {
-                    if (lhs == null || lhs.getLatestEvent() == null) {
+                    if (lhs == null || lhs.getLatestReceivedEvent() == null) {
                         return 1;
-                    } else if (rhs == null || rhs.getLatestEvent() == null) {
+                    } else if (rhs == null || rhs.getLatestReceivedEvent() == null) {
                         return -1;
                     }
 
-                    if (lhs.getLatestEvent().getOriginServerTs() > rhs.getLatestEvent().getOriginServerTs()) {
+                    if (lhs.getLatestReceivedEvent().getOriginServerTs() > rhs.getLatestReceivedEvent().getOriginServerTs()) {
                         return -1;
-                    } else if (lhs.getLatestEvent().getOriginServerTs() < rhs.getLatestEvent().getOriginServerTs()) {
+                    } else if (lhs.getLatestReceivedEvent().getOriginServerTs() < rhs.getLatestReceivedEvent().getOriginServerTs()) {
                         return 1;
                     }
                     return 0;
@@ -556,11 +556,11 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
                 textView.setText(roomNameMessage);
 
-                if (summary.getLatestEvent() != null) {
-                    EventDisplay display = new EventDisplay(mContext, summary.getLatestEvent(), latestRoomState);
+                if (summary.getLatestReceivedEvent() != null) {
+                    EventDisplay display = new EventDisplay(mContext, summary.getLatestReceivedEvent(), latestRoomState);
                     display.setPrependMessagesWithAuthor(true);
                     message = display.getTextualDisplay();
-                    timestamp = getFormattedTimestamp(summary.getLatestEvent());
+                    timestamp = getFormattedTimestamp(summary.getLatestReceivedEvent());
                 }
 
                 // check if this is an invite

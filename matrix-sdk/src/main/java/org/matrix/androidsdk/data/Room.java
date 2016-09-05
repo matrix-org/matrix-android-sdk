@@ -918,7 +918,7 @@ public class Room {
             if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
                 RoomSummary summary = mStore.getSummary(getRoomId());
                 if (null != summary) {
-                    summary.setReadReceiptToken(receiptData.eventId, receiptData.originServerTs);
+                    summary.setLatestReadEventId(receiptData.eventId);
                 }
                 refreshUnreadCounter();
             }
@@ -1011,12 +1011,10 @@ public class Room {
      * @return true if the read receipt request is sent, false otherwise
      */
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
-        final RoomSummary summary = mStore.getSummary(getRoomId());
         final Event fEvent;
 
         // the event is provided
         if (null != anEvent) {
-
             Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to " + anEvent.eventId);
 
             // test if the message has already be read
@@ -1033,86 +1031,56 @@ public class Room {
 
         boolean isSendReadReceiptSent = false;
 
-        if ((null != fEvent) && (null != summary)) {
-            // any update
-            if (!TextUtils.equals(summary.getReadReceiptToken(), fEvent.eventId)) {
-                Log.d(LOG_TAG,"## sendReadReceipt(): send a read receipt to " + fEvent.eventId);
+        // save the up to date status
+        // don't wait that the operation is done
+        // because it could display invalid unread messages counters
+        // while sending it.
+        if (handleReceiptData(new ReceiptData(mMyUserId, fEvent.eventId, System.currentTimeMillis()))) {
+            Log.d(LOG_TAG, "## sendReadReceipt(): send the read receipt");
 
-                // save the up to date status
-                // don't wait that the operation is done
-                // because it could display invalid unread messages counters
-                // while sending it.
-                setReadReceiptToken(fEvent.eventId, System.currentTimeMillis());
+            isSendReadReceiptSent = true;
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    Log.d(LOG_TAG,"## sendReadReceipt(): succeeds - eventId " + fEvent.eventId);
 
-                isSendReadReceiptSent = true;
-                mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.d(LOG_TAG,"## sendReadReceipt(): succeeds");
-
-                        if(null != aRespCallback) {
-                            aRespCallback.onSuccess(info);
-                        }
+                    if(null != aRespCallback) {
+                        aRespCallback.onSuccess(info);
                     }
+                }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
 
-                        if(null != aRespCallback) {
-                            aRespCallback.onNetworkError(e);
-                        }
+                    if(null != aRespCallback) {
+                        aRespCallback.onNetworkError(e);
                     }
+                }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
 
-                        if(null != aRespCallback) {
-                            aRespCallback.onMatrixError(e);
-                        }
+                    if(null != aRespCallback) {
+                        aRespCallback.onMatrixError(e);
                     }
+                }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "sendReadReceipt failed " + e.getLocalizedMessage());
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
 
-                        if(null != aRespCallback) {
-                            aRespCallback.onUnexpectedError(e);
-                        }
+                    if(null != aRespCallback) {
+                        aRespCallback.onUnexpectedError(e);
                     }
-                });
-                // offline management
-                // clear counters until the network comes back.
-                // the user does not need to know that there is a task in progress
-                clearUnreadCounters(summary);
-            } else {
-                Log.d(LOG_TAG,"## sendReadReceipt(): already up to date");
-                clearUnreadCounters(summary);
-            }
+                }
+            });
         } else {
-            Log.d(LOG_TAG,"## sendReadReceipt(): invalid params event " + fEvent + " summary " + summary);
+            Log.d(LOG_TAG, "## sendReadReceipt(): don't send the read receipt");
         }
 
         return isSendReadReceiptSent;
-    }
-
-    /**
-     * Update the read receipt token.
-     * @param token the new token
-     * @param ts the token ts
-     */
-    private void setReadReceiptToken(String token, long ts) {
-        RoomSummary summary = mStore.getSummary(getRoomId());
-
-        Log.d(LOG_TAG, "setReadReceiptToken " + token + " - " +ts);
-
-        if (summary.setReadReceiptToken(token, ts)) {
-            Log.d(LOG_TAG, "setReadReceiptToken : update the summary");
-            refreshUnreadCounter();
-        } else {
-            Log.d(LOG_TAG, "setReadReceiptToken : not the latest message " + summary.getReadReceiptToken() + " - " + summary.getReadReceiptTs());
-        }
     }
 
     /**
@@ -1152,7 +1120,7 @@ public class Room {
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
-                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getReadReceiptToken());
+                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getLatestReadEventId());
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);

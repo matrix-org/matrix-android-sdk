@@ -508,7 +508,7 @@ public class EventTimeline {
                     }
                     // use the latest known event
                     else if (null != currentSummary) {
-                        mStore.storeSummary(mRoomId, currentSummary.getLatestEvent(), mState, myUserId);
+                        mStore.storeSummary(mRoomId, currentSummary.getLatestReceivedEvent(), mState, myUserId);
                         mStore.commit();
                     }
                     // try to build a summary from the state events
@@ -906,7 +906,7 @@ public class EventTimeline {
         // defines a new summary if the known is not supported
         RoomSummary summary = mStore.getSummary(mRoomId);
 
-        if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestEvent()))) {
+        if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
             mStore.storeSummary(latestSupportedEvent.roomId, latestSupportedEvent, mState, mDataHandler.getUserId());
         }
 
@@ -955,7 +955,7 @@ public class EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary) && (summary.getLatestEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                        if ((null != summary) && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
                             summary = mStore.storeSummary(mRoomId, event, getState(), myUserId);
                             shouldCommitStore = true;
                         }
