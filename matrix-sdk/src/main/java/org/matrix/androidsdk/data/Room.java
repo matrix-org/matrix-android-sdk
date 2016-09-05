@@ -510,9 +510,7 @@ public class Room {
     private void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
-        // disable the room alias management until the server manages the rooms federation properly
-        // cf https://github.com/matrix-org/synapse/issues/816
-        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom(/*(null != roomAlias) ? roomAlias :*/ getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
             @Override
             public void onSuccess(final RoomResponse aResponse) {
                 try {
