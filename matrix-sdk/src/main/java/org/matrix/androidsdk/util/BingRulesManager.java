@@ -287,38 +287,41 @@ public class BingRulesManager {
      * @return true if the event matches all the conditions set.
      */
     private boolean eventMatchesConditions(Event event, List<Condition> conditions) {
-        if ((conditions != null) && (event != null)) {
-            for (Condition condition : conditions) {
-                if (condition instanceof EventMatchCondition) {
-                    if (!((EventMatchCondition) condition).isSatisfied(event)) {
-                        return false;
-                    }
-                }
-                else if (condition instanceof ContainsDisplayNameCondition) {
-                    if (event.roomId != null) {
-                        Room room = mDataHandler.getRoom(event.roomId, false);
+        try {
+            if ((conditions != null) && (event != null)) {
+                for (Condition condition : conditions) {
+                    if (condition instanceof EventMatchCondition) {
+                        if (!((EventMatchCondition) condition).isSatisfied(event)) {
+                            return false;
+                        }
+                    } else if (condition instanceof ContainsDisplayNameCondition) {
+                        if (event.roomId != null) {
+                            Room room = mDataHandler.getRoom(event.roomId, false);
 
-                        // sanity checks
-                        if ((null != room) && (null != room.getMember(mMyUserId))) {
-                            // Best way to get your display name for now
-                            String myDisplayName = room.getMember(mMyUserId).displayname;
-                            if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
+                            // sanity checks
+                            if ((null != room) && (null != room.getMember(mMyUserId))) {
+                                // Best way to get your display name for now
+                                String myDisplayName = room.getMember(mMyUserId).displayname;
+                                if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
+                                    return false;
+                                }
+                            }
+                        }
+                    } else if (condition instanceof RoomMemberCountCondition) {
+                        if (event.roomId != null) {
+                            Room room = mDataHandler.getRoom(event.roomId, false);
+
+                            if (!((RoomMemberCountCondition) condition).isSatisfied(room)) {
                                 return false;
                             }
                         }
                     }
+                    // FIXME: Handle device rules
                 }
-                else if (condition instanceof RoomMemberCountCondition) {
-                    if (event.roomId != null) {
-                        Room room = mDataHandler.getRoom(event.roomId, false);
-
-                        if (!((RoomMemberCountCondition) condition).isSatisfied(room)) {
-                            return false;
-                        }
-                    }
-                }
-                // FIXME: Handle device rules
             }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## eventMatchesConditions() failed " + e.getMessage());
+            return false;
         }
         return true;
     }
