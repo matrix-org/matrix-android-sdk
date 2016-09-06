@@ -16,8 +16,10 @@
 package org.matrix.androidsdk.util;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.text.Html;
 import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
@@ -49,6 +51,8 @@ public class EventDisplay {
     private final Context mContext;
     private final RoomState mRoomState;
     private boolean mPrependAuthor;
+
+    public static final CharSequence DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED = "Encrypted message";
 
     // let the application defines if the redacted events must be displayed
     public static boolean mDisplayRedactedEvents = false;
@@ -159,7 +163,7 @@ public class EventDisplay {
                 // check for html formatting
                 if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
                     String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
-                    if ("org.matrix.custom.html".equals(format)) {
+                    if (Message.FORMAT_MATRIX_HTML.equals(format)) {
                         String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
 
                         // some markers are not supported so fallback on an ascii display until to find the right way to manage them
@@ -185,6 +189,11 @@ public class EventDisplay {
                         ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(mEvent.type)) {
+                // TODO to be removed - temporary patch (wait for e2e encryption final version)
+                SpannableString spannableStr = new SpannableString(DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED);
+                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text = spannableStr;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
