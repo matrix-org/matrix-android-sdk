@@ -739,7 +739,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Event to view type.
+     * Convert Event to view type.
      * @param event the event to convert
      * @return the view type.
      */
@@ -776,6 +776,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // Default is to display the body as text
                 viewType = ROW_TYPE_TEXT;
             }
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
+            viewType = ROW_TYPE_TEXT;
         }
         else if (
                 event.isCallEvent() ||
@@ -786,8 +788,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
                 ) {
             viewType = ROW_TYPE_NOTICE;
-        }
-        else {
+
+        } else {
             throw new RuntimeException("Unknown event type: " + event.type);
         }
 
@@ -1602,7 +1604,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             body.setSpan(new ForegroundColorSpan(mHighlightMessageTextColor), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        highlightPattern(bodyTextView, body, TextUtils.equals("org.matrix.custom.html", message.format) ? getSanitisedHtml(message.formatted_body) : null, mPattern);
+        highlightPattern(bodyTextView, body, TextUtils.equals(Message.FORMAT_MATRIX_HTML, message.format) ? getSanitisedHtml(message.formatted_body) : null, mPattern);
 
         int textColor;
 
@@ -2335,8 +2337,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // A message is displayable as long as it has a body
             Message message = JsonUtils.toMessage(event.content);
             return (message.body != null) && (!message.body.equals(""));
-        }
-        else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
+        } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
                 || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
@@ -2351,6 +2352,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
         } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+            return true;
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
             return true;
         }
         return false;

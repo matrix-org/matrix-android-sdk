@@ -24,6 +24,7 @@ public class Message {
     public static final String MSGTYPE_VIDEO = "m.video";
     public static final String MSGTYPE_LOCATION = "m.location";
     public static final String MSGTYPE_FILE = "m.file";
+    public static final String FORMAT_MATRIX_HTML = "org.matrix.custom.html";
 
     public String msgtype;
     public String body;

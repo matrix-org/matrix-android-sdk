@@ -58,6 +58,7 @@ public class Event implements java.io.Serializable {
 
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
+    public static final String EVENT_TYPE_MESSAGE_ENCRYPTED = "m.room.encrypted";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";

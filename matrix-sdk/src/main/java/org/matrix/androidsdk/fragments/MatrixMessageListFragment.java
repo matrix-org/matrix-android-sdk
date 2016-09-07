@@ -797,6 +797,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         return mDisplayAllEvents ||
                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
+                Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type)||
                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
@@ -1986,7 +1987,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     //==============================================================================================================
-    // MatrixMessagesFrament methods
+    // MatrixMessagesFragment methods
     //==============================================================================================================
 
     @Override
