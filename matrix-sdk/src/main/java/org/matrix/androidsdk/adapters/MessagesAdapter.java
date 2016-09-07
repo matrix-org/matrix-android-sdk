@@ -2066,10 +2066,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         MessageRow row = getItem(position);
-        Event msg = row.getEvent();
+        Event event = row.getEvent();
         RoomState roomState = row.getRoomState();
-
-        EventDisplay display = new EventDisplay(mContext, msg, roomState);
 
         TextView emoteTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_body);
 
@@ -2078,7 +2076,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        emoteTextView.setText(display.getTextualDisplay());
+        Message message = JsonUtils.toMessage(event.content);
+        String userDisplayName = roomState.getDisplayName(event.getSender());
+
+        String body = "* " + userDisplayName +  " " + message.body;
+
+        String htmlString = null;
+
+        if (TextUtils.equals(Message.FORMAT_MATRIX_HTML, message.format)) {
+            htmlString = getSanitisedHtml(message.formatted_body);
+
+            if (null != htmlString) {
+                htmlString = "* " + userDisplayName +  " " + message.formatted_body;
+            }
+        }
+
+        highlightPattern(emoteTextView, new SpannableString(body), htmlString, null);
 
         int textColor;
 

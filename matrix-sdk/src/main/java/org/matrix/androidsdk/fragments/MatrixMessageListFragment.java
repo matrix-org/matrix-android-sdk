@@ -931,15 +931,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Send a message of type msgType with a dedicated body.
-     * @param msgType the message type.
-     * @param body the message body
-     */
-    private void sendMessage(String msgType, String body) {
-        sendMessage(msgType, body, null, null);
-    }
-
-    /**
      * Send a message of type msgType with a formatted body
      * @param msgType the message type
      * @param body the unformatted text message
@@ -963,9 +954,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Send an emote
      * @param emote the emote
+     * @param formattedBody the formatted text message (optional)
+     * @param format the format
      */
-    public void sendEmote(String emote) {
-        sendMessage(Message.MSGTYPE_EMOTE, emote);
+    public void sendEmote(String emote, String formattedEmote, String format) {
+        sendMessage(Message.MSGTYPE_EMOTE, emote, formattedEmote, format);
     }
 
     /**
