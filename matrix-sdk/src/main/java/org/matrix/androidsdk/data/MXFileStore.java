@@ -206,7 +206,7 @@ public class MXFileStore extends MXMemoryStore {
             deleteAllData(true);
         }
 
-        // create the medatata file if it does not exist
+        // create the metadata file if it does not exist
         if (null == mMetadata) {
             mIsNewStorage = true;
             mIsOpening = true;
@@ -408,7 +408,19 @@ public class MXFileStore extends MXMemoryStore {
                                     mRoomsToCommitForReceipts = new ArrayList<>();
 
                                     mMetadata = tmpMetadata;
-                                    mMetadata.mEventStreamToken = null;
+
+                                    // reported by GA
+                                    // i don't see which path could have triggered this issue
+                                    // mMetadata should only be null at file store loading
+                                    if (null == mMetadata) {
+                                        mMetadata = new MXFileStoreMetaData();
+                                        mMetadata.mUserId = mCredentials.userId;
+                                        mMetadata.mAccessToken = mCredentials.accessToken;
+                                        mMetadata.mVersion = MXFILE_VERSION;
+                                        mMetaDataHasChanged = true;
+                                    } else {
+                                        mMetadata.mEventStreamToken = null;
+                                    }
 
                                     //  the event stream token is put to zero to ensure ta
                                     mEventStreamToken = null;
