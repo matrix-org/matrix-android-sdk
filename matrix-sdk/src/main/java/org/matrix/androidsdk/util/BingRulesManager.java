@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.hardware.camera2.CameraManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -39,6 +40,7 @@ import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -612,6 +614,55 @@ public class BingRulesManager {
     }
 
     /**
+     * Delete a rules list.
+     * @param rules the rules to delete
+     * @param listener the listener when the rules are deleted
+     */
+    public void deleteRules(final List<BingRule> rules, final onBingRuleUpdateListener listener) {
+        deleteRules(rules, 0, listener);
+    }
+
+    /**
+     * Recursive rules deletion method.
+     * @param rules the rules to delete
+     * @param index the rule index
+     * @param listener the listener when the rules are deleted
+     */
+    private void deleteRules(final List<BingRule> rules, final int index, final onBingRuleUpdateListener listener) {
+        // sanity checks
+        if ((null == rules) || (index >= rules.size())) {
+            if (null != listener) {
+                try {
+                    listener.onBingRuleUpdateSuccess();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateSuccess failed " + e.getMessage());
+                }
+            }
+
+            return;
+        }
+
+        // delete the rule
+        deleteRule(rules.get(index), new onBingRuleUpdateListener() {
+            @Override
+            public void onBingRuleUpdateSuccess() {
+                deleteRules(rules, index+1, listener);
+            }
+
+            @Override
+            public void onBingRuleUpdateFailure(String errorMessage) {
+                if (null != listener) {
+                    try {
+                        listener.onBingRuleUpdateFailure(errorMessage);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateFailure failed " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Add a rule.
      * @param rule the rule to delete.
      * @param listener the rule update listener.
@@ -685,21 +736,39 @@ public class BingRulesManager {
     }
 
     /**
-     * Search the a room rule for a dedicated room.
+     * Search the pushrules for the room
      * @param room the room
-     * @return the room rule if it exists.
+     * @return the room rules list
      */
-    public BingRule getPushRulesForRoom(Room room) {
+    public ArrayList<BingRule> getPushRulesForRoom(Room room) {
+        ArrayList<BingRule> rules = new ArrayList<>();
+
         // sanity checks
-        if ((null != room) && (null != mRulesSet) && (null != mRulesSet.room)) {
-            for(BingRule roomRule : mRulesSet.room) {
-                if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
-                    return roomRule;
+        if ((null != room) && (null != mRulesSet)) {
+            // the webclient defines two ways to set a room rule
+            // mention only : the user won't have any push for the room except if a content rule is fullfilled
+            // mute : no notification for this room
+
+            // mute rules are defined in override groups
+            if (null != mRulesSet.override) {
+                for (BingRule roomRule : mRulesSet.override) {
+                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                        rules.add(roomRule);
+                    }
+                }
+            }
+
+            // mention only are defined in room group
+            if (null != mRulesSet.room) {
+                for (BingRule roomRule : mRulesSet.room) {
+                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                        rules.add(roomRule);
+                    }
                 }
             }
         }
 
-        return null;
+        return rules;
     }
 
     /**
@@ -707,8 +776,17 @@ public class BingRulesManager {
      * @return true if there is a rule to disable notifications.
      */
     public boolean isRoomNotificationsDisabled(Room room) {
-        BingRule roomRule = getPushRulesForRoom(room);
-        return (null != roomRule) && !roomRule.shouldNotify() && roomRule.isEnabled;
+        ArrayList<BingRule> roomRules = getPushRulesForRoom(room);
+
+        if (0 != roomRules.size()) {
+            for(BingRule rule : roomRules) {
+                if (!rule.shouldNotify() && rule.isEnabled) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -720,35 +798,34 @@ public class BingRulesManager {
      * @param listener the listener.
      */
     public void muteRoomNotifications(final Room room, final boolean isMuted, final onBingRuleUpdateListener listener) {
-        BingRule bingRule = getPushRulesForRoom(room);
+        ArrayList<BingRule> bingRules = getPushRulesForRoom(room);
 
-        // accept any notification
-        if (!isMuted) {
-            // if there is one
-            if (null != bingRule) {
-                // remove it
-                deleteRule(bingRule, listener);
-            } else {
-                // the job is done
-                listener.onBingRuleUpdateSuccess();
-            }
-        } else {
-            if (null == bingRule) {
-                addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
-            } else {
-                // delete the rule and create a new one
-                deleteRule(bingRule, new onBingRuleUpdateListener() {
-                    @Override
-                    public void onBingRuleUpdateSuccess() {
-                        addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
+        // the mobile client only supports to define a "mention only" rule i.e a rule defined in the room rules set.
+        // delete the rule and create a new one
+        deleteRules(bingRules, new onBingRuleUpdateListener() {
+            @Override
+            public void onBingRuleUpdateSuccess() {
+                if (isMuted) {
+                    addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
+                } else if (null != listener) {
+                    try {
+                        listener.onBingRuleUpdateSuccess();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## muteRoomNotifications() : onBingRuleUpdateSuccess failed " + e.getMessage());
                     }
+                }
+            }
 
-                    @Override
-                    public void onBingRuleUpdateFailure(String errorMessage) {
+            @Override
+            public void onBingRuleUpdateFailure(String errorMessage) {
+                if (null != listener) {
+                    try {
                         listener.onBingRuleUpdateFailure(errorMessage);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## muteRoomNotifications() : onBingRuleUpdateFailure failed " + e.getMessage());
                     }
-                });
+                }
             }
-        }
+        });
     }
 }
