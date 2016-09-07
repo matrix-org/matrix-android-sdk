@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -26,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BingRule {
+
+    private static final String LOG_TAG = "BingRule";
 
     public static String RULE_ID_DISABLE_ALL = ".m.rule.master";
     public static String RULE_ID_CONTAIN_USER_NAME= ".m.rule.contains_user_name";
@@ -78,7 +81,6 @@ public class BingRule {
         this.isDefault = false;
     }
 
-
     @Override
     public String toString() {
         return "BingRule{" +
@@ -91,6 +93,14 @@ public class BingRule {
                 '}';
     }
 
+    /**
+     * Bing rule creator
+     * @param ruleKind the rule kind
+     * @param aPattern the pattern to check the conditon
+     * @param notify true to notify
+     * @param highlight true to highlight
+     * @param sound true to play sound
+     */
     public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         //
         ruleId = aPattern;
@@ -99,7 +109,7 @@ public class BingRule {
         kind = ruleKind;
         conditions = null;
 
-        ArrayList<JsonElement> actionsList = new ArrayList<JsonElement>();
+        ArrayList<JsonElement> actionsList = new ArrayList<>();
 
         actionsList.add(new JsonPrimitive(notify ? ACTION_NOTIFY : ACTION_DONT_NOTIFY));
 
@@ -120,12 +130,13 @@ public class BingRule {
         actions = actionsList;
     }
 
-
-
-
+    /**
+     * Add a condition to the rule.
+     * @param condition the condition to add.
+     */
     public void addCondition(Condition condition) {
         if (conditions == null) {
-            conditions = new ArrayList<Condition>();
+            conditions = new ArrayList<>();
         }
         conditions.add(condition);
     }
@@ -150,7 +161,7 @@ public class BingRule {
                             }
                         }
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## jsonObjectWithTweak() : " + e.getMessage());
                     }
                 }
             }
@@ -178,7 +189,7 @@ public class BingRule {
                             break;
                         }
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## jsonPrimitive() : " + e.getMessage());
                     }
                 }
             }
