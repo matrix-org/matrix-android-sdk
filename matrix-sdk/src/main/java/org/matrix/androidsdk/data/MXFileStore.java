@@ -353,6 +353,23 @@ public class MXFileStore extends MXMemoryStore {
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
                                         Log.e(LOG_TAG, "loadRoomsState succeeds");
+
+                                        // should never be null
+                                        // assume that the users list loading failed
+                                        if (0 == mUsers.size()) {
+                                            Log.e(LOG_TAG, "The known users list was empty so use the room states to retrieve them");
+
+                                            Collection<Room> rooms = getRooms();
+
+                                            for(Room room : rooms) {
+                                                Collection<RoomMember> members = room.getLiveState().getMembers();
+                                                for(RoomMember member : members) {
+                                                    updateUserWithRoomMemberEvent(member);
+                                                }
+                                            }
+
+                                            Log.e(LOG_TAG, "Retrieve " +  mUsers.size() + " users with the room states");
+                                        }
                                     }
                                 }
 
