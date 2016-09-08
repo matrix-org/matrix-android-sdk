@@ -55,7 +55,6 @@ public class AutoScrollDownListView extends ListView {
                 }, 100);
             }
         }
-        mLockSelectionOnResize = false;
     }
 
     /**
