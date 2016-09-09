@@ -67,6 +67,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 
+import java.lang.reflect.Member;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -762,6 +763,31 @@ public class Room {
         return res;
     }
 
+    /**
+     * The call avatar is the same as the room avatar except there are only 2 JOINED members.
+     * In this case, it returns the avtar of the other joined member.
+     * @return the call avatar URL.
+     */
+    public String getCallAvatarUrl() {
+        String avatarURL = null;
+
+        ArrayList<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
+
+        // 2 joined members case
+        if (2 == joinedMembers.size()) {
+            // use other member avatar.
+            if (TextUtils.equals(mMyUserId, joinedMembers.get(0).getUserId())) {
+                avatarURL = joinedMembers.get(1).avatarUrl;
+            } else {
+                avatarURL = joinedMembers.get(0).avatarUrl;
+            }
+        } else {
+            //
+            avatarURL = getAvatarUrl();
+        }
+
+        return avatarURL;
+    }
 
     /**
      * Update the room avatar URL.
