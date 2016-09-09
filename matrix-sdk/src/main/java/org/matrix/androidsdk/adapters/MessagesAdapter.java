@@ -2009,6 +2009,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return convertView;
     }
 
+    static Integer mDimmedNoticeTextColor = null;
+
     /**
      * Notice message management
      * @param position the message position
@@ -2048,7 +2050,25 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         addContentViewListeners(convertView, noticeTextView, position);
 
-        noticeTextView.setAlpha(0.6f);
+        // compute the notice mDimmedNoticeTextColor colors
+        if (null == mDimmedNoticeTextColor) {
+            int defaultNoticeColor = noticeTextView.getCurrentTextColor();
+            mDimmedNoticeTextColor = Color.argb(
+                    Color.alpha(defaultNoticeColor) * 6 / 10,
+                    Color.red(defaultNoticeColor),
+                    Color.green(defaultNoticeColor),
+                    Color.blue(defaultNoticeColor));
+        }
+
+        // android seems having a big issue when the text is too long and an alpha !=1 is applied:
+        // ---> the text is not displayed.
+        // It is sometimes partially displayed and/or flickers while scrolling.
+        // Apply an alpha != 1, trigger the same issue.
+        // It is related to the number of characters not to the number of lines.
+        // I don't understand why the render graph fails to do it.
+        // the patch apply the alpha to the text color but it does not work for the hyperlinks.
+        noticeTextView.setAlpha(1.0f);
+        noticeTextView.setTextColor(mDimmedNoticeTextColor);
 
         return convertView;
     }
