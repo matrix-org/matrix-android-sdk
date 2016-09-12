@@ -20,61 +20,80 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Bundle;
 import android.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class NetworkConnectivityReceiver extends BroadcastReceiver {
+
     private static final String LOG_TAG = "NetworkReceiver";
 
     // any network state listener
-    private List<IMXNetworkEventListener> mNetworkEventListeners = new ArrayList<IMXNetworkEventListener>();
+    private final List<IMXNetworkEventListener> mNetworkEventListeners = new ArrayList<>();
 
     // the one call listeners are listeners which are expected to be called ONCE
     // the device is connected to a data network
-    private List<IMXNetworkEventListener> mOnNetworkConnectedEventListeners = new ArrayList<IMXNetworkEventListener>();
+    private final List<IMXNetworkEventListener> mOnNetworkConnectedEventListeners = new ArrayList<>();
 
     private boolean mIsConnected = false;
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
-        Log.d(LOG_TAG, "onReceive");
+        if (null != intent) {
+            Log.d(LOG_TAG, "## onReceive() : action " + intent.getAction());
 
-        try {
-            ConnectivityManager connMgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-            boolean isConnected = (networkInfo != null) && networkInfo.isConnected();
+            Bundle extras =intent.getExtras();
 
-            if (isConnected) {
-                Log.d(LOG_TAG, "onReceive : Connected to " + networkInfo);
-            } else if (null != networkInfo){
-                Log.d(LOG_TAG, "onReceive : there is a default connection but it is not connected " + networkInfo);
-            } else {
-                Log.d(LOG_TAG, "onReceive : there is no connection");
+            if (null != extras) {
+                Set<String> keys = extras.keySet();
+
+                for(String key : keys) {
+                    Log.d(LOG_TAG, "## onReceive() : " + key + " -> " + extras.get(key));
+                }
             }
+        } else {
+            Log.d(LOG_TAG, "## onReceive()");
+        }
 
-            // avoid triggering useless info
-            if (mIsConnected != isConnected) {
-                Log.d(LOG_TAG, "onReceive : Warn there is a connection update");
-                mIsConnected = isConnected;
-                onNetworkUpdate();
-            } else {
-                Log.d(LOG_TAG, "onReceive : No network update");
-            }
-        }
-        catch (Exception e) {
-            Log.e(LOG_TAG, "Failed to report :" + e.getLocalizedMessage());
-        }
+        checkNetworkConnection(context);
     }
 
     /**
-     * Clear the events listener data.
+     * Check if there is a connection update.
+     * @param context the context
      */
-    public void clear() {
-        mNetworkEventListeners.clear();
+    public void checkNetworkConnection(Context context) {
+        synchronized (LOG_TAG) {
+            try {
+                ConnectivityManager connMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                boolean isConnected = (networkInfo != null) && networkInfo.isConnected();
+
+                if (isConnected) {
+                    Log.d(LOG_TAG, "## checkNetworkConnection() : Connected to " + networkInfo);
+                } else if (null != networkInfo) {
+                    Log.d(LOG_TAG, "## checkNetworkConnection() : there is a default connection but it is not connected " + networkInfo);
+                } else {
+                    Log.d(LOG_TAG, "## checkNetworkConnection() : there is no connection");
+                }
+
+                // avoid triggering useless info
+                if (mIsConnected != isConnected) {
+                    Log.d(LOG_TAG, "## checkNetworkConnection() : Warn there is a connection update");
+                    mIsConnected = isConnected;
+                    onNetworkUpdate();
+                } else {
+                    Log.d(LOG_TAG, "## checkNetworkConnection() : No network update");
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Failed to report :" + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -95,7 +114,9 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      */
     public void addOnConnectedEventListener(final IMXNetworkEventListener networkEventListener) {
         if (null != networkEventListener) {
-            mOnNetworkConnectedEventListeners.add(networkEventListener);
+            synchronized (LOG_TAG) {
+                mOnNetworkConnectedEventListeners.add(networkEventListener);
+            }
         }
     }
 
@@ -104,19 +125,31 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      * @param networkEventListener the event listener to remove
      */
     public void removeEventListener(final IMXNetworkEventListener networkEventListener) {
-        mNetworkEventListeners.remove(networkEventListener);
-        mOnNetworkConnectedEventListeners.remove(networkEventListener);
+        synchronized (LOG_TAG) {
+            mNetworkEventListeners.remove(networkEventListener);
+            mOnNetworkConnectedEventListeners.remove(networkEventListener);
+        }
+    }
+
+    /**
+     * Remove all registered listeners
+     */
+    public void removeListeners() {
+        synchronized (LOG_TAG) {
+            mNetworkEventListeners.clear();
+            mOnNetworkConnectedEventListeners.clear();
+        }
     }
 
     /**
      * Warn the listener that a network updated has been triggered
      */
-    public synchronized void onNetworkUpdate() {
+    private synchronized void onNetworkUpdate() {
         for (IMXNetworkEventListener listener : mNetworkEventListeners) {
             try {
                 listener.onNetworkConnectionUpdate(mIsConnected);
             } catch (Exception e) {
-                Log.d(LOG_TAG, "onNetworkConnectionUpdate 1 : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
             }
         }
 
@@ -125,11 +158,12 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
         if (mIsConnected) {
             for (IMXNetworkEventListener listener : mOnNetworkConnectedEventListeners) {
                 try {
-                    listener.onNetworkConnectionUpdate(mIsConnected);
+                    listener.onNetworkConnectionUpdate(true);
                 } catch(Exception e) {
-                    Log.d(LOG_TAG, "onNetworkConnectionUpdate 2 : " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
                 }
             }
+
             mOnNetworkConnectedEventListeners.clear();
         }
     }
@@ -138,6 +172,14 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      * @return true if the application is connected to a data network
      */
     public boolean isConnected() {
-        return mIsConnected;
+        boolean res;
+
+        synchronized (LOG_TAG) {
+            res = mIsConnected;
+        }
+
+        Log.d(LOG_TAG, "## isConnected() : " + res);
+
+        return res;
     }
 }

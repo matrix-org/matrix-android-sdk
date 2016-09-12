@@ -39,10 +39,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
     }
 
     private String mEventDescription;
-    private ApiCallback mApiCallback;
-    private RequestRetryCallBack mRequestRetryCallBack;
-    private UnsentEventsManager mUnsentEventsManager;
-
+    private final ApiCallback mApiCallback;
+    private final RequestRetryCallBack mRequestRetryCallBack;
+    private final UnsentEventsManager mUnsentEventsManager;
 
     public RestAdapterCallback(ApiCallback apiCallback) {
         this.mApiCallback = apiCallback;
@@ -64,7 +63,14 @@ public class RestAdapterCallback<T> implements Callback<T> {
     @Override
     public void success(T t, Response response) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "Succeed : [" + mEventDescription + "]");
+            Log.d(LOG_TAG, "## Succeed() : [" + mEventDescription + "]");
+        }
+
+        // some users reported that their devices were connected
+        // whereas this receiver was not warned
+        if ((null != mUnsentEventsManager) && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+            Log.d(LOG_TAG, "## succeed() : whereas there was not active connection, test if the received was not warned.");
+            mUnsentEventsManager.getNetworkConnectivityReceiver().checkNetworkConnection(mUnsentEventsManager.getContext());
         }
 
         // add try catch to prevent application crashes while managing destroyed object
@@ -73,7 +79,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 try {
                     mUnsentEventsManager.onEventSent(mApiCallback);
                 } catch (Exception e) {
-                    Log.d(LOG_TAG, "Succeed onEventSent " + e.getLocalizedMessage());
+                    Log.d(LOG_TAG, "## succeed()  : onEventSent failed" + e.getMessage());
                 }
             }
 
@@ -81,24 +87,24 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 try {
                     mApiCallback.onSuccess(t);
                 } catch (Exception e) {
-                    Log.d(LOG_TAG, "Succeed onSuccess " + e.getLocalizedMessage());
+                    Log.d(LOG_TAG, "## succeed() : onSuccess failed" + e.getMessage());
                 }
             }
         } catch (Exception e) {
             // privacy
             //Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
-            Log.e(LOG_TAG, "Exception in success " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "## succeed()  : Exception " + e.getMessage());
         }
     }
 
     /**
      * Default failure implementation that calls the right error handler
-     * @param error
+     * @param error the retrofit error
      */
     @Override
     public void failure(RetrofitError error) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "Failed : [" + mEventDescription + "]");
+            Log.d(LOG_TAG, "## failure() : [" + mEventDescription + "]");
         }
 
         boolean retry = true;
@@ -117,13 +123,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         try {
                             mApiCallback.onNetworkError(error);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "failure onNetworkError " + error.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure() : onNetworkError " + error.getLocalizedMessage());
                         }
                     }
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "Exception NetworkError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## failure() :  NetworkError " + e.getLocalizedMessage());
                 }
             }
             else {
@@ -147,8 +153,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
                             } else {
                                 mxError.mErrorBodyAsString = (String)error.getBodyAs(String.class);
                             }
-                        } catch (Exception castExcep) {
-                            Log.e(LOG_TAG, "Exception MatrixError cannot cast the rresponse body" + error.getLocalizedMessage());
+                        } catch (Exception castException) {
+                            Log.e(LOG_TAG, "## failure() : MatrixError cannot cast the response body" + castException.getMessage());
                         }
                     }
                 }
@@ -163,7 +169,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     } catch (Exception e) {
                         // privacy
                         //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "## failure() :  MatrixError " + e.getLocalizedMessage());
                     }
                 }
                 else {
@@ -174,7 +180,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     } catch (Exception e) {
                         // privacy
                         //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "## failure() :  UnexpectedError " + e.getLocalizedMessage());
                     }
                 }
             }
