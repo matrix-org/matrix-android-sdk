@@ -144,20 +144,10 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     /**
      * Warn the listener that a network updated has been triggered
      */
-    public synchronized void onNetworkUpdate() {
-        List<IMXNetworkEventListener> networkEventListeners;
-        List<IMXNetworkEventListener> onNetworkConnectedEventListeners;
-        boolean isConnected;
-
-        synchronized (LOG_TAG) {
-            networkEventListeners = new ArrayList<>(mNetworkEventListeners);
-            onNetworkConnectedEventListeners = new ArrayList<>(mOnNetworkConnectedEventListeners);
-            isConnected = mIsConnected;
-        }
-
-        for (IMXNetworkEventListener listener : networkEventListeners) {
+    private synchronized void onNetworkUpdate() {
+        for (IMXNetworkEventListener listener : mNetworkEventListeners) {
             try {
-                listener.onNetworkConnectionUpdate(isConnected);
+                listener.onNetworkConnectionUpdate(mIsConnected);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
             }
@@ -165,8 +155,8 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
         // onConnected listeners are called once
         // and only when there is an available network connection
-        if (isConnected) {
-            for (IMXNetworkEventListener listener : onNetworkConnectedEventListeners) {
+        if (mIsConnected) {
+            for (IMXNetworkEventListener listener : mOnNetworkConnectedEventListeners) {
                 try {
                     listener.onNetworkConnectionUpdate(true);
                 } catch(Exception e) {
@@ -174,9 +164,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                 }
             }
 
-            synchronized (LOG_TAG) {
-                mOnNetworkConnectedEventListeners.clear();
-            }
+            mOnNetworkConnectedEventListeners.clear();
         }
     }
 
