@@ -2329,6 +2329,34 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onMessageIdClick(String messageId) {
     }
 
+    private int mInvalidIndexesCount = 0;
+
+    @Override
+    public void onInvalidIndexes() {
+        mInvalidIndexesCount++;
+
+        // it should happen once
+        // else we assume that the adapter is really corrupted
+        // It seems better to close the linked activity to avoid infinite refresh.
+        if (1 == mInvalidIndexesCount) {
+            mMessageListView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        } else {
+            mMessageListView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != getActivity()) {
+                        getActivity().finish();
+                    }
+                }
+            });
+        }
+    }
+
     //==============================================================================================================
     // search methods
     //==============================================================================================================
