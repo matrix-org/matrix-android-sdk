@@ -186,6 +186,8 @@ public class MXSession {
         mAppContent = appContext;
 
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
+        mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
+
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
@@ -429,7 +431,7 @@ public class MXSession {
 
         // network event will not be listened anymore
         mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
-        mNetworkConnectivityReceiver.clear();
+        mNetworkConnectivityReceiver.removeListeners();
 
         // auto resent messages will not be resent
         mUnsentEventsManager.clear();
@@ -677,6 +679,12 @@ public class MXSession {
      */
     public void resumeEventStream() {
         checkIfAlive();
+
+        if (null != mNetworkConnectivityReceiver) {
+            // mNetworkConnectivityReceiver is a broadcastReceiver
+            // but some users reported that the network updates wre not broadcasted.
+            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+        }
 
         if (null != mCallsManager) {
             mCallsManager.unpauseTurnServerRefresh();
@@ -1220,5 +1228,12 @@ public class MXSession {
                 updateUsers(userIdsToIgnore, callback);
             }
         }
+    }
+
+    /**
+     * @return the network receiver.
+     */
+    public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
+        return mNetworkConnectivityReceiver;
     }
 }

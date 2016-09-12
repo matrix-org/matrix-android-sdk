@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.util;
 
+import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -43,43 +44,41 @@ import retrofit.RetrofitError;
  */
 public class UnsentEventsManager {
 
-    // 3 mins
-    public static final int MAX_MESSAGE_LIFETIME_MS = 180000;
     private static final String LOG_TAG = "UnsentEventsManager";
+
+    // 3 minutes
+    private static final int MAX_MESSAGE_LIFETIME_MS = 180000;
 
     // Some matrix errors could have been triggered.
     // Assume that the server requires some delays because of internal issues
-    static List<Integer> AUTO_RESENT_MS_DELAYS =  Arrays.asList(1 * 1000, 5 * 1000, 10 * 1000);
+    private static final List<Integer> AUTO_RESENT_MS_DELAYS =  Arrays.asList(1 * 1000, 5 * 1000, 10 * 1000);
 
     // perform only MAX_RETRIES retries
-    static int MAX_RETRIES = 3;
+    private static final int MAX_RETRIES = 3;
 
-    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    // the network receiver
+    private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     // faster way to check if the event is already sent
-    private HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<Object, UnsentEventSnapshot>();
+    private final HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
     // get the sending order
-    private ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<UnsentEventSnapshot>();
+    private final ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<>();
     // true of the device is connected to a data network
     private boolean mbIsConnected = false;
 
     // matrix error management
-    private MXDataHandler mDataHandler;
+    private final MXDataHandler mDataHandler;
 
     /**
      * storage class
      */
-    protected class UnsentEventSnapshot {
+    private class UnsentEventSnapshot {
         // first time the message has been sent
-        protected long mAge;
+        private long mAge;
         // the number of retries
         // it should be limited
-        protected int mRetryCount;
-        // callbacks
-        protected ApiCallback mApiCallback;
-        // failure reason
-        protected RetrofitError mRetrofitError;
+        private int mRetryCount;
         // retry callback.
-        protected RestAdapterCallback.RequestRetryCallBack mRequestRetryCallBack;
+        private RestAdapterCallback.RequestRetryCallBack mRequestRetryCallBack;
         // retry timer
         private Timer mAutoResendTimer = null;
 
@@ -98,8 +97,8 @@ public class UnsentEventsManager {
         }
 
         /**
-         * Resend the event after
-         * @param delayMs
+         * Resend the event after a delay.
+         * @param delayMs the delay in milliseconds.
          */
         public void resendEventAfter(int delayMs) {
             stopTimer();
@@ -121,6 +120,7 @@ public class UnsentEventsManager {
 
                         mRequestRetryCallBack.onRetry();
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "## resendEventAfter() : onRetry failed " + e.getMessage());
                     }
                 }
             }, delayMs);
@@ -154,7 +154,8 @@ public class UnsentEventsManager {
 
     /**
      * Constructor
-     * @param networkConnectivityReceiver
+     * @param networkConnectivityReceiver the network received
+     * @param dataHandler the data handler
      */
     public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver, MXDataHandler dataHandler) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
@@ -221,13 +222,27 @@ public class UnsentEventsManager {
     }
 
     /**
+     * @return the network connectivity receiver
+     */
+    public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
+        return mNetworkConnectivityReceiver;
+    }
+
+    /**
+     * @return the context
+     */
+    public Context getContext() {
+        return mDataHandler.getStore().getContext();
+    }
+
+    /**
      * The event failed to be sent and cannot be resent.
      * It triggers the error callbacks.
      * @param eventDescription the event description
      * @param error the retrofit error
      * @param callback the callback.
      */
-    public static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
+    private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
         if ((null != error) && !TextUtils.isEmpty(error.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
@@ -240,7 +255,7 @@ public class UnsentEventsManager {
                     Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
                 }
                 if (null != callback) {
-                    callback.onUnexpectedError(error);
+                    callback.onUnexpectedError(null);
                 }
             } catch (Exception e) {
                 // privacy
@@ -309,7 +324,7 @@ public class UnsentEventsManager {
 
     /**
      * warns that an event failed to be sent.
-     * @paral eventDescription the event description
+     * @param eventDescription the event description
      * @param retrofitError the retrofit error .
      * @param apiCallback the apiCallback.
      * @param requestRetryCallBack requestRetryCallBack.
@@ -379,8 +394,6 @@ public class UnsentEventsManager {
                         snapshot = new UnsentEventSnapshot();
 
                         snapshot.mAge = System.currentTimeMillis();
-                        snapshot.mApiCallback = apiCallback;
-                        snapshot.mRetrofitError = retrofitError;
                         snapshot.mRequestRetryCallBack = requestRetryCallBack;
                         snapshot.mRetryCount = 1;
                         snapshot.mEventDescription = eventDescription;
@@ -407,6 +420,7 @@ public class UnsentEventsManager {
 
                                     triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
                                 } catch (Exception e) {
+                                    Log.e(LOG_TAG, "## resendEventAfter() : onEventSendingFailed failed " + e.getMessage());
                                 }
                             }
                         }, MAX_MESSAGE_LIFETIME_MS);
@@ -467,7 +481,7 @@ public class UnsentEventsManager {
                         }
                     }
                 } catch (Exception e) {
-
+                    Log.e(LOG_TAG, "## resentUnsents() : mRequestRetryCallBack.onRetry failed " + e.getMessage());
                 }
             }
         }
