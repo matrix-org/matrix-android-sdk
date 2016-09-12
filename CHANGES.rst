@@ -1,3 +1,23 @@
+Changes to Matrix Android SDK in 0.6.1 (2016-09-13)
+=======================================================
+
+Features:
+* #406 : Chat screen: New message(s) notification
+* #465 : Chat screen: disable auto scroll to bottom on keyboard presentation 
+
+
+Bugfixes:
+* #386 : Sender picture missing in notification
+* #396 : Displayed name should be consistent for all events 
+* #397 : Generated avatar should be consistent for all events 
+* #404 : The message displayed in a room when a 3pid invited user has registered is not clear 
+* #407 : Chat screen: The read receipts from the conference user should be ignored
+* #415 : Room Settings: some addresses are missing
+* #439 : add markdown support for emotes 
+* #445 : Unable to join federated rooms with Android app 
+* #455 : Until e2e is impl'd, encrypted msgs should be shown in the UI as unencryptable warning text 
+* #473 : Huge text messages are not rendered on some android devices
+
 Changes to Matrix Android SDK in 0.6.0 (2016-08-11)
 =======================================================
 

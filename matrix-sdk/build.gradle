@@ -18,8 +18,8 @@ android {
         targetSdkVersion 21
         // use version to define a version code.
         versionCode 601
-        version "0.6.1-dev"
-        versionName "0.6.1-dev"
+        version "0.6.1"
+        versionName "0.6.1"
      }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
