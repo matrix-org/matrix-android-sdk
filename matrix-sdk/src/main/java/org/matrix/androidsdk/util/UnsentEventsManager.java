@@ -420,7 +420,7 @@ public class UnsentEventsManager {
 
                                     triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "## resendEventAfter() : onEventSendingFailed failed " + e.getMessage());
+                                    Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                 }
                             }
                         }, MAX_MESSAGE_LIFETIME_MS);
@@ -481,7 +481,7 @@ public class UnsentEventsManager {
                         }
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## resentUnsents() : mRequestRetryCallBack.onRetry failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## resentUnsents() : failure Msg=" + e.getMessage());
                 }
             }
         }
