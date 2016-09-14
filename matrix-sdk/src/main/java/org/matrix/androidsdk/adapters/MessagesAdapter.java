@@ -227,6 +227,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
          * @param messageId the message id.
          */
         void onMessageIdClick(String messageId);
+
+        /**
+         * The required indexes are not anymore valid.
+         */
+        void onInvalidIndexes();
     }
 
     protected static final int ROW_TYPE_TEXT = 0;
@@ -813,6 +818,22 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        // GA Crash : it seems that some invalid indexes are required
+        if (position >= getCount()) {
+            Log.e(LOG_TAG, "## getView() : invalid index " + position + " >= " + getCount());
+
+            // create dummy one is required
+            if (null == convertView) {
+                convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
+            }
+
+            if (null != mMessagesAdapterEventsListener) {
+                mMessagesAdapterEventsListener.onInvalidIndexes();
+            }
+
+            return convertView;
+        }
+
         switch (getItemViewType(position)) {
             case ROW_TYPE_TEXT:
                 return getTextView(position, convertView, parent);
@@ -1576,11 +1597,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private View getTextView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = mLayoutInflater.inflate(mRowTypeToLayoutId.get(ROW_TYPE_TEXT), parent, false);
-        }
-
-        // GA Crash
-        if (position >= getCount()) {
-            return convertView;
         }
 
         MessageRow row = getItem(position);
