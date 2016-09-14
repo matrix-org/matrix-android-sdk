@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -232,7 +233,14 @@ public class MXCallsManager {
 
         for(IMXCall call : calls) {
             if (TextUtils.equals(roomId, call.getRoom().getRoomId())) {
-                return call;
+                if (TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
+                    Log.d(LOG_TAG, "## getCallWithRoomId() : the call " +  call.getCallId() + " has been stopped");
+                    synchronized (this) {
+                        mCallsByCallId.remove(call.getCallId());
+                    }
+                } else {
+                    return call;
+                }
             }
         }
 
@@ -262,6 +270,16 @@ public class MXCallsManager {
             synchronized (this) {
                 call = mCallsByCallId.get(callId);
             }
+        }
+
+        // test if the call has been stopped
+        if ((null != call) && TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
+            Log.d(LOG_TAG, "## getCallWithCallId() : the call " + callId + " has been stopped");
+            synchronized (this) {
+                mCallsByCallId.remove(call.getCallId());
+            }
+
+            call = null;
         }
 
         // the call does not exist but request to create it
@@ -307,15 +325,24 @@ public class MXCallsManager {
      * @return true if there are some active calls.
      */
     public boolean hasActiveCalls() {
-        boolean res;
-
         synchronized (this) {
-            res = (0 != mCallsByCallId.size());
+            Set<String> callIds = mCallsByCallId.keySet();
+
+            for(String callId : callIds) {
+                IMXCall call = mCallsByCallId.get(callId);
+
+                if (TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
+                    Log.d(LOG_TAG, "# hasActiveCalls() : the call " + callId + " is not anymore valid");
+                    mCallsByCallId.remove(callId);
+                } else {
+                    Log.d(LOG_TAG, "# hasActiveCalls() : the call " + callId + " is active");
+                    return true;
+                }
+            }
         }
 
-        Log.d(LOG_TAG, "hasActiveCalls " + res);
-
-        return res;
+        Log.d(LOG_TAG, "# hasActiveCalls() : no active call");
+        return false;
     }
 
     /**
