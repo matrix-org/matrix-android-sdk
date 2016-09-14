@@ -392,10 +392,14 @@ public class MXJingleCall extends MXCall {
     public void muteVideoRecording(boolean muteValue){
         Log.d(LOG_TAG,"## muteVideoRecording(): muteValue="+ muteValue);
 
-        if(null != mLocalVideoTrack) {
-            mLocalVideoTrack.setEnabled(!muteValue);
+        if (!isCallEnded()) {
+            if (null != mLocalVideoTrack) {
+                mLocalVideoTrack.setEnabled(!muteValue);
+            } else {
+                Log.d(LOG_TAG, "## muteVideoRecording(): failure - invalid value");
+            }
         } else {
-            Log.w(LOG_TAG,"## muteVideoRecording(): failure - invalid value");
+            Log.d(LOG_TAG, "## muteVideoRecording(): the call is ended");
         }
     }
 
@@ -403,13 +407,18 @@ public class MXJingleCall extends MXCall {
     public boolean isVideoRecordingMuted(){
         boolean isMuted = false;
 
-        if(null != mLocalVideoTrack) {
-            isMuted = !mLocalVideoTrack.enabled();
-        } else {
-            Log.w(LOG_TAG,"## isVideoRecordingMuted(): failure - invalid value");
+        if (!isCallEnded()) {
+            if (null != mLocalVideoTrack) {
+                isMuted = !mLocalVideoTrack.enabled();
+            } else {
+                Log.w(LOG_TAG, "## isVideoRecordingMuted(): failure - invalid value");
+            }
+
+            Log.d(LOG_TAG, "## isVideoRecordingMuted() = " + isMuted);
+        }  else {
+            Log.d(LOG_TAG, "## isVideoRecordingMuted() : the call is ended");
         }
 
-        Log.d(LOG_TAG,"## isVideoRecordingMuted() = "+ isMuted);
         return isMuted;
     }
 
