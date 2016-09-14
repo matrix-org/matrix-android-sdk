@@ -173,6 +173,8 @@ public class UnsentEventsManager {
             }
         });
 
+        mbIsConnected = mNetworkConnectivityReceiver.isConnected();
+
         mDataHandler = dataHandler;
     }
 

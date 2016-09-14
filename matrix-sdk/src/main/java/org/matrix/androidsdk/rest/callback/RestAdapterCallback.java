@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -162,14 +163,18 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     mxError = null;
                 }
                 if (mxError != null) {
-                    try {
-                        if (null != mApiCallback) {
-                            mApiCallback.onMatrixError(mxError);
+                    if (MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
+                        mUnsentEventsManager.onEventSendingFailed(mEventDescription, error, mApiCallback, mRequestRetryCallBack);
+                    } else {
+                        try {
+                            if (null != mApiCallback) {
+                                mApiCallback.onMatrixError(mxError);
+                            }
+                        } catch (Exception e) {
+                            // privacy
+                            //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
+                            Log.e(LOG_TAG, "## failure() :  MatrixError " + e.getLocalizedMessage());
                         }
-                    } catch (Exception e) {
-                        // privacy
-                        //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "## failure() :  MatrixError " + e.getLocalizedMessage());
                     }
                 }
                 else {
