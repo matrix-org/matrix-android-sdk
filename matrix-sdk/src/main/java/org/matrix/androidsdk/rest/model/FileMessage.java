@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.content.ClipDescription;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
@@ -52,8 +53,10 @@ public class FileMessage extends Message {
 
     public String getMimeType() {
         if (null != info) {
-            // the mimetype was not provided
-            if (TextUtils.isEmpty(info.mimetype) && (body.indexOf('.') > 0)) {
+            // the mimetype was not provided or it's invalid
+            // some android application set the mimetype to text/uri-list
+            // it should be fixed on application side but we need to patch it on client side.
+            if ((TextUtils.isEmpty(info.mimetype) || ClipDescription.MIMETYPE_TEXT_URILIST.equals(info.mimetype)) && (body.indexOf('.') > 0)) {
                 // the body should contain the filename so try to extract the mimetype from the extension
                 String extension =  body.substring(body.lastIndexOf('.') + 1, body.length());
 
