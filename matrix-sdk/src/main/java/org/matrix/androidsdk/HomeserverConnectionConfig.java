@@ -33,7 +33,7 @@ import java.util.ArrayList;
 public class HomeserverConnectionConfig {
     private Uri mHsUri;
     private Uri mIdentityServerUri;
-    private ArrayList<Fingerprint> mAllowedFingerprints = new ArrayList<Fingerprint>();
+    private ArrayList<Fingerprint> mAllowedFingerprints = new ArrayList<>();
     private Credentials mCredentials;
     private boolean mPin;
 
@@ -125,7 +125,7 @@ public class HomeserverConnectionConfig {
 
         if (mCredentials != null) json.put("credentials", mCredentials.toJson());
         if (mAllowedFingerprints != null) {
-            ArrayList<JSONObject> fingerprints = new ArrayList<JSONObject>(mAllowedFingerprints.size());
+            ArrayList<JSONObject> fingerprints = new ArrayList<>(mAllowedFingerprints.size());
 
             for (Fingerprint fingerprint : mAllowedFingerprints) {
                 fingerprints.add(fingerprint.toJson());
@@ -139,7 +139,7 @@ public class HomeserverConnectionConfig {
 
     public static HomeserverConnectionConfig fromJson(JSONObject obj) throws JSONException {
         JSONArray fingerprintArray = obj.optJSONArray("fingerprints");
-        ArrayList<Fingerprint> fingerprints = new ArrayList<Fingerprint>();
+        ArrayList<Fingerprint> fingerprints = new ArrayList<>();
         if (fingerprintArray != null) {
             for (int i = 0; i < fingerprintArray.length(); i++) {
                 fingerprints.add(Fingerprint.fromJson(fingerprintArray.getJSONObject(i)));

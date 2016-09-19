@@ -31,11 +31,11 @@ public class BingRuleSet {
      * Constructor
      */
     public BingRuleSet() {
-        override = new ArrayList<BingRule>();
-        content = new ArrayList<ContentRule>();
-        room = new ArrayList<BingRule>();
-        sender = new ArrayList<BingRule>();
-        underride = new ArrayList<BingRule>();
+        override = new ArrayList<>();
+        content = new ArrayList<>();
+        room = new ArrayList<>();
+        sender = new ArrayList<>();
+        underride = new ArrayList<>();
     }
     /**
      * Find a rule from its rule ID.
@@ -156,7 +156,7 @@ public class BingRuleSet {
      * @return the content rules list.
      */
     public List<BingRule> getContentRules() {
-        ArrayList<BingRule> res = new ArrayList<BingRule>();
+        ArrayList<BingRule> res = new ArrayList<>();
 
         if (null != content) {
             for(BingRule rule : content) {
@@ -175,7 +175,7 @@ public class BingRuleSet {
      */
     public List<BingRule> getRoomRules() {
         if (null == room) {
-            return new ArrayList<BingRule>();
+            return new ArrayList<>();
         } else {
             return room;
         }
@@ -187,7 +187,7 @@ public class BingRuleSet {
      */
     public List<BingRule> getSenderRules() {
         if (null == sender) {
-            return new ArrayList<BingRule>();
+            return new ArrayList<>();
         } else {
             return sender;
         }

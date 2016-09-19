@@ -104,7 +104,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback The request callback
      */
     public void syncFromToken(final String token, final int serverTimeout, final int clientTimeout, final String setPresence, final String filterId, final ApiCallback<SyncResponse> callback) {
-        HashMap<String, Object> params = new HashMap<String, Object>();
+        HashMap<String, Object> params = new HashMap<>();
         int timeout = (EVENT_STREAM_TIMEOUT_MS / 1000);
 
         if (!TextUtils.isEmpty(token)) {
@@ -155,17 +155,17 @@ public class EventsRestClient extends RestClient<EventsApi> {
         searchEventParams.search_term = text;
         searchEventParams.order_by = "recent";
 
-        searchEventParams.event_context = new HashMap<String, Object>();
+        searchEventParams.event_context = new HashMap<>();
         searchEventParams.event_context.put("before_limit", beforeLimit);
         searchEventParams.event_context.put("after_limit", afterLimit);
         searchEventParams.event_context.put("include_profile", true);
 
         if (null != rooms) {
-            searchEventParams.filter = new HashMap<String, Object>();
+            searchEventParams.filter = new HashMap<>();
             searchEventParams.filter.put("rooms", rooms);
         }
 
-        searchParams.search_categories = new HashMap<String, Object>();
+        searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);
 
         final String description = "searchMessageText";
@@ -263,22 +263,22 @@ public class EventsRestClient extends RestClient<EventsApi> {
         searchEventParams.search_term = name;
         searchEventParams.order_by = "recent";
 
-        searchEventParams.event_context = new HashMap<String, Object>();
+        searchEventParams.event_context = new HashMap<>();
         searchEventParams.event_context.put("before_limit", beforeLimit);
         searchEventParams.event_context.put("after_limit", afterLimit);
         searchEventParams.event_context.put("include_profile", true);
 
-        searchEventParams.filter = new HashMap<String, Object>();
+        searchEventParams.filter = new HashMap<>();
 
         if (null != rooms) {
             searchEventParams.filter.put("rooms", rooms);
         }
 
-        ArrayList<String> types = new ArrayList<String>();
+        ArrayList<String> types = new ArrayList<>();
         types.add("m.room.message");
         searchEventParams.filter.put("types", rooms);
 
-        searchParams.search_categories = new HashMap<String, Object>();
+        searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);
 
         mSearchMediaName = name;
@@ -347,11 +347,11 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
-     *
-     * @param response
-     * @param responseToMerge
-     * @param supportedMediasList
-     * @return
+     * Merge the search response with previous found reponse.
+     * @param response the already found items
+     * @param responseToMerge the response to merge.
+     * @param supportedMediasList the supported medias list
+     * @return the merged results list.
      */
     private SearchResponse mergeAndFilterResponse(SearchResponse response, SearchResponse responseToMerge, List<String> supportedMediasList) {
         SearchRoomEventResults roomEventsToMerge = responseToMerge.searchCategories.roomEvents;
@@ -359,7 +359,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         // filter first by media type ?
         if (responseToMerge.searchCategories.roomEvents.results.size() > 0) {
             // check first if the message
-            ArrayList<SearchResult> filteredResultList = new ArrayList<SearchResult>();
+            ArrayList<SearchResult> filteredResultList = new ArrayList<>();
 
             for(SearchResult result : roomEventsToMerge.results) {
                 boolean isSupported = false;
@@ -390,7 +390,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
             if (null != response) {
                 // merge the events
-                ArrayList<SearchResult> searchResults = new ArrayList<SearchResult>();
+                ArrayList<SearchResult> searchResults = new ArrayList<>();
                 searchResults.addAll(response.searchCategories.roomEvents.results);
                 searchResults.addAll(responseToMerge.searchCategories.roomEvents.results);
                 responseToMerge.searchCategories.roomEvents.results = searchResults;

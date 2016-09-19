@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -122,7 +123,7 @@ public class MyUser extends User {
     /**
      * Add a a new pid to the account.
      * @param pid the pid to add.
-     * @param bind
+     * @param bind true to add it.
      * @param callback the async callback
      */
     public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
@@ -264,7 +265,7 @@ public class MyUser extends User {
                     try {
                         listener.onSuccess(null);
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## refreshUserInfos() : listener.onSuccess failed " + e.getMessage());
                     }
                 }
             }

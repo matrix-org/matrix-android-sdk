@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.rest.client;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;
@@ -30,6 +32,7 @@ import java.util.HashMap;
  * REST client for the Pushers API.
  */
 public class PushersRestClient extends RestClient<PushersApi> {
+    private static final String LOG_TAG = "PushersRestClient";
 
     private static final String PUSHER_KIND_HTTP = "http";
     private static final String DATA_KEY_HTTP_URL = "url";
@@ -97,7 +100,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.kind = addPusher ? PUSHER_KIND_HTTP : null;
         pusher.appDisplayName= appDisplayName;
         pusher.deviceDisplayName = deviceDisplayName;
-        pusher.data = new HashMap<String, String>();
+        pusher.data = new HashMap<>();
         pusher.data.put(DATA_KEY_HTTP_URL, url);
         if (addPusher) {
             pusher.append = append;
@@ -111,6 +114,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
                 try {
                     manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## manageHttpPusher() failed" + e.getMessage());
                 }
             }
         }));
@@ -129,6 +133,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
                 try {
                     getPushers(callback);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## getPushers() failed" + e.getMessage());
                 }
             }
         }));

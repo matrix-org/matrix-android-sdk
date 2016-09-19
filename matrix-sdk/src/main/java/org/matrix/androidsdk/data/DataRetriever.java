@@ -33,9 +33,9 @@ import java.util.HashMap;
 public class DataRetriever {
     private RoomsRestClient mRestClient;
 
-    private HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<String, String>();
-    private HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<String, String>();
-    private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<String, String>();
+    private HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
+    private HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
+    private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
 
     public RoomsRestClient getRoomsRestClient() {
         return mRestClient;
@@ -97,6 +97,8 @@ public class DataRetriever {
                     }, 0);
                 }
             };
+
+            handler.post(r);
 
             return;
         }

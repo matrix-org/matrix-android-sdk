@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
@@ -42,6 +44,7 @@ import retrofit.client.Response;
  * Class used to make requests to the profile API.
  */
 public class ProfileRestClient extends RestClient<ProfileApi> {
+    private static final String LOG_TAG = "ProfileRestClient";
 
     /**
      * {@inheritDoc}
@@ -162,6 +165,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 try {
                     updatePassword(userId, oldPassword, newPassword, callback);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
                 }
             }
         }));
@@ -191,6 +195,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 try {
                     resetPassword(newPassword, threepid_creds, callback);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## resetPassword() failed" + e.getMessage());
                 }
             }
         }));

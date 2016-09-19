@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
@@ -89,6 +91,7 @@ public class RestClient<T> {
             okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
             okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
 
 

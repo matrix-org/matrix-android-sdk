@@ -57,7 +57,6 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -80,12 +79,10 @@ import java.util.Arrays;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
 
 import retrofit.RetrofitError;
 
@@ -323,8 +320,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * Warns that the list has been scrolled.
          * @param view the list view
          * @param firstVisibleItem the first visible indew
-         * @param visibleItemCount
-         * @param totalItemCount
+         * @param visibleItemCount the number of visible items
+         * @param totalItemCount the total number of items
          */
         private void manageScrollListener(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             if (null != mActivityOnScrollListener) {
@@ -954,7 +951,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Send an emote
      * @param emote the emote
-     * @param formattedBody the formatted text message (optional)
+     * @param formattedEmote the formatted text message (optional)
      * @param format the format
      */
     public void sendEmote(String emote, String formattedEmote, String format) {

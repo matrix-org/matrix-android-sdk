@@ -362,7 +362,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the latest read event Id
-     * @param eventId
+     * @param eventId the event id.
      */
     public void setLatestReadEventId(String eventId) {
         mLatestReadEventId = eventId;
@@ -377,7 +377,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the unread message counter
-     * @param count
+     * @param count the unread events count.
      */
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;

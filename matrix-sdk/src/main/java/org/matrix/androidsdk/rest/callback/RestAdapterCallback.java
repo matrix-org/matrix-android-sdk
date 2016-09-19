@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
-import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.model.MatrixError;

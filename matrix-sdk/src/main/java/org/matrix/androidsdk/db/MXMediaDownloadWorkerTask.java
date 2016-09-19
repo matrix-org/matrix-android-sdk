@@ -72,6 +72,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      */
     private static final ArrayList<String> mUnreachableUrls = new ArrayList<>();
 
+    // avoid sync on "this" because it might differ if there is a timer.
+    private static final Object mSyncObject = new Object();
+
     /**
      * The medias cache
      */
@@ -243,7 +246,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
         boolean res = false;
 
         if ((null != mBitmapByUrlCache) && (null != url)) {
-            synchronized (mBitmapByUrlCache) {
+            synchronized (mSyncObject) {
                 res = (null != mBitmapByUrlCache.get(url));
             }
         }
@@ -307,7 +310,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 return null;
             }
 
-            synchronized (mBitmapByUrlCache) {
+            synchronized (mSyncObject) {
                 bitmap = mBitmapByUrlCache.get(url);
             }
 
@@ -373,7 +376,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         }
 
                         if (null != bitmap) {
-                            synchronized (mBitmapByUrlCache) {
+                            synchronized (mSyncObject) {
                                 if (0 != rotation) {
                                     try {
                                         android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
@@ -553,7 +556,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
     /**
      * Push the download progress.
-     * @param startDownloadTime
+     * @param startDownloadTime the start download time.
      */
     private void publishProgress(long startDownloadTime) {
         mDownloadStats.mElapsedTime = (int) ((System.currentTimeMillis() - startDownloadTime) / 1000);

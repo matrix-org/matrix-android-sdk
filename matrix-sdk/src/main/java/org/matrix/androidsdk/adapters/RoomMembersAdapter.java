@@ -128,7 +128,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
 
     /**
      * Tell if the membership must be displayed in the cells
-     * @param withMembership
+     * @param withMembership true to display the membership in the cell
      */
     public void displayMembership(boolean withMembership) {
         mDisplayMembership = withMembership;

@@ -27,10 +27,10 @@ public class PowerLevels implements java.io.Serializable {
     public int redact = 50;
 
     public int events_default = 0;
-    public Map<String, Integer> events = new HashMap<String, Integer>();
+    public Map<String, Integer> events = new HashMap<>();
 
     public int users_default = 0;
-    public Map<String, Integer> users = new HashMap<String, Integer>();
+    public Map<String, Integer> users = new HashMap<>();
 
     public int state_default = 50;
 
@@ -42,11 +42,11 @@ public class PowerLevels implements java.io.Serializable {
         copy.redact = redact;
 
         copy.events_default = events_default;
-        copy.events = new HashMap<String, Integer>();
+        copy.events = new HashMap<>();
         copy.events.putAll(events);
 
         copy.users_default = users_default;
-        copy.users = new HashMap<String, Integer>();
+        copy.users = new HashMap<>();
         copy.users.putAll(users);
 
         copy.state_default = state_default;

@@ -64,11 +64,6 @@ public class MXMediasCache {
     private ContentManager mContentManager = null;
 
     /**
-     * The account user ID
-     */
-    private String mUserID = null;
-
-    /**
      * The medias folders list.
      */
     private File mMediasFolderFile = null;
@@ -107,7 +102,6 @@ public class MXMediasCache {
      */
     public MXMediasCache(ContentManager contentManager, String userID, Context context) {
         mContentManager = contentManager;
-        mUserID = userID;
 
         File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
 
@@ -117,7 +111,7 @@ public class MXMediasCache {
         }
 
         // create the dir tree
-        mMediasFolderFile = new File(mediaBaseFolderFile, mUserID);
+        mMediasFolderFile = new File(mediaBaseFolderFile, userID);
         mImagesFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_IMAGES_FOLDER);
         mOthersFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_OTHERS_FOLDER);
 

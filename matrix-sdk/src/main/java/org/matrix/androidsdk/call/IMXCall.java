@@ -31,13 +31,13 @@ import org.matrix.androidsdk.rest.model.Event;
 public interface IMXCall {
 
     // call ending use cases (see {@link #dispatchOnCallEnd}):
-    final static int END_CALL_REASON_UNDEFINED = -1;
+    int END_CALL_REASON_UNDEFINED = -1;
     /** the callee has rejected the incoming call **/
-    final static int END_CALL_REASON_PEER_HANG_UP = 0;
+    int END_CALL_REASON_PEER_HANG_UP = 0;
     /** the callee has rejected the incoming call from another device **/
-    final static int END_CALL_REASON_PEER_HANG_UP_ELSEWHERE = 1;
+    int END_CALL_REASON_PEER_HANG_UP_ELSEWHERE = 1;
     /** call ended by the local user himself **/
-    final static int END_CALL_REASON_USER_HIMSELF = 2;
+    int END_CALL_REASON_USER_HIMSELF = 2;
 
     // call state events
     // the call is an empty shell nothing has been initialized

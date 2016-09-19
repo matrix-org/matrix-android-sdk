@@ -27,7 +27,7 @@ public class RoomAccountData implements java.io.Serializable{
 
     // The tags the user defined for this room.
     // The key is the tag name. The value, the associated MXRoomTag object.
-    private HashMap<String, RoomTag> tags = new HashMap<String, RoomTag>();
+    private HashMap<String, RoomTag> tags = new HashMap<>();
 
     /**
      * Process an event that modifies room account data (like m.tag event).

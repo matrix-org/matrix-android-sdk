@@ -28,7 +28,7 @@ import retrofit.mime.TypedInput;
  */
 public class RetrofitUtils {
 
-    private static final HashMap<Integer, String> sCodeToStatusMsg = new HashMap<Integer, String>();
+    private static final HashMap<Integer, String> sCodeToStatusMsg = new HashMap<>();
 
     static {
         sCodeToStatusMsg.put(200, "OK");

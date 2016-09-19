@@ -63,7 +63,7 @@ public class EventsThread extends Thread {
     private Timer mSyncDelayTimer = null;
 
     // avoid sync on "this" because it might differ if there is a timer.
-    private Object mSyncObject = new Object();
+    private final Object mSyncObject = new Object();
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private ApiFailureCallback mFailureCallback;
@@ -158,7 +158,7 @@ public class EventsThread extends Thread {
 
     /**
      * Set the failure callback.
-     * @param failureCallback
+     * @param failureCallback the failure callback.
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;
@@ -278,7 +278,7 @@ public class EventsThread extends Thread {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
 
-        int serverTimeout = 0;
+        int serverTimeout;
 
         mPaused = false;
 

@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.ssl;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 
 import java.security.KeyStore;
@@ -40,10 +42,12 @@ import javax.net.ssl.X509TrustManager;
  */
 public class CertUtil {
 
+    private static final String LOG_TAG = "CertUtil";
+
     /**
      * Generates the SHA-256 fingerprint of the given certificate
-     * @param cert
-     * @return
+     * @param cert the certificate.
+     * @return the finger print
      */
     public static byte[] generateSha256Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-256");
@@ -51,13 +55,20 @@ public class CertUtil {
 
     /**
      * Generates the SHA-1 fingerprint of the given certificate
-     * @param cert
-     * @return
+     * @param cert the certificated
+     * @return the SHA1 fingerprint
      */
     public static byte[] generateSha1Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-1");
     }
 
+    /**
+     * Generate the fingerprint for a dedicated type.
+     * @param cert the certificate
+     * @param type the type
+     * @return the fingerprint
+     * @throws CertificateException
+     */
     private static byte[] generateFingerprint(X509Certificate cert, String type) throws CertificateException {
         final byte[] fingerprint;
         final MessageDigest md;
@@ -74,6 +85,12 @@ public class CertUtil {
     }
 
     final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    /**
+     * Convert the fingerprint to an hexa string.
+     * @param fingerprint the fingerprint
+     * @return the hexa string.
+     */
     public static String fingerprintToHexString(byte[] fingerprint) {
         return fingerprintToHexString(fingerprint, ' ');
     }
@@ -93,7 +110,7 @@ public class CertUtil {
     /**
      * Recursively checks the exception to see if it was caused by an
      * UnrecognizedCertificateException
-     * @param e
+     * @param e the throwable.
      * @return The UnrecognizedCertificateException if exists, else null.
      */
     public static UnrecognizedCertificateException getCertificateException(Throwable e) {
@@ -109,6 +126,11 @@ public class CertUtil {
         return null;
     }
 
+    /**
+     * Create a SSLSocket factory for a HS config.
+     * @param hsConfig the HS config.
+     * @return SSLSocket factory
+     */
     public static SSLSocketFactory newPinnedSSLSocketFactory(HomeserverConnectionConfig hsConfig) {
         try {
             X509TrustManager defaultTrustManager = null;
@@ -122,6 +144,7 @@ public class CertUtil {
                 try {
                     tf = TrustManagerFactory.getInstance("PKIX");
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage());
                 }
 
                 // it doesn't exist, use the default one.
@@ -129,6 +152,7 @@ public class CertUtil {
                     try {
                         tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
                     }
                 }
 
@@ -157,6 +181,11 @@ public class CertUtil {
         }
     }
 
+    /**
+     * Create a Host name verifier for a hs config.
+     * @param hsConfig teh hs config.
+     * @return a new HostnameVerifier.
+     */
     public static HostnameVerifier newHostnameVerifier(HomeserverConnectionConfig hsConfig) {
         final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
         final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
@@ -169,7 +198,6 @@ public class CertUtil {
 
                 // If remote cert matches an allowed fingerprint, just accept it.
                 try {
-                    boolean found = false;
                     for (Certificate cert : session.getPeerCertificates()) {
                         for (Fingerprint allowedFingerprint : trusted_fingerprints) {
                             if (allowedFingerprint != null && cert instanceof X509Certificate && allowedFingerprint.matchesCert((X509Certificate) cert)) {

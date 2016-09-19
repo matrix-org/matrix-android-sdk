@@ -18,6 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -30,7 +31,7 @@ import java.util.HashMap;
 
 public class MXLatestChatMessageCache {
 
-    private static final String LOG_TAG = "ConsoleLatestChatMessageCache";
+    private static final String LOG_TAG = "CLstChatMessageCache";
     private static final String FILENAME = "ConsoleLatestChatMessageCache";
 
     final String MXLATESTMESSAGES_STORE_FOLDER = "MXLatestMessagesStore";
@@ -66,7 +67,7 @@ public class MXLatestChatMessageCache {
             return;
         }
 
-        mLatestMesssageByRoomId = new HashMap<String, String>();
+        mLatestMesssageByRoomId = new HashMap<>();
 
         try
         {
@@ -96,6 +97,7 @@ public class MXLatestChatMessageCache {
                 fis.close();
             }
         } catch(Exception e) {
+            Log.e(LOG_TAG, "## openLatestMessagesDict failed " + e.getMessage());
         }
     }
 
@@ -134,6 +136,7 @@ public class MXLatestChatMessageCache {
             oos.close();
             fos.close();
         } catch(Exception e) {
+            Log.e(LOG_TAG, "## saveLatestMessagesDict() failed " + e.getMessage());
         }
     }
 

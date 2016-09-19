@@ -33,7 +33,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.call.MXCall;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -58,7 +57,6 @@ import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
@@ -67,12 +65,9 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 
-import java.lang.reflect.Member;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -769,7 +764,7 @@ public class Room {
      * @return the call avatar URL.
      */
     public String getCallAvatarUrl() {
-        String avatarURL = null;
+        String avatarURL;
 
         ArrayList<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
 
@@ -921,7 +916,7 @@ public class Room {
      */
     private String getCallConferenceUserId() {
         if (null == mCallConferenceUserId) {
-            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());;
+            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
         }
 
         return mCallConferenceUserId;

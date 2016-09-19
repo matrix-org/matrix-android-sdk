@@ -62,7 +62,7 @@ public class RoomTag implements java.io.Serializable {
      */
     public static HashMap<String, RoomTag>roomTagsWithTagEvent(Event event)
     {
-        HashMap<String, RoomTag> tags = new HashMap<String, RoomTag>();
+        HashMap<String, RoomTag> tags = new HashMap<>();
 
         try {
             RoomTags roomtags = JsonUtils.toRoomTags(event.content);

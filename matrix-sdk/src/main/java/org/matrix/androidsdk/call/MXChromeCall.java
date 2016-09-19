@@ -203,7 +203,7 @@ public class MXChromeCall extends MXCall {
                 String sdpValue = sdp.getAsString();
                 setIsVideo(sdpValue.indexOf("m=video") >= 0);
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## prepareIncomingCall() ; " + e.getMessage());
             }
         }
     }
@@ -259,7 +259,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * A new Ice candidate is received
-     * @param candidates
+     * @param candidates the ice candidates
      */
     public void onNewCandidates(final JsonElement candidates) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
@@ -603,6 +603,7 @@ public class MXChromeCall extends MXCall {
                                     addIt = false;
                                 }
                             } catch (Exception e) {
+                                Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
                             }
                         }
 
@@ -633,7 +634,7 @@ public class MXChromeCall extends MXCall {
                                                 mCallTimeoutTimer.cancel();
                                                 mCallTimeoutTimer = null;
                                             } catch (Exception e) {
-
+                                                Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
                                             }
                                         }
                                     }, 30 * 1000);
@@ -645,7 +646,7 @@ public class MXChromeCall extends MXCall {
                         sendNextEvent();
 
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
                     }
                 }
             });
