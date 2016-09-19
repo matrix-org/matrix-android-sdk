@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.6.2 (2016-09-19)
+=======================================================
+
+Bugfixes:
+* Ensure that ended calls are no more seen as active call.	
+* #490 : Start a call conference and stop it asap don't stop it
+* #501 : [VoIP] crash in caller side when a started video call is stopped asap.
+* Some files were sent with an invalid mimetype text/uri-list.
+
 Changes to Matrix Android SDK in 0.6.1 (2016-09-13)
 =======================================================
 
