@@ -98,6 +98,8 @@ public class DataRetriever {
                 }
             };
 
+            handler.post(r);
+
             return;
         }
 

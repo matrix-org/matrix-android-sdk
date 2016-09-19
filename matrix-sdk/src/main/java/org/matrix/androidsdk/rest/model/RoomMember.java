@@ -71,15 +71,6 @@ public class RoomMember implements java.io.Serializable {
         return null;
     }
 
-    private boolean fieldsAreEqual(String s1, String s2) {
-        // compare display name
-        if (s1 == null) {
-            return (s1 == s2);
-        } else {
-            return s1.equals(s2);
-        }
-    }
-
     // Comparator to order members alphabetically
     public static Comparator<RoomMember> alphaComparator = new Comparator<RoomMember>() {
         @Override
@@ -164,18 +155,18 @@ public class RoomMember implements java.io.Serializable {
         }
 
         // compare display name
-        boolean isEqual = fieldsAreEqual(displayname, otherMember.displayname);
+        boolean isEqual = TextUtils.equals(displayname, otherMember.displayname);
 
         if (isEqual) {
-            isEqual = fieldsAreEqual(avatarUrl, otherMember.avatarUrl);
+            isEqual = TextUtils.equals(avatarUrl, otherMember.avatarUrl);
         }
 
         if (isEqual) {
-            isEqual = fieldsAreEqual(membership, otherMember.membership);
+            isEqual = TextUtils.equals(membership, otherMember.membership);
         }
 
         if (isEqual) {
-            isEqual = fieldsAreEqual(userId, otherMember.userId);
+            isEqual = TextUtils.equals(userId, otherMember.userId);
         }
 
         return isEqual;

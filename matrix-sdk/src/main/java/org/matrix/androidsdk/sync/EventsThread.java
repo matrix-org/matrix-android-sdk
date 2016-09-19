@@ -278,7 +278,7 @@ public class EventsThread extends Thread {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
 
-        int serverTimeout = 0;
+        int serverTimeout;
 
         mPaused = false;
 

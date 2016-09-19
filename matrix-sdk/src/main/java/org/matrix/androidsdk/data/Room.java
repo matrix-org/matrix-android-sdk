@@ -764,7 +764,7 @@ public class Room {
      * @return the call avatar URL.
      */
     public String getCallAvatarUrl() {
-        String avatarURL = null;
+        String avatarURL;
 
         ArrayList<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
 

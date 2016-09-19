@@ -110,7 +110,7 @@ public class CertUtil {
     /**
      * Recursively checks the exception to see if it was caused by an
      * UnrecognizedCertificateException
-     * @param e
+     * @param e the throwable.
      * @return The UnrecognizedCertificateException if exists, else null.
      */
     public static UnrecognizedCertificateException getCertificateException(Throwable e) {
@@ -198,7 +198,6 @@ public class CertUtil {
 
                 // If remote cert matches an allowed fingerprint, just accept it.
                 try {
-                    boolean found = false;
                     for (Certificate cert : session.getPeerCertificates()) {
                         for (Fingerprint allowedFingerprint : trusted_fingerprints) {
                             if (allowedFingerprint != null && cert instanceof X509Certificate && allowedFingerprint.matchesCert((X509Certificate) cert)) {
