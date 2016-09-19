@@ -63,7 +63,7 @@ public class EventsThread extends Thread {
     private Timer mSyncDelayTimer = null;
 
     // avoid sync on "this" because it might differ if there is a timer.
-    private Object mSyncObject = new Object();
+    private final Object mSyncObject = new Object();
 
     // Custom Retrofit error callback that will convert Retrofit errors into our own error callback
     private ApiFailureCallback mFailureCallback;

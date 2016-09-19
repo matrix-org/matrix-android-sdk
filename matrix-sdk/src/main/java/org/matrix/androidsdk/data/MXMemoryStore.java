@@ -47,6 +47,9 @@ public class MXMemoryStore implements IMXStore {
 
     protected Map<String, Room> mRooms;
     protected Map<String, User> mUsers;
+
+    private static final Object mRoomEventsLock = new Object();
+
     // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
     protected Map<String, LinkedHashMap<String, Event>> mRoomEvents;
     // room id -> list of event Ids
@@ -58,6 +61,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, RoomAccountData> mRoomAccountData;
 
     // dict of dict of MXReceiptData indexed by userId
+    private final Object mReceiptsByRoomIdLock = new Object();
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     // common context
@@ -375,7 +379,7 @@ public class MXMemoryStore implements IMXStore {
         Event event = null;
 
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
                 if (events != null) {
@@ -399,7 +403,7 @@ public class MXMemoryStore implements IMXStore {
         Event event = null;
 
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
                 if (events != null) {
@@ -432,7 +436,7 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeLiveRoomEvent(Event event) {
         if ((null != event) && (null != event.roomId)) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 // check if the message is already defined
                 if (!doesEventExist(event.eventId, event.roomId)) {
                     LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
@@ -498,7 +502,7 @@ public class MXMemoryStore implements IMXStore {
         Event event = null;
 
         if (doesEventExist(eventId,roomId)) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
                 if (events != null) {
@@ -513,7 +517,7 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void deleteEvent(Event event) {
         if ((null != event) && (null != event.roomId) && (event.eventId != null)) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
 
                 LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
                 if (events != null) {
@@ -533,7 +537,7 @@ public class MXMemoryStore implements IMXStore {
     	// sanity check
         if (null != roomId) {
             deleteRoomData(roomId);
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 mRooms.remove(roomId);
             }
         }
@@ -543,7 +547,7 @@ public class MXMemoryStore implements IMXStore {
     public void deleteRoomData(String roomId) {
         // sanity check
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 mRoomEvents.remove(roomId);
                 mRoomEventIds.remove(roomId);
                 mRoomTokens.remove(roomId);
@@ -562,7 +566,7 @@ public class MXMemoryStore implements IMXStore {
     public void deleteAllRoomMessages(String roomId, boolean keepUnsent) {
         // sanity check
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
 
                 if (keepUnsent) {
                     LinkedHashMap<String, Event> eventMap = mRoomEvents.get(roomId);
@@ -599,7 +603,7 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
                 if (events == null) {
                     events = new LinkedHashMap<>();
@@ -720,7 +724,7 @@ public class MXMemoryStore implements IMXStore {
 
         Collection<Event> collection = null;
 
-        synchronized (mRoomEvents) {
+        synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             if (null != events) {
@@ -738,7 +742,7 @@ public class MXMemoryStore implements IMXStore {
         if (null != roomId) {
             ArrayList<Event> eventsList;
 
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events =mRoomEvents.get(roomId);
                 if ((events == null) || (events.size() == 0)) {
                     return null;
@@ -837,7 +841,7 @@ public class MXMemoryStore implements IMXStore {
 
         ArrayList<Event> unsentRoomEvents = new ArrayList<>();
 
-        synchronized (mRoomEvents) {
+        synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             // contain some events
@@ -873,7 +877,7 @@ public class MXMemoryStore implements IMXStore {
 
         ArrayList<Event> undeliverableRoomEvents = new ArrayList<>();
 
-        synchronized (mRoomEvents) {
+        synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
             // contain some events
@@ -907,7 +911,7 @@ public class MXMemoryStore implements IMXStore {
     public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
         ArrayList<ReceiptData> receipts = new ArrayList<>();
 
-        synchronized (mReceiptsByRoomId) {
+        synchronized (mReceiptsByRoomIdLock) {
             if (mReceiptsByRoomId.containsKey(roomId)) {
                 String myUserID = mCredentials.userId;
 
@@ -953,7 +957,7 @@ public class MXMemoryStore implements IMXStore {
 
         Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
 
-        synchronized (mReceiptsByRoomId) {
+        synchronized (mReceiptsByRoomIdLock) {
             if (!mReceiptsByRoomId.containsKey(roomId)) {
                 receiptsByUserId = new HashMap<>();
                 mReceiptsByRoomId.put(roomId, receiptsByUserId);
@@ -986,7 +990,7 @@ public class MXMemoryStore implements IMXStore {
 
         // check if the read receipt is not for an already read message
         if (TextUtils.equals(receipt.userId, mCredentials.userId)) {
-            synchronized (mReceiptsByRoomId) {
+            synchronized (mReceiptsByRoomIdLock) {
                 LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
 
                 // test if the event is know
@@ -1020,7 +1024,7 @@ public class MXMemoryStore implements IMXStore {
 
         // sanity checks
         if (!TextUtils.isEmpty(roomId) && !TextUtils.isEmpty(userId)) {
-            synchronized (mReceiptsByRoomId) {
+            synchronized (mReceiptsByRoomIdLock) {
                 if (mReceiptsByRoomId.containsKey(roomId)) {
                     Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
                     res = receipts.get(userId);
@@ -1048,7 +1052,7 @@ public class MXMemoryStore implements IMXStore {
 
         // sanity check
         if (null != roomId) {
-            synchronized (mRoomEvents) {
+            synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
 
                 if (roomEvents != null) {
@@ -1115,7 +1119,7 @@ public class MXMemoryStore implements IMXStore {
 
         // sanity check
         if ((null != roomId) && (null != userId)) {
-            synchronized (mReceiptsByRoomId) {
+            synchronized (mReceiptsByRoomIdLock) {
                 if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
                     Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
                     LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
@@ -1147,7 +1151,7 @@ public class MXMemoryStore implements IMXStore {
     public List<Event> unreadEvents(String roomId, List<String> types) {
         List<Event> res = null;
 
-        synchronized (mReceiptsByRoomId) {
+        synchronized (mReceiptsByRoomIdLock) {
             if (mReceiptsByRoomId.containsKey(roomId)) {
                 Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
 
