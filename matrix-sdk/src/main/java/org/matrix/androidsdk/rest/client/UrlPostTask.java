@@ -124,6 +124,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
             JsonParser parser = new JsonParser();
             object = parser.parse(result).getAsJsonObject();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage());
         }
 
         if (null != mListener) {

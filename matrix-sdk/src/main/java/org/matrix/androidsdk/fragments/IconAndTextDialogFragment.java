@@ -76,8 +76,8 @@ public class IconAndTextDialogFragment extends DialogFragment {
         IconAndTextDialogFragment f = new IconAndTextDialogFragment();
         Bundle args = new Bundle();
 
-        args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(iconResourcesList)));
-        args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(textResourcesList)));
+        args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<>(Arrays.asList(iconResourcesList)));
+        args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<>(Arrays.asList(textResourcesList)));
 
         if (null != backgroundColor) {
             args.putInt(ARG_BACKGROUND_COLOR, backgroundColor);

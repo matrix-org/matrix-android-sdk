@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.ssl;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 
 import java.security.KeyStore;
@@ -39,6 +41,8 @@ import javax.net.ssl.X509TrustManager;
  * Various utility classes for dealing with X509Certificates
  */
 public class CertUtil {
+
+    private static final String LOG_TAG = "CertUtil";
 
     /**
      * Generates the SHA-256 fingerprint of the given certificate
@@ -122,6 +126,7 @@ public class CertUtil {
                 try {
                     tf = TrustManagerFactory.getInstance("PKIX");
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage());
                 }
 
                 // it doesn't exist, use the default one.
@@ -129,6 +134,7 @@ public class CertUtil {
                     try {
                         tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
                     }
                 }
 

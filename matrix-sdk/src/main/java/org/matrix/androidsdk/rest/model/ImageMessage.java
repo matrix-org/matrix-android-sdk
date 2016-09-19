@@ -17,10 +17,13 @@ package org.matrix.androidsdk.rest.model;
 
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 
 public class ImageMessage extends Message {
+    private static final String LOG_TAG = "ImageMessage";
+
     public ImageInfo info;
     public ImageInfo thumbnailInfo;
     public String url;
@@ -104,7 +107,7 @@ public class ImageMessage extends Message {
                     thumbnailUrl = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
 
@@ -116,7 +119,7 @@ public class ImageMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
     }

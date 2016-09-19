@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.util;
 
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 
 /**
@@ -72,6 +74,7 @@ public class ContentManager {
             try {
                 urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
             } catch (Exception e) {
+                Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage());
             }
 
             return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;

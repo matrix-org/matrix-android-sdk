@@ -18,11 +18,14 @@ package org.matrix.androidsdk.rest.model;
 import android.content.ClipDescription;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import java.io.File;
 
 public class FileMessage extends Message {
+    private static final String LOG_TAG = "FileMessage";
+
     public FileInfo info;
     public String url;
 
@@ -63,7 +66,7 @@ public class FileMessage extends Message {
                 try {
                     info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
                 } catch (Exception e) {
-
+                    Log.e(LOG_TAG, "## getMimeType() : getMimeTypeFromExtensionfailed " + e.getMessage());
                 }
             }
 
@@ -91,7 +94,7 @@ public class FileMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
     }

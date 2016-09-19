@@ -16,10 +16,12 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 
 public class LocationMessage extends Message {
+    private static final String LOG_TAG = "LocationMessage";
     public ThumbnailInfo thumbnail_info;
     public String geo_uri;
     public String thumbnail_url;
@@ -64,7 +66,7 @@ public class LocationMessage extends Message {
                     thumbnail_url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
     }

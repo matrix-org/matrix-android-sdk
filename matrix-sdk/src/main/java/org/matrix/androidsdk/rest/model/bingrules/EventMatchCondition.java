@@ -54,7 +54,7 @@ public class EventMatchCondition extends Condition {
         }
 
         if (null == mPatternByRule) {
-            mPatternByRule = new HashMap<String, Pattern>();
+            mPatternByRule = new HashMap<>();
         }
 
         Pattern patternEx = mPatternByRule.get(pattern);

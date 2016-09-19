@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.util;
 
-import android.hardware.camera2.CameraManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -40,7 +39,6 @@ import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -77,7 +75,7 @@ public class BingRulesManager {
     private BingRuleSet mRulesSet = new BingRuleSet();
 
     // the rules list
-    private List<BingRule> mRules = new ArrayList<BingRule>();
+    private List<BingRule> mRules = new ArrayList<>();
 
     // the default bing rule
     private BingRule mDefaultBingRule = new BingRule(true);
@@ -365,55 +363,55 @@ public class BingRulesManager {
             // Add the rule kind in each rule
             // Ensure that the null pointers are replaced by an empty list
             if (ruleSet.override != null) {
-                ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
+                ruleSet.override = new ArrayList<>(ruleSet.override);
                 for (BingRule rule : ruleSet.override) {
                     rule.kind = BingRule.KIND_OVERRIDE;
                 }
                 mRules.addAll(ruleSet.override);
             } else {
-                ruleSet.override = new ArrayList<BingRule>(ruleSet.override);
+                ruleSet.override = new ArrayList<>(ruleSet.override);
             }
 
             if (ruleSet.content != null) {
-                ruleSet.content = new ArrayList<ContentRule>(ruleSet.content);
+                ruleSet.content = new ArrayList<>(ruleSet.content);
                 for (BingRule rule : ruleSet.content) {
                     rule.kind = BingRule.KIND_CONTENT;
                 }
                 addContentRules(ruleSet.content);
             } else {
-                ruleSet.content = new ArrayList<ContentRule>();
+                ruleSet.content = new ArrayList<>();
             }
 
             if (ruleSet.room != null) {
-                ruleSet.room = new ArrayList<BingRule>(ruleSet.room);
+                ruleSet.room = new ArrayList<>(ruleSet.room);
 
                 for (BingRule rule : ruleSet.room) {
                     rule.kind = BingRule.KIND_ROOM;
                 }
                 addRoomRules(ruleSet.room);
             } else {
-                ruleSet.room = new ArrayList<BingRule>();
+                ruleSet.room = new ArrayList<>();
             }
 
             if (ruleSet.sender != null) {
-                ruleSet.sender = new ArrayList<BingRule>(ruleSet.sender);
+                ruleSet.sender = new ArrayList<>(ruleSet.sender);
 
                 for (BingRule rule : ruleSet.sender) {
                     rule.kind = BingRule.KIND_SENDER;
                 }
                 addSenderRules(ruleSet.sender);
             } else {
-                ruleSet.sender = new ArrayList<BingRule>();
+                ruleSet.sender = new ArrayList<>();
             }
 
             if (ruleSet.underride != null) {
-                ruleSet.underride = new ArrayList<BingRule>(ruleSet.underride);
+                ruleSet.underride = new ArrayList<>(ruleSet.underride);
                 for (BingRule rule : ruleSet.underride) {
                     rule.kind = BingRule.KIND_UNDERRIDE;
                 }
                 mRules.addAll(ruleSet.underride);
             } else {
-                ruleSet.underride = new ArrayList<BingRule>();
+                ruleSet.underride = new ArrayList<>();
             }
 
             mRulesSet = ruleSet;
@@ -495,7 +493,7 @@ public class BingRulesManager {
                         try {
                             listener.onBingRuleUpdateSuccess();
                         } catch (Exception e) {
-
+                            Log.e(LOG_TAG, "## toggleRule : onBingRuleUpdateSuccess failed " + e.getMessage());
                         }
                     }
                 }
@@ -505,6 +503,7 @@ public class BingRulesManager {
                         try {
                             listener.onBingRuleUpdateFailure(message);
                         } catch (Exception e) {
+                            Log.e(LOG_TAG, "## onError : onBingRuleUpdateFailure failed " + e.getMessage());
                         }
                     }
                 }
@@ -553,7 +552,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-
+                    Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage());
                 }
             }
             return;
@@ -570,7 +569,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateSuccess();
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage());
                     }
                 }
             }
@@ -580,6 +579,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateFailure(message);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "## onError : onBingRuleUpdateFailure failed " + e.getMessage());
                     }
                 }
             }
@@ -674,7 +674,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-
+                    Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage());
                 }
             }
             return;
@@ -692,7 +692,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateSuccess();
                     } catch (Exception e) {
-
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage());
                     }
                 }
             }
@@ -702,6 +702,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateFailure(message);
                     } catch (Exception e) {
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
                     }
                 }
             }

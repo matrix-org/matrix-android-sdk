@@ -16,9 +16,12 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 public class VideoMessage extends Message {
+    private static final String LOG_TAG = "VideoMessage";
+
     public VideoInfo info;
     public String url;
 
@@ -75,7 +78,7 @@ public class VideoMessage extends Message {
                     info.thumbnail_url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
             }
         }
 
@@ -87,7 +90,7 @@ public class VideoMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
             }
         }
     }

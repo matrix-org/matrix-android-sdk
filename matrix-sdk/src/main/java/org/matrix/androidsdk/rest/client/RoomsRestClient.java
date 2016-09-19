@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
-import com.google.gson.internal.ObjectConstructor;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
