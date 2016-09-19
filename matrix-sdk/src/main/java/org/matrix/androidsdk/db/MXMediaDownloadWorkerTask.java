@@ -553,7 +553,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
     /**
      * Push the download progress.
-     * @param startDownloadTime
+     * @param startDownloadTime the start download time.
      */
     private void publishProgress(long startDownloadTime) {
         mDownloadStats.mElapsedTime = (int) ((System.currentTimeMillis() - startDownloadTime) / 1000);

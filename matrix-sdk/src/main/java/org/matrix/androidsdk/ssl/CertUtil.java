@@ -46,8 +46,8 @@ public class CertUtil {
 
     /**
      * Generates the SHA-256 fingerprint of the given certificate
-     * @param cert
-     * @return
+     * @param cert the certificate.
+     * @return the finger print
      */
     public static byte[] generateSha256Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-256");
@@ -55,13 +55,20 @@ public class CertUtil {
 
     /**
      * Generates the SHA-1 fingerprint of the given certificate
-     * @param cert
-     * @return
+     * @param cert the certificated
+     * @return the SHA1 fingerprint
      */
     public static byte[] generateSha1Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-1");
     }
 
+    /**
+     * Generate the fingerprint for a dedicated type.
+     * @param cert the certificate
+     * @param type the type
+     * @return the fingerprint
+     * @throws CertificateException
+     */
     private static byte[] generateFingerprint(X509Certificate cert, String type) throws CertificateException {
         final byte[] fingerprint;
         final MessageDigest md;
@@ -78,6 +85,12 @@ public class CertUtil {
     }
 
     final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    /**
+     * Convert the fingerprint to an hexa string.
+     * @param fingerprint the fingerprint
+     * @return the hexa string.
+     */
     public static String fingerprintToHexString(byte[] fingerprint) {
         return fingerprintToHexString(fingerprint, ' ');
     }
@@ -113,6 +126,11 @@ public class CertUtil {
         return null;
     }
 
+    /**
+     * Create a SSLSocket factory for a HS config.
+     * @param hsConfig the HS config.
+     * @return SSLSocket factory
+     */
     public static SSLSocketFactory newPinnedSSLSocketFactory(HomeserverConnectionConfig hsConfig) {
         try {
             X509TrustManager defaultTrustManager = null;
@@ -163,6 +181,11 @@ public class CertUtil {
         }
     }
 
+    /**
+     * Create a Host name verifier for a hs config.
+     * @param hsConfig teh hs config.
+     * @return a new HostnameVerifier.
+     */
     public static HostnameVerifier newHostnameVerifier(HomeserverConnectionConfig hsConfig) {
         final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
         final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();

@@ -1738,7 +1738,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onUploadCancel(String uploadId) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        onUploadStop(null);;
+                        onUploadStop(null);
                     }
                 }
 

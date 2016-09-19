@@ -54,21 +54,21 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private final int MXFILE_VERSION = 3;
+    private static final int MXFILE_VERSION = 3;
 
     // ensure that there is enough messages to fill a tablet screen
-    private final int MAX_STORED_MESSAGES_COUNT = 50;
+    private static final int MAX_STORED_MESSAGES_COUNT = 50;
 
-    private final String MXFILE_STORE_FOLDER = "MXFileStore";
-    private final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+    private static final String MXFILE_STORE_FOLDER = "MXFileStore";
+    private static final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
-    private final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
-    private final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
-    private final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
-    private final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
-    private final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
-    private final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
-    private final String MXFILE_STORE_USER_FOLDER = "users";
+    private static final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
+    private static final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
+    private static final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
+    private static final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+    private static final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
+    private static final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
+    private static final String MXFILE_STORE_USER_FOLDER = "users";
 
     // the data is read from the file system
     private boolean mIsReady = false;

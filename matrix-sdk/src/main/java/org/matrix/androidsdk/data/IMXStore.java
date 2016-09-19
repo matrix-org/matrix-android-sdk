@@ -112,7 +112,7 @@ public interface IMXStore {
 
     /**
      * Define a MXStore listener.
-     * @param listener
+     * @param listener the listener
      */
     void setMXStoreListener(MXStoreListener listener);
 
@@ -263,7 +263,7 @@ public interface IMXStore {
 
     /**
      * Flush a room summmary
-     * @param summary
+     * @param summary the summary.
      */
     void flushSummary(RoomSummary summary);
 

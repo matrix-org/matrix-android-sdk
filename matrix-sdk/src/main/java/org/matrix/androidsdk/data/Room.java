@@ -916,7 +916,7 @@ public class Room {
      */
     private String getCallConferenceUserId() {
         if (null == mCallConferenceUserId) {
-            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());;
+            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
         }
 
         return mCallConferenceUserId;

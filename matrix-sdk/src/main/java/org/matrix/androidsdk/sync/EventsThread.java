@@ -158,7 +158,7 @@ public class EventsThread extends Thread {
 
     /**
      * Set the failure callback.
-     * @param failureCallback
+     * @param failureCallback the failure callback.
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
         mFailureCallback = failureCallback;

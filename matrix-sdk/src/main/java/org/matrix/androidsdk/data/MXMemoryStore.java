@@ -79,7 +79,6 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Initialization method.
-     * @param context the context
      */
     protected void initCommon(){
         mRooms = new ConcurrentHashMap<>();

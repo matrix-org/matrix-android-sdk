@@ -60,14 +60,14 @@ public class BingRulesManager {
 
         /**
          * The manager fails to update the bingrule enable status.
-         * @param errorMessage
+         * @param errorMessage the error message.
          */
         void onBingRuleUpdateFailure(String errorMessage);
     }
 
     // general members
     private BingRulesRestClient mApiClient;
-    private MXSession mSession = null;
+    private MXSession mSession;
     private String mMyUserId;
     private MXDataHandler mDataHandler;
 
@@ -328,7 +328,7 @@ public class BingRulesManager {
 
     /**
      * Build the internal build rules
-     * @param bingRulesResponse
+     * @param bingRulesResponse the server request response.
      */
     public void buildRules(BingRulesResponse bingRulesResponse) {
         if (null != bingRulesResponse) {

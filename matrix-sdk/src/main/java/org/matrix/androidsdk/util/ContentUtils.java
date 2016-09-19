@@ -55,7 +55,7 @@ public class ContentUtils {
     /**
      * Delete a directory with its content
      * @param directory the base directory
-     * @return
+     * @return true if the directory is deleted
      */
     public static boolean deleteDirectory(File directory) {
         // sanity check

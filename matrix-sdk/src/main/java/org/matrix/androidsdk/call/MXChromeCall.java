@@ -259,7 +259,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * A new Ice candidate is received
-     * @param candidates
+     * @param candidates the ice candidates
      */
     public void onNewCandidates(final JsonElement candidates) {
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {

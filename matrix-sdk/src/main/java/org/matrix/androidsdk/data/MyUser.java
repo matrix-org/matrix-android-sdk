@@ -123,7 +123,7 @@ public class MyUser extends User {
     /**
      * Add a a new pid to the account.
      * @param pid the pid to add.
-     * @param bind
+     * @param bind true to add it.
      * @param callback the async callback
      */
     public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {

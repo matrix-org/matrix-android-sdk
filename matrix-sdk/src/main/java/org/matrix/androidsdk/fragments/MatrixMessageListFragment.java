@@ -320,8 +320,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * Warns that the list has been scrolled.
          * @param view the list view
          * @param firstVisibleItem the first visible indew
-         * @param visibleItemCount
-         * @param totalItemCount
+         * @param visibleItemCount the number of visible items
+         * @param totalItemCount the total number of items
          */
         private void manageScrollListener(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             if (null != mActivityOnScrollListener) {
@@ -951,7 +951,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Send an emote
      * @param emote the emote
-     * @param formattedBody the formatted text message (optional)
+     * @param formattedEmote the formatted text message (optional)
      * @param format the format
      */
     public void sendEmote(String emote, String formattedEmote, String format) {

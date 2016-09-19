@@ -38,7 +38,10 @@ public interface ThirdPidApi {
 
     /**
      * Request an email validation
-     * @param params the email validations params
+     * @param clientSecret the client secret
+     * @param email the email address
+     * @param sendAttempt the attempt count
+     * @param nextLink the next link
      * @param callback the asynchronous callback called with the response
      */
     @POST("/validate/email/requestToken")

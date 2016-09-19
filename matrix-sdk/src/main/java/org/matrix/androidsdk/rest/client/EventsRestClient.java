@@ -347,11 +347,11 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
-     *
-     * @param response
-     * @param responseToMerge
-     * @param supportedMediasList
-     * @return
+     * Merge the search response with previous found reponse.
+     * @param response the already found items
+     * @param responseToMerge the response to merge.
+     * @param supportedMediasList the supported medias list
+     * @return the merged results list.
      */
     private SearchResponse mergeAndFilterResponse(SearchResponse response, SearchResponse responseToMerge, List<String> supportedMediasList) {
         SearchRoomEventResults roomEventsToMerge = responseToMerge.searchCategories.roomEvents;
