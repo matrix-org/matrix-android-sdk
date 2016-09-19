@@ -193,6 +193,9 @@ public class EventTimeline {
         mRoom.setLiveTimeline(this);
         mRoom.setReadyState(true);
         setRoomId(roomId);
+
+        mState.setDataHandler(dataHandler);
+        mBackState.setDataHandler(dataHandler);
     }
 
     /**
