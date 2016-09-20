@@ -1238,45 +1238,23 @@ public class EventTimeline {
         mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
             public void onSuccess(EventContext eventContext) {
-                // And fill the timelime with received data
+                // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
                 for(Event event : eventContext.state) {
                     processStateEvent(event, Direction.FORWARDS);
                 }
 
-                mState.setToken(eventContext.start);
-
                 // init the room states
                 initHistory();
 
-                // selected event
-                storeLiveRoomEvent(eventContext.event, false);
-                onEvent(eventContext.event, Direction.BACKWARDS, mState);
+                ArrayList<Event> events = new ArrayList<>();
 
-                // add events before
-                addPaginationEvents(eventContext.eventsBefore, Direction.BACKWARDS, new ApiCallback<Integer>() {
-                    @Override
-                    public void onSuccess(Integer info) {
-                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-                });
+                Collections.reverse(eventContext.eventsAfter);
+                events.addAll(eventContext.eventsAfter);
+                events.add(eventContext.event);
+                events.addAll(eventContext.eventsBefore);
 
                 // add events after
-                addPaginationEvents(eventContext.eventsAfter, Direction.FORWARDS, new ApiCallback<Integer>() {
+                addPaginationEvents(events, Direction.BACKWARDS, new ApiCallback<Integer>() {
                     @Override
                     public void onSuccess(Integer info) {
                         Log.d(LOG_TAG, "addPaginationEvents succeeds");
@@ -1298,6 +1276,7 @@ public class EventTimeline {
                     }
                 });
 
+                mBackState.setToken(eventContext.start);
                 mForwardsPaginationToken = eventContext.end;
 
                 callback.onSuccess(null);
