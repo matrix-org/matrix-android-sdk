@@ -935,9 +935,8 @@ public class EventTimeline {
      * Add some events in a dedicated direction.
      * @param events the events list
      * @param direction the direction
-     * @param callback the callback.
      */
-    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+    private void addPaginationEvents(List<Event> events, Direction direction) {
         final String myUserId = mDataHandler.getUserId();
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
@@ -974,6 +973,16 @@ public class EventTimeline {
         if (shouldCommitStore) {
             mStore.commit();
         }
+    }
+
+    /**
+     * Add some events in a dedicated direction.
+     * @param events the events list
+     * @param direction the direction
+     * @param callback the callback.
+     */
+    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+        addPaginationEvents(events, direction);
 
         if (direction == Direction.BACKWARDS) {
             manageBackEvents(callback);
@@ -1228,7 +1237,7 @@ public class EventTimeline {
      * @param limit the maximum number of messages to get around the initial event.
      * @param callback the operation callback
      */
-    public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
+    public void resetPaginationAroundInitialEvent(final int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
 
@@ -1246,6 +1255,7 @@ public class EventTimeline {
                 // init the room states
                 initHistory();
 
+                // build the events list
                 ArrayList<Event> events = new ArrayList<>();
 
                 Collections.reverse(eventContext.eventsAfter);
@@ -1254,7 +1264,28 @@ public class EventTimeline {
                 events.addAll(eventContext.eventsBefore);
 
                 // add events after
-                addPaginationEvents(events, Direction.BACKWARDS, new ApiCallback<Integer>() {
+                addPaginationEvents(events, Direction.BACKWARDS);
+
+                // create dummy forward events list
+                // to center the selected event id
+                // else if might be out of screen
+                ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+
+                // put in the right order
+                Collections.reverse(nextSnapshotEvents);
+
+                // send them one by one
+                for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                    mSnapshotEvents.remove(snapshotEvent);
+                    onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                }
+
+                // init the tokens
+                mBackState.setToken(eventContext.start);
+                mForwardsPaginationToken = eventContext.end;
+
+                // send the back events to complete pagination
+                manageBackEvents(new ApiCallback<Integer>() {
                     @Override
                     public void onSuccess(Integer info) {
                         Log.d(LOG_TAG, "addPaginationEvents succeeds");
@@ -1276,9 +1307,7 @@ public class EventTimeline {
                     }
                 });
 
-                mBackState.setToken(eventContext.start);
-                mForwardsPaginationToken = eventContext.end;
-
+                // everything is done
                 callback.onSuccess(null);
             }
 
