@@ -819,7 +819,7 @@ public class RoomState implements java.io.Serializable {
                     displayName += " (" + userId + ")";
                 }
             }
-        } else if ((null == member) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+        } else if ((null != member) && TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
             User user = ((MXDataHandler)mDataHandler).getUser(userId);
 
             if (null != user) {
