@@ -955,7 +955,7 @@ public class MXMemoryStore implements IMXStore {
 
         Map<String, ReceiptData> receiptsByUserId;
 
-        Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
+        //Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
 
         synchronized (mReceiptsByRoomIdLock) {
             if (!mReceiptsByRoomId.containsKey(roomId)) {
@@ -973,18 +973,18 @@ public class MXMemoryStore implements IMXStore {
         }
 
         if (null == curReceipt) {
-            Log.d(LOG_TAG, "## storeReceipt() : there was no receipt from this user");
+            //Log.d(LOG_TAG, "## storeReceipt() : there was no receipt from this user");
             receiptsByUserId.put(receipt.userId, receipt);
             return true;
         }
 
         if (TextUtils.equals(receipt.eventId,curReceipt.eventId)) {
-            Log.d(LOG_TAG, "## storeReceipt() : receipt for the same event");
+            //Log.d(LOG_TAG, "## storeReceipt() : receipt for the same event");
             return false;
         }
 
         if (receipt.originServerTs < curReceipt.originServerTs) {
-            Log.d(LOG_TAG, "## storeReceipt() : the receipt is older that the current one");
+            //Log.d(LOG_TAG, "## storeReceipt() : the receipt is older that the current one");
             return false;
         }
 
@@ -1008,7 +1008,7 @@ public class MXMemoryStore implements IMXStore {
             }
         }
 
-        Log.d(LOG_TAG, "## storeReceipt() : updated");
+        //Log.d(LOG_TAG, "## storeReceipt() : updated");
         receiptsByUserId.put(receipt.userId, receipt);
         return true;
     }
