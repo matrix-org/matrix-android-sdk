@@ -1030,6 +1030,7 @@ public class Room {
      * @return true if the read receipt request is sent, false otherwise
      */
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
+        final Event lastEvent = mStore.getLatestEvent(getRoomId());
         final Event fEvent;
 
         // the event is provided
@@ -1045,7 +1046,7 @@ public class Room {
             }
         } else {
             Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to the latest event");
-            fEvent = mStore.getLatestEvent(getRoomId());
+            fEvent = lastEvent;
         }
 
         boolean isSendReadReceiptSent = false;
@@ -1095,6 +1096,17 @@ public class Room {
                     }
                 }
             });
+
+            // Clear the unread counters if the latest message is displayed
+            // We don't try to compute the unread counters for oldest messages :
+            // ---> it would require too much time.
+            // The counters are cleared to avoid displaying invalid values
+            // when the device is offline.
+            // The read receipts will be sent later
+            // (asap there is a valid network connection)
+            if (TextUtils.equals(lastEvent.eventId, fEvent.eventId)) {
+                clearUnreadCounters(mStore.getSummary(getRoomId()));
+            }
         } else {
             Log.d(LOG_TAG, "## sendReadReceipt(): don't send the read receipt");
         }
