@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Invite;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
@@ -65,7 +66,35 @@ public class EventsRestClient extends RestClient<EventsApi> {
     protected EventsRestClient(EventsApi api) {
         mApi = api;
     }
-    
+
+    /**
+     * Get the public rooms count.
+     * The count can be null.
+     * @param callback the public rooms count callbacks
+     */
+    public void getPublicRoomsCount(final ApiCallback<Integer> callback) {
+        final String description = "getPublicRoomsCount";
+
+        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+
+        publicRoomsParams.server = null;
+        publicRoomsParams.limit = 1;
+        publicRoomsParams.since = null;
+
+        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getPublicRoomsCount(callback);
+            }
+        }) {
+            @Override
+            public void success(PublicRoomsResponse publicRoomsResponse, Response response) {
+                callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
+            }
+        });
+    }
+
+
     /**
      * Get the list of the public rooms.
      * @param server search on this home server only (null for any one)
