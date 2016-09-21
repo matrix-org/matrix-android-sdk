@@ -243,7 +243,15 @@ public class MXJingleCall extends MXCall {
         }
 
         if (null != mCallView) {
-            mCallView.setVisibility(View.GONE);
+            final View fCallView = mCallView;
+
+            fCallView.post(new Runnable() {
+                @Override
+                public void run() {
+                    fCallView.setVisibility(View.GONE);
+                }
+            });
+
             mCallView = null;
         }
 
