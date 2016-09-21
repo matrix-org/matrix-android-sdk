@@ -1049,6 +1049,11 @@ public class Room {
             fEvent = lastEvent;
         }
 
+        if (null == fEvent) {
+            Log.e(LOG_TAG, "## sendReadReceipt(): there is no latest message");
+            return false;
+        }
+
         boolean isSendReadReceiptSent = false;
 
         // save the up to date status
