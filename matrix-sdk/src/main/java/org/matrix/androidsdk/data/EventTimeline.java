@@ -935,9 +935,8 @@ public class EventTimeline {
      * Add some events in a dedicated direction.
      * @param events the events list
      * @param direction the direction
-     * @param callback the callback.
      */
-    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+    private void addPaginationEvents(List<Event> events, Direction direction) {
         final String myUserId = mDataHandler.getUserId();
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
@@ -974,6 +973,16 @@ public class EventTimeline {
         if (shouldCommitStore) {
             mStore.commit();
         }
+    }
+
+    /**
+     * Add some events in a dedicated direction.
+     * @param events the events list
+     * @param direction the direction
+     * @param callback the callback.
+     */
+    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+        addPaginationEvents(events, direction);
 
         if (direction == Direction.BACKWARDS) {
             manageBackEvents(callback);
@@ -1228,7 +1237,7 @@ public class EventTimeline {
      * @param limit the maximum number of messages to get around the initial event.
      * @param callback the operation callback
      */
-    public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
+    public void resetPaginationAroundInitialEvent(final int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
 
@@ -1238,45 +1247,45 @@ public class EventTimeline {
         mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
             public void onSuccess(EventContext eventContext) {
-                // And fill the timelime with received data
+                // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
                 for(Event event : eventContext.state) {
                     processStateEvent(event, Direction.FORWARDS);
                 }
 
-                mState.setToken(eventContext.start);
-
                 // init the room states
                 initHistory();
 
-                // selected event
-                storeLiveRoomEvent(eventContext.event, false);
-                onEvent(eventContext.event, Direction.BACKWARDS, mState);
+                // build the events list
+                ArrayList<Event> events = new ArrayList<>();
 
-                // add events before
-                addPaginationEvents(eventContext.eventsBefore, Direction.BACKWARDS, new ApiCallback<Integer>() {
-                    @Override
-                    public void onSuccess(Integer info) {
-                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-                });
+                Collections.reverse(eventContext.eventsAfter);
+                events.addAll(eventContext.eventsAfter);
+                events.add(eventContext.event);
+                events.addAll(eventContext.eventsBefore);
 
                 // add events after
-                addPaginationEvents(eventContext.eventsAfter, Direction.FORWARDS, new ApiCallback<Integer>() {
+                addPaginationEvents(events, Direction.BACKWARDS);
+
+                // create dummy forward events list
+                // to center the selected event id
+                // else if might be out of screen
+                ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+
+                // put in the right order
+                Collections.reverse(nextSnapshotEvents);
+
+                // send them one by one
+                for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                    mSnapshotEvents.remove(snapshotEvent);
+                    onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                }
+
+                // init the tokens
+                mBackState.setToken(eventContext.start);
+                mForwardsPaginationToken = eventContext.end;
+
+                // send the back events to complete pagination
+                manageBackEvents(new ApiCallback<Integer>() {
                     @Override
                     public void onSuccess(Integer info) {
                         Log.d(LOG_TAG, "addPaginationEvents succeeds");
@@ -1298,8 +1307,7 @@ public class EventTimeline {
                     }
                 });
 
-                mForwardsPaginationToken = eventContext.end;
-
+                // everything is done
                 callback.onSuccess(null);
             }
 

@@ -385,7 +385,9 @@ public class EventDisplay {
 
                 if (!TextUtils.equals(senderDisplayName, prevUserDisplayName)) {
                     if (TextUtils.isEmpty(prevUserDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
+                        if (!TextUtils.equals(event.getSender(), senderDisplayName)) {
+                            displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
+                        }
                     } else if (TextUtils.isEmpty(senderDisplayName)) {
                         displayText = context.getString(R.string.notice_display_name_removed, event.getSender());
                     } else {
