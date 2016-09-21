@@ -15,11 +15,11 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.Map;
 
@@ -43,11 +43,12 @@ public interface EventsApi {
     void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
 
     /**
-     * Get the list of public rooms for this home server.
+     * Get the list of public rooms.
+     * @param publicRoomsParams the request params
      * @param callback The asynchronous callback to call when finished
      */
-    @GET("/publicRooms")
-    void publicRooms(Callback<TokensChunkResponse<PublicRoom>> callback);
+    @POST("/publicRooms")
+    void publicRooms(@Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
 
     /**
      * Perform a search.
