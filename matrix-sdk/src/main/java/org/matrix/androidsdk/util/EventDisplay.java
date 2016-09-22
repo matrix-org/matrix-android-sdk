@@ -460,6 +460,11 @@ public class EventDisplay {
                 return context.getString(R.string.notice_voip_finished);
             }
 
+            // use the latest known displayname
+            if ((null == eventContent.displayname) && (null != prevUserDisplayName)) {
+                senderDisplayName = prevUserDisplayName;
+            }
+
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 if ((null != prevEventContent) && TextUtils.equals(prevEventContent.membership, RoomMember.MEMBERSHIP_INVITE)) {
