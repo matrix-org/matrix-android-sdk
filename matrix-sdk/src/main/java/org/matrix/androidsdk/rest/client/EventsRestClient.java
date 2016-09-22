@@ -26,9 +26,7 @@ import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Invite;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
 import org.matrix.androidsdk.rest.model.PublicRoomsParams;
 import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
@@ -38,7 +36,6 @@ import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventResults;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +48,7 @@ import retrofit.client.Response;
  */
 public class EventsRestClient extends RestClient<EventsApi> {
 
-    public static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+    private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
     private String mSearchPattern = null;
     private String mSearchMediaName = null;
