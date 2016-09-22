@@ -13,6 +13,7 @@
     <string name="notice_room_invite_you">%1$s invited you</string>
     <string name="notice_room_join">%1$s joined</string>
     <string name="notice_room_leave">%1$s left</string>
+    <string name="notice_room_reject">%1$s rejected the invitation</string>
     <string name="notice_room_kick">%1$s kicked %2$s</string>
     <string name="notice_room_unban">%1$s unbanned %2$s</string>
     <string name="notice_room_ban">%1$s banned %2$s</string>

@@ -462,7 +462,12 @@ public class EventDisplay {
 
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
-                return context.getString(R.string.notice_room_leave, senderDisplayName);
+                if ((null != prevEventContent) && TextUtils.equals(prevEventContent.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                    return context.getString(R.string.notice_room_reject, senderDisplayName);
+                } else {
+                    return context.getString(R.string.notice_room_leave, senderDisplayName);
+                }
+
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
                     return context.getString(R.string.notice_room_withdraw, senderDisplayName, targetDisplayName);
