@@ -361,10 +361,16 @@ public class EventDisplay {
             prevUserDisplayName = prevEventContent.displayname;
         }
 
-        String targetDisplayName = event.stateKey;
+        // use by default the provided display name
+        String targetDisplayName = eventContent.displayname;
 
-        if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
-            targetDisplayName = roomState.getMemberName(targetDisplayName);
+        // if it is not provided, use the stateKey value
+        // and try to retrieve a valid display name
+        if (null == targetDisplayName) {
+            targetDisplayName = event.stateKey;
+            if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
+                targetDisplayName = roomState.getMemberName(targetDisplayName);
+            }
         }
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
