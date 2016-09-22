@@ -78,7 +78,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
 
         publicRoomsParams.server = null;
-        publicRoomsParams.limit = 1;
+        publicRoomsParams.limit = 0;
         publicRoomsParams.since = null;
 
         mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
@@ -100,15 +100,16 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param server search on this home server only (null for any one)
      * @param pattern the pattern to search
      * @param since the pagination token
+     * @param limit the maximum number of public rooms
      * @param callback the public rooms callbacks
      */
-    public void loadPublicRooms(final String server, final String pattern, final String since, final ApiCallback<PublicRoomsResponse> callback) {
+    public void loadPublicRooms(final String server, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
         final String description = "loadPublicRooms";
 
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
 
         publicRoomsParams.server = server;
-        publicRoomsParams.limit = 20;
+        publicRoomsParams.limit = Math.max(1, limit);
         publicRoomsParams.since = since;
 
         if (!TextUtils.isEmpty(pattern)) {
@@ -119,7 +120,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                loadPublicRooms(server, pattern, since, callback);
+                loadPublicRooms(server, pattern, since, limit, callback);
             }
         }));
     }
