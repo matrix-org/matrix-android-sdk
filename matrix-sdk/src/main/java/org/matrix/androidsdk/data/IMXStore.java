@@ -43,6 +43,11 @@ public interface IMXStore {
          * Called when the store initialization fails.
          */
         void onStoreCorrupted(String accountId, String description);
+
+        /**
+         * Called when the store has no more memory
+         */
+        void onStoreOOM(String accountId, String description);
     }
 
     /**
