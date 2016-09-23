@@ -27,14 +27,15 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
+import org.matrix.androidsdk.rest.model.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventResults;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,25 +65,62 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
-     * Get the list of the home server's public rooms.
-     *
-     * @param callback callback to provide the list of public rooms on success
+     * Get the public rooms count.
+     * The count can be null.
+     * @param callback the public rooms count callbacks
      */
-    public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
-        final String description = "loadPublicRooms";
+    public void getPublicRoomsCount(final ApiCallback<Integer> callback) {
+        final String description = "getPublicRoomsCount";
 
-        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+
+        publicRoomsParams.server = null;
+        publicRoomsParams.limit = 0;
+        publicRoomsParams.since = null;
+
+        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                loadPublicRooms(callback);
+                getPublicRoomsCount(callback);
             }
         }) {
             @Override
-            public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
+            public void success(PublicRoomsResponse publicRoomsResponse, Response response) {
                 onEventSent();
-                callback.onSuccess(typedResponse.chunk);
+                callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
             }
         });
+    }
+
+
+    /**
+     * Get the list of the public rooms.
+     * @param server search on this home server only (null for any one)
+     * @param pattern the pattern to search
+     * @param since the pagination token
+     * @param limit the maximum number of public rooms
+     * @param callback the public rooms callbacks
+     */
+    public void loadPublicRooms(final String server, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
+        final String description = "loadPublicRooms";
+
+        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+
+        publicRoomsParams.server = server;
+        publicRoomsParams.limit = Math.max(1, limit);
+        publicRoomsParams.since = since;
+
+        if (!TextUtils.isEmpty(pattern)) {
+            publicRoomsParams.filter = new PublicRoomsFilter();
+            publicRoomsParams.filter.generic_search_term = pattern;
+        }
+
+        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                loadPublicRooms(server, pattern, since, limit, callback);
+            }
+        }));
     }
 
     /**
