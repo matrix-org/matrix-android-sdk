@@ -86,6 +86,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }) {
             @Override
             public void success(PublicRoomsResponse publicRoomsResponse, Response response) {
+                onEventSent();
                 callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
             }
         });
@@ -294,7 +295,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback      the request callback
      */
     private void mediaSearch(final SearchResponse response, final String name, final List<String> rooms, final List<String> messageTypes, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
-
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
@@ -313,8 +313,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }
 
         ArrayList<String> types = new ArrayList<>();
-        types.add("m.room.message");
-        searchEventParams.filter.put("types", rooms);
+        types.add(Event.EVENT_TYPE_MESSAGE);
+        searchEventParams.filter.put("types", types);
 
         searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);

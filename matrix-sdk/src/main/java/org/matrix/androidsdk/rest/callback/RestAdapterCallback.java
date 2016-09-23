@@ -38,22 +38,41 @@ public class RestAdapterCallback<T> implements Callback<T> {
         void onRetry();
     }
 
+    // the event description
     private String mEventDescription;
+
+    // the callback
     private final ApiCallback mApiCallback;
+
+    // the retry callback
     private final RequestRetryCallBack mRequestRetryCallBack;
+
+    // the unsent events manager
     private final UnsentEventsManager mUnsentEventsManager;
-    private boolean mIgnoreEventTimeLifeInOffline = false;
 
-    public RestAdapterCallback(ApiCallback apiCallback) {
-        this.mApiCallback = apiCallback;
-        this.mRequestRetryCallBack = null;
-        this.mUnsentEventsManager = null;
-    }
+    // true to do not test if he event time line when sending again
+    // the request when a data connection is retrieved.
+    private final boolean mIgnoreEventTimeLifeInOffline;
 
+    /**
+     * Constructor with unsent events management
+     * @param description the event description
+     * @param unsentEventsManager the unsent events manager
+     * @param apiCallback the callback
+     * @param requestRetryCallBack the retry callback
+     */
     public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
         this(description, unsentEventsManager, false, apiCallback, requestRetryCallBack);
     }
 
+    /**
+     * Constructor with unsent events management
+     * @param description the event description
+     * @param ignoreEventTimeLifeOffline true to ignore the event time when resending the event.
+     * @param unsentEventsManager the unsent events manager
+     * @param apiCallback the callback
+     * @param requestRetryCallBack the retry callback
+     */
     public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, boolean ignoreEventTimeLifeOffline, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
         if (null != description) {
             Log.d(LOG_TAG, "Trigger the event [" + description + "]");
@@ -66,28 +85,37 @@ public class RestAdapterCallback<T> implements Callback<T> {
         this.mUnsentEventsManager = unsentEventsManager;
     }
 
+    /**
+     * Notify the {@link UnsentEventsManager} that the event has been successfully sent.
+     * This method must be called each time a REST call succeed, in order to warn
+     * the {@link UnsentEventsManager} to send the next unsent events.
+     */
+    protected void onEventSent() {
+        if (null != mUnsentEventsManager) {
+            try {
+                // some users reported that their devices were connected
+                // whereas this receiver was not called
+                if (!mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+                    Log.d(LOG_TAG, "## onEventSent(): request succeed, while network seen as disconnected => ask ConnectivityReceiver to dispatch info");
+                    mUnsentEventsManager.getNetworkConnectivityReceiver().checkNetworkConnection(mUnsentEventsManager.getContext());
+                }
+
+                mUnsentEventsManager.onEventSent(mApiCallback);
+            } catch (Exception e) {
+                Log.d(LOG_TAG, "## onEventSent(): Exception " + e.getMessage());
+            }
+        }
+    }
+
     @Override
     public void success(T t, Response response) {
         if (null != mEventDescription) {
             Log.d(LOG_TAG, "## Succeed() : [" + mEventDescription + "]");
         }
 
-        // some users reported that their devices were connected
-        // whereas this receiver was not warned
-        if ((null != mUnsentEventsManager) && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
-            Log.d(LOG_TAG, "## succeed() : whereas there was not active connection, test if the received was not warned.");
-            mUnsentEventsManager.getNetworkConnectivityReceiver().checkNetworkConnection(mUnsentEventsManager.getContext());
-        }
-
         // add try catch to prevent application crashes while managing destroyed object
         try {
-            if (null != mUnsentEventsManager) {
-                try {
-                    mUnsentEventsManager.onEventSent(mApiCallback);
-                } catch (Exception e) {
-                    Log.d(LOG_TAG, "## succeed()  : onEventSent failed" + e.getMessage());
-                }
-            }
+            onEventSent();
 
             if (null != mApiCallback) {
                 try {
@@ -98,8 +126,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
             }
         } catch (Exception e) {
             // privacy
-            //Log.e(LOG_TAG, "Exception success " + e.getMessage() + " while managing " + response.getUrl());
-            Log.e(LOG_TAG, "## succeed()  : Exception " + e.getMessage());
+            Log.e(LOG_TAG, "## succeed(): Exception " + e.getMessage());
         }
     }
 
@@ -110,7 +137,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
     @Override
     public void failure(RetrofitError error) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "## failure() : [" + mEventDescription + "]");
+            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]");
         }
 
         boolean retry = true;
@@ -129,13 +156,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         try {
                             mApiCallback.onNetworkError(error);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## failure() : onNetworkError " + error.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure(): onNetworkError " + error.getLocalizedMessage());
                         }
                     }
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "## failure() :  NetworkError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## failure():  NetworkError " + e.getLocalizedMessage());
                 }
             }
             else {
@@ -160,7 +187,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                                 mxError.mErrorBodyAsString = (String)error.getBodyAs(String.class);
                             }
                         } catch (Exception castException) {
-                            Log.e(LOG_TAG, "## failure() : MatrixError cannot cast the response body" + castException.getMessage());
+                            Log.e(LOG_TAG, "## failure(): MatrixError cannot cast the response body" + castException.getMessage());
                         }
                     }
                 }
@@ -178,7 +205,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         } catch (Exception e) {
                             // privacy
                             //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                            Log.e(LOG_TAG, "## failure() :  MatrixError " + e.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure():  MatrixError " + e.getLocalizedMessage());
                         }
                     }
                 }
@@ -190,7 +217,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     } catch (Exception e) {
                         // privacy
                         //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "## failure() :  UnexpectedError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "## failure():  UnexpectedError " + e.getLocalizedMessage());
                     }
                 }
             }

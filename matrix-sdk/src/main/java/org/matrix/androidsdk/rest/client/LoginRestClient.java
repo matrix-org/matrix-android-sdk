@@ -73,6 +73,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                onEventSent();
                 callback.onSuccess(loginFlowResponse.flows);
             }
         });
@@ -96,6 +97,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
@@ -135,6 +137,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
@@ -180,6 +183,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }

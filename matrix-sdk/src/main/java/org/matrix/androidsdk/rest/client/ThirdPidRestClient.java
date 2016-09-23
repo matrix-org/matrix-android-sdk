@@ -79,6 +79,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         ) {
             @Override
             public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
+                onEventSent();
                 requestEmailValidationResponse.email = address;
                 requestEmailValidationResponse.clientSecret = clientSecret;
                 requestEmailValidationResponse.sendAttempt = attempt;
