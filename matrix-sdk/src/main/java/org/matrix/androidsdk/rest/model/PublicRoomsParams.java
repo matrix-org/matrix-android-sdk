@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,15 @@ package org.matrix.androidsdk.rest.model;
  * Class to pass parameters to get the public rooms list
  */
 public class PublicRoomsParams {
-    // The remote server to query for the room list.
+    /** The remote server to query for the room list. **/
     public String server;
 
-    // Maximum number of entries to return
+    /** Maximum number of entries to return **/
     public Integer limit;
 
-    // token to paginate from
+    /** token to paginate from **/
     public String since;
 
-    // Filter parameters
+    /** Filter parameters **/
     public PublicRoomsFilter filter;
 }

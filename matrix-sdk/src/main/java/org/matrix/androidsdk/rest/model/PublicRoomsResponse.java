@@ -21,15 +21,15 @@ import java.util.List;
  * Class representing the public rooms request response
  */
 public class PublicRoomsResponse {
-    // token to foward paginate
+    /** token to forward paginate **/
     public String next_batch;
 
-    // token to back paginate
+    /** token to back paginate **/
     public String prev_batch;
 
-    // public rooms list
+    /** public rooms list **/
     public List<PublicRoom> chunk;
 
-    // number of unfiltered existing rooms
+    /** number of unfiltered existing rooms **/
     public Integer total_room_count_estimate;
 }
