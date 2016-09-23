@@ -45,6 +45,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public static final String LOGIN_FLOW_TYPE_EMAIL_URL = "m.login.email.url";
     public static final String LOGIN_FLOW_TYPE_EMAIL_IDENTITY = "m.login.email.identity";
     public static final String LOGIN_FLOW_TYPE_EMAIL_RECAPTCHA = "m.login.recaptcha";
+    public static final String LOGIN_FLOW_TYPE_DUMMY = "m.login.dummy";
 
     /**
      * Public constructor.
