@@ -25,7 +25,6 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
@@ -69,6 +68,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         }) {
             @Override
             public void success(User user, Response response) {
+                onEventSent();
                 callback.onSuccess(user.displayname);
             }
         });
@@ -82,7 +82,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "updateDisplayname newName : " + newName;
-        final String description = "update Displayname";
+        final String description = "update display name";
 
         User user = new User();
         user.displayname = newName;
@@ -113,6 +113,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         }) {
             @Override
             public void success(User user, Response response) {
+                onEventSent();
                 callback.onSuccess(user.getAvatarUrl());
             }
         });
@@ -214,40 +215,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(TokenRefreshResponse tokenreponse, Response response) {
+                onEventSent();
                 mCredentials.refreshToken = tokenreponse.refresh_token;
                 mCredentials.accessToken = tokenreponse.access_token;
                 if (null != callback) {
                     callback.onSuccess(mCredentials);
-                }
-            }
-
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -263,38 +235,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.threePIDs(new RestAdapterCallback<ThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(ThreePidsResponse threePidsResponse, Response response) {
+                onEventSent();
                 if (null != callback) {
                     callback.onSuccess(threePidsResponse.threepids);
-                }
-            }
-
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });

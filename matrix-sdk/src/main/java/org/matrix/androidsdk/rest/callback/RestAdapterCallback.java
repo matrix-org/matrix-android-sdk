@@ -38,22 +38,41 @@ public class RestAdapterCallback<T> implements Callback<T> {
         void onRetry();
     }
 
+    // the event description
     private String mEventDescription;
+
+    // the callback
     private final ApiCallback mApiCallback;
+
+    // the retry callback
     private final RequestRetryCallBack mRequestRetryCallBack;
+
+    // the unsent events manager
     private final UnsentEventsManager mUnsentEventsManager;
-    private boolean mIgnoreEventTimeLifeInOffline = false;
 
-    public RestAdapterCallback(ApiCallback apiCallback) {
-        this.mApiCallback = apiCallback;
-        this.mRequestRetryCallBack = null;
-        this.mUnsentEventsManager = null;
-    }
+    // true to do not test if he event time line when sending again
+    // the request when a data connection is retrieved.
+    private final boolean mIgnoreEventTimeLifeInOffline;
 
+    /**
+     * Constructor with unsent events management
+     * @param description the event description
+     * @param unsentEventsManager the unsent events manager
+     * @param apiCallback the callback
+     * @param requestRetryCallBack the retry callback
+     */
     public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
         this(description, unsentEventsManager, false, apiCallback, requestRetryCallBack);
     }
 
+    /**
+     * Constructor with unsent events management
+     * @param description the event description
+     * @param ignoreEventTimeLifeOffline true to ignore the event time when resending the event.
+     * @param unsentEventsManager the unsent events manager
+     * @param apiCallback the callback
+     * @param requestRetryCallBack the retry callback
+     */
     public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, boolean ignoreEventTimeLifeOffline, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
         if (null != description) {
             Log.d(LOG_TAG, "Trigger the event [" + description + "]");
@@ -66,28 +85,36 @@ public class RestAdapterCallback<T> implements Callback<T> {
         this.mUnsentEventsManager = unsentEventsManager;
     }
 
+    /**
+     * The event has been successfully sent.
+     * The unsent events manager must be warned to send the next unsent events.
+     */
+    protected void onEventSent() {
+        if (null != mUnsentEventsManager) {
+            try {
+                // some users reported that their devices were connected
+                // whereas this receiver was not warned
+                if (!mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+                    Log.d(LOG_TAG, "## succeed() : whereas there was not active connection, test if the received was not warned.");
+                    mUnsentEventsManager.getNetworkConnectivityReceiver().checkNetworkConnection(mUnsentEventsManager.getContext());
+                }
+
+                mUnsentEventsManager.onEventSent(mApiCallback);
+            } catch (Exception e) {
+                Log.d(LOG_TAG, "## succeed()  : onEventSent failed" + e.getMessage());
+            }
+        }
+    }
+
     @Override
     public void success(T t, Response response) {
         if (null != mEventDescription) {
             Log.d(LOG_TAG, "## Succeed() : [" + mEventDescription + "]");
         }
 
-        // some users reported that their devices were connected
-        // whereas this receiver was not warned
-        if ((null != mUnsentEventsManager) && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
-            Log.d(LOG_TAG, "## succeed() : whereas there was not active connection, test if the received was not warned.");
-            mUnsentEventsManager.getNetworkConnectivityReceiver().checkNetworkConnection(mUnsentEventsManager.getContext());
-        }
-
         // add try catch to prevent application crashes while managing destroyed object
         try {
-            if (null != mUnsentEventsManager) {
-                try {
-                    mUnsentEventsManager.onEventSent(mApiCallback);
-                } catch (Exception e) {
-                    Log.d(LOG_TAG, "## succeed()  : onEventSent failed" + e.getMessage());
-                }
-            }
+            onEventSent();
 
             if (null != mApiCallback) {
                 try {

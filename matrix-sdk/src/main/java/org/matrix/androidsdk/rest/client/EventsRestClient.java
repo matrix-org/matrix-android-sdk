@@ -47,7 +47,7 @@ import retrofit.client.Response;
  */
 public class EventsRestClient extends RestClient<EventsApi> {
 
-    public static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+    private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
     private String mSearchPattern = null;
     private String mSearchMediaName = null;
@@ -79,6 +79,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }) {
             @Override
             public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
+                onEventSent();
                 callback.onSuccess(typedResponse.chunk);
             }
         });
@@ -256,7 +257,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback      the request callback
      */
     private void mediaSearch(final SearchResponse response, final String name, final List<String> rooms, final List<String> messageTypes, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
-
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
@@ -275,8 +275,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }
 
         ArrayList<String> types = new ArrayList<>();
-        types.add("m.room.message");
-        searchEventParams.filter.put("types", rooms);
+        types.add(Event.EVENT_TYPE_MESSAGE);
+        searchEventParams.filter.put("types", types);
 
         searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);

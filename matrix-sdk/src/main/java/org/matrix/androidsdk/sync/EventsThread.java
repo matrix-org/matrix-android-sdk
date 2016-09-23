@@ -72,7 +72,8 @@ public class EventsThread extends Thread {
     // wait that there is an available network.
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private boolean mbIsConnected = true;
-    IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
+
+    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
             Log.d(LOG_TAG, "onNetworkConnectionUpdate : before " + mbIsConnected + " now " + isConnected);
@@ -176,7 +177,7 @@ public class EventsThread extends Thread {
     /**
      * A network connection has been retrieved.
      */
-    public void onNetworkAvailable() {
+    private void onNetworkAvailable() {
         Log.d(LOG_TAG, "onNetWorkAvailable()");
         if (mIsNetworkSuspended) {
             mIsNetworkSuspended = false;
@@ -365,7 +366,7 @@ public class EventsThread extends Thread {
             mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
             //
             mbIsConnected = mNetworkConnectivityReceiver.isConnected();
-            mPaused = !mbIsConnected;
+            mIsNetworkSuspended = !mbIsConnected;
         }
 
         // Then repeatedly long-poll for events
