@@ -1471,8 +1471,7 @@ public class Room {
             mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
-                // warn that something was wrong
-                callback.onUnexpectedError(null);
+                callback.onSuccess(null);
             }
         }
     }
@@ -1489,8 +1488,7 @@ public class Room {
             mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
         } else {
             if (null != callback) {
-                // warn that something was wrong
-                callback.onUnexpectedError(null);
+                callback.onSuccess(null);
             }
         }
     }
