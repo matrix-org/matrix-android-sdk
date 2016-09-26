@@ -2101,6 +2101,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         getUiHandler().post(new Runnable() {
             @Override
             public void run() {
+                // should never happen but reported by GA
+                if (null == mMessageListView) {
+                    return;
+                }
+
                 hideLoadingBackProgress();
 
                 if (null == mMessageListView.getAdapter()) {
