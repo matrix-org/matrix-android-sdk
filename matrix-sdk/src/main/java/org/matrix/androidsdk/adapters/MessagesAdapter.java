@@ -287,6 +287,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // list of patterns to find some matrix item.
     private static final List<Pattern> mMatrixItemPatterns = Arrays.asList(
+            MXSession.PATTERN_CONTAIN_MESSAGE_ID_PERMALINK,
             MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER,
             MXSession.PATTERN_CONTAIN_MATRIX_ALIAS,
             MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER,

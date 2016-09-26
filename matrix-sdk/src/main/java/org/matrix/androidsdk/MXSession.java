@@ -142,6 +142,10 @@ public class MXSession {
     // regex pattern to find message ids in a string.
     public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
 
+    // regex pattern to find permalink with message id.
+    // Android does not support in URL so extract it.
+    public static final Pattern PATTERN_CONTAIN_MESSAGE_ID_PERMALINK =  Pattern.compile("https:\\/\\/matrix.to\\/#\\/![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}\\/\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+
     /**
      * Create a basic session for direct API calls.
      *
