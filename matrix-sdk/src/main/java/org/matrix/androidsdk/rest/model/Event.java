@@ -742,6 +742,9 @@ public class Event implements java.io.Serializable {
         this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
         this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
 
+        this.prev_content_as_string = null;
+        this.contentAsString = null;
+
         if (null != redactionEvent) {
             if (null == unsigned) {
                 unsigned = new UnsignedData();
