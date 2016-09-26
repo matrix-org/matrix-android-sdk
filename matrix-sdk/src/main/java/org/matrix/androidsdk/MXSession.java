@@ -901,7 +901,7 @@ public class MXSession {
     public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
         }
     }
 
@@ -913,10 +913,10 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, rooms, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, rooms, 0, 0, nextBatch, callback);
         }
     }
 
@@ -927,19 +927,19 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, null, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, null, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending search request
      */
-    public void cancelSearchMessageText() {
+    public void cancelSearchMessagesByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMessageText();
+        mEventsRestClient.cancelSearchMessagesByText();
     }
 
     /**
@@ -947,24 +947,23 @@ public class MXSession {
      *
      * @param name         the text to search for.
      * @param rooms        a list of rooms to search in. nil means all rooms the user is in.
-     * @param messageTypes a list of media types to search (m.image, m.video..).
      * @param nextBatch    the token to pass for doing pagination from a previous response.
      * @param callback     the request callback
      */
-    public void searchMediaName(String name, List<String> rooms, List<String> messageTypes, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMediasByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
 
         if (null != callback) {
-            mEventsRestClient.searchMediaName(name, rooms, messageTypes, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMediasByText(name, rooms, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediaName() {
+    public void cancelSearchMediasByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMediaName();
+        mEventsRestClient.cancelSearchMediasByText();
     }
 
     /**

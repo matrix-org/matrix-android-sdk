@@ -183,7 +183,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsScrollListenerSet;
 
     // timeline management
-    protected boolean mIsLive = true;
+    protected final boolean mIsLive = true;
 
     // by default the
     protected EventTimeline mEventTimeLine;
@@ -338,11 +338,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // the latest event is not displayed
                     isLatestEventDisplayed = false;
                 } else {
-                    AbsListView absListView = view;
-                    View childview = absListView.getChildAt(visibleItemCount-1);
+                    View childView = view.getChildAt(visibleItemCount-1);
 
                     // test if the bottom of the latest item is equals to the list height
-                    isLatestEventDisplayed = (null != childview) && ((childview.getTop() + childview.getHeight()) <= view.getHeight());
+                    isLatestEventDisplayed = (null != childView) && ((childView.getTop() + childView.getHeight()) <= view.getHeight());
                 }
 
                 try {
@@ -1830,15 +1829,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        if (!mMatrixMessagesFragment.canBackPaginate()) {
-            Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
-            setMessageListViewScrollListener();
-            return;
-        }
-            // in search mode,
+        // search mode
+        // The search mode uses remote requests only
+        // i.e the eventtimeline is not used.
+        // so the dedicated method must manage the back pagination
         if (!TextUtils.isEmpty(mPattern)) {
             Log.d(LOG_TAG, "backPaginate with pattern " + mPattern);
             requestSearchHistory();
+            return;
+        }
+
+        if (!mMatrixMessagesFragment.canBackPaginate()) {
+            Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
+            setMessageListViewScrollListener();
             return;
         }
 
@@ -2471,11 +2474,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
 
         if (mIsMediaSearch) {
-            String[] mediaTypes = {"m.image", "m.video", "m.file"};
-            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
+            mSession.searchMediasByName(mPattern, roomIds, mNextBatch, callback);
 
         } else {
-            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
+            mSession.searchMessagesByText(mPattern, roomIds, mNextBatch, callback);
         }
     }
 
@@ -2605,11 +2607,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 };
 
                 if (isMediaSearch) {
-                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
-                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
+                    mSession.searchMediasByName(mPattern, roomIds, null, searchCallback);
 
                 } else {
-                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
+                    mSession.searchMessagesByText(mPattern, roomIds, null, searchCallback);
                 }
             }
         }
