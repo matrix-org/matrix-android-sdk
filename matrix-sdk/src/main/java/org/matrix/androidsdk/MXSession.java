@@ -139,8 +139,8 @@ public class MXSession {
     public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ID =  Pattern.compile("https:\\/\\/matrix.to\\/#\\/"+ MATRIX_ROOM_IDENTIFIER_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
     public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ALIAS =  Pattern.compile("https:\\/\\/matrix.to\\/#\\/"+ MATRIX_ROOM_ALIAS_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
-    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z0-9.-]\\/#\\/"+ MATRIX_ROOM_IDENTIFIER_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z0-9.-]\\/#\\/"+ MATRIX_ROOM_ALIAS_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/"+ MATRIX_ROOM_IDENTIFIER_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/"+ MATRIX_ROOM_ALIAS_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
 
     /**
