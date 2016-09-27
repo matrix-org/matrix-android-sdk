@@ -837,7 +837,7 @@ public class MXCallsManager {
             try {
                 byte[] data = Base64.decode(roomIdBase64, Base64.NO_WRAP | Base64.URL_SAFE);
                 String roomId = new String(data, "UTF-8");
-                res = MXSession.PATTERN_MATRIX_ROOM_IDENTIFIER.matcher(roomId).matches();
+                res = MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(roomId).matches();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "isConferenceUserId : failed " + e.getMessage());
             }
