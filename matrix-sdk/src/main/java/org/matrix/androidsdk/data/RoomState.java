@@ -87,6 +87,7 @@ public class RoomState implements java.io.Serializable {
 
     // The avatar url of the room.
     public String url;
+    public String avatar_url;
 
     // the room creator (user id)
     public String creator;
@@ -193,7 +194,11 @@ public class RoomState implements java.io.Serializable {
 
     // avatar Url makes more sense than url.
     public String getAvatarUrl() {
-        return url;
+        if (null != url) {
+            return url;
+        } else {
+            return avatar_url;
+        }
     }
 
     /**
