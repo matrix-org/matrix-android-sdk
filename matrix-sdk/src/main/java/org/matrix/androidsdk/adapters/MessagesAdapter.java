@@ -359,10 +359,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 } else {
                     Uri uri = Uri.parse(getURL());
-                    Context context = widget.getContext();
-                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
-                    context.startActivity(intent);
+
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onURLClick(uri);
+                    } else {
+                        Context context = widget.getContext();
+                        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                        intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
+                        context.startActivity(intent);
+                    }
                 }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "MatrixURLSpan : on click failed " + e.getLocalizedMessage());
