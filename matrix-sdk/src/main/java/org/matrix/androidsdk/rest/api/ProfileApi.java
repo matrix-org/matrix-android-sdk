@@ -17,6 +17,8 @@ package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.ThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
@@ -75,6 +77,14 @@ public interface ProfileApi {
      */
     @POST("/account/password")
     void updatePassword(@Body ChangePasswordParams passwordParams, Callback<Void> callback);
+
+    /**
+     * Reset the password server side.
+     * @param params the forget password params
+     * @param callback the asynchronous callback to call when finished
+     */
+    @POST("/account/password/email/requestToken")
+    void forgetPassword(@Body ForgetPasswordParams params, Callback<ForgetPasswordResponse> callback);
 
     /**
      * Pass params to the server for the token refresh phase.
