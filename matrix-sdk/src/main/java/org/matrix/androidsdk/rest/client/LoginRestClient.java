@@ -117,7 +117,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.type = "m.login.password";
         
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(user).matches()) {
-            params.address = user;
+            params.address = user.toLowerCase();
             params.medium = "email";
         } else {
             params.user = user;
