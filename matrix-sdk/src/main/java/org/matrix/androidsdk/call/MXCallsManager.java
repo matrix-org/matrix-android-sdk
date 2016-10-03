@@ -225,10 +225,10 @@ public class MXCallsManager {
      * @return the IMXCall if it exists
      */
     public IMXCall getCallWithRoomId(String roomId) {
-        Collection<IMXCall> calls;
+        ArrayList<IMXCall> calls;
 
         synchronized (this) {
-            calls = mCallsByCallId.values();
+            calls = new ArrayList<>(mCallsByCallId.values());
         }
 
         for(IMXCall call : calls) {
