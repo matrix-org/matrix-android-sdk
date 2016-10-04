@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -214,32 +215,34 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void forgetPassword(final String email, final ApiCallback<ThreePid> callback) {
         final String description = "forget password";
 
-        final ForgetPasswordParams forgetPasswordParams = new ForgetPasswordParams();
-        forgetPasswordParams.email = email;
-        forgetPasswordParams.client_secret = UUID.randomUUID().toString();
-        forgetPasswordParams.send_attempt = 1;
-        forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
+        if (!TextUtils.isEmpty(email)) {
+            final ThreePid pid = new ThreePid(email, ThreePid.MEDIUM_EMAIL);
 
-        mApi.forgetPassword(forgetPasswordParams,  new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    forgetPassword(email, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## resetPassword() failed" + e.getMessage());
+            final ForgetPasswordParams forgetPasswordParams = new ForgetPasswordParams();
+            forgetPasswordParams.email = email;
+            forgetPasswordParams.client_secret = pid.clientSecret;
+            forgetPasswordParams.send_attempt = 1;
+            forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+            mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        forgetPassword(email, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## forgetPassword() failed" + e.getMessage());
+                    }
                 }
-            }
-        }) {
-            @Override
-            public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
-                onEventSent();
+            }) {
+                @Override
+                public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
+                    onEventSent();
 
-                ThreePid pid = new ThreePid(email, ThreePid.MEDIUM_EMAIL);
-                pid.sid = forgetPasswordResponse.sid;
-                pid.clientSecret = forgetPasswordParams.client_secret;
-                callback.onSuccess(pid);
-            }
-        });
+                    pid.sid = forgetPasswordResponse.sid;
+                    callback.onSuccess(pid);
+                }
+            });
+        }
     }
 
     /**
