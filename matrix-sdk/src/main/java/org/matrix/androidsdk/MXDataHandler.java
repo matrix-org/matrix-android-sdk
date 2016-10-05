@@ -701,7 +701,6 @@ public class MXDataHandler implements IMXEventListener {
                     manageDirectChatRooms(events, isInitialSync);
                 }
             }
-
         } catch (Exception e) {
             Log.e(LOG_TAG, "manageAccountData failed " + e.getLocalizedMessage());
         }
@@ -799,10 +798,8 @@ public class MXDataHandler implements IMXEventListener {
 
 
     /**
-     * Extract the ignored users list from the account data events list..
-     *
+     * Extract the direct chat rooms list from the dedicated events.
      * @param events the account data events list.
-     * @return the ignored users list. null means that there is no defined user ids list.
      */
     private void manageDirectChatRooms(List<Map<String, Object>> events, boolean isInitialSync) {
         if (0 != events.size()) {
