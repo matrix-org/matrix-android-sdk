@@ -26,9 +26,11 @@ import android.util.Log;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -50,6 +52,8 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -67,6 +71,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -1235,5 +1240,132 @@ public class MXSession {
      */
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
+    }
+
+    //==============================================================================================================
+    // historical rooms
+    //==============================================================================================================
+
+    private MXMemoryStore mHistoricalRoomsStore;
+
+    /**
+     * Provides the historical rooms list
+     * @param refresh true to refresh the list
+     * @param callback the asynchronous callback
+     */
+    public void getHistoricalRooms(boolean refresh, final ApiCallback<Collection<Room>> callback) {
+        if (refresh || (null == mHistoricalRoomsStore)) {
+            refreshHistoricalRoomsList(new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    if (null != callback) {
+                        callback.onSuccess(mHistoricalRoomsStore.getRooms());
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+        } else {
+            if (null != callback) {
+                callback.onSuccess(mHistoricalRoomsStore.getRooms());
+            }
+        }
+    }
+
+    /**
+     * Provides the historical room summaries list
+     * @param refresh true to refresh the list
+     * @param callback the asynchronous callback
+     */
+    public void getHistoricalRoomSummaries(boolean refresh,  final ApiCallback<Collection<RoomSummary>> callback) {
+        if (refresh || (null == mHistoricalRoomsStore)) {
+            refreshHistoricalRoomsList(new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    if (null != callback) {
+                        callback.onSuccess(mHistoricalRoomsStore.getSummaries());
+                    }
+                }
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+        } else {
+            callback.onSuccess(mHistoricalRoomsStore.getSummaries());
+        }
+    }
+
+    /**
+     * Refresh the historical rooms list.
+     * @param callback asynchronous callback when is done
+     */
+    private void refreshHistoricalRoomsList(final ApiCallback<Void> callback) {
+        if (null == mHistoricalRoomsStore) {
+            mHistoricalRoomsStore = new MXMemoryStore(getCredentials(), mAppContent);
+        }
+
+        // filter to retrieve
+        String inlineFilter = "{\"room\":{\"include_leave\":1}}";
+
+        mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
+            @Override
+            public void onSuccess(SyncResponse syncResponse) {
+                mHistoricalRoomsStore.clear();
+
+                if (null != syncResponse.rooms.leave) {
+                    Set<String> roomIds = syncResponse.rooms.join.keySet();
+
+                    // Handle first joined rooms
+                    for (String roomId : roomIds) {
+                        Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+
+                        // sanity check
+                        if (null != room) {
+                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), true);
+                        }
+                    }
+                }
+                callback.onSuccess(null);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
     }
 }
