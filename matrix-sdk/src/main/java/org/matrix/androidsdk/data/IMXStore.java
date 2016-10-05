@@ -132,7 +132,7 @@ public interface IMXStore {
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
     void setIgnoredUserIdsList(List<String>users);
-    void setDirectMessagesDict(Map<String, List<String>> directMessagesDict);
+    void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict);
 
     /**
      * getters.
@@ -142,7 +142,7 @@ public interface IMXStore {
     Collection<User> getUsers();
     User getUser(String userId);
     List<String> getIgnoredUserIdsList();
-    Map<String, List<String>> getDirectMessagesDict();
+    Map<String, List<String>> getDirectChatRoomsDict();
 
     /**
      * flush methods

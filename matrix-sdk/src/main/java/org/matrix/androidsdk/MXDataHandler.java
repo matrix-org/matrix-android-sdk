@@ -698,7 +698,7 @@ public class MXDataHandler implements IMXEventListener {
                     // push rules
                     managePushRulesUpdate(events);
                     // direct messages rooms
-                    manageDirectMessagesRooms(events, isInitialSync);
+                    manageDirectChatRooms(events, isInitialSync);
                 }
             }
 
@@ -804,7 +804,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param events the account data events list.
      * @return the ignored users list. null means that there is no defined user ids list.
      */
-    private void manageDirectMessagesRooms(List<Map<String, Object>> events, boolean isInitialSync) {
+    private void manageDirectChatRooms(List<Map<String, Object>> events, boolean isInitialSync) {
         if (0 != events.size()) {
             for (Map<String, Object> event : events) {
                 String type = (String) event.get("type");
@@ -813,11 +813,11 @@ public class MXDataHandler implements IMXEventListener {
                     if (event.containsKey("content")) {
                         Map<String, List<String>> contentDict = (Map<String, List<String>>) event.get("content");
 
-                        mStore.setDirectMessagesDict(contentDict);
+                        mStore.setDirectChatRoomsDict(contentDict);
 
                         if (!isInitialSync) {
                             // warn there is an update
-                            onDirectMessageRoomsListUpdate();
+                            onDirectMessageChatRoomsListUpdate();
                         }
                     }
                 }
@@ -1402,7 +1402,7 @@ public class MXDataHandler implements IMXEventListener {
 
 
     @Override
-    public void onDirectMessageRoomsListUpdate() {
+    public void onDirectMessageChatRoomsListUpdate() {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1410,9 +1410,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onDirectMessageRoomsListUpdate();
+                        listener.onDirectMessageChatRoomsListUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDirectMessageRoomsListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onDirectMessageChatRoomsListUpdate " + e.getMessage());
                     }
                 }
             }

@@ -48,6 +48,7 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -1130,25 +1131,86 @@ public class MXSession {
     }
 
     /**
-     * @return the direct messages room ids list
+     * @return the direct chat room ids list
      */
-    public List<String> getDirectMessageRoomsList() {
+    public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
-        ArrayList<String> directMessagesRoomIdsList = new ArrayList<>();
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
 
-        Collection<List<String>> listOfList = store.getDirectMessagesDict().values();
+        Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
 
         for(List<String> list : listOfList) {
             for(String roomId : list) {
                 // test if the room is defined once and exists
-                if ((directMessagesRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
-                    directMessagesRoomIdsList.add(roomId);
+                if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                    directChatRoomIdsList.add(roomId);
                 }
             }
         }
 
-        return directMessagesRoomIdsList;
+        return directChatRoomIdsList;
     }
+
+    /**
+     * Toggles the direct chat status of a room
+     * @param roomId the room roomId
+     * @param callback the asynchronous callback
+     */
+    public void toogleDirectChatRoom(String roomId, ApiCallback<Void> callback) {
+        IMXStore store = getDataHandler().getStore();
+        Room room = store.getRoom(roomId);
+
+        if (null != room) {
+            HashMap<String, List<String>> params = new HashMap<>(store.getDirectChatRoomsDict());
+
+            // the room was not seen as direct chat
+            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
+                // find the first other active members
+                ArrayList<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
+
+                RoomMember member = null;
+
+                for(RoomMember m : members) {
+                    if (!TextUtils.equals(m.getUserId(), getMyUserId())) {
+                        member = m;
+                        break;
+                    }
+                }
+
+                if (null == member) {
+                    member = members.get(0);
+                }
+
+                ArrayList<String> roomIdsList = new ArrayList<>();
+
+                // search if there is an entry with the same user
+                if (params.containsKey(member.getUserId())) {
+                    roomIdsList= new ArrayList<>(params.get(member.getUserId()));
+                }
+
+                roomIdsList.add(roomId);
+                params.put(member.getUserId(), roomIdsList);
+            } else {
+                Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+
+                for (List<String> list : listOfList) {
+                    if (list.contains(roomId)) {
+                        list.remove(roomId);
+                    }
+                }
+            }
+
+            HashMap<String, Object> requestParams = new HashMap<>();
+            Collection<String> userIds = params.keySet();
+
+            for(String userId : userIds) {
+                requestParams.put(userId, params.get(userId));
+            }
+
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+        }
+    }
+
 
     /**
      * Update the account password

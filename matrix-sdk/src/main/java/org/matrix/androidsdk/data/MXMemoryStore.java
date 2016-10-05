@@ -301,13 +301,13 @@ public class MXMemoryStore implements IMXStore {
     }
 
 
-    public Map<String, List<String>> getDirectMessagesDict() {
-        return mMetadata.mDirectMessagesMap;
+    public Map<String, List<String>> getDirectChatRoomsDict() {
+        return mMetadata.mDirectChatRoomsMap;
     }
 
-    public void setDirectMessagesDict(Map<String, List<String>> directMessagesDict) {
-        mMetadata.mDirectMessagesMap = directMessagesDict;
-        Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        mMetadata.mDirectChatRoomsMap = directChatRoomsDict;
+        Log.d(LOG_TAG, "setDirectChatRoomsDict : commit");
         commit();
     }
 

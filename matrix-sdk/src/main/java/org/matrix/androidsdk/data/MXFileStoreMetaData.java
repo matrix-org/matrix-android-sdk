@@ -43,7 +43,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public String mUserAvatarUrl = null;
     public List<ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
     public List<String> mIgnoredUsers = new ArrayList<>();
-    public Map<String, List<String>> mDirectMessagesMap = new HashMap<>();
+    public Map<String, List<String>> mDirectChatRoomsMap = new HashMap<>();
 
     public MXFileStoreMetaData deepCopy() {
         MXFileStoreMetaData copy = new MXFileStoreMetaData();
@@ -61,7 +61,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mUserAvatarUrl = mUserAvatarUrl;
         copy.mThirdPartyIdentifiers = mThirdPartyIdentifiers;
         copy.mIgnoredUsers = mIgnoredUsers;
-        copy.mDirectMessagesMap = mDirectMessagesMap;
+        copy.mDirectChatRoomsMap = mDirectChatRoomsMap;
         return copy;
     }
 

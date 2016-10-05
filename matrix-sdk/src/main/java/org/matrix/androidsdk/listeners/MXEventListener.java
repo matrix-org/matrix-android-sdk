@@ -107,6 +107,6 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onDirectMessageRoomsListUpdate() {
+    public void onDirectMessageChatRoomsListUpdate() {
     }
 }
