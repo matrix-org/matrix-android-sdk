@@ -128,17 +128,18 @@ public class Room {
 
     /**
      * Init the room fields.
+     * @param store the store.
      * @param roomId the room id
      * @param dataHandler the data handler
      */
-    public void init(String roomId, MXDataHandler dataHandler) {
+    public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
         mLiveTimeline.setRoomId(roomId);
         mDataHandler = dataHandler;
+        mStore = store;
 
         if (null != mDataHandler) {
-            mStore = mDataHandler.getStore();
             mMyUserId = mDataHandler.getUserId();
-            mLiveTimeline.setDataHandler(dataHandler);
+            mLiveTimeline.setDataHandler(mStore, dataHandler);
         }
     }
 
@@ -213,6 +214,16 @@ public class Room {
      * @param isInitialSync true if the room is initialized by a global initial sync.
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+        handleJoinedRoomSync(roomSync, isInitialSync, false);
+    }
+
+    /**
+     * Handle the events of a joined room.
+     * @param roomSync the sync events list.
+     * @param isInitialSync true if the room is initialized by a global initial sync.
+     * @param ignoreCurrentMemberShip true to do not check if the user left the room
+     */
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync, boolean ignoreCurrentMemberShip) {
         if (null != mOnInitialSyncCallback) {
             Log.d(LOG_TAG, "initial sync handleJoinedRoomSync " + getRoomId());
         } else {
@@ -222,7 +233,7 @@ public class Room {
         mIsSyncing = true;
 
         synchronized (this) {
-            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
+            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync, ignoreCurrentMemberShip);
 
             // ephemeral events
             if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {

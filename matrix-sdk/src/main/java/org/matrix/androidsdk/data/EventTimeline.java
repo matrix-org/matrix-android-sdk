@@ -238,10 +238,11 @@ public class EventTimeline {
 
     /**
      * Set the data handler.
+     * @param store the store
      * @param dataHandler the data handler.
      */
-    public void setDataHandler(MXDataHandler dataHandler) {
-        mStore = dataHandler.getStore();
+    public void setDataHandler(IMXStore store,  MXDataHandler dataHandler) {
+        mStore = store;
         mDataHandler = dataHandler;
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
@@ -342,6 +343,16 @@ public class EventTimeline {
      * @param isInitialSync true if the sync has been triggered by a global initial sync
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+        handleJoinedRoomSync(roomSync, isInitialSync, false);
+    }
+
+    /**
+     * Manage the joined room events.
+     * @param roomSync the roomSync.
+     * @param isInitialSync true if the sync has been triggered by a global initial sync
+     * @param ignoreCurrentMemberShip true to do not check if the user left the room
+     */
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync, boolean ignoreCurrentMemberShip) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -472,7 +483,7 @@ public class EventTimeline {
             // The handleLiveEvent used to warn the client that a room was left where as it should not
             selfMember = mState.getMember(myUserId);
 
-            if (null != selfMember) {
+            if ((null != selfMember) && !ignoreCurrentMemberShip) {
                 membership = selfMember.membership;
 
                 if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {

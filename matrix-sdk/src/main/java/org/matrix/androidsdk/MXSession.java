@@ -1333,23 +1333,33 @@ public class MXSession {
 
         mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
             @Override
-            public void onSuccess(SyncResponse syncResponse) {
-                mHistoricalRoomsStore.clear();
+            public void onSuccess(final SyncResponse syncResponse) {
 
-                if (null != syncResponse.rooms.leave) {
-                    Set<String> roomIds = syncResponse.rooms.join.keySet();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mHistoricalRoomsStore.clear();
 
-                    // Handle first joined rooms
-                    for (String roomId : roomIds) {
-                        Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+                        if (null != syncResponse.rooms.leave) {
+                            Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
-                        // sanity check
-                        if (null != room) {
-                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), true);
+                            // Handle first joined rooms
+                            for (String roomId : roomIds) {
+                                Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+
+                                // sanity check
+                                if (null != room) {
+                                    room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true, true);
+                                }
+                            }
                         }
+                        callback.onSuccess(null);
                     }
-                }
-                callback.onSuccess(null);
+                };
+
+                Thread t = new Thread(r);
+                t.setPriority(Thread.MIN_PRIORITY);
+                t.start();
             }
 
             @Override

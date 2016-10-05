@@ -451,7 +451,7 @@ public class MXDataHandler implements IMXEventListener {
             Collection<Room> rooms =  mStore.getRooms();
 
             for(Room room : rooms) {
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
@@ -543,13 +543,13 @@ public class MXDataHandler implements IMXEventListener {
         Room room = store.getRoom(roomId);
         if ((room == null) && create) {
             room = new Room();
-            room.init(roomId, this);
+            room.init(store, roomId, this);
             store.storeRoom(room);
         } else if ((null != room) && (null == room.getDataHandler())) {
             // GA reports that some rooms have no data handler
             // so ensure that it is not properly set
             Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
-            room.init(roomId, this);
+            room.init(store, roomId, this);
             store.storeRoom(room);
         }
 
@@ -567,10 +567,10 @@ public class MXDataHandler implements IMXEventListener {
         if (null != room) {
             if (null == room.getDataHandler()) {
                 Log.e(LOG_TAG, "checkRoom : the room was not initialized");
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
                 Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             }
         }
     }
