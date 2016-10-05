@@ -300,6 +300,17 @@ public class MXMemoryStore implements IMXStore {
         commit();
     }
 
+
+    public Map<String, List<String>> getDirectMessagesDict() {
+        return mMetadata.mDirectMessagesMap;
+    }
+
+    public void setDirectMessagesDict(Map<String, List<String>> directMessagesDict) {
+        mMetadata.mDirectMessagesMap = directMessagesDict;
+        Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
+        commit();
+    }
+
     @Override
     public Collection<Room> getRooms() {
         return new ArrayList<>(mRooms.values());

@@ -597,9 +597,16 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        Log.d(LOG_TAG, "## setIgnoredUsers() : " + users);
         mMetaDataHasChanged = true;
         super.setIgnoredUserIdsList(users);
+    }
+
+    @Override
+    public void setDirectMessagesDict(Map<String, List<String>> directMessagesDict) {
+        Log.d(LOG_TAG, "## setDirectMessagesDict() : " + directMessagesDict);
+        mMetaDataHasChanged = true;
+        super.setDirectMessagesDict(directMessagesDict);
     }
 
     @Override

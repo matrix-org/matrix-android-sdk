@@ -28,6 +28,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * Account data types
      */
     public static final String ACCOUNT_DATA_TYPE_IGNORED_USER_LIST = "m.ignored_user_list";
+    public static final String ACCOUNT_DATA_TYPE_DIRECT_MESSAGES = "m.direct";
 
     /**
      * Account data keys

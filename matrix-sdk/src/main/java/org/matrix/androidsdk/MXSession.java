@@ -1130,6 +1130,27 @@ public class MXSession {
     }
 
     /**
+     * @return the direct messages room ids list
+     */
+    public List<String> getDirectMessageRoomsList() {
+        IMXStore store = getDataHandler().getStore();
+        ArrayList<String> directMessagesRoomIdsList = new ArrayList<>();
+
+        Collection<List<String>> listOfList = store.getDirectMessagesDict().values();
+
+        for(List<String> list : listOfList) {
+            for(String roomId : list) {
+                // test if the room is defined once and exists
+                if ((directMessagesRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                    directMessagesRoomIdsList.add(roomId);
+                }
+            }
+        }
+
+        return directMessagesRoomIdsList;
+    }
+
+    /**
      * Update the account password
      *
      * @param oldPassword the former account password

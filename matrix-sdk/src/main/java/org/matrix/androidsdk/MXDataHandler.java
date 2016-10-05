@@ -697,6 +697,8 @@ public class MXDataHandler implements IMXEventListener {
                     manageIgnoredUsers(events, isInitialSync);
                     // push rules
                     managePushRulesUpdate(events);
+                    // direct messages rooms
+                    manageDirectMessagesRooms(events, isInitialSync);
                 }
             }
 
@@ -793,6 +795,35 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         return ignoredUsers;
+    }
+
+
+    /**
+     * Extract the ignored users list from the account data events list..
+     *
+     * @param events the account data events list.
+     * @return the ignored users list. null means that there is no defined user ids list.
+     */
+    private void manageDirectMessagesRooms(List<Map<String, Object>> events, boolean isInitialSync) {
+        if (0 != events.size()) {
+            for (Map<String, Object> event : events) {
+                String type = (String) event.get("type");
+
+                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES)) {
+                    if (event.containsKey("content")) {
+                        Map<String, List<String>> contentDict = (Map<String, List<String>>) event.get("content");
+
+                        mStore.setDirectMessagesDict(contentDict);
+
+                        if (!isInitialSync) {
+                            // warn there is an update
+                            onDirectMessageRoomsListUpdate();
+                        }
+                    }
+                }
+            }
+
+        }
     }
 
     //================================================================================
@@ -1363,6 +1394,25 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getLocalizedMessage());
+                    }
+                }
+            }
+        });
+    }
+
+
+    @Override
+    public void onDirectMessageRoomsListUpdate() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onDirectMessageRoomsListUpdate();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDirectMessageRoomsListUpdate " + e.getMessage());
                     }
                 }
             }
