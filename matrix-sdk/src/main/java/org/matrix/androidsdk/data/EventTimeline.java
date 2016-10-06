@@ -751,7 +751,7 @@ public class EventTimeline {
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
-            mDataHandler.getCallsManager().handleCallEvent(event);
+            mDataHandler.getCallsManager().handleCallEvent(mStore, event);
 
             storeLiveRoomEvent(event, false);
 

@@ -23,6 +23,7 @@ import android.util.Log;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -32,6 +33,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
+import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -96,6 +98,7 @@ public class MXDataHandler implements IMXEventListener {
     private PresenceRestClient mPresenceRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
+    private EventsRestClient mEventsRestClient;
 
     private MyUser mMyUser;
 
@@ -112,6 +115,16 @@ public class MXDataHandler implements IMXEventListener {
 
     private final InvalidTokenListener mInvalidTokenListener;
 
+    // the left rooms are managed
+    // by default, they are not supported
+    private boolean mAreLeftRoomsSynced;
+
+    //
+    private final ArrayList<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
+
+    // the left rooms are saved in a dedicated store.
+    private MXMemoryStore mLeftRoomsStore;
+
     /**
      * Default constructor.
      * @param store the data storage implementation.
@@ -127,6 +140,8 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
 
         mInvalidTokenListener = invalidTokenListener;
+
+        mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
     }
 
     public Credentials getCredentials() {
@@ -160,6 +175,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
+    }
+
+    public void setEventsRestClient(EventsRestClient eventsRestClient) {
+        mEventsRestClient = eventsRestClient;
     }
 
     /**
@@ -514,12 +533,39 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object for the corresponding room id.
+     * The left rooms are not included.
      * @param roomId the room id
      * @param create create the room it does not exist.
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        return  getRoom(mStore, roomId, create);
+        return getRoom(roomId, false, create);
+    }
+
+    /**
+     * Get the room object for the corresponding room id.
+     * BY default, the left rooms are not included.
+     * @param roomId the room id
+     * @param testLeftRooms true to test if the room is a left room
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(String roomId, boolean testLeftRooms, boolean create) {
+        Room room = null;
+
+        if (null != roomId) {
+            room = mStore.getRoom(roomId);
+
+            if ((null == room) && testLeftRooms) {
+                room = mLeftRoomsStore.getRoom(roomId);
+            }
+
+            if ((null == room) && create) {
+                room = getRoom(mStore, roomId, create);
+            }
+        }
+
+        return room;
     }
 
     /**
@@ -573,6 +619,23 @@ public class MXDataHandler implements IMXEventListener {
                 room.init(mStore, room.getRoomId(), this);
             }
         }
+    }
+
+    /**
+     * Provides the room summaries list.
+     * @param withLeftOnes set to true to include the left rooms
+     * @return the room summaries
+     */
+    public Collection<RoomSummary> getSummaries(boolean withLeftOnes) {
+        ArrayList<RoomSummary> summaries = new ArrayList<>();
+
+        summaries.addAll(getStore().getSummaries());
+
+        if (withLeftOnes) {
+            summaries.addAll(mLeftRoomsStore.getSummaries());
+        }
+
+        return summaries;
     }
 
     /**
@@ -674,7 +737,13 @@ public class MXDataHandler implements IMXEventListener {
             Log.e(LOG_TAG, "getUser : the session is not anymore active");
             return null;
         } else {
-            return mStore.getUser(userId);
+            User user = mStore.getUser(userId);
+
+            if (null == user) {
+                user = mLeftRoomsStore.getUser(userId);
+            }
+
+            return user;
         }
     }
 
@@ -882,20 +951,20 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
                     for (String roomId : roomIds) {
-                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
-
-                        // Presently we remove the existing room from the rooms list.
-                        // FIXME SYNC V2 Archive/Display the left rooms!
-                        // For that create 'handleArchivedRoomSync' method
-
-                        // Retrieve existing room
                         // check if the room still exists.
                         if (null != this.getStore().getRoom(roomId)) {
                             this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         }
-                    }
 
+                        // if the left rooms are synced
+                        // they are stored in a dedicated store to avoid saving useless data
+                        if (mAreLeftRoomsSynced) {
+                            Room room = getRoom(mLeftRoomsStore, roomId, true);
+                            room.setIsHistorical(true);
+                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
+                        }
+                    }
                     isEmptyResponse = false;
                 }
 
@@ -982,6 +1051,132 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         mUpdatedRoomIdList.clear();
+    }
+
+    /**
+     * @return true if the historical rooms loaded
+     */
+    public boolean areLeftRoomsSynced() {
+        return mAreLeftRoomsSynced;
+    }
+
+    /**
+     * @return true if the left rooms are retrieving
+     */
+    public boolean isRetrievingLeftRooms() {
+        int count;
+        synchronized (mLeftRoomsRefreshCallbacks) {
+            count = mLeftRoomsRefreshCallbacks.size();
+        }
+
+        return (0 != count);
+    }
+
+    /**
+     * Retrieve the historical rooms
+     * @param callback the asynchronous callback.
+     */
+    public void retrieveLeftRooms(ApiCallback<Void> callback) {
+        // already loaded
+        if (mAreLeftRoomsSynced) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+        } else {
+            int count;
+
+            synchronized (mLeftRoomsRefreshCallbacks) {
+                if (null != callback) {
+                    mLeftRoomsRefreshCallbacks.add(callback);
+                }
+                count = mLeftRoomsRefreshCallbacks.size();
+            }
+
+            // start the request only for the first listener
+            if (1 == count) {
+                // filter to retrieve
+                String inlineFilter = "{\"room\":{\"include_leave\":1}}";
+
+                Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
+
+                mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
+                    @Override
+                    public void onSuccess(final SyncResponse syncResponse) {
+
+                        Runnable r = new Runnable() {
+                            @Override
+                            public void run() {
+                                if (null != syncResponse.rooms.leave) {
+                                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                                    Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : " + roomIds.size() + " left rooms");
+
+                                    // Handle first joined rooms
+                                    for (String roomId : roomIds) {
+                                        Room room = getRoom(mLeftRoomsStore, roomId, true);
+                                        room.setIsHistorical(true);
+
+                                        // sanity check
+                                        if (null != room) {
+                                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
+                                        }
+                                    }
+                                }
+
+                                mAreLeftRoomsSynced = true;
+
+                                synchronized (mLeftRoomsRefreshCallbacks) {
+                                    for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                        c.onSuccess(null);
+                                    }
+                                    mLeftRoomsRefreshCallbacks.clear();
+                                }
+                            }
+                        };
+
+                        Thread t = new Thread(r);
+                        t.setPriority(Thread.MIN_PRIORITY);
+                        t.start();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onNetworkError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getLocalizedMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onMatrixError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onUnexpectedError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+                });
+            }
+        }
     }
 
     //================================================================================
