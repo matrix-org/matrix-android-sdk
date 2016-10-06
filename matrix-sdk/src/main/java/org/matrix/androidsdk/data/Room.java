@@ -2067,7 +2067,7 @@ public class Room {
                     Room.this.mIsLeaving = false;
 
                     // delete references to the room
-                    mStore.deleteRoom(getRoomId());
+                    mDataHandler.deleteRoom(getRoomId());
                     Log.d(LOG_TAG, "leave : commit");
                     mStore.commit();
 

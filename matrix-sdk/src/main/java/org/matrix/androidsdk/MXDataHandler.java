@@ -41,6 +41,7 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
@@ -950,6 +951,50 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Delete a room from its room id.
+     * The room data is copied into the left rooms store
+     * @param roomId the room id
+     */
+    public void deleteRoom(String roomId) {
+        // copy the room from a store to another one
+        Room r = this.getStore().getRoom(roomId);
+
+        if (null != r) {
+            if (mAreLeftRoomsSynced) {
+                Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
+                leftRoom.setIsHistorical(true);
+
+                // copy the summary
+                RoomSummary summary = getStore().getSummary(roomId);
+                if (null != summary) {
+                    mLeftRoomsStore.storeSummary(roomId, summary.getLatestReceivedEvent(), summary.getLatestRoomState(), getUserId());
+                }
+
+                // copy events and receiptData
+                ArrayList<ReceiptData> receipts = new ArrayList<>();
+                Collection<Event> events = getStore().getRoomMessages(roomId);
+
+                if (null != events) {
+                    for (Event e : events) {
+                        receipts.addAll(getStore().getEventReceipts(roomId, e.eventId, false, false));
+                        mLeftRoomsStore.storeLiveRoomEvent(e);
+                    }
+
+                    for (ReceiptData receipt : receipts) {
+                        mLeftRoomsStore.storeReceipt(receipt, roomId);
+                    }
+                }
+
+                // copy the state
+                leftRoom.getLiveTimeLine().setState(r.getLiveTimeLine().getState());
+            }
+
+            // remove the previous definition
+            getStore().deleteRoom(roomId);
+        }
+    }
+
+    /**
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
      * @param isInitialSync  true if the sync response if an initial sync one.
@@ -973,21 +1018,18 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
                     for (String roomId : roomIds) {
-                        // check if the room still exists.
-                        if (null != this.getStore().getRoom(roomId)) {
-                            this.getStore().deleteRoom(roomId);
-                            onLeaveRoom(roomId);
+                        // delete the room
+                        deleteRoom(roomId);
+                        // warn listener
+                        onLeaveRoom(roomId);
+
+                        if (mAreLeftRoomsSynced) {
+                            Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
+                            leftRoom.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
                         }
 
-                        // if the left rooms are synced
-                        // they are stored in a dedicated store to avoid saving useless data
-                        if (mAreLeftRoomsSynced) {
-                            Room room = getRoom(mLeftRoomsStore, roomId, true);
-                            room.setIsHistorical(true);
-                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
-                        }
+                        isEmptyResponse = false;
                     }
-                    isEmptyResponse = false;
                 }
 
                 // joined rooms events
