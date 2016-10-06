@@ -567,7 +567,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object for the corresponding room id.
-     * BY default, the left rooms are not included.
+     * By default, the left rooms are not included.
      * @param roomId the room id
      * @param testLeftRooms true to test if the room is a left room
      * @param create create the room it does not exist.
@@ -592,7 +592,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Get the room object for the corresponding room id.
+     * Get the room object from the corresponding room id.
      * @param store the dedicated store
      * @param roomId the room id
      * @param create create the room it does not exist.
@@ -952,7 +952,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Delete a room from its room id.
-     * The room data is copied into the left rooms store
+     * The room data is copied into the left rooms store.
      * @param roomId the room id
      */
     public void deleteRoom(String roomId) {
@@ -1020,7 +1020,7 @@ public class MXDataHandler implements IMXEventListener {
                     for (String roomId : roomIds) {
                         // delete the room
                         deleteRoom(roomId);
-                        // warn listener
+                        // warn the listeners
                         onLeaveRoom(roomId);
 
                         if (mAreLeftRoomsSynced) {
