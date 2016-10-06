@@ -119,6 +119,9 @@ public class Room {
     // call conference user id
     private String mCallConferenceUserId;
 
+    // true when the current room is an historical one
+    private boolean mIsHistorical;
+
     /**
      * Default room creator
      */
@@ -176,6 +179,22 @@ public class Room {
         return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
+    /**
+     * Defines that the current room is an historical one
+     * @param isHistorical true when the current room is an historical one
+     */
+    public void setIsHistorical(boolean isHistorical) {
+        mIsHistorical = isHistorical;
+        mLiveTimeline.setIsHistorical(isHistorical);
+    }
+
+    /**
+     * @return true if the current room is an historical one
+     */
+    public boolean isHistorical() {
+        return mIsHistorical;
+    }
+
     //================================================================================
     // Sync events
     //================================================================================
@@ -214,16 +233,6 @@ public class Room {
      * @param isInitialSync true if the room is initialized by a global initial sync.
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        handleJoinedRoomSync(roomSync, isInitialSync, false);
-    }
-
-    /**
-     * Handle the events of a joined room.
-     * @param roomSync the sync events list.
-     * @param isInitialSync true if the room is initialized by a global initial sync.
-     * @param ignoreCurrentMemberShip true to do not check if the user left the room
-     */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync, boolean ignoreCurrentMemberShip) {
         if (null != mOnInitialSyncCallback) {
             Log.d(LOG_TAG, "initial sync handleJoinedRoomSync " + getRoomId());
         } else {
@@ -233,7 +242,7 @@ public class Room {
         mIsSyncing = true;
 
         synchronized (this) {
-            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync, ignoreCurrentMemberShip);
+            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
 
             // ephemeral events
             if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {

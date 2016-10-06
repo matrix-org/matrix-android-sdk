@@ -1353,10 +1353,11 @@ public class MXSession {
                                 // Handle first joined rooms
                                 for (String roomId : roomIds) {
                                     Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+                                    room.setIsHistorical(true);
 
                                     // sanity check
                                     if (null != room) {
-                                        room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true, true);
+                                        room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
                                     }
                                 }
                             }

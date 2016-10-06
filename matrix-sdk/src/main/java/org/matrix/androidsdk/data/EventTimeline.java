@@ -159,6 +159,9 @@ public class EventTimeline {
      */
     private String mBackwardTopToken = "not yet found";
 
+    // true when the current timeline is an historical one
+    private boolean mIsHistorical;
+
     /**
      * Constructor from room.
      * @param room the linked room.
@@ -196,6 +199,14 @@ public class EventTimeline {
 
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
+    }
+
+    /**
+     * Defines that the current timeline is an historical one
+     * @param isHistoricalRoom true when the current timeline is an historical one
+     */
+    public void setIsHistorical(boolean isHistorical) {
+        mIsHistorical = isHistorical;
     }
 
     /**
@@ -343,16 +354,6 @@ public class EventTimeline {
      * @param isInitialSync true if the sync has been triggered by a global initial sync
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
-        handleJoinedRoomSync(roomSync, isInitialSync, false);
-    }
-
-    /**
-     * Manage the joined room events.
-     * @param roomSync the roomSync.
-     * @param isInitialSync true if the sync has been triggered by a global initial sync
-     * @param ignoreCurrentMemberShip true to do not check if the user left the room
-     */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync, boolean ignoreCurrentMemberShip) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -483,7 +484,7 @@ public class EventTimeline {
             // The handleLiveEvent used to warn the client that a room was left where as it should not
             selfMember = mState.getMember(myUserId);
 
-            if ((null != selfMember) && !ignoreCurrentMemberShip) {
+            if ((null != selfMember) && !mIsHistorical) {
                 membership = selfMember.membership;
 
                 if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
@@ -679,7 +680,7 @@ public class EventTimeline {
                 String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                    store = false;
+                    store = mIsHistorical;
                     // delete the room and warn the listener of the leave event only at the end of the events chunk processing
                 }
             }
