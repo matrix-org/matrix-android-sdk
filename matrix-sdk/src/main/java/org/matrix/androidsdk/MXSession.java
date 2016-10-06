@@ -20,6 +20,7 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.util.Pools;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -52,7 +53,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
@@ -1246,8 +1246,11 @@ public class MXSession {
     // historical rooms
     //==============================================================================================================
 
+    // dedicated store
     private MXMemoryStore mHistoricalRoomsStore;
-    private ArrayList<ApiCallback<Void>> mHistoricalRefreshListeners = new ArrayList<>();
+
+    // refresh callbacks
+    private final ArrayList<ApiCallback<Void>> mHistoricalRefreshCallbacks = new ArrayList<>();
 
     /**
      * Provides the historical rooms list
@@ -1329,14 +1332,21 @@ public class MXSession {
             mHistoricalRoomsStore = new MXMemoryStore(getCredentials(), mAppContent);
         }
 
-        if (null != callback) {
-            mHistoricalRefreshListeners.add(callback);
+        int count;
+
+        synchronized (mHistoricalRefreshCallbacks) {
+            if (null != callback) {
+                mHistoricalRefreshCallbacks.add(callback);
+            }
+            count = mHistoricalRefreshCallbacks.size():
         }
 
         // start the request only for the first listener
-        if (mHistoricalRefreshListeners.size() == 1) {
+        if (1 == count) {
             // filter to retrieve
             String inlineFilter = "{\"room\":{\"include_leave\":1}}";
+
+            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
 
             mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
                 @Override
@@ -1350,6 +1360,8 @@ public class MXSession {
                             if (null != syncResponse.rooms.leave) {
                                 Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
+                                Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : " + roomIds.size() + " left rooms");
+
                                 // Handle first joined rooms
                                 for (String roomId : roomIds) {
                                     Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
@@ -1362,11 +1374,12 @@ public class MXSession {
                                 }
                             }
 
-                            for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
-                                c.onSuccess(null);
+                            synchronized (mHistoricalRefreshCallbacks) {
+                                for (ApiCallback<Void> c : mHistoricalRefreshCallbacks) {
+                                    c.onSuccess(null);
+                                }
+                                mHistoricalRefreshCallbacks.clear();
                             }
-
-                            mHistoricalRefreshListeners.clear();
                         }
                     };
 
@@ -1377,38 +1390,47 @@ public class MXSession {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
-                        c.onNetworkError(e);
-                    }
+                    synchronized (mHistoricalRefreshCallbacks) {
+                        Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
-                    mHistoricalRefreshListeners.clear();
+                        for (ApiCallback<Void> c : mHistoricalRefreshCallbacks) {
+                            c.onNetworkError(e);
+                        }
+                        mHistoricalRefreshCallbacks.clear();
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
-                        c.onMatrixError(e);
-                    }
+                    synchronized (mHistoricalRefreshCallbacks) {
+                        Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getLocalizedMessage());
 
-                    mHistoricalRefreshListeners.clear();
+                        for (ApiCallback<Void> c : mHistoricalRefreshCallbacks) {
+                            c.onMatrixError(e);
+                        }
+                        mHistoricalRefreshCallbacks.clear();
+                    }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
-                        c.onUnexpectedError(e);
-                    }
+                    synchronized (mHistoricalRefreshCallbacks) {
+                        Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
-                    mHistoricalRefreshListeners.clear();
+                        for (ApiCallback<Void> c : mHistoricalRefreshCallbacks) {
+                            c.onUnexpectedError(e);
+                        }
+                        mHistoricalRefreshCallbacks.clear();
+                    }
                 }
             });
         }
     }
 
     /**
-     *
-     * @param roomId
-     * @return
+     * Provides the historical room from its room id.
+     * @param roomId the room id.
+     * @return the room
      */
     public Room getHistoricalRoom(String roomId) {
         return mHistoricalRoomsStore.getRoom(roomId);
