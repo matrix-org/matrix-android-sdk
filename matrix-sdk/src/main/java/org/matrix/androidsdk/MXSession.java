@@ -1247,6 +1247,7 @@ public class MXSession {
     //==============================================================================================================
 
     private MXMemoryStore mHistoricalRoomsStore;
+    private ArrayList<ApiCallback<Void>> mHistoricalRefreshListeners = new ArrayList<>();
 
     /**
      * Provides the historical rooms list
@@ -1323,59 +1324,92 @@ public class MXSession {
      * Refresh the historical rooms list.
      * @param callback asynchronous callback when is done
      */
-    private void refreshHistoricalRoomsList(final ApiCallback<Void> callback) {
+    private void refreshHistoricalRoomsList(ApiCallback<Void> callback) {
         if (null == mHistoricalRoomsStore) {
             mHistoricalRoomsStore = new MXMemoryStore(getCredentials(), mAppContent);
         }
 
-        // filter to retrieve
-        String inlineFilter = "{\"room\":{\"include_leave\":1}}";
+        if (null != callback) {
+            mHistoricalRefreshListeners.add(callback);
+        }
 
-        mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
-            @Override
-            public void onSuccess(final SyncResponse syncResponse) {
+        // start the request only for the first listener
+        if (mHistoricalRefreshListeners.size() == 1) {
+            // filter to retrieve
+            String inlineFilter = "{\"room\":{\"include_leave\":1}}";
 
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        mHistoricalRoomsStore.clear();
+            mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
+                @Override
+                public void onSuccess(final SyncResponse syncResponse) {
 
-                        if (null != syncResponse.rooms.leave) {
-                            Set<String> roomIds = syncResponse.rooms.leave.keySet();
+                    Runnable r = new Runnable() {
+                        @Override
+                        public void run() {
+                            mHistoricalRoomsStore.clear();
 
-                            // Handle first joined rooms
-                            for (String roomId : roomIds) {
-                                Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+                            if (null != syncResponse.rooms.leave) {
+                                Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
-                                // sanity check
-                                if (null != room) {
-                                    room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true, true);
+                                // Handle first joined rooms
+                                for (String roomId : roomIds) {
+                                    Room room = getDataHandler().getRoom(mHistoricalRoomsStore, roomId, true);
+
+                                    // sanity check
+                                    if (null != room) {
+                                        room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true, true);
+                                    }
                                 }
                             }
+
+                            for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
+                                c.onSuccess(null);
+                            }
+
+                            mHistoricalRefreshListeners.clear();
                         }
-                        callback.onSuccess(null);
+                    };
+
+                    Thread t = new Thread(r);
+                    t.setPriority(Thread.MIN_PRIORITY);
+                    t.start();
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
+                        c.onNetworkError(e);
                     }
-                };
 
-                Thread t = new Thread(r);
-                t.setPriority(Thread.MIN_PRIORITY);
-                t.start();
-            }
+                    mHistoricalRefreshListeners.clear();
+                }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
+                        c.onMatrixError(e);
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
+                    mHistoricalRefreshListeners.clear();
+                }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
-            }
-        });
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    for(ApiCallback<Void> c : mHistoricalRefreshListeners) {
+                        c.onUnexpectedError(e);
+                    }
+
+                    mHistoricalRefreshListeners.clear();
+                }
+            });
+        }
+    }
+
+    /**
+     *
+     * @param roomId
+     * @return
+     */
+    public Room getHistoricalRoom(String roomId) {
+        return mHistoricalRoomsStore.getRoom(roomId);
     }
 }
