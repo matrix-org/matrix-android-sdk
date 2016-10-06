@@ -741,7 +741,7 @@ public class RoomState implements java.io.Serializable {
                         }
 
                         if (null != mDataHandler) {
-                            ((MXDataHandler)mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                            ((MXDataHandler)mDataHandler).getStore(roomId).updateUserWithRoomMemberEvent(member);
                         }
                     }
 

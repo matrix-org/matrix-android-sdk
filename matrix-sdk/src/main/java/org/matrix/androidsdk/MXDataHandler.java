@@ -121,6 +121,7 @@ public class MXDataHandler implements IMXEventListener {
 
     //
     private final ArrayList<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
+    private boolean mIsRetrievingLeftRooms;
 
     // the left rooms are saved in a dedicated store.
     private MXMemoryStore mLeftRoomsStore;
@@ -488,6 +489,27 @@ public class MXDataHandler implements IMXEventListener {
     public IMXStore getStore() {
         if (isAlive()) {
             return mStore;
+        } else {
+            Log.e(LOG_TAG, "getStore : the session is not anymore active");
+            return null;
+        }
+    }
+
+    /**
+     * Provides the store in which the room is stored
+     * @return the used store
+     */
+    public IMXStore getStore(String roomId) {
+        if (isAlive()) {
+            if (null == roomId) {
+                return mStore;
+            } else {
+                if (null != mLeftRoomsStore.getRoom(roomId)) {
+                    return mLeftRoomsStore;
+                } else {
+                    return mStore;
+                }
+            }
         } else {
             Log.e(LOG_TAG, "getStore : the session is not anymore active");
             return null;
@@ -1064,12 +1086,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return true if the left rooms are retrieving
      */
     public boolean isRetrievingLeftRooms() {
-        int count;
-        synchronized (mLeftRoomsRefreshCallbacks) {
-            count = mLeftRoomsRefreshCallbacks.size();
-        }
-
-        return (0 != count);
+        return mIsRetrievingLeftRooms;
     }
 
     /**
@@ -1094,6 +1111,8 @@ public class MXDataHandler implements IMXEventListener {
 
             // start the request only for the first listener
             if (1 == count) {
+                mIsRetrievingLeftRooms = true;
+
                 // filter to retrieve
                 String inlineFilter = "{\"room\":{\"include_leave\":1}}";
 
@@ -1123,6 +1142,7 @@ public class MXDataHandler implements IMXEventListener {
                                     }
                                 }
 
+                                mIsRetrievingLeftRooms = false;
                                 mAreLeftRoomsSynced = true;
 
                                 synchronized (mLeftRoomsRefreshCallbacks) {
@@ -1258,9 +1278,26 @@ public class MXDataHandler implements IMXEventListener {
      */
     private final ArrayList<String> mUpdatedRoomIdList = new ArrayList<>();
 
+    /**
+     * Tell if a room Id event should be ignored
+     * @param roomId the room id
+     * @return true to do not dispatch the event.
+     */
+    private boolean ignoreEvent(String roomId) {
+        if (mIsRetrievingLeftRooms && !TextUtils.isEmpty(roomId)) {
+            return null != mLeftRoomsStore.getRoom(roomId);
+        } else {
+            return false;
+        }
+    }
+
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
-        //
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
+
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, event.type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type)) {
             if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
                 mUpdatedRoomIdList.add(roomState.roomId);
@@ -1305,6 +1342,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1323,6 +1364,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onSentEvent(final Event event) {
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1341,6 +1386,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onFailedSendingEvent(final Event event) {
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1399,6 +1448,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onNewRoom(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1417,6 +1470,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onJoinRoom(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1435,6 +1492,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomInitialSyncComplete(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1453,6 +1514,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomInternalUpdate(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1471,6 +1536,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLeaveRoom(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1489,6 +1558,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         // refresh the unread countries at the end of the process chunk
         if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
             mUpdatedRoomIdList.add(roomId);
@@ -1512,6 +1585,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomTagEvent(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1530,6 +1607,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomFlush(final String roomId) {
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
