@@ -971,6 +971,8 @@ public class MXDataHandler implements IMXEventListener {
                 }
 
                 // copy events and receiptData
+                // it is not required but it is better, it could be useful later
+                // the room summary should be enough to be displayed in the recents pages
                 ArrayList<ReceiptData> receipts = new ArrayList<>();
                 Collection<Event> events = getStore().getRoomMessages(roomId);
 
@@ -1040,6 +1042,12 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
+
+                        if (null != mLeftRoomsStore.getRoom(roomId)) {
+                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
+                            mLeftRoomsStore.deleteRoom(roomId);
+                        }
+
                         Room room = getRoom(roomId);
 
                         // sanity check
@@ -1058,6 +1066,12 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
                     for (String roomId : roomIds) {
+
+                        if (null != mLeftRoomsStore.getRoom(roomId)) {
+                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
+                            mLeftRoomsStore.deleteRoom(roomId);
+                        }
+
                         getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
