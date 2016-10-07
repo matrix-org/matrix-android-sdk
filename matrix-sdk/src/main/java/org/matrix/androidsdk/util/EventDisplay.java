@@ -309,7 +309,7 @@ public class EventDisplay {
      * @param roomState the room state
      * @return the "human readable" display name
      */
-    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
+    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent,  RoomState roomState) {
         String senderDisplayName = event.getSender();
 
         if (!event.isRedacted()) {
@@ -320,8 +320,11 @@ public class EventDisplay {
 
             // Check whether this sender name is updated by the current event (This happens in case of new joined member)
             if (null != eventContent) {
-                if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
-                    // Use the actual display name
+                // detect if it is displayname update
+                // a display name update is detected when the previous state was join and there was a displayname
+                if (!TextUtils.isEmpty(eventContent.displayname) ||
+                        ((null != prevEventContent) && TextUtils.equals("join", prevEventContent.membership) && !TextUtils.isEmpty(prevEventContent.displayname))
+                        ) {
                     senderDisplayName = eventContent.displayname;
                 }
             }
@@ -348,7 +351,7 @@ public class EventDisplay {
         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
         EventContent prevEventContent = event.getPrevContent();
 
-        String senderDisplayName = senderDisplayNameForEvent(event, eventContent, roomState);
+        String senderDisplayName = senderDisplayNameForEvent(event, eventContent, prevEventContent, roomState);
         String prevUserDisplayName = null;
 
         String prevMembership = null;
@@ -395,7 +398,7 @@ public class EventDisplay {
                             displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
                         }
                     } else if (TextUtils.isEmpty(senderDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_removed, event.getSender());
+                        displayText = context.getString(R.string.notice_display_name_removed, event.getSender(), prevUserDisplayName);
                     } else {
                         displayText = context.getString(R.string.notice_display_name_changed_from, event.getSender(), prevUserDisplayName, senderDisplayName);
                     }
