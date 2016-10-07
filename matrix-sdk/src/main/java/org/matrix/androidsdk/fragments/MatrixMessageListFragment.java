@@ -861,14 +861,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    onMessageSendingSucceeded(event);
-                    mAdapter.updateEventById(event, prevEventId);
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onMessageSendingSucceeded(event);
+                            mAdapter.updateEventById(event, prevEventId);
 
-                    // pending resending ?
-                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
-                        resend(mResendingEventsList.get(0));
-                        mResendingEventsList.remove(0);
-                    }
+                            // pending resending ?
+                            if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                                resend(mResendingEventsList.get(0));
+                                mResendingEventsList.remove(0);
+                            }
+                        }
+                    });
                 }
 
                 private void commonFailure(final Event event) {
@@ -884,9 +889,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                         }
 
-                        mAdapter.notifyDataSetChanged();
-
-                        onMessageSendingFailed(event);
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onMessageSendingFailed(event);
+                            }
+                        });
                     }
                 }
 
