@@ -319,11 +319,11 @@ public class EventDisplay {
             }
 
             // Check whether this sender name is updated by the current event (This happens in case of new joined member)
-            if (null != eventContent) {
+            if ((null != eventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
                 // detect if it is displayname update
                 // a display name update is detected when the previous state was join and there was a displayname
                 if (!TextUtils.isEmpty(eventContent.displayname) ||
-                        ((null != prevEventContent) && TextUtils.equals("join", prevEventContent.membership) && !TextUtils.isEmpty(prevEventContent.displayname))
+                        ((null != prevEventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership) && !TextUtils.isEmpty(prevEventContent.displayname))
                         ) {
                     senderDisplayName = eventContent.displayname;
                 }
@@ -463,16 +463,17 @@ public class EventDisplay {
                 return context.getString(R.string.notice_voip_finished);
             }
 
-            // use the latest known displayname
-            if ((null == eventContent.displayname) && (null != prevUserDisplayName)) {
-                senderDisplayName = prevUserDisplayName;
-            }
-
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
                 if ((null != prevEventContent) && TextUtils.equals(prevEventContent.membership, RoomMember.MEMBERSHIP_INVITE)) {
                     return context.getString(R.string.notice_room_reject, senderDisplayName);
                 } else {
+
+                    // use the latest known displayname
+                    if ((null == eventContent.displayname) && (null != prevUserDisplayName)) {
+                        senderDisplayName = prevUserDisplayName;
+                    }
+
                     return context.getString(R.string.notice_room_leave, senderDisplayName);
                 }
 
