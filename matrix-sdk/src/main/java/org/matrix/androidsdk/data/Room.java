@@ -742,16 +742,15 @@ public class Room {
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            Collection<RoomMember> members = getState().getMembers();
+            ArrayList<RoomMember> members = new ArrayList<>(getState().getMembers());
 
-            if (members.size() < 3) {
-                // use the member avatar only it is an active member
-                for (RoomMember roomMember : members) {
-                    if (TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, roomMember.membership) && ((members.size() == 1) || !TextUtils.equals(mMyUserId, roomMember.getUserId()))) {
-                        res = roomMember.avatarUrl;
-                        break;
-                    }
-                }
+            if (members.size() == 1) {
+                res = members.get(0).avatarUrl;
+            } else if (members.size() == 2) {
+                RoomMember m1 = members.get(0);
+                RoomMember m2 = members.get(1);
+
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.avatarUrl : m1.avatarUrl;
             }
         }
 
