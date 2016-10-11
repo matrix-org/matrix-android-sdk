@@ -912,6 +912,13 @@ public class MXDataHandler implements IMXEventListener {
                         // sanity check
                         if (null != room) {
                             room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+
+                            // issue reported by richvdh
+                            // the member is not defined in the members list
+                            // it seems being a server issue.
+                            if (isInitialSync && (null == room.getLiveState().getMember(getMyUser().user_id))) {
+                             	this.getStore().deleteRoom(roomId);
+                            }
                         }
                     }
 
