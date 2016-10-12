@@ -1139,11 +1139,35 @@ public class MXSession {
 
         Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
 
-        for(List<String> list : listOfList) {
-            for(String roomId : list) {
-                // test if the room is defined once and exists
-                if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
-                    directChatRoomIdsList.add(roomId);
+        // if the direct messages entry has been defined
+        if (null != listOfList) {
+            for (List<String> list : listOfList) {
+                for (String roomId : list) {
+                    // test if the room is defined once and exists
+                    if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
+            }
+        } else {
+            // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
+            ArrayList<Room> rooms = new ArrayList<>(store.getRooms());
+
+            for (Room r : rooms) {
+                // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
+                // been moved to a different tag section
+                if ((r.getMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
+                    RoomMember roomMember = r.getMember(getMyUserId());
+
+                    if (null != roomMember) {
+                        String membership = roomMember.membership;
+
+                        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                            directChatRoomIdsList.add(r.getRoomId());
+                        }
+                    }
                 }
             }
         }
@@ -1161,7 +1185,13 @@ public class MXSession {
         Room room = store.getRoom(roomId);
 
         if (null != room) {
-            HashMap<String, List<String>> params = new HashMap<>(store.getDirectChatRoomsDict());
+            HashMap<String, List<String>> params;
+
+            if (null != store.getDirectChatRoomsDict()) {
+                params = new HashMap<>(store.getDirectChatRoomsDict());
+            } else {
+                params = new HashMap<>();
+            }
 
             // the room was not seen as direct chat
             if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
