@@ -20,18 +20,15 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.v4.util.Pools;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
-import org.matrix.androidsdk.data.MXMemoryStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -53,7 +50,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -71,7 +67,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -635,7 +630,7 @@ public class MXSession {
     }
 
     /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
+     * Shorthand for {@link #startEventStream(EventsThreadListener, NetworkConnectivityReceiver, String)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
      * @param initialToken the initial sync token (null to sync from scratch).
