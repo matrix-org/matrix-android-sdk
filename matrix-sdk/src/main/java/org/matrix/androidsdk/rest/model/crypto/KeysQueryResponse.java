@@ -17,15 +17,15 @@
 package org.matrix.androidsdk.rest.model.crypto;
 
 import org.matrix.androidsdk.crypto.DeviceInfo;
-import org.matrix.androidsdk.crypto.UsersDevicesMap;
+
+import java.util.Map;
 
 /**
  * This class represents the response to /keys/query request made by downloadKeysForUsers
  */
 public class KeysQueryResponse {
-
     /**
      * The device keys per devices per users.
      */
-    public UsersDevicesMap<DeviceInfo> deviceKeys;
+    public Map<String, Map<String, DeviceInfo>> deviceKeys;
 }

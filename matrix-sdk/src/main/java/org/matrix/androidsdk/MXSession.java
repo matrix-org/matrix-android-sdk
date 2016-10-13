@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
+import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -91,6 +92,7 @@ public class MXSession {
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
     private AccountDataRestClient mAccountDataRestClient;
+    private CryptoRestClient mCryptoRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -161,6 +163,7 @@ public class MXSession {
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
+        mCryptoRestClient = new CryptoRestClient(hsConfig);
     }
 
     /**
@@ -212,6 +215,7 @@ public class MXSession {
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);

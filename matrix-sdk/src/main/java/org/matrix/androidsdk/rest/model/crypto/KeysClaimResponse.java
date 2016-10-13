@@ -17,7 +17,8 @@
 package org.matrix.androidsdk.rest.model.crypto;
 
 import org.matrix.androidsdk.crypto.MXKey;
-import org.matrix.androidsdk.crypto.UsersDevicesMap;
+
+import java.util.Map;
 
 
 /**
@@ -27,6 +28,6 @@ public class KeysClaimResponse {
     /**
      The requested keys ordered by device by user.
      */
-    public UsersDevicesMap<MXKey> oneTimeKeys;
+    public Map<String, Map<String, MXKey>> oneTimeKeys;
 }
 
