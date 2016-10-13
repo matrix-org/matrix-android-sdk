@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,18 +14,28 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.crypto;
-
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+package org.matrix.androidsdk.crypto.algorithms;
 
 import java.util.Map;
 
 /**
- * This class represents the response to /keys/query request made by downloadKeysForUsers
+ * This class represents the decryption result.
  */
-public class KeysQueryResponse {
+public class MXDecryptionResult {
     /**
-     * The device keys per devices per users.
+     * The decrypted payload (with properties 'type', 'content')
      */
-    public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
+    public Map<String, String> mPayload;
+
+    /**
+     * keys that the sender of the event claims ownership of:
+     * map from key type to base64-encoded key.
+     */
+    public Map<String, String> mKeysClaimed;
+
+    /**
+     * The keys that the sender of the event is known to have ownership of:
+     * map from key type to base64-encoded key.
+     */
+    public Map<String, String> mKeysProved;
 }

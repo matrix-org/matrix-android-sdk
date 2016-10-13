@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.crypto;
+package org.matrix.androidsdk.crypto.data;
 
 import android.text.TextUtils;
 

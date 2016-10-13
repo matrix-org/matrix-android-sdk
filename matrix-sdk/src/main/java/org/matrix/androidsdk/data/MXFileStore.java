@@ -17,15 +17,13 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.HandlerThread;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.crypto.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.MXUsersDevicesMap;
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;

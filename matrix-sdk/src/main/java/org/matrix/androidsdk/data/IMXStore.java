@@ -18,7 +18,7 @@ package org.matrix.androidsdk.data;
 
 import android.content.Context;
 
-import org.matrix.androidsdk.crypto.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.algorithms.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;

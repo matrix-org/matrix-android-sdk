@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.rest.model.crypto;
 
-import org.matrix.androidsdk.crypto.MXKey;
+import org.matrix.androidsdk.crypto.data.MXKey;
 
 import java.util.Map;
 
