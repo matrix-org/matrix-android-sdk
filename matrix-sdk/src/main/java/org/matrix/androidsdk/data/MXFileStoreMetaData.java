@@ -42,6 +42,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public List<ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
     public List<String> mIgnoredUsers = new ArrayList<>();
 
+    // crypto
+    public boolean mEndToEndDeviceAnnounced = false;
 
     public MXFileStoreMetaData deepCopy() {
         MXFileStoreMetaData copy = new MXFileStoreMetaData();
@@ -59,6 +61,9 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mUserAvatarUrl = mUserAvatarUrl;
         copy.mThirdPartyIdentifiers = mThirdPartyIdentifiers;
         copy.mIgnoredUsers = mIgnoredUsers;
+
+        copy.mEndToEndDeviceAnnounced = mEndToEndDeviceAnnounced;
+
         return copy;
     }
 

@@ -20,14 +20,13 @@ import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.crypto.DeviceInfo;
+import org.matrix.androidsdk.crypto.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.MXKey;
-import org.matrix.androidsdk.crypto.UsersDevicesMap;
+import org.matrix.androidsdk.crypto.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.api.CryptoApi;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -112,7 +111,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param userIds list of users to get keys for.
      * @param callback the asynchronous callback
      */
-    public void downloadKeysForUsers(final List<String> userIds , final ApiCallback<UsersDevicesMap<DeviceInfo>> callback) {
+    public void downloadKeysForUsers(final List<String> userIds , final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         final String description = "downloadKeysForUsers";
 
         HashMap<String, List<String>> downloadQuery = new HashMap<>();
@@ -139,7 +138,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             @Override
             public void success(KeysQueryResponse keysQueryResponse, Response response) {
                 onEventSent();
-                callback.onSuccess(new UsersDevicesMap<>(keysQueryResponse.deviceKeys));
+                callback.onSuccess(new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys));
             }
         });
     }
@@ -149,7 +148,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param usersDevicesKeyTypesMap a list of users, devices and key types to retrieve keys for.
      * @param callback the asynchronous callback
      */
-    public void claimOneTimeKeysForUsersDevices(final UsersDevicesMap<String> usersDevicesKeyTypesMap , final ApiCallback<UsersDevicesMap<MXKey>> callback) {
+    public void claimOneTimeKeysForUsersDevices(final MXUsersDevicesMap<String> usersDevicesKeyTypesMap , final ApiCallback<MXUsersDevicesMap<MXKey>> callback) {
         final String description = "claimOneTimeKeysForUsersDevices";
 
         HashMap<String, Object> params = new HashMap<>();
@@ -168,7 +167,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             @Override
             public void success(KeysClaimResponse keysClaimResponse, Response response) {
                 onEventSent();
-                callback.onSuccess(new UsersDevicesMap<>(keysClaimResponse.oneTimeKeys));
+                callback.onSuccess(new MXUsersDevicesMap<>(keysClaimResponse.oneTimeKeys));
             }
         });
     }
@@ -179,7 +178,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param contentMap content to send. Map from user_id to device_id to content dictionary.
      * @param callback the asynchronous callback.
      */
-    public void sendToDevice(final String eventType, final UsersDevicesMap<Map<String, Object>> contentMap, final ApiCallback<Void> callback) {
+    public void sendToDevice(final String eventType, final MXUsersDevicesMap<Map<String, Object>> contentMap, final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;
 
         HashMap<String, Object> content = new HashMap<>();

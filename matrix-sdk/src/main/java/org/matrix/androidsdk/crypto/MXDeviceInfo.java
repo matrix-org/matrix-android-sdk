@@ -23,9 +23,9 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class DeviceInfo implements Serializable {
+public class MXDeviceInfo implements Serializable {
     //
-    private static final String LOG_TAG = "DeviceInfo";
+    private static final String LOG_TAG = "MXDeviceInfo";
 
     // The user has not yet verified this device.
     public static final int DEVICE_VERIFICATION_UNVERIFIED = 0;
@@ -77,7 +77,7 @@ public class DeviceInfo implements Serializable {
      * Constructor
      * @param aDeviceId the device id
      */
-    public DeviceInfo(String aDeviceId) {
+    public MXDeviceInfo(String aDeviceId) {
         deviceId = aDeviceId;
     }
 

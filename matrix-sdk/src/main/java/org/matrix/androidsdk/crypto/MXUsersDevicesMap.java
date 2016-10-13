@@ -24,9 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class UsersDevicesMap<E> implements Serializable {
+public class MXUsersDevicesMap<E> implements Serializable {
     //
-    private static final String LOG_TAG = "UsersDevicesMap";
+    private static final String LOG_TAG = "MXUsersDevicesMap";
 
     // The device keys as returned by the homeserver: a map of a map (userId -> deviceId -> Object).
     private HashMap<String, HashMap<String, E>> mMap;
@@ -42,7 +42,7 @@ public class UsersDevicesMap<E> implements Serializable {
      * The constructor
      * @param map the map
      */
-    public UsersDevicesMap(Map<String, Map<String, E>> map) {
+    public MXUsersDevicesMap(Map<String, Map<String, E>> map) {
         mMap = new HashMap<>();
 
         if (null != map) {
@@ -52,6 +52,21 @@ public class UsersDevicesMap<E> implements Serializable {
                 mMap.put(key, new HashMap<>(map.get(key)));
             }
         }
+    }
+
+    /**
+     * @return a deep copy
+     */
+    public MXUsersDevicesMap<E> deepCopy() {
+        MXUsersDevicesMap copy = new MXUsersDevicesMap(null);
+
+        Set<String> keys = mMap.keySet();
+
+        for(String key : keys) {
+            copy.mMap.put(key, new HashMap<>(mMap.get(key)));
+        }
+
+        return copy;
     }
 
     /**

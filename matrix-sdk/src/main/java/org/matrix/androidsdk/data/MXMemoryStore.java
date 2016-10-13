@@ -20,6 +20,9 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
+import org.matrix.androidsdk.crypto.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.MXUsersDevicesMap;
+import org.matrix.androidsdk.crypto.algorithms.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -27,6 +30,8 @@ import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.olm.OlmAccount;
+import org.matrix.olm.OlmSession;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,6 +88,23 @@ public class MXMemoryStore implements IMXStore {
     // When nil, nothing is stored on the file system.
     protected MXFileStoreMetaData mMetadata = null;
 
+    // Crypto
+    // The olm account
+    protected OlmAccount mOlmAccount;
+
+    // All users devices keys
+    protected MXUsersDevicesMap<MXDeviceInfo> mUsersDevicesInfoMap;
+
+    // The algorithms used in rooms
+    protected HashMap<String, String> mRoomsAlgorithms;
+
+    // The olm sessions (<device identity key> -> (<olm session id> -> <olm session>)
+    protected HashMap<String /*deviceKey*/,
+              HashMap<String /*olmSessionId*/,OlmSession>> mOlmSessions;
+
+    private boolean mEndToEndDeviceAnnounced;
+
+
     /**
      * Initialization method.
      */
@@ -96,6 +118,10 @@ public class MXMemoryStore implements IMXStore {
         mReceiptsByRoomId = new ConcurrentHashMap<>();
         mRoomAccountData = new ConcurrentHashMap<>();
         mEventStreamToken = null;
+
+        mUsersDevicesInfoMap = new MXUsersDevicesMap<>(null);
+        mRoomsAlgorithms = new HashMap<>();
+        mOlmSessions = new HashMap<>();
     }
 
     public MXMemoryStore() {
@@ -1212,5 +1238,107 @@ public class MXMemoryStore implements IMXStore {
         if (null != mListener) {
             mListener.onStoreOOM(mCredentials.userId, e.getLocalizedMessage());
         }
+    }
+
+    //==============================================================================================================
+    // Crypto
+    //==============================================================================================================
+
+    @Override
+    public void storeEndToEndAccount(OlmAccount account) {
+        mOlmAccount = account;
+    }
+
+    @Override
+    public OlmAccount endToEndAccount() {
+        return mOlmAccount;
+    }
+
+    @Override
+    public void storeEndToEndDeviceAnnounced() {
+        mEndToEndDeviceAnnounced = true;
+    }
+
+    @Override
+    public boolean endToEndDeviceAnnounced() {
+        return mEndToEndDeviceAnnounced;
+    }
+
+    @Override
+    public void storeEndToEndDeviceForUser(String userId, MXDeviceInfo device) {
+        mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
+    }
+
+    @Override
+    public MXDeviceInfo endToEndDeviceWithDeviceId(String deviceId, String userId) {
+        return mUsersDevicesInfoMap.objectForDevice(deviceId, userId);
+    }
+
+    @Override
+    public void storeEndToEndDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
+        mUsersDevicesInfoMap.setObjects(devices, userId);
+    }
+
+    @Override
+    public Map<String, MXDeviceInfo> endToEndDevicesForUser(String userId) {
+        if (!TextUtils.isEmpty(userId)) {
+            return mUsersDevicesInfoMap.getMap().get(userId);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void storeEndToEndAlgorithmForRoom(String roomId, String algorithm) {
+        if (!TextUtils.isEmpty(roomId)) {
+            if (null == algorithm) {
+                mRoomsAlgorithms.remove(roomId);
+            } else {
+                mRoomsAlgorithms.put(roomId, algorithm);
+            }
+        }
+    }
+
+    @Override
+    public String endToEndAlgorithmForRoom(String roomId) {
+        if (!TextUtils.isEmpty(roomId)) {
+            return mRoomsAlgorithms.get(roomId);
+        }
+
+        return null;
+    }
+
+    @Override
+    public void storeEndToEndSession(OlmSession session, String deviceKey) {
+        if (!TextUtils.isEmpty(deviceKey) && (null != session)) {
+            HashMap<String, OlmSession> subMap = mOlmSessions.get(deviceKey);
+
+            if (null == subMap) {
+                subMap = new HashMap<>();
+                mOlmSessions.put(deviceKey, subMap);
+            }
+
+            subMap.put(session.sessionIdentifier(), session);
+        }
+    }
+
+    @Override
+    public Map<String, OlmSession> endToEndSessionsWithDevice(String deviceKey) {
+        if (!TextUtils.isEmpty(deviceKey)) {
+            return mOlmSessions.get(deviceKey);
+        }
+
+        return null;
+    }
+
+    @Override
+    public void storeEndToEndInboundGroupSession(MXOlmInboundGroupSession session) {
+        // TODO : not yet implemented
+    }
+
+    @Override
+    public MXOlmInboundGroupSession endToEndInboundGroupSessionWithId(String sessionId, String senderKey) {
+        // TODO : not yet implemented
+        return null;
     }
 }

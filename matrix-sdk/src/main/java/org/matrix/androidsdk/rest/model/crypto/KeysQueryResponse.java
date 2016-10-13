@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.rest.model.crypto;
 
-import org.matrix.androidsdk.crypto.DeviceInfo;
+import org.matrix.androidsdk.crypto.MXDeviceInfo;
 
 import java.util.Map;
 
@@ -27,5 +27,5 @@ public class KeysQueryResponse {
     /**
      * The device keys per devices per users.
      */
-    public Map<String, Map<String, DeviceInfo>> deviceKeys;
+    public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
 }
