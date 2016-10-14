@@ -20,6 +20,7 @@ import android.text.TextUtils;
 
 import java.io.Serializable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,7 +61,7 @@ public class MXDeviceInfo implements Serializable {
      * The signature of this MXDeviceInfo.
      * A map from <key type>:<device_id> -> <base64-encoded key>>.
      */
-    public Map<String, String> signatures;
+    public Map<String, Map<String, String>> signatures;
 
     /*
      * Additional data from the homeserver.
@@ -71,7 +72,7 @@ public class MXDeviceInfo implements Serializable {
     /**
      Verification state of this device.
      */
-    private int mVerified = DEVICE_VERIFICATION_UNVERIFIED;
+    public int mVerified = DEVICE_VERIFICATION_UNVERIFIED;
 
     /**
      * Constructor
@@ -113,4 +114,59 @@ public class MXDeviceInfo implements Serializable {
 
         return null;
     }
+
+    /**
+     * @return the signed data map
+     */
+    public Map<String, Object> signalableJSONDictionary() {
+        HashMap<String, Object> map = new HashMap<>();
+
+        map.put("device_id", deviceId);
+
+        if (null != userId) {
+            map.put("user_id", userId);
+        }
+
+        if (null != algorithms) {
+            map.put("algorithms", algorithms);
+        }
+
+        if (null != keys) {
+            map.put("keys", keys);
+        }
+
+        return map;
+    }
+
+    /**
+     * @return a dictionnary of the parameters
+     */
+    public Map<String, Object>JSONDictionary() {
+        HashMap<String, Object> JSONDictionary = new HashMap<>();
+
+        JSONDictionary.put("device_id", deviceId);
+
+        if (null != userId) {
+            JSONDictionary.put("user_id", userId);
+        }
+
+        if (null != algorithms) {
+            JSONDictionary.put("algorithms", algorithms);
+        }
+        if (_keys)
+        {
+            JSONDictionary[@"keys"] = _keys;
+        }
+        if (_signatures)
+        {
+            JSONDictionary[@"signatures"] = _signatures;
+        }
+        if (_unsignedData)
+        {
+            JSONDictionary[@"unsigned"] = _unsignedData;
+        }
+
+        return JSONDictionary;
+    }
+
 }

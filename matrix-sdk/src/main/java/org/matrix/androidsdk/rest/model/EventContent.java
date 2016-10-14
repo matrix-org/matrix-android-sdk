@@ -35,7 +35,12 @@ public class EventContent implements java.io.Serializable {
     public String membership;
 
     /**
-     *
+     * the third party invite
      */
     public RoomThirdPartyInvite third_party_invite;
+
+    /*
+     * e2e encryption format
+    */
+    public String algorithm;
 }

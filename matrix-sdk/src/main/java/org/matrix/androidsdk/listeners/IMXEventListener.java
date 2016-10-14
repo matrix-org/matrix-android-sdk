@@ -153,4 +153,10 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     void onRoomTagEvent(String roomId);
+
+    /**
+     * An event was sent to the current device.
+     * @param event the event
+     */
+    void onToDeviceEvent(Event event);
 }

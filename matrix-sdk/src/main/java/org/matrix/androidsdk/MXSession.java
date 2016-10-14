@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
@@ -371,6 +372,11 @@ public class MXSession {
     public PushersRestClient getPushersRestClient() {
         checkIfAlive();
         return mPushersRestClient;
+    }
+
+    public CryptoRestClient getCryptoRestClient() {
+        checkIfAlive();
+        return mCryptoRestClient;
     }
 
     public HomeserverConnectionConfig getHomeserverConfig() {
@@ -1239,5 +1245,41 @@ public class MXSession {
      */
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
+    }
+
+    //==============================================================================================================
+    // Crypto
+    //==============================================================================================================
+
+    /**
+     * The module that manages E2E encryption.
+     * Null if the feature is not enabled
+     */
+    private MXCrypto mCrypto;
+
+    /**
+     * @return true if the crypto is enabled
+     */
+    public boolean isCryptoEnabled() {
+        return null != mCrypto;
+    }
+
+    /**
+     * Enable / disable the crypto
+     * @param cryptoEnabled
+     */
+    public void setCryptoEnabled(boolean cryptoEnabled) {
+        if (cryptoEnabled != isCryptoEnabled()) {
+            if (cryptoEnabled) {
+                Log.d(LOG_TAG, "Crypto is enabled");
+                mCrypto = new MXCrypto(this);
+            } else {
+                Log.d(LOG_TAG, "Crypto is disabled");
+                mCrypto = null;
+                //@TODO: Reset crypto store and release memory
+            }
+
+            mDataHandler.setCrypto(mCrypto);
+        }
     }
 }

@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
@@ -112,6 +113,9 @@ public class MXDataHandler implements IMXEventListener {
 
     private final InvalidTokenListener mInvalidTokenListener;
 
+    // e2e decoder
+    private MXCrypto mCrypto;
+
     /**
      * Default constructor.
      * @param store the data storage implementation.
@@ -160,6 +164,14 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
+    }
+
+    public MXCrypto getCrypto() {
+        return mCrypto;
+    }
+
+    public void setCrypto(MXCrypto crypto) {
+        mCrypto = crypto;
     }
 
     /**
@@ -951,6 +963,14 @@ public class MXDataHandler implements IMXEventListener {
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
+            // Handle direct messages to device
+            if ((null != syncResponse.toDevice) && (null != syncResponse.toDevice.events)) {
+                for (Event toDeviceEvent : syncResponse.toDevice.events) {
+                    handleToDeviceEvent(toDeviceEvent);
+                }
+            }
+
+
             if (!isEmptyResponse) {
                 getStore().setEventStreamToken(syncResponse.nextBatch);
                 getStore().commit();
@@ -989,6 +1009,18 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         mUpdatedRoomIdList.clear();
+    }
+
+    /**
+     * Handle a 'toDevice' event
+     * @param event the event
+     */
+    private void handleToDeviceEvent(Event event) {
+        if (TextUtils.equals(event.type, Event.EVENT_TYPE_MESSAGE) && (null != event.content) && TextUtils.equals(JsonUtils.getMessageMsgType(event.content), "m.bad.encrypted")) {
+            Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.content);
+        } else {
+            onToDeviceEvent(event);
+        }
     }
 
     //================================================================================
@@ -1370,6 +1402,24 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getLocalizedMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onToDeviceEvent(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onToDeviceEvent(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getLocalizedMessage());
                     }
                 }
             }

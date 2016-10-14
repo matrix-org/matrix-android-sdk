@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.text.DateFormat;
@@ -59,11 +60,14 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_MESSAGE_ENCRYPTED = "m.room.encrypted";
+    public static final String EVENT_TYPE_MESSAGE_ENCRYPTION = "m.room.encryption";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
     public static final String EVENT_TYPE_TAGS = "m.tag";
+    public static final String EVENT_TYPE_NEW_DEVICE = "m.new_device";
+    public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
@@ -263,11 +267,49 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * @return the event type
+     */
+    public String getType() {
+        if (null != mClearEvent) {
+            return mClearEvent.type;
+        } else {
+            return type;
+        }
+    }
+
+    /**
+     * @return the wire event type
+     */
+    public String getWireType() {
+        return type;
+    }
+
+    /**
+     * @return the event content
+     */
+    public JsonElement getContent() {
+        if (null != mClearEvent) {
+            return mClearEvent.content;
+        } else {
+            return content;
+        }
+    }
+
+    /**
+     * @return the wired event content
+     */
+    public JsonElement getWireContent() {
+        return content;
+    }
+
+    /**
      * @return the content casted as JsonObject.
      */
-    public JsonObject getContentAsJsonObject() {
-        if ((null != content) && content.isJsonObject()) {
-            return content.getAsJsonObject();
+    public JsonObject getContentAsJsonObject2() {
+        JsonElement cont = getContent();
+
+        if ((null != cont) && cont.isJsonObject()) {
+            return cont.getAsJsonObject();
         }
         return null;
     }
@@ -294,8 +336,18 @@ public class Event implements java.io.Serializable {
      * @return the content formatted as EventContent.
      */
     public EventContent getEventContent() {
-        if (null != content) {
-            return JsonUtils.toEventContent(content);
+        if (null != getContent()) {
+            return JsonUtils.toEventContent(getContent());
+        }
+        return null;
+    }
+
+    /**
+     * @return the content formatted as EventContent.
+     */
+    public EventContent getWireEventContent() {
+        if (null != getWireContent()) {
+            return JsonUtils.toEventContent(getWireContent());
         }
         return null;
     }
@@ -769,6 +821,53 @@ public class Event implements java.io.Serializable {
                 }
 
             }
+        }
+    }
+
+    //==============================================================================================================
+    // Crypto
+    //==============================================================================================================
+
+    /**
+     * For encrypted events, the plaintext payload for the event.
+     * This is a small MXEvent instance with typically value for `type` and 'content' fields.
+     */
+    public transient Event mClearEvent;
+
+    /**
+     * The keys that must have been owned by the sender of this encrypted event.
+     * @discussion
+     * These don't necessarily have to come from this event itself, but may be
+     * implied by the cryptographic session.
+     */
+    public transient Map<String, String> mKeysProved;
+
+    /**
+     * The additional keys the sender of this encrypted event claims to possess.
+     * @discussion
+     * These don't necessarily have to come from this event itself, but may be
+     * implied by the cryptographic session.
+     * For example megolm messages don't claim keys directly, but instead
+     * inherit a claim from the olm message that established the session.
+     * The keys that must have been owned by the sender of this encrypted event.
+     */
+    public transient Map<String, String> mKeysClaimed;
+
+    /**
+     True if this event is encrypted.
+     */
+    public boolean isEncrypted() {
+        return (null != mClearEvent) && !TextUtils.isEmpty(mClearEvent.type);
+    }
+
+    /**
+     * The curve25519 key that sent this event.
+     */
+    public String senderKey() {
+        if (null != mKeysProved) {
+            return  mKeysProved.get("curve25519");
+        } else {
+            return null;
         }
     }
 }

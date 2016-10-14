@@ -45,11 +45,6 @@ public class MXOlmDevice {
     // Ed25519 key for the account.
     private String mDeviceEd25519Key;
 
-
-
-/**
- The olm library version.
- */
     private String olmVersion;
 
     // The store where crypto data is saved.
@@ -104,6 +99,27 @@ public class MXOlmDevice {
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
         }
+    }
+
+    /**
+     * Release the instance
+     */
+    public void release() {
+        mOlmAccount.releaseAccount();
+    }
+
+    /**
+     * @return the Curve25519 key for the account.
+     */
+    public String getDeviceCurve25519Key() {
+        return mDeviceCurve25519Key;
+    }
+
+    /**
+     * @return the Ed25519 key for the account.
+     */
+    public String getDeviceEd25519Key() {
+        return mDeviceEd25519Key;
     }
 
     /**

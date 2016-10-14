@@ -16,35 +16,15 @@
 
 package org.matrix.androidsdk.rest.model.Sync;
 
-import java.util.Map;
+import org.matrix.androidsdk.rest.model.Event;
 
-// SyncResponse represents the request response for server sync v2.
-public class SyncResponse implements java.io.Serializable {
+import java.util.List;
 
-    /**
-     * The user private data.
-     */
-    public Map<String, Object> accountData;
+// ToDeviceSyncResponse represents the data directly sent to one of user's devices.
+public class ToDeviceSyncResponse implements java.io.Serializable {
 
     /**
-     * The opaque token for the end.
+     * List of direct-to-device events.
      */
-    public String nextBatch;
-
-    /**
-     * The updates to the presence status of other users.
-     */
-    public PresenceSyncResponse presence;
-
-    /*
-     * Data directly sent to one of user's devices.
-     */
-    public ToDeviceSyncResponse toDevice;
-
-    /**
-     * List of rooms.
-     */
-    public RoomsSyncResponse rooms;
-
-
+    public List<Event> events;
 }

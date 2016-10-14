@@ -14,30 +14,31 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.crypto.algorithms;
+package org.matrix.androidsdk.crypto.data;
 
-import com.google.gson.JsonElement;
+import java.io.Serializable;
 
-import java.util.Map;
-
-/**
- * This class represents the decryption result.
- */
-public class MXDecryptionResult {
-    /**
-     * The decrypted payload (with properties 'type', 'content')
-     */
-    public JsonElement mPayload;
+public class MXOlmSessionResult implements Serializable {
+    public static final String LOG_TAG = "MXOlmSessionResult";
 
     /**
-     * keys that the sender of the event claims ownership of:
-     * map from key type to base64-encoded key.
+     * the device
      */
-    public Map<String, String> mKeysClaimed;
+    public MXDeviceInfo mDevice;
 
     /**
-     * The keys that the sender of the event is known to have ownership of:
-     * map from key type to base64-encoded key.
+     * Base64 olm session id.
+     * null if no session could be established.
      */
-    public Map<String, String> mKeysProved;
+    public String mSessionId;
+
+    /**
+     * Constructor
+     * @param device the device
+     * @param sessionId the olm session id
+     */
+    public MXOlmSessionResult(MXDeviceInfo device, String sessionId) {
+        mDevice = device;
+        mSessionId = sessionId;
+    }
 }

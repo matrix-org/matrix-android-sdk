@@ -834,6 +834,15 @@ public class EventTimeline {
                     }
                 }
 
+                // Decrypt event if necessary
+                if (TextUtils.equals(event.type, Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                    if (null != mDataHandler.getCrypto()) {
+                        event.mClearEvent = mDataHandler.getCrypto().decryptEvent(event);
+                    } else {
+                        event.mClearEvent = null;
+                    }
+                }
+
                 storeLiveRoomEvent(event, checkRedactedStateEvent);
 
                 // warn the listeners
@@ -948,6 +957,15 @@ public class EventTimeline {
             if (event.stateKey != null) {
                 deepCopyState(direction);
                 processedEvent = processStateEvent(event, direction);
+            }
+
+            // Decrypt event if necessary
+            if (TextUtils.equals(event.type, Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                if (null != mDataHandler.getCrypto()) {
+                    event.mClearEvent = mDataHandler.getCrypto().decryptEvent(event);
+                } else {
+                    event.mClearEvent = null;
+                }
             }
 
             if (processedEvent) {

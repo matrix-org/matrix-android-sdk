@@ -14,30 +14,32 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.crypto.algorithms;
+package org.matrix.androidsdk.crypto.data;
 
 import com.google.gson.JsonElement;
 
-import java.util.Map;
+import java.io.Serializable;
 
-/**
- * This class represents the decryption result.
- */
-public class MXDecryptionResult {
-    /**
-     * The decrypted payload (with properties 'type', 'content')
-     */
-    public JsonElement mPayload;
+public class MXEncryptEventContentResult implements Serializable {
+    public static final String LOG_TAG = "MXEncryptEventContentResult";
 
     /**
-     * keys that the sender of the event claims ownership of:
-     * map from key type to base64-encoded key.
+     * The event content
      */
-    public Map<String, String> mKeysClaimed;
+    public JsonElement mEventContent;
 
     /**
-     * The keys that the sender of the event is known to have ownership of:
-     * map from key type to base64-encoded key.
+     * the event type
      */
-    public Map<String, String> mKeysProved;
+    public String mEventType;
+
+    /**
+     * Constructor
+     * @param eventContent the eventContent
+     * @param eventType the eventType
+     */
+    public MXEncryptEventContentResult(JsonElement eventContent, String eventType) {
+        mEventContent = eventContent;
+        mEventType = eventType;
+    }
 }

@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
@@ -124,6 +125,10 @@ public class JsonUtils {
         return (JsonObject) gson.toJsonTree(message);
     }
 
+    public static Event toEvent(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, Event.class);
+    }
+
     public static EventContent toEventContent(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, EventContent.class);
     }
@@ -162,5 +167,9 @@ public class JsonUtils {
 
     public static JsonObject toJson(Event event) {
         return (JsonObject) gson.toJsonTree(event);
+    }
+
+    public static NewDeviceContent toNewDeviceContent(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, NewDeviceContent.class);
     }
 }
