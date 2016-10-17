@@ -58,7 +58,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param deviceId he explicit device_id to use for upload (default is to use the same as that used during auth).
      * @param callback the asynchronous callback
      */
-    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, Object> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
+    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, MXKey> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
         final String description = "uploadKeys";
 
         String encodedDeviceId = null;

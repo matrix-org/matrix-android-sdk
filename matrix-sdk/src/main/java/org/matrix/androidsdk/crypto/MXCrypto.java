@@ -224,7 +224,35 @@ public class MXCrypto {
                     // Ask olm to generate new one time keys, then upload them to synapse.
                     mOlmDevice.generateOneTimeKeys(numberToGenerate);
 
-                    uploadOneTimeKeys(callback);
+                    uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+                        @Override
+                        public void onSuccess(KeysUploadResponse info) {
+                            if (null != callback) {
+                                callback.onSuccess(null);
+                            }
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            if (null != callback) {
+                                callback.onMatrixError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
                 } else {
                     // If we don't need to generate any keys then we are done.
                     if (null != callback) {
@@ -498,7 +526,7 @@ public class MXCrypto {
      * @param algorithm the encryption config for the room.
      * @return true if the operation succeeds.
      */
-    public boolean setEncryptionInRoo(String roomId, String algorithm) {
+    public boolean setEncryptionInRoom(String roomId, String algorithm) {
         IMXStore store = mSession.getDataHandler().getStore();
 
         // If we already have encryption in this room, we should ignore this event
@@ -551,7 +579,7 @@ public class MXCrypto {
      * @param users a list of user ids.
      * @param callback the asynchronous callback
      */
-    public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult> callback) {
+    public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
         ArrayList<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
 
         final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>(null);
@@ -564,7 +592,7 @@ public class MXCrypto {
                     for (MXDeviceInfo device : devices) {
                         String key = device.identityKey();
 
-                        if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key()) {
+                        if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key())) {
                             // Don't bother setting up session to ourself
                             continue;
                         }
@@ -826,7 +854,7 @@ public class MXCrypto {
         HashMap<String, Object> res = new HashMap<>();
 
         res.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
-        res.put("sender_key", mOlmDevice.getDeviceCurve25519Key();
+        res.put("sender_key", mOlmDevice.getDeviceCurve25519Key());
         res.put("ciphertext", ciphertext);
 
         return res;
@@ -1060,86 +1088,86 @@ public class MXCrypto {
 
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
-        mSession.getCryptoRestClient().uploadKeys(mMyDevice.J);
-        return [mxSession.matrixRestClient uploadKeys:myDevice.JSONDictionary oneTimeKeys:nil forDevice:myDevice.deviceId success:success failure:failure];
-    }
-    }
+        mSession.getCryptoRestClient().uploadKeys(mMyDevice.JSONDictionary(), null, mMyDevice.deviceId, callback);
+      }
 
     /**
      * Upload my user's one time keys.
+     * @param callback the asynchronous callback
      */
-    private void uploadOneTimeKeys(ApiCallback<>:(void (^)(MXKeysUploadResponse *keysUploadResponse))success failure:(void (^)(NSError *))failure
-    {
-        NSDictionary *oneTimeKeys = _olmDevice.oneTimeKeys;
-        NSMutableDictionary *oneTimeJson = [NSMutableDictionary dictionary];
+    private void uploadOneTimeKeys(ApiCallback<KeysUploadResponse> callback) {
+        Map<String, Map<String, MXKey>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
+        HashMap<String, MXKey> oneTimeJson = new HashMap<>();
 
-        for (NSString *keyId in oneTimeKeys[@"curve25519"])
-        {
-            oneTimeJson[[NSString stringWithFormat:@"curve25519:%@", keyId]] = oneTimeKeys[@"curve25519"][keyId];
+        Map<String, MXKey> curve25519Map = oneTimeKeys.get("curve25519");
+
+        if (null != curve25519Map) {
+            for(String key_id : curve25519Map.keySet()) {
+                oneTimeJson.put("curve25519:" + key_id, curve25519Map.get(key_id));
+            }
         }
 
         // @TODO: Mark the keys?
 
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
-        return [mxSession.matrixRestClient uploadKeys:nil oneTimeKeys:oneTimeJson forDevice:myDevice.deviceId success:success failure:^(NSError *error) {
-        NSLog(@"[MXCrypto] uploadOneTimeKeys fails. Reason: %@", error);
-        failure(error);
-    }];
+        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, callback);
     }
 
-/**
- Validate device keys.
+    /**
+     * Validate device keys.
+     * @param deviceKeys the device keys to validate.
+     * @param userId the id of the user of the device.
+     * @param previouslyStoredDeviceKeys the device keys we received before for this device
+     * @return true if succeeds
+     */
+    private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, MXDeviceInfo previouslyStoredDeviceKeys) {
 
- @param the device keys to validate.
- @param the id of the user of the device.
- @param previouslyStoredDeviceKeys the device keys we received before for this device
- @return YES if valid.
- */
-    - (BOOL)validateDeviceKeys:(MXDeviceInfo*)deviceKeys forUser:(NSString*)userId previouslyStoredDeviceKeys:(MXDeviceInfo*)previouslyStoredDeviceKeys
-    {
-        if (!deviceKeys.keys)
-        {
+        if ((null == deviceKeys) || (null == deviceKeys.keys)) {
             // no keys?
-            return NO;
+            return false;
         }
 
-        NSString *signKeyId = [NSString stringWithFormat:@"ed25519:%@", deviceKeys.deviceId];
-        NSString* signKey = deviceKeys.keys[signKeyId];
-        if (!signKey)
-        {
-            NSLog(@"[MXCrypto] validateDeviceKeys: Device %@:%@ has no ed25519 key", userId, deviceKeys.deviceId);
-            return NO;
+        String signKeyId = "ed25519:" + deviceKeys.deviceId;
+        String signKey = deviceKeys.keys.get(signKeyId);
+
+        if (null == signKey) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no ed25519 key");
+            return false;
         }
 
-        NSString *signature = deviceKeys.signatures[userId][signKeyId];
-        if (!signature)
-        {
-            NSLog(@"[MXCrypto] validateDeviceKeys: Device %@:%@ is not signed", userId, deviceKeys.deviceId);
-            return NO;
+        Map<String, String> signatureMap = deviceKeys.signatures.get(userId);
+
+        if (null == signatureMap) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no map for " + userId);
+            return false;
         }
 
-        NSError *error;
-        if (![_olmDevice verifySignature:signKey JSON:deviceKeys.signalableJSONDictionary signature:signature error:&error])
-        {
-            NSLog(@"[MXCrypto] validateDeviceKeys: Unable to verify signature on device %@:%@", userId, deviceKeys.deviceId);
-            return NO;
+        String signature = signatureMap.get(signKeyId);
+
+        if (null == signature) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " is not signed");
+            return false;
         }
 
-        if (previouslyStoredDeviceKeys)
-        {
-            if (![previouslyStoredDeviceKeys.fingerprint isEqualToString:signKey])
-            {
+
+        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature)) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " );
+            return false;
+        }
+
+        if (null != previouslyStoredDeviceKeys) {
+            if (! TextUtils.equals(previouslyStoredDeviceKeys.fingerprint(), signKey)) {
                 // This should only happen if the list has been MITMed; we are
                 // best off sticking with the original keys.
                 //
                 // Should we warn the user about it somehow?
-                NSLog(@"[MXCrypto] validateDeviceKeys: WARNING:Ed25519 key for device %@:%@ has changed", userId, deviceKeys.deviceId);
-                return NO;
+                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed");
+                return false;
             }
         }
 
-        return YES;
+        return true;
     }
 
 }
