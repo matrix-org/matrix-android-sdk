@@ -17,14 +17,10 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
-import android.text.style.TextAppearanceSpan;
 import android.util.Log;
-import android.view.TextureView;
 
 import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
@@ -47,15 +43,11 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmMessage;
-import org.matrix.olm.OlmSession;
 
 import java.lang.reflect.Constructor;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +67,7 @@ public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
 
     // The Matrix session.
-    private MXSession mSession;
+    private final MXSession mSession;
 
     // EncryptionAlgorithm instance for each room.
     private HashMap<String, IMXEncrypting> mRoomAlgorithms;
@@ -86,7 +78,7 @@ public class MXCrypto {
     // The libolm wrapper.
     private MXOlmDevice mOlmDevice;
 
-    private MXEventListener mEventListener = new MXEventListener() {
+    private final MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onInitialSyncComplete() {
             onInitialSyncCompleted();
@@ -296,7 +288,7 @@ public class MXCrypto {
      * @param forceDownload Always download the keys even if cached.
      * @param callback the asynchronous callback
      */
-    public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
+    private void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         // Map from userid -> deviceid -> DeviceInfo
         final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>(null);
 
@@ -402,7 +394,7 @@ public class MXCrypto {
      * @param userId the user to list keys for.
      * @return the list of devices.
      */
-    public List<MXDeviceInfo> storedDevicesForUser(String userId) {
+    private List<MXDeviceInfo> storedDevicesForUser(String userId) {
         Map<String, MXDeviceInfo> map = mSession.getDataHandler().getStore().endToEndDevicesForUser(userId);
 
         if (null == map) {
@@ -419,7 +411,7 @@ public class MXCrypto {
      * @param senderKey the curve25519 key to match.
      * @return the device info.
      */
-    public MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
+    private MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
         if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
             // We only deal in olm keys
             return null;
@@ -526,7 +518,7 @@ public class MXCrypto {
      * @param algorithm the encryption config for the room.
      * @return true if the operation succeeds.
      */
-    public boolean setEncryptionInRoom(String roomId, String algorithm) {
+    private boolean setEncryptionInRoom(String roomId, String algorithm) {
         IMXStore store = mSession.getDataHandler().getStore();
 
         // If we already have encryption in this room, we should ignore this event
@@ -569,10 +561,9 @@ public class MXCrypto {
      * @param roomId the room id
      * @return true if the room is encrypted
      */
-    private boolean isRoomEncrypted(String roomId) {
+    public boolean isRoomEncrypted(String roomId) {
         return !TextUtils.isEmpty(roomId) && mRoomAlgorithms.containsKey(roomId);
     }
-
 
     /**
      * Try to make sure we have established olm sessions for the given users.
@@ -1122,7 +1113,6 @@ public class MXCrypto {
      * @return true if succeeds
      */
     private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, MXDeviceInfo previouslyStoredDeviceKeys) {
-
         if ((null == deviceKeys) || (null == deviceKeys.keys)) {
             // no keys?
             return false;

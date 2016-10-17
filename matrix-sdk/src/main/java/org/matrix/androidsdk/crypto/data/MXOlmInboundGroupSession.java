@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.crypto.algorithms.data;
+package org.matrix.androidsdk.crypto.data;
 
 import java.io.Serializable;
 

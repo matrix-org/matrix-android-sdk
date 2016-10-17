@@ -449,6 +449,10 @@ public class MXSession {
 
         mLatestChatMessageCache.clearCache(context);
         mMediasCache.clear();
+
+        if (null != mCrypto) {
+            mCrypto.close();
+        }
     }
 
     /**

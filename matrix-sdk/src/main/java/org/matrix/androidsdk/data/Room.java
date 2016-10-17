@@ -34,6 +34,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -1853,10 +1854,41 @@ public class Room {
 
         event.mSentState = Event.SentState.SENDING;
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+        if (isEncrypted()) {
+            // Encrypt the content before sending
+            mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
+                @Override
+                public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                    mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+            if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+            } else {
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+            }
         }
     }
 
@@ -1942,7 +1974,6 @@ public class Room {
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
         mDataHandler.getDataRetriever().getRoomsRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
     }
-
 
     //================================================================================
     // Member actions
@@ -2135,4 +2166,59 @@ public class Room {
         kick(userId, callback);
     }
 
+    //================================================================================
+    // Encryption
+    //================================================================================
+
+    /**
+     * @return if the room content is encrypted
+     */
+    public boolean isEncrypted() {
+        return (null != mDataHandler.getCrypto()) && mDataHandler.getCrypto().isRoomEncrypted(getRoomId());
+    }
+
+    /**
+     * Enable the encryption.
+     * @param algorithm the used algorithm
+     * @param callback the asynchronous callback
+     */
+    public void enableEncryptionWithAlgorithm(final String algorithm, final ApiCallback<Void> callback) {
+        // ensure that the crypto has been update
+        if (null != mDataHandler.getCrypto() && !TextUtils.isEmpty(algorithm)) {
+
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("algorithm", algorithm);
+
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, params, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+
+        }
+    }
 }
