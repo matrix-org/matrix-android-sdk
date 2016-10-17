@@ -1122,7 +1122,7 @@ public class MXMemoryStore implements IMXStore {
 
                         if ((null == eventId) || !TextUtils.equals(event.eventId, eventId)) {
                             // Keep events matching filters
-                            if ((null == allowedTypes || (allowedTypes.indexOf(event.type) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
+                            if ((null == allowedTypes || (allowedTypes.indexOf(event.getType()) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
                                 events.add(event);
                             }
                         } else {
@@ -1136,7 +1136,7 @@ public class MXMemoryStore implements IMXStore {
                     for(int index = 0; index < events.size(); index++) {
                         Event event = events.get(index);
 
-                        if (TextUtils.equals(event.getSender(), mCredentials.userId) || TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                        if (TextUtils.equals(event.getSender(), mCredentials.userId) || TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
                             events.remove(index);
                             index--;
                         }

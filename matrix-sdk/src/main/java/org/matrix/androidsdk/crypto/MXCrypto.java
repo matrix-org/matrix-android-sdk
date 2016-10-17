@@ -99,9 +99,9 @@ public class MXCrypto {
 
         @Override
         public void onLiveEvent(Event event, RoomState roomState) {
-            if (TextUtils.equals(event.type, Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
+            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
-            } else if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
                 onRoomMembership(event);
             }
         }
@@ -950,9 +950,9 @@ public class MXCrypto {
      * @param event the event
      */
     private void onToDeviceEvent(Event event) {
-        if (TextUtils.equals(event.type, Event.EVENT_TYPE_ROOM_KEY)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY)) {
             onRoomKeyEvent(event);
-        } else if (TextUtils.equals(event.type, Event.EVENT_TYPE_NEW_DEVICE)) {
+        } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_NEW_DEVICE)) {
             onNewDeviceEvent(event);
         }
     }
@@ -995,7 +995,7 @@ public class MXCrypto {
      */
     private void onNewDeviceEvent(Event event) {
         final String userId = event.sender;
-        final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.content);
+        final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
 
         if ((null == newDeviceContent.rooms) || (null == newDeviceContent.deviceId)) {
             Log.e(LOG_TAG, "## onNewDeviceEvent() : new_device event missing keys");

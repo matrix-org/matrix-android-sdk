@@ -86,7 +86,7 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the event can be summarized
      */
     public static boolean isSupportedEvent(Event event) {
-        String type = event.type;
+        String type = event.getType();
         boolean isSupported = false;
 
         // check if the msgtype is supported

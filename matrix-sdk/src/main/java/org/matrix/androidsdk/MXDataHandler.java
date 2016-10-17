@@ -817,8 +817,8 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void handlePresenceEvent(Event presenceEvent) {
         // Presence event
-        if (Event.EVENT_TYPE_PRESENCE.equals(presenceEvent.type)) {
-            User userPresence = JsonUtils.toUser(presenceEvent.content);
+        if (Event.EVENT_TYPE_PRESENCE.equals(presenceEvent.getType())) {
+            User userPresence = JsonUtils.toUser(presenceEvent.getContent());
 
             // use the sender by default
             if (!TextUtils.isEmpty(presenceEvent.getSender())) {
@@ -1016,8 +1016,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param event the event
      */
     private void handleToDeviceEvent(Event event) {
-        if (TextUtils.equals(event.type, Event.EVENT_TYPE_MESSAGE) && (null != event.content) && TextUtils.equals(JsonUtils.getMessageMsgType(event.content), "m.bad.encrypted")) {
-            Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.content);
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
+            Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {
             onToDeviceEvent(event);
         }
@@ -1104,8 +1104,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
-        //
-        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, event.type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, event.type)) {
+        String type = event.getType();
+
+        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
             if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
                 mUpdatedRoomIdList.add(roomState.roomId);
             }

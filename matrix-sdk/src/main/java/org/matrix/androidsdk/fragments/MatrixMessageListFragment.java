@@ -750,7 +750,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         Event redacterEvent = new Event();
                         redacterEvent.roomId = redactedEvent.roomId;
                         redacterEvent.redacts = redactedEvent.eventId;
-                        redacterEvent.type = Event.EVENT_TYPE_REDACTION;
+                        redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
                         onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
 
@@ -794,7 +794,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @return true it is supported.
      */
     private boolean canAddEvent(Event event) {
-        String type = event.type;
+        String type = event.getType();
 
         return mDisplayAllEvents ||
                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
@@ -1091,7 +1091,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         message.url = contentUri;
 
                         // update the event content with the new message info
-                        messageRow.getEvent().content = JsonUtils.toJson(message);
+                        messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1263,7 +1263,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             message.url = contentUri;
 
                             // update the event content with the new message info
-                            videoRow.getEvent().content = JsonUtils.toJson(message);
+                            videoRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1374,7 +1374,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
 
                         // update the event content with the new message info
-                        imageRow.getEvent().content = JsonUtils.toJson(message);
+                        imageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1470,7 +1470,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         message.thumbnail_url = contentUri;
 
                         // update the event content with the new message info
-                        locationRow.getEvent().content = JsonUtils.toJson(message);
+                        locationRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1584,7 +1584,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mPendingRelaunchTimersByEventId.remove(event.eventId);
 
         // send it again
-        final Message message = JsonUtils.toMessage(event.content);
+        final Message message = JsonUtils.toMessage(event.getContent());
 
         // resend an image ?
         if (message instanceof ImageMessage) {
@@ -2002,7 +2002,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                    if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
                         MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
 
                         if (null != messageRow) {
@@ -2031,7 +2031,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             mAdapter.notifyDataSetChanged();
                         }
-                    } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                    } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
                         if (null != mRoom) {
                             mAdapter.setTypingUsers(mRoom.getTypingUsers());
                         }
@@ -2520,7 +2520,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             boolean isValidMessage = false;
 
-            if ((null != searchResult.result) && (null != searchResult.result.content)) {
+            if ((null != searchResult.result) && (null != searchResult.result.getContent())) {
                 JsonObject object = searchResult.result.getContentAsJsonObject();
 
                 if (null != object) {

@@ -239,8 +239,8 @@ public class BingRulesManager {
                     // some rules have no condition
                     // so their ruleId defines the method
                     if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
-                        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-                            Message message = JsonUtils.toMessage(event.content);
+                        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                            Message message = JsonUtils.toMessage(event.getContent());
                             MyUser myUser =  mSession.getMyUser();
                             String pattern = myUser.displayname;
 

@@ -29,8 +29,8 @@ public class ContainsDisplayNameCondition extends Condition {
     }
 
     public boolean isSatisfied(Event event, String myDisplayName) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            Message msg = JsonUtils.toMessage(event.content);
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+            Message msg = JsonUtils.toMessage(event.getContent());
 
             if (null != msg) {
                 return EventUtils.caseInsensitiveFind(myDisplayName, msg.body);

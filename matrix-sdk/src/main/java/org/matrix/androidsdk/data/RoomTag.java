@@ -65,7 +65,7 @@ public class RoomTag implements java.io.Serializable {
         HashMap<String, RoomTag> tags = new HashMap<>();
 
         try {
-            RoomTags roomtags = JsonUtils.toRoomTags(event.content);
+            RoomTags roomtags = JsonUtils.toRoomTags(event.getContent());
 
             if ((null != roomtags.tags) && (0 != roomtags.tags.size())) {
                 for (String tagName : roomtags.tags.keySet()) {

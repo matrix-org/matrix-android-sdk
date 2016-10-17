@@ -278,6 +278,15 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * Update the event type
+     * @param aType the new type
+     */
+    public void setType(String aType) {
+        // TODO manage encryption
+        type = aType;
+    }
+
+    /**
      * @return the wire event type
      */
     public String getWireType() {
@@ -305,7 +314,7 @@ public class Event implements java.io.Serializable {
     /**
      * @return the content casted as JsonObject.
      */
-    public JsonObject getContentAsJsonObject2() {
+    public JsonObject getContentAsJsonObject() {
         JsonElement cont = getContent();
 
         if ((null != cont) && cont.isJsonObject()) {

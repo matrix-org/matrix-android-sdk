@@ -190,7 +190,7 @@ public class Room {
             event.roomId = getRoomId();
 
             try {
-                if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+                if (Event.EVENT_TYPE_RECEIPT.equals(event.getType())) {
                     if (event.roomId != null) {
                         List<String> senders = handleReceiptEvent(event);
 
@@ -198,7 +198,7 @@ public class Room {
                             mDataHandler.onReceiptEvent(event.roomId, senders);
                         }
                     }
-                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
@@ -962,7 +962,7 @@ public class Room {
             //              value dict key ts
             //                    dict value ts value
             Type type = new TypeToken<HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>>>(){}.getType();
-            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.content, type);
+            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.getContent(), type);
 
             for (String eventId : receiptsDict.keySet() ) {
                 HashMap<String, HashMap<String, HashMap<String, Object>>> receiptDict = receiptsDict.get(eventId);
@@ -1447,7 +1447,7 @@ public class Room {
             for (Event accountDataEvent : accountDataEvents) {
                 mAccountData.handleEvent(accountDataEvent);
 
-                if (accountDataEvent.type.equals(Event.EVENT_TYPE_TAGS)) {
+                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                     mDataHandler.onRoomTagEvent(getRoomId());
                 }
             }
@@ -1575,7 +1575,7 @@ public class Room {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
                 if (TextUtils.equals(getRoomId(), event.roomId) && mIsReady) {
 
-                    if (TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)) {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_TYPING)) {
                         // Typing notifications events are not room messages nor room state events
                         // They are just volatile information
 
@@ -1853,10 +1853,10 @@ public class Room {
 
         event.mSentState = Event.SentState.SENDING;
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
+        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
         }
     }
 

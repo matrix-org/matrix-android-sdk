@@ -229,7 +229,7 @@ public class MXChromeCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.loadUrl("javascript:receivedAnswer(" + event.content.toString() + ")");
+                    mWebView.loadUrl("javascript:receivedAnswer(" + event.getContent().toString() + ")");
                 }
             });
         }
@@ -244,7 +244,7 @@ public class MXChromeCall extends MXCall {
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.loadUrl("javascript:onHangupReceived(" + event.content.toString() + ")");
+                    mWebView.loadUrl("javascript:onHangupReceived(" + event.getContent().toString() + ")");
 
                     mWebView.post(new Runnable() {
                         @Override
@@ -303,19 +303,21 @@ public class MXChromeCall extends MXCall {
      * @param event the call event.
      */
     @Override
-    public void handleCallEvent(Event event){
+    public void handleCallEvent(Event event) {
+        String eventType = event.getType();
+
         if (event.isCallEvent()) {
             // event from other member
             if (!TextUtils.equals(event.getSender(), mSession.getMyUserId())) {
-                if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
+                if (Event.EVENT_TYPE_CALL_ANSWER.equals(eventType) && !mIsIncoming) {
                     onCallAnswer(event);
-                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(eventType)) {
                     JsonArray candidates = event.getContentAsJsonObject().getAsJsonArray("candidates");
                     addCandidates(candidates);
-                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)) {
                     onCallHangup(event);
                 }
-            } else if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_CALL_INVITE.equals(eventType)) {
                 // server echo : assume that the other device is ringing
                 mCallWebAppInterface.mCallState = IMXCall.CALL_STATE_RINGING;
 
@@ -327,7 +329,7 @@ public class MXChromeCall extends MXCall {
                     }
                 });
 
-            } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(eventType)) {
                 // check if the call has not been answer in another device
                 mUIThreadHandler.post(new Runnable() {
                     @Override
@@ -588,7 +590,7 @@ public class MXChromeCall extends MXCall {
                             try {
                                 Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                if (TextUtils.equals(lastEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                     JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
                                     JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();

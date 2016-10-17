@@ -769,10 +769,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         int viewType;
+        String eventType = event.getType();
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+        if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
 
-            String msgType = JsonUtils.getMessageMsgType(event.content);
+            String msgType = JsonUtils.getMessageMsgType(event.getContent());
 
             if (Message.MSGTYPE_TEXT.equals(msgType)) {
                 viewType = ROW_TYPE_TEXT;
@@ -790,21 +791,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // Default is to display the body as text
                 viewType = ROW_TYPE_TEXT;
             }
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
             viewType = ROW_TYPE_TEXT;
         }
         else if (
                 event.isCallEvent() ||
-                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)
                 ) {
             viewType = ROW_TYPE_NOTICE;
 
         } else {
-            throw new RuntimeException("Unknown event type: " + event.type);
+            throw new RuntimeException("Unknown event type: " +eventType);
         }
 
         if (null != eventId) {
@@ -1055,7 +1056,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the avatar must be displayed on right side.
      */
     protected boolean isAvatarDisplayedOnRightSide(Event event) {
-        return mSession.getMyUserId().equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+        return mSession.getMyUserId().equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.getType());
     }
 
     /**
@@ -1079,7 +1080,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         boolean res = true;
 
         // user profile update should not be merged
-        if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
 
             EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
             EventContent prevEventContent = event.getPrevContent();
@@ -1158,13 +1159,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textView.setVisibility(View.GONE);
             }
             else {
+                String eventType = event.getType();
+
                 // theses events are managed like notice ones
                 // but they are dedicated behaviour i.e the sender must not be displayed
                 if (event.isCallEvent() ||
-                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)
                             ) {
                     textView.setVisibility(View.GONE);
                 } else {
@@ -1610,7 +1613,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event event = row.getEvent();
-        Message message = JsonUtils.toMessage(event.content);
+        Message message = JsonUtils.toMessage(event.getContent());
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, event, roomState);
@@ -1983,7 +1986,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int waterMarkResourceId = -1;
 
         if (type == ROW_TYPE_IMAGE) {
-            ImageMessage imageMessage = JsonUtils.toImageMessage(event.content);
+            ImageMessage imageMessage = JsonUtils.toImageMessage(event.getContent());
 
             if ("image/gif".equals(imageMessage.getMimeType())) {
                 waterMarkResourceId = R.drawable.filetype_gif;
@@ -1991,7 +1994,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             message = imageMessage;
 
         } else {
-            message = JsonUtils.toVideoMessage(event.content);
+            message = JsonUtils.toVideoMessage(event.getContent());
             waterMarkResourceId = R.drawable.filetype_video;
         }
 
@@ -2121,7 +2124,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        Message message = JsonUtils.toMessage(event.content);
+        Message message = JsonUtils.toMessage(event.getContent());
         String userDisplayName = roomState.getMemberName(event.getSender());
 
         String body = "* " + userDisplayName +  " " + message.body;
@@ -2253,7 +2256,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessageRow row = getItem(position);
         Event event = row.getEvent();
 
-        final FileMessage fileMessage = JsonUtils.toFileMessage(event.content);
+        final FileMessage fileMessage = JsonUtils.toFileMessage(event.getContent());
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
 
         if (null == fileTextView) {
@@ -2391,27 +2394,29 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the event is managed.
      */
     private boolean isDisplayableEvent(Event event, RoomState roomState) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+        String eventType = event.getType();
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
             // A message is displayable as long as it has a body
-            Message message = JsonUtils.toMessage(event.content);
+            Message message = JsonUtils.toMessage(event.getContent());
             return (message.body != null) && (!message.body.equals(""));
-        } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
-                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)
+                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
         } else if (event.isCallEvent()) {
-            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
-                    Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
-                    Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
+            return Event.EVENT_TYPE_CALL_INVITE.equals(eventType) ||
+                    Event.EVENT_TYPE_CALL_ANSWER.equals(eventType) ||
+                    Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)
                     ;
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
-        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
             return true;
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
             return true;
         }
         return false;
