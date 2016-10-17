@@ -16,6 +16,10 @@
 
 package org.matrix.androidsdk.crypto.data;
 
+import android.util.Log;
+
+import org.matrix.olm.OlmInboundGroupSession;
+
 import java.io.Serializable;
 
 import java.util.Map;
@@ -30,7 +34,7 @@ public class MXOlmInboundGroupSession implements Serializable {
     private static final String LOG_TAG = "OlmInboundGroupSession";
 
     // The associated olm inbound group session.
-    // private OlmInboundGroupSession mSession;
+    public OlmInboundGroupSession mSession;
 
     // The room in which this session is used.
     public String mRoomId;
@@ -46,8 +50,10 @@ public class MXOlmInboundGroupSession implements Serializable {
      * @param sessionKey
      */
     public MXOlmInboundGroupSession(String sessionKey) {
-        // TODO add OlmInboundGroupSession creation
-        // _session  = [[OLMInboundGroupSession alloc] initInboundGroupSessionWithSessionKey:sessionKey];
-        //
+        try {
+            mSession = new OlmInboundGroupSession(sessionKey);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
+        }
     }
 }

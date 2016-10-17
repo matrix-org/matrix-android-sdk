@@ -19,17 +19,21 @@ package org.matrix.androidsdk.crypto;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONObject;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmMessage;
+import org.matrix.olm.OlmOutboundGroupSession;
 import org.matrix.olm.OlmSession;
 
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,8 +65,7 @@ public class MXOlmDevice {
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
     // Plus, in cryptography, it is good to refresh sessions from time to time.
     // The key is the session id, the value the outbound group session.
-    // TODO not yet implemented
-    //NSMutableDictionary<NSString*, OLMOutboundGroupSession*> *outboundGroupSessionStore;
+    private HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
 
     /**
      * Constructor
@@ -85,8 +88,7 @@ public class MXOlmDevice {
         // TODO : not yet implemented
         //olmUtility = [[OLMUtility alloc] init];
 
-        // TODO : not yet implemented
-        //outboundGroupSessionStore = [NSMutableDictionary dictionary];
+        mOutboundGroupSessionStore = new HashMap<>();
 
         try {
             mDeviceCurve25519Key = mOlmAccount.identityKeys().getString(OlmAccount.JSON_KEY_IDENTITY_KEY);
@@ -126,9 +128,7 @@ public class MXOlmDevice {
      * The olm library version.
      */
     public String olmVersion() {
-        // TODO not yet implemented
-        //return OLMKitVersionString();
-        return null;
+        return olmVersion();
     }
 
     /**
@@ -225,7 +225,7 @@ public class MXOlmDevice {
         OlmSession olmSession = new OlmSession();
 
         if (null != olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext)) {
-            mOlmAccount.removeOneTimeKeysForSession(olmSession.getOlmSessionId());
+            mOlmAccount.removeOneTimeKeysForSession(olmSession);
             mStore.storeEndToEndAccount(mOlmAccount);
 
             OlmMessage olmMessage = new OlmMessage();
@@ -366,12 +366,13 @@ public class MXOlmDevice {
      * @return the session id for the outbound session.
      */
     public String createOutboundGroupSession() {
-        // @TODO not yet implemented
-
-        //OLMOutboundGroupSession *session = [[OLMOutboundGroupSession alloc] initOutboundGroupSession];
-        //outboundGroupSessionStore[session.sessionIdentifier] = session;
-
-        //return session.sessionIdentifier;
+        try {
+            OlmOutboundGroupSession session = new OlmOutboundGroupSession();
+            mOutboundGroupSessionStore.put(session.sessionIdentifier(), session);
+            return session.sessionIdentifier();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "createOutboundGroupSession " + e.getMessage());
+        }
         return null;
     }
 
@@ -381,8 +382,9 @@ public class MXOlmDevice {
      * @return the base64-encoded secret key.
      */
     public String sessionKeyForOutboundGroupSession(String sessionId) {
-        // @TODO not yet implemented
-        //return outboundGroupSessionStore[sessionId].sessionKey;
+        if (!TextUtils.isEmpty(sessionId)) {
+            return mOutboundGroupSessionStore.get(sessionId).sessionKey();
+        }
         return null;
     }
 
@@ -392,8 +394,9 @@ public class MXOlmDevice {
      * @return the current chain index.
      */
     public int messageIndexForOutboundGroupSession(String sessionId) {
-        // @TODO not yet implemented
-        //return outboundGroupSessionStore[sessionId].messageIndex;
+        if (!TextUtils.isEmpty(sessionId)) {
+            return mOutboundGroupSessionStore.get(sessionId).messageIndex();
+        }
         return 0;
     }
 
@@ -404,8 +407,9 @@ public class MXOlmDevice {
      * @return ciphertext
      */
     public String encryptGroupMessage(String sessionId, String payloadString) {
-        // @TODO not yet implemented
-        //return [outboundGroupSessionStore[sessionId] encryptMessage:payloadString];
+        if (!TextUtils.isEmpty(sessionId) && !TextUtils.isEmpty(payloadString)) {
+            return mOutboundGroupSessionStore.get(sessionId).encryptMessage(payloadString);
+        }
         return null;
     }
 
@@ -419,28 +423,28 @@ public class MXOlmDevice {
      * @param keysClaimed Other keys the sender claims.
      * @return true if the operation succeeds.
      */
-    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String>keysClaimed) {
-        // @TODO not yet implemented
-        /*MXOlmInboundGroupSession *session = [[MXOlmInboundGroupSession alloc] initWithSessionKey:sessionKey];
+    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
+        MXOlmInboundGroupSession session = new MXOlmInboundGroupSession(sessionKey);
 
-        if (![session.session.sessionIdentifier isEqualToString:sessionId])
-        {
-            NSLog(@"[MXOlmDevice] addInboundGroupSession: ERROR: Mismatched group session ID from senderKey: %@", senderKey);
-            return NO;
+        // sanity check
+        if ((null == session) || (null == session.mSession)) {
+            Log.e(LOG_TAG, "## addInboundGroupSession : invalid session");
+            return false;
         }
 
-        session.senderKey = senderKey;
-        session.roomId = roomId;
-        session.keysClaimed = keysClaimed;
-
-        [store storeEndToEndInboundGroupSession:session];
-        if ([store respondsToSelector:@selector(commit)])
-        {
-            [store commit];
+        if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
+            Log.e(LOG_TAG, "## addInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+            return false;
         }
 
-        return YES;*/
-        return false;
+        session.mSenderKey = senderKey;
+        session.mRoomId = roomId;
+        session.mKeysClaimed = keysClaimed;
+
+        mStore.storeEndToEndInboundGroupSession(session);
+        mStore.commit();
+
+        return true;
     }
 
     /**
@@ -453,41 +457,48 @@ public class MXOlmDevice {
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String sessionId, String senderKey) {
         MXDecryptionResult result = null;
-        // TODO not yet implemented
-        /*MXOlmInboundGroupSession *session = [store endToEndInboundGroupSessionWithId:sessionId andSenderKey:senderKey];
-        if (!session)
-        {
+        MXOlmInboundGroupSession session = mStore.endToEndInboundGroupSessionWithId(sessionId, senderKey);
+
+        if (null != session) {
             // Check that the room id matches the original one for the session. This stops
             // the HS pretending a message was targeting a different room.
-            if ([roomId isEqualToString:session.roomId])
-            {
-                NSString *payloadString = [session.session decryptMessage:body];
+            if (TextUtils.equals(roomId, session.mRoomId)) {
+                String payloadString = session.mSession.decryptMessage(body);
 
-                [store storeEndToEndInboundGroupSession:session];
-                if ([store respondsToSelector:@selector(commit)])
-                {
-                    [store commit];
+                mStore.storeEndToEndInboundGroupSession(session);
+                mStore.commit();
+
+                result = new MXDecryptionResult();
+
+                try {
+                    String urlEncoded = URLEncoder.encode(payloadString.toString(), "utf-8");
+                    JsonParser parser = new JsonParser();
+
+                    result.mPayload =  parser.parse(urlEncoded);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
+                    return null;
                 }
 
-                result = [[MXDecryptionResult alloc] init];
-                result.payload = [NSJSONSerialization JSONObjectWithData:[payloadString dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
-                result.keysClaimed = session.keysClaimed;
+                if (null == result.mPayload) {
+                    Log.e(LOG_TAG, "## decryptGroupMessage() : fails to parse the payload");
+                    return null;
+                }
+
+                result.mKeysClaimed = session.mKeysClaimed;
 
                 // The sender must have had the senderKey to persuade us to save the
                 // session.
-                result.keysProved = @{
-                @"curve25519": senderKey
-            };
-            }
-            else
-            {
-                NSLog(@"[MXOlmDevice] decryptGroupMessage: ERROR: Mismatched room_id for inbound group session (expected %@, was %@", roomId, session.roomId);
+                HashMap<String, String> map = new HashMap<>();
+                map.put("curve25519", senderKey);
+                result.mKeysProved = map;
+            } else {
+                Log.e(LOG_TAG, "## decryptGroupMessage() : Mismatched room_id for inbound group session (expected " + roomId + " , was " + session.mRoomId);
             }
         }
-        else
-        {
-            NSLog(@"[MXOlmDevice] decryptGroupMessage: ERROR: Cannot retrieve inbound group session %@", sessionId);
-        }*/
+        else {
+            Log.e(LOG_TAG, "## decryptGroupMessage() : Cannot retrieve inbound group session " + sessionId);
+        }
 
         return result;
     }
