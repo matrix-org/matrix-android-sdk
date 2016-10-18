@@ -163,6 +163,12 @@ public class MXCrypto {
         mMyDevice = null;
     }
 
+    /**
+     * @return teh olmdevice instance
+     */
+    public MXOlmDevice getOlmDevice() {
+        return mOlmDevice;
+    }
 
     /**
      * Upload the device keys to the homeserver and ensure
@@ -288,7 +294,7 @@ public class MXCrypto {
      * @param forceDownload Always download the keys even if cached.
      * @param callback the asynchronous callback
      */
-    private void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
+    public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         // Map from userid -> deviceid -> DeviceInfo
         final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>(null);
 
@@ -394,7 +400,7 @@ public class MXCrypto {
      * @param userId the user to list keys for.
      * @return the list of devices.
      */
-    private List<MXDeviceInfo> storedDevicesForUser(String userId) {
+    public List<MXDeviceInfo> storedDevicesForUser(String userId) {
         Map<String, MXDeviceInfo> map = mSession.getDataHandler().getStore().endToEndDevicesForUser(userId);
 
         if (null == map) {

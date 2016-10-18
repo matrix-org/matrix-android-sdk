@@ -140,4 +140,15 @@ public class MXUsersDevicesMap<E> implements Serializable {
             }
         }
     }
+
+    /**
+     * Removes objects for a dedicated user
+     * @param userId the user id.
+     */
+    public void removeObjectsForUser(String userId) {
+        if ((null != mMap) && !TextUtils.isEmpty(userId)) {
+            mMap.remove(userId);
+        }
+    }
+
 }

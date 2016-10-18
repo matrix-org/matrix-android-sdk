@@ -17,15 +17,19 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
+import org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption;
 
+import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class MXCryptoAlgorithms {
+
     private static final String LOG_TAG = "MXCryptoAlgorithms";
 
     /**
@@ -62,37 +66,31 @@ public class MXCryptoAlgorithms {
      * Constructor
      */
     private MXCryptoAlgorithms() {
+        // encryptos
         mEncryptors = new HashMap<>();
-        mDecryptors = new HashMap<>();
-    }
-
-    /**
-     *  Register encryption class for a particular algorithm.
-     * @param encryptor a class implementing 'IMXEncrypting'.
-     * @param algorithm the algorithm tag to register for.
-     */
-    public void registerEncryptorClass(Class<IMXEncrypting> encryptor, String algorithm) {
-        if (!TextUtils.isEmpty(algorithm)) {
-            if (null != encryptor) {
-                mEncryptors.put(algorithm, encryptor);
-            } else {
-                mEncryptors.remove(algorithm);
-            }
+        try {
+            mEncryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption"));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
         }
-    }
 
-    /**
-     * Register decryption class for a particular algorithm.
-     * @param decryptor a class implementing 'IMXDecrypting'.
-     * @param algorithm the algorithm tag to register for.
-     */
-    public void registerDecryptorClass(Class<IMXDecrypting> decryptor, String algorithm) {
-        if (!TextUtils.isEmpty(algorithm)) {
-            if (null != decryptor) {
-                mDecryptors.put(algorithm, decryptor);
-            } else {
-                mDecryptors.remove(algorithm);
-            }
+        try {
+            mEncryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmEncryption"));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
+        }
+
+        mDecryptors = new HashMap<>();
+        try {
+            mDecryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmDecryption"));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
+        }
+
+        try {
+            mDecryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmDecryption"));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
         }
     }
 

@@ -1262,6 +1262,13 @@ public class MXSession {
     private MXCrypto mCrypto;
 
     /**
+     * @return the crypto instance
+     */
+    public MXCrypto getCrypto() {
+        return mCrypto;
+    }
+
+    /**
      * @return true if the crypto is enabled
      */
     public boolean isCryptoEnabled() {
