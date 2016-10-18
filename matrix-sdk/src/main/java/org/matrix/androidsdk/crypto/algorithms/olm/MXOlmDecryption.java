@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -114,26 +115,74 @@ public class MXOlmDecryption implements IMXDecrypting {
      @return payload, if decrypted successfully.
      */
     private String decryptMessage(Map<String, Object>message, String theirDeviceIdentityKey) {
-        Set<String> sessionIds = mOlmDevice.sessionIdsForDevice(theirDeviceIdentityKey);
+        Set<String> sessionIdsSet =  mOlmDevice.sessionIdsForDevice(theirDeviceIdentityKey);
+
+        ArrayList<String> sessionIds;
+
+        if (null == sessionIdsSet) {
+            sessionIds = new ArrayList<>();
+        } else {
+            sessionIds = new ArrayList<>(sessionIdsSet);
+        }
+
+        String messageBody = (String)message.get("body");
+        Integer messageType = (Integer)message.get("type");
+        if ((null == messageBody) || (null == messageType)) {
+            return null;
+        }
 
         // Try each session in turn
+        // decryptionErrors = {};
         for (String sessionId : sessionIds) {
-            String payload = null;
-
-            try {
-                payload = mOlmDevice.decryptMessage((String) message.get("body"), (int) message.get("type"), sessionId, theirDeviceIdentityKey);
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## decryptMessage() : failed " + e.getMessage());
-            }
-
+            String payload = mOlmDevice.decryptMessage(messageBody, messageType, sessionId, theirDeviceIdentityKey);
 
             if (null != payload) {
-                Log.d(LOG_TAG, "## decryptMessage(): Decrypted Olm message from " + theirDeviceIdentityKey + "   with session" + sessionId);
+                Log.d(LOG_TAG, "## decryptMessage() : Decrypted Olm message from " + theirDeviceIdentityKey + " with session " + sessionId);
                 return payload;
             } else {
-                // @TODO
+                boolean foundSession = mOlmDevice.matchesSession(theirDeviceIdentityKey, sessionId, messageType, messageBody);
+
+                if (foundSession) {
+                    // Decryption failed, but it was a prekey message matching this
+                    // session, so it should have worked.
+                    Log.e(LOG_TAG, "## decryptMessage() : Error decrypting prekey message with existing session id " + sessionId + ":TODO");
+                    return null;
+                }
             }
         }
-        return null;
+
+        if (messageType != 0) {
+            // not a prekey message, so it should have matched an existing session, but it
+            // didn't work.
+
+            if (sessionIds.size() == 0) {
+                Log.e(LOG_TAG, "## decryptMessage() :  No existing sessions");
+            }
+
+            // @TODO
+//        throw new Error(
+//                        "Error decrypting non-prekey message with existing sessions: " +
+//                        JSON.stringify(decryptionErrors)
+//                        );
+
+            return null;
+        }
+
+        // prekey message which doesn't match any existing sessions: make a new
+        // session.
+        Map<String, String> res = mOlmDevice.createInboundSession(theirDeviceIdentityKey, messageType, messageBody);
+
+        if (null == res) {
+//        decryptionErrors["(new)"] = e.message;
+//        throw new Error(
+//                        "Error decrypting prekey message: " +
+//                        JSON.stringify(decryptionErrors)
+//                        );
+            return null;
+        }
+
+        Log.d(LOG_TAG, "## decryptMessage() :  Created new inbound Olm session get id " + res.get("session_id") + " with " +  theirDeviceIdentityKey);
+
+        return res.get("payload");
     }
 }

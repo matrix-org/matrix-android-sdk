@@ -1016,6 +1016,13 @@ public class MXDataHandler implements IMXEventListener {
      * @param event the event
      */
     private void handleToDeviceEvent(Event event) {
+        // Decrypt event if necessary
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+            if (null != getCrypto()) {
+                event.mClearEvent = getCrypto().decryptEvent(event);
+            }
+        }
+
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {

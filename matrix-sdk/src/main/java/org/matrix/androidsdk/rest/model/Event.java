@@ -849,7 +849,7 @@ public class Event implements java.io.Serializable {
      * These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      */
-    public transient Map<String, String> mKeysProved;
+    private transient Map<String, String> mKeysProved;
 
     /**
      * The additional keys the sender of this encrypted event claims to possess.
@@ -860,7 +860,7 @@ public class Event implements java.io.Serializable {
      * inherit a claim from the olm message that established the session.
      * The keys that must have been owned by the sender of this encrypted event.
      */
-    public transient Map<String, String> mKeysClaimed;
+    private transient Map<String, String> mKeysClaimed;
 
     /**
      True if this event is encrypted.
@@ -873,10 +873,57 @@ public class Event implements java.io.Serializable {
      * The curve25519 key that sent this event.
      */
     public String senderKey() {
-        if (null != mKeysProved) {
-            return  mKeysProved.get("curve25519");
+        if (null != getKeysProved()) {
+            return  getKeysProved().get("curve25519");
         } else {
             return null;
+        }
+    }
+
+    /**
+     * @return the keys proved
+     */
+    public Map<String, String> getKeysProved() {
+        if (null != mClearEvent) {
+            return mClearEvent.mKeysProved;
+        }
+
+        return mKeysProved;
+    }
+
+    /**
+     * Update the key proved
+     * @param keysProved the keys proved
+     */
+    public void setKeysProved(Map<String, String> keysProved) {
+        if (null != mClearEvent) {
+            mClearEvent.mKeysProved = keysProved;
+        } else {
+            mKeysProved = keysProved;
+        }
+    }
+
+
+    /**
+     * @return the keys claimed map
+     */
+    public Map<String, String> getKeysClaimed() {
+        if (null != mClearEvent) {
+            return mClearEvent.mKeysClaimed;
+        }
+
+        return mKeysClaimed;
+    }
+
+    /**
+     * Update tke ley claimed
+     * @param keysClaimed the new key claimed map
+     */
+    public void setKeysClaimed(Map<String, String> keysClaimed) {
+        if (null != mClearEvent) {
+            mClearEvent.mKeysClaimed = keysClaimed;
+        } else {
+            mKeysClaimed = keysClaimed;
         }
     }
 }

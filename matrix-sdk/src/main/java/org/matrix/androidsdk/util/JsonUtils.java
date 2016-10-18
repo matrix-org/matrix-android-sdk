@@ -18,6 +18,7 @@ package org.matrix.androidsdk.util;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -42,6 +43,9 @@ import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
 import java.lang.reflect.Modifier;
+import java.util.Map;
+import java.util.TreeSet;
+
 /**
  * Static methods for converting json into objects.
  */
@@ -172,4 +176,59 @@ public class JsonUtils {
     public static NewDeviceContent toNewDeviceContent(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, NewDeviceContent.class);
     }
+
+    /**
+     * Create a canonicalized json string for an object
+     * @param object the object to convert
+     * @return the canonicalized string
+     */
+    public static String getCanonicalizedJsonString(Object object) {
+        if (null != object) {
+            if (object instanceof JsonElement) {
+                return gson.toJson(canonicalize((JsonElement)object));
+            } else {
+                return gson.toJson(canonicalize(gson.toJsonTree(object)));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Canonicalize a JsonElement element
+     * @param src the src
+     * @return the canonicalize element
+     */
+    public static JsonElement canonicalize(JsonElement src) {
+        // sanity check
+        if (null == src) {
+            return null;
+        }
+
+        if (src instanceof JsonArray) {
+            // Canonicalize each element of the array
+            JsonArray srcArray = (JsonArray) src;
+            JsonArray result = new JsonArray();
+            for (int i = 0; i < srcArray.size(); i++) {
+                result.add(canonicalize(srcArray.get(i)));
+            }
+            return result;
+        } else if (src instanceof JsonObject) {
+            // Sort the attributes by name, and the canonicalize each element of the object
+            JsonObject srcObject = (JsonObject) src;
+            JsonObject result = new JsonObject();
+            TreeSet<String> attributes = new TreeSet<>();
+
+            for (Map.Entry<String, JsonElement> entry : srcObject.entrySet()) {
+                attributes.add(entry.getKey());
+            }
+            for (String attribute : attributes) {
+                result.add(attribute, canonicalize(srcObject.get(attribute)));
+            }
+            return result;
+        } else {
+            return src;
+        }
+    }
+
 }

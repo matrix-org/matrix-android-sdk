@@ -110,6 +110,6 @@ public class MXMegolmDecryption implements IMXDecrypting {
             return;
         }
 
-        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, event.senderKey(), event.mKeysClaimed);
+        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, event.senderKey(), event.getKeysClaimed());
     }
 }

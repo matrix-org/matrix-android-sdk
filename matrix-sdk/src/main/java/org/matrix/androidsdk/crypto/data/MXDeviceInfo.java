@@ -173,4 +173,9 @@ public class MXDeviceInfo implements Serializable {
 
         return JSONDictionary;
     }
+
+    @Override
+    public java.lang.String toString() {
+        return "MXDeviceInfo " + userId + ":" + deviceId;
+    }
 }

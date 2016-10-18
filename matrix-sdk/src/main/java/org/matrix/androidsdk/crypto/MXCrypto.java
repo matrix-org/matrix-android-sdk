@@ -67,7 +67,7 @@ public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
 
     // The Matrix session.
-    private final MXSession mSession;
+    private MXSession mSession;
 
     // EncryptionAlgorithm instance for each room.
     private HashMap<String, IMXEncrypting> mRoomAlgorithms;
@@ -77,6 +77,8 @@ public class MXCrypto {
 
     // The libolm wrapper.
     private MXOlmDevice mOlmDevice;
+
+    private Map<String, Map<String, MXKey>> mLastPublishedOneTimeKeys;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -143,9 +145,33 @@ public class MXCrypto {
 
         mSession.getDataHandler().addListener(mEventListener);
 
-        // map from userId -> deviceId -> roomId -> timestamp
-        // @TODO this._lastNewDeviceMessageTsByUserDeviceRoom = {};
+        uploadKeys(1, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "###########################################################");
+                Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
+                Log.d(LOG_TAG, "   - device id  : " +  mSession.getCredentials().deviceId);
+                Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
+                Log.d(LOG_TAG, "");
+            }
 
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+            }
+        });
     }
 
     /**
@@ -176,7 +202,7 @@ public class MXCrypto {
      * @param maxKeys The maximum number of keys to generate.
      * @param callback the asynchronous callback
      */
-    public void uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
+    public void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
         uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
 
             @Override
@@ -503,7 +529,7 @@ public class MXCrypto {
         // fingerprint of the purported sending device.
         //
         // (see https://github.com/vector-im/vector-web/issues/2215)
-        String claimedKey = (null != event.mKeysClaimed) ? event.mKeysClaimed.get("ed25519") : null;
+        String claimedKey = (null != event.getKeysClaimed()) ? event.getKeysClaimed().get("ed25519") : null;
 
         if (TextUtils.isEmpty(claimedKey)) {
             Log.e(LOG_TAG, "## eventSenderDeviceOfEvent (): Event " + event.eventId + " claims no ed25519 key. Cannot verify sending device");
@@ -633,9 +659,13 @@ public class MXCrypto {
         //
         // That should eventually resolve itself, but it's poor form.
 
+        Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : " + usersDevicesToClaim);
+
         mSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesToClaim, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXKey> oneTimeKeys) {
+                Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
+
                 if ((null != oneTimeKeys) && (null != oneTimeKeys.userIds())) {
                     ArrayList<String> userIds = new ArrayList<>(oneTimeKeys.userIds());
 
@@ -789,8 +819,8 @@ public class MXCrypto {
 
         if ((null != result) && (null != result.mPayload)) {
             clearedEvent = JsonUtils.toEvent(result.mPayload);
-            clearedEvent.mKeysProved = result.mKeysProved;
-            clearedEvent.mKeysClaimed = result.mKeysClaimed;
+            clearedEvent.setKeysProved(result.mKeysProved);
+            clearedEvent.setKeysClaimed(result.mKeysClaimed);
         } else {
             // @TODO: Manage error
             Log.e(LOG_TAG, "## decryptEvent() : failed");
@@ -837,7 +867,7 @@ public class MXCrypto {
             return null;
         }
 
-        HashMap<String, String> ciphertext = new HashMap<>();
+        HashMap<String, Object> ciphertext = new HashMap<>();
 
         for (String deviceKey : participantKeys) {
             String sessionId = mOlmDevice.sessionIdForDevice(deviceKey);
@@ -918,28 +948,30 @@ public class MXCrypto {
             contentMap.setObjects(map, userId);
         }
 
-        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                store.storeEndToEndDeviceAnnounced();
-                store.commit();
-            }
+        if (contentMap.userIds().size() > 0) {
+            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    store.storeEndToEndDeviceAnnounced();
+                    store.commit();
+                }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
-            }
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
+                }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getLocalizedMessage());
-            }
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getLocalizedMessage());
+                }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
-            }
-        });
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
+                }
+            });
+        }
     }
 
     /**
@@ -1092,8 +1124,8 @@ public class MXCrypto {
      * Upload my user's one time keys.
      * @param callback the asynchronous callback
      */
-    private void uploadOneTimeKeys(ApiCallback<KeysUploadResponse> callback) {
-        Map<String, Map<String, MXKey>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
+    private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
+        final Map<String, Map<String, MXKey>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
         HashMap<String, MXKey> oneTimeJson = new HashMap<>();
 
         Map<String, MXKey> curve25519Map = oneTimeKeys.get("curve25519");
@@ -1104,11 +1136,40 @@ public class MXCrypto {
             }
         }
 
-        // @TODO: Mark the keys?
-
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
-        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, callback);
+        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+            @Override
+            public void onSuccess(KeysUploadResponse info) {
+                mLastPublishedOneTimeKeys = oneTimeKeys;
+                mOlmDevice.markKeysAsPublished();
+
+                if (null != callback) {
+                    callback.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**
@@ -1146,9 +1207,8 @@ public class MXCrypto {
             return false;
         }
 
-
         if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " );
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId);
             return false;
         }
 

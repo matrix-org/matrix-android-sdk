@@ -147,8 +147,7 @@ public class MXOlmDevice {
      * @return the base64-encoded signature
      */
     public String signJSON(Map<String, Object> JSONDictinary) {
-        // @TODO: sign on canonical
-        return signMessage(JSONDictinary.toString());
+        return signMessage(JsonUtils.getCanonicalizedJsonString(JSONDictinary));
     }
 
     /**
@@ -202,11 +201,15 @@ public class MXOlmDevice {
      * @return the session id for the outbound session. @TODO OLMSession?
      */
     public String createOutboundSession(String theirIdentityKey, String theirOneTimeKey) {
+        Log.d(LOG_TAG, "## createOutboundSession() ; theirIdentityKey " + theirIdentityKey + " theirOneTimeKey " + theirOneTimeKey);
+
         OlmSession olmSession =  new OlmSession();
         olmSession.initOutboundSessionWithAccount(mOlmAccount, theirOneTimeKey, theirOneTimeKey);
 
         mStore.storeEndToEndSession(olmSession, theirIdentityKey);
         mStore.commit();
+
+        Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
 
         return olmSession.sessionIdentifier();
     }
@@ -222,11 +225,20 @@ public class MXOlmDevice {
      * @TODO @raises {Error} if the received message was not valid (for instance, it didn't use a valid one-time key).
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
+
+        Log.d(LOG_TAG, "## createInboundSession() : " + theirDeviceIdentityKey);
+
         OlmSession olmSession = new OlmSession();
 
-        if (null != olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext)) {
+        if (olmSession == olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext)) {
+
+            Log.d(LOG_TAG, "## createInboundSession() : " + olmSession.sessionIdentifier());
+
             mOlmAccount.removeOneTimeKeysForSession(olmSession);
             mStore.storeEndToEndAccount(mOlmAccount);
+
+            Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " +  ciphertext);
+            //Log.d(LOG_TAG, "## createInboundSession() :ciphertext: SHA256: %@", [olmUtility sha256:[ciphertext dataUsingEncoding:NSUTF8StringEncoding]]);
 
             OlmMessage olmMessage = new OlmMessage();
             olmMessage.mCipherText = ciphertext;
@@ -292,23 +304,30 @@ public class MXOlmDevice {
      * @param payloadString the payload to be encrypted and sent
      * @return the cipher text
      */
-    public String encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
-        String ciphertext = null;
-
+    public Map<String, Object> encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
+        HashMap<String, Object> res = null;
+        OlmMessage olmMessage;
         OlmSession olmSession = sessionForDevice(theirDeviceIdentityKey, sessionId);
 
         if (null != olmSession) {
-            OlmMessage olmMessage = olmSession.encryptMessage(payloadString);
+            Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
+            Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
 
-            if (null != olmMessage) {
-                ciphertext = olmMessage.mCipherText;
-            }
+            olmMessage = olmSession.encryptMessage(payloadString);
 
             mStore.storeEndToEndSession(olmSession, theirDeviceIdentityKey);
             mStore.commit();
+
+            Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
+            //Log.d(LOG_TAG, "## encryptMessage() : ciphertext: SHA256: ", [olmUtility sha256:[olmMessage.ciphertext dataUsingEncoding:NSUTF8StringEncoding]]);
+
+            res = new HashMap<>();
+
+            res.put("body", olmMessage.mCipherText);
+            res.put("type", olmMessage.mType);
         }
 
-        return ciphertext;
+        return res;
     }
 
     /**
@@ -516,7 +535,7 @@ public class MXOlmDevice {
      */
     public boolean verifySignature(String key, String message, String signature) {
         // TODO not yet implemented
-        //return [olmUtility ed25519Verify:key message:message signature:signature error:error];
+       // return [olmUtility verifyEd25519Signature:signature key:key message:[message dataUsingEncoding:NSUTF8StringEncoding] error:error];
         return true;
     }
 
@@ -525,14 +544,18 @@ public class MXOlmDevice {
      * @param key the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
      * @param signature the base64-encoded signature to be checked.
-     * @param the result error if there is a problem with the verification.
      * // TODO add exception
      * @return true if valid.
      */
 
     public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) {
         // @TODO: sign on canonical
-        return verifySignature(key, JSONDictinary.toString(), signature);
+        // Check signature on the canonical version of the JSON
+       /* NSData *canonicalJSONData = [NSJSONSerialization dataWithJSONObject:[JSONDictinary objectWithSortedKeys] options:0 error:error];
+
+        return [olmUtility verifyEd25519Signature:signature key:key message:canonicalJSONData error:error];*/
+
+        return true;
     }
 
 

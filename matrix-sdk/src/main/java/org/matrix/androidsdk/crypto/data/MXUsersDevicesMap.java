@@ -151,4 +151,12 @@ public class MXUsersDevicesMap<E> implements Serializable {
         }
     }
 
+    @Override
+    public java.lang.String toString() {
+        if (null != mMap) {
+            return "MXUsersDevicesMap " + mMap.toString();
+        } else {
+            return "MXDeviceInfo : null map";
+        }
+    }
 }
