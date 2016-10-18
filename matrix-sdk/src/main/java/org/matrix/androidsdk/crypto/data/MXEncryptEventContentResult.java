@@ -21,17 +21,17 @@ import com.google.gson.JsonElement;
 import java.io.Serializable;
 
 public class MXEncryptEventContentResult implements Serializable {
-    public static final String LOG_TAG = "MXEncryptEventContentResult";
+    //public static final String LOG_TAG = "MXEncryptEventContentResult";
 
     /**
      * The event content
      */
-    public JsonElement mEventContent;
+    public final JsonElement mEventContent;
 
     /**
      * the event type
      */
-    public String mEventType;
+    public final String mEventType;
 
     /**
      * Constructor

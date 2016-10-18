@@ -24,8 +24,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
-import java.util.Map;
-
 /**
  * An interface for encrypting data
  */

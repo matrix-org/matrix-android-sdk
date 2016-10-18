@@ -26,7 +26,7 @@ import java.util.Map;
 
 public class MXDeviceInfo implements Serializable {
     //
-    private static final String LOG_TAG = "MXDeviceInfo";
+    //private static final String LOG_TAG = "MXDeviceInfo";
 
     // The user has not yet verified this device.
     public static final int DEVICE_VERIFICATION_UNVERIFIED = 0;

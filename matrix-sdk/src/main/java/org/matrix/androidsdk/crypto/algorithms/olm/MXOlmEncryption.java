@@ -42,12 +42,12 @@ public class MXOlmEncryption implements IMXEncrypting {
     private MXCrypto mCrypto;
 
     // The id of the room we will be sending to.
-    private String mRoomId;
+   // private String mRoomId;
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
         mCrypto = matrixSession.getCrypto();
-        mRoomId = roomId;
+       // mRoomId = roomId;
     }
 
     @Override

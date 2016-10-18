@@ -40,7 +40,7 @@ import java.util.Set;
  * An interface for encrypting data
  */
 public class MXOlmDecryption implements IMXDecrypting {
-    private static String LOG_TAG = "MXOlmDecryption";
+    private static final String LOG_TAG = "MXOlmDecryption";
 
     // The olm device interface
     private MXOlmDevice mOlmDevice;

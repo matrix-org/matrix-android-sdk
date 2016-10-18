@@ -21,9 +21,7 @@ import android.util.Log;
 
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
-import org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption;
 
-import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,10 +41,10 @@ public class MXCryptoAlgorithms {
     public static final String MXCRYPTO_ALGORITHM_MEGOLM = "m.megolm.v1.aes-sha2";
 
     // encryptors map
-    private HashMap<String, Class<IMXEncrypting>> mEncryptors;
+    private final HashMap<String, Class<IMXEncrypting>> mEncryptors;
 
     // decryptors map
-    private HashMap<String, Class<IMXDecrypting>> mDecryptors;
+    private final HashMap<String, Class<IMXDecrypting>> mDecryptors;
 
     // shared instance
     private static MXCryptoAlgorithms mSharedInstance = null;

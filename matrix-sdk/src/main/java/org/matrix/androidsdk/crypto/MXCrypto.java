@@ -67,7 +67,7 @@ public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
 
     // The Matrix session.
-    private MXSession mSession;
+    private final MXSession mSession;
 
     // EncryptionAlgorithm instance for each room.
     private HashMap<String, IMXEncrypting> mRoomAlgorithms;
@@ -202,7 +202,7 @@ public class MXCrypto {
      * @param maxKeys The maximum number of keys to generate.
      * @param callback the asynchronous callback
      */
-    public void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
+    private void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
         uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
 
             @Override
@@ -1110,7 +1110,7 @@ public class MXCrypto {
         HashMap<String, String> submap = new HashMap<>();
         submap.put("ed25519:" + mMyDevice.deviceId,  signature);
 
-        HashMap<String, Map<String, String> > map = new HashMap();
+        HashMap<String, Map<String, String> > map = new HashMap<>();
         map.put(mSession.getMyUserId(), submap);
 
         mMyDevice.signatures = map;

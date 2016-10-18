@@ -20,8 +20,6 @@ import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 
-import java.util.Map;
-
 public class MXQueuedEncryption {
 
     /**

@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class MXOlmDevice {
-    public static final String LOG_TAG = "MXOlmDevice";
+    private static final String LOG_TAG = "MXOlmDevice";
 
     // Curve25519 key for the account.
     private String mDeviceCurve25519Key;
@@ -49,10 +49,8 @@ public class MXOlmDevice {
     // Ed25519 key for the account.
     private String mDeviceEd25519Key;
 
-    private String olmVersion;
-
     // The store where crypto data is saved.
-    private IMXStore mStore;
+    private final IMXStore mStore;
 
     // The OLMKit account instance.
     private OlmAccount mOlmAccount;
@@ -65,7 +63,7 @@ public class MXOlmDevice {
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
     // Plus, in cryptography, it is good to refresh sessions from time to time.
     // The key is the session id, the value the outbound group session.
-    private HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
+    private final HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
 
     /**
      * Constructor
@@ -128,7 +126,7 @@ public class MXOlmDevice {
      * The olm library version.
      */
     public String olmVersion() {
-        return olmVersion();
+        return "olmVersion";
     }
 
     /**
@@ -370,12 +368,7 @@ public class MXOlmDevice {
         }
 
         OlmSession olmSession = sessionForDevice(theirDeviceIdentityKey, sessionId);
-
-        if (null != olmSession) {
-            return olmSession.matchesInboundSession(ciphertext);
-        }
-
-        return false;
+        return (null != olmSession) && olmSession.matchesInboundSession(ciphertext);
     }
 
 
@@ -490,7 +483,7 @@ public class MXOlmDevice {
                 result = new MXDecryptionResult();
 
                 try {
-                    String urlEncoded = URLEncoder.encode(payloadString.toString(), "utf-8");
+                    String urlEncoded = URLEncoder.encode(payloadString, "utf-8");
                     JsonParser parser = new JsonParser();
 
                     result.mPayload =  parser.parse(urlEncoded);

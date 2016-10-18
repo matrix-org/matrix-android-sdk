@@ -29,7 +29,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
     private static final String LOG_TAG = "MXUsersDevicesMap";
 
     // The device keys as returned by the homeserver: a map of a map (userId -> deviceId -> Object).
-    private HashMap<String, HashMap<String, E>> mMap;
+    private final HashMap<String, HashMap<String, E>> mMap;
 
     /**
      * @return the inner map
@@ -58,7 +58,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @return a deep copy
      */
     public MXUsersDevicesMap<E> deepCopy() {
-        MXUsersDevicesMap copy = new MXUsersDevicesMap(null);
+        MXUsersDevicesMap<E> copy = new MXUsersDevicesMap<>(null);
 
         Set<String> keys = mMap.keySet();
 
@@ -136,7 +136,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
             if (null == objectsPerDevices) {
                 mMap.remove(userId);
             } else {
-                mMap.put(userId, new HashMap<String, E>(objectsPerDevices));
+                mMap.put(userId, new HashMap<>(objectsPerDevices));
             }
         }
     }

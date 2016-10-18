@@ -24,7 +24,7 @@ public class MXOlmSessionResult implements Serializable {
     /**
      * the device
      */
-    public MXDeviceInfo mDevice;
+    public final MXDeviceInfo mDevice;
 
     /**
      * Base64 olm session id.
