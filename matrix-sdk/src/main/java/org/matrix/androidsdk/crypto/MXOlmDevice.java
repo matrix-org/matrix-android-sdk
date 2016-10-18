@@ -29,9 +29,11 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
+import org.matrix.olm.OlmManager;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;
 import org.matrix.olm.OlmSession;
+import org.matrix.olm.OlmUtility;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -56,14 +58,16 @@ public class MXOlmDevice {
     private OlmAccount mOlmAccount;
 
     // The OLMKit utility instance.
-    // TODO not yet implemented
-    //OLMUtility *olmUtility;
+    private OlmUtility mOlmUtility;
 
     // The outbound group session.
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
     // Plus, in cryptography, it is good to refresh sessions from time to time.
     // The key is the session id, the value the outbound group session.
     private final HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
+
+    //
+    private static OlmManager mOlmManager = new OlmManager();
 
     /**
      * Constructor
@@ -83,8 +87,7 @@ public class MXOlmDevice {
             mStore.commit();
         }
 
-        // TODO : not yet implemented
-        //olmUtility = [[OLMUtility alloc] init];
+        mOlmUtility = new OlmUtility();
 
         mOutboundGroupSessionStore = new HashMap<>();
 
@@ -126,7 +129,7 @@ public class MXOlmDevice {
      * The olm library version.
      */
     public String olmVersion() {
-        return "olmVersion";
+        return mOlmManager.getOlmLibVersion();
     }
 
     /**
@@ -236,7 +239,11 @@ public class MXOlmDevice {
             mStore.storeEndToEndAccount(mOlmAccount);
 
             Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " +  ciphertext);
-            //Log.d(LOG_TAG, "## createInboundSession() :ciphertext: SHA256: %@", [olmUtility sha256:[ciphertext dataUsingEncoding:NSUTF8StringEncoding]]);
+            try {
+                Log.d(LOG_TAG, "## createInboundSession() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(ciphertext, "utf-8")));
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## createInboundSession() :ciphertext: cannot encode ciphertext");
+            }
 
             OlmMessage olmMessage = new OlmMessage();
             olmMessage.mCipherText = ciphertext;
@@ -317,7 +324,11 @@ public class MXOlmDevice {
             mStore.commit();
 
             Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
-            //Log.d(LOG_TAG, "## encryptMessage() : ciphertext: SHA256: ", [olmUtility sha256:[olmMessage.ciphertext dataUsingEncoding:NSUTF8StringEncoding]]);
+            try {
+                Log.d(LOG_TAG, "## encryptMessage() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(olmMessage.mCipherText, "utf-8")));
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## encryptMessage() :ciphertext: cannot encode olmMessage.ciphertext");
+            }
 
             res = new HashMap<>();
 
@@ -515,7 +526,6 @@ public class MXOlmDevice {
         return result;
     }
 
-
     //  Utilities
     /**
      * Verify an ed25519 signature on a JSON object.
@@ -523,13 +533,16 @@ public class MXOlmDevice {
      * @param message the message which was signed.
      * @param signature the base64-encoded signature to be checked.
      *
-     * // TODO add exception
      * @return true if valid.
      */
     public boolean verifySignature(String key, String message, String signature) {
-        // TODO not yet implemented
-       // return [olmUtility verifyEd25519Signature:signature key:key message:[message dataUsingEncoding:NSUTF8StringEncoding] error:error];
-        return true;
+        try {
+            return mOlmUtility.verifyEd25519Signature(signature, key,  URLEncoder.encode(message, "utf-8"), "");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## verifySignature() : failed " + e.getMessage());
+        }
+
+        return false;
     }
 
     /**
@@ -537,20 +550,13 @@ public class MXOlmDevice {
      * @param key the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
      * @param signature the base64-encoded signature to be checked.
-     * // TODO add exception
      * @return true if valid.
      */
 
     public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) {
-        // @TODO: sign on canonical
         // Check signature on the canonical version of the JSON
-       /* NSData *canonicalJSONData = [NSJSONSerialization dataWithJSONObject:[JSONDictinary objectWithSortedKeys] options:0 error:error];
-
-        return [olmUtility verifyEd25519Signature:signature key:key message:canonicalJSONData error:error];*/
-
-        return true;
+        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), "");
     }
-
 
     /**
      * Search an OlmSession
