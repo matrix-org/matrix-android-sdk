@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.MXOsHandler;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
@@ -119,7 +120,7 @@ public class MXFileStore extends MXMemoryStore {
 
     // the background thread
     private HandlerThread mHandlerThread = null;
-    private android.os.Handler mFileStoreHandler = null;
+    private MXOsHandler mFileStoreHandler = null;
 
     private boolean mIsKilled = false;
 
@@ -227,7 +228,7 @@ public class MXFileStore extends MXMemoryStore {
             mIsNewStorage = true;
             mIsOpening = true;
             mHandlerThread.start();
-            mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+            mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
 
             mMetadata = new MXFileStoreMetaData();
             mMetadata.mUserId = mCredentials.userId;
@@ -313,7 +314,7 @@ public class MXFileStore extends MXMemoryStore {
                         // already started
                         return;
                     }
-                    mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+                    mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
                 }
 
                 Runnable r = new Runnable() {

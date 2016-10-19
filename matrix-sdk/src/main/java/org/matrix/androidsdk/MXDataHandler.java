@@ -51,6 +51,7 @@ import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ public class MXDataHandler implements IMXEventListener {
     private MyUser mMyUser;
 
     private HandlerThread mSyncHandlerThread;
-    private final Handler mSyncHandler;
+    private final MXOsHandler mSyncHandler;
     private final Handler mUiHandler;
 
     // list of ignored users
@@ -128,7 +129,7 @@ public class MXDataHandler implements IMXEventListener {
 
         mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
         mSyncHandlerThread.start();
-        mSyncHandler = new Handler(mSyncHandlerThread.getLooper());
+        mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
 
         mInvalidTokenListener = invalidTokenListener;
     }
