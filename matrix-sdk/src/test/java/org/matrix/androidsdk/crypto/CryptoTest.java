@@ -85,7 +85,7 @@ public class CryptoTest {
     private MXSession mAliceSession;
 
 
-    private CountDownLatch mLock = new CountDownLatch(1);
+    private CountDownLatch mLock;
     private String password = null;
 
     @Test
@@ -113,11 +113,10 @@ public class CryptoTest {
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final HashMap<String, Object> params = new HashMap<>();
-
         mBobUserName = MXTESTS_BOB + System.currentTimeMillis();
-
         RegistrationParams registrationParams = new RegistrationParams();
 
+        mLock = new CountDownLatch(1);
         // get the registration session id
         loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
             @Override
@@ -169,6 +168,7 @@ public class CryptoTest {
 
         registrationParams.auth = authParams;
 
+        mLock = new CountDownLatch(1);
         loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
             @Override
             public void onSuccess(Credentials credentials) {
@@ -207,6 +207,11 @@ public class CryptoTest {
             }
         }), context);
 
+
+        mBobSession.getDataHandler().getStore().open();
+        mBobSession.startEventStream(null);
+
+        mLock = new CountDownLatch(1);
         mBobSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
@@ -215,7 +220,7 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
 
         assert (params.containsKey("isInit"));
     }

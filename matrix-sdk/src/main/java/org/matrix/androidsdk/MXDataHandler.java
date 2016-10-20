@@ -103,7 +103,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private HandlerThread mSyncHandlerThread;
     private final MXOsHandler mSyncHandler;
-    private final Handler mUiHandler;
+    private final MXOsHandler mUiHandler;
 
     // list of ignored users
     // null -> not initialized
@@ -125,7 +125,7 @@ public class MXDataHandler implements IMXEventListener {
         mStore = store;
         mCredentials = credentials;
 
-        mUiHandler = new Handler(Looper.getMainLooper());
+        mUiHandler = new MXOsHandler(Looper.getMainLooper());
 
         mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
         mSyncHandlerThread.start();
