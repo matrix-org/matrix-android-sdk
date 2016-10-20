@@ -84,7 +84,7 @@ public class CryptoTest {
     }
 
     @Test
-    public void createBobAccount() throws Exception {
+    public void createBobAccount2() throws Exception {
         Context context = RuntimeEnvironment.application;
         mBobUserName = MXTESTS_BOB + System.currentTimeMillis() + this.hashCode();
 
