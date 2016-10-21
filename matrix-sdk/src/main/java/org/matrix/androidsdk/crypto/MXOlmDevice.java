@@ -81,7 +81,10 @@ public class MXOlmDevice {
 
         if (null == mOlmAccount) {
             // Else, create it
-            mOlmAccount =  new OlmAccount();
+            try {
+                mOlmAccount = new OlmAccount();
+            } catch (Exception e) {
+            }
 
             mStore.storeEndToEndAccount(mOlmAccount);
             mStore.commit();
@@ -537,7 +540,8 @@ public class MXOlmDevice {
      */
     public boolean verifySignature(String key, String message, String signature) {
         try {
-            return mOlmUtility.verifyEd25519Signature(signature, key,  URLEncoder.encode(message, "utf-8"), "");
+            StringBuffer error = new StringBuffer();
+            return mOlmUtility.verifyEd25519Signature(signature, key,  URLEncoder.encode(message, "utf-8"), error);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## verifySignature() : failed " + e.getMessage());
         }
@@ -554,8 +558,10 @@ public class MXOlmDevice {
      */
 
     public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) {
+        StringBuffer error = new StringBuffer();
+
         // Check signature on the canonical version of the JSON
-        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), "");
+        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), error);
     }
 
     /**

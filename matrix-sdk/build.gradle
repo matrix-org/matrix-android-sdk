@@ -20,6 +20,7 @@ android {
         versionCode 603
         version "0.6.3-dev"
         versionName "0.6.3-dev"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
@@ -112,4 +113,10 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
+
+    testCompile 'junit:junit:4.12'
+    androidTestCompile 'junit:junit:4.12'
+    androidTestCompile 'com.android.support:support-annotations:21.0.0'
+    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestCompile 'com.android.support.test:rules:0.5'
 }

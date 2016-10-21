@@ -61,6 +61,8 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.UnsentEventsManager;
+import org.matrix.olm.OlmManager;
+import org.matrix.olm.OlmSession;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -120,6 +122,9 @@ public class MXSession {
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
     private boolean mIsCatchupPending = false;
+
+    // load the crypto libs.
+    public OlmManager mOlmManager = null;
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
@@ -1282,6 +1287,16 @@ public class MXSession {
     public void setCryptoEnabled(boolean cryptoEnabled) {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
+                if (null == mOlmManager) {
+                    try {
+                        // load the crypto lib
+                        mOlmManager = new OlmManager();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "setCryptoEnabled : cannot load the crypto lib " + e.getMessage());
+                        return;
+                    }
+                }
+
                 Log.d(LOG_TAG, "Crypto is enabled");
                 mCrypto = new MXCrypto(this);
             } else {
