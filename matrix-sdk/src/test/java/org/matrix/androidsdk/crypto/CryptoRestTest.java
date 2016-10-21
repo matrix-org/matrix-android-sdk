@@ -44,6 +44,7 @@ import org.robolectric.shadows.ShadowLooper;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -68,24 +69,20 @@ public class CryptoRestTest {
         MXOsHandler.mPostListener = new MXOsHandler.IPostListener() {
             @Override
             public void onPost(Looper looper) {
-                ShadowLooper shadowLooper = (ShadowLooper)ShadowExtractor.extract(looper);
+                ShadowLooper shadowLooper = (ShadowLooper) ShadowExtractor.extract(looper);
 
                 if (null != shadowLooper) {
                     shadowLooper.idle();
                 }
             }
         };
-
-        RestClient.mcallbackExecutor = new MXRestExecutor();
-        RestClient.mHttpExecutor = new MXRestExecutor();
     }
 
-    @Test
-    public void test01_createBobAccount() throws Exception {
+    public void createBobAccount() throws Exception {
         Context context = RuntimeEnvironment.application;
 
         mLock = new CountDownLatch(1);
-        TestsHelper.createAccountAndSync(context, MXTESTS_BOB + System.currentTimeMillis() + this.hashCode(), MXTESTS_BOB_PWD, new ApiCallback<MXSession>() {
+        TestsHelper.createAccountAndSync(context, MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, false, new ApiCallback<MXSession>() {
             @Override
             public void onSuccess(MXSession session) {
                 mBobSession = session;
@@ -112,12 +109,14 @@ public class CryptoRestTest {
         assert (null != mBobSession);
     }
 
-    @Test
-    public void test02_createAliceAccount() throws Exception {
+    public void createAliceAccount() throws Exception {
         Context context = RuntimeEnvironment.application;
 
+        RestClient.mcallbackExecutor = new MXRestExecutor();
+        RestClient.mHttpExecutor = new MXRestExecutor();
+
         mLock = new CountDownLatch(1);
-        TestsHelper.createAccountAndSync(context, MXTESTS_ALICE + System.currentTimeMillis() + this.hashCode(), MXTESTS_ALICE_PWD, new ApiCallback<MXSession>() {
+        TestsHelper.createAccountAndSync(context, MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, false, new ApiCallback<MXSession>() {
             @Override
             public void onSuccess(MXSession session) {
                 mAliceSession = session;
@@ -145,18 +144,19 @@ public class CryptoRestTest {
     }
 
     @Test
-    public void test03_testDeviceKeys() throws Exception {
-        assert (null != mBobSession);
+    public void test01_testDeviceKeys() throws Exception {
+        createBobAccount();
         final HashMap<String, Object> results = new HashMap<>();
 
         String ed25519key = "wV5E3EUSHpHuoZLljNzojlabjGdXT3Mz7rugG9zgbkI";
 
         MXDeviceInfo bobDevice = new MXDeviceInfo("dev1");
         bobDevice.userId = mBobSession.getMyUserId();
-        bobDevice.algorithms = Arrays.asList("1");
+        bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
         HashMap<String, String> keysMap = new HashMap();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
+        bobDevice.keys = keysMap;
 
         mLock = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new ApiCallback<KeysUploadResponse>() {
@@ -237,24 +237,14 @@ public class CryptoRestTest {
     }
 
     @Test
-    public void test04_testOneTimeKeys() throws Exception {
-        assert (null != mBobSession);
+    public void test02_testOneTimeKeys() throws Exception {
+        createBobAccount();
 
         final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, MXKey> otks = new HashMap<>();
+        final HashMap<String, String> otks = new HashMap<>();
 
-        MXKey mxkey1 = new MXKey();
-        mxkey1.type = "type1";
-        mxkey1.keyId = "keyId1";
-        mxkey1.value = "value1";
-
-        MXKey mxkey2 = new MXKey();
-        mxkey2.type = "type2";
-        mxkey2.keyId = "keyId2";
-        mxkey2.value = "value2";
-
-        otks.put("curve25519:AAAABQ", mxkey1);
-        otks.put("curve25519:AAAABA", mxkey2);
+        otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
+        otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
         mLock = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
@@ -292,25 +282,15 @@ public class CryptoRestTest {
     }
 
     @Test
-    public void test05_testClaimOneTimeKeysForUsersDevices() throws Exception {
-        assert (null != mBobSession);
-        assert (null != mAliceSession);
+    public void test03_testClaimOneTimeKeysForUsersDevices() throws Exception {
+        createBobAccount();
+        createAliceAccount();
 
         final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, MXKey> otks = new HashMap<>();
+        final HashMap<String, String> otks = new HashMap<>();
 
-        MXKey mxkey1 = new MXKey();
-        mxkey1.type = "type1";
-        mxkey1.keyId = "keyId1";
-        mxkey1.value = "value1";
-
-        MXKey mxkey2 = new MXKey();
-        mxkey2.type = "type2";
-        mxkey2.keyId = "keyId2";
-        mxkey2.value = "value2";
-
-        otks.put("curve25519:AAAABQ", mxkey1);
-        otks.put("curve25519:AAAABA", mxkey2);
+        otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
+        otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
         mLock = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {

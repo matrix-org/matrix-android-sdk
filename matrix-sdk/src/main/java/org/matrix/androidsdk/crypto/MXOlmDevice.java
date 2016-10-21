@@ -154,13 +154,13 @@ public class MXOlmDevice {
     /**
      * @return The current (unused, unpublished) one-time keys for this account.
      */
-    public Map<String, Map<String, MXKey>> oneTimeKeys() {
-        Map<String, Map<String, MXKey>> res = new HashMap<>();
+    public Map<String, Map<String, String>> oneTimeKeys() {
+        Map<String, Map<String, String>> res = new HashMap<>();
 
         JSONObject object = mOlmAccount.oneTimeKeys();
 
         if (null != object) {
-            res = JsonUtils.getGson(false).fromJson(object.toString(), new TypeToken<Map<String, Map<String, MXKey>>>() {}.getType());
+            res = JsonUtils.getGson(false).fromJson(object.toString(), new TypeToken<Map<String, Map<String, String>>>() {}.getType());
         }
 
         return res;

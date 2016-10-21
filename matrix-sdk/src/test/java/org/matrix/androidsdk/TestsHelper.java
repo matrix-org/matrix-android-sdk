@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
+import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -44,10 +45,14 @@ public class TestsHelper {
      * @param context the context
      * @param userName the account username
      * @param password the password
+     * @param startSession true to perform an initial sync
      * @param callback the callback
      * @throws Exception
      */
-    public static void createAccountAndSync(Context context, String userName, String password, ApiCallback<MXSession> callback) throws Exception {
+    public static void createAccountAndSync(Context context, String userName, String password, boolean startSession, ApiCallback<MXSession> callback) throws Exception {
+        RestClient.mcallbackExecutor = new MXRestExecutor();
+        RestClient.mHttpExecutor = new MXRestExecutor();
+
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
         HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
@@ -154,6 +159,11 @@ public class TestsHelper {
             }
         }), context);
 
+
+        if (!startSession) {
+            callback.onSuccess(mxSession);
+            return;
+        }
 
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);

@@ -89,7 +89,7 @@ public class CryptoTest {
         mBobUserName = MXTESTS_BOB + System.currentTimeMillis() + this.hashCode();
 
         mLock = new CountDownLatch(1);
-        TestsHelper.createAccountAndSync(context, mBobUserName, MXTESTS_BOB_PWD, new ApiCallback<MXSession>() {
+        TestsHelper.createAccountAndSync(context, mBobUserName, MXTESTS_BOB_PWD, false, new ApiCallback<MXSession>() {
             @Override
             public void onSuccess(MXSession session) {
                 mBobSession = session;

@@ -60,6 +60,7 @@ public class RestClient<T> {
     private static final int READ_TIMEOUT_MS = 60000;
 
     // let the user defines his own callbackExecutor
+    // It should only be used by the unitary tests
     public static Executor mcallbackExecutor = null;
     public static Executor mHttpExecutor = null;
 

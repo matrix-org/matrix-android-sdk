@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import retrofit.client.Response;
 
@@ -58,7 +59,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param deviceId he explicit device_id to use for upload (default is to use the same as that used during auth).
      * @param callback the asynchronous callback
      */
-    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, MXKey> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
+    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, String> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
         final String description = "uploadKeys";
 
         String encodedDeviceId = null;
@@ -161,7 +162,27 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             @Override
             public void success(KeysClaimResponse keysClaimResponse, Response response) {
                 onEventSent();
-                callback.onSuccess(new MXUsersDevicesMap<>(keysClaimResponse.oneTimeKeys));
+
+                HashMap<String, Map<String, MXKey>> map = new HashMap();
+
+
+                if (null != keysClaimResponse.oneTimeKeys) {
+                    for(String userId : keysClaimResponse.oneTimeKeys.keySet()) {
+                        Map<String, Map<String, String>> mapByUserId = keysClaimResponse.oneTimeKeys.get(userId);
+
+                        HashMap<String, MXKey> keysMap = new HashMap<>();
+
+                        for(String deviceId : mapByUserId.keySet()) {
+                            keysMap.put(deviceId, new MXKey(mapByUserId.get(deviceId)));
+                        }
+
+                        if (keysMap.size() != 0) {
+                            map.put(userId, keysMap);
+                        }
+                    }
+                }
+
+                callback.onSuccess(new MXUsersDevicesMap<>(map));
             }
         });
     }

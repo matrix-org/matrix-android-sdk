@@ -19,6 +19,10 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MXKey implements Serializable {
     public static final String LOG_TAG = "MXKey";
@@ -44,6 +48,23 @@ public class MXKey implements Serializable {
      */
     public String value;
 
+    /**
+     * Default constructor
+     */
+    public MXKey() {
+    }
+
+    /**
+     * Convert a map to a MXKey
+     * @param map the map to convert
+     */
+    public MXKey(Map<String, String> map) {
+        if ((null != map) && (map.size() > 0)) {
+            List<String> mapKeys = new ArrayList<>(map.keySet());
+            setKeyFullId(mapKeys.get(0));
+            value = map.get(mapKeys.get(0));
+        }
+    }
 
     /**
      * @return the key full id
@@ -56,8 +77,7 @@ public class MXKey implements Serializable {
      * Update the key fields with a key full id
      * @param keyFullId the key full id
      */
-    public void setKeyFullId(String keyFullId) {
-
+    private void setKeyFullId(String keyFullId) {
         if (!TextUtils.isEmpty(keyFullId)) {
             String[] components = keyFullId.split(":");
 
@@ -66,5 +86,21 @@ public class MXKey implements Serializable {
                 keyId = components[1];
             }
         }
+    }
+
+    /**
+     * Convert the MXKey to its JSON value
+     * @return the dedicated map
+     */
+    public Map<String, String> JSONDictionary() {
+        HashMap<String, String> map = new HashMap<>();
+
+        String fullKey = getKeyFullId();
+
+        if (!TextUtils.isEmpty(fullKey) && (null != value)) {
+            map.put(fullKey, value);
+        }
+
+        return map;
     }
 }

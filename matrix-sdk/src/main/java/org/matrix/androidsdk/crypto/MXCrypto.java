@@ -78,7 +78,7 @@ public class MXCrypto {
     // The libolm wrapper.
     private MXOlmDevice mOlmDevice;
 
-    private Map<String, Map<String, MXKey>> mLastPublishedOneTimeKeys;
+    private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -1125,10 +1125,10 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
-        final Map<String, Map<String, MXKey>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
-        HashMap<String, MXKey> oneTimeJson = new HashMap<>();
+        final Map<String, Map<String, String>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
+        HashMap<String, String> oneTimeJson = new HashMap<>();
 
-        Map<String, MXKey> curve25519Map = oneTimeKeys.get("curve25519");
+        Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
 
         if (null != curve25519Map) {
             for(String key_id : curve25519Map.keySet()) {

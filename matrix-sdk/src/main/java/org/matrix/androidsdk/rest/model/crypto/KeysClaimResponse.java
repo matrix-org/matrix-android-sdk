@@ -16,10 +16,7 @@
 
 package org.matrix.androidsdk.rest.model.crypto;
 
-import org.matrix.androidsdk.crypto.data.MXKey;
-
 import java.util.Map;
-
 
 /**
  This class represents the response to /keys/query request made by claimOneTimeKeysForUsersDevices.
@@ -28,6 +25,6 @@ public class KeysClaimResponse {
     /**
      The requested keys ordered by device by user.
      */
-    public Map<String, Map<String, MXKey>> oneTimeKeys;
+    public Map<String, Map<String, Map<String, String>>> oneTimeKeys;
 }
 

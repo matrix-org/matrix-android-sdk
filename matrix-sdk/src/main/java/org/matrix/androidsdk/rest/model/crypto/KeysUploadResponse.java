@@ -33,11 +33,15 @@ public class KeysUploadResponse {
      * @param algorithm the expected algorithm
      * @return the time key counts
      */
-    public Integer oneTimeKeyCountsForAlgorithm(String algorithm) {
-        Integer res = null;
+    public int oneTimeKeyCountsForAlgorithm(String algorithm) {
+        int res = 0;
 
         if ((null != oneTimeKeyCounts) && !TextUtils.isEmpty(algorithm)) {
-            res = oneTimeKeyCounts.get(algorithm);
+            Integer val = oneTimeKeyCounts.get(algorithm);
+
+            if (null != val) {
+                res = val.intValue();
+            }
         }
 
         return res;
