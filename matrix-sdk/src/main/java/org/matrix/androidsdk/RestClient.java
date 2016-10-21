@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.internal.Platform;
 
+import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 
@@ -59,11 +60,6 @@ public class RestClient<T> {
     private static final int CONNECTION_TIMEOUT_MS = 15000;
     private static final int READ_TIMEOUT_MS = 60000;
 
-    // let the user defines his own callbackExecutor
-    // It should only be used by the unitary tests
-    public static Executor mcallbackExecutor = null;
-    public static Executor mHttpExecutor = null;
-
     protected Credentials mCredentials;
 
     protected T mApi;
@@ -73,6 +69,9 @@ public class RestClient<T> {
     protected UnsentEventsManager mUnsentEventsManager;
 
     protected HomeserverConnectionConfig mHsConfig;
+
+    // unitary tests only
+    public static boolean mUseMXExececutor = false;
 
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
@@ -126,8 +125,8 @@ public class RestClient<T> {
                     }
                 });
 
-        if ((null != mcallbackExecutor) && (null != mHttpExecutor)) {
-            builder.setExecutors(mHttpExecutor, mcallbackExecutor);
+        if (mUseMXExececutor) {
+            builder.setExecutors(new MXRestExecutor(), new MXRestExecutor());
         }
 
         RestAdapter restAdapter = builder.build();

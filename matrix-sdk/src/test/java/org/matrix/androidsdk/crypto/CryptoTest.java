@@ -78,9 +78,6 @@ public class CryptoTest {
                 }
             }
         };
-
-        RestClient.mcallbackExecutor = new MXRestExecutor();
-        RestClient.mHttpExecutor = new MXRestExecutor();
     }
 
     @Test

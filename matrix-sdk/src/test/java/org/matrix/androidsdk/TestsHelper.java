@@ -50,8 +50,7 @@ public class TestsHelper {
      * @throws Exception
      */
     public static void createAccountAndSync(Context context, String userName, String password, boolean startSession, ApiCallback<MXSession> callback) throws Exception {
-        RestClient.mcallbackExecutor = new MXRestExecutor();
-        RestClient.mHttpExecutor = new MXRestExecutor();
+        RestClient.mUseMXExececutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
         HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);

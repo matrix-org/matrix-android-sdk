@@ -30,7 +30,7 @@ public class MXRestExecutor implements Executor {
     private MXOsHandler mHandler;
 
     public MXRestExecutor() {
-        mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.NORM_PRIORITY);
+        mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.MIN_PRIORITY);
         mHandlerThread.start();
         mHandler = new MXOsHandler(mHandlerThread.getLooper());
     }

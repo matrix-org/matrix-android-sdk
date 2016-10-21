@@ -25,19 +25,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.TestsHelper;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.MXOsHandler;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 import org.robolectric.internal.ShadowExtractor;
 import org.robolectric.shadows.ShadowLooper;
 
@@ -50,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 // use RobolectricTestRunner else the java classes have to be mocked
 @RunWith(RobolectricTestRunner.class)
+@Config(manifest=Config.NONE)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CryptoRestTest {
 
@@ -69,10 +69,14 @@ public class CryptoRestTest {
         MXOsHandler.mPostListener = new MXOsHandler.IPostListener() {
             @Override
             public void onPost(Looper looper) {
-                ShadowLooper shadowLooper = (ShadowLooper) ShadowExtractor.extract(looper);
+                if (looper == Looper.getMainLooper()) {
+                    ShadowLooper.runUiThreadTasks();
+                } else {
+                    ShadowLooper shadowLooper = (ShadowLooper) ShadowExtractor.extract(looper);
 
-                if (null != shadowLooper) {
-                    shadowLooper.idle();
+                    if (null != shadowLooper) {
+                        shadowLooper.idle();
+                    }
                 }
             }
         };
@@ -111,9 +115,6 @@ public class CryptoRestTest {
 
     public void createAliceAccount() throws Exception {
         Context context = RuntimeEnvironment.application;
-
-        RestClient.mcallbackExecutor = new MXRestExecutor();
-        RestClient.mHttpExecutor = new MXRestExecutor();
 
         mLock = new CountDownLatch(1);
         TestsHelper.createAccountAndSync(context, MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, false, new ApiCallback<MXSession>() {
@@ -234,6 +235,8 @@ public class CryptoRestTest {
         assert (null != bobDevice2);
         assert(TextUtils.equals(bobDevice2.deviceId, "dev1"));
         assert(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
+
+        mBobSession.clear(RuntimeEnvironment.application);
     }
 
     @Test
@@ -279,6 +282,8 @@ public class CryptoRestTest {
 
         assert (2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
         assert (0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+
+        mBobSession.clear(RuntimeEnvironment.application);
     }
 
     @Test
@@ -361,5 +366,8 @@ public class CryptoRestTest {
         assert(TextUtils.equals(bobOtk.keyId, "AAAABA"));
         assert(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
         assert(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
+
+        mBobSession.clear(RuntimeEnvironment.application);
+        mAliceSession.clear(RuntimeEnvironment.application);
     }
 }
