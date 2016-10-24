@@ -207,15 +207,21 @@ public class MXOlmDevice {
     public String createOutboundSession(String theirIdentityKey, String theirOneTimeKey) {
         Log.d(LOG_TAG, "## createOutboundSession() ; theirIdentityKey " + theirIdentityKey + " theirOneTimeKey " + theirOneTimeKey);
 
-        OlmSession olmSession =  new OlmSession();
-        olmSession.initOutboundSessionWithAccount(mOlmAccount, theirOneTimeKey, theirOneTimeKey);
+        try {
+            OlmSession olmSession = new OlmSession();
+            olmSession.initOutboundSessionWithAccount(mOlmAccount, theirOneTimeKey, theirOneTimeKey);
 
-        mStore.storeEndToEndSession(olmSession, theirIdentityKey);
-        mStore.commit();
+            mStore.storeEndToEndSession(olmSession, theirIdentityKey);
+            mStore.commit();
 
-        Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
+            Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
 
-        return olmSession.sessionIdentifier();
+            return olmSession.sessionIdentifier();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## createOutboundSession() failed ; " + e.getMessage());
+        }
+
+        return null;
     }
 
     /**
@@ -232,7 +238,13 @@ public class MXOlmDevice {
 
         Log.d(LOG_TAG, "## createInboundSession() : " + theirDeviceIdentityKey);
 
-        OlmSession olmSession = new OlmSession();
+        OlmSession olmSession = null;
+
+        try {
+            olmSession = new OlmSession();
+        } catch (Exception e) {
+            Log.d(LOG_TAG, "## createInboundSession() : OlmSession creation failed " + e.getMessage());
+        }
 
         if (olmSession == olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext)) {
 
