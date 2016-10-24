@@ -2170,6 +2170,20 @@ public class Room {
     // Encryption
     //================================================================================
 
+    private ApiCallback<Void> mRoomEncryptionCallback;
+
+    private MXEventListener mEncryptionListener = new MXEventListener() {
+        @Override
+        public void onLiveEvent(Event event, RoomState roomState) {
+            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
+                if (null != mRoomEncryptionCallback) {
+                    mRoomEncryptionCallback.onSuccess(null);
+                    mRoomEncryptionCallback = null;
+                }
+            }
+        }
+    };
+
     /**
      * @return if the room content is encrypted
      */
@@ -2189,18 +2203,22 @@ public class Room {
             HashMap<String, Object> params = new HashMap<>();
             params.put("algorithm", algorithm);
 
+            if (null != callback) {
+                mRoomEncryptionCallback = callback;
+                addEventListener(mEncryptionListener);
+            }
+
             mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, params, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    if (null != callback) {
-                        callback.onSuccess(null);
-                    }
+                    // Wait for the event coming back from the hs
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
                     if (null != callback) {
                         callback.onNetworkError(e);
+                        removeEventListener(mEncryptionListener);
                     }
                 }
 
@@ -2208,6 +2226,7 @@ public class Room {
                 public void onMatrixError(MatrixError e) {
                     if (null != callback) {
                         callback.onMatrixError(e);
+                        removeEventListener(mEncryptionListener);
                     }
                 }
 
@@ -2215,6 +2234,7 @@ public class Room {
                 public void onUnexpectedError(Exception e) {
                     if (null != callback) {
                         callback.onUnexpectedError(e);
+                        removeEventListener(mEncryptionListener);
                     }
                 }
             });

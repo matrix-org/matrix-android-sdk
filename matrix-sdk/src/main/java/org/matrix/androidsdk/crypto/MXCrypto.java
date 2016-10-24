@@ -124,11 +124,11 @@ public class MXCrypto {
         HashMap<String, String> keys = new HashMap<>();
 
         if (!TextUtils.isEmpty(mOlmDevice.getDeviceEd25519Key())) {
-            keys.put("ed25519:" + mSession.getMyUserId(), mOlmDevice.getDeviceEd25519Key());
+            keys.put("ed25519:" + mSession.getCredentials().deviceId, mOlmDevice.getDeviceEd25519Key());
         }
 
         if (!TextUtils.isEmpty(mOlmDevice.getDeviceCurve25519Key())) {
-            keys.put("curve25519:" + mSession.getMyUserId(), mOlmDevice.getDeviceCurve25519Key());
+            keys.put("curve25519:" + mSession.getCredentials().deviceId, mOlmDevice.getDeviceCurve25519Key());
         }
 
         mMyDevice.keys = keys;
@@ -137,7 +137,16 @@ public class MXCrypto {
         mMyDevice.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
 
         // Add our own deviceinfo to the store
-        HashMap<String, MXDeviceInfo>  myDevices = new HashMap<>(store.endToEndDevicesForUser(mSession.getMyUserId()));
+        Map<String, MXDeviceInfo> endToEndDevicesForUser = store.endToEndDevicesForUser(mSession.getMyUserId());
+
+        HashMap<String, MXDeviceInfo> myDevices;
+
+        if (null != endToEndDevicesForUser) {
+            myDevices = new HashMap<>(endToEndDevicesForUser);
+        } else {
+            myDevices = new HashMap<>();
+        }
+
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
         store.storeEndToEndDevicesForUser(mSession.getMyUserId(), myDevices);
@@ -333,7 +342,7 @@ public class MXCrypto {
             for (String userId :  userIds) {
 
                 Map<String, MXDeviceInfo> devices = store.endToEndDevicesForUser(userId);
-                boolean isEmpty = (null == devices) && (devices.size() == 0);
+                boolean isEmpty = (null == devices) || (devices.size() == 0);
 
                 if (!isEmpty) {
                     stored.setObjects(devices, userId);

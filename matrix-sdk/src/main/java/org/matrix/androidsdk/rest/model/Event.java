@@ -89,6 +89,8 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_CALL_ANSWER = "m.call.answer";
     public static final String EVENT_TYPE_CALL_HANGUP = "m.call.hangup";
 
+    public static final long DUMMY_EVENT_AGE = Long.MAX_VALUE - 1;
+
     public String type;
     public transient JsonElement content = null;
     private String contentAsString = null;
@@ -441,7 +443,7 @@ public class Event implements java.io.Serializable {
      */
     public void createDummyEventId() {
         eventId = roomId + "-" + originServerTs;
-        age = Long.MAX_VALUE;
+        age = DUMMY_EVENT_AGE;
     }
 
     /**

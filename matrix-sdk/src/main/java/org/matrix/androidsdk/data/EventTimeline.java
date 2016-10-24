@@ -771,7 +771,7 @@ public class EventTimeline {
             if (null != storedEvent) {
 
                 // an event has been echoed
-                if (storedEvent.getAge() == Long.MAX_VALUE) {
+                if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     mStore.deleteEvent(storedEvent);
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();

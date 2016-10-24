@@ -82,7 +82,7 @@ public class MXMemoryStore implements IMXStore {
 
     protected String mEventStreamToken = null;
 
-    protected MXStoreListener mListener = null;
+    protected ArrayList<MXStoreListener> mListeners = new ArrayList<>();
 
     // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
     // When nil, nothing is stored on the file system.
@@ -249,13 +249,22 @@ public class MXMemoryStore implements IMXStore {
         mEventStreamToken = token;
     }
 
-    /**
-     * Define a MXStore listener.
-     * @param listener the listener
-     */
     @Override
-    public void setMXStoreListener(MXStoreListener listener) {
-        mListener = listener;
+    public void addMXStoreListener(MXStoreListener listener) {
+        synchronized (this) {
+            if ((null != listener) && (mListeners.indexOf(listener) < 0)) {
+                mListeners.add(listener);
+            }
+        }
+    }
+
+    @Override
+    public void removeMXStoreListener(MXStoreListener listener) {
+        synchronized (this) {
+            if (null != listener) {
+                mListeners.remove(listener);
+            }
+        }
     }
 
     /**
@@ -1229,20 +1238,61 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Dispatch oom error to the listener.
-     * @param e the error
+     * @return the current listeners
+     */
+    private List<MXStoreListener> getListeners() {
+        ArrayList<MXStoreListener> listeners;
+
+        synchronized (this) {
+            listeners = new ArrayList<>(mListeners);
+        }
+
+        return listeners;
+    }
+
+    /**
+     * Dispatch store ready
+     * @param accountId the account id
+     */
+    protected void dispatchOnStoreReady(String accountId) {
+        List<MXStoreListener> listeners = getListeners();
+
+        for(MXStoreListener listener : listeners) {
+            listener.onStoreReady(accountId);
+        }
+    }
+
+    /**
+     * Dispatch that the store is corrupted
+     * @param accountId the account id
+     */
+    protected  void dispatchOnStoreCorrupted(String accountId, String description) {
+        List<MXStoreListener> listeners = getListeners();
+
+        for(MXStoreListener listener : listeners) {
+            listener.onStoreCorrupted(accountId, description);
+        }
+    }
+
+    /**
+     * Called when the store fails to save some data
      */
     protected void dispatchOOM(OutOfMemoryError e) {
-        Log.e(LOG_TAG, "## dispatchOOM() : " + e.getMessage());
+        List<MXStoreListener> listeners = getListeners();
 
-        if (null != mListener) {
-            mListener.onStoreOOM(mCredentials.userId, e.getLocalizedMessage());
+        for(MXStoreListener listener : listeners) {
+            listener.onStoreOOM(mCredentials.userId, e.getMessage());
         }
     }
 
     //==============================================================================================================
     // Crypto
     //==============================================================================================================
+
+    @Override
+    public  boolean hasCryptoData() {
+        return (null != mOlmAccount);
+    }
 
     @Override
     public void storeEndToEndAccount(OlmAccount account) {

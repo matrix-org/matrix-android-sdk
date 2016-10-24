@@ -183,6 +183,25 @@ public class MXSession {
         this(hsConfig);
         mDataHandler = dataHandler;
 
+        mDataHandler.getStore().addMXStoreListener(new IMXStore.MXStoreListener() {
+            @Override
+            public void onStoreReady(String accountId) {
+                if (mDataHandler.getStore().hasCryptoData()) {
+                    setCryptoEnabled(true);
+                }
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+
+            }
+
+            @Override
+            public void onStoreOOM(String accountId, String description) {
+
+            }
+        });
+
         // Initialize a data retriever with rest clients
         mDataRetriever = new DataRetriever();
         mDataRetriever.setRoomsRestClient(mRoomsRestClient);

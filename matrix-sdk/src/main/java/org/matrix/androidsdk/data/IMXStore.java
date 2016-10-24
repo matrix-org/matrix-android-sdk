@@ -121,10 +121,16 @@ public interface IMXStore {
     void setEventStreamToken(String token);
 
     /**
-     * Define a MXStore listener.
+     * Add a MXStore listener.
      * @param listener the listener
      */
-    void setMXStoreListener(MXStoreListener listener);
+    void addMXStoreListener(MXStoreListener listener);
+
+    /**
+     * remive a MXStore listener.
+     * @param listener the listener
+     */
+    void removeMXStoreListener(MXStoreListener listener);
 
     /**
      * profile information
@@ -370,6 +376,11 @@ public interface IMXStore {
     //==============================================================================================================
     // Crypto
     //==============================================================================================================
+
+    /**
+     * @return true if there is some crypto data
+     */
+    boolean hasCryptoData();
 
     /**
      * Store the end to end account for the logged-in user

@@ -743,7 +743,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // waiting for echo
                 // the message is displayed as sent event if the echo has not been received
                 // it avoids displaying a pending message whereas the message has been sent
-                if (currentRow.getEvent().getAge() == Long.MAX_VALUE) {
+                if (currentRow.getEvent().getAge() == Event.DUMMY_EVENT_AGE) {
                     currentRow.updateEvent(row.getEvent());
                 }
             }

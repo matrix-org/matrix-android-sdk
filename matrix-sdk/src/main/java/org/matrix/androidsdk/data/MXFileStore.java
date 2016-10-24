@@ -463,14 +463,12 @@ public class MXFileStore extends MXMemoryStore {
                                 }
                                 mIsOpening = false;
 
-                                if (null != mListener) {
-                                    if (!succeed && !mIsNewStorage) {
-                                        Log.e(LOG_TAG, "The store is corrupted.");
-                                        mListener.onStoreCorrupted(mCredentials.userId, errorDescription);
-                                    } else {
-                                        Log.e(LOG_TAG, "The store is opened.");
-                                        mListener.onStoreReady(mCredentials.userId);
-                                    }
+                                if (!succeed && !mIsNewStorage) {
+                                    Log.e(LOG_TAG, "The store is corrupted.");
+                                    dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
+                                } else {
+                                    Log.e(LOG_TAG, "The store is opened.");
+                                    dispatchOnStoreReady(mCredentials.userId);
                                 }
                             }
                         });
@@ -2038,6 +2036,18 @@ public class MXFileStore extends MXMemoryStore {
     // Crypto
     //==============================================================================================================
 
+    @Override
+    public  boolean hasCryptoData() {
+        boolean res = super.hasCryptoData();
+
+        if (!res && mStoreCryptoFolderFile.exists()) {
+            File[] fileLists = mStoreCryptoFolderFile.listFiles();
+            res = (null != fileLists) && (0 != fileLists.length);
+        }
+
+        return res;
+    }
+
     /**
      * init mUsersDevicesInfoMap from the filesystem
      */
@@ -2218,7 +2228,7 @@ public class MXFileStore extends MXMemoryStore {
                 Set<String> keys = data.keySet();
 
                 for(String key : keys) {
-                    mOlmSessions.put(key, new HashMap<String, OlmSession>(data.get(key)));
+                    mOlmSessions.put(key, new HashMap<>(data.get(key)));
                 }
 
                 ois.close();
