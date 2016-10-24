@@ -202,7 +202,7 @@ public class MXCrypto {
      * @param maxKeys The maximum number of keys to generate.
      * @param callback the asynchronous callback
      */
-    private void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
+    public void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
         uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
 
             @Override
@@ -443,7 +443,7 @@ public class MXCrypto {
      * @param senderKey the curve25519 key to match.
      * @return the device info.
      */
-    private MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
+    public MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
         if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
             // We only deal in olm keys
             return null;
