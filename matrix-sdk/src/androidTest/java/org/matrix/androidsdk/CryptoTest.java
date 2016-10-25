@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -659,6 +660,7 @@ public class CryptoTest {
     }
 */
 
+    /*
     @Test
     public void test07_testAliceAndBobInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -715,11 +717,106 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(1000000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(30000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onLiveEvent"));
 
         mBobSession.clear(context);
     }
+*/
+
+    @Test
+    public void test07_testAliceAndBobInACryptedRoom2() throws Exception {
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        mReceivedMessagesFromAlice = 0;
+        mReceivedMessagesFromBob = 0;
+
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
+                    try {
+                        if (checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession)) {
+                            mReceivedMessagesFromAlice++;
+                            mLock.countDown();
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        };
+
+        MXEventListener aliceEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mAliceSession.getMyUserId())) {
+                    try {
+                        if (checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), mBobSession)) {
+                            mReceivedMessagesFromBob++;
+                            mLock.countDown();
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        };
+
+        ApiCallback<Void> callback = new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        };
+
+        roomFromBobPOV.addEventListener(bobEventListener);
+        roomFromAlicePOV.addEventListener(aliceEventListener);
+
+        mLock = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(1 == mReceivedMessagesFromAlice);
+
+        mLock = new CountDownLatch(1);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(1 == mReceivedMessagesFromBob);
+
+        mLock = new CountDownLatch(1);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(2 == mReceivedMessagesFromBob);
+
+        mLock = new CountDownLatch(1);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(3 == mReceivedMessagesFromBob);
+
+        mLock = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(2 == mReceivedMessagesFromAlice);
+    }
+
+
 
     //==============================================================================================================
     // private test routines
@@ -730,6 +827,8 @@ public class CryptoTest {
     private String mRoomId;
     private CountDownLatch mLock;
     private int mMessagesCount;
+    private int mReceivedMessagesFromAlice;
+    private int mReceivedMessagesFromBob;
 
     public void createBobAccount() throws Exception {
         Context context = InstrumentationRegistry.getContext();

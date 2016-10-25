@@ -365,7 +365,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             public void onSuccess(Void info) {
                 mShareOperationIsProgress = false;
                 if (null != callback) {
-                    callback.onSuccess(null);
+                    callback.onSuccess(mOutboundSessionId);
                 }
             }
 
