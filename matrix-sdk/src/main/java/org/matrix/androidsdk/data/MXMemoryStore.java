@@ -1402,7 +1402,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public MXOlmInboundGroupSession endToEndInboundGroupSessionWithId(String sessionId, String senderKey) {
-        if ((null != sessionId) && (null != senderKey)) {
+        if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
             return mInboundGroupSessions.get(senderKey).get(sessionId);
         }
 

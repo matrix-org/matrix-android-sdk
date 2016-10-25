@@ -210,7 +210,7 @@ public class MXOlmDevice {
 
         try {
             OlmSession olmSession = new OlmSession();
-            olmSession.initOutboundSessionWithAccount(mOlmAccount, theirOneTimeKey, theirOneTimeKey);
+            olmSession.initOutboundSessionWithAccount(mOlmAccount, theirIdentityKey, theirOneTimeKey);
 
             mStore.storeEndToEndSession(olmSession, theirIdentityKey);
             mStore.commit();

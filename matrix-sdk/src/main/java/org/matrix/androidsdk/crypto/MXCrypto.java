@@ -866,11 +866,10 @@ public class MXCrypto {
         keysMap.put("ed25519", mOlmDevice.getDeviceEd25519Key());
         payloadJson.put("keys", keysMap);
 
-
-        String payloadString;
+        String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
 
         try {
-            payloadString = URLEncoder.encode(payloadJson.toString(), "utf-8");
+            payloadString = URLEncoder.encode(payloadString, "utf-8");
         } catch (Exception e) {
             Log.e(LOG_TAG, "## encryptMessage : RLEncoder.encode failed " + e.getMessage());
             return null;
@@ -1000,7 +999,7 @@ public class MXCrypto {
      * @param event the key event.
      */
     private void onRoomKeyEvent(Event event) {
-        EventContent eventContent = event.getWireEventContent();
+        EventContent eventContent = event.getEventContent();
 
         Class<IMXDecrypting> algClass = null;
 

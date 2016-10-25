@@ -86,7 +86,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
     public void onRoomKeyEvent(Event event) {
         Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key from " + event);
 
-        JsonObject object = event.content.getAsJsonObject();
+        JsonObject object = event.getContentAsJsonObject();
 
         if (null == object) {
             Log.e(LOG_TAG, "## onRoomKeyEvent() : cannot convert to jsonobject");

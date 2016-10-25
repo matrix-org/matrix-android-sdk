@@ -30,6 +30,7 @@ import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,7 +87,7 @@ public class MXOlmDecryption implements IMXDecrypting {
             }
 
             result = new MXDecryptionResult();
-            result.mPayload = new JsonParser().parse(URLEncoder.encode(payloadString, "utf-8"));
+            result.mPayload = new JsonParser().parse(URLDecoder.decode(payloadString, "utf-8"));
 
             HashMap<String, String> keysProved = new HashMap<>();
             keysProved.put("curve25519", deviceKey);
@@ -126,7 +127,20 @@ public class MXOlmDecryption implements IMXDecrypting {
         }
 
         String messageBody = (String)message.get("body");
-        Integer messageType = (Integer)message.get("type");
+        Integer messageType = null;
+
+        Object typeAsVoid = message.get("type");
+
+        if (null != typeAsVoid) {
+            if (typeAsVoid instanceof Double) {
+                messageType = new Integer (((Double)typeAsVoid).intValue());
+            } else  if (typeAsVoid instanceof Integer) {
+                messageType = (Integer)typeAsVoid;
+            } else if (typeAsVoid instanceof Long) {
+                messageType = new Integer (((Long)typeAsVoid).intValue());
+            }
+        }
+
         if ((null == messageBody) || (null == messageType)) {
             return null;
         }

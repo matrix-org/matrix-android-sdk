@@ -50,6 +50,7 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -895,7 +896,37 @@ public class MXSession {
             mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(final RoomResponse roomResponse) {
-                    callback.onSuccess(roomResponse.roomId);
+                    final String roomId = roomResponse.roomId;
+                    Room joinedRoom = mDataHandler.getRoom(roomId);
+                    RoomMember member = joinedRoom.getState().getMember(mCredentials.userId);
+                    String state = (null != member) ? member.membership : null;
+
+                    // wait until the initial sync is done
+                    if ((state == null) || TextUtils.equals(state, RoomMember.MEMBERSHIP_INVITE)) {
+                        joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                callback.onSuccess(roomId);
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                callback.onNetworkError(e);
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                callback.onMatrixError(e);
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                callback.onUnexpectedError(e);
+                            }
+                        });
+                    } else {
+                        callback.onSuccess(roomId);
+                    }
                 }
             });
         }

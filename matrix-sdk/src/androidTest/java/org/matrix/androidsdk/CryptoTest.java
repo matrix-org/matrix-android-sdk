@@ -611,6 +611,8 @@ public class CryptoTest {
     }
 
 */
+
+    /*
     @Test
     public void test06_testAliceInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -628,22 +630,6 @@ public class CryptoTest {
 
         // the IOS client echoes the message
         // the android client does not
-        /*MXEventListener eventListener = new MXEventListener() {
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, message, mAliceSession)) {
-                            results.put("onLiveEvent", "onLiveEvent");
-                            mLock.countDown();
-                        }
-                    }
-                } catch (Exception e) {
-                }
-            }
-        };
-
-        roomFromAlicePOV.addEventListener(eventListener);*/
 
         roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
             @Override
@@ -671,8 +657,8 @@ public class CryptoTest {
 
         mAliceSession.clear(context);
     }
+*/
 
-    /*
     @Test
     public void test07_testAliceAndBobInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -729,11 +715,11 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(1000000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onLiveEvent"));
 
         mBobSession.clear(context);
-    }*/
+    }
 
     //==============================================================================================================
     // private test routines
@@ -839,7 +825,7 @@ public class CryptoTest {
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
         createBobAccount();
-        mBobSession.setCryptoEnabled(true);
+        mBobSession.setCryptoEnabled(cryptedBob);
         SystemClock.sleep(1000);
 
         mLock = new CountDownLatch(2);
@@ -879,7 +865,7 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(30000, TimeUnit.DAYS.MILLISECONDS);
 
         assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"));
 
@@ -910,8 +896,10 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(30000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(statuses.containsKey("joinRoom"));
+
+        SystemClock.sleep(1000);
     }
 
 
