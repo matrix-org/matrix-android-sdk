@@ -35,6 +35,7 @@ import org.matrix.olm.OlmOutboundGroupSession;
 import org.matrix.olm.OlmSession;
 import org.matrix.olm.OlmUtility;
 
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -509,7 +510,7 @@ public class MXOlmDevice {
                 result = new MXDecryptionResult();
 
                 try {
-                    String urlEncoded = URLEncoder.encode(payloadString, "utf-8");
+                    String urlEncoded = URLDecoder.decode(payloadString, "utf-8");
                     JsonParser parser = new JsonParser();
 
                     result.mPayload =  parser.parse(urlEncoded);

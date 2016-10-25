@@ -251,7 +251,7 @@ public class CryptoTest {
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED);
 
         mBobSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, aliceDeviceFromBobPOV.deviceId, mAliceSession.getMyUserId());
-        assert (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
+        assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -609,8 +609,8 @@ public class CryptoTest {
 
         mBobSession.clear(context);
     }
-    */
 
+*/
     @Test
     public void test06_testAliceInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -628,6 +628,22 @@ public class CryptoTest {
 
         // the IOS client echoes the message
         // the android client does not
+        /*MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, message, mAliceSession)) {
+                            results.put("onLiveEvent", "onLiveEvent");
+                            mLock.countDown();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        roomFromAlicePOV.addEventListener(eventListener);*/
 
         roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
             @Override
@@ -651,7 +667,7 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         mAliceSession.clear(context);
     }
@@ -669,8 +685,8 @@ public class CryptoTest {
         Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
         Room roomFromAlicePOV =  mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        assert roomFromBobPOV.isEncrypted();
-        assert roomFromAlicePOV.isEncrypted();
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
 
         mLock = new CountDownLatch(2);
 
@@ -714,12 +730,10 @@ public class CryptoTest {
         });
 
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert (results.containsKey("onLiveEvent"));
+        assertTrue(results.containsKey("onLiveEvent"));
 
         mBobSession.clear(context);
-
-    }
-    */
+    }*/
 
     //==============================================================================================================
     // private test routines
@@ -735,14 +749,14 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         mBobSession = null;
         mBobSession = CryptoTestHelper.createAccountAndSync(context, MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, true);
-        assert (null != mBobSession);
+        assertTrue (null != mBobSession);
     }
 
     public void createAliceAccount() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         mAliceSession = null;
         mAliceSession = CryptoTestHelper.createAccountAndSync(context, MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, true);
-        assert (null != mAliceSession);
+        assertTrue (null != mAliceSession);
     }
 
     private void doE2ETestWithBobAndAlice() throws Exception {
@@ -785,8 +799,8 @@ public class CryptoTest {
             }
         });
 
-        mLock.await(60000, TimeUnit.DAYS.MILLISECONDS);
-        assert(null != mRoomId);
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(null != mRoomId);
 
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
@@ -814,7 +828,7 @@ public class CryptoTest {
             }
         });
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(params.containsKey("enableEncryptionWithAlgorithm"));
+        assertTrue(params.containsKey("enableEncryptionWithAlgorithm"));
     }
 
     private void doE2ETestWithAliceAndBobInARoom(boolean cryptedBob) throws Exception {
@@ -826,6 +840,7 @@ public class CryptoTest {
 
         createBobAccount();
         mBobSession.setCryptoEnabled(true);
+        SystemClock.sleep(1000);
 
         mLock = new CountDownLatch(2);
 
@@ -866,7 +881,7 @@ public class CryptoTest {
 
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
 
-        assert(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"));
+        assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"));
 
         mBobSession.getDataHandler().removeListener(bobEventListener);
 
@@ -896,7 +911,7 @@ public class CryptoTest {
         });
 
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(statuses.containsKey("joinRoom"));
+        assertTrue(statuses.containsKey("joinRoom"));
     }
 
 
@@ -954,53 +969,53 @@ public class CryptoTest {
         mLock = new CountDownLatch(2);
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), mAliceSession), callback);
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(mMessagesCount == 1);
+        assertTrue(mMessagesCount == 1);
 
         mLock = new CountDownLatch(2);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(0), mBobSession), callback);
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(mMessagesCount == 2);
+        assertTrue(mMessagesCount == 2);
 
         mLock = new CountDownLatch(2);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(1), mBobSession), callback);
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(mMessagesCount == 3);
+        assertTrue(mMessagesCount == 3);
 
         mLock = new CountDownLatch(2);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(2), mBobSession), callback);
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(mMessagesCount == 4);
+        assertTrue(mMessagesCount == 4);
 
         mLock = new CountDownLatch(2);
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), mAliceSession), callback);
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
-        assert(mMessagesCount == 5);
+        assertTrue(mMessagesCount == 5);
     }
 
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
 
-        assert(TextUtils.equals(event.getWireType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
-        assert(null != event.getWireContent());
+        assertTrue(TextUtils.equals(event.getWireType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
+        assertTrue(null != event.getWireContent());
 
         JsonObject eventWireContent = event.getWireContent().getAsJsonObject();
 
-        assert(null == eventWireContent.get("body"));
-        assert(TextUtils.equals(eventWireContent.get("algorithm").getAsString(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM));
+        assertTrue(null == eventWireContent.get("body"));
+        assertTrue(TextUtils.equals(eventWireContent.get("algorithm").getAsString(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM));
 
-        assert(null != eventWireContent.get("ciphertext"));
-        assert(null != eventWireContent.get("session_id"));
-        assert(null != eventWireContent.get("sender_key"));
+        assertTrue(null != eventWireContent.get("ciphertext"));
+        assertTrue(null != eventWireContent.get("session_id"));
+        assertTrue(null != eventWireContent.get("sender_key"));
 
-        assert(TextUtils.equals(eventWireContent.get("device_id").getAsString(), senderSession.getCredentials().deviceId));
+        assertTrue(TextUtils.equals(eventWireContent.get("device_id").getAsString(), senderSession.getCredentials().deviceId));
 
-        assert(event.eventId != null);
-        assert(TextUtils.equals(event.roomId, roomId));
-        assert(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE));
-        assert(2000 == event.age);
+        assertTrue(event.eventId != null);
+        assertTrue(TextUtils.equals(event.roomId, roomId));
+        assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE));
+        assertTrue(event.getAge() < 2000);
 
         JsonObject eventContent = event.getContentAsJsonObject();
-        assert(TextUtils.equals(eventContent.get("body").getAsString(), clearMessage));
-        assert(TextUtils.equals(event.sender, senderSession.getMyUserId()));
+        assertTrue(TextUtils.equals(eventContent.get("body").getAsString(), clearMessage));
+        assertTrue(TextUtils.equals(event.sender, senderSession.getMyUserId()));
 
         return true;
     }

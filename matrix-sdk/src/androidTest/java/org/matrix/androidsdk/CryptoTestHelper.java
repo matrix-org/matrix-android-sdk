@@ -48,8 +48,6 @@ public class CryptoTestHelper {
      * @throws Exception
      */
     public static MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession) throws Exception {
-        RestClient.mUseMXExececutor = true;
-
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
         HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);

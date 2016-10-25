@@ -102,6 +102,10 @@ public class MXMemoryStore implements IMXStore {
     protected HashMap<String /*deviceKey*/,
               HashMap<String /*olmSessionId*/,OlmSession>> mOlmSessions;
 
+    // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
+    protected HashMap<String /* senderKey */,
+            HashMap<String /* inboundGroupSessionId */, MXOlmInboundGroupSession>> mInboundGroupSessions;
+
     private boolean mEndToEndDeviceAnnounced;
 
 
@@ -122,6 +126,8 @@ public class MXMemoryStore implements IMXStore {
         mUsersDevicesInfoMap = new MXUsersDevicesMap<>(null);
         mRoomsAlgorithms = new HashMap<>();
         mOlmSessions = new HashMap<>();
+        mInboundGroupSessions = new HashMap<>();
+
     }
 
     public MXMemoryStore() {
@@ -1383,12 +1389,23 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeEndToEndInboundGroupSession(MXOlmInboundGroupSession session) {
-        // TODO : not yet implemented
+        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession) && (null != session.mSession.sessionIdentifier())) {
+            if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
+                mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
+            }
+
+            HashMap<String, MXOlmInboundGroupSession> map = mInboundGroupSessions.get(session.mSenderKey);
+            map.put(session.mSession.sessionIdentifier(), session);
+            // TODO manage file store
+        }
     }
 
     @Override
     public MXOlmInboundGroupSession endToEndInboundGroupSessionWithId(String sessionId, String senderKey) {
-        // TODO : not yet implemented
+        if ((null != sessionId) && (null != senderKey)) {
+            return mInboundGroupSessions.get(senderKey).get(sessionId);
+        }
+
         return null;
     }
 }

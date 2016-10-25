@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCrypto;
@@ -37,6 +38,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -552,10 +554,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
             payloadJson.put("type", queuedEncryption.mEventType);
             payloadJson.put("content", queuedEncryption.mEventContent);
 
-            String payloadString = JsonUtils.getGson(false).toJsonTree(payloadJson).toString();
+            String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
 
             try {
-                payloadString = URLEncoder.encode(payloadJson.toString(), "utf-8");
+                payloadString = URLEncoder.encode(payloadString, "utf-8");
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## processPendingEncryptionsWithError : RLEncoder.encode failed " + e.getMessage());
             }
