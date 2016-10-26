@@ -26,6 +26,7 @@ import org.json.JSONObject;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.data.IMXCryptoStore;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
@@ -53,7 +54,7 @@ public class MXOlmDevice {
     private String mDeviceEd25519Key;
 
     // The store where crypto data is saved.
-    private final IMXStore mStore;
+    private final IMXCryptoStore mStore;
 
     // The OLMKit account instance.
     private OlmAccount mOlmAccount;
@@ -74,11 +75,11 @@ public class MXOlmDevice {
      * Constructor
      * @param store the used store
      */
-    public MXOlmDevice(IMXStore store) {
+    public MXOlmDevice(IMXCryptoStore store) {
         mStore = store;
 
         // Retrieve the account from the store
-        mOlmAccount = store.endToEndAccount();
+        mOlmAccount = mStore.getAccount();
 
         if (null == mOlmAccount) {
             // Else, create it
@@ -87,8 +88,7 @@ public class MXOlmDevice {
             } catch (Exception e) {
             }
 
-            mStore.storeEndToEndAccount(mOlmAccount);
-            mStore.commit();
+            mStore.storeAccount(mOlmAccount);
         }
 
         mOlmUtility = new OlmUtility();
@@ -183,8 +183,7 @@ public class MXOlmDevice {
     public void markKeysAsPublished() {
         mOlmAccount.markOneTimeKeysAsPublished();
 
-        mStore.storeEndToEndAccount(mOlmAccount);
-        mStore.commit();
+        mStore.storeAccount(mOlmAccount);
     }
 
     /**
@@ -194,8 +193,7 @@ public class MXOlmDevice {
     public void generateOneTimeKeys(int numKeys) {
         mOlmAccount.generateOneTimeKeys(numKeys);
 
-        mStore.storeEndToEndAccount(mOlmAccount);
-        mStore.commit();
+        mStore.storeAccount(mOlmAccount);
     }
 
     /**
@@ -211,9 +209,7 @@ public class MXOlmDevice {
         try {
             OlmSession olmSession = new OlmSession();
             olmSession.initOutboundSessionWithAccount(mOlmAccount, theirIdentityKey, theirOneTimeKey);
-
-            mStore.storeEndToEndSession(olmSession, theirIdentityKey);
-            mStore.commit();
+            mStore.storeSession(olmSession, theirIdentityKey);
 
             Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
 
@@ -252,7 +248,7 @@ public class MXOlmDevice {
             Log.d(LOG_TAG, "## createInboundSession() : " + olmSession.sessionIdentifier());
 
             mOlmAccount.removeOneTimeKeysForSession(olmSession);
-            mStore.storeEndToEndAccount(mOlmAccount);
+            mStore.storeAccount(mOlmAccount);
 
             Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " +  ciphertext);
             try {
@@ -266,8 +262,7 @@ public class MXOlmDevice {
             olmMessage.mType = messageType;
 
             String payloadString = olmSession.decryptMessage(olmMessage);
-            mStore.storeEndToEndSession(olmSession, theirDeviceIdentityKey);
-            mStore.commit();
+            mStore.storeSession(olmSession, theirDeviceIdentityKey);
 
             HashMap<String, String> res = new HashMap<>();
 
@@ -291,7 +286,7 @@ public class MXOlmDevice {
      * @return a list of known session ids for the device.
      */
     public Set<String> sessionIdsForDevice(String theirDeviceIdentityKey) {
-        Map<String, OlmSession> map =  mStore.endToEndSessionsWithDevice(theirDeviceIdentityKey);
+        Map<String, OlmSession> map =  mStore.sessionsWithDevice(theirDeviceIdentityKey);
 
         if (null != map) {
             return map.keySet();
@@ -336,8 +331,7 @@ public class MXOlmDevice {
 
             olmMessage = olmSession.encryptMessage(payloadString);
 
-            mStore.storeEndToEndSession(olmSession, theirDeviceIdentityKey);
-            mStore.commit();
+            mStore.storeSession(olmSession, theirDeviceIdentityKey);
 
             Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
             try {
@@ -374,8 +368,7 @@ public class MXOlmDevice {
             olmMessage.mType = messageType;
             payloadString = olmSession.decryptMessage(olmMessage);
 
-            mStore.storeEndToEndSession(olmSession, theirDeviceIdentityKey);
-            mStore.commit();
+            mStore.storeSession(olmSession, theirDeviceIdentityKey);
         }
 
         return payloadString;
@@ -480,8 +473,7 @@ public class MXOlmDevice {
         session.mRoomId = roomId;
         session.mKeysClaimed = keysClaimed;
 
-        mStore.storeEndToEndInboundGroupSession(session);
-        mStore.commit();
+        mStore.storeInboundGroupSession(session);
 
         return true;
     }
@@ -496,7 +488,7 @@ public class MXOlmDevice {
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String sessionId, String senderKey) {
         MXDecryptionResult result = null;
-        MXOlmInboundGroupSession session = mStore.endToEndInboundGroupSessionWithId(sessionId, senderKey);
+        MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops
@@ -504,8 +496,7 @@ public class MXOlmDevice {
             if (TextUtils.equals(roomId, session.mRoomId)) {
                 String payloadString = session.mSession.decryptMessage(body);
 
-                mStore.storeEndToEndInboundGroupSession(session);
-                mStore.commit();
+                mStore.storeInboundGroupSession(session);
 
                 result = new MXDecryptionResult();
 
@@ -586,7 +577,7 @@ public class MXOlmDevice {
     private OlmSession sessionForDevice(String theirDeviceIdentityKey, String sessionId) {
         // sanity check
         if (!TextUtils.isEmpty(theirDeviceIdentityKey) && !TextUtils.isEmpty(sessionId)) {
-            Map<String, OlmSession> map = mStore.endToEndSessionsWithDevice(theirDeviceIdentityKey);
+            Map<String, OlmSession> map = mStore.sessionsWithDevice(theirDeviceIdentityKey);
 
             if (null != map) {
                 return map.get(sessionId);

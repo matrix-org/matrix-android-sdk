@@ -22,8 +22,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -32,8 +30,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.MXOsHandler;
-import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmSession;
 
 import java.io.EOFException;
 import java.io.File;
@@ -47,7 +43,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -73,13 +68,6 @@ public class MXFileStore extends MXMemoryStore {
     private static final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
     private static final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
     private static final String MXFILE_STORE_USER_FOLDER = "users";
-
-    private static final String MXFILE_STORE_CRYPTO_FOLDER = "crypto";
-    private static final String MXFILE_STORE_CRYPTO_ACCOUNT_FILE = "account";
-    private static final String MXFILE_STORE_CRYPTO_DEVICES_FILE = "devices";
-    private static final String MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE = "roomsAlgorithms";
-    private static final String MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE = "sessions";
-
 
     // the data is read from the file system
     private boolean mIsReady = false;
@@ -108,15 +96,6 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreRoomsMessagesReceiptsFolderFile = null;
     private File mStoreRoomsAccountDataFolderFile = null;
     private File mStoreUserFolderFile = null;
-
-    // crypto
-    // The path of the crypto folder
-    private File mStoreCryptoFolderFile = null;
-
-    // Flags for crypto data changes
-    private boolean mUsersDevicesInfoMapHasChanged;
-    private boolean mRoomsAlgorithmsHasChanged;
-    private boolean mOlmSessionsHasChanged;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -181,11 +160,6 @@ public class MXFileStore extends MXMemoryStore {
         mStoreUserFolderFile = new File(mStoreFolderFile, MXFILE_STORE_USER_FOLDER);
         if (!mStoreUserFolderFile.exists()) {
             mStoreUserFolderFile.mkdirs();
-        }
-
-        mStoreCryptoFolderFile= new File(mStoreFolderFile, MXFILE_STORE_CRYPTO_FOLDER);
-        if (!mStoreCryptoFolderFile.exists()) {
-            mStoreCryptoFolderFile.mkdirs();
         }
     }
 
@@ -285,7 +259,6 @@ public class MXFileStore extends MXMemoryStore {
             saveRoomsAccountData();
             saveReceipts();
             saveMetaData();
-            saveCryptoData();
             Log.d(LOG_TAG, "-- Commit");
         }
     }
@@ -410,17 +383,6 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                if (succeed) {
-                                    succeed &= preloadCryptoData();
-
-                                    if (!succeed) {
-                                        errorDescription = "preloadCryptoData fails";
-                                        Log.e(LOG_TAG, errorDescription);
-                                    } else {
-                                        Log.e(LOG_TAG, "preloadCryptoData succeeds");
-                                    }
-                                }
-
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
@@ -467,6 +429,10 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.e(LOG_TAG, "The store is corrupted.");
                                     dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
                                 } else {
+                                    // post processing
+                                    Log.e(LOG_TAG, "Management post processing.");
+                                    dispatchpostProcess(mCredentials.userId);
+
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
                                 }
@@ -2030,387 +1996,5 @@ public class MXFileStore extends MXMemoryStore {
      */
     private static boolean tmpFileExists(File folder, String fileName) {
         return createTmpFileFile(folder, fileName).exists();
-    }
-
-    //==============================================================================================================
-    // Crypto
-    //==============================================================================================================
-
-    @Override
-    public  boolean hasCryptoData() {
-        boolean res = super.hasCryptoData();
-
-        if (!res && mStoreCryptoFolderFile.exists()) {
-            File[] fileLists = mStoreCryptoFolderFile.listFiles();
-            res = (null != fileLists) && (0 != fileLists.length);
-        }
-
-        return res;
-    }
-
-    /**
-     * init mUsersDevicesInfoMap from the filesystem
-     */
-    private boolean loadUsersDevicesInfoMap() {
-        boolean succeed = true;
-
-        try {
-            if (tmpFileExists(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_DEVICES_FILE)) {
-                Log.e(LOG_TAG, "## loadUsersDevicesInfoMap ():  the file is corrupted");
-                return false;
-            }
-
-
-            File usersDevicesInfoMapFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_DEVICES_FILE);
-
-            if (usersDevicesInfoMapFile.exists()) {
-                FileInputStream fis = new FileInputStream(usersDevicesInfoMapFile);
-
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                mUsersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            succeed = false;
-            Log.e(LOG_TAG, "loadUsersDevicesInfoMap failed : " + e.getMessage());
-        }
-
-        return succeed;
-    }
-
-    /**
-     * Save mUsersDevicesInfoMap in the file system
-     */
-    private void saveUsersDevicesInfoMap() {
-        if (mUsersDevicesInfoMapHasChanged) {
-            mUsersDevicesInfoMapHasChanged = false;
-            final MXUsersDevicesMap<MXDeviceInfo> fUsersDevicesInfoMap = mUsersDevicesInfoMap.deepCopy();
-
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            if (!mIsKilled) {
-                                File usersDevicesInfoMapFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_DEVICES_FILE);
-
-                                if (usersDevicesInfoMapFile.exists()) {
-                                    usersDevicesInfoMapFile.delete();
-                                }
-
-                                long start = System.currentTimeMillis();
-
-                                try {
-                                    createTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_DEVICES_FILE);
-                                    FileOutputStream fos = new FileOutputStream(usersDevicesInfoMapFile);
-                                    ObjectOutputStream out = new ObjectOutputStream(fos);
-                                    out.writeObject(fUsersDevicesInfoMap);
-                                    out.close();
-                                    deleteTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_DEVICES_FILE);
-                                } catch (OutOfMemoryError oom) {
-                                    dispatchOOM(oom);
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "saveUsersDevicesInfoMap failed : " + e.getMessage());
-                                }
-
-                                Log.d(LOG_TAG, "saveUsersDevicesInfoMap : " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
-        }
-    }
-
-    /**
-     * init mRoomsAlgorithms from the filesystem
-     */
-    private boolean loadRoomsAlgorithms() {
-        boolean succeed = true;
-
-        try {
-            if (tmpFileExists(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE)) {
-                Log.e(LOG_TAG, "## loadRoomsAlgorithms ():  the file is corrupted");
-                return false;
-            }
-
-            File roomsAlgorithmsFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE);
-
-            if (roomsAlgorithmsFile.exists()) {
-                FileInputStream fis = new FileInputStream(roomsAlgorithmsFile);
-
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                mRoomsAlgorithms = new HashMap<>((Map<String, String>) ois.readObject());
-                ois.close();
-            }
-        } catch (Exception e) {
-            succeed = false;
-            Log.e(LOG_TAG, "loadRoomsAlgorithms failed : " + e.getMessage());
-        }
-
-        return succeed;
-    }
-
-    /**
-     * Save mRoomsAlgorithms in the file system
-     */
-    private void saveRoomsAlgorithms() {
-        if (mRoomsAlgorithmsHasChanged) {
-            mRoomsAlgorithmsHasChanged = false;
-
-            final HashMap<String, String> fRoomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
-
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            if (!mIsKilled) {
-                                File roomsAlgorithmsFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE);
-
-                                if (roomsAlgorithmsFile.exists()) {
-                                    roomsAlgorithmsFile.delete();
-                                }
-
-                                long start = System.currentTimeMillis();
-
-                                try {
-                                    createTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE);
-                                    FileOutputStream fos = new FileOutputStream(roomsAlgorithmsFile);
-                                    ObjectOutputStream out = new ObjectOutputStream(fos);
-                                    out.writeObject(fRoomsAlgorithms);
-                                    out.close();
-                                    deleteTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_ALGORITHMS_FILE);
-                                } catch (OutOfMemoryError oom) {
-                                    dispatchOOM(oom);
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "saveRoomsAlgorithms failed : " + e.getMessage());
-                                }
-
-                                Log.d(LOG_TAG, "saveRoomsAlgorithms : " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
-        }
-    }
-
-    /**
-     * init mOlmSessions from the filesystem
-     */
-    private boolean loadOlmSessions() {
-        boolean succeed = true;
-
-        try {
-            if (tmpFileExists(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE)) {
-                Log.e(LOG_TAG, "## loadOlmSessions ():  the file is corrupted");
-                return false;
-            }
-
-            File olmSessionsFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE);
-
-            if (olmSessionsFile.exists()) {
-                FileInputStream fis = new FileInputStream(olmSessionsFile);
-
-                ObjectInputStream ois = new ObjectInputStream(fis);
-
-                Map<String, Map<String, OlmSession>> data = (Map<String, Map<String, OlmSession>> )ois.readObject();
-
-                mOlmSessions = new HashMap<>();
-
-                Set<String> keys = data.keySet();
-
-                for(String key : keys) {
-                    mOlmSessions.put(key, new HashMap<>(data.get(key)));
-                }
-
-                ois.close();
-            }
-        } catch (Exception e) {
-            succeed = false;
-            Log.e(LOG_TAG, "loadOlmSessions failed : " + e.getMessage());
-        }
-
-        return succeed;
-    }
-
-    /**
-     * Save mOlmSessions in the file system
-     */
-    private void saveOlmSessions() {
-        if (mOlmSessionsHasChanged) {
-            mOlmSessionsHasChanged = false;
-
-            final HashMap<String, HashMap<String, OlmSession>> fOlmSessions = new HashMap<>(mOlmSessions);
-
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            if (!mIsKilled) {
-                                File olmSessionsFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE);
-
-                                if (olmSessionsFile.exists()) {
-                                    olmSessionsFile.delete();
-                                }
-
-                                long start = System.currentTimeMillis();
-
-                                try {
-                                    createTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE);
-                                    FileOutputStream fos = new FileOutputStream(olmSessionsFile);
-                                    ObjectOutputStream out = new ObjectOutputStream(fos);
-                                    out.writeObject(fOlmSessions);
-                                    out.close();
-                                    deleteTmpFile(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ROOMS_SESSIONS_FILE);
-                                } catch (OutOfMemoryError oom) {
-                                    dispatchOOM(oom);
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "saveRoomsAlgorithms failed : " + e.getMessage());
-                                }
-
-                                Log.d(LOG_TAG, "saveRoomsAlgorithms : " + (System.currentTimeMillis() - start) + " ms");
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
-        }
-    }
-
-    /**
-     * Preload states of all rooms.
-     */
-    private boolean preloadCryptoData() {
-        boolean succeed = loadUsersDevicesInfoMap();
-
-        if (succeed) {
-            succeed = loadRoomsAlgorithms();
-        }
-
-        if (succeed) {
-            succeed = loadOlmSessions();
-        }
-
-        return succeed;
-    }
-
-    /**
-     * save the crypto
-     */
-    private void saveCryptoData() {
-        saveUsersDevicesInfoMap();
-        saveRoomsAlgorithms();
-        saveOlmSessions();
-    }
-
-    @Override
-    public void storeEndToEndAccount(final OlmAccount account) {
-        // @TODO: Manage commit(required?) and backup
-
-        super.storeEndToEndAccount(account);
-
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                mFileStoreHandler.post(new Runnable() {
-                    public void run() {
-                        if (!mIsKilled) {
-                            File olmAccountFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ACCOUNT_FILE);
-
-                            if (olmAccountFile.exists()) {
-                                olmAccountFile.delete();
-                            }
-
-                            long start = System.currentTimeMillis();
-
-                            try {
-                                FileOutputStream fos = new FileOutputStream(olmAccountFile);
-                                ObjectOutputStream out = new ObjectOutputStream(fos);
-                                out.writeObject(account);
-                                out.close();
-                            } catch (OutOfMemoryError oom) {
-                                dispatchOOM(oom);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "storeEndToEndAccount failed : " + e.getMessage());
-                            }
-
-                            Log.d(LOG_TAG, "storeEndToEndAccount : " + (System.currentTimeMillis() - start) + " ms");
-                        }
-                    }
-                });
-            }
-        };
-
-        Thread t = new Thread(r);
-        t.start();
-    }
-
-    @Override
-    public OlmAccount endToEndAccount() {
-        if (null == mOlmAccount) {
-            try {
-                File olmAccountFile = new File(mStoreCryptoFolderFile, MXFILE_STORE_CRYPTO_ACCOUNT_FILE);
-
-                if (olmAccountFile.exists()) {
-                    FileInputStream fis = new FileInputStream(olmAccountFile);
-
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-                    mOlmAccount = (OlmAccount) ois.readObject();
-                    ois.close();
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "endToEndAccount failed : " + e.getMessage());
-            }
-        }
-
-        return mOlmAccount;
-    }
-
-    @Override
-    public void storeEndToEndDeviceAnnounced() {
-        mMetadata.mEndToEndDeviceAnnounced = true;
-        mMetaDataHasChanged = true;
-    }
-
-    @Override
-    public boolean endToEndDeviceAnnounced() {
-        return  mMetadata.mEndToEndDeviceAnnounced;
-    }
-
-    @Override
-    public void storeEndToEndDeviceForUser(String userId, MXDeviceInfo device) {
-        super.storeEndToEndDeviceForUser(userId, device);
-        mUsersDevicesInfoMapHasChanged = true;
-    }
-
-    @Override
-    public void storeEndToEndDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
-        super.storeEndToEndDevicesForUser(userId, devices);
-        mUsersDevicesInfoMapHasChanged = true;
-    }
-
-
-    @Override
-    public void storeEndToEndAlgorithmForRoom(String roomId, String algorithm) {
-        super.storeEndToEndAlgorithmForRoom(roomId, algorithm);
-        mRoomsAlgorithmsHasChanged = true;
-    }
-
-    @Override
-    public void storeEndToEndSession(OlmSession session, String deviceKey) {
-        super.storeEndToEndSession(session, deviceKey);
-        mOlmSessionsHasChanged = true;
     }
 }

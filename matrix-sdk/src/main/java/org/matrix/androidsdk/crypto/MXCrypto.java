@@ -30,6 +30,7 @@ import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.data.IMXCryptoStore;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -69,6 +70,9 @@ public class MXCrypto {
     // The Matrix session.
     private final MXSession mSession;
 
+    // the crypto store
+    public IMXCryptoStore mCryptoStore;
+
     // EncryptionAlgorithm instance for each room.
     private HashMap<String, IMXEncrypting> mRoomAlgorithms;
 
@@ -104,19 +108,26 @@ public class MXCrypto {
     /**
      * Constructor
      * @param matrixSession the session
+     * @param cryptoStore the crypto store
      */
-    public MXCrypto(MXSession matrixSession) {
+    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore) {
         mSession = matrixSession;
-        IMXStore store = mSession.getDataHandler().getStore();
+        mCryptoStore = cryptoStore;
 
-        mOlmDevice = new MXOlmDevice(store);
+        mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomAlgorithms = new HashMap<>();
 
         String deviceId = mSession.getCredentials().deviceId;
 
+        if (null == deviceId) {
+            // use the stored one
+            mSession.getCredentials().deviceId = deviceId = mCryptoStore.getDeviceId();
+        }
+
         if (TextUtils.isEmpty(deviceId)) {
-            deviceId = UUID.randomUUID().toString();
+            mSession.getCredentials().deviceId = deviceId = UUID.randomUUID().toString();
             Log.d(LOG_TAG, "Warning: No device id in MXCredentials. An id was created. Think of storing it");
+            mCryptoStore.storeDeviceId(deviceId);
         }
 
         mMyDevice = new MXDeviceInfo(deviceId);
@@ -137,7 +148,7 @@ public class MXCrypto {
         mMyDevice.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
 
         // Add our own deviceinfo to the store
-        Map<String, MXDeviceInfo> endToEndDevicesForUser = store.endToEndDevicesForUser(mSession.getMyUserId());
+        Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.devicesForUser(mSession.getMyUserId());
 
         HashMap<String, MXDeviceInfo> myDevices;
 
@@ -149,8 +160,7 @@ public class MXCrypto {
 
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
-        store.storeEndToEndDevicesForUser(mSession.getMyUserId(), myDevices);
-        store.commit();
+        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
 
         mSession.getDataHandler().addListener(mEventListener);
 
@@ -196,6 +206,9 @@ public class MXCrypto {
 
         mRoomAlgorithms = null;
         mMyDevice = null;
+
+        mCryptoStore.close();
+        mCryptoStore = null;
     }
 
     /**
@@ -336,12 +349,10 @@ public class MXCrypto {
         // List of user ids we need to download keys for
         final ArrayList<String> downloadUsers = new ArrayList<>();
 
-        final IMXStore store = mSession.getDataHandler().getStore();
-
         if (null != userIds) {
             for (String userId :  userIds) {
 
-                Map<String, MXDeviceInfo> devices = store.endToEndDevicesForUser(userId);
+                Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
                 boolean isEmpty = (null == devices) || (devices.size() == 0);
 
                 if (!isEmpty) {
@@ -363,8 +374,6 @@ public class MXCrypto {
             mSession.getCryptoRestClient().downloadKeysForUsers(downloadUsers, new ApiCallback<KeysQueryResponse>() {
                 @Override
                 public void onSuccess(KeysQueryResponse keysQueryResponse) {
-                    IMXStore imxStore = mSession.getDataHandler().getStore();
-
                     MXUsersDevicesMap<MXDeviceInfo> deviceKeys = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
                     for (String userId : deviceKeys.userIds()) {
@@ -400,8 +409,7 @@ public class MXCrypto {
                         }
 
                         // Update the store. Note
-                        imxStore.storeEndToEndDevicesForUser(userId, devices);
-                        imxStore.commit();
+                        mCryptoStore.storeDevicesForUser(userId, devices);
 
                         // And the response result
                         stored.setObjects(devices, userId);
@@ -436,7 +444,7 @@ public class MXCrypto {
      * @return the list of devices.
      */
     public List<MXDeviceInfo> storedDevicesForUser(String userId) {
-        Map<String, MXDeviceInfo> map = mSession.getDataHandler().getStore().endToEndDevicesForUser(userId);
+        Map<String, MXDeviceInfo> map = mCryptoStore.devicesForUser(userId);
 
         if (null == map) {
             return null;
@@ -481,7 +489,6 @@ public class MXCrypto {
         return null;
     }
 
-
     /**
      * Update the blocked/verified state of the given device
      * @param verificationStatus the new verification status.
@@ -489,8 +496,7 @@ public class MXCrypto {
      * @param userId the owner of the device.
      */
     public void setDeviceVerification(int verificationStatus, String deviceId, String userId) {
-        IMXStore store =  mSession.getDataHandler().getStore();
-        MXDeviceInfo device = store.endToEndDeviceWithDeviceId(deviceId, userId);
+        MXDeviceInfo device = mCryptoStore.deviceWithDeviceId(deviceId, userId);
 
         // Sanity check
         if (null == device) {
@@ -500,8 +506,7 @@ public class MXCrypto {
 
         if (device.mVerified != verificationStatus) {
             device.mVerified = verificationStatus;
-            store.storeEndToEndDeviceForUser(userId, device);
-            store.commit();
+            mCryptoStore.storeDeviceForUser(userId, device);
         }
     }
 
@@ -560,11 +565,9 @@ public class MXCrypto {
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm) {
-        IMXStore store = mSession.getDataHandler().getStore();
-
         // If we already have encryption in this room, we should ignore this event
         // (for now at least. Maybe we should alert the user somehow?)
-        String existingAlgorithm = store.endToEndAlgorithmForRoom(roomId);
+        String existingAlgorithm = mCryptoStore.algorithmForRoom(roomId);
 
         if (!TextUtils.isEmpty(existingAlgorithm) && !TextUtils.equals(existingAlgorithm, algorithm)) {
             Log.e(LOG_TAG, "## setEncryptionInRoom() : Ignoring m.room.encryption event which requests a change of config in " + roomId);
@@ -578,8 +581,7 @@ public class MXCrypto {
             return false;
         }
 
-        store.storeEndToEndAlgorithmForRoom(roomId, algorithm);
-        store.commit();
+        mCryptoStore.storeAlgorithmForRoom(roomId, algorithm);
 
         IMXEncrypting alg;
 
@@ -899,9 +901,7 @@ public class MXCrypto {
      * The initial sync is completed
      */
     private void onInitialSyncCompleted() {
-        final IMXStore store = mSession.getDataHandler().getStore();
-
-        if (store.endToEndDeviceAnnounced()) {
+        if (mCryptoStore.deviceAnnounced()) {
             return;
         }
 
@@ -910,7 +910,7 @@ public class MXCrypto {
         // Build a list of rooms for each user.
         HashMap<String, ArrayList<String>> roomsByUser = new HashMap<>();
 
-        ArrayList<Room> rooms = new ArrayList<>(store.getRooms());
+        ArrayList<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
 
         for (Room room : rooms) {
             // Check for rooms with encryption enabled
@@ -960,8 +960,7 @@ public class MXCrypto {
             mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    store.storeEndToEndDeviceAnnounced();
-                    store.commit();
+                    mCryptoStore.storeDeviceAnnounced();
                 }
 
                 @Override

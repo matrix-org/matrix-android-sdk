@@ -26,7 +26,9 @@ import android.util.Log;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.IMXCryptoStore;
 import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.MXFileCryptoStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -185,11 +187,21 @@ public class MXSession {
         mDataHandler = dataHandler;
 
         mDataHandler.getStore().addMXStoreListener(new IMXStore.MXStoreListener() {
+
             @Override
-            public void onStoreReady(String accountId) {
-                if (mDataHandler.getStore().hasCryptoData()) {
+            public void postProcess(String accountId) {
+                MXFileCryptoStore store = new MXFileCryptoStore();
+                store.initWithCredentials(mAppContent, mCredentials);
+
+                if (store.hasData()) {
+                    store.open();
                     setCryptoEnabled(true);
                 }
+            }
+
+            @Override
+            public void onStoreReady(String accountId) {
+
             }
 
             @Override
@@ -1348,11 +1360,18 @@ public class MXSession {
                 }
 
                 Log.d(LOG_TAG, "Crypto is enabled");
-                mCrypto = new MXCrypto(this);
-            } else {
+                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+                fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
+
+                mCrypto = new MXCrypto(this, fileCryptoStore);
+            } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
+
+                IMXCryptoStore store = mCrypto.mCryptoStore;
+                mCrypto.close();
+                store.deleteStore();
+
                 mCrypto = null;
-                //@TODO: Reset crypto store and release memory
             }
 
             mDataHandler.setCrypto(mCrypto);

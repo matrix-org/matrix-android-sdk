@@ -71,7 +71,7 @@ public class CryptoTest {
     private static final String MXTESTS_ALICE_PWD = "alicealice";
 
 
-    /*@Test
+    @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         createBobAccount();
@@ -84,9 +84,8 @@ public class CryptoTest {
         assertTrue (null != mBobSession.getCredentials().deviceId);
 
         mBobSession.clear(context);
-    }*/
+    }
 
-    /*
     @Test
     public void test02_testCryptoPersistenceInStore() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -169,8 +168,7 @@ public class CryptoTest {
         mBobSession.clear(context);
         bobSession2.clear(context);
     }
-*/
-/*
+
     @Test
     public void test03_testKeysUploadAndDownload() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -343,8 +341,7 @@ public class CryptoTest {
         mBobSession.clear(context);
         bobSession2.clear(context);
     }
-*/
-/*
+
     @Test
     public void test04_testEnsureOlmSessionsForUsers() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -535,9 +532,8 @@ public class CryptoTest {
         mBobSession.clear(context);
         mAliceSession.clear(context);
         bobSession2.clear(context);
-    }*/
+    }
 
-    /*
     @Test
     public void test05_testRoomIsEncrypted() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -611,9 +607,6 @@ public class CryptoTest {
         mBobSession.clear(context);
     }
 
-*/
-
-    /*
     @Test
     public void test06_testAliceInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -658,9 +651,7 @@ public class CryptoTest {
 
         mAliceSession.clear(context);
     }
-*/
 
-    /*
     @Test
     public void test07_testAliceAndBobInACryptedRoom() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -722,7 +713,6 @@ public class CryptoTest {
 
         mBobSession.clear(context);
     }
-*/
 
     @Test
     public void test07_testAliceAndBobInACryptedRoom2() throws Exception {

@@ -40,6 +40,14 @@ public interface IMXStore {
 
     interface MXStoreListener {
         /**
+         * The store has loaded its internal data.
+         * Let any post processing data management.
+         * It is called in the store thread.
+         * @param accountId the account id
+         */
+        void postProcess(String accountId);
+
+        /**
          * Called when the store is initialized
          */
         void onStoreReady(String accountId);
@@ -372,104 +380,4 @@ public interface IMXStore {
      * @param accountData the account data.
      */
     void storeAccountData(String roomId, RoomAccountData accountData);
-
-    //==============================================================================================================
-    // Crypto
-    //==============================================================================================================
-
-    /**
-     * @return true if there is some crypto data
-     */
-    boolean hasCryptoData();
-
-    /**
-     * Store the end to end account for the logged-in user
-     * @param account the account
-     */
-     void storeEndToEndAccount(OlmAccount account);
-
-    /**
-     * Load the end to end account for the logged-in user.
-     */
-    OlmAccount endToEndAccount();
-
-    /**
-     * Store a flag indicating that we have announced the new device.
-     */
-     void storeEndToEndDeviceAnnounced();
-
-    /**
-     * Check if the "device announced" flag is set.
-     */
-    boolean endToEndDeviceAnnounced();
-
-    /**
-     * Store a device for a user.
-     * @param userId The user's id.
-     * @param device the device to store.
-     */
-    void storeEndToEndDeviceForUser(String userId, MXDeviceInfo device);
-
-    /**
-     * Retrieve a device for a user.
-     * @param deviceId The device id.
-     * @param userId The user's id.
-     * @return A map from device id to 'MXDevice' object for the device.
-     */
-     MXDeviceInfo endToEndDeviceWithDeviceId(String deviceId, String userId);
-
-    /**
-     * Store the known devices for a user.
-     * @param userId The user's id.
-     * @param devices A map from device id to 'MXDevice' object for the device.
-     */
-     void storeEndToEndDevicesForUser(String userId, Map<String, MXDeviceInfo> devices);
-
-    /**
-     * Retrieve the known devices for a user.
-     * @param userId The user's id.
-     * @return A map from device id to 'MXDevice' object for the device.
-     */
-     Map<String, MXDeviceInfo> endToEndDevicesForUser(String userId);
-
-    /**
-     * Store the crypto algorithm for a room.
-     * @param roomId the id of the room.
-     * @algorithm the algorithm.
-     */
-     void storeEndToEndAlgorithmForRoom(String roomId, String algorithm);
-
-    /**
-     * The crypto algorithm used in a room.
-     * null if the room is not encrypted.
-     */
-    String endToEndAlgorithmForRoom(String roomId);
-
-    /**
-     * Store a session between the logged-in user and another device.
-     * @param session the end-to-end session.
-     * @param deviceKey the public key of the other device.
-     */
-    void storeEndToEndSession(OlmSession session, String deviceKey);
-
-    /**
-     * Retrieve the end-to-end sessions between the logged-in user and another device.
-     * @param deviceKey the public key of the other device.
-     * @return {object} A map from sessionId to Base64 end-to-end session.
-     */
-     Map<String, OlmSession> endToEndSessionsWithDevice(String deviceKey);
-
-    /**
-     * Store an inbound group session.
-     * @param session the inbound group session and its context.storeEndToEndInboundGroupSession
-     */
-     void storeEndToEndInboundGroupSession(MXOlmInboundGroupSession session);
-
-    /**
-     * Retrieve an inbound group session.
-     * @param sessionId the session identifier.
-     * @param senderKey base64-encoded curve25519 key of the sender.
-     * @return an inbound group session.
-     */
-     MXOlmInboundGroupSession endToEndInboundGroupSessionWithId(String sessionId, String senderKey);
 }
