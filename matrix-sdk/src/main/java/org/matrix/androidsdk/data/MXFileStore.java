@@ -1714,7 +1714,7 @@ public class MXFileStore extends MXMemoryStore {
      * flush the metadata info from the file system.
      */
     private void saveMetaData() {
-        if ((mMetaDataHasChanged) && (null != mFileStoreHandler)) {
+        if ((mMetaDataHasChanged) && (null != mFileStoreHandler) && (null != mMetadata)) {
             mMetaDataHasChanged = false;
 
             final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();

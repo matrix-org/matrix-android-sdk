@@ -55,11 +55,6 @@ public interface IMXCryptoStore {
     void open();
 
     /**
-     * Create an empty store
-     */
-    void create();
-
-    /**
      * Close the store
      */
     void close();

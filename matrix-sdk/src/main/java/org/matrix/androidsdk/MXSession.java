@@ -1362,6 +1362,7 @@ public class MXSession {
                 Log.d(LOG_TAG, "Crypto is enabled");
                 MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
+                fileCryptoStore.open();
 
                 mCrypto = new MXCrypto(this, fileCryptoStore);
             } else if (null != mCrypto) {

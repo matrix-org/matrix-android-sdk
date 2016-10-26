@@ -70,7 +70,6 @@ public class CryptoTest {
     private static final String MXTESTS_ALICE = "mxAlice";
     private static final String MXTESTS_ALICE_PWD = "alicealice";
 
-
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -107,9 +106,6 @@ public class CryptoTest {
         assertTrue (null != myUserDevices);
         assertTrue (1 == myUserDevices.size());
 
-        // give a breath to let bob session save data in its file store
-        SystemClock.sleep(1000);
-
         final Credentials bobCredentials = mBobSession.getCredentials();
 
         Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
@@ -127,6 +123,10 @@ public class CryptoTest {
 
         mLock = new CountDownLatch(1);
         IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+            }
+
             @Override
             public void onStoreReady(String accountId) {
                 results.put("onStoreReady", "onStoreReady");
@@ -158,6 +158,7 @@ public class CryptoTest {
         MXCrypto crypto = bobSession2.getCrypto();
 
         assertNotNull(crypto);
+
         assertTrue (TextUtils.equals(deviceCurve25519Key, crypto.getOlmDevice().getDeviceCurve25519Key()));
         assertTrue (TextUtils.equals(deviceEd25519Key, crypto.getOlmDevice().getDeviceEd25519Key()));
 
@@ -205,8 +206,8 @@ public class CryptoTest {
         assertTrue(results.containsKey("uploadKeys"));
 
         createBobAccount();
-        mBobSession.setCryptoEnabled(true);
         mBobSession.getCredentials().deviceId = "BobDevice";
+        mBobSession.setCryptoEnabled(true);
 
         SystemClock.sleep(1000);
 
@@ -273,6 +274,10 @@ public class CryptoTest {
 
         IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
             @Override
+            public void postProcess(String accountId) {
+            }
+
+            @Override
             public void onStoreReady(String accountId) {
                 results.put("onStoreReady", "onStoreReady");
                 mLock.countDown();
@@ -328,7 +333,7 @@ public class CryptoTest {
                 mLock.countDown();
             }
         });
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(1000000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("downloadKeys2"));
 
         MXDeviceInfo aliceDeviceFromBobPOV3 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
@@ -465,6 +470,10 @@ public class CryptoTest {
 
 
         IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+            }
+
             @Override
             public void onStoreReady(String accountId) {
                 results.put("onStoreReady", "onStoreReady");
@@ -715,7 +724,7 @@ public class CryptoTest {
     }
 
     @Test
-    public void test07_testAliceAndBobInACryptedRoom2() throws Exception {
+    public void test08_testAliceAndBobInACryptedRoom2() throws Exception {
         doE2ETestWithAliceAndBobInARoom(true);
 
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
@@ -805,8 +814,6 @@ public class CryptoTest {
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(2 == mReceivedMessagesFromAlice);
     }
-
-
 
     //==============================================================================================================
     // private test routines
@@ -923,8 +930,10 @@ public class CryptoTest {
             @Override
             public void onNewRoom(String roomId) {
                 if (TextUtils.equals(roomId, mRoomId)) {
-                    mLock.countDown();
-                    statuses.put("onNewRoom", "onNewRoom");
+                    if (!statuses.containsKey("onNewRoom")) {
+                        mLock.countDown();
+                        statuses.put("onNewRoom", "onNewRoom");
+                    }
                 }
             }
         };

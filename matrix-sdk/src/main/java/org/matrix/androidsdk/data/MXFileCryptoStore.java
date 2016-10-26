@@ -17,8 +17,6 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -56,20 +54,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
     private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE = "sessions";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
-
-    public class MXFileCryptoStoreMetaData implements java.io.Serializable {
-        // The obtained user id.
-        public String mUserId;
-
-        // the device id
-        public String mDeviceId;
-
-        //  The current version of the store.
-        public int mVersion;
-
-        // flag to tell if the device is announced
-        public boolean mDeviceAnnounced;
-    }
 
     // The credentials used for this store
     private Credentials mCredentials;
@@ -129,7 +113,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 && (null != credentials.accessToken)) {
             mMetaData = new MXFileCryptoStoreMetaData();
             mMetaData.mUserId = new String(mCredentials.userId);
-            mMetaData.mDeviceId = new String(mCredentials.deviceId);
+            if (null != mCredentials.deviceId) {
+                mMetaData.mDeviceId = new String(mCredentials.deviceId);
+            }
             mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
             mMetaData.mDeviceAnnounced = false;
         }
@@ -147,21 +133,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void deleteStore() {
-        resetData();
         // delete the dedicated directories
         try {
             ContentUtils.deleteDirectory(mStoreFile);
         } catch(Exception e) {
             Log.e(LOG_TAG, "deleteStore failed " + e.getMessage());
         }
-    }
-
-    @Override
-    public void create() {
-        MXFileCryptoStoreMetaData metaData = mMetaData;
-        resetData();
-        mMetaData = metaData;
-        saveMetaData();
     }
 
     @Override
@@ -201,7 +178,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 && (null != mCredentials.accessToken)) {
             mMetaData = new MXFileCryptoStoreMetaData();
             mMetaData.mUserId = new String(mCredentials.userId);
-            mMetaData.mDeviceId = new String(mCredentials.deviceId);
+            if (null != mCredentials.deviceId) {
+                mMetaData.mDeviceId = new String(mCredentials.deviceId);
+            }
             mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
             mMetaData.mDeviceAnnounced = false;
             saveMetaData();
@@ -460,8 +439,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (null != usersDevicesInfoMapAsVoid) {
             try {
-                Map<String, Map<String,MXDeviceInfo>> map = (Map<String, Map<String,MXDeviceInfo>>)usersDevicesInfoMapAsVoid;
-                mUsersDevicesInfoMap = new MXUsersDevicesMap<>(map);
+                MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap)usersDevicesInfoMapAsVoid;
+                mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
             }

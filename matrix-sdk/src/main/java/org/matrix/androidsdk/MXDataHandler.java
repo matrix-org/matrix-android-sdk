@@ -23,6 +23,7 @@ import android.util.Log;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.IMXCryptoStore;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -881,6 +882,11 @@ public class MXDataHandler implements IMXEventListener {
      * @param isInitialSync  true if the sync response if an initial sync one.
      */
     private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+        if (!isAlive()) {
+            Log.e(LOG_TAG, "manageResponse : ignored because the session has been closed");
+            return;
+        }
+
         boolean isEmptyResponse = true;
 
         // sanity check
@@ -975,8 +981,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-
-            if (!isEmptyResponse) {
+            if (!isEmptyResponse && (null !=  getStore())) {
                 getStore().setEventStreamToken(syncResponse.nextBatch);
                 getStore().commit();
             }
