@@ -451,6 +451,7 @@ public class RoomState implements java.io.Serializable {
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
         copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
+        copy.algorithm = algorithm;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();

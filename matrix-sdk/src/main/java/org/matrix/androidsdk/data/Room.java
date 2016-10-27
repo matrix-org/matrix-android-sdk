@@ -1854,7 +1854,7 @@ public class Room {
 
         event.mSentState = Event.SentState.SENDING;
 
-        if (isEncrypted()) {
+        if (isEncrypted() && (null != mDataHandler.getCrypto())) {
             // Encrypt the content before sending
             mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
                 @Override
@@ -2188,7 +2188,7 @@ public class Room {
      * @return if the room content is encrypted
      */
     public boolean isEncrypted() {
-        return (null != mDataHandler.getCrypto()) && mDataHandler.getCrypto().isRoomEncrypted(getRoomId());
+        return !TextUtils.isEmpty(getLiveState().algorithm);
     }
 
     /**

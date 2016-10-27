@@ -71,7 +71,7 @@ public class CryptoTest {
     private static final String MXTESTS_ALICE = "mxAlice";
     private static final String MXTESTS_ALICE_PWD = "alicealice";
 
-    /*@Test
+    @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         createBobAccount();
@@ -1103,16 +1103,18 @@ public class CryptoTest {
 
         bobSession2.clear(context);
         mAliceSession.clear(context);
-    }*/
+    }
 
     @Test
-    public void test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore() throws Exception {
+    public void test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
-        Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        String eventId = mBobSession.getDataHandler().getStore().getLatestEvent(mRoomId).eventId;
+
+        EventTimeline timeline = new EventTimeline(mBobSession.getDataHandler(), mRoomId, eventId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
         final ArrayList<Event> receivedEvents = new ArrayList<>();
@@ -1126,10 +1128,8 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().initHistory();
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
-
-        roomFromBobPOV.getLiveTimeLine().backPaginate(new ApiCallback<Integer>() {
+        timeline.addEventTimelineListener(eventTimelineListener);
+        timeline.backPaginate(new ApiCallback<Integer>() {
             @Override
             public void onSuccess(Integer info) {
                 results.put("backPaginate", "backPaginate");
@@ -1165,7 +1165,111 @@ public class CryptoTest {
 
         mBobSession.clear(context);
         mAliceSession.clear(context);
+    }
 
+    @Test
+    public void testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
+        final HashMap<String, Object> results = new HashMap();
+
+        doE2ETestWithAliceAndBobInARoom(false);
+
+        Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final String messageFromAlice = "Hello I'm Alice!";
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)
+                        && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
+                    results.put("bobEcho", event);
+                    lock1.countDown();
+                }
+            }
+        };
+
+        roomFromBobPOV.addEventListener(bobEventListener);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+
+            }
+        });
+
+        lock1.await(30000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("bobEcho"));
+
+        Event event = (Event)results.get("bobEcho");
+        assertTrue(event.isEncrypted());
+        assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
+        assertTrue(null != event.getContentAsJsonObject());
+        assertTrue(!event.getContentAsJsonObject().has("body"));
+
+        // TODO add error
+
+
+        final CountDownLatch lock2 = new CountDownLatch(1);
+        MXEventListener aliceEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)
+                        && !TextUtils.equals(event.getSender(), mAliceSession.getMyUserId())) {
+                    results.put("aliceEcho", event);
+                    lock2.countDown();
+                }
+            }
+        };
+
+        roomFromAlicePOV.addEventListener(aliceEventListener);
+
+        roomFromBobPOV.sendEvent(buildTextEvent("Hello I'm Bob!", mBobSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+
+            }
+        });
+
+        lock2.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("aliceEcho"));
+
+        event = (Event)results.get("aliceEcho");
+        assertTrue(!event.isEncrypted());
     }
 
     //==============================================================================================================
@@ -1373,7 +1477,7 @@ public class CryptoTest {
         MXEventListener bobEventsListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
                     mMessagesCount++;
                     list.get(0).countDown();
                 }
