@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,6 +98,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                         messageMap.put("content", eventContent);
 
                         mCrypto.encryptMessage(messageMap, participantKeys);
+                        callback.onSuccess(JsonUtils.getGson(false).toJsonTree(messageMap));
                     }
 
                     @Override

@@ -865,10 +865,10 @@ public class Event implements java.io.Serializable {
     private transient Map<String, String> mKeysClaimed;
 
     /**
-     True if this event is encrypted.
+     * True if this event is encrypted.
      */
     public boolean isEncrypted() {
-        return (null != mClearEvent) && !TextUtils.isEmpty(mClearEvent.type);
+        return TextUtils.equals(getWireType(), EVENT_TYPE_MESSAGE_ENCRYPTED);
     }
 
     /**

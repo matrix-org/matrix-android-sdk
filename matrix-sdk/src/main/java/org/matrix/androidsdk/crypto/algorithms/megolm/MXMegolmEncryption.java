@@ -209,7 +209,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             shareMap.setObjects(submap, member.getUserId());
         }
 
-        mCrypto.downloadKeys(new ArrayList<>(shareMap.userIds()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.downloadKeys(new ArrayList<>(shareMap.userIds()), true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 shareKey(sessionId, shareMap, new ApiCallback<Void>() {

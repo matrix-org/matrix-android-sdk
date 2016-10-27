@@ -48,7 +48,9 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.lang.reflect.Constructor;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -605,7 +607,21 @@ public class MXCrypto {
      * @return true if the room is encrypted
      */
     public boolean isRoomEncrypted(String roomId) {
-        return !TextUtils.isEmpty(roomId) && mRoomAlgorithms.containsKey(roomId);
+        boolean res = false;
+
+        if (null != roomId) {
+            res = mRoomAlgorithms.containsKey(roomId);
+
+            if (!res) {
+                Room room = mSession.getDataHandler().getRoom(roomId);
+
+                if (null != room) {
+                    res = room.getLiveState().isEncrypted();
+                }
+            }
+        }
+
+        return res;
     }
 
     /**
@@ -756,6 +772,15 @@ public class MXCrypto {
 
         IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
 
+        if (null == alg) {
+            String algorithm = room.getLiveState().encryptionAlgorithm();
+
+            if (null != algorithm) {
+                setEncryptionInRoom(room.getRoomId(), algorithm);
+                alg = mRoomAlgorithms.get(room.getRoomId());
+            }
+        }
+
         if (null != alg) {
             alg.encryptEventContent(eventContent, eventType, room, new ApiCallback<JsonElement>() {
                 @Override
@@ -832,8 +857,30 @@ public class MXCrypto {
             clearedEvent.setKeysProved(result.mKeysProved);
             clearedEvent.setKeysClaimed(result.mKeysClaimed);
         } else {
-            // @TODO: Manage error
-            Log.e(LOG_TAG, "## decryptEvent() : failed");
+            Log.e(LOG_TAG, "##decryptEvent() failed");
+            // We've got a message for a session we don't have.  Maybe the sender
+            // forgot to tell us about the session.  Remind the sender that we
+            // exist so that they might tell us about the session on their next
+            // send.
+            //
+            // (Alternatively, it might be that we are just looking at
+            // scrollback... at least we rate-limit the m.new_device events :/)
+            //
+            // XXX: this is a band-aid which masks symptoms of other bugs. It would
+            // be nice to get rid of it.
+            if ((null != event.roomId) && (null != event.sender)) {
+                // Note: if the sending device didn't tell us its device_id, fall
+                // back to all devices.
+                String deviceId = null;
+
+                try {
+                    deviceId = event.getContentAsJsonObject().get("device_id").getAsString();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "##decryptEvent() : cannot retrieve the deviceId");
+                }
+
+                sendPingToDevice(deviceId, event.sender, event.roomId);
+            }
         }
 
         return clearedEvent;
@@ -846,10 +893,8 @@ public class MXCrypto {
       * @return the content for an m.room.encrypted event.
      */
     public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<String> participantKeys) {
-        // @TODO
-        // participantKeys.sort();
-
-        String participantHash = ""; // Olm.sha256(participantKeys.join());
+        Collections.sort(participantKeys);
+        String participantHash = mOlmDevice.sha256(TextUtils.join(", ", participantKeys));
 
         HashMap<String, Object> payloadJson = new HashMap<>(payloadFields);
         payloadJson.put("fingerprint", participantHash);
@@ -913,9 +958,7 @@ public class MXCrypto {
 
         for (Room room : rooms) {
             // Check for rooms with encryption enabled
-            IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
-
-            if (null == alg) {
+            if (!room.getLiveState().isEncrypted()) {
                 continue;
             }
 
@@ -1232,4 +1275,57 @@ public class MXCrypto {
         return true;
     }
 
+    /**
+     * Send a "m.new_device" message to remind it that we exist and are a member
+     * of a room.
+     *  This is rate limited to send a message at most once an hour per destination.
+     * @param deviceId the id of the device to ping. If nil, all devices.
+     * @param userId the id of the user to ping.
+     * @param roomId
+     */
+    private void sendPingToDevice(String deviceId, String userId, String roomId) {
+        // sanity checks
+        if ((null == userId) || (null == roomId)) {
+            return;
+        }
+
+        if (TextUtils.isEmpty(deviceId)) {
+            deviceId = "*";
+        }
+
+        // @TODO: Manage rate limit
+
+        // Build a per-device message for each user
+        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>(null);
+
+        HashMap<String, Object> submap = new HashMap<>();
+        submap.put("device_id", deviceId);
+        submap.put("rooms", Arrays.asList(roomId));
+
+        HashMap<String, Map<String,Object>> map = new HashMap<>();
+        map.put(deviceId, submap);
+
+        contentMap.setObjects(map, userId);
+
+        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
+            }
+        });
+    }
 }

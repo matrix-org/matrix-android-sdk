@@ -333,11 +333,11 @@ public class MXOlmDevice {
 
             mStore.storeSession(olmSession, theirDeviceIdentityKey);
 
-            Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
+            //Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
             try {
-                Log.d(LOG_TAG, "## encryptMessage() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(olmMessage.mCipherText, "utf-8")));
+            //    Log.d(LOG_TAG, "## encryptMessage() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(olmMessage.mCipherText, "utf-8")));
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## encryptMessage() :ciphertext: cannot encode olmMessage.ciphertext");
+            //    Log.e(LOG_TAG, "## encryptMessage() :ciphertext: cannot encode olmMessage.ciphertext");
             }
 
             res = new HashMap<>();
@@ -496,32 +496,37 @@ public class MXOlmDevice {
             if (TextUtils.equals(roomId, session.mRoomId)) {
                 String payloadString = session.mSession.decryptMessage(body);
 
-                mStore.storeInboundGroupSession(session);
+                if (null != payloadString) {
 
-                result = new MXDecryptionResult();
+                    mStore.storeInboundGroupSession(session);
 
-                try {
-                    String urlEncoded = URLDecoder.decode(payloadString, "utf-8");
-                    JsonParser parser = new JsonParser();
+                    result = new MXDecryptionResult();
 
-                    result.mPayload =  parser.parse(urlEncoded);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
-                    return null;
+                    try {
+                        String urlEncoded = URLDecoder.decode(payloadString, "utf-8");
+                        JsonParser parser = new JsonParser();
+
+                        result.mPayload = parser.parse(urlEncoded);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
+                        return null;
+                    }
+
+                    if (null == result.mPayload) {
+                        Log.e(LOG_TAG, "## decryptGroupMessage() : fails to parse the payload");
+                        return null;
+                    }
+
+                    result.mKeysClaimed = session.mKeysClaimed;
+
+                    // The sender must have had the senderKey to persuade us to save the
+                    // session.
+                    HashMap<String, String> map = new HashMap<>();
+                    map.put("curve25519", senderKey);
+                    result.mKeysProved = map;
+                }  else {
+                    Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
-
-                if (null == result.mPayload) {
-                    Log.e(LOG_TAG, "## decryptGroupMessage() : fails to parse the payload");
-                    return null;
-                }
-
-                result.mKeysClaimed = session.mKeysClaimed;
-
-                // The sender must have had the senderKey to persuade us to save the
-                // session.
-                HashMap<String, String> map = new HashMap<>();
-                map.put("curve25519", senderKey);
-                result.mKeysProved = map;
             } else {
                 Log.e(LOG_TAG, "## decryptGroupMessage() : Mismatched room_id for inbound group session (expected " + roomId + " , was " + session.mRoomId);
             }
@@ -566,6 +571,23 @@ public class MXOlmDevice {
 
         // Check signature on the canonical version of the JSON
         return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), error);
+    }
+
+    /**
+     * Calculate the SHA-256 hash of the input and encodes it as base64.
+     * @param message  the message to hash.
+     * @return the base64-encoded hash value.
+     */
+    public String sha256(String message) {
+        String urlEncodedMessage = message;
+
+        try {
+            urlEncodedMessage = URLEncoder.encode(urlEncodedMessage, "utf-8");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## sha256() : " + e.getMessage());
+        }
+
+        return mOlmUtility.sha256(urlEncodedMessage);
     }
 
     /**

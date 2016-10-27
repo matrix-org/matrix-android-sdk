@@ -107,6 +107,9 @@ public class RoomState implements java.io.Serializable {
     /**  the room visibility in the directory list (i.e. public, private...) **/
     public String visibility;
 
+    // the encryption algorithm
+    public String algorithm;
+
     /**
      * The number of unread messages that match the push notification rules.
      * It is based on the notificationCount field in /sync response.
@@ -650,6 +653,20 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * @return true if the room is encrypted
+     */
+    public boolean isEncrypted() {
+        return !TextUtils.isEmpty(algorithm);
+    }
+
+    /**
+     * @return the encryption algorithm
+     */
+    public String encryptionAlgorithm() {
+        return algorithm;
+    }
+
+    /**
      * Apply the given event (relevant for state changes) to our state.
      * @param event the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
@@ -693,6 +710,9 @@ public class RoomState implements java.io.Serializable {
                         mAliasesByDomain.put(event.stateKey, new ArrayList<String>());
                     }
                 }
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                algorithm = (roomState == null) ? null : roomState.algorithm;
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
