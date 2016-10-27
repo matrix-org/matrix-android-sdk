@@ -443,6 +443,19 @@ public class MXFileStore extends MXMemoryStore {
 
                 Thread t = new Thread(r);
                 t.start();
+            } else if (mIsReady) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.e(LOG_TAG, "Management post processing.");
+                        dispatchpostProcess(mCredentials.userId);
+                        Log.e(LOG_TAG, "The store is opened.");
+                        dispatchOnStoreReady(mCredentials.userId);
+                    }
+                };
+
+                Thread t = new Thread(r);
+                t.start();
             }
         }
     }

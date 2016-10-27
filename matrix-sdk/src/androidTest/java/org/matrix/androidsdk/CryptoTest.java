@@ -70,7 +70,7 @@ public class CryptoTest {
     private static final String MXTESTS_ALICE = "mxAlice";
     private static final String MXTESTS_ALICE_PWD = "alicealice";
 
-    @Test
+    /*@Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         createBobAccount();
@@ -812,6 +812,203 @@ public class CryptoTest {
         list.get(list.size()-1).await(10000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(2 == mReceivedMessagesFromAlice);
     }
+*/
+    @Test
+    public void test08_testAliceInACryptedRoomAfterInitialSync() throws Exception {
+        Context context = InstrumentationRegistry.getContext();
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceInARoom();
+
+        final String message = "Hello myself!";
+
+        Credentials aliceCredentials = mAliceSession.getCredentials();
+
+        mAliceSession.clear(context);
+
+        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
+        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        hs.setCredentials(aliceCredentials);
+
+        IMXStore store =  new MXFileStore(hs, context);
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+
+        final MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials, new MXDataHandler.InvalidTokenListener() {
+            @Override
+            public void onTokenCorrupted() {
+            }
+        }), context);
+
+        MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onInitialSyncComplete() {
+                results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock1.countDown();
+            }
+        };
+
+        aliceSession2.getDataHandler().addListener(eventListener);
+        aliceSession2.getDataHandler().getStore().open();
+        aliceSession2.startEventStream(null);
+
+        lock1.await(10000, TimeUnit.DAYS.MILLISECONDS);
+
+        assertTrue (results.containsKey("onInitialSyncComplete"));
+
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromAlicePOV2.isEncrypted());
+
+        final CountDownLatch lock2 = new CountDownLatch(1);
+
+        if (false) {
+            // The android client does not echo its own message
+            MXEventListener aliceEventListener = new MXEventListener() {
+                @Override
+                public void onLiveEvent(Event event, RoomState roomState) {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        try {
+                            if (checkEncryptedEvent(event, mRoomId, message, aliceSession2)) {
+                                lock2.countDown();
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            };
+
+            roomFromAlicePOV2.addEventListener(aliceEventListener);
+        }
+
+        // the IOS client echoes the message
+        // the android client does not
+        roomFromAlicePOV2.sendEvent(buildTextEvent(message, aliceSession2), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("sendEvent", "sendEvent");
+                lock2.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock2.countDown();
+            }
+        });
+
+        lock2.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("sendEvent"));
+
+        aliceSession2.clear(context);
+    }
+
+    /*
+    @Test
+    public void test08_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom() throws Exception {
+        Context context = InstrumentationRegistry.getContext();
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceInARoom();
+
+        String message = "Hello myself!";
+
+        Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("sendEvent", "sendEvent");
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+        lock1.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("sendEvent"));
+
+        Credentials aliceCredentials = mAliceSession.getCredentials();
+        Credentials aliceCredentials2 = new Credentials();
+
+        // close the session and clear the data
+        mAliceSession.clear(context);
+
+        aliceCredentials2.userId = aliceCredentials.userId;
+        aliceCredentials2.homeServer = aliceCredentials.homeServer;
+        aliceCredentials2.accessToken = aliceCredentials.accessToken;
+        aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
+        aliceCredentials2.deviceId = "AliceNewDevice";
+
+        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
+        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        hs.setCredentials(aliceCredentials2);
+
+        IMXStore store =  new MXFileStore(hs, context);
+
+        final CountDownLatch lock2 = new CountDownLatch(1);
+
+        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2, new MXDataHandler.InvalidTokenListener() {
+            @Override
+            public void onTokenCorrupted() {
+            }
+        }), context);
+
+        MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onInitialSyncComplete() {
+                results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock2.countDown();
+            }
+        };
+
+        aliceSession2.getDataHandler().addListener(eventListener);
+        aliceSession2.getDataHandler().getStore().open();
+        aliceSession2.startEventStream(null);
+
+        lock2.await(10000, TimeUnit.DAYS.MILLISECONDS);
+
+        assertTrue (results.containsKey("onInitialSyncComplete"));
+
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+
+        assertTrue (null != roomFromAlicePOV2);
+        assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
+
+        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        assertTrue(null != event);
+        assertTrue(event.isEncrypted());
+        assertTrue(null == event.mClearEvent);
+
+        // TODO add error management
+        //XCTAssert(event.decryptionError);
+        //XCTAssertEqual(event.decryptionError.code, MXDecryptingErrorUnkwnownInboundSessionIdCode);
+        aliceSession2.clear(context);
+    }*/
+
 
     //==============================================================================================================
     // private test routines
