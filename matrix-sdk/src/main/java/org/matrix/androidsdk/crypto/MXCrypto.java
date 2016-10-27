@@ -162,7 +162,7 @@ public class MXCrypto {
 
         mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
 
-        mSession.getDataHandler().addListener(mEventListener);
+        mSession.getDataHandler().setCryptoEventsListener(mEventListener);
 
         uploadKeys(1, new ApiCallback<Void>() {
             @Override
@@ -756,7 +756,6 @@ public class MXCrypto {
 
         IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
 
-
         if (null != alg) {
             alg.encryptEventContent(eventContent, eventType, room, new ApiCallback<JsonElement>() {
                 @Override
@@ -1101,7 +1100,7 @@ public class MXCrypto {
             RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);
             alg.onRoomMembership(event, roomMember, (null != prevRoomMember) ? prevRoomMember.membership : null);
         } else {
-            Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
+            //Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
         }
     }
 

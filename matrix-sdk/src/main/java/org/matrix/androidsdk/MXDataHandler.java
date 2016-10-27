@@ -85,6 +85,7 @@ public class MXDataHandler implements IMXEventListener {
         void onTokenCorrupted();
     }
 
+    private IMXEventListener mCryptoEventsListener = null;
     private final List<IMXEventListener> mEventListeners = new ArrayList<>();
 
     private final IMXStore mStore;
@@ -383,6 +384,14 @@ public class MXDataHandler implements IMXEventListener {
     public BingRulesManager getBingRulesManager() {
         checkIfAlive();
         return mBingRulesManager;
+    }
+
+    /**
+     * Set the crypto events listrner
+     * @param listener
+     */
+    public void setCryptoEventsListener(IMXEventListener listener) {
+        mCryptoEventsListener = listener;
     }
 
     /**
@@ -1061,6 +1070,10 @@ public class MXDataHandler implements IMXEventListener {
      * Dispatch that the store is ready.
      */
     public void onStoreReady() {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onStoreReady();
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1079,6 +1092,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onAccountInfoUpdate(final MyUser myUser) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onAccountInfoUpdate(myUser);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1097,6 +1114,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onPresenceUpdate(final Event event, final User user) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onPresenceUpdate(event, user);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1129,6 +1150,10 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onLiveEvent(event, roomState);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1149,6 +1174,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onLiveEventsChunkProcessed() {
         refreshUnreadCounters();
 
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onLiveEventsChunkProcessed();
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1167,6 +1196,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onBingEvent(event,roomState, bingRule);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1185,6 +1218,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onSentEvent(final Event event) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onSentEvent(event);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1203,6 +1240,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onFailedSendingEvent(final Event event) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onFailedSendingEvent(event);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1221,6 +1262,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onBingRulesUpdate() {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onBingRulesUpdate();
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1243,6 +1288,10 @@ public class MXDataHandler implements IMXEventListener {
 
         refreshUnreadCounters();
 
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onInitialSyncComplete();
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1261,6 +1310,11 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onNewRoom(final String roomId) {
+
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onNewRoom(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1279,6 +1333,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onJoinRoom(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onJoinRoom(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1297,6 +1355,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomInitialSyncComplete(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomInitialSyncComplete(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1315,6 +1377,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomInternalUpdate(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomInternalUpdate(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1333,6 +1399,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLeaveRoom(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onLeaveRoom(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1356,6 +1426,10 @@ public class MXDataHandler implements IMXEventListener {
             mUpdatedRoomIdList.add(roomId);
         }
 
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onReceiptEvent(roomId, senderIds);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1374,6 +1448,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomTagEvent(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomTagEvent(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1392,6 +1470,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onRoomFlush(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomFlush(roomId);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1410,6 +1492,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onIgnoredUsersListUpdate() {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onIgnoredUsersListUpdate();
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1428,6 +1514,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onToDeviceEvent(final Event event) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onToDeviceEvent(event);
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
