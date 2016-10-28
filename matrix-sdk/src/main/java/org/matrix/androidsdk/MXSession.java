@@ -48,6 +48,7 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -1128,6 +1129,118 @@ public class MXSession {
 
         return (orderA + orderB) / 2.0;
     }
+
+    /**
+     * @return the direct chat room ids list
+     */
+    public List<String> getDirectChatRoomIdsList() {
+        IMXStore store = getDataHandler().getStore();
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+
+        Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+
+        // if the direct messages entry has been defined
+        if (null != listOfList) {
+            for (List<String> list : listOfList) {
+                for (String roomId : list) {
+                    // test if the room is defined once and exists
+                    if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
+            }
+        } else {
+            // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
+            ArrayList<Room> rooms = new ArrayList<>(store.getRooms());
+
+            for (Room r : rooms) {
+                // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
+                // been moved to a different tag section
+                if ((r.getMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
+                    RoomMember roomMember = r.getMember(getMyUserId());
+
+                    if (null != roomMember) {
+                        String membership = roomMember.membership;
+
+                        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                            directChatRoomIdsList.add(r.getRoomId());
+                        }
+                    }
+                }
+            }
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    /**
+     * Toggles the direct chat status of a room
+     * @param roomId the room roomId
+     * @param callback the asynchronous callback
+     */
+    public void toogleDirectChatRoom(String roomId, ApiCallback<Void> callback) {
+        IMXStore store = getDataHandler().getStore();
+        Room room = store.getRoom(roomId);
+
+        if (null != room) {
+            HashMap<String, List<String>> params;
+
+            if (null != store.getDirectChatRoomsDict()) {
+                params = new HashMap<>(store.getDirectChatRoomsDict());
+            } else {
+                params = new HashMap<>();
+            }
+
+            // the room was not seen as direct chat
+            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
+                // find the first other active members
+                ArrayList<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
+
+                RoomMember member = null;
+
+                for(RoomMember m : members) {
+                    if (!TextUtils.equals(m.getUserId(), getMyUserId())) {
+                        member = m;
+                        break;
+                    }
+                }
+
+                if (null == member) {
+                    member = members.get(0);
+                }
+
+                ArrayList<String> roomIdsList = new ArrayList<>();
+
+                // search if there is an entry with the same user
+                if (params.containsKey(member.getUserId())) {
+                    roomIdsList= new ArrayList<>(params.get(member.getUserId()));
+                }
+
+                roomIdsList.add(roomId);
+                params.put(member.getUserId(), roomIdsList);
+            } else {
+                Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+
+                for (List<String> list : listOfList) {
+                    if (list.contains(roomId)) {
+                        list.remove(roomId);
+                    }
+                }
+            }
+
+            HashMap<String, Object> requestParams = new HashMap<>();
+            Collection<String> userIds = params.keySet();
+
+            for(String userId : userIds) {
+                requestParams.put(userId, params.get(userId));
+            }
+
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+        }
+    }
+
 
     /**
      * Update the account password

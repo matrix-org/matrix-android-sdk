@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -131,6 +132,7 @@ public interface IMXStore {
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
     void setIgnoredUserIdsList(List<String>users);
+    void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict);
 
     /**
      * getters.
@@ -140,6 +142,7 @@ public interface IMXStore {
     Collection<User> getUsers();
     User getUser(String userId);
     List<String> getIgnoredUserIdsList();
+    Map<String, List<String>> getDirectChatRoomsDict();
 
     /**
      * flush methods

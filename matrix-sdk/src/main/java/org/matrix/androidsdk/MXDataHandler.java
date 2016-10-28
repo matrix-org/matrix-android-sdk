@@ -697,9 +697,10 @@ public class MXDataHandler implements IMXEventListener {
                     manageIgnoredUsers(events, isInitialSync);
                     // push rules
                     managePushRulesUpdate(events);
+                    // direct messages rooms
+                    manageDirectChatRooms(events, isInitialSync);
                 }
             }
-
         } catch (Exception e) {
             Log.e(LOG_TAG, "manageAccountData failed " + e.getLocalizedMessage());
         }
@@ -793,6 +794,33 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         return ignoredUsers;
+    }
+
+
+    /**
+     * Extract the direct chat rooms list from the dedicated events.
+     * @param events the account data events list.
+     */
+    private void manageDirectChatRooms(List<Map<String, Object>> events, boolean isInitialSync) {
+        if (0 != events.size()) {
+            for (Map<String, Object> event : events) {
+                String type = (String) event.get("type");
+
+                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES)) {
+                    if (event.containsKey("content")) {
+                        Map<String, List<String>> contentDict = (Map<String, List<String>>) event.get("content");
+
+                        mStore.setDirectChatRoomsDict(contentDict);
+
+                        if (!isInitialSync) {
+                            // warn there is an update
+                            onDirectMessageChatRoomsListUpdate();
+                        }
+                    }
+                }
+            }
+
+        }
     }
 
     //================================================================================
@@ -1370,6 +1398,25 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getLocalizedMessage());
+                    }
+                }
+            }
+        });
+    }
+
+
+    @Override
+    public void onDirectMessageChatRoomsListUpdate() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onDirectMessageChatRoomsListUpdate();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDirectMessageChatRoomsListUpdate " + e.getMessage());
                     }
                 }
             }

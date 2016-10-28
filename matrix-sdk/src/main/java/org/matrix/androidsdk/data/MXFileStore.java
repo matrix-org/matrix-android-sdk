@@ -17,9 +17,7 @@
 package org.matrix.androidsdk.data;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.HandlerThread;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -267,6 +265,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Open the store.
      */
+    @Override
     public void open() {
         super.open();
 
@@ -597,9 +596,16 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        Log.d(LOG_TAG, "## setIgnoredUsers() : " + users);
         mMetaDataHasChanged = true;
         super.setIgnoredUserIdsList(users);
+    }
+
+    @Override
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        Log.d(LOG_TAG, "## setDirectChatRoomsDict() : " + directChatRoomsDict);
+        mMetaDataHasChanged = true;
+        super.setDirectChatRoomsDict(directChatRoomsDict);
     }
 
     @Override
