@@ -187,15 +187,21 @@ public class JsonUtils {
      * @return the canonicalized string
      */
     public static String getCanonicalizedJsonString(Object object) {
+        String canonicalizedJsonString = null;
+
         if (null != object) {
             if (object instanceof JsonElement) {
-                return gson.toJson(canonicalize((JsonElement)object));
+                canonicalizedJsonString = gson.toJson(canonicalize((JsonElement)object));
             } else {
-                return gson.toJson(canonicalize(gson.toJsonTree(object)));
+                canonicalizedJsonString = gson.toJson(canonicalize(gson.toJsonTree(object)));
+            }
+
+            if (null != canonicalizedJsonString) {
+                canonicalizedJsonString = canonicalizedJsonString.replace("\\/", "/");
             }
         }
 
-        return null;
+        return canonicalizedJsonString;
     }
 
     /**

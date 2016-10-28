@@ -503,10 +503,8 @@ public class MXOlmDevice {
                     result = new MXDecryptionResult();
 
                     try {
-                        String string = JsonUtils.convertFromUTF8(payloadString);
                         JsonParser parser = new JsonParser();
-
-                        result.mPayload = parser.parse(string);
+                        result.mPayload = parser.parse(JsonUtils.convertFromUTF8(payloadString));
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
                         return null;

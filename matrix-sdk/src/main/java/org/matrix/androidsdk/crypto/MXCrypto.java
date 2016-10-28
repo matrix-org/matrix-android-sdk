@@ -31,7 +31,6 @@ import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.IMXCryptoStore;
-import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -46,7 +45,6 @@ import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.lang.reflect.Constructor;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -387,7 +385,9 @@ public class MXCrypto {
                             devices = new HashMap<>();
                         }
 
-                        for (String deviceId : devices.keySet()) {
+                        ArrayList<String> deviceIds = new ArrayList<>(devices.keySet());
+
+                        for (String deviceId : deviceIds) {
                             // Get the potential previously store device keys for this device
                             MXDeviceInfo previouslyStoredDeviceKeys = stored.objectForDevice(deviceId, userId);
 
@@ -485,7 +485,6 @@ public class MXCrypto {
                     Set<String> keys = device.keys.keySet();
 
                     for (String keyId : keys) {
-
                         if (keyId.startsWith("curve25519:")) {
                             if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
                                 return device;
@@ -921,8 +920,7 @@ public class MXCrypto {
         keysMap.put("ed25519", mOlmDevice.getDeviceEd25519Key());
         payloadJson.put("keys", keysMap);
 
-        String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
-        payloadString = JsonUtils.convertToUTF8(payloadString);
+        String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
 
         HashMap<String, Object> ciphertext = new HashMap<>();
 

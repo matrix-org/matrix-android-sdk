@@ -556,10 +556,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             payloadJson.put("type", queuedEncryption.mEventType);
             payloadJson.put("content", queuedEncryption.mEventContent);
 
-            String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
-
-            payloadString = JsonUtils.convertToUTF8(payloadString);
-
+            String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
             String ciphertext = mCrypto.getOlmDevice().encryptGroupMessage(mOutboundSessionId, payloadString);
 
             HashMap<String, Object> map = new HashMap<>();

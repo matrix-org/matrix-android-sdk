@@ -66,16 +66,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, String> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
         final String description = "uploadKeys";
 
-        String encodedDeviceId = null;
-
-        if (!TextUtils.isEmpty(deviceId)) {
-            try {
-                encodedDeviceId = JsonUtils.convertToUTF8(deviceId);
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys() : URLEncoder.encode fails " + e.getMessage());
-            }
-        }
-
+        String encodedDeviceId = JsonUtils.convertToUTF8(deviceId);
         HashMap<String, Object> params = new HashMap<>();
 
         if (null != deviceKeys) {
