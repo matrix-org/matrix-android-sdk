@@ -26,6 +26,7 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.olm.OlmAccount;
+import org.matrix.olm.OlmInboundGroupSession;
 import org.matrix.olm.OlmSession;
 
 import java.io.File;
@@ -36,6 +37,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**

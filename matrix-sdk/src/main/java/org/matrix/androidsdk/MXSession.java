@@ -194,7 +194,15 @@ public class MXSession {
                 store.initWithCredentials(mAppContent, mCredentials);
 
                 if (store.hasData()) {
-                    store.open();
+                    if (null == mOlmManager) {
+                        try {
+                            // load the crypto lib
+                            mOlmManager = new OlmManager();
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "setCryptoEnabled : cannot load the crypto lib " + e.getMessage());
+                            return;
+                        }
+                    }
                     setCryptoEnabled(true);
                 }
             }

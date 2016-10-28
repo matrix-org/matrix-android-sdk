@@ -161,26 +161,28 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     @Override
     public void onNewDevice(String deviceId, String userId) {
-        Set<String> d = mDevicesPendingKeyShare.deviceIdsForUser(userId);
-        ArrayList<String> deviceIds;
+        if (null != mDevicesPendingKeyShare) {
+            Set<String> d = mDevicesPendingKeyShare.deviceIdsForUser(userId);
+            ArrayList<String> deviceIds;
 
-        if (null == d) {
-            deviceIds = new ArrayList<>();
-        } else {
-            deviceIds = new ArrayList<>(d);
-        }
+            if (null == d) {
+                deviceIds = new ArrayList<>();
+            } else {
+                deviceIds = new ArrayList<>(d);
+            }
 
-        if ((deviceIds.size() == 1) && TextUtils.equals(deviceIds.get(0), "*")) {
-            // We already want to share keys with all devices for this user
-        } else {
-            // Add the device to the list of devices to share keys with
-            // The keys will be shared at the next encryption request
-            mDevicesPendingKeyShare.setObject(true, userId, deviceId);
+            if ((deviceIds.size() == 1) && TextUtils.equals(deviceIds.get(0), "*")) {
+                // We already want to share keys with all devices for this user
+            } else {
+                // Add the device to the list of devices to share keys with
+                // The keys will be shared at the next encryption request
+                mDevicesPendingKeyShare.setObject(true, userId, deviceId);
+            }
         }
     }
 
     /**
-     * Prepare a bew session in a dedicated room
+     * Prepare a new session in a dedicated room
      * @param room the room
      * @param callback the asynchronous callback
      */
@@ -556,11 +558,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
 
-            try {
-                payloadString = URLEncoder.encode(payloadString, "utf-8");
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## processPendingEncryptionsWithError : RLEncoder.encode failed " + e.getMessage());
-            }
+            payloadString = JsonUtils.convertToUTF8(payloadString);
 
             String ciphertext = mCrypto.getOlmDevice().encryptGroupMessage(mOutboundSessionId, payloadString);
 

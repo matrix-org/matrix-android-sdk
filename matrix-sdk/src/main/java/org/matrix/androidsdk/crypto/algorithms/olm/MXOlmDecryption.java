@@ -87,7 +87,7 @@ public class MXOlmDecryption implements IMXDecrypting {
             }
 
             result = new MXDecryptionResult();
-            result.mPayload = new JsonParser().parse(URLDecoder.decode(payloadString, "utf-8"));
+            result.mPayload = new JsonParser().parse(JsonUtils.convertFromUTF8(payloadString));
 
             HashMap<String, String> keysProved = new HashMap<>();
             keysProved.put("curve25519", deviceKey);

@@ -15,6 +15,9 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -30,6 +33,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -49,7 +53,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * {@inheritDoc}
      */
     public CryptoRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, CryptoApi.class, URI_API_PREFIX_PATH_UNSTABLE, false, true);
+        super(hsConfig, CryptoApi.class, URI_API_PREFIX_PATH_UNSTABLE, false, false);
     }
 
     /**
@@ -66,7 +70,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
         if (!TextUtils.isEmpty(deviceId)) {
             try {
-                encodedDeviceId = URLEncoder.encode(deviceId, "utf-8");
+                encodedDeviceId = JsonUtils.convertToUTF8(deviceId);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## uploadKeys() : URLEncoder.encode fails " + e.getMessage());
             }
@@ -115,11 +119,11 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void downloadKeysForUsers(final List<String> userIds , final ApiCallback<KeysQueryResponse> callback) {
         final String description = "downloadKeysForUsers";
 
-        HashMap<String, List<String>> downloadQuery = new HashMap<>();
+        HashMap<String, Map<String, Object>> downloadQuery = new HashMap<>();
 
         if (null != userIds) {
             for(String userId : userIds) {
-                downloadQuery.put(userId, new ArrayList<String>());
+                downloadQuery.put(userId, new HashMap<String, Object>());
             }
         }
 

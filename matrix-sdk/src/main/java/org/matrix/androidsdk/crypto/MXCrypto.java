@@ -166,7 +166,7 @@ public class MXCrypto {
 
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
 
-        uploadKeys(1, new ApiCallback<Void>() {
+        uploadKeys(5, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "###########################################################");
@@ -352,7 +352,7 @@ public class MXCrypto {
         final ArrayList<String> downloadUsers = new ArrayList<>();
 
         if (null != userIds) {
-            for (String userId :  userIds) {
+            for (String userId : userIds) {
 
                 Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
                 boolean isEmpty = (null == devices) || (devices.size() == 0);
@@ -425,16 +425,25 @@ public class MXCrypto {
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "## downloadKeys() : onNetworkError " + e.getMessage());
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
                     Log.e(LOG_TAG, "## downloadKeys() : onMatrixError " + e.getLocalizedMessage());
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
                     Log.e(LOG_TAG, "## downloadKeys() : onUnexpectedError " + e.getMessage());
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
                 }
             });
         }
@@ -913,13 +922,7 @@ public class MXCrypto {
         payloadJson.put("keys", keysMap);
 
         String payloadString = JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString();
-
-        try {
-            payloadString = URLEncoder.encode(payloadString, "utf-8");
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## encryptMessage : RLEncoder.encode failed " + e.getMessage());
-            return null;
-        }
+        payloadString = JsonUtils.convertToUTF8(payloadString);
 
         HashMap<String, Object> ciphertext = new HashMap<>();
 

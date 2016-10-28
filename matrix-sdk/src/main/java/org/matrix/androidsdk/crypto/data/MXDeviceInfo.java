@@ -162,10 +162,6 @@ public class MXDeviceInfo implements Serializable {
             JSONDictionary.put("signatures", signatures);
         }
 
-        if (null != signatures) {
-            JSONDictionary.put("signatures", signatures);
-        }
-
         if (null != unsignedData)
         {
             JSONDictionary.put("unsigned",  unsignedData);

@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.util.Log;
+
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -50,6 +52,8 @@ import java.util.TreeSet;
  * Static methods for converting json into objects.
  */
 public class JsonUtils {
+
+    private static final String LOG_TAG = "JsonUtils";
 
     private static Gson gson = new GsonBuilder()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
@@ -229,6 +233,46 @@ public class JsonUtils {
         } else {
             return src;
         }
+    }
+
+    /**
+     * Convert a string from an UTF8 String
+     * @param s the string to convert
+     * @return the utf-16 string
+     */
+    public static String convertFromUTF8(String s) {
+        String out = s;
+
+        if (null != out) {
+            try {
+                byte[] bytes = out.getBytes();
+                out = new String(bytes, "UTF-8");
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## convertFromUTF8()  failed " + e.getMessage());
+            }
+        }
+
+        return out;
+    }
+
+    /**
+     * Convert a string to an UTF8 String
+     * @param s the string to convert
+     * @return the utf-16 string
+     */
+    public static String convertToUTF8(String s) {
+        String out = s;
+
+        if (null != out) {
+            try {
+                byte[] bytes = out.getBytes("UTF-8");
+                out = new String(bytes);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## convertToUTF8()  failed " + e.getMessage());
+            }
+        }
+
+        return out;
     }
 
 }

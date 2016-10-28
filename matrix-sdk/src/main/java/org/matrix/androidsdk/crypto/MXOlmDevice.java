@@ -503,10 +503,10 @@ public class MXOlmDevice {
                     result = new MXDecryptionResult();
 
                     try {
-                        String urlEncoded = URLDecoder.decode(payloadString, "utf-8");
+                        String string = JsonUtils.convertFromUTF8(payloadString);
                         JsonParser parser = new JsonParser();
 
-                        result.mPayload = parser.parse(urlEncoded);
+                        result.mPayload = parser.parse(string);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
                         return null;
@@ -579,15 +579,7 @@ public class MXOlmDevice {
      * @return the base64-encoded hash value.
      */
     public String sha256(String message) {
-        String urlEncodedMessage = message;
-
-        try {
-            urlEncodedMessage = URLEncoder.encode(urlEncodedMessage, "utf-8");
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## sha256() : " + e.getMessage());
-        }
-
-        return mOlmUtility.sha256(urlEncodedMessage);
+        return mOlmUtility.sha256(JsonUtils.convertToUTF8(message));
     }
 
     /**
