@@ -53,6 +53,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 /**
@@ -66,6 +68,8 @@ import java.util.UUID;
  */
 public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
+
+    private static final long UPLOAD_KEYS_DELAY_MS = 10 * 60 * 1000;
 
     // The Matrix session.
     private final MXSession mSession;
@@ -84,12 +88,13 @@ public class MXCrypto {
 
     private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
 
-    private final MXEventListener mEventListener = new MXEventListener() {
-        @Override
-        public void onInitialSyncComplete() {
-            onInitialSyncCompleted();
-        }
+    // tell if the crypto is started
+    private boolean mIsStarted;
 
+    // Timer to periodically upload keys
+    private Timer mUploadKeysTimer;
+
+    private final MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onToDeviceEvent(Event event) {
             MXCrypto.this.onToDeviceEvent(event);
@@ -163,7 +168,84 @@ public class MXCrypto {
         mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
 
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
+    }
 
+    /**
+     * The MXSession is paused.
+     */
+    public void pause() {
+        stopUploadKeysTimer();
+    }
+
+    /**
+     * The MXSession is resumed.
+     */
+    public void resume() {
+        if (mIsStarted) {
+            startUploadKeysTimer(false);
+        }
+    }
+
+    /**
+     * Stop the upload keys timer
+     */
+    private void stopUploadKeysTimer() {
+        if (null != mUploadKeysTimer) {
+            mUploadKeysTimer.cancel();
+            mUploadKeysTimer = null;
+        }
+    }
+
+    /**
+     * Start the timer to periodically upload the keys
+     * @param delayed true when the keys upload must be delayed
+     */
+    private void startUploadKeysTimer(boolean delayed) {
+        mUploadKeysTimer = new Timer();
+        mUploadKeysTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                uploadKeys(5, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                    }
+                });
+            }
+        }, delayed ? UPLOAD_KEYS_DELAY_MS : 0, UPLOAD_KEYS_DELAY_MS);
+    }
+
+    /**
+     * Tell if the MXCrypto is started
+     * @return true if the crypto is started
+     */
+    public boolean isIsStarted() {
+        return mIsStarted;
+    }
+
+    /**
+     * Start the crypto module.
+     * Device keys will be uploaded, then one time keys if there are not enough on the homeserver
+     * and, then, if this is the first time, this new device will be announced to all other users
+     * devices.
+     * @param callback the asynchrous callback
+     */
+    public void start(final ApiCallback<Void> callback) {
         uploadKeys(5, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
@@ -174,21 +256,63 @@ public class MXCrypto {
                 Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
                 Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
                 Log.d(LOG_TAG, "");
+
+                checkDeviceAnnounced(new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        mIsStarted = true;
+                        startUploadKeysTimer(true);
+
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
             }
 
             @Override
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
             }
         });
     }
@@ -206,6 +330,8 @@ public class MXCrypto {
 
         mRoomAlgorithms = null;
         mMyDevice = null;
+
+        stopUploadKeysTimer();
 
         mCryptoStore.close();
         mCryptoStore = null;
@@ -943,10 +1069,14 @@ public class MXCrypto {
     }
 
     /**
-     * The initial sync is completed
+     * Announce the device to the server.
+     * @param callback the asynchronous callback.
      */
-    private void onInitialSyncCompleted() {
+    private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
         if (mCryptoStore.deviceAnnounced()) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
             return;
         }
 
@@ -1003,24 +1133,43 @@ public class MXCrypto {
             mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
+                    Log.d(LOG_TAG, "## checkDeviceAnnounced Annoucements done");
                     mCryptoStore.storeDeviceAnnounced();
+
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## onInitialSyncCompleted failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
                 }
             });
+        }
+
+        mCryptoStore.storeDeviceAnnounced();
+        if (null != callback) {
+            callback.onSuccess(null);
         }
     }
 

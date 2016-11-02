@@ -83,6 +83,13 @@ public class MatrixError implements java.io.Serializable {
     }
 
     /**
+     * @return a  error message.
+     */
+    public String getMessage() {
+        return getLocalizedMessage();
+    }
+
+    /**
      * @return true if the error code is a supported one
      */
     public boolean isSupportedErrorCode () {

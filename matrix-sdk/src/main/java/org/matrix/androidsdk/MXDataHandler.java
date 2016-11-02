@@ -23,7 +23,6 @@ import android.util.Log;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.IMXCryptoStore;
 import org.matrix.androidsdk.data.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -31,6 +30,8 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -101,6 +102,8 @@ public class MXDataHandler implements IMXEventListener {
     private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
 
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
     private MyUser mMyUser;
 
     private HandlerThread mSyncHandlerThread;
@@ -118,6 +121,16 @@ public class MXDataHandler implements IMXEventListener {
 
     // e2e decoder
     private MXCrypto mCrypto;
+
+    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
+        @Override
+        public void onNetworkConnectionUpdate(boolean isConnected) {
+            if (isConnected && (null != getCrypto()) && !getCrypto().isIsStarted()) {
+                Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
+                getCrypto().start(null);
+            }
+        }
+    };
 
     /**
      * Default constructor.
@@ -167,6 +180,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
+    }
+
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 
     public MXCrypto getCrypto() {
@@ -1282,8 +1299,10 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
-    @Override
-    public void onInitialSyncComplete() {
+    /**
+     * Dispatch the onInitialSyncComplete event.
+     */
+    private void dispatchOnInitialSyncComplete() {
         mInitialSyncComplete = true;
 
         refreshUnreadCounters();
@@ -1306,6 +1325,42 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         });
+    }
+
+    @Override
+    public void onInitialSyncComplete() {
+        if ((null != getCrypto()) && !getCrypto().isIsStarted()) {
+            getCrypto().start(new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    dispatchOnInitialSyncComplete();
+                }
+
+                private void onError(String errorMessage) {
+                    Log.e(LOG_TAG, "## onInitialSyncComplete() : getCrypto().start fails " + errorMessage);
+                    dispatchOnInitialSyncComplete();
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    // wait that a valid network connection is retrieved
+                    mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
+                    onError(e.getMessage());
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    onError(e.getMessage());
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    onError(e.getMessage());
+                }
+            });
+        } else {
+            dispatchOnInitialSyncComplete();
+        }
     }
 
     @Override

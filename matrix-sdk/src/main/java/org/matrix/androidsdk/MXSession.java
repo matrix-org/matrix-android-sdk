@@ -65,7 +65,6 @@ import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.olm.OlmManager;
-import org.matrix.olm.OlmSession;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -127,7 +126,7 @@ public class MXSession {
     private boolean mIsCatchupPending = false;
 
     // load the crypto libs.
-    public OlmManager mOlmManager = null;
+    public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
@@ -187,29 +186,23 @@ public class MXSession {
         mDataHandler = dataHandler;
 
         mDataHandler.getStore().addMXStoreListener(new IMXStore.MXStoreListener() {
-
             @Override
             public void postProcess(String accountId) {
                 MXFileCryptoStore store = new MXFileCryptoStore();
                 store.initWithCredentials(mAppContent, mCredentials);
 
                 if (store.hasData()) {
-                    if (null == mOlmManager) {
-                        try {
-                            // load the crypto lib
-                            mOlmManager = new OlmManager();
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "setCryptoEnabled : cannot load the crypto lib " + e.getMessage());
-                            return;
-                        }
-                    }
-                    setCryptoEnabled(true);
+                    // open the store
+                    store.open();
+
+                    // enable
+                    mCrypto = new MXCrypto(MXSession.this, store);
+                    mDataHandler.setCrypto(mCrypto);
                 }
             }
 
             @Override
             public void onStoreReady(String accountId) {
-
             }
 
             @Override
@@ -237,7 +230,7 @@ public class MXSession {
 
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
-
+        mDataHandler.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
@@ -732,6 +725,10 @@ public class MXSession {
         } else {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
+
+        if (null != mCrypto) {
+            mCrypto.pause();
+        }
     }
 
     /**
@@ -755,6 +752,10 @@ public class MXSession {
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
+        }
+
+        if (null != mCrypto) {
+            mCrypto.resume();
         }
     }
 
@@ -1352,27 +1353,17 @@ public class MXSession {
 
     /**
      * Enable / disable the crypto
-     * @param cryptoEnabled
+     * @param cryptoEnabled true to enable the crypto
      */
-    public void setCryptoEnabled(boolean cryptoEnabled) {
+    public void enableCrypto(boolean cryptoEnabled, ApiCallback<Void> callback) {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
-                if (null == mOlmManager) {
-                    try {
-                        // load the crypto lib
-                        mOlmManager = new OlmManager();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "setCryptoEnabled : cannot load the crypto lib " + e.getMessage());
-                        return;
-                    }
-                }
-
                 Log.d(LOG_TAG, "Crypto is enabled");
                 MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
-
                 mCrypto = new MXCrypto(this, fileCryptoStore);
+                mCrypto.start(callback);
             } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
 
@@ -1384,6 +1375,10 @@ public class MXSession {
             }
 
             mDataHandler.setCrypto(mCrypto);
+        } else {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
         }
     }
 }
