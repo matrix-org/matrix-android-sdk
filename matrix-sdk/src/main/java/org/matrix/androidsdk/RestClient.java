@@ -19,7 +19,6 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.internal.Platform;
 
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -28,7 +27,6 @@ import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import retrofit.RequestInterceptor;

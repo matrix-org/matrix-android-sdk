@@ -18,8 +18,6 @@ package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
@@ -31,12 +29,9 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmSession;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * An interface for storing and retrieving Matrix objects.

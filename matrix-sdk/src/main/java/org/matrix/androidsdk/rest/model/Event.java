@@ -24,7 +24,6 @@ import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.db.MXMediasCache;
-import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.text.DateFormat;
