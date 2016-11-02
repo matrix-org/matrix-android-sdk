@@ -46,7 +46,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;

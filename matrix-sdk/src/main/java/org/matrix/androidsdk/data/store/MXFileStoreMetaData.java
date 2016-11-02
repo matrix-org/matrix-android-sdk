@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.store;
 
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 

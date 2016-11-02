@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.cryptostore;
 
 public class MXFileCryptoStoreMetaData implements java.io.Serializable {
     // The obtained user id.

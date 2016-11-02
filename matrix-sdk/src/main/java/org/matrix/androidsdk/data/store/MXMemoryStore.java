@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
+import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomAccountData;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;

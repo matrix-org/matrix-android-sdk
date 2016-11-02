@@ -19,12 +19,11 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.net.Uri;
 
-import org.matrix.androidsdk.data.IMXStore;
-import org.matrix.androidsdk.data.MXFileStore;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
-import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;

@@ -35,6 +35,7 @@ import com.google.gson.reflect.TypeToken;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
