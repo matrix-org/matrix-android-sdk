@@ -210,27 +210,30 @@ public class MXCrypto {
         mUploadKeysTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                uploadKeys(5, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
-                    }
+                // check race conditions while logging out
+                if (null != mMyDevice) {
+                    uploadKeys(5, new ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
+                        }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                    }
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                        }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                    }
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                        }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                    }
-                });
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
+                        }
+                    });
+                }
             }
         }, delayed ? UPLOAD_KEYS_DELAY_MS : 0, UPLOAD_KEYS_DELAY_MS);
     }
