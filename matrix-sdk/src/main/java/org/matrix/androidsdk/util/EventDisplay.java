@@ -52,8 +52,6 @@ public class EventDisplay {
     private final RoomState mRoomState;
     private boolean mPrependAuthor;
 
-    public static final CharSequence DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED = "Encrypted message";
-
     // let the application defines if the redacted events must be displayed
     public static boolean mDisplayRedactedEvents = false;
 
@@ -63,7 +61,6 @@ public class EventDisplay {
         mEvent = event;
         mRoomState = roomState;
     }
-
     /**
      * <p>Prepend the text with the author's name if they have not been mentioned in the text.</p>
      * This will prepend text messages with the author's name. This will NOT prepend things like
@@ -191,9 +188,22 @@ public class EventDisplay {
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
-                // TODO to be removed - temporary patch (wait for e2e encryption final version)
-                SpannableString spannableStr = new SpannableString(DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED);
-                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                String message = null;
+
+                if (null != mEvent.getCryptoError()) {
+                    message = mEvent.getCryptoError().getLocalizedMessage();
+
+                    if (!TextUtils.isEmpty(message)) {
+                        message = "** " + message + " **";
+                    }
+                }
+
+                if (TextUtils.isEmpty(message)) {
+                    message = mContext.getString(R.string.encrypted_message);
+                }
+
+                SpannableString spannableStr = new SpannableString(message);
+                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text = spannableStr;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();

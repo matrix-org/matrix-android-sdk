@@ -23,6 +23,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -844,9 +845,10 @@ public class EventTimeline {
                 // Decrypt event if necessary
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                     if (null != mDataHandler.getCrypto()) {
-                        event.mClearEvent = mDataHandler.getCrypto().decryptEvent(event);
+                        event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
                     } else {
-                        event.mClearEvent = null;
+                        event.setClearEvent(null);
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
                     }
                 }
 
@@ -969,9 +971,10 @@ public class EventTimeline {
             // Decrypt event if necessary
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                 if (null != mDataHandler.getCrypto()) {
-                    event.mClearEvent = mDataHandler.getCrypto().decryptEvent(event);
+                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
                 } else {
-                    event.mClearEvent = null;
+                    event.setClearEvent(null);
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
                 }
             }
 

@@ -34,6 +34,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -2200,7 +2201,6 @@ public class Room {
     public void enableEncryptionWithAlgorithm(final String algorithm, final ApiCallback<Void> callback) {
         // ensure that the crypto has been update
         if (null != mDataHandler.getCrypto() && !TextUtils.isEmpty(algorithm)) {
-
             HashMap<String, Object> params = new HashMap<>();
             params.put("algorithm", algorithm);
 
@@ -2239,7 +2239,12 @@ public class Room {
                     }
                 }
             });
-
+        } else if (null != callback) {
+            if (null == mDataHandler.getCrypto()) {
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+            } else {
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS));
+            }
         }
     }
 }

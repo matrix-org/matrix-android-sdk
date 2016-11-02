@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -843,7 +844,7 @@ public class Event implements java.io.Serializable {
      * For encrypted events, the plaintext payload for the event.
      * This is a small MXEvent instance with typically value for `type` and 'content' fields.
      */
-    public transient Event mClearEvent;
+    private transient Event mClearEvent;
 
     /**
      * The keys that must have been owned by the sender of this encrypted event.
@@ -863,6 +864,9 @@ public class Event implements java.io.Serializable {
      * The keys that must have been owned by the sender of this encrypted event.
      */
     private transient Map<String, String> mKeysClaimed;
+
+    // linked crypto error
+    private MXCryptoError mCryptoError;
 
     /**
      * True if this event is encrypted.
@@ -905,7 +909,6 @@ public class Event implements java.io.Serializable {
         }
     }
 
-
     /**
      * @return the keys claimed map
      */
@@ -927,5 +930,35 @@ public class Event implements java.io.Serializable {
         } else {
             mKeysClaimed = keysClaimed;
         }
+    }
+
+    /**
+     * @return the linked crypto error
+     */
+    public MXCryptoError getCryptoError() {
+        return mCryptoError;
+    }
+
+    /**
+     * Update the linked crypto error
+     * @param error the new crypto error.
+     */
+    public void setCryptoError(MXCryptoError error) {
+        mCryptoError = error;
+    }
+
+    /**
+     * Update the clear event
+     * @param aClearEvent the clean event.
+     */
+    public void setClearEvent(Event aClearEvent) {
+        mClearEvent = aClearEvent;
+    }
+
+    /**
+     * @return the clear event
+     */
+    public Event getClearEvent() {
+        return mClearEvent;
     }
 }

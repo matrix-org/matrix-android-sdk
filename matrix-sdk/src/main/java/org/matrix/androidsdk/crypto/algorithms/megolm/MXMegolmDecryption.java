@@ -22,6 +22,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
@@ -69,10 +70,9 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         if (TextUtils.isEmpty(senderKey) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(ciphertext)) {
-            // @TODO: error
-            //throw new base.DecryptionError("Missing fields in input");
-            Log.e(LOG_TAG, "## decryptEvent() :  Missing fields in input");
-            return null;
+            MXDecryptionResult result = new MXDecryptionResult();
+            result.mCryptoError = new MXCryptoError(MXCryptoError.MISSING_FIELDS);
+            return result;
         }
 
         return mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, sessionId, senderKey);

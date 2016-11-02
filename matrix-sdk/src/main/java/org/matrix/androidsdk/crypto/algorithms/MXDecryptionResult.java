@@ -18,6 +18,8 @@ package org.matrix.androidsdk.crypto.algorithms;
 
 import com.google.gson.JsonElement;
 
+import org.matrix.androidsdk.crypto.MXCryptoError;
+
 import java.util.Map;
 
 /**
@@ -40,4 +42,9 @@ public class MXDecryptionResult {
      * map from key type to base64-encoded key.
      */
     public Map<String, String> mKeysProved;
+
+    /**
+     * The decryption error description
+     */
+    public MXCryptoError mCryptoError;
 }

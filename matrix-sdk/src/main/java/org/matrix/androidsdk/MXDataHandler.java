@@ -1055,7 +1055,7 @@ public class MXDataHandler implements IMXEventListener {
         // Decrypt event if necessary
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
             if (null != getCrypto()) {
-                event.mClearEvent = getCrypto().decryptEvent(event);
+                event.setClearEvent(getCrypto().decryptEvent(event));
             }
         }
 

@@ -487,7 +487,7 @@ public class MXOlmDevice {
      * @return the decrypting result. Nil if the sessionId is unknown.
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String sessionId, String senderKey) {
-        MXDecryptionResult result = null;
+        MXDecryptionResult result = new MXDecryptionResult();
         MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
 
         if (null != session) {
@@ -497,11 +497,7 @@ public class MXOlmDevice {
                 String payloadString = session.mSession.decryptMessage(body);
 
                 if (null != payloadString) {
-
                     mStore.storeInboundGroupSession(session);
-
-                    result = new MXDecryptionResult();
-
                     try {
                         JsonParser parser = new JsonParser();
                         result.mPayload = parser.parse(JsonUtils.convertFromUTF8(payloadString));
@@ -523,13 +519,16 @@ public class MXOlmDevice {
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
                 }  else {
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT, body);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {
+                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCHED_ROOM_ID, roomId + "<->" + session.mRoomId);
                 Log.e(LOG_TAG, "## decryptGroupMessage() : Mismatched room_id for inbound group session (expected " + roomId + " , was " + session.mRoomId);
             }
         }
         else {
+            result.mCryptoError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID);
             Log.e(LOG_TAG, "## decryptGroupMessage() : Cannot retrieve inbound group session " + sessionId);
         }
 

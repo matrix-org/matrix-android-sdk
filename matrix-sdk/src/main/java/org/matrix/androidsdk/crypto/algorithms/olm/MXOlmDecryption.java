@@ -24,6 +24,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
@@ -65,15 +67,15 @@ public class MXOlmDecryption implements IMXDecrypting {
             }.getType());
 
             if (null == ciphertext) {
-                // @TODO: error
-                //throw new base.DecryptionError("Missing ciphertext");
-                return null;
+                result = new MXDecryptionResult();
+                result.mCryptoError = new MXCryptoError(MXCryptoError.MISSING_CIPHERTEXT);
+                return result;
             }
 
             if (!ciphertext.containsKey(mOlmDevice.getDeviceCurve25519Key())) {
-                // @TODO: error
-                //throw new base.DecryptionError("Not included in recipients");
-                return null;
+                result = new MXDecryptionResult();
+                result.mCryptoError = new MXCryptoError(MXCryptoError.NOT_INCLUDED_IN_RECIPIENTS);
+                return result;
             }
 
             // The message for myUser
@@ -82,8 +84,9 @@ public class MXOlmDecryption implements IMXDecrypting {
 
             if (null == payloadString) {
                 Log.e(LOG_TAG, "## decryptEvent() Failed to decrypt Olm event (id= " + event.eventId + " ) from " + deviceKey);
-                // @TODO: error
-                // throw new base.DecryptionError("Bad Encrypted Message");
+                result = new MXDecryptionResult();
+                result.mCryptoError = new MXCryptoError(MXCryptoError.BAD_ENCRYPTED_MESSAGE);
+                return result;
             }
 
             result = new MXDecryptionResult();

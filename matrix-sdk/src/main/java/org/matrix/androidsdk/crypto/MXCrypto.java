@@ -952,6 +952,7 @@ public class MXCrypto {
             });
         } else {
             if (null != callback) {
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT));
                 callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
             }
         }
@@ -960,7 +961,7 @@ public class MXCrypto {
     /**
      * Decrypt a received event
      * @param event the raw event.
-     * @return a cleared event or nil.
+     * @return a cleared event or null.
      */
     public Event decryptEvent(Event event) {
         EventContent eventContent = event.getWireEventContent();
@@ -972,6 +973,7 @@ public class MXCrypto {
 
         if (null == decryptingClass) {
             Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt " + eventContent.algorithm);
+            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
             return null;
         }
 
@@ -982,21 +984,26 @@ public class MXCrypto {
             alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
+            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
             return null;
         }
 
         alg.initWithMatrixSession(mSession);
 
         MXDecryptionResult result = alg.decryptEvent(event);
-
         Event clearedEvent = null;
 
-        if ((null != result) && (null != result.mPayload)) {
+        if ((null != result) && (null != result.mPayload) && (null == result.mCryptoError)) {
             clearedEvent = JsonUtils.toEvent(result.mPayload);
             clearedEvent.setKeysProved(result.mKeysProved);
             clearedEvent.setKeysClaimed(result.mKeysClaimed);
+            event.setCryptoError(null);
         } else {
-            Log.e(LOG_TAG, "##decryptEvent() failed");
+            if (null != result.mCryptoError) {
+                Log.e(LOG_TAG, "##decryptEvent() failed " + result.mCryptoError.getMessage());
+            } else {
+                Log.e(LOG_TAG, "##decryptEvent() failed");
+            }
             // We've got a message for a session we don't have.  Maybe the sender
             // forgot to tell us about the session.  Remind the sender that we
             // exist so that they might tell us about the session on their next
@@ -1020,6 +1027,8 @@ public class MXCrypto {
 
                 sendPingToDevice(deviceId, event.sender, event.roomId);
             }
+
+            event.setCryptoError(result.mCryptoError);
         }
 
         return clearedEvent;

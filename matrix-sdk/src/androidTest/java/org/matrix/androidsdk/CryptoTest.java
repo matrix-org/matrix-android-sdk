@@ -34,6 +34,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -48,6 +49,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1152,7 +1154,6 @@ public class CryptoTest {
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-
         roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
@@ -1196,14 +1197,43 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-
         MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2, new MXDataHandler.InvalidTokenListener() {
             @Override
             public void onTokenCorrupted() {
             }
         }), context);
 
+        aliceSession2.enableCryptoWhenStarting();
+
+        final CountDownLatch lock1b = new CountDownLatch(1);
+        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+            }
+
+            @Override
+            public void onStoreReady(String accountId) {
+                results.put("onStoreReady", "onStoreReady");
+                lock1b.countDown();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                lock1b.countDown();
+            }
+
+            @Override
+            public void  onStoreOOM(String accountId, String description) {
+                lock1b.countDown();
+            }
+        };
+
+        aliceSession2.getDataHandler().getStore().addMXStoreListener(listener);
+        aliceSession2.getDataHandler().getStore().open();
+        lock1b.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onStoreReady"));
+
+        final CountDownLatch lock2 = new CountDownLatch(1);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
@@ -1213,7 +1243,6 @@ public class CryptoTest {
         };
 
         aliceSession2.getDataHandler().addListener(eventListener);
-        aliceSession2.getDataHandler().getStore().open();
         aliceSession2.startEventStream(null);
 
         lock2.await(10000, TimeUnit.DAYS.MILLISECONDS);
@@ -1228,16 +1257,14 @@ public class CryptoTest {
         Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
         assertTrue(null != event);
         assertTrue(event.isEncrypted());
-        assertTrue(null == event.mClearEvent);
-
-        // TODO add error management
-        //XCTAssert(event.decryptionError);
-        //XCTAssertEqual(event.decryptionError.code, MXDecryptingErrorUnkwnownInboundSessionIdCode);
+        assertTrue(null == event.getClearEvent());
+        assertTrue(null != event.getCryptoError());
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID));
         aliceSession2.clear(context);
     }
 
     @Test
-    public void test11_testAliceAndBobInACryptedRoomFromInitialSync() throws Exception {
+    public void test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap();
 
@@ -1395,7 +1422,7 @@ public class CryptoTest {
     }
 
     @Test
-    public void testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
+    public void test13_testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
         final HashMap<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoom(false);
@@ -1449,8 +1476,8 @@ public class CryptoTest {
         assertTrue(null != event.getContentAsJsonObject());
         assertTrue(!event.getContentAsJsonObject().has("body"));
 
-        // TODO add error
-
+        assertTrue(null != event.getCryptoError());
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLE));
 
         final CountDownLatch lock2 = new CountDownLatch(1);
         MXEventListener aliceEventListener = new MXEventListener() {
@@ -1551,7 +1578,6 @@ public class CryptoTest {
         });
         lock0.await(10000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCrypto"));
-
 
         mRoomId = null;
         final CountDownLatch lock1 = new CountDownLatch(1);
