@@ -296,6 +296,17 @@ public class MXSession {
     }
 
     /**
+     * @return the crypto lib version
+     */
+    public String getCryptoVersion() {
+        if (null != mOlmManager) {
+            return mOlmManager.getOlmLibVersion();
+        }
+
+        return "";
+    }
+
+    /**
      * Get the data handler.
      *
      * @return the data handler.

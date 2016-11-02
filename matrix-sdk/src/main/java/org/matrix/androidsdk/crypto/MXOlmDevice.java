@@ -68,9 +68,6 @@ public class MXOlmDevice {
     // The key is the session id, the value the outbound group session.
     private final HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
 
-    //
-    private static OlmManager mOlmManager = new OlmManager();
-
     /**
      * Constructor
      * @param store the used store
@@ -127,13 +124,6 @@ public class MXOlmDevice {
      */
     public String getDeviceEd25519Key() {
         return mDeviceEd25519Key;
-    }
-
-    /**
-     * The olm library version.
-     */
-    public String olmVersion() {
-        return mOlmManager.getOlmLibVersion();
     }
 
     /**
