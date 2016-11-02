@@ -47,7 +47,7 @@ public class MXOlmInboundGroupSession implements Serializable {
 
     /**
      * Constructor
-     * @param sessionKey
+     * @param sessionKey the session key
      */
     public MXOlmInboundGroupSession(String sessionKey) {
         try {

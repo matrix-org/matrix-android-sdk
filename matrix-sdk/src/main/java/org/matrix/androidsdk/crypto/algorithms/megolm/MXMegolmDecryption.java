@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
     /**
      * Init the object fields
-     * @param matrixSession
+     * @param matrixSession the matrix session
      */
     @Override
     public void initWithMatrixSession(MXSession matrixSession) {

@@ -47,6 +47,7 @@ public class Event implements java.io.Serializable {
 
     public enum SentState {
         UNSENT,  // the event has not been sent
+        ENCRYPTING, // the event is encrypting
         SENDING, // the event is currently sending
         WAITING_RETRY, // the event is going to be resent asap
         SENT,    // the event has been sent
@@ -533,6 +534,15 @@ public class Event implements java.io.Serializable {
      */
     public boolean canBeResent() {
         return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE);
+    }
+
+    /**
+     * Check if the current event is encrypting.
+     *
+     * @return true if the message encryption is in progress.
+     */
+    public boolean isEncrypting() {
+        return (mSentState == SentState.ENCRYPTING);
     }
 
     /**

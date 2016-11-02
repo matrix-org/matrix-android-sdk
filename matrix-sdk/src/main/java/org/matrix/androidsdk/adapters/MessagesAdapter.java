@@ -265,6 +265,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected int mDefaultMessageTextColor;
     protected int mNotSentMessageTextColor;
     protected int mSendingMessageTextColor;
+    protected int mEncryptingMessageTextColor;
     protected int mHighlightMessageTextColor;
     protected int mSearchHighlightMessageTextColor;
 
@@ -383,6 +384,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public int getNotSentMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_not_sent);
+    }
+
+    public int getEncryptingMessageTextColor(Context context) {
+        return context.getResources().getColor(R.color.message_encryting);
     }
 
     public int getSendingMessageTextColor(Context context) {
@@ -517,6 +522,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mDefaultMessageTextColor = getDefaultMessageTextColor(context);
         mNotSentMessageTextColor = getNotSentMessageTextColor(context);
         mSendingMessageTextColor = getSendingMessageTextColor(context);
+        mEncryptingMessageTextColor = getEncryptingMessageTextColor(context);
         mHighlightMessageTextColor = getHighlightMessageTextColor(context);
         mSearchHighlightMessageTextColor = getSearchHighlightMessageTextColor(context);
 
@@ -1636,7 +1642,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int textColor;
 
-        if (row.getEvent().isSending()) {
+        if (row.getEvent().isEncrypting()) {
+            textColor = mEncryptingMessageTextColor;
+        } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
             textColor = mNotSentMessageTextColor;
@@ -2143,7 +2151,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int textColor;
 
-        if (row.getEvent().isSending()) {
+        if (row.getEvent().isEncrypting()) {
+            textColor = mEncryptingMessageTextColor;
+        } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
             textColor = mNotSentMessageTextColor;

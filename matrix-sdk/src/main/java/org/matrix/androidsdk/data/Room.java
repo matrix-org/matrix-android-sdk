@@ -1621,6 +1621,18 @@ public class Room {
             }
 
             @Override
+            public void onEventEncrypted(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onEventEncrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onEventEncrypted exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
             public void onSentEvent(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
@@ -1854,18 +1866,23 @@ public class Room {
             }
         };
 
-        event.mSentState = Event.SentState.SENDING;
-
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
+            event.mSentState = Event.SentState.ENCRYPTING;
+
             // Encrypt the content before sending
             mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
                 @Override
                 public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                    mDataHandler.onEventEncrypted(event);
+                    event.mSentState = Event.SentState.SENDING;
                     mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentException = e;
+
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -1873,6 +1890,9 @@ public class Room {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentMatrixError = e;
+
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
@@ -1880,12 +1900,17 @@ public class Room {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentException = e;
+
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
                 }
             });
         } else {
+            event.mSentState = Event.SentState.SENDING;
+
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
@@ -1904,7 +1929,8 @@ public class Room {
         if (null != event) {
             if ((Event.SentState.UNSENT == event.mSentState) ||
                     (Event.SentState.SENDING == event.mSentState) ||
-                    (Event.SentState.WAITING_RETRY == event.mSentState)) {
+                    (Event.SentState.WAITING_RETRY == event.mSentState) ||
+                    (Event.SentState.ENCRYPTING == event.mSentState)) {
 
                 // the message cannot be sent anymore
                 event.mSentState = Event.SentState.UNDELIVERABLE;

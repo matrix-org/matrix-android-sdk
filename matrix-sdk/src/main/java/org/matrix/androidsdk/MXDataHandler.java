@@ -1234,6 +1234,24 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
+    public void onEventEncrypted(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onEventEncrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onEventEncrypted " + e.getLocalizedMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
     public void onSentEvent(final Event event) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onSentEvent(event);

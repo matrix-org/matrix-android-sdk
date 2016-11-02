@@ -287,6 +287,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         public void onBingRulesUpdate() {
             mBingRulesByEventId.clear();
         }
+
+        @Override
+        public void onEventEncrypted(Event event) {
+            getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
     };
 
     /**

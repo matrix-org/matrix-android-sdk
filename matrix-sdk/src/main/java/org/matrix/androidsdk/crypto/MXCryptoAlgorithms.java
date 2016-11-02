@@ -69,26 +69,26 @@ public class MXCryptoAlgorithms {
         try {
             mEncryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption"));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
         }
 
         try {
             mEncryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmEncryption"));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
         }
 
         mDecryptors = new HashMap<>();
         try {
             mDecryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmDecryption"));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
         }
 
         try {
             mDecryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmDecryption"));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : faiils to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
+            Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
         }
     }
 

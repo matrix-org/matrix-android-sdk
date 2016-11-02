@@ -24,19 +24,15 @@ import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONObject;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
-import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
-import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmManager;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;
 import org.matrix.olm.OlmSession;
 import org.matrix.olm.OlmUtility;
 
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +56,7 @@ public class MXOlmDevice {
     private OlmAccount mOlmAccount;
 
     // The OLMKit utility instance.
-    private OlmUtility mOlmUtility;
+    private final OlmUtility mOlmUtility;
 
     // The outbound group session.
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
@@ -83,6 +79,7 @@ public class MXOlmDevice {
             try {
                 mOlmAccount = new OlmAccount();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "MXOlmDevice : cannot initialize mOlmAccount " + e.getMessage());
             }
 
             mStore.storeAccount(mOlmAccount);
@@ -131,7 +128,7 @@ public class MXOlmDevice {
      * @param message the message to be signed.
      * @return the base64-encoded signature.
      */
-    public String signMessage(String message) {
+    private String signMessage(String message) {
         return mOlmAccount.signMessage(message);
     }
 
@@ -217,9 +214,7 @@ public class MXOlmDevice {
      * @param theirDeviceIdentityKey the remote user's Curve25519 identity key.
      * @param messageType the message_type field from the received message (must be 0).
      * @param ciphertext base64-encoded body from the received message.
-     * @TODO
      * @return {{payload: string, session_id: string}} decrypted payload, andsession id of new session.
-     * @TODO @raises {Error} if the received message was not valid (for instance, it didn't use a valid one-time key).
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
 
@@ -322,14 +317,6 @@ public class MXOlmDevice {
             olmMessage = olmSession.encryptMessage(payloadString);
 
             mStore.storeSession(olmSession, theirDeviceIdentityKey);
-
-            //Log.d(LOG_TAG, "## encryptMessage() : ciphertext: " +  olmMessage.mCipherText);
-            try {
-            //    Log.d(LOG_TAG, "## encryptMessage() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(olmMessage.mCipherText, "utf-8")));
-            } catch (Exception e) {
-            //    Log.e(LOG_TAG, "## encryptMessage() :ciphertext: cannot encode olmMessage.ciphertext");
-            }
-
             res = new HashMap<>();
 
             res.put("body", olmMessage.mCipherText);
@@ -526,25 +513,6 @@ public class MXOlmDevice {
     }
 
     //  Utilities
-    /**
-     * Verify an ed25519 signature on a JSON object.
-     * @param key the ed25519 key.
-     * @param message the message which was signed.
-     * @param signature the base64-encoded signature to be checked.
-     *
-     * @return true if valid.
-     */
-    public boolean verifySignature(String key, String message, String signature) {
-        try {
-            StringBuffer error = new StringBuffer();
-            return mOlmUtility.verifyEd25519Signature(signature, key,  URLEncoder.encode(message, "utf-8"), error);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## verifySignature() : failed " + e.getMessage());
-        }
-
-        return false;
-    }
-
     /**
      * Verify an ed25519 signature on a JSON object.
      * @param key the ed25519 key.

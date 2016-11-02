@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCrypto;
@@ -38,11 +37,10 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,7 +54,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
     // The id of the room we will be sending to.
     private String mRoomId;
 
-    private String mdeviceId;
+    private String mDeviceId;
 
     private boolean mPrepOperationIsProgress;
 
@@ -71,7 +69,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
     // If deviceId is "*", share keys with all devices of the user.
     private MXUsersDevicesMap<Boolean> mDevicesPendingKeyShare;
 
-    private ArrayList<MXQueuedEncryption> mPendingEncryptions;
+    private final ArrayList<MXQueuedEncryption> mPendingEncryptions = new ArrayList<>();
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
@@ -80,9 +78,20 @@ public class MXMegolmEncryption implements IMXEncrypting {
         mCrypto = matrixSession.getCrypto();
 
         mRoomId = roomId;
-        mdeviceId = matrixSession.getCredentials().deviceId;
+        mDeviceId = matrixSession.getCredentials().deviceId;
+    }
 
-        mPendingEncryptions = new ArrayList<>();
+    /**
+     * @return a snapshot of the pending encryptions
+     */
+    private List<MXQueuedEncryption> getPendingEncryptions() {
+        ArrayList<MXQueuedEncryption> list = new ArrayList<>();
+
+        synchronized (mPendingEncryptions) {
+            list.addAll(mPendingEncryptions);
+        }
+
+        return list;
     }
 
     @Override
@@ -95,7 +104,9 @@ public class MXMegolmEncryption implements IMXEncrypting {
         queuedEncryption.mEventType = eventType;
         queuedEncryption.mApiCallback = callback;
 
-        mPendingEncryptions.add(queuedEncryption);
+        synchronized (mPendingEncryptions) {
+            mPendingEncryptions.add(queuedEncryption);
+        }
 
         ensureOutboundSessionInRoom(room, new ApiCallback<String>() {
             @Override
@@ -106,29 +117,41 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                for (MXQueuedEncryption queuedEncryption : mPendingEncryptions) {
+                List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
+
+                for (MXQueuedEncryption queuedEncryption : queuedEncryptions) {
                     queuedEncryption.mApiCallback.onNetworkError(e);
                 }
 
-                mPendingEncryptions.clear();
+                synchronized (mPendingEncryptions) {
+                    mPendingEncryptions.removeAll(queuedEncryptions);
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                for (MXQueuedEncryption queuedEncryption : mPendingEncryptions) {
+                List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
+
+                for (MXQueuedEncryption queuedEncryption : queuedEncryptions) {
                     queuedEncryption.mApiCallback.onMatrixError(e);
                 }
 
-                mPendingEncryptions.clear();
+                synchronized (mPendingEncryptions) {
+                    mPendingEncryptions.removeAll(queuedEncryptions);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                for (MXQueuedEncryption queuedEncryption : mPendingEncryptions) {
+                List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
+
+                for (MXQueuedEncryption queuedEncryption : queuedEncryptions) {
                     queuedEncryption.mApiCallback.onUnexpectedError(e);
                 }
 
-                mPendingEncryptions.clear();
+                synchronized (mPendingEncryptions) {
+                    mPendingEncryptions.removeAll(queuedEncryptions);
+                }
             }
         });
     }
@@ -200,7 +223,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         // so we can reset this.
         mDevicesPendingKeyShare = new MXUsersDevicesMap<>(null);
 
-        final MXUsersDevicesMap<Boolean> shareMap = new MXUsersDevicesMap<>(null);
+        final MXUsersDevicesMap<Boolean> shareMap = new MXUsersDevicesMap<>();
 
         Collection<RoomMember> joinedMembers = room.getJoinedMembers();
 
@@ -346,7 +369,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         // Prep already done, but check for new devices
         MXUsersDevicesMap<Boolean> shareMap = mDevicesPendingKeyShare;
-        mDevicesPendingKeyShare = new MXUsersDevicesMap<>(null);
+        mDevicesPendingKeyShare = new MXUsersDevicesMap<>();
 
         Set<String> userIds = mDevicesPendingKeyShare.userIds();
 
@@ -357,7 +380,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
             if (!TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
                 shareMap.removeObjectsForUser(userId);
             }
-
         }
 
         mShareOperationIsProgress = true;
@@ -397,7 +419,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
         });
     }
 
-
     private void shareKey(final String sessionId, final MXUsersDevicesMap<Boolean>shareMap, final ApiCallback<Void> callback) {
         HashMap<String, Object> submap = new HashMap<>();
         submap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
@@ -413,7 +434,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         mCrypto.ensureOlmSessionsForUsers(new ArrayList<>(shareMap.userIds()), new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> results) {
-                MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>(null);
+                MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
                 boolean haveTargets = false;
                 Set<String> userIds = results.userIds();
@@ -547,9 +568,14 @@ public class MXMegolmEncryption implements IMXEncrypting {
         mDevicesPendingKeyShare.setObject(true, userId, "*");
     }
 
+    /**
+     * process the pending encryptions
+     */
     private void processPendingEncryptions() {
+        List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
+
         // Everything is in place, encrypt all pending events
-        for (MXQueuedEncryption queuedEncryption : mPendingEncryptions) {
+        for (MXQueuedEncryption queuedEncryption : queuedEncryptions) {
             HashMap<String, Object> payloadJson = new HashMap<>();
 
             payloadJson.put("room_id", mRoomId);
@@ -567,10 +593,13 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             // Include our device ID so that recipients can send us a
             // m.new_device message if they don't have our session key.
-            map.put("device_id", mdeviceId);
+            map.put("device_id", mDeviceId);
 
             queuedEncryption.mApiCallback.onSuccess(JsonUtils.getGson(false).toJsonTree(map));
         }
-        mPendingEncryptions.clear();
+
+        synchronized (mPendingEncryptions) {
+            mPendingEncryptions.removeAll(queuedEncryptions);
+        }
     }
 }

@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
-import com.google.gson.LongSerializationPolicy;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
@@ -97,7 +96,7 @@ public class MXCrypto {
 
     // Map from userId -> deviceId -> roomId -> timestamp
     // to manage rate limiting for pinging devices
-    private MXUsersDevicesMap<HashMap<String, Long>> mLastNewDeviceMessageTsByUserDeviceRoom;
+    private final MXUsersDevicesMap<HashMap<String, Long>> mLastNewDeviceMessageTsByUserDeviceRoom;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -172,7 +171,7 @@ public class MXCrypto {
 
         mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
-        mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>(null);
+        mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>();
     }
 
     /**
@@ -358,7 +357,7 @@ public class MXCrypto {
      * @param maxKeys The maximum number of keys to generate.
      * @param callback the asynchronous callback
      */
-    public void  uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
+    public void uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
         uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
 
             @Override
@@ -478,7 +477,7 @@ public class MXCrypto {
      */
     public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         // Map from userid -> deviceid -> DeviceInfo
-        final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>(null);
+        final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>();
 
         // List of user ids we need to download keys for
         final ArrayList<String> downloadUsers = new ArrayList<>();
@@ -655,54 +654,6 @@ public class MXCrypto {
     }
 
     /**
-     * Get the device which sent an event.
-     * @param event the event to be checked.
-     * @return device info.
-     */
-    public MXDeviceInfo eventSenderDeviceOfEvent(Event event) {
-        String senderKey = event.senderKey();
-        EventContent eventContent = event.getWireEventContent();
-
-        if (TextUtils.isEmpty(senderKey) || (null == eventContent) || TextUtils.isEmpty(eventContent.algorithm)) {
-            return null;
-        }
-
-        String algorithm = eventContent.algorithm;
-
-
-        // senderKey is the Curve25519 identity key of the device which the event
-        // was sent from. In the case of Megolm, it's actually the Curve25519
-        // identity key of the device which set up the Megolm session.
-        MXDeviceInfo device = deviceWithIdentityKey(senderKey, event.sender, algorithm);
-
-        if (null == device) {
-            // we haven't downloaded the details of this device yet.
-            return null;
-        }
-
-        // So far so good, but now we need to check that the sender of this event
-        // hadn't advertised someone else's Curve25519 key as their own. We do that
-        // by checking the Ed25519 claimed by the event (or, in the case of megolm,
-        // the event which set up the megolm session), to check that it matches the
-        // fingerprint of the purported sending device.
-        //
-        // (see https://github.com/vector-im/vector-web/issues/2215)
-        String claimedKey = (null != event.getKeysClaimed()) ? event.getKeysClaimed().get("ed25519") : null;
-
-        if (TextUtils.isEmpty(claimedKey)) {
-            Log.e(LOG_TAG, "## eventSenderDeviceOfEvent (): Event " + event.eventId + " claims no ed25519 key. Cannot verify sending device");
-            return null;
-        }
-
-        if (!TextUtils.equals(claimedKey, device.fingerprint())) {
-            Log.e(LOG_TAG, "## eventSenderDeviceOfEvent ():  Event " + event.eventId + " claims ed25519 key " + claimedKey  + " Cannot verify sending device but sender device has key " + device.fingerprint());
-            return null;
-        }
-
-        return device;
-    }
-
-    /**
      * Configure a room to use encryption.
      * @param roomId the room id to enable encryption in.
      * @param algorithm the encryption config for the room.
@@ -774,7 +725,7 @@ public class MXCrypto {
     public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
         ArrayList<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
 
-        final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>(null);
+        final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>();
 
         if (null != users) {
             for (String userId : users) {
@@ -816,7 +767,7 @@ public class MXCrypto {
         }
 
         // Prepare the request for claiming one-time keys
-        MXUsersDevicesMap<String> usersDevicesToClaim = new MXUsersDevicesMap<>(null);
+        MXUsersDevicesMap<String> usersDevicesToClaim = new MXUsersDevicesMap<>();
 
         for (MXDeviceInfo device : devicesWithoutSession){
             usersDevicesToClaim.setObject(MXKey.KEY_CURVE_25519_TYPE, device.userId, device.deviceId);
@@ -975,7 +926,11 @@ public class MXCrypto {
         }
 
         if (null == decryptingClass) {
-            Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt " + eventContent.algorithm);
+            if (null != eventContent) {
+                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt " + eventContent.algorithm);
+            } else  {
+                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt : null event content");
+            }
             event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
             return null;
         }
@@ -1002,7 +957,7 @@ public class MXCrypto {
             clearedEvent.setKeysClaimed(result.mKeysClaimed);
             event.setCryptoError(null);
         } else {
-            if (null != result.mCryptoError) {
+            if ((null != result) && (null != result.mCryptoError)) {
                 Log.e(LOG_TAG, "##decryptEvent() failed " + result.mCryptoError.getMessage());
             } else {
                 Log.e(LOG_TAG, "##decryptEvent() failed");
@@ -1132,7 +1087,7 @@ public class MXCrypto {
         }
 
         // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>(null);
+        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
         for (String userId : roomsByUser.keySet()) {
             HashMap<String, Map<String, Object>> map = new HashMap<>();
@@ -1309,9 +1264,9 @@ public class MXCrypto {
         if (null != roomMember) {
             RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);
             alg.onRoomMembership(event, roomMember, (null != prevRoomMember) ? prevRoomMember.membership : null);
-        } else {
-            //Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
-        }
+        } /*else {
+            Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
+        }*/
     }
 
     /**
@@ -1448,7 +1403,7 @@ public class MXCrypto {
      *  This is rate limited to send a message at most once an hour per destination.
      * @param deviceId the id of the device to ping. If nil, all devices.
      * @param userId the id of the user to ping.
-     * @param roomId
+     * @param roomId the room id
      */
     private void sendPingToDevice(String deviceId, String userId, String roomId) {
         // sanity checks
@@ -1485,7 +1440,7 @@ public class MXCrypto {
         mLastNewDeviceMessageTsByUserDeviceRoom.setObject(lastTsByRoom, userId, deviceId);
 
         // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>(null);
+        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
         HashMap<String, Object> submap = new HashMap<>();
         submap.put("device_id", deviceId);

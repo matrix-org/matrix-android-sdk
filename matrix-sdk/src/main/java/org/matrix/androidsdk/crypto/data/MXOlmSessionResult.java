@@ -19,8 +19,6 @@ package org.matrix.androidsdk.crypto.data;
 import java.io.Serializable;
 
 public class MXOlmSessionResult implements Serializable {
-    public static final String LOG_TAG = "MXOlmSessionResult";
-
     /**
      * the device
      */

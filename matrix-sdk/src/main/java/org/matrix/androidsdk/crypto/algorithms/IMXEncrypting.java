@@ -37,15 +37,6 @@ public interface IMXEncrypting {
     void initWithMatrixSession(MXSession matrixSession, String roomId);
 
     /**
-     * Encrypt a message event.
-     * @param content the plaintext event content.
-     * @param eventType the type of the event.
-     * @param room the room.
-     * @return ? @TODO
-     */
-    //Map<String, String> encryptMessage(Map<String, Object> content, String eventType, Room room);
-
-    /**
      * Encrypt an event content according to the configuration of the room.
      * @param eventContent the content of the event.
      * @param eventType the type of the event.

@@ -49,7 +49,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.login.Credentials;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Arrays;

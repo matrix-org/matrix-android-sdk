@@ -42,13 +42,9 @@ public class MXOlmEncryption implements IMXEncrypting {
 
     private MXCrypto mCrypto;
 
-    // The id of the room we will be sending to.
-   // private String mRoomId;
-
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
         mCrypto = matrixSession.getCrypto();
-       // mRoomId = roomId;
     }
 
     @Override
@@ -136,13 +132,11 @@ public class MXOlmEncryption implements IMXEncrypting {
     }
 
     /**
-     * Ensure that the sessio
-     * @param users
-     * @param callback
+     * Ensure that the session
+     * @param users the user ids list
+     * @param callback the asynchronous callback
      */
     private void ensureSession(final List<String> users, final ApiCallback<Void> callback) {
-
-        // @TODO: Avoid to do this request for every message. Instead, manage a queue of messages waiting for encryption
         mCrypto.downloadKeys(users, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {

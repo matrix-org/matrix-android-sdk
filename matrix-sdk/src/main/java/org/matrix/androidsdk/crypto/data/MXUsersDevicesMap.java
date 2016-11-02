@@ -25,11 +25,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class MXUsersDevicesMap<E> implements Serializable {
-    //
-    private static final String LOG_TAG = "MXUsersDevicesMap";
 
     // The device keys as returned by the homeserver: a map of a map (userId -> deviceId -> Object).
-    private final HashMap<String, HashMap<String, E>> mMap;
+    private final HashMap<String, HashMap<String, E>> mMap = new HashMap<>();
 
     /**
      * @return the inner map
@@ -39,12 +37,16 @@ public class MXUsersDevicesMap<E> implements Serializable {
     }
 
     /**
+     * Default constructor constructor
+     */
+    public MXUsersDevicesMap() {
+    }
+
+    /**
      * The constructor
      * @param map the map
      */
     public MXUsersDevicesMap(Map<String, Map<String, E>> map) {
-        mMap = new HashMap<>();
-
         if (null != map) {
             Set<String> keys = map.keySet();
 
@@ -58,7 +60,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @return a deep copy
      */
     public MXUsersDevicesMap<E> deepCopy() {
-        MXUsersDevicesMap<E> copy = new MXUsersDevicesMap<>(null);
+        MXUsersDevicesMap<E> copy = new MXUsersDevicesMap<>();
 
         Set<String> keys = mMap.keySet();
 
@@ -73,11 +75,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @return the user Ids
      */
     public Set<String> userIds() {
-        if (null != mMap) {
-            return mMap.keySet();
-        }
-
-        return null;
+        return mMap.keySet();
     }
 
     /**
@@ -86,7 +84,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @return the device ids list
      */
     public Set<String> deviceIdsForUser(String userId) {
-        if ((null != mMap) && !TextUtils.isEmpty(userId) && mMap.containsKey(userId)) {
+        if (!TextUtils.isEmpty(userId) && mMap.containsKey(userId)) {
             return mMap.get(userId).keySet();
         }
 
@@ -100,7 +98,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @return the object
      */
     public E objectForDevice(String deviceId, String userId) {
-        if ((null != mMap) && !TextUtils.isEmpty(userId) && mMap.containsKey(userId) && !TextUtils.isEmpty(deviceId)) {
+        if (!TextUtils.isEmpty(userId) && mMap.containsKey(userId) && !TextUtils.isEmpty(deviceId)) {
             return mMap.get(userId).get(deviceId);
         }
 
@@ -114,7 +112,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @param deviceId the device id
      */
     public void setObject(E object, String userId, String deviceId) {
-        if ((null != object) && (null != mMap) && !TextUtils.isEmpty(userId) && !TextUtils.isEmpty(deviceId)) {
+        if ((null != object) && !TextUtils.isEmpty(userId) && !TextUtils.isEmpty(deviceId)) {
             HashMap<String, E> subMap = mMap.get(userId);
 
             if (null == subMap) {
@@ -132,7 +130,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @param userId the user id
      */
     public void setObjects(Map<String, E> objectsPerDevices, String userId) {
-        if ((null != mMap) && !TextUtils.isEmpty(userId)) {
+        if (!TextUtils.isEmpty(userId)) {
             if (null == objectsPerDevices) {
                 mMap.remove(userId);
             } else {
@@ -146,7 +144,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @param userId the user id.
      */
     public void removeObjectsForUser(String userId) {
-        if ((null != mMap) && !TextUtils.isEmpty(userId)) {
+        if (!TextUtils.isEmpty(userId)) {
             mMap.remove(userId);
         }
     }

@@ -24,7 +24,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
@@ -32,8 +31,6 @@ import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -173,14 +170,10 @@ public class MXOlmDecryption implements IMXDecrypting {
             // didn't work.
 
             if (sessionIds.size() == 0) {
-                Log.e(LOG_TAG, "## decryptMessage() :  No existing sessions");
+                Log.e(LOG_TAG, "## decryptMessage() : No existing sessions");
+            } else {
+                Log.e(LOG_TAG, "## decryptMessage() : Error decrypting non-prekey message with existing sessions");
             }
-
-            // @TODO
-//        throw new Error(
-//                        "Error decrypting non-prekey message with existing sessions: " +
-//                        JSON.stringify(decryptionErrors)
-//                        );
 
             return null;
         }
@@ -190,11 +183,7 @@ public class MXOlmDecryption implements IMXDecrypting {
         Map<String, String> res = mOlmDevice.createInboundSession(theirDeviceIdentityKey, messageType, messageBody);
 
         if (null == res) {
-//        decryptionErrors["(new)"] = e.message;
-//        throw new Error(
-//                        "Error decrypting prekey message: " +
-//                        JSON.stringify(decryptionErrors)
-//                        );
+            Log.e(LOG_TAG, "## decryptMessage() :  Error decrypting non-prekey message with existing sessions");
             return null;
         }
 

@@ -122,7 +122,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mMetaData.mDeviceAnnounced = false;
         }
 
-        mUsersDevicesInfoMap = new MXUsersDevicesMap<>(null);
+        mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
         mRoomsAlgorithms = new HashMap<>();
         mOlmSessions = new HashMap<>();
         mInboundGroupSessions = new HashMap<>();
