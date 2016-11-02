@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
+import com.google.gson.LongSerializationPolicy;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
@@ -94,6 +95,10 @@ public class MXCrypto {
     // Timer to periodically upload keys
     private Timer mUploadKeysTimer;
 
+    // Map from userId -> deviceId -> roomId -> timestamp
+    // to manage rate limiting for pinging devices
+    private MXUsersDevicesMap<HashMap<String, Long>> mLastNewDeviceMessageTsByUserDeviceRoom;
+
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onToDeviceEvent(Event event) {
@@ -166,8 +171,8 @@ public class MXCrypto {
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
         mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
-
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
+        mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>(null);
     }
 
     /**
@@ -1443,7 +1448,29 @@ public class MXCrypto {
             deviceId = "*";
         }
 
-        // @TODO: Manage rate limit
+        // Check rate limiting
+        HashMap<String, Long> lastTsByRoom = mLastNewDeviceMessageTsByUserDeviceRoom.objectForDevice(deviceId, userId);
+
+        if (null == lastTsByRoom) {
+            lastTsByRoom = new HashMap<>();
+        }
+
+        Long lastTs = lastTsByRoom.get(roomId);
+        if (null == lastTs) {
+            lastTs = 0L;
+        }
+
+        long now = System.currentTimeMillis();
+
+        // 1 hour
+        if ((now - lastTs) < 3600000) {
+            // rate-limiting
+            return;
+        }
+
+        // Update rate limiting data
+        lastTsByRoom.put(roomId, now);
+        mLastNewDeviceMessageTsByUserDeviceRoom.setObject(lastTsByRoom, userId, deviceId);
 
         // Build a per-device message for each user
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>(null);

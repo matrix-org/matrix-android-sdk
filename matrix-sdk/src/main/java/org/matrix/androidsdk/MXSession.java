@@ -1330,7 +1330,7 @@ public class MXSession {
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
     }
-    
+
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
      * @param callback the callback success and failure callback
