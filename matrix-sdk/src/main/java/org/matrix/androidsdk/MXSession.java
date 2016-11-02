@@ -44,6 +44,7 @@ import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
@@ -98,6 +99,7 @@ public class MXSession {
     private CallRestClient mCallRestClient;
     private AccountDataRestClient mAccountDataRestClient;
     private CryptoRestClient mCryptoRestClient;
+    private LoginRestClient mLoginRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -172,6 +174,7 @@ public class MXSession {
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
         mCryptoRestClient = new CryptoRestClient(hsConfig);
+        mLoginRestClient = new LoginRestClient(hsConfig);
     }
 
     /**
@@ -255,6 +258,7 @@ public class MXSession {
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
@@ -1326,6 +1330,18 @@ public class MXSession {
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
     }
+    
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param callback the callback success and failure callback
+     */
+    public void logout(ApiCallback<Void> callback) {
+        // Clear crypto data
+        // For security and because it will be no more useful as we will get a new device id
+        // on the next log in
+        enableCrypto(false, null);
+        mLoginRestClient.logout(callback);
+    }
 
     //==============================================================================================================
     // Crypto
@@ -1366,12 +1382,14 @@ public class MXSession {
                 mCrypto.start(callback);
             } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
-
                 IMXCryptoStore store = mCrypto.mCryptoStore;
                 mCrypto.close();
                 store.deleteStore();
-
                 mCrypto = null;
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
             }
 
             mDataHandler.setCrypto(mCrypto);

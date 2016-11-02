@@ -53,4 +53,11 @@ public interface LoginApi {
      */
     @POST("/login")
     void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
+
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/logout")
+    void logout(Callback<JsonObject> callback);
 }

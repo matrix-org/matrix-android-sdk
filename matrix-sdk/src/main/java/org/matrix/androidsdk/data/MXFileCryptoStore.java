@@ -130,7 +130,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public boolean hasData() {
-        return mStoreFile.exists();
+        boolean result = mStoreFile.exists();
+
+        if (result) {
+            // User ids match. Check device ids
+            loadMetaData();
+
+            if (null != mMetaData) {
+                result = TextUtils.isEmpty(mMetaData.mDeviceId) ||
+                        TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId);
+            }
+        }
+
+        return result;
     }
 
     @Override
