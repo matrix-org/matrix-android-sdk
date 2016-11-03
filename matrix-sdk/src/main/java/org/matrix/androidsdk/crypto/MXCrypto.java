@@ -650,6 +650,16 @@ public class MXCrypto {
         if (device.mVerified != verificationStatus) {
             device.mVerified = verificationStatus;
             mCryptoStore.storeDeviceForUser(userId, device);
+
+            Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
+
+            for(Room room : rooms) {
+                IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
+
+                if (null != alg) {
+                    alg.onDeviceVerificationStatusUpdate(userId, deviceId);
+                }
+            }
         }
     }
 

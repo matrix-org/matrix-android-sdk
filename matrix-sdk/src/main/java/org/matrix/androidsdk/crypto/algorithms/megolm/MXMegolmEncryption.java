@@ -73,7 +73,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
-
         mSession = matrixSession;
         mCrypto = matrixSession.getCrypto();
 
@@ -179,6 +178,29 @@ public class MXMegolmEncryption implements IMXEncrypting {
         if (mPrepOperationIsProgress) {
             Log.d(LOG_TAG, "## onRoomMembership() : Discarding as-yet-incomplete megolm session due to change in membership of " + member.getUserId() +  " "  + oldMembership + " -> " + newMembership);
             mDiscardNewSession = true;
+        }
+    }
+
+    @Override
+    public void onDeviceVerificationStatusUpdate(String userId, String deviceId) {
+        Room room = mSession.getDataHandler().getRoom(mRoomId);
+
+        if (null != room) {
+            RoomMember roomMember = room.getMember(userId);
+
+            // test if the user joins the room
+            if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                // Otherwise we assume the user is leaving, and start a new outbound session.
+                if (null != mOutboundSessionId) {
+                    Log.d(LOG_TAG, "## onDeviceVerificationStatusUpdate() : Discarding outbound megolm session due to change in membership of " + userId);
+                    mOutboundSessionId = null;
+                }
+
+                if (mPrepOperationIsProgress) {
+                    Log.d(LOG_TAG, "## onDeviceVerificationStatusUpdate() : Discarding as-yet-incomplete megolm session due to change in membership of " + userId);
+                    mDiscardNewSession = true;
+                }
+            }
         }
     }
 

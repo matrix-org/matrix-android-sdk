@@ -1651,7 +1651,7 @@ public class CryptoTest {
         MXEventListener aliceEventsListener2 = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                     results.put("alice2", "alice2");
                     lock2.countDown();
                 }

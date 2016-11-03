@@ -59,4 +59,11 @@ public interface IMXEncrypting {
      * @param {string} deviceId  deviceId of the device
      */
     void onNewDevice(String deviceId, String userId);
+
+    /**
+     * Called when the device verification status is updated
+     * @param deviceId owner of the device
+     * @param userId deviceId of the device
+     */
+    void onDeviceVerificationStatusUpdate(String userId, String deviceId);
 }
