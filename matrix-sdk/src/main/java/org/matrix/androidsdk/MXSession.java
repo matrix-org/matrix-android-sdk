@@ -23,6 +23,8 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
@@ -1343,14 +1345,48 @@ public class MXSession {
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param context the application context
      * @param callback the callback success and failure callback
      */
-    public void logout(ApiCallback<Void> callback) {
+    public void logout(final Context context, final ApiCallback<Void> callback) {
         // Clear crypto data
         // For security and because it will be no more useful as we will get a new device id
         // on the next log in
         enableCrypto(false, null);
-        mLoginRestClient.logout(callback);
+
+        mLoginRestClient.logout(new ApiCallback<JsonObject>() {
+            @Override
+            public void onSuccess(JsonObject info) {
+                clear(context);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     //==============================================================================================================
