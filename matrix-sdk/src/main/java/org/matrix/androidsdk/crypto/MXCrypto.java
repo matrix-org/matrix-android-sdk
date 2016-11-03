@@ -1259,7 +1259,8 @@ public class MXCrypto {
         }
 
         String userId = event.stateKey;
-        RoomMember roomMember = mSession.getDataHandler().getRoom(event.eventId).getLiveState().getMember(userId);
+
+        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
 
         if (null != roomMember) {
             RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);

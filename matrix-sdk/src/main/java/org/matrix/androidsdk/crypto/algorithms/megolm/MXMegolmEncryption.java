@@ -173,13 +173,13 @@ public class MXMegolmEncryption implements IMXEncrypting {
         // Otherwise we assume the user is leaving, and start a new outbound session.
         if (null != mOutboundSessionId) {
             Log.d(LOG_TAG, "## onRoomMembership() : Discarding outbound megolm session due to change in membership of " + member.getUserId() +  " "  + oldMembership + " -> " + newMembership);
+            mOutboundSessionId = null;
         }
 
         if (mPrepOperationIsProgress) {
             Log.d(LOG_TAG, "## onRoomMembership() : Discarding as-yet-incomplete megolm session due to change in membership of " + member.getUserId() +  " "  + oldMembership + " -> " + newMembership);
             mDiscardNewSession = true;
         }
-
     }
 
     @Override
