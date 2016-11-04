@@ -1222,7 +1222,12 @@ public class MXFileStore extends MXMemoryStore {
             if (null != room) {
                 long start1 = System.currentTimeMillis();
                 FileOutputStream fos = new FileOutputStream(roomStateFile);
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                GZIPOutputStream gz = null;
+                if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.KITKAT) {
+                    gz = new GZIPOutputStream(fos, false);
+                } else {
+                    gz = new GZIPOutputStream(fos);
+                }
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
                 out.writeObject(room.getState());
