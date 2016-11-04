@@ -1186,7 +1186,7 @@ public class MXSession {
      * @param roomId the room roomId
      * @param callback the asynchronous callback
      */
-    public void toogleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
+    public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
         Room room = store.getRoom(roomId);
 
@@ -1205,34 +1205,47 @@ public class MXSession {
                 String chosenUserId;
 
                 if(null == aParticipantUserId) {
-                    // find the first other active members
                     ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
-                    RoomMember directChatMember = null;
-                    long inviteTimeStamp = Long.MAX_VALUE;
-                    long memberTimeStamp;
-                    // find the oldest joined member (apart current user)
-                    for (RoomMember m : members) {
-                        memberTimeStamp = m.getOriginServerTs();
+                    // sort algo: oldest join first, then oldest invited
+                    Collections.sort(members, new Comparator<RoomMember>() {
+                        @Override
+                        public int compare(RoomMember r1, RoomMember r2) {
+                            int res;
+                            long diff;
 
-                        if (!TextUtils.equals(m.getUserId(), getMyUserId())) {
-                            if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership) &&  (memberTimeStamp<inviteTimeStamp)) {
-                                inviteTimeStamp = memberTimeStamp;
-                                directChatMember = m;
+                            if(RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
+                                res = 1;
+                            } else if(r2.membership.equals(r1.membership)) {
+                                diff = r1.getOriginServerTs() - r2.getOriginServerTs();
+                                res = (0==diff) ? 0: ((diff>0) ? 1 : -1);
                             }
+                            else {
+                                res = -1;
+                            }
+                            return res;
+                        }
+                    });
+
+                    RoomMember directChatMember = null;
+                    int nextIndexSearch = 0;
+
+                    // take the oldest join member
+                    if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                        if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                            directChatMember = members.get(0);
+                        }
+                    } else {
+                        nextIndexSearch = 1;
+                        if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership) ) {
+                            directChatMember = members.get(1);
                         }
                     }
 
-                    // if no joined member was found, try the oldest invited member
-                    if (null == directChatMember) {
-                        inviteTimeStamp = Long.MAX_VALUE;
-                        for (RoomMember m : members) {
-                            memberTimeStamp = m.getOriginServerTs();
-
-                            if (RoomMember.MEMBERSHIP_INVITE.equals(m.membership) && (memberTimeStamp < inviteTimeStamp)) {
-                                inviteTimeStamp = memberTimeStamp;
-                                directChatMember = m;
-                            }
+                    // no join member found, test the oldest join member
+                    if(null == directChatMember) {
+                        if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
+                            directChatMember = members.get(nextIndexSearch);
                         }
                     }
 
