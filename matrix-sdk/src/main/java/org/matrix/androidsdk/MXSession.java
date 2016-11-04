@@ -1199,53 +1199,54 @@ public class MXSession {
                 params = new HashMap<>();
             }
 
-            // the room was not seen as direct chat
+            // if the room was not yet seen as direct chat
             if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
                 ArrayList<String> roomIdsList = new ArrayList<>();
+                RoomMember directChatMember = null;
                 String chosenUserId;
 
                 if(null == aParticipantUserId) {
                     ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
-                    // sort algo: oldest join first, then oldest invited
-                    Collections.sort(members, new Comparator<RoomMember>() {
-                        @Override
-                        public int compare(RoomMember r1, RoomMember r2) {
-                            int res;
-                            long diff;
+                    if(members.size()>1) {
+                        // sort algo: oldest join first, then oldest invited
+                        Collections.sort(members, new Comparator<RoomMember>() {
+                            @Override
+                            public int compare(RoomMember r1, RoomMember r2) {
+                                int res;
+                                long diff;
 
-                            if(RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
-                                res = 1;
-                            } else if(r2.membership.equals(r1.membership)) {
-                                diff = r1.getOriginServerTs() - r2.getOriginServerTs();
-                                res = (0==diff) ? 0: ((diff>0) ? 1 : -1);
+                                if (RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
+                                    res = 1;
+                                } else if (r2.membership.equals(r1.membership)) {
+                                    diff = r1.getOriginServerTs() - r2.getOriginServerTs();
+                                    res = (0 == diff) ? 0 : ((diff > 0) ? 1 : -1);
+                                } else {
+                                    res = -1;
+                                }
+                                return res;
                             }
-                            else {
-                                res = -1;
+                        });
+
+                        int nextIndexSearch = 0;
+
+                        // take the oldest join member
+                        if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                                directChatMember = members.get(0);
                             }
-                            return res;
+                        } else {
+                            nextIndexSearch = 1;
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership)) {
+                                directChatMember = members.get(1);
+                            }
                         }
-                    });
 
-                    RoomMember directChatMember = null;
-                    int nextIndexSearch = 0;
-
-                    // take the oldest join member
-                    if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
-                        if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
-                            directChatMember = members.get(0);
-                        }
-                    } else {
-                        nextIndexSearch = 1;
-                        if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership) ) {
-                            directChatMember = members.get(1);
-                        }
-                    }
-
-                    // no join member found, test the oldest join member
-                    if(null == directChatMember) {
-                        if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
-                            directChatMember = members.get(nextIndexSearch);
+                        // no join member found, test the oldest join member
+                        if (null == directChatMember) {
+                            if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
+                                directChatMember = members.get(nextIndexSearch);
+                            }
                         }
                     }
 
@@ -1254,20 +1255,21 @@ public class MXSession {
                         directChatMember = members.get(0);
                     }
 
-                    // search if there is an entry with the same user
-                    if (params.containsKey(directChatMember.getUserId())) {
-                        roomIdsList = new ArrayList<>(params.get(directChatMember.getUserId()));
-                    }
                     chosenUserId = directChatMember.getUserId();
                 } else {
                     chosenUserId = aParticipantUserId;
                 }
 
-                roomIdsList.add(roomId);
+                // search if there is an entry with the same user
+                if (params.containsKey(chosenUserId)) {
+                    roomIdsList = new ArrayList<>(params.get(chosenUserId));
+                }
+
+                roomIdsList.add(roomId); // update room list with the new room
                 params.put(chosenUserId, roomIdsList);
             } else {
                 // remove the current room from the direct chat list rooms
-                Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+               Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
 
                 for (List<String> list : listOfList) {
                     if (list.contains(roomId)) {
