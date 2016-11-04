@@ -1176,6 +1176,31 @@ public class MXSession {
     }
 
     /**
+     * Return the list of the direct chat rooms for the user given in parameter.<br>
+     * Based on the account_data map content, the entry associated with aSearchedUserId is returned.
+     * @param aSearchedUserId user ID
+     * @return the list of the direct chat room Id
+     */
+    public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        IMXStore store = getDataHandler().getStore();
+
+        HashMap<String, List<String>> params;
+
+        if(null != (params = new HashMap<>(store.getDirectChatRoomsDict()))){
+            if (params.containsKey(aSearchedUserId)) {
+                directChatRoomIdsList = new ArrayList<>(params.get(aSearchedUserId));
+            } else {
+                Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): UserId "+aSearchedUserId+" has no entry in account_data");
+            }
+        } else {
+            Log.e(LOG_TAG,"## getDirectChatRoomIdsList(): failure - getDirectChatRoomsDict()=null");
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    /**
      * Toggles the direct chat status of a room.<br>
      * Create a new direct chat room in the account data section if the room does not exist,
      * otherwise the room is removed from the account data section.
