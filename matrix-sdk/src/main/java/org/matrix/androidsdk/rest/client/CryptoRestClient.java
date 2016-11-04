@@ -56,7 +56,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param deviceId he explicit device_id to use for upload (default is to use the same as that used during auth).
      * @param callback the asynchronous callback
      */
-    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, String> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
+    public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, Object> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
         final String description = "uploadKeys";
 
         String encodedDeviceId = JsonUtils.convertToUTF8(deviceId);
@@ -153,15 +153,18 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
                 HashMap<String, Map<String, MXKey>> map = new HashMap();
 
-
                 if (null != keysClaimResponse.oneTimeKeys) {
                     for(String userId : keysClaimResponse.oneTimeKeys.keySet()) {
-                        Map<String, Map<String, String>> mapByUserId = keysClaimResponse.oneTimeKeys.get(userId);
+                        Map<String, Map<String, Map<String, Object>>> mapByUserId = keysClaimResponse.oneTimeKeys.get(userId);
 
                         HashMap<String, MXKey> keysMap = new HashMap<>();
 
                         for(String deviceId : mapByUserId.keySet()) {
-                            keysMap.put(deviceId, new MXKey(mapByUserId.get(deviceId)));
+                            try {
+                                keysMap.put(deviceId, new MXKey(mapByUserId.get(deviceId)));
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices : fail to create a MXKey " + e.getMessage());
+                            }
                         }
 
                         if (keysMap.size() != 0) {

@@ -375,7 +375,7 @@ public class MXCrypto {
                 // these factors.
 
                 // We first find how many keys the server has for us.
-                Integer keyInt = keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519");
+                Integer keyInt = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
                 int keyCount = (null == keyInt) ? 0 : keyInt;
 
                 // We then check how many keys we can store in the Account object.
@@ -779,8 +779,10 @@ public class MXCrypto {
         // Prepare the request for claiming one-time keys
         MXUsersDevicesMap<String> usersDevicesToClaim = new MXUsersDevicesMap<>();
 
+        final String oneTimeKeyAlgorithm = MXKey.KEY_SIGNED_CURVE_25519_TYPE;
+
         for (MXDeviceInfo device : devicesWithoutSession){
-            usersDevicesToClaim.setObject(MXKey.KEY_CURVE_25519_TYPE, device.userId, device.deviceId);
+            usersDevicesToClaim.setObject(oneTimeKeyAlgorithm, device.userId, device.deviceId);
         }
 
         // TODO: this has a race condition - if we try to send another message
@@ -806,16 +808,32 @@ public class MXCrypto {
                             for (String deviceId : deviceIds) {
                                 MXKey key = oneTimeKeys.objectForDevice(deviceId, userId);
 
-                                if ((null != key) && TextUtils.equals(key.type, MXKey.KEY_CURVE_25519_TYPE)) {
-                                    // Update the result for this device in results
-                                    MXOlmSessionResult olmSessionResult = results.objectForDevice(deviceId, userId);
+                                if ((null != key) &&
+                                        (null != key.signatures) &&
+                                        key.signatures.containsKey(userId) &&
+                                        TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
 
-                                    MXDeviceInfo device = olmSessionResult.mDevice;
-                                    olmSessionResult.mSessionId = mOlmDevice.createOutboundSession(device.identityKey(), key.value);
+                                    String signKeyId = "ed25519:" + deviceId;
+                                    String signature = key.signatureForUserId(userId, signKeyId);
 
-                                    Log.d(LOG_TAG, "Started new sessionid " + olmSessionResult.mSessionId + " for device " + device);
+                                    if (TextUtils.isEmpty(signature)) {
+                                        Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : no signature for userid " + userId + " deviceId " + deviceId);
+                                    } else {
+                                        // Update the result for this device in results
+                                        MXOlmSessionResult olmSessionResult = results.objectForDevice(deviceId, userId);
+                                        MXDeviceInfo device = olmSessionResult.mDevice;
+
+                                        String signKey = device.keys.get(signKeyId);
+
+                                        if (mOlmDevice.verifySignature(signKey, key.signalableJSONDictionary(), signature)) {
+                                            olmSessionResult.mSessionId = mOlmDevice.createOutboundSession(device.identityKey(), key.value);
+                                            Log.d(LOG_TAG, "Started new sessionid " + olmSessionResult.mSessionId + " for device " + device);
+                                        } else {
+                                            Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : Unable to verify signature on device " + userId + ":" + deviceId);
+                                        }
+                                    }
                                 } else {
-                                    Log.d(LOG_TAG, "No one-time keys for device " + userId + " : " + deviceId);
+                                    Log.d(LOG_TAG, "No valid one-time keys for device " + userId + " : " + deviceId);
                                 }
                             }
                         }
@@ -1308,13 +1326,25 @@ public class MXCrypto {
      */
     private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
         final Map<String, Map<String, String>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
-        HashMap<String, String> oneTimeJson = new HashMap<>();
+        HashMap<String, Object> oneTimeJson = new HashMap<>();
 
         Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
 
         if (null != curve25519Map) {
             for(String key_id : curve25519Map.keySet()) {
-                oneTimeJson.put("curve25519:" + key_id, curve25519Map.get(key_id));
+                HashMap<String, Object> k = new HashMap<>();
+                k.put("key", curve25519Map.get(key_id));
+
+                // the key is also signed
+                String signature = mOlmDevice.signJSON(k);
+                HashMap<String, String> submap = new HashMap<>();
+                submap.put("ed25519:" + mMyDevice.deviceId,  signature);
+
+                HashMap<String, Map<String, String> > map = new HashMap<>();
+                map.put(mSession.getMyUserId(), submap);
+                k.put("signatures", map);
+                
+                oneTimeJson.put("signed_curve25519:" + key_id, k);
             }
         }
 

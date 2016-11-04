@@ -21,6 +21,7 @@ import android.util.Log;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +31,7 @@ public class MXKey implements Serializable {
      * Key types.
      */
     public static final String KEY_CURVE_25519_TYPE = "curve25519";
+    public static final String KEY_SIGNED_CURVE_25519_TYPE = "signed_curve25519";
     //public static final String KEY_ED_25519_TYPE = "ed25519";
 
     /**
@@ -48,6 +50,11 @@ public class MXKey implements Serializable {
     public String value;
 
     /**
+     * signature user Id -> [deviceid][signature]
+     */
+    public Map<String, Map<String, String>> signatures;
+
+    /**
      * Default constructor
      */
     public MXKey() {
@@ -57,11 +64,16 @@ public class MXKey implements Serializable {
      * Convert a map to a MXKey
      * @param map the map to convert
      */
-    public MXKey(Map<String, String> map) {
+    public MXKey(Map<String, Map<String, Object>> map) {
         if ((null != map) && (map.size() > 0)) {
             List<String> mapKeys = new ArrayList<>(map.keySet());
-            setKeyFullId(mapKeys.get(0));
-            value = map.get(mapKeys.get(0));
+
+            String firstEntry = mapKeys.get(0);
+            setKeyFullId(firstEntry);
+
+            Map<String, Object> params = map.get(firstEntry);
+            value = (String)params.get("key");
+            signatures = (Map<String, Map<String, String>>)params.get("signatures");
         }
     }
 
@@ -89,5 +101,35 @@ public class MXKey implements Serializable {
                 Log.e(LOG_TAG, "## setKeyFullId() failed : " + e.getMessage());
             }
         }
+    }
+
+    /**
+     * @return the signed data map
+     */
+    public Map<String, Object> signalableJSONDictionary() {
+        HashMap<String, Object> map = new HashMap<>();
+
+        if (null != value) {
+            map.put("key", value);
+        }
+
+        return map;
+    }
+
+    /**
+     * Returns a signature for an user Id and a signkey
+     * @param userId the user id
+     * @param signkey the sign key
+     * @return the signature
+     */
+    public String signatureForUserId(String userId, String signkey){
+        // sanity checks
+        if (!TextUtils.isEmpty(userId) && !TextUtils.isEmpty(signkey)) {
+            if ((null != signatures) && signatures.containsKey(userId)) {
+                return signatures.get(userId).get(signkey);
+            }
+        }
+
+        return null;
     }
 }
