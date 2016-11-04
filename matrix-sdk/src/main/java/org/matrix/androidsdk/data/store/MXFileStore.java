@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
@@ -2292,7 +2293,7 @@ public class MXFileStore extends MXMemoryStore {
         boolean succeed = false;
         try {
             FileOutputStream fos = new FileOutputStream(file);
-            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
             ObjectOutputStream out = new ObjectOutputStream(gz);
 
             out.writeObject(object);
