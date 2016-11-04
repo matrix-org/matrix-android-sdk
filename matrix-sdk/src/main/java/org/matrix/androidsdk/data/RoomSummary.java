@@ -118,6 +118,7 @@ public class RoomSummary implements java.io.Serializable {
         } else if (!TextUtils.isEmpty(type)){
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||

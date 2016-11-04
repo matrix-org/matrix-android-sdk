@@ -27,7 +27,9 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
@@ -1426,10 +1428,31 @@ public class MXSession {
     }
 
     /**
+     * When the encryption is toogled, the room summaries must be updated
+     * to display the right messages.
+     */
+    private void decryptRoomSummaries() {
+        Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
+
+        for(RoomSummary summary :summaries) {
+            Event latestEvent = summary.getLatestReceivedEvent();
+
+            if ((null != latestEvent) && TextUtils.equals(latestEvent.getWireType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                if (null != mCrypto) {
+                    latestEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(latestEvent));
+                } else {
+                    latestEvent.setClearEvent(null);
+                    latestEvent.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+                }
+            }
+        }
+    }
+
+    /**
      * Enable / disable the crypto
      * @param cryptoEnabled true to enable the crypto
      */
-    public void enableCrypto(boolean cryptoEnabled, ApiCallback<Void> callback) {
+    public void enableCrypto(boolean cryptoEnabled, final ApiCallback<Void> callback) {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
                 Log.d(LOG_TAG, "Crypto is enabled");
@@ -1437,13 +1460,45 @@ public class MXSession {
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore);
-                mCrypto.start(callback);
+                mCrypto.start(new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        decryptRoomSummaries();
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
             } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
                 IMXCryptoStore store = mCrypto.mCryptoStore;
                 mCrypto.close();
                 store.deleteStore();
                 mCrypto = null;
+                mDataHandler.setCrypto(null);
+
+                decryptRoomSummaries();
 
                 if (null != callback) {
                     callback.onSuccess(null);

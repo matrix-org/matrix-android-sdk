@@ -31,6 +31,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -187,18 +188,23 @@ public class EventDisplay {
                         ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
+                text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
                 String message = null;
 
                 if (null != mEvent.getCryptoError()) {
-                    message = mEvent.getCryptoError().getLocalizedMessage();
-
-                    if (!TextUtils.isEmpty(message)) {
-                        message = "** " + message + " **";
+                    if (TextUtils.equals(mEvent.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLE)) {
+                        message = mContext.getString(R.string.encrypted_message);
+                    } else {
+                        message = mEvent.getCryptoError().getLocalizedMessage();
+                        if (!TextUtils.isEmpty(message)) {
+                            message = "**" + message + "**";
+                        }
                     }
                 }
 
-                if (TextUtils.isEmpty(message)) {
+                if (TextUtils.isEmpty(message) ) {
                     message = mContext.getString(R.string.encrypted_message);
                 }
 

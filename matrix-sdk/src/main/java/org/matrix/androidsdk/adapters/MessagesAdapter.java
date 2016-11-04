@@ -806,8 +806,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||
                         Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) ||
                         Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType) ||
-                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)
-                ) {
+                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType) ||
+                        Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
             viewType = ROW_TYPE_NOTICE;
 
         } else {
@@ -2426,7 +2426,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return display.getTextualDisplay() != null;
         } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
             return true;
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType) || Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
             return true;
         }
         return false;
