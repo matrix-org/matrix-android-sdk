@@ -1176,7 +1176,7 @@ public class MXSession {
     }
 
     /**
-     * Return the list of the direct chat rooms for the user given in parameter.<br>
+     * Return the list of the direct chat room IDs for the user given in parameter.<br>
      * Based on the account_data map content, the entry associated with aSearchedUserId is returned.
      * @param aSearchedUserId user ID
      * @return the list of the direct chat room Id
@@ -1184,12 +1184,20 @@ public class MXSession {
     public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
         ArrayList<String> directChatRoomIdsList = new ArrayList<>();
         IMXStore store = getDataHandler().getStore();
+        Room room;
 
         HashMap<String, List<String>> params;
 
         if(null != (params = new HashMap<>(store.getDirectChatRoomsDict()))){
             if (params.containsKey(aSearchedUserId)) {
-                directChatRoomIdsList = new ArrayList<>(params.get(aSearchedUserId));
+                directChatRoomIdsList = new ArrayList<>();
+
+                for(String roomId: params.get(aSearchedUserId)) {
+                    room = store.getRoom(roomId);
+                    if(null != room) { // skipp empty rooms
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
             } else {
                 Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): UserId "+aSearchedUserId+" has no entry in account_data");
             }
