@@ -1873,7 +1873,15 @@ public class Room {
             mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
                 @Override
                 public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                    // update the event content with the encrypted data
+                    event.type = encryptEventContentResult.mEventType;
+                    event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
+                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
+
+                    // warn the upper layer
                     mDataHandler.onEventEncrypted(event);
+
+                    // sending in progress
                     event.mSentState = Event.SentState.SENDING;
                     mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                 }
