@@ -630,7 +630,7 @@ public class MXSession {
     }
 
     /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
+     * Shorthand for {@link #startEventStream(EventsThreadListener, NetworkConnectivityReceiver, String)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
      * @param initialToken the initial sync token (null to sync from scratch).
@@ -1176,11 +1176,50 @@ public class MXSession {
     }
 
     /**
-     * Toggles the direct chat status of a room
+     * Return the list of the direct chat room IDs for the user given in parameter.<br>
+     * Based on the account_data map content, the entry associated with aSearchedUserId is returned.
+     * @param aSearchedUserId user ID
+     * @return the list of the direct chat room Id
+     */
+    public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        IMXStore store = getDataHandler().getStore();
+        Room room;
+
+        HashMap<String, List<String>> params;
+
+        if(null != (params = new HashMap<>(store.getDirectChatRoomsDict()))){
+            if (params.containsKey(aSearchedUserId)) {
+                directChatRoomIdsList = new ArrayList<>();
+
+                for(String roomId: params.get(aSearchedUserId)) {
+                    room = store.getRoom(roomId);
+                    if(null != room) { // skipp empty rooms
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
+            } else {
+                Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): UserId "+aSearchedUserId+" has no entry in account_data");
+            }
+        } else {
+            Log.e(LOG_TAG,"## getDirectChatRoomIdsList(): failure - getDirectChatRoomsDict()=null");
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    /**
+     * Toggles the direct chat status of a room.<br>
+     * Create a new direct chat room in the account data section if the room does not exist,
+     * otherwise the room is removed from the account data section.
+     * Direct chat room user ID choice algorithm:<br>
+     * 1- oldest joined room member
+     * 2- oldest invited room member
+     * 3- the user himself
      * @param roomId the room roomId
      * @param callback the asynchronous callback
      */
-    public void toogleDirectChatRoom(String roomId, ApiCallback<Void> callback) {
+    public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
         Room room = store.getRoom(roomId);
 
@@ -1193,35 +1232,77 @@ public class MXSession {
                 params = new HashMap<>();
             }
 
-            // the room was not seen as direct chat
+            // if the room was not yet seen as direct chat
             if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
-                // find the first other active members
-                ArrayList<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
-
-                RoomMember member = null;
-
-                for(RoomMember m : members) {
-                    if (!TextUtils.equals(m.getUserId(), getMyUserId())) {
-                        member = m;
-                        break;
-                    }
-                }
-
-                if (null == member) {
-                    member = members.get(0);
-                }
-
                 ArrayList<String> roomIdsList = new ArrayList<>();
+                RoomMember directChatMember = null;
+                String chosenUserId;
+
+                if(null == aParticipantUserId) {
+                    ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
+
+                    if(members.size()>1) {
+                        // sort algo: oldest join first, then oldest invited
+                        Collections.sort(members, new Comparator<RoomMember>() {
+                            @Override
+                            public int compare(RoomMember r1, RoomMember r2) {
+                                int res;
+                                long diff;
+
+                                if (RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
+                                    res = 1;
+                                } else if (r2.membership.equals(r1.membership)) {
+                                    diff = r1.getOriginServerTs() - r2.getOriginServerTs();
+                                    res = (0 == diff) ? 0 : ((diff > 0) ? 1 : -1);
+                                } else {
+                                    res = -1;
+                                }
+                                return res;
+                            }
+                        });
+
+                        int nextIndexSearch = 0;
+
+                        // take the oldest join member
+                        if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                                directChatMember = members.get(0);
+                            }
+                        } else {
+                            nextIndexSearch = 1;
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership)) {
+                                directChatMember = members.get(1);
+                            }
+                        }
+
+                        // no join member found, test the oldest join member
+                        if (null == directChatMember) {
+                            if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
+                                directChatMember = members.get(nextIndexSearch);
+                            }
+                        }
+                    }
+
+                    // last option: get the logged user
+                    if (null == directChatMember) {
+                        directChatMember = members.get(0);
+                    }
+
+                    chosenUserId = directChatMember.getUserId();
+                } else {
+                    chosenUserId = aParticipantUserId;
+                }
 
                 // search if there is an entry with the same user
-                if (params.containsKey(member.getUserId())) {
-                    roomIdsList= new ArrayList<>(params.get(member.getUserId()));
+                if (params.containsKey(chosenUserId)) {
+                    roomIdsList = new ArrayList<>(params.get(chosenUserId));
                 }
 
-                roomIdsList.add(roomId);
-                params.put(member.getUserId(), roomIdsList);
+                roomIdsList.add(roomId); // update room list with the new room
+                params.put(chosenUserId, roomIdsList);
             } else {
-                Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+                // remove the current room from the direct chat list rooms
+               Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
 
                 for (List<String> list : listOfList) {
                     if (list.contains(roomId)) {
