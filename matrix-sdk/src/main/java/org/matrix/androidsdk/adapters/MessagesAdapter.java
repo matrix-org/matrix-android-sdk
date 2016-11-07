@@ -1675,7 +1675,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         bodyTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_TEXT);
 
         addContentViewListeners(convertView, bodyTextView, position);
 
@@ -2082,7 +2083,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             refreshMatrixSpans(strBuilder);
             noticeTextView.setText(strBuilder);
         }
-        this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
+
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_NOTICE);
 
         addContentViewListeners(convertView, noticeTextView, position);
 
@@ -2163,7 +2166,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         emoteTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_EMOTE);
 
         addContentViewListeners(convertView, emoteTextView, position);
 
