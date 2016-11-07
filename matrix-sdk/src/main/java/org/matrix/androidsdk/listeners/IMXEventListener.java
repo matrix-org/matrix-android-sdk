@@ -48,6 +48,11 @@ public interface IMXEventListener {
     void onIgnoredUsersListUpdate();
 
     /**
+     * The direct chat rooms list have been updated.
+     */
+    void onDirectMessageChatRoomsListUpdate();
+
+    /**
      * A live room event was received.
      * @param event the event
      * @param roomState the room state right before the event

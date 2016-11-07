@@ -249,10 +249,12 @@ public class MXMemoryStore implements IMXStore {
     /**
      * profile information
      */
+    @Override
     public String displayName() {
         return mMetadata.mUserDisplayName;
     }
 
+    @Override
     public void setDisplayName(String displayName) {
         if (!TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
             mMetadata.mUserDisplayName = displayName;
@@ -273,10 +275,12 @@ public class MXMemoryStore implements IMXStore {
         }
     }
 
+    @Override
     public String avatarURL() {
         return mMetadata.mUserAvatarUrl;
     }
 
+    @Override
     public void setAvatarURL(String avatarURL) {
         if (!TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
             mMetadata.mUserAvatarUrl = avatarURL;
@@ -293,10 +297,12 @@ public class MXMemoryStore implements IMXStore {
         }
     }
 
+    @Override
     public List<ThirdPartyIdentifier> thirdPartyIdentifiers() {
         return mMetadata.mThirdPartyIdentifiers;
     }
 
+    @Override
     public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
         mMetadata.mThirdPartyIdentifiers = identifiers;
 
@@ -304,13 +310,27 @@ public class MXMemoryStore implements IMXStore {
         commit();
     }
 
+    @Override
     public List<String> getIgnoredUserIdsList() {
         return mMetadata.mIgnoredUsers;
     }
 
+    @Override
     public void setIgnoredUserIdsList(List<String> users) {
         mMetadata.mIgnoredUsers = users;
         Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
+        commit();
+    }
+
+    @Override
+    public Map<String, List<String>> getDirectChatRoomsDict() {
+        return mMetadata.mDirectChatRoomsMap;
+    }
+
+    @Override
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        mMetadata.mDirectChatRoomsMap = directChatRoomsDict;
+        Log.d(LOG_TAG, "setDirectChatRoomsDict : commit");
         commit();
     }
 
@@ -357,6 +377,7 @@ public class MXMemoryStore implements IMXStore {
      * Update the user information from a room member.
      * @param roomMember the room member.
      */
+    @Override
     public void updateUserWithRoomMemberEvent(RoomMember roomMember) {
         try {
             if (null != roomMember) {
@@ -424,6 +445,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the room id
      * @return the event
      */
+    @Override
     public Event getLatestEvent(String roomId) {
         Event event = null;
 
@@ -454,6 +476,7 @@ public class MXMemoryStore implements IMXStore {
      * @param eventId the event id to find.
      * @return the events count after this event if
      */
+    @Override
     public int eventsCountAfter(String roomId, String eventId) {
         return eventsAfter(roomId, eventId,  mCredentials.userId, null).size();
     }
@@ -592,6 +615,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the id of the room.
      * @param keepUnsent set to true to do not delete the unsent message
      */
+    @Override
     public void deleteAllRoomMessages(String roomId, boolean keepUnsent) {
         // sanity check
         if (null != roomId) {
@@ -689,6 +713,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the room id.
      * @param backToken the back token
      */
+    @Override
     public void storeBackToken(String roomId, String backToken) {
         if ((null != roomId) && (null != backToken)) {
             mRoomTokens.put(roomId, backToken);
@@ -757,6 +782,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId The room ID
      * @return A collection of events. null if there is no cached event.
      */
+    @Override
     public Collection<Event> getRoomMessages(final String roomId) {
         // sanity check
         if (null == roomId) {
@@ -875,6 +901,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the room id
      * @return list of unsent events
      */
+    @Override
     public Collection<Event> getLatestUnsentEvents(String roomId) {
         if (null == roomId) {
             return null;
@@ -911,6 +938,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId the room id
      * @return  list of undeliverable events
      */
+    @Override
     public Collection<Event> getUndeliverableEvents(String roomId) {
         if (null == roomId) {
             return null;
@@ -949,6 +977,7 @@ public class MXMemoryStore implements IMXStore {
      * @param sort to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
      */
+    @Override
     public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
         ArrayList<ReceiptData> receipts = new ArrayList<>();
 
@@ -988,6 +1017,7 @@ public class MXMemoryStore implements IMXStore {
      * @param roomId The roomId
      * @return true if the receipt has been stored
      */
+    @Override
     public boolean storeReceipt(ReceiptData receipt, String roomId) {
         try {
             // sanity check
@@ -1065,6 +1095,7 @@ public class MXMemoryStore implements IMXStore {
      * @param userId the user id.
      * @return the dedicated receipt
      */
+    @Override
     public ReceiptData getReceipt(String roomId, String userId) {
         ReceiptData res = null;
 
@@ -1160,6 +1191,7 @@ public class MXMemoryStore implements IMXStore {
      * @param eventIdTotest the event id
      * @return true if the user has read the message.
      */
+    @Override
     public boolean isEventRead(String roomId, String userId, String eventIdTotest) {
         boolean res = false;
 
@@ -1194,6 +1226,7 @@ public class MXMemoryStore implements IMXStore {
      * @param types an array of event types strings (Event.EVENT_TYPE_XXX).
      * @return the unread events list.
      */
+    @Override
     public List<Event> unreadEvents(String roomId, List<String> types) {
         List<Event> res = null;
 

@@ -166,6 +166,10 @@ public class MXJingleCall extends MXCall {
                 PeerConnectionFactory.initializeFieldTrials(null);
                 mIsSupported = true;
                 Log.d(LOG_TAG,"## initializeAndroidGlobals(): mIsInitialized="+mIsInitialized);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
+                mIsInitialized = true;
+                mIsSupported = false;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;

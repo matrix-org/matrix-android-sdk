@@ -271,6 +271,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Open the store.
      */
+    @Override
     public void open() {
         super.open();
 
@@ -616,9 +617,16 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        Log.d(LOG_TAG, "## setIgnoredUsers() : " + users);
         mMetaDataHasChanged = true;
         super.setIgnoredUserIdsList(users);
+    }
+
+    @Override
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        Log.d(LOG_TAG, "## setDirectChatRoomsDict() : " + directChatRoomsDict);
+        mMetaDataHasChanged = true;
+        super.setDirectChatRoomsDict(directChatRoomsDict);
     }
 
     @Override
