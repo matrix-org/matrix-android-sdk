@@ -525,7 +525,7 @@ public class MXCrypto {
                             MXDeviceInfo previouslyStoredDeviceKeys = stored.objectForDevice(deviceId, userId);
 
                             // Validate received keys
-                            if (!validateDeviceKeys(devices.get(deviceId), userId, previouslyStoredDeviceKeys)) {
+                            if (!validateDeviceKeys(devices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
                                 // New device keys are not valid. Do not store them
                                 devices.remove(deviceId);
 
@@ -1388,12 +1388,24 @@ public class MXCrypto {
      * Validate device keys.
      * @param deviceKeys the device keys to validate.
      * @param userId the id of the user of the device.
+     * @param deviceId the id of the device.
      * @param previouslyStoredDeviceKeys the device keys we received before for this device
      * @return true if succeeds
      */
-    private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, MXDeviceInfo previouslyStoredDeviceKeys) {
+    private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, String deviceId, MXDeviceInfo previouslyStoredDeviceKeys) {
         if ((null == deviceKeys) || (null == deviceKeys.keys)) {
             // no keys?
+            return false;
+        }
+
+        // Check that the user_id and device_id in the received deviceKeys are correct
+        if (!TextUtils.equals(deviceKeys.userId, userId)) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched user_id " + deviceKeys.userId + " from " + userId + ":" + deviceId);
+            return false;
+        }
+
+        if (!TextUtils.equals(deviceKeys.deviceId, deviceId)) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched device_id " + deviceKeys.deviceId + " from " + userId + ":" + deviceId);
             return false;
         }
 

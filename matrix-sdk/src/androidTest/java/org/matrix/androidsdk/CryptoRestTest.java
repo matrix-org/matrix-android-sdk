@@ -33,6 +33,8 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
@@ -69,7 +71,6 @@ public class CryptoRestTest {
         assertTrue (null != mAliceSession);
     }
 
-    @Test
     public void test01_testDeviceKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
 
@@ -113,11 +114,11 @@ public class CryptoRestTest {
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
 
-        assert (null != keysUploadResponse);
-        assert(null != keysUploadResponse.oneTimeKeyCounts);
+        assertTrue (null != keysUploadResponse);
+        assertTrue(null != keysUploadResponse.oneTimeKeyCounts);
 
-        assert(0 == keysUploadResponse.oneTimeKeyCounts.size());
-        assert(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        assertTrue(0 == keysUploadResponse.oneTimeKeyCounts.size());
+        assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         final CountDownLatch lock1 = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), new ApiCallback<KeysQueryResponse>() {
@@ -146,22 +147,22 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse)results.get("keysQueryResponse");
 
-        assert (null != keysQueryResponse);
-        assert (null != keysQueryResponse.deviceKeys);
+        assertTrue (null != keysQueryResponse);
+        assertTrue (null != keysQueryResponse.deviceKeys);
 
         MXUsersDevicesMap<MXDeviceInfo> deviceInfos = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
-        assert (null != deviceInfos.userIds());
-        assert (1 == deviceInfos.userIds().size());
+        assertTrue (null != deviceInfos.userIds());
+        assertTrue (1 == deviceInfos.userIds().size());
 
         Set<String> deviceIds = deviceInfos.deviceIdsForUser(mBobSession.getMyUserId());
-        assert (null != deviceIds);
-        assert (1 == deviceIds.size());
+        assertTrue (null != deviceIds);
+        assertTrue (1 == deviceIds.size());
 
         MXDeviceInfo bobDevice2 = deviceInfos.objectForDevice("dev1", mBobSession.getMyUserId());
-        assert (null != bobDevice2);
-        assert(TextUtils.equals(bobDevice2.deviceId, "dev1"));
-        assert(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
+        assertTrue (null != bobDevice2);
+        assertTrue(TextUtils.equals(bobDevice2.deviceId, "dev1"));
+        assertTrue(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
 
         mBobSession.clear(context);
     }
@@ -173,7 +174,7 @@ public class CryptoRestTest {
         createBobAccount();
 
         final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, String> otks = new HashMap<>();
+        final HashMap<String, Object> otks = new HashMap<>();
 
         otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
@@ -204,12 +205,12 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
-        assert (null != keysUploadResponse);
-        assert (null != keysUploadResponse.oneTimeKeyCounts);
-        assert (1 == keysUploadResponse.oneTimeKeyCounts.size());
+        assertTrue (null != keysUploadResponse);
+        assertTrue (null != keysUploadResponse.oneTimeKeyCounts);
+        assertTrue (1 == keysUploadResponse.oneTimeKeyCounts.size());
 
-        assert (2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
-        assert (0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        assertTrue (2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
+        assertTrue (0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         mBobSession.clear(context);
     }
@@ -222,10 +223,33 @@ public class CryptoRestTest {
         createAliceAccount();
 
         final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, String> otks = new HashMap<>();
+        final HashMap<String, Object> otks = new HashMap<>();
 
-        otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
-        otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
+        {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("key", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
+
+            HashMap<String, String> signaturesubMap = new HashMap<>();
+            signaturesubMap.put("ed25519:deviceId1", "signature1");
+            HashMap<String, Object> signatureMap = new HashMap<>();
+            signatureMap.put("@user1", signaturesubMap);
+            map.put("signatures", signatureMap);
+
+            otks.put("curve25519:AAAABQ", map);
+        }
+
+        {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("key", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
+
+            HashMap<String, String> signaturesubMap = new HashMap<>();
+            signaturesubMap.put("ed25519:deviceId2", "signature2");
+            HashMap<String, Object> signatureMap = new HashMap<>();
+            signatureMap.put("@user2", signaturesubMap);
+            map.put("signatures", signatureMap);
+
+            otks.put("curve25519:AAAABA", map);
+        }
 
         final CountDownLatch lock1 = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
@@ -254,7 +278,7 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
-        assert (null != bobKeysUploadResponse);
+        assertTrue (null != bobKeysUploadResponse);
 
         MXUsersDevicesMap<String> usersDevicesKeyTypesMap = new MXUsersDevicesMap<>();
         usersDevicesKeyTypesMap.setObject("curve25519", mBobSession.getMyUserId(), "dev1");
@@ -286,17 +310,22 @@ public class CryptoRestTest {
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>)results.get("usersDevicesMap");
-        assert (null != oneTimeKeys);
-        assert (null !=  oneTimeKeys.getMap());
-        assert (1 ==  oneTimeKeys.getMap().size());
+        assertTrue (null != oneTimeKeys);
+        assertTrue (null !=  oneTimeKeys.getMap());
+        assertTrue (1 ==  oneTimeKeys.getMap().size());
 
         MXKey bobOtk = oneTimeKeys.objectForDevice("dev1", mBobSession.getMyUserId());
-        assert (null != bobOtk);
+        assertTrue (null != bobOtk);
 
-        assert(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));
-        assert(TextUtils.equals(bobOtk.keyId, "AAAABA"));
-        assert(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
-        assert(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
+        assertTrue(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));
+        assertTrue(TextUtils.equals(bobOtk.keyId, "AAAABA"));
+        assertTrue(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
+        assertTrue(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
+        assertTrue(null != bobOtk.signatures);
+
+        ArrayList<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
+        assertTrue(keys.size() == 1);
+
 
         mBobSession.clear(context);
         mAliceSession.clear(context);
