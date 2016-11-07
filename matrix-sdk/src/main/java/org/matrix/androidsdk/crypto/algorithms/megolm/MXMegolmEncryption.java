@@ -577,17 +577,19 @@ public class MXMegolmEncryption implements IMXEncrypting {
      * @param userId the new member.
      */
     private void onNewRoomMember(String userId) {
-        // Make sure we have a list of this user's devices. We are happy to use a
-        // cached version here: we assume that if we already have a list of the
-        // user's devices, then we already share an e2e room with them, which means
-        // that they will have announced any new devices via an m.new_device.
-        ArrayList<String> userIds = new ArrayList<>();
-        userIds.add(userId);
+        if (null != mDevicesPendingKeyShare) {
+            // Make sure we have a list of this user's devices. We are happy to use a
+            // cached version here: we assume that if we already have a list of the
+            // user's devices, then we already share an e2e room with them, which means
+            // that they will have announced any new devices via an m.new_device.
+            ArrayList<String> userIds = new ArrayList<>();
+            userIds.add(userId);
 
-        mCrypto.downloadKeys(userIds, false, null);
+            mCrypto.downloadKeys(userIds, false, null);
 
-        // also flag this user up for needing a keyshare.
-        mDevicesPendingKeyShare.setObject(true, userId, "*");
+            // also flag this user up for needing a keyshare.
+            mDevicesPendingKeyShare.setObject(true, userId, "*");
+        }
     }
 
     /**

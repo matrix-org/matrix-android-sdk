@@ -65,9 +65,8 @@ public class MXDeviceInfo implements Serializable {
 
     /*
      * Additional data from the homeserver.
-     * HS sends this data under the 'unsigned' field but it is a reserved keyword. Hence, renaming.
      */
-    public Map<String, Object> unsignedData;
+    public Map<String, Object> unsigned;
 
     /**
      Verification state of this device.
@@ -108,8 +107,8 @@ public class MXDeviceInfo implements Serializable {
      * @return the display name
      */
     public String displayName() {
-        if (null != unsignedData) {
-            return (String)unsignedData.get("device_display_name");
+        if (null != unsigned) {
+            return (String)unsigned.get("device_display_name");
         }
 
         return null;
@@ -162,9 +161,8 @@ public class MXDeviceInfo implements Serializable {
             JSONDictionary.put("signatures", signatures);
         }
 
-        if (null != unsignedData)
-        {
-            JSONDictionary.put("unsigned",  unsignedData);
+        if (null != unsigned) {
+            JSONDictionary.put("unsigned",  unsigned);
         }
 
         return JSONDictionary;

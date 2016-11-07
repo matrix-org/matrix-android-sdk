@@ -42,6 +42,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -246,6 +247,8 @@ public class CryptoRestTest {
         final HashMap<String, Object> results = new HashMap<>();
         final HashMap<String, String> otks = new HashMap<>();
 
+        final Map<String, Map<String, Map<String, Object>> allo;
+
         otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
@@ -366,6 +369,8 @@ public class CryptoRestTest {
         assert(TextUtils.equals(bobOtk.keyId, "AAAABA"));
         assert(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
         assert(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
+
+
 
         mBobSession.clear(RuntimeEnvironment.application);
         mAliceSession.clear(RuntimeEnvironment.application);

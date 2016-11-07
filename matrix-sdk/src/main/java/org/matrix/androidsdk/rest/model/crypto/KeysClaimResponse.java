@@ -25,6 +25,6 @@ public class KeysClaimResponse {
     /**
      The requested keys ordered by device by user.
      */
-    public Map<String, Map<String, Map<String, String>>> oneTimeKeys;
+    public Map<String, Map<String, Map<String, Map<String, Object>>>> oneTimeKeys;
 }
 
