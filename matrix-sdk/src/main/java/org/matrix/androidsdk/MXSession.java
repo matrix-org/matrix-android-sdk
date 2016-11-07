@@ -204,6 +204,9 @@ public class MXSession {
                     // enable
                     mCrypto = new MXCrypto(MXSession.this, store);
                     mDataHandler.setCrypto(mCrypto);
+
+                    // the room summaries are not stored with decrypted content
+                    decryptRoomSummaries();
                 }
             }
 
