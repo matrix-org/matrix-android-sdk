@@ -947,6 +947,14 @@ public class MXDataHandler implements IMXEventListener {
         if (null != syncResponse) {
             Log.d(LOG_TAG, "onSyncComplete");
 
+            // Handle the to device events before the room ones
+            // to ensure to decrypt them properly
+            if ((null != syncResponse.toDevice) && (null != syncResponse.toDevice.events)) {
+                for (Event toDeviceEvent : syncResponse.toDevice.events) {
+                    handleToDeviceEvent(toDeviceEvent);
+                }
+            }
+
             // sanity check
             if (null != syncResponse.rooms) {
 
@@ -1026,13 +1034,6 @@ public class MXDataHandler implements IMXEventListener {
             // account data
             if (null != syncResponse.accountData) {
                 manageAccountData(syncResponse.accountData, isInitialSync);
-            }
-
-            // Handle direct messages to device
-            if ((null != syncResponse.toDevice) && (null != syncResponse.toDevice.events)) {
-                for (Event toDeviceEvent : syncResponse.toDevice.events) {
-                    handleToDeviceEvent(toDeviceEvent);
-                }
             }
 
             if (!isEmptyResponse && (null !=  getStore())) {
