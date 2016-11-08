@@ -65,11 +65,11 @@ public interface CryptoApi {
     /**
      * Send an event to a specific list of devices
      * @param eventType the type of event to send
-     * @param random the random path item
+     * @param randomTransactionId the random path item
      * @param params the params
      * @param callback the asynchronous callback
      */
     @PUT("/sendToDevice/{eventType}/{random}")
-    void sendToDevice(@Path("eventType") String eventType, @Path("random") int random, @Body Map<String, Object> params, Callback<Void> callback);
+    void sendToDevice(@Path("eventType") String eventType, @Path("random") int randomTransactionId, @Body Map<String, Object> params, Callback<Void> callback);
 
 }

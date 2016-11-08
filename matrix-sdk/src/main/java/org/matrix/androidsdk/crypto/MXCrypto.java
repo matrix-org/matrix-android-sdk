@@ -71,6 +71,8 @@ public class MXCrypto {
 
     private static final long UPLOAD_KEYS_DELAY_MS = 10 * 60 * 1000;
 
+    private static final int ONE_TIME_KEY_GENERATION_MAX_NUMBER = 5;
+
     // The Matrix session.
     private final MXSession mSession;
 
@@ -211,7 +213,7 @@ public class MXCrypto {
             public void run() {
                 // check race conditions while logging out
                 if (null != mMyDevice) {
-                    uploadKeys(5, new ApiCallback<Void>() {
+                    uploadKeys(ONE_TIME_KEY_GENERATION_MAX_NUMBER, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
                             Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
@@ -375,8 +377,7 @@ public class MXCrypto {
                 // these factors.
 
                 // We first find how many keys the server has for us.
-                Integer keyInt = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
-                int keyCount = (null == keyInt) ? 0 : keyInt;
+                int keyCount  = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
 
                 // We then check how many keys we can store in the Account object.
                 float maxOneTimeKeys = mOlmDevice.maxNumberOfOneTimeKeys();
@@ -897,8 +898,9 @@ public class MXCrypto {
             String algorithm = room.getLiveState().encryptionAlgorithm();
 
             if (null != algorithm) {
-                setEncryptionInRoom(room.getRoomId(), algorithm);
-                alg = mRoomAlgorithms.get(room.getRoomId());
+                if (setEncryptionInRoom(room.getRoomId(), algorithm)) {
+                    alg = mRoomAlgorithms.get(room.getRoomId());
+                }
             }
         }
 
@@ -1014,7 +1016,9 @@ public class MXCrypto {
                 sendPingToDevice(deviceId, event.sender, event.roomId);
             }
 
-            event.setCryptoError(result.mCryptoError);
+            if (null != result) {
+                event.setCryptoError(result.mCryptoError);
+            }
         }
 
         return clearedEvent;
