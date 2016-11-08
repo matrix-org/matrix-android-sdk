@@ -1189,10 +1189,10 @@ public class MXDataHandler implements IMXEventListener {
                                     // Handle first joined rooms
                                     for (String roomId : roomIds) {
                                         Room room = getRoom(mLeftRoomsStore, roomId, true);
-                                        room.setIsHistorical(true);
 
                                         // sanity check
                                         if (null != room) {
+                                            room.setIsHistorical(true);
                                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
                                         }
                                     }

@@ -623,7 +623,7 @@ public class MXSession {
      */
     public int getSyncDelay() {
         if (null != mEventsThread) {
-            mEventsThread.getSyncDelay();
+            return mEventsThread.getSyncDelay();
         }
 
         return 0;
